@@ -1951,6 +1951,15 @@ config FB_AM200EPD
          This enables support for the Metronome display controller used on
          the E-Ink AM-200 EPD devkit.
 
+config FB_GOLDFISH
+	tristate "Goldfish Framebuffer"
+	depends on FB
+	select FB_CFB_FILLRECT
+	select FB_CFB_COPYAREA
+	select FB_CFB_IMAGEBLIT
+	---help---
+	  Framebuffer driver for Goldfish Virtual Platform
+
 config FB_VIRTUAL
 	tristate "Virtual Frame Buffer support (ONLY FOR TESTING!)"
 	depends on FB
