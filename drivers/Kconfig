@@ -98,6 +98,8 @@ source "drivers/dca/Kconfig"
 
 source "drivers/auxdisplay/Kconfig"
 
+source "drivers/android/Kconfig"
+
 source "drivers/uio/Kconfig"
 
 source "drivers/dsp/dspbridge/Kconfig"
