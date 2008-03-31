@@ -1094,6 +1094,12 @@ config DEVPORT
 	depends on ISA || PCI
 	default y
 
+config GOLDFISH_TTY
+	tristate "Goldfish TTY Driver"
+	default n
+	help
+	  TTY driver for Goldfish Virtual Platform.
+
 source "drivers/s390/char/Kconfig"
 
 endmenu
