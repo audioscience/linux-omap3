@@ -36,6 +36,10 @@ extern void ldp_flash_init(void);
 
 #ifdef CONFIG_TWL4030_CORE
 
+#define OMAP34XX_ETHR_START		DEBUG_BASE
+#define LDP_SMC911X_CS		1
+#define LDP_SMC911X_GPIO		152
+
 #define TWL4030_IRQNUM INT_34XX_SYS_NIRQ
 /* TWL4030 Primary Interrupt Handler (PIH) interrupts */
 #define	IH_TWL4030_BASE		IH_BOARD_BASE

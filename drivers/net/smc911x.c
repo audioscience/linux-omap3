@@ -232,8 +232,16 @@ static void smc911x_reset(struct net_device *dev)
 	struct smc911x_local *lp = netdev_priv(dev);
 	unsigned int reg, timeout=0, resets=1;
 	unsigned long flags;
+	int phyaddr = lp->mii.phy_id;
+	int bmcr;
 
 	DBG(SMC_DEBUG_FUNC, "%s: --> %s\n", dev->name, __FUNCTION__);
+
+	/* Link Power ON */
+	SMC_GET_PHY_BMCR(phyaddr, bmcr);
+	bmcr &= ~BMCR_PDOWN;
+	SMC_SET_PHY_BMCR(phyaddr, bmcr);
+	mdelay(10);
 
 	/*	 Take out of PM setting first */
 	if ((SMC_GET_PMT_CTRL() & PMT_CTRL_READY_) == 0) {
@@ -244,7 +252,7 @@ static void smc911x_reset(struct net_device *dev)
 			udelay(10);
 			reg = SMC_GET_PMT_CTRL() & PMT_CTRL_READY_;
 		} while ( timeout-- && !reg);
-		if (timeout == 0) {
+		if (timeout <= 0) {
 			PRINTK("%s: smc911x_reset timeout waiting for PM restore\n", dev->name);
 			return;
 		}
@@ -269,7 +277,7 @@ static void smc911x_reset(struct net_device *dev)
 			}
 		} while ( timeout-- && (reg & HW_CFG_SRST_));
 	}
-	if (timeout == 0) {
+	if (timeout <= 0) {
 		PRINTK("%s: smc911x_reset timeout waiting for reset\n", dev->name);
 		return;
 	}
@@ -279,7 +287,7 @@ static void smc911x_reset(struct net_device *dev)
 	while ( timeout-- && (SMC_GET_E2P_CMD() & E2P_CMD_EPC_BUSY_)) {
 		udelay(10);
 	}
-	if (timeout == 0){
+	if (timeout <= 0) {
 		PRINTK("%s: smc911x_reset timeout waiting for EEPROM busy\n", dev->name);
 		return;
 	}
@@ -414,9 +422,8 @@ static inline void smc911x_drop_pkt(struct net_device *dev)
 			udelay(10);
 			reg = SMC_GET_RX_DP_CTRL() & RX_DP_CTRL_FFWD_BUSY_;
 		} while ( timeout-- && reg);
-		if (timeout == 0) {
+		if (timeout <= 0)
 			PRINTK("%s: timeout waiting for RX fast forward\n", dev->name);
-		}
 	}
 }
 
@@ -1902,7 +1909,7 @@ static int __init smc911x_probe(struct net_device *dev, unsigned long ioaddr)
 	 * recognize.	These might need to be added to later,
 	 * as future revisions could be added.
 	 */
-	chip_id = SMC_GET_PN();
+	chip_id = 0xffff & SMC_GET_PN();
 	DBG(SMC_DEBUG_MISC, "%s: id probe returned 0x%04x\n", CARDNAME, chip_id);
 	for(i=0;chip_ids[i].id != 0; i++) {
 		if (chip_ids[i].id == chip_id) break;
@@ -2136,7 +2143,7 @@ static int smc911x_drv_probe(struct platform_device *pdev)
 		ret = -ENODEV;
 		goto out;
 	}
-
+#ifndef SMC_MEM_REGION_RESERVED
 	/*
 	 * Request the regions.
 	 */
@@ -2144,7 +2151,7 @@ static int smc911x_drv_probe(struct platform_device *pdev)
 		 ret = -EBUSY;
 		 goto out;
 	}
-
+#endif
 	ndev = alloc_etherdev(sizeof(struct smc911x_local));
 	if (!ndev) {
 		printk("%s: could not allocate device.\n", CARDNAME);
@@ -2161,6 +2168,7 @@ static int smc911x_drv_probe(struct platform_device *pdev)
 	addr = ioremap(res->start, SMC911X_IO_EXTENT);
 	if (!addr) {
 		ret = -ENOMEM;
+		printk("c\n");
 		goto release_both;
 	}
 
@@ -2172,7 +2180,9 @@ static int smc911x_drv_probe(struct platform_device *pdev)
 release_both:
 		free_netdev(ndev);
 release_1:
+#ifndef SMC_MEM_REGION_RESERVED
 		release_mem_region(res->start, SMC911X_IO_EXTENT);
+#endif
 out:
 		printk("%s: not found (%d).\n", CARDNAME, ret);
 	}
@@ -2211,8 +2221,9 @@ static int smc911x_drv_remove(struct platform_device *pdev)
 #endif
 	iounmap((void *)ndev->base_addr);
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+#ifndef SMC_MEM_REGION_RESERVED
 	release_mem_region(res->start, SMC911X_IO_EXTENT);
-
+#endif
 	free_netdev(ndev);
 	return 0;
 }

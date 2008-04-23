@@ -42,6 +42,11 @@
   #define SMC_USE_16BIT		0
   #define SMC_USE_32BIT		1
   #define SMC_IRQ_SENSE		IRQF_TRIGGER_LOW
+#elif defined(CONFIG_MACH_OMAP_LDP)
+  #define SMC_USE_16BIT		0
+  #define SMC_USE_32BIT		1
+  #define SMC_IRQ_SENSE		IRQF_TRIGGER_LOW
+  #define SMC_MEM_REGION_RESERVED 1
 #endif
 
 
@@ -57,8 +62,8 @@
 #define SMC_outw(v, a, r)		 writew(v, (a) + (r))
 #define SMC_outl(v, a, r) 			 \
 	do{					 \
-		 writel(v & 0xFFFF, (a) + (r));	 \
-		 writel(v >> 16, (a) + (r) + 2); \
+		 writel((v) & 0xFFFF, (a) + (r));	 \
+		 writel((v) >> 16, (a) + (r) + 2); \
 	 } while (0)
 #define SMC_insl(a, r, p, l)	 readsw((short*)((a) + (r)), p, l*2)
 #define SMC_outsl(a, r, p, l)	 writesw((short*)((a) + (r)), p, l*2)
@@ -608,6 +613,7 @@ smc_pxa_dma_outsw(struct device *dev, u_long ioaddr, u_long physaddr,
 #define CHIP_9116	0x116
 #define CHIP_9117	0x117
 #define CHIP_9118	0x118
+#define CHIP_9211	0x9211
 
 struct chip_id {
 	u16 id;
@@ -619,6 +625,7 @@ static const struct chip_id chip_ids[] =  {
 	{ CHIP_9116, "LAN9116" },
 	{ CHIP_9117, "LAN9117" },
 	{ CHIP_9118, "LAN9118" },
+	{ CHIP_9211, "LAN9211" },
 	{ 0, NULL },
 };
 
