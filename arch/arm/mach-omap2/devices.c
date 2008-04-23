@@ -358,6 +358,22 @@ static inline void omap_hdq_init(void)
 static inline void omap_hdq_init(void) {}
 #endif
 
+#ifdef CONFIG_TWL4030_BCI_BATTERY
+static struct platform_device omap_bci_battery_device = {
+	.name           = "twl4030-bci-battery",
+	.id             = 1,
+	.num_resources  = 0,
+	.resource       = NULL,
+};
+
+static inline void omap_bci_battery_init(void)
+{
+	(void) platform_device_register(&omap_bci_battery_device);
+}
+#else
+static inline void omap_bci_battery_init(void) {}
+#endif
+
 /*-------------------------------------------------------------------------*/
 
 static int __init omap2_init_devices(void)
@@ -369,6 +385,7 @@ static int __init omap2_init_devices(void)
 	omap_init_mbox();
 	omap_init_mcspi();
 	omap_hdq_init();
+	omap_bci_battery_init();
 	omap_init_sti();
 	omap_init_sha1_md5();
 
