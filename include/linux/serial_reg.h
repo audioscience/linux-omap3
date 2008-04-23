@@ -324,5 +324,10 @@
 #define UART_OMAP_SYSC		0x15	/* System configuration register */
 #define UART_OMAP_SYSS		0x16	/* System status register */
 
+#define UART_OMAP_RESUME	0x0B	/* Read resumes halted operation */
+#define UART_OMAP_RXFLL		0x0C	/* Received frame length reg low */
+#define UART_OMAP_RXFLH		0x0D	/* Received frame length reg high */
+#define UART_OMAP_ACREG		0x0F	/* Auxiliary control register */
+
 #endif /* _LINUX_SERIAL_REG_H */
 
