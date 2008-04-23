@@ -33,6 +33,7 @@
 #include <asm/arch/gpio.h>
 #include <asm/arch/board.h>
 #include <asm/arch/common.h>
+#include <asm/arch/keypad.h>
 #include <asm/arch/gpmc.h>
 #include <asm/arch/hsmmc.h>
 #include <asm/arch/usb-musb.h>
@@ -64,6 +65,81 @@ static struct platform_device ldp_smc911x_device = {
 	.id		= -1,
 	.num_resources	= ARRAY_SIZE(ldp_smc911x_resources),
 	.resource	= ldp_smc911x_resources,
+};
+
+static int ldp_twl4030_keymap[] = {
+	KEY(0, 0, KEY_1),
+	KEY(1, 0, KEY_2),
+	KEY(2, 0, KEY_3),
+	KEY(3, 0, KEY_ENTER),
+	KEY(4, 0, KEY_F1),
+	KEY(5, 0, KEY_F2),
+	KEY(0, 1, KEY_4),
+	KEY(1, 1, KEY_5),
+	KEY(2, 1, KEY_6),
+	KEY(3, 1, KEY_F5),
+	KEY(4, 1, KEY_F3),
+	KEY(5, 1, KEY_F4),
+	KEY(0, 2, KEY_7),
+	KEY(1, 2, KEY_8),
+	KEY(2, 2, KEY_9),
+	KEY(3, 2, KEY_F6),
+	KEY(0, 3, KEY_F7),
+	KEY(1, 3, KEY_0),
+	KEY(2, 3, KEY_F8),
+	KEY(0, 4, KEY_RIGHT),
+	KEY(1, 4, KEY_UP),
+	KEY(2, 4, KEY_DOWN),
+	KEY(3, 4, KEY_LEFT),
+	KEY(5, 4, KEY_MUTE),
+	KEY(4, 4, KEY_VOLUMEUP),
+	KEY(5, 5, KEY_VOLUMEDOWN),
+	0
+};
+
+#define GPIO_KEY(gpio, key)  ((gpio<<16) | (key))
+
+static unsigned int ldp_omap_gpio_keymap[] = {
+	GPIO_KEY(101, KEY_ENTER), /*select*/
+	GPIO_KEY(102, KEY_F1),    /*S7*/
+	GPIO_KEY(103, KEY_F2),    /*S3*/
+	GPIO_KEY(104, KEY_F3),    /*S1*/
+	GPIO_KEY(105, KEY_F4),    /*S2*/
+	GPIO_KEY(106, KEY_LEFT),  /*left*/
+	GPIO_KEY(107, KEY_RIGHT), /*right*/
+	GPIO_KEY(108, KEY_UP),    /*up*/
+	GPIO_KEY(109, KEY_DOWN),  /*down*/
+	0
+};
+
+/* OMAP3430 LDP Keymaps:
+ * OMAP LDP uses both TWL4030 GPIO's and OMAP GPIO's to get key presses.
+ * This is why there are two keymaps:
+ *  - ldp_twl4030_keymap (TWL4030)
+ *  - ldp_omap_gpio_keymap (OMAP GPIO's)
+ * Unfortunately the input subsystem requires all the keymaps to be
+ * listed in one place (.keymap) in order for a key to be a valid input.
+ * This is why some keys appear in both keymaps.
+ * If a key does appear in both keymaps then its entry in
+ * ldp_twl4030_keymap is purely to keep the input subsystem happy and
+ * its row/col values have no meaning.
+ */
+static struct omap_kp_platform_data ldp_kp_data = {
+	.rows		= 6,
+	.cols		= 6,
+	.keymap 	= ldp_twl4030_keymap,
+	.keymapsize 	= ARRAY_SIZE(ldp_twl4030_keymap),
+	.rep		= 1,
+	/* Use row_gpios as a way to pass the OMAP GPIO keymap pointer */
+	.row_gpios	= ldp_omap_gpio_keymap,
+};
+
+static struct platform_device ldp_kp_device = {
+	.name		= "omap_twl4030keypad",
+	.id		= -1,
+	.dev		= {
+		.platform_data = &ldp_kp_data,
+	},
 };
 
 static int ts_gpio;
@@ -205,6 +281,7 @@ static struct spi_board_info ldp_spi_board_info[] __initdata = {
 
 static struct platform_device *ldp_devices[] __initdata = {
 	&ldp_smc911x_device,
+	&ldp_kp_device,
 #ifdef CONFIG_RTC_DRV_TWL4030
 	&ldp_twl4030rtc_device,
 #endif
