@@ -55,6 +55,9 @@
 
 /* Boot BCI register */
 #define REG_BOOT_BCI		0x007
+#define REG_GPBR1		0x0c
+#define MADC_HFCLK_EN		0x80
+#define DEFAULT_MADC_CLK_EN	0x10
 #define REG_CTRL1		0x00
 #define MADC_ON			0x01
 #define REG_SW1SELECT_MSB	0x07
@@ -534,7 +537,7 @@ static int twl4030charger_ac_en(int enable)
 /*
  * Enable/Disable USB Charge funtionality.
  */
-static int twl4030charger_usb_en(int enable)
+int twl4030charger_usb_en(int enable)
 {
 	u8 value;
 	int ret;
@@ -807,6 +810,12 @@ static int twl4030backupbatt_voltage_setup(void)
 {
 	int ret;
 
+	/* turning MADC clocks on */
+	ret = clear_n_set(TWL4030_MODULE_INTBR, 0,
+		(MADC_HFCLK_EN | DEFAULT_MADC_CLK_EN), REG_GPBR1);
+	if (ret)
+		return ret;
+
 	/* turning adc_on */
 	ret = twl4030_i2c_write_u8(TWL4030_MODULE_MADC, MADC_ON,
 		REG_CTRL1);
@@ -892,10 +901,11 @@ twl4030_bk_bci_battery_read_status(struct twl4030_bci_device_info *di)
 	return;
 }
 
-static void twl4030_bk_bci_battery_work(struct delayed_work *work)
+static void twl4030_bk_bci_battery_work(struct work_struct *work)
 {
 	struct twl4030_bci_device_info *di = container_of(work,
-		struct twl4030_bci_device_info, twl4030_bk_bci_monitor_work);
+					struct twl4030_bci_device_info,
+					twl4030_bk_bci_monitor_work.work);
 
 	twl4030_bk_bci_battery_read_status(di);
 	schedule_delayed_work(&di->twl4030_bk_bci_monitor_work, 500);
@@ -925,10 +935,10 @@ twl4030_bci_battery_update_status(struct twl4030_bci_device_info *di)
 	return;
 }
 
-static void twl4030_bci_battery_work(struct delayed_work *work)
+static void twl4030_bci_battery_work(struct work_struct *work)
 {
 	struct twl4030_bci_device_info *di = container_of(work,
-		struct twl4030_bci_device_info, twl4030_bci_monitor_work);
+		struct twl4030_bci_device_info, twl4030_bci_monitor_work.work);
 
 	twl4030_bci_battery_update_status(di);
 	schedule_delayed_work(&di->twl4030_bci_monitor_work, 100);
@@ -971,8 +981,8 @@ static int twl4030_bci_battery_get_property(struct power_supply *psy,
 					enum power_supply_property psp,
 					union power_supply_propval *val)
 {
-	struct twl4030_bci_device_info *di = to_twl4030_bci_device_info(psy);
 	int status = 0;
+	struct twl4030_bci_device_info *di = to_twl4030_bci_device_info(psy);
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
@@ -1065,6 +1075,11 @@ static int twl4030_bci_battery_probe(struct  platform_device *dev)
 	di->bk_bat.get_property = twl4030_bk_bci_battery_get_property;
 	di->bk_bat.external_power_changed = NULL;
 
+	/* enabling GPCH09 for reading backup battery voltage */
+	ret = twl4030backupbatt_voltage_setup();
+	if (ret)
+		goto voltage_setup_fail;
+
 	twl4030charger_ac_en(1);
 	twl4030charger_usb_en(1);
 	twl4030charger_hw_presence_en(1);
@@ -1075,11 +1090,6 @@ static int twl4030_bci_battery_probe(struct  platform_device *dev)
 	ret = twl4030battery_temp_setup();
 	if (ret)
 		goto temp_setup_fail;
-
-	/* enabling GPCH09 for read back battery voltage */
-	ret = twl4030backupbatt_voltage_setup();
-	if (ret)
-		goto voltage_setup_fail;
 
 	/* request BCI interruption */
 	ret = request_irq(TWL4030_MODIRQ_BCI, twl4030battery_interrupt,
@@ -1139,13 +1149,13 @@ chg_irq_fail:
 prev_setup_err:
 	free_irq(TWL4030_MODIRQ_BCI, NULL);
 batt_irq_fail:
-voltage_setup_fail:
 temp_setup_fail:
 	twl4030charger_ac_en(0);
 	twl4030charger_usb_en(0);
 	twl4030charger_hw_presence_en(0);
 	twl4030battery_hw_level_en(0);
 	twl4030battery_hw_presence_en(0);
+voltage_setup_fail:
 	kfree(di);
 
 	return ret;

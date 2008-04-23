@@ -589,6 +589,12 @@ static void twl4030_usb_ldo_init(struct twl4030_usb *twl)
 	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0, PROTECT_KEY);
 }
 
+#ifdef CONFIG_TWL4030_BCI_BATTERY
+extern int twl4030charger_usb_en(int enable);
+#else
+static inline int twl4030charger_usb_en(int enable) { return 0; }
+#endif
+
 static irqreturn_t twl4030_usb_irq(int irq, void *_twl)
 {
 	int ret = IRQ_NONE;
@@ -600,11 +606,13 @@ static irqreturn_t twl4030_usb_irq(int irq, void *_twl)
 				" line %d\n", __LINE__);
 		goto done;
 	}
-
-	if (val & USB_PRES_RISING)
+	if (val & USB_PRES_RISING) {
 		twl4030_phy_resume();
-	else
+		twl4030charger_usb_en(1);
+	} else {
+		twl4030charger_usb_en(0);
 		twl4030_phy_suspend(0);
+	}
 
 	ret = IRQ_HANDLED;
 
