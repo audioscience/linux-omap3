@@ -268,7 +268,7 @@ int omap_free_alsa_sound_dma(void *data, int **channels)
  * Stop all the DMA channels of the stream
  *
  **************************************************************************************/
-void omap_stop_alsa_sound_dma(struct audio_stream *s)
+int omap_stop_alsa_sound_dma(struct audio_stream *s)
 {
 	int *chan = s->lch;
 	int i;
@@ -276,7 +276,7 @@ void omap_stop_alsa_sound_dma(struct audio_stream *s)
 	FN_IN;
 	if (unlikely(NULL == chan)) {
 		BUG();
-		return;
+		return -1;
 	}
 	for (i = 0; i < nr_linked_channels; i++) {
 		int cur_chan = chan[i];
@@ -284,7 +284,7 @@ void omap_stop_alsa_sound_dma(struct audio_stream *s)
 	}
 	s->started = 0;
 	FN_OUT(0);
-	return;
+	return 0;
 }
 /***************************************************************************************
  *
