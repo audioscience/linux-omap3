@@ -30,6 +30,7 @@
 #define __ASM_ARCH_OMAP_3430LDP_H
 
 extern void sdp_mmc_init(void);
+extern void ldp_flash_init(void);
 
 #define DEBUG_BASE			0x08000000  /* debug board */
 
