@@ -21,3 +21,4 @@ obj-$(CONFIG_BATTERY_DS2760)	+= ds2760_battery.o
 obj-$(CONFIG_BATTERY_PMU)	+= pmu_battery.o
 obj-$(CONFIG_BATTERY_OLPC)	+= olpc_battery.o
 obj-$(CONFIG_BATTERY_BQ27000)	+= bq27000_battery.o
+obj-$(CONFIG_TWL4030_BCI_BATTERY)	+= twl4030_bci_battery.o
