@@ -122,12 +122,18 @@ struct omap_nand_info {
 	struct mtd_partition		*parts;
 	struct nand_chip		nand;
 	struct platform_device		*pdev;
-
 	int				gpmc_cs;
 	unsigned long			phys_base;
 	void __iomem			*gpmc_cs_baseaddr;
 	void __iomem			*gpmc_baseaddr;
 };
+
+/*
+ * omap_nand_wp - This function enable or disable the Write Protect feature on
+ * NAND device
+ * @mtd: MTD device structure
+ * @mode: WP ON/OFF
+ */
 static void omap_nand_wp(struct mtd_info *mtd, int mode)
 {
 	struct omap_nand_info *info = container_of(mtd,
@@ -184,11 +190,11 @@ static void omap_hwcontrol(struct mtd_info *mtd, int cmd, unsigned int ctrl)
 }
 
 /*
-* omap_read_buf - read data from NAND controller into buffer
-* @mtd: MTD device structure
-* @buf: buffer to store date
-* @len: number of bytes to read
-*/
+ * omap_read_buf - read data from NAND controller into buffer
+ * @mtd: MTD device structure
+ * @buf: buffer to store date
+ * @len: number of bytes to read
+ */
 static void omap_read_buf(struct mtd_info *mtd, u_char *buf, int len)
 {
 	struct omap_nand_info *info = container_of(mtd,
@@ -202,11 +208,11 @@ static void omap_read_buf(struct mtd_info *mtd, u_char *buf, int len)
 }
 
 /*
-* omap_write_buf - write buffer to NAND controller
-* @mtd: MTD device structure
-* @buf: data buffer
-* @len: number of bytes to write
-*/
+ * omap_write_buf - write buffer to NAND controller
+ * @mtd: MTD device structure
+ * @buf: data buffer
+ * @len: number of bytes to write
+ */
 static void omap_write_buf(struct mtd_info *mtd, const u_char * buf, int len)
 {
 	struct omap_nand_info *info = container_of(mtd,
@@ -245,6 +251,11 @@ static int omap_verify_buf(struct mtd_info *mtd, const u_char * buf, int len)
 	return 0;
 }
 
+/*
+ * omap_hwecc_init -  Initialize the Hardware ECC for NAND flash
+ * in GPMC controller.
+ * @mtd: MTD device structure
+ */
 static void omap_hwecc_init(struct mtd_info *mtd)
 {
 	struct omap_nand_info *info = container_of(mtd, struct omap_nand_info,
@@ -266,8 +277,9 @@ static void omap_hwecc_init(struct mtd_info *mtd)
 }
 
 /*
- * This function will generate true ECC value, which can be used
+ * gen_true_ecc - This function will generate true ECC value, which can be used
  * when correcting data read from NAND flash memory core
+ * @ecc_buf: buffer to store ecc code
  */
 static void gen_true_ecc(u8 *ecc_buf)
 {
@@ -283,8 +295,12 @@ static void gen_true_ecc(u8 *ecc_buf)
 }
 
 /*
- * This function compares two ECC's and indicates if there is an error.
- * If the error can be corrected it will be corrected to the buffer
+ * omap_compare_ecc - This function compares two ECC's and indicates
+ * if there is an error. If the error can be corrected it will be corrected
+ * to the buffer.
+ * @ecc_data1: ecc code from nand spare area
+ * @ecc_data2: ecc code from hardware register obtained from hardware ecc
+ * @page_data: page data
  */
 static int omap_compare_ecc(u8 *ecc_data1,	/* read from NAND memory */
 			    u8 *ecc_data2,	/* read from register */
@@ -403,6 +419,14 @@ static int omap_compare_ecc(u8 *ecc_data1,	/* read from NAND memory */
 	}
 }
 
+/*
+ * omap_correct_data - Compares the ecc read from nand spare area with ECC
+ * registers values and corrects one bit error if it has occured
+ * @mtd: MTD device structure
+ * @dat: page data
+ * @read_ecc: ecc read from nand flash
+ * @calc_ecc: ecc read from ECC registers
+ */
 static int omap_correct_data(struct mtd_info *mtd, u_char * dat,
 				u_char * read_ecc, u_char * calc_ecc)
 {
@@ -430,15 +454,16 @@ static int omap_correct_data(struct mtd_info *mtd, u_char * dat,
 }
 
 /*
-** Generate non-inverted ECC bytes.
-**
-** Using noninverted ECC can be considered ugly since writing a blank
-** page ie. padding will clear the ECC bytes. This is no problem as long
-** nobody is trying to write data on the seemingly unused page.
-**
-** Reading an erased page will produce an ECC mismatch between
-** generated and read ECC bytes that has to be dealt with separately.
-*/
+ * omap_calcuate_ecc - Generate non-inverted ECC bytes.
+ * Using noninverted ECC can be considered ugly since writing a blank
+ * page ie. padding will clear the ECC bytes. This is no problem as long
+ * nobody is trying to write data on the seemingly unused page. Reading
+ * an erased page will produce an ECC mismatch between generated and read
+ * ECC bytes that has to be dealt with separately.
+ * @mtd: MTD device structure
+ * @dat: The pointer to data on which ecc is computed
+ * @ecc_code: The ecc_code buffer
+ */
 static int omap_calculate_ecc(struct mtd_info *mtd, const u_char *dat,
 				u_char *ecc_code)
 {
@@ -456,8 +481,13 @@ static int omap_calculate_ecc(struct mtd_info *mtd, const u_char *dat,
 	*ecc_code++ = ((val >> 8) & 0x0f) | ((val >> 20) & 0xf0);
 	reg += 4;
 	return 0;
-} /* omap_calculate_ecc */
+}
 
+/*
+ * omap_enable_ecc - This function enables the hardware ecc functionality
+ * @mtd: MTD device structure
+ * @mode: Read/Write mode
+ */
 static void omap_enable_hwecc(struct mtd_info *mtd, int mode)
 {
 	struct omap_nand_info *info = container_of(mtd, struct omap_nand_info,
@@ -517,6 +547,10 @@ static int omap_wait(struct mtd_info *mtd, struct nand_chip *chip)
 	return status;
 }
 
+/*
+ * omap_dev_ready - calls the platform specific dev_ready function
+ * @mtd: MTD device structure
+ */
 static int omap_dev_ready(struct mtd_info *mtd)
 {
 	struct omap_nand_info *info = container_of(mtd, struct omap_nand_info,
