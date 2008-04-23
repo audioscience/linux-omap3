@@ -70,10 +70,20 @@ config MTD_NAND_AMS_DELTA
 	  Support for NAND flash on Amstrad E3 (Delta).
 
 config MTD_NAND_OMAP2
-	tristate "NAND Flash device on OMAP 2420H4/2430SDP boards"
-	depends on (ARM && ARCH_OMAP2 && MTD_NAND)
+	tristate "NAND Flash device on OMAP 3430SDP/2420H4/2430SDP boards"
+	depends on (ARM && (ARCH_OMAP2 || ARCH_OMAP3) && MTD_NAND)
 	help
-          Support for NAND flash on Texas Instruments 2430SDP/2420H4 platforms.
+          Support for NAND flash on Texas Instruments 3430SDP/2430SDP/2420H4 platforms.
+
+config MTD_NAND_OMAP_HWECC
+        int "The ECC computation logic (0 = software ecc, 1 = hardware ecc)"
+        depends on MTD_NAND && MTD_NAND_OMAP2
+        default "0"
+        help
+          The ECC compuatation for the data to be written/read can be either by
+          software or omap has Hw ecc engine which calculates it.
+          MTD_NAND_OMAP_HWECC = 1 which enables the hw ecc
+          MTD_NAND_OMAP_HWECC = 0, enables software ecc
 
 config MTD_NAND_OMAP
 	tristate "NAND Flash device on OMAP H3/H2/P2 boards"
