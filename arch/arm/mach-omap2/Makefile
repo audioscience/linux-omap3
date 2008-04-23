@@ -3,18 +3,24 @@
 #
 
 # Common support
-obj-y := irq.o id.o io.o memory.o control.o prcm.o clock.o mux.o \
+obj-y := irq.o id.o io.o memory.o control.o mux.o \
 		devices.o serial.o gpmc.o timer-gp.o
 
-# Functions loaded to SRAM
-obj-$(CONFIG_ARCH_OMAP2)		+= sram24xx.o
-
-# Power Management
-obj-$(CONFIG_PM) += pm.o sleep.o
+ifeq ($(CONFIG_OMAP3_PM),)
+	obj-y += prcm.o clock.o
+	# Functions loaded to SRAM
+	obj-$(CONFIG_ARCH_OMAP2) += sram24xx.o
+	# Clock framework
+	obj-$(CONFIG_ARCH_OMAP3) += clock34xx.o
+	# Power Management
+	obj-$(CONFIG_PM) += pm.o sleep.o
+else
+	obj-y += prcm_34xx.o clock_34xx.o sram-fn_34xx.o
+	# Power Management
+endif
 
 # Clock framework
 obj-$(CONFIG_ARCH_OMAP2)		+= clock24xx.o
-obj-$(CONFIG_ARCH_OMAP3)		+= clock34xx.o
 
 # DSP
 obj-$(CONFIG_OMAP_MMU_FWK)	+= mmu_mach.o
