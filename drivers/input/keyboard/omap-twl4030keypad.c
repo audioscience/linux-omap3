@@ -38,6 +38,7 @@
 #include <linux/i2c/twl4030.h>
 #include <linux/irq.h>
 #include <asm/arch/keypad.h>
+#include <asm/arch/gpio.h>
 #include "twl4030-keypad.h"
 
 #define PTV_PRESCALER		4
@@ -45,6 +46,16 @@
 #define MAX_ROWS		8 /* TWL4030 hardlimit */
 #define ROWCOL_MASK		0xFF000000
 #define KEYNUM_MASK		0x00FFFFFF
+
+#ifdef CONFIG_MACH_OMAP_LDP
+static unsigned int *omap_gpios;
+static unsigned int cur_gpios[9];
+struct timer_list	gpio_timer;
+
+#define GET_GPIO(val)	(val >> 16) & 0xFFFF
+#define GET_KEY(val)	(val & 0xFFFF)
+
+#endif
 
 /* Global variables */
 static int *keymap;
@@ -169,10 +180,19 @@ static void twl4030_kp_scan(int release_all)
 				"press" : "release");
 
 			key = omap_kp_find_key(col, row);
-			if (key < 0)
+			if (key < 0) {
+#ifdef CONFIG_MACH_OMAP_LDP
+				/* OMAP LDP has a TWL4030 GPIO
+				* (KBR5/KBC4) that is set to a persistent
+				* state and should be ignored.
+				*/
+				if (row == 5 && col == 4)
+					continue;
+#endif
+
 				dev_warn(dbg_dev, "Spurious key event %d-%d\n",
 					 col, row);
-			else
+			} else
 				input_report_key(omap_twl4030kp, key,
 						 new_state[row] & (1 << col));
 		}
@@ -181,7 +201,7 @@ static void twl4030_kp_scan(int release_all)
 }
 
 /*
- * Keypad interrupt handler
+ * Keypad interrupt handler for TWL4030
  */
 static irqreturn_t do_kp_irq(int irq, void *dev_id)
 {
@@ -200,6 +220,130 @@ static irqreturn_t do_kp_irq(int irq, void *dev_id)
 
 	return IRQ_HANDLED;
 }
+
+#ifdef CONFIG_MACH_OMAP_LDP
+static void omap_gpio_kp_scan(void)
+{
+	unsigned int new_gpio;
+	int idx = 0, chg = 0, key, state;
+	bool key_down = 0;
+
+	while (omap_gpios[idx] != 0) {
+		new_gpio = omap_get_gpio_datain(GET_GPIO(omap_gpios[idx]));
+		chg = new_gpio ^ cur_gpios[idx];
+
+		if (chg) {
+			key = GET_KEY(omap_gpios[idx]);
+			state = (new_gpio == 0);
+			input_report_key(omap_twl4030kp, key, state);
+		}
+
+		if (!new_gpio)
+			key_down = 1;
+
+		/* Store the keys current value. */
+		cur_gpios[idx] = new_gpio;
+		idx++;
+	}
+
+	/* Decide whether to kick off timer. */
+	if (key_down) {
+		int delay;
+
+		delay = HZ / 20;
+		/* A key is pressed - use timer to poll the keypad */
+		mod_timer(&gpio_timer, jiffies + delay);
+	}
+
+	return;
+}
+
+
+/*
+ * Keypad interrupt handler for OMAP GPIO's.
+ */
+static irqreturn_t do_kp_gpio_irq(int irq, void *dev_id)
+{
+	/* Scan keypad for any changes in GPIO keys. */
+	omap_gpio_kp_scan();
+
+	return IRQ_HANDLED;
+}
+
+
+static void omap_gpio_kp_timer(unsigned long arg)
+{
+	omap_gpio_kp_scan();
+}
+
+static int omap_gpio_kp_probe(unsigned int *gpio_keymap)
+{
+	int i, idx = 0, irq_idx = 0;
+
+	/* set the global to the GPIO keymap data*/
+	omap_gpios = gpio_keymap;
+
+	while (omap_gpios[idx] != 0) {
+		/* initial values for current key state array. (1=Up,0=Down) */
+		cur_gpios[idx] = 1;
+
+		if (omap_request_gpio(GET_GPIO(omap_gpios[idx])) < 0) {
+			printk(KERN_ERR "Failed to request GPIO%d for keypad\n",
+				GET_GPIO(omap_gpios[idx]));
+			goto err1;
+		}
+
+		/* GPIO direction is 'Input' */
+		omap_set_gpio_direction(GET_GPIO(omap_gpios[idx]), 1);
+		idx++;
+	}
+
+	/* enable GPIO interrupts */
+	while (omap_gpios[irq_idx] != 0) {
+		if (request_irq(OMAP_GPIO_IRQ(GET_GPIO(omap_gpios[irq_idx])),
+				do_kp_gpio_irq, IRQF_TRIGGER_FALLING,
+				"omap-keypad", NULL) < 0)
+			goto err2;
+		irq_idx++;
+	}
+
+	/* Initialize GPIO timer */
+	gpio_timer.function = omap_gpio_kp_timer;
+	gpio_timer.data     = (unsigned long)NULL;
+	init_timer(&gpio_timer);
+
+	/* scan current key state */
+	omap_gpio_kp_scan();
+
+	return 0;
+
+err2:
+	for (i = irq_idx - 1; i >= 0; i--)
+		free_irq(GET_GPIO(omap_gpios[i]), 0);
+err1:
+	for (i = idx - 1; i >= 0; i--)
+		omap_free_gpio(GET_GPIO(omap_gpios[i]));
+
+	return -EINVAL;
+}
+
+int omap_gpio_kp_remove(void)
+{
+	int idx = 0;
+
+	del_timer_sync(&gpio_timer);
+
+	while (omap_gpios[idx] != 0) {
+		free_irq(GET_GPIO(omap_gpios[idx]), 0);
+		omap_free_gpio(GET_GPIO(omap_gpios[idx]));
+		idx++;
+	}
+
+	return 0;
+}
+
+#endif /*CONFIG_MACH_OMAP_LDP*/
+
 
 /*
  * Registers keypad device with input sub system
@@ -323,6 +467,10 @@ static int __init omap_kp_probe(struct platform_device *pdev)
 	if (ret < 0)
 		goto err4;
 
+#ifdef CONFIG_MACH_OMAP_LDP
+	omap_gpio_kp_probe(pdata->row_gpios);
+#endif
+
 	return ret;
 err5:
 	/* mask all events - we don't care about the result */
@@ -339,6 +487,10 @@ err2:
 static int omap_kp_remove(struct platform_device *pdev)
 {
 	free_irq(TWL4030_MODIRQ_KEYPAD, NULL);
+
+#ifdef CONFIG_MACH_OMAP_LDP
+	omap_gpio_kp_remove();
+#endif
 
 	input_unregister_device(omap_twl4030kp);
 	return 0;
