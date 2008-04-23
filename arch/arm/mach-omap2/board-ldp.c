@@ -230,6 +230,7 @@ static void __init omap_ldp_init(void)
 	spi_register_board_info(ldp_spi_board_info,
 				ARRAY_SIZE(ldp_spi_board_info));
 	ads7846_dev_init();
+	ldp_flash_init();
 	omap_serial_init();
 	usb_musb_init();
 	hsmmc_init();
