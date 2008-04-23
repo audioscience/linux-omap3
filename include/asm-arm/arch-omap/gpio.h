@@ -31,6 +31,9 @@
 
 #define OMAP_MPUIO_BASE			(void __iomem *)0xfffb5000
 
+#define GPIO_DIR_INPUT			1
+#define GPIO_DIR_OUTPUT			0
+
 #ifdef CONFIG_ARCH_OMAP730
 #define OMAP_MPUIO_INPUT_LATCH		0x00
 #define OMAP_MPUIO_OUTPUT		0x02

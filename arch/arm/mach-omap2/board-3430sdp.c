@@ -32,6 +32,7 @@
 #include <asm/arch/mcspi.h>
 #include <asm/arch/gpio.h>
 #include <asm/arch/mux.h>
+#include <asm/arch/irda.h>
 #include <asm/arch/board.h>
 #include <asm/arch/usb-musb.h>
 #include <asm/arch/usb-ehci.h>
@@ -47,6 +48,9 @@
 #include <asm/arch/control.h>
 
 #define	SDP3430_SMC91X_CS	3
+
+#define ENABLE_VAUX1_DEDICATED	0x03
+#define ENABLE_VAUX1_DEV_GRP	0x20
 
 #define ENABLE_VAUX3_DEDICATED	0x03
 #define ENABLE_VAUX3_DEV_GRP	0x20
@@ -72,6 +76,146 @@ static struct platform_device sdp3430_smc91x_device = {
 	.id		= -1,
 	.num_resources	= ARRAY_SIZE(sdp3430_smc91x_resources),
 	.resource	= sdp3430_smc91x_resources,
+};
+
+/* IrDA
+ */
+#if defined(CONFIG_OMAP_IR) || defined(CONFIG_OMAP_IR_MODULE)
+
+#define	IRDA_SD	164	/* gpio 164 */
+#define	IRDA_TX	166	/* gpio 166 */
+#define	IRDA_SD_PIN	T21_3430_GPIO164
+#define	IRDA_TX_PIN	V21_3430_GPIO166
+
+#define IRDA_VAUX_EN	1
+#define IRDA_VAUX_DIS	0
+
+/*
+ * This enable(1)/disable(0) the voltage for IrDA: uses twl4030 calls
+ */
+static int irda_vaux_control(int vaux_cntrl)
+{
+	int ret = 0;
+
+#ifdef CONFIG_TWL4030_CORE
+	/* check for return value of ldo_use: if success it returns 0 */
+	if (vaux_cntrl == IRDA_VAUX_EN) {
+		if (ret != twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+			ENABLE_VAUX1_DEDICATED, TWL4030_VAUX1_DEDICATED))
+			return -EIO;
+		if (ret != twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+			ENABLE_VAUX1_DEV_GRP, TWL4030_VAUX1_DEV_GRP))
+			return -EIO;
+	} else if (vaux_cntrl == IRDA_VAUX_DIS) {
+		if (ret != twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+			0x00, TWL4030_VAUX1_DEDICATED))
+			return -EIO;
+		if (ret != twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+			0x00, TWL4030_VAUX1_DEV_GRP))
+			return -EIO;
+	}
+#else
+	ret = -EIO;
+#endif
+	return ret;
+}
+
+static int select_irda(struct device *dev, int state)
+{
+	int err;
+	if (state == IR_SEL) {
+		err = irda_vaux_control(IRDA_VAUX_EN);
+		if (err != 0) {
+			printk(KERN_ERR "OMAP: IrDA vaux enable failed\n");
+			return err;
+		}
+
+		omap_cfg_reg(R21_3430_UART3_CTS_RCTX);
+		omap_cfg_reg(T21_3430_UART3_RTS_SD);
+		omap_cfg_reg(U21_3430_UART3_RX_IRRX);
+		omap_cfg_reg(V21_3430_UART3_TX_IRTX);
+
+		omap_request_gpio(IRDA_SD);
+		omap_request_gpio(IRDA_TX);
+		omap_cfg_reg(IRDA_SD_PIN);
+		omap_set_gpio_direction(IRDA_SD, GPIO_DIR_OUTPUT);
+		omap_set_gpio_direction(IRDA_TX, GPIO_DIR_OUTPUT);
+		omap_set_gpio_dataout(IRDA_SD, 0);
+	} else {
+		omap_free_gpio(IRDA_SD);
+		omap_free_gpio(IRDA_TX);
+		err = irda_vaux_control(IRDA_VAUX_EN);
+		if (err != 0) {
+			printk(KERN_ERR "OMAP: IrDA vaux Enable failed\n");
+			return err;
+		}
+	}
+
+	return 0;
+}
+
+static int transceiver_mode(struct device *dev, int mode)
+{
+	omap_cfg_reg(IRDA_SD_PIN);
+	omap_cfg_reg(IRDA_TX_PIN);
+
+	if (mode & IR_SIRMODE) {
+		/* SIR */
+		omap_set_gpio_dataout(IRDA_SD, 1);
+		udelay(1);
+		omap_set_gpio_dataout(IRDA_TX, 0);
+		udelay(1);
+		omap_set_gpio_dataout(IRDA_SD, 0);
+		udelay(1);
+	} else {
+		/* MIR/FIR */
+		omap_set_gpio_dataout(IRDA_SD, 1);
+		udelay(1);
+		omap_set_gpio_dataout(IRDA_TX, 1);
+		udelay(1);
+		omap_set_gpio_dataout(IRDA_SD, 0);
+		udelay(1);
+		omap_set_gpio_dataout(IRDA_TX, 0);
+		udelay(1);
+	}
+
+	omap_cfg_reg(T21_3430_UART3_RTS_SD);
+	omap_cfg_reg(V21_3430_UART3_TX_IRTX);
+	return 0;
+}
+#else
+static int select_irda(struct device *dev, int state) { return 0; }
+static int transceiver_mode(struct device *dev, int mode) { return 0; }
+#endif
+
+static struct omap_irda_config irda_data = {
+	.transceiver_cap	= IR_SIRMODE | IR_MIRMODE | IR_FIRMODE,
+	.transceiver_mode	= transceiver_mode,
+	.select_irda	 	= select_irda,
+	.rx_channel		= OMAP24XX_DMA_UART3_RX,
+	.tx_channel		= OMAP24XX_DMA_UART3_TX,
+	.dest_start		= OMAP_UART3_BASE,
+	.src_start		= OMAP_UART3_BASE,
+	.tx_trigger		= OMAP24XX_DMA_UART3_TX,
+	.rx_trigger		= OMAP24XX_DMA_UART3_RX,
+};
+
+static struct resource irda_resources[] = {
+	[0] = {
+		.start	= INT_24XX_UART3_IRQ,
+		.end	= INT_24XX_UART3_IRQ,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device irda_device = {
+	.name		= "omapirda",
+	.id		= -1,
+	.dev		= {
+		.platform_data	= &irda_data,
+	},
+	.num_resources	= 1,
+	.resource	= irda_resources,
 };
 
 static int sdp3430_keymap[] = {
@@ -268,6 +412,7 @@ static struct platform_device sdp3430_lcd_device = {
 
 static struct platform_device *sdp3430_devices[] __initdata = {
 	&sdp3430_smc91x_device,
+	&irda_device,
 	&sdp3430_kp_device,
 	&sdp3430_lcd_device,
 #ifdef CONFIG_RTC_DRV_TWL4030
