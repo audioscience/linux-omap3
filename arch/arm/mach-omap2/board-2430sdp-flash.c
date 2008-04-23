@@ -23,40 +23,30 @@
 #include <asm/arch/nand.h>
 
 #define ONENAND_MAP 0x20000000
-#define GPMC_OFF_CONFIG1_0 0x60
-
-enum fstype {
-	NAND = 0,
-	NOR,
-	ONENAND,
-	UNKNOWN = -1
-};
-
-static enum fstype flash_type = NAND;
 
 static struct mtd_partition nand_partitions[] = {
 	{
 		.name		= "X-Loader",
 		.offset		= 0,
-		.size		= 4*(64*2048),  /* 0-3 blks reserved.
+		.size		= 32*(32*512),  /* 0-31 blks reserved.
 						   Mandated by ROM code */
 		.mask_flags	= MTD_WRITEABLE	/* force read-only */
 	},
 	{
 		.name		= "U-Boot",
 		.offset		= MTDPART_OFS_APPEND,
-		.size		=  4*(64*2048),
+		.size		=  32*(32*512),
 		.mask_flags	= MTD_WRITEABLE	/* force read-only */
 	},
 	{
 		.name		= "U-Boot Environment",
 		.offset		= MTDPART_OFS_APPEND,
-		.size		= 2*(64*2048),
+		.size		= 16*(32*512),
 	},
 	{
 		.name		= "Kernel",
 		.offset		= MTDPART_OFS_APPEND,
-		.size		= 32*(64*2048),		/* 4*1M */
+		.size		= 256*(32*512),		/* 4*1M */
 	},
 	{
 		.name		= "File System",
@@ -127,14 +117,14 @@ void __init sdp2430_flash_init(void)
 {
 	unsigned long gpmc_base_add, gpmc_cs_base_add;
 	unsigned char cs = 0;
-
+	u8	nandcs = GPMC_CS_NUM + 1, onenandcs = GPMC_CS_NUM + 1;
 	gpmc_base_add = OMAP243X_GPMC_VIRT;
 	while (cs < GPMC_CS_NUM) {
 		int ret = 0;
 
 		/* Each GPMC set for a single CS is at offset 0x30 */
 		gpmc_cs_base_add =
-			(gpmc_base_add + GPMC_OFF_CONFIG1_0 + (cs*0x30));
+			(gpmc_base_add + GPMC_CS0_BASE + (cs * GPMC_CS_SIZE));
 
 		/* xloader/Uboot would have programmed the NAND/oneNAND
 		 * base address for us This is a ugly hack. The proper
@@ -146,40 +136,43 @@ void __init sdp2430_flash_init(void)
 		if ((ret & 0xC00) == (0x800)) {
 			/* Found it!! */
 			printk(KERN_INFO "NAND: Found NAND on CS %d \n", cs);
-			flash_type = NAND;
-			break;
+			if (nandcs > GPMC_CS_NUM)
+				nandcs = cs;
 		}
 		ret = __raw_readl(gpmc_cs_base_add + GPMC_CS_CONFIG7);
 		if ((ret & 0x3F) == (ONENAND_MAP >> 24)) {
 			/* Found it!! */
-			flash_type = ONENAND;
-			break;
+			if (onenandcs > GPMC_CS_NUM)
+				onenandcs = cs;
 		}
 		cs++;
 	}
-	if (cs >= GPMC_CS_NUM) {
-		printk(KERN_INFO "MTD: Unable to find MTD configuration in "
-				 "GPMC   - not registering.\n");
+	if ((nandcs > GPMC_CS_NUM) && (onenandcs > GPMC_CS_NUM)) {
+		printk("NAND/OneNAND: Unable to find configuration in GPMC\n ");
+		printk("MTD: Unable to find MTD configuration in GPMC "
+			" - not registering.\n");
 		return;
 	}
 
-	if (flash_type == NAND) {
-		sdp_nand_data.cs               = cs;
-		sdp_nand_data.gpmc_cs_baseaddr = (void *) gpmc_cs_base_add;
-		sdp_nand_data.gpmc_baseaddr    = (void *) gpmc_base_add;
+	if (nandcs < GPMC_CS_NUM) {
+		sdp_nand_data.cs		= nandcs;
+		sdp_nand_data.gpmc_cs_baseaddr  = (void *) (gpmc_base_add +
+						GPMC_CS0_BASE +
+						(nandcs * GPMC_CS_SIZE));
+		sdp_nand_data.gpmc_baseaddr	= (void *) gpmc_base_add;
 
 		if (platform_device_register(&sdp_nand_device) < 0) {
 			printk(KERN_ERR "Unable to register NAND device\n");
-		return;
-	}
+			return;
+		}
 	}
 
-	if (flash_type == ONENAND) {
-	sdp_onenand_data.cs = cs;
 
-	if (platform_device_register(&sdp_onenand_device) < 0) {
-		printk(KERN_ERR "Unable to register OneNAND device\n");
-		return;
-	}
+	if (onenandcs < GPMC_CS_NUM) {
+		sdp_onenand_data.cs = onenandcs;
+		if (platform_device_register(&sdp_onenand_device) < 0) {
+			printk(KERN_ERR "Unable to register OneNAND device\n");
+			return;
+		}
 	}
 }
