@@ -386,6 +386,27 @@ u32 omap2_set_prcm(u32 dpll_ctrl_val, u32 sdrc_rfr_val, int bypass)
 }
 #endif
 
+#if defined(CONFIG_OMAP3_PM)
+static u32 (*_omap3_configure_core_dpll)(u32 m, u32 n, u32 freqsel, u32 m2);
+
+u32 omap3_configure_core_dpll(u32 m, u32 n, u32 freqsel, u32 m2)
+{
+	if (!_omap3_configure_core_dpll)
+		omap_sram_error();
+	return _omap3_configure_core_dpll(m, n, freqsel, m2);
+}
+
+static u32 (*_omap3_sram_reprogram_gpmc)(u32 perf_level);
+
+u32 omap3_sram_reprogram_gpmc(u32 perf_level)
+{
+	if (!_omap3_sram_reprogram_gpmc)
+		omap_sram_error();
+
+	return _omap3_sram_reprogram_gpmc(perf_level);
+}
+#endif
+
 #ifdef CONFIG_ARCH_OMAP2
 int __init omap24xx_sram_init(void)
 {
@@ -457,6 +478,12 @@ int __init omap24xx_sram_init(void)
 #else
 static inline int omap24xx_sram_init(void)
 {
+#if defined(CONFIG_OMAP3_PM)
+	_omap3_configure_core_dpll = omap_sram_push(sram_configure_core_dpll,
+		sram_configure_core_dpll_sz);
+	_omap3_sram_reprogram_gpmc = omap_sram_push(sram_reprogram_gpmc,
+		sram_reprogram_gpmc_sz);
+#endif
 	return 0;
 }
 #endif

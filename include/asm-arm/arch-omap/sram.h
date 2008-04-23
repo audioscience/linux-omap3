@@ -42,4 +42,12 @@ extern void omap24xx_sram_reprogram_sdrc(u32 perf_level, u32 dll_val,
 						u32 mem_type);
 extern unsigned long omap24xx_sram_reprogram_sdrc_sz;
 
+#if defined(CONFIG_OMAP3_PM)
+extern u32 sram_reprogram_gpmc(u32 perf_level);
+extern unsigned long sram_reprogram_gpmc_sz;
+
+extern u32 sram_configure_core_dpll(u32 m, u32 n, u32 freqsel, u32 m2);
+extern unsigned long sram_configure_core_dpll_sz;
+#endif
+
 #endif
