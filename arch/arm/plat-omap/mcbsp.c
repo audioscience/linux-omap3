@@ -27,7 +27,7 @@
 #include <asm/arch/dma.h>
 #include <asm/arch/mcbsp.h>
 
-static struct omap_mcbsp mcbsp[OMAP_MAX_MCBSP_COUNT];
+struct omap_mcbsp mcbsp[OMAP_MAX_MCBSP_COUNT];
 
 #define omap_mcbsp_check_valid_id(id)	(mcbsp[id].pdata && \
 					mcbsp[id].pdata->ops && \
