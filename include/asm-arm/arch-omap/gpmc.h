@@ -14,6 +14,9 @@
 /* Maximum Number of Chip Selects */
 #define GPMC_CS_NUM		8
 
+#define GPMC_CS0_BASE           0x60
+#define GPMC_CS_SIZE            0x30
+
 #define GPMC_CS_CONFIG1		0x00
 #define GPMC_CS_CONFIG2		0x04
 #define GPMC_CS_CONFIG3		0x08
