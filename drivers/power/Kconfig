@@ -49,4 +49,11 @@ config BATTERY_OLPC
 	help
 	  Say Y to enable support for the battery on the OLPC laptop.
 
+config BATTERY_BQ27000
+	tristate "BQ27000 battery driver"
+	select W1
+	select W1_SLAVE_BQ27000
+	help
+	  Say Y here to enable support for batteries with BQ27000 chip.
+
 endif # POWER_SUPPLY
