@@ -37,6 +37,7 @@
 #define DBG(x...)			do { } while (0)
 #endif
 
+
 struct omap_mcbsp {
 	u32				io_base;
 	u8				id;
@@ -112,6 +113,12 @@ static struct omap_mcbsp_clocks {
 			struct clk *ick;
 			struct clk *fck;
 			} omap_mcbsp_clk[OMAP_MAX_MCBSP_COUNT];
+
+static int omap_mcbsp_max_dmachs_rx[OMAP_MAX_MCBSP_COUNT] = {2, 2, 2, 2, 2};
+static int omap_mcbsp_max_dmachs_tx[OMAP_MAX_MCBSP_COUNT] = {2, 2, 2, 2, 2};
+#define OMAP_MCBSP_MAX_MULTI_CHS 127
+static u32 omap_get_mcbspid[OMAP_MCBSP_MAX_MULTI_CHS] = {0};
+
 #endif
 
 static void omap_mcbsp_dump_reg(u8 id)

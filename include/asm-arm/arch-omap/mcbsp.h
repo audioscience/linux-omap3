@@ -156,6 +156,8 @@
 #define OMAP_MCBSP_REG_XBUFFSTAT	0xB4
 #define OMAP_MCBSP_REG_RBUFFSTAT	0xB8
 
+#define AUDIO_MCBSP             	OMAP_MCBSP2
+
 #define OMAP_MAX_MCBSP_COUNT	5
 
 #endif
@@ -347,6 +349,10 @@ typedef void (*omap_mcbsp_dma_cb) (u32 ch_status, void *arg);
 #define OMAP_MCBSP_RJUST_SIGNMSB		1
 #define OMAP_MCBSP_LJUST_ZEROLSB		2
 
+#define OMAP_MCBSP_DATADELAY0			0
+#define OMAP_MCBSP_DATADELAY1			1
+#define OMAP_MCBSP_DATADELAY2			2
+
 #define OMAP_MCBSP_AUTO_RST_NONE		(0x0)
 #define OMAP_MCBSP_AUTO_RRST			(0x1<<1)
 #define OMAP_MCBSP_AUTO_XRST			(0x1<<2)
@@ -354,6 +360,8 @@ typedef void (*omap_mcbsp_dma_cb) (u32 ch_status, void *arg);
 /* Reverse mode for 243X and 34XX */
 #define OMAP_MCBSP_MSBFIRST			0
 #define OMAP_MCBSP_LSBFIRST			1
+
+#define OMAP_MCBSP_FRAMELEN_N(NUM_WORDS) 	((NUM_WORDS - 1) & 0x7F)
 
 /* we don't do multichannel for now */
 struct omap_mcbsp_reg_cfg {
@@ -475,14 +483,6 @@ struct omap_mcbsp_spi_cfg {
 	omap_mcbsp_clk_stp_mode		clk_stp_mode;
 	omap_mcbsp_word_length		word_length;
 };
-#if defined(CONFIG_ARCH_OMAP2430) || defined(CONFIG_ARCH_OMAP34XX)
-static int omap_mcbsp_max_dmachs_rx[OMAP_MAX_MCBSP_COUNT] = {2, 2, 2, 2, 2};
-static int omap_mcbsp_max_dmachs_tx[OMAP_MAX_MCBSP_COUNT] = {2, 2, 2, 2, 2};
-
-#define OMAP_MCBSP_MAX_MULTI_CHS 127
-
-u32 omap_get_mcbspid[OMAP_MCBSP_MAX_MULTI_CHS] = {0};
-#endif
 
 void omap_mcbsp_config(unsigned int id, const struct omap_mcbsp_reg_cfg * config);
 int omap_mcbsp_request(unsigned int id);
