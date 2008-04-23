@@ -31,8 +31,13 @@
 
 #ifndef CONFIG_ARCH_OMAP3410
 # define cpu_is_omap3410()		0
+# define is_isplsc_activated()		1
+# include "isppreview.h"
+# define USE_ISP_LSC
 #else
 # define cpu_is_omap3410()		1
+# define is_isplsc_activated()		0
+# undef USE_ISP_LSC
 #endif
 
 #ifdef OMAP_ISPCCDC_DEBUG
