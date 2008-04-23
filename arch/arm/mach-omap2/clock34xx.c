@@ -596,6 +596,22 @@ int __init omap2_clk_init(void)
 	/* u32 clkrate; */
 	u32 cpu_clkflg;
 
+	/* Enabling all the clocks here as U-boot will not do it */
+#if 1
+	omap_writel(0xffffffff, 0x48004a00);	/* CM_FCLKEN1_CORE */
+	omap_writel(0xffffffff, 0x48004a10);	/* CM_ICLKEN1_CORE */
+	omap_writel(0xffffffff, 0x48004a14);	/* CM_ICLKEN2_CORE */
+	omap_writel(0xffffffff, 0x48004c00);	/* CM_FCLKEN_WKUP */
+	omap_writel(0xffffffff, 0x48004c10);	/* CM_ICLKEN_WKUP */
+	omap_writel(0xffffffff, 0x48004000);	/* CM_FCLKEN_IVA2 */
+	omap_writel(0xffffffff, 0x48004e00);	/* CM_FCLKEN_DSS */
+	omap_writel(0xffffffff, 0x48004e10);	/* CM_ICLKEN_DSS */
+	omap_writel(0xffffffff, 0x48004f00);	/* CM_FCLKEN_CAM */
+	omap_writel(0xffffffff, 0x48004f10);	/* CM_ICLKEN_CAM */
+	omap_writel(0xffffffff, 0x48005000);	/* CM_FCLKEN_PER */
+	omap_writel(0xffffffff, 0x48005010);	/* CM_ICLKEN_PER */
+#endif
+
 	/* REVISIT: Ultimately this will be used for multiboot */
 #if 0
 	if (cpu_is_omap242x()) {
