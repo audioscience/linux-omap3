@@ -1,0 +1,2062 @@
+/*
+ * linux/arch/arm/mach-omap2/prcm_34xx.c
+ *
+ * OMAP 34xx Power Reset and Clock Management (PRCM) functions
+ *
+ * Copyright (C) 2007 Texas Instruments, Inc.
+ * Karthik Dasu/Rajendra Nayak/Pavan Chinnabhandar
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ *
+*/
+
+#include <linux/module.h>
+#include <linux/init.h>
+#include <asm/arch/prcm_34xx.h>
+#include <asm/io.h>
+
+#include "prcm-regs.h"
+#include "ti-compat.h"
+
+const u32 MAXLOOPCNT = 50;
+const u32 MAXRETRIES = 5;
+
+#define IOPAD_WKUP 1
+
+/* Using 32K sync timer to generate delays in usecs */
+#define OMAP_TIMER32K_SYNC_CR (OMAP3430_32KSYNCT_BASE + 0x10)
+#define OMAP_TIMER32K_SYNC_CR_READ   (omap_readl(OMAP_TIMER32K_SYNC_CR))
+#define OMAP_MAX_32K_CR 0xFFFFFFFF
+
+#ifndef CONFIG_PM
+#define omap_sram_idle() \
+	{	\
+		__asm__ __volatile__ ("wfi");	\
+	}
+#endif
+
+/* Table to store domain registers */
+struct domain_registers dom_reg[PRCM_NUM_DOMAINS] = {
+	{
+		/* IVA2 domain */
+		{
+			{0x1,		(u32 *)&CM_FCLKEN_IVA2},
+			{0,		0},
+			{0x1,		(u32 *)&CM_IDLEST_IVA2},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0x3,		(u32 *)&CM_CLKSTCTRL_IVA2},
+			{0x1,		(u32 *)&CM_CLKSTST_IVA2},
+			{0xFF0F0F,	(u32 *)&PM_PWSTCTRL_IVA2},
+			{0x100FF7,	(u32 *)&PM_PWSTST_IVA2},
+			{0xFF7, 	(u32 *)&PM_PREPWSTST_IVA2},
+			{0,		0},
+			{0x3F0F,	(u32 *)&RM_RSTST_IVA2},
+		}
+	},
+	{
+		/* MPU domain */
+		{
+			{0,		0},
+			{0,		0},
+			{0x1,		(u32 *)&CM_IDLEST_MPU},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0x3,		(u32 *)&CM_CLKSTCTRL_MPU},
+			{0x1,		(u32 *)&CM_CLKSTST_MPU},
+			{0x3010F,	(u32 *)&PM_PWSTCTRL_MPU},
+			{0x1000C7,	(u32 *)&PM_PWSTST_MPU},
+			{0xC7,		(u32 *)&PM_PREPWSTST_MPU},
+			{0,		0},
+			{0x80F,		(u32 *)&RM_RSTST_MPU},
+		}
+	},
+	{
+		/* CORE1 */
+		{
+			{0x43FFFE01,	(u32 *)&CM_FCLKEN1_CORE},
+			{0x7FFFFED3, 	(u32 *)&CM_ICLKEN1_CORE},
+			{0x7FFFFFF7, 	(u32 *)&CM_IDLEST1_CORE},
+			{0x7FFFFED1,	(u32 *)&CM_AUTOIDLE1_CORE},
+			{0x433FFE10,	(u32 *)&PM_WKEN1_CORE},
+			{0x433FFE10,	(u32 *)&PM_WKST1_CORE},
+			{0x0F,		(u32 *)&CM_CLKSTCTRL_CORE},
+			{0x3,		(u32 *)&CM_CLKSTST_CORE},
+			{0xF031F,	(u32 *)&PM_PWSTCTRL_CORE},
+			{0x1000F7,	(u32 *)&PM_PWSTST_CORE},
+			{0xF7,		(u32 *)&PM_PREPWSTST_CORE},
+			{0xC0,		(u32 *)&CM_CLKSEL_CORE},
+			{0x7,		(u32 *)&RM_RSTST_CORE},
+		}
+	},
+	{
+		/* CORE2 */
+		{
+			{0,		0},
+			{0x1F,		(u32 *)&CM_ICLKEN2_CORE},
+			{0x1F,		(u32 *)&CM_IDLEST2_CORE},
+			{0x1F,		(u32 *)&CM_AUTOIDLE2_CORE},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+		}
+	},
+	{
+		/* SGX */
+		{
+			{0x2,		(u32 *)&CM_FCLKEN_SGX},
+			{0x1,		(u32 *)&CM_ICLKEN_SGX},
+			{0x1,		(u32 *)&CM_IDLEST_SGX},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0x3,		(u32 *)&CM_CLKSTCTRL_SGX},
+			{0x1,		(u32 *)&CM_CLKSTST_SGX},
+			{0x30107,	(u32 *)&PM_PWSTCTRL_SGX},
+			{0x100003,	(u32 *)&PM_PWSTST_SGX},
+			{0x3,		(u32 *)&PM_PREPWSTST_SGX},
+			{0,		0},
+			{0xF,		(u32 *)&RM_RSTST_SGX},
+		}
+	},
+	{
+		/* WKUP */
+		{
+			{0x2E9,		(u32 *)&CM_FCLKEN_WKUP},
+			{0x23F,		(u32 *)&CM_ICLKEN_WKUP},
+			{0x2FF,		(u32 *)&CM_IDLEST_WKUP},
+			{0x23F,		(u32 *)&CM_AUTOIDLE_WKUP},
+			{0x3CB,		(u32 *)&PM_WKEN_WKUP},
+			{0x3CB,		(u32 *)&PM_WKST_WKUP},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0x7F,		(u32 *)&CM_CLKSEL_WKUP},
+			{0,		0},
+		}
+	},
+	{
+		/* DSS */
+		{
+			{0x7,		(u32 *)&CM_FCLKEN_DSS},
+			{0x1,		(u32 *)&CM_ICLKEN_DSS},
+			{0x3,		(u32 *)&CM_IDLEST_DSS},
+			{0x1,		(u32 *)&CM_AUTOIDLE_DSS},
+			{0x1,		(u32 *)&PM_WKEN_DSS},
+			{0,		0},
+			{0x3,		(u32 *)&CM_CLKSTCTRL_DSS},
+			{0x1,		(u32 *)&CM_CLKSTST_DSS},
+			{0x30107,	(u32 *)&PM_PWSTCTRL_DSS},
+			{0x100003,	(u32 *)&PM_PWSTST_DSS},
+			{0x3,		(u32 *)&PM_PREPWSTST_DSS},
+			{0,		0},
+			{0xF,		(u32 *)&RM_RSTST_DSS},
+		}
+	},
+	{
+		/* CAM */
+		{
+			{0x3,		(u32 *)&CM_FCLKEN_CAM},
+			{0x1,		(u32 *)&CM_ICLKEN_CAM},
+			{0x1,		(u32 *)&CM_IDLEST_CAM},
+			{0x1,		(u32 *)&CM_AUTOIDLE_CAM},
+			{0,		0},
+			{0,		0},
+			{0x3,		(u32 *)&CM_CLKSTCTRL_CAM},
+			{0x1,		(u32 *)&CM_CLKSTST_CAM},
+			{0x30107,	(u32 *)&PM_PWSTCTRL_CAM},
+			{0x100003,	(u32 *)&PM_PWSTST_CAM},
+			{0x3,		(u32 *)&PM_PREPWSTST_CAM},
+			{0,		0},
+			{0xF,		(u32 *)&RM_RSTST_CAM},
+		}
+	},
+	{
+		/* PER */
+		{
+			{0x3FFFF,	(u32 *)&CM_FCLKEN_PER},
+			{0x3FFFF,	(u32 *)&CM_ICLKEN_PER},
+			{0x3FFFF,	(u32 *)&CM_IDLEST_PER},
+			{0x3FFFF,	(u32 *)&CM_AUTOIDLE_PER},
+			{0x3EFFF,	(u32 *)&PM_WKEN_PER},
+			{0x3EFFF,	(u32 *)&PM_WKST_PER},
+			{0x3,		(u32 *)&CM_CLKSTCTRL_PER},
+			{0x1,		(u32 *)&CM_CLKSTST_PER},
+			{0x30107,	(u32 *)&PM_PWSTCTRL_PER},
+			{0x100003,	(u32 *)&PM_PWSTST_PER},
+			{0x3,		(u32 *)&PM_PREPWSTST_PER},
+			{0xFF,		(u32 *)&CM_CLKSEL_PER},
+			{0xF,		(u32 *)&RM_RSTST_PER},
+		}
+	},
+	{
+		/* EMU */
+		{
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0x3,		(u32 *)&CM_CLKSTCTRL_EMU},
+			{0x1,		(u32 *)&CM_CLKSTST_EMU},
+			{0,		0},
+			{0x100003,	(u32 *)&PM_PWSTST_EMU},
+			{0,		0},
+			{0,		0},
+			{0x7,		(u32 *)&RM_RSTST_EMU},
+		}
+	},
+	{
+		/* NEON */
+		{
+			{0,		0},
+			{0,		0},
+			{0x1,		(u32 *)&CM_IDLEST_NEON},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0x3,		(u32 *)&CM_CLKSTCTRL_NEON},
+			{0,		0},
+			{0x7,		(u32 *)&PM_PWSTCTRL_NEON},
+			{0x100003,	(u32 *)&PM_PWSTST_NEON},
+			{0x3,		(u32 *)&PM_PREPWSTST_NEON},
+			{0,		0},
+			{0xF,		(u32 *)&RM_RSTST_NEON},
+		}
+	},
+	{
+		/* CORE3 */
+		{
+			{0x7,		(u32 *)&CM_FCLKEN3_CORE},
+			{0x4,		(u32 *)&CM_ICLKEN3_CORE},
+			{0x5,		(u32 *)&CM_IDLEST3_CORE},
+			{0x4,		(u32 *)&CM_AUTOIDLE3_CORE},
+			{0x4,		(u32 *)&PM_WKEN3_CORE},
+			{0x4,		(u32 *)&PM_WKST3_CORE},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+		}
+	},
+	{
+		/* USBHOST */
+		{
+			{0x3,		(u32 *)&CM_FCLKEN_USBHOST},
+			{0x1,		(u32 *)&CM_ICLKEN_USBHOST},
+			{0x3,		(u32 *)&CM_IDLEST_USBHOST},
+			{0x1,		(u32 *)&CM_AUTOIDLE_USBHOST},
+			{0x1,		(u32 *)&PM_WKEN_USBHOST},
+			{0x1,		(u32 *)&PM_WKST_USBHOST},
+			{0x3,		(u32 *)&CM_CLKSTCTRL_USBHOST},
+			{0x1,		(u32 *)&CM_CLKSTST_USBHOST},
+			{0x30117,	(u32 *)&PM_PWSTCTRL_USBHOST},
+			{0x100003, 	(u32 *)&PM_PWSTST_USBHOST},
+			{0x3,		(u32 *)&PM_PREPWSTST_USBHOST},
+			{0,		0},
+			{0xF,		(u32 *)&RM_RSTST_USBHOST},
+		}
+	},
+};
+
+/* Table to store DPLL registers */
+struct dpll_registers dpll_reg[NO_OF_DPLL] = {
+	{
+		/* DPLL1_MPU */
+		{
+			{0xFFFFFF0F,	(u32 *)&CM_CLKEN_PLL_MPU},
+			{0x7,		(u32 *)&CM_AUTOIDLE_PLL_MPU},
+			{0xFFF800FF,	(u32 *)&CM_CLKSEL1_PLL_MPU},
+			{0,		(u32 *)&CM_IDLEST_PLL_MPU},
+			{0xFFFFFFE0,	(u32 *)&CM_CLKSEL2_PLL_MPU},
+			{0xFFFFFFE0,	(u32 *)&CM_CLKSEL2_PLL_MPU},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+		}
+	},
+	{
+		/* DPLL2_IVA2 */
+		{
+			{0xFFFFFF0F,	(u32 *)&CM_CLKEN_PLL_IVA2},
+			{0x7,		(u32 *)&CM_AUTOIDLE_PLL_IVA2},
+			{0xFFF800FF,	(u32 *)&CM_CLKSEL1_PLL_IVA2},
+			{0,		(u32 *)&CM_IDLEST_PLL_IVA2},
+			{0xFFFFFFE0,	(u32 *)&CM_CLKSEL2_PLL_IVA2},
+			{0xFFFFFFE0,	(u32 *)&CM_CLKSEL2_PLL_IVA2},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+		}
+	},
+	{
+		/* DPLL3_CORE */
+		{
+			{0xFFFFFF0F,	(u32 *)&CM_CLKEN_PLL},
+			{0x7,		(u32 *)&CM_AUTOIDLE_PLL},
+			{0xF800FFFF,	(u32 *)&CM_CLKSEL1_PLL},
+			{0,		(u32 *)&CM_IDLEST_CKGEN},
+			{0x07FFFFFF,	(u32 *)&CM_CLKSEL1_PLL},
+			{0x07FFFFFF,	(u32 *)&CM_CLKSEL1_PLL},
+			{0xFFE0FFFF,	(u32 *)&CM_CLKSEL1_EMU},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+		}
+	},
+	{
+		/* DPLL4_PER */
+		{
+			{0xFF0FFFFF,	(u32 *)&CM_CLKEN_PLL},
+			{0x38,		(u32 *)&CM_AUTOIDLE_PLL},
+			{0xFFF800FF,	(u32 *)&CM_CLKSEL2_PLL},
+			{0,		(u32 *)&CM_IDLEST_CKGEN},
+			{0xFFFFFFE0,	(u32 *)&CM_CLKSEL3_PLL},
+			{0xFFFFFFE0,	(u32 *)&CM_CLKSEL3_PLL},
+			{0xFFFFE0FF,	(u32 *)&CM_CLKSEL_DSS},
+			{0xFFFFFFE0,	(u32 *)&CM_CLKSEL_DSS},
+			{0xFFFFFFE0,	(u32 *)&CM_CLKSEL_CAM},
+			{0xE0FFFFFF,	(u32 *)&CM_CLKSEL1_EMU},
+		}
+	},
+	{
+		/* DPLL5_PER2 */
+		{
+			{0xFFFFFF0F,	(u32 *)&CM_CLKEN2_PLL},
+			{0x7,		(u32 *)&CM_AUTOIDLE2_PLL},
+			{0xFFF800FF,	(u32 *)&CM_CLKSEL4_PLL},
+			{0,		(u32 *)&CM_IDLEST2_CKGEN},
+			{0xFFFFFFE0,	(u32 *)&CM_CLKSEL5_PLL},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+			{0,		0},
+		}
+	}
+};
+
+/* Table to store clksel registers for various clocks */
+struct reg_def clksel_reg[PRCM_NO_OF_CLKS] = {
+	{0x3, (u32 *)&CM_CLKSEL_CORE},	/* L3_ICLK */
+	{0xC, (u32 *)&CM_CLKSEL_CORE},	/* L4_ICLK */
+	{0x6, (u32 *)&CM_CLKSEL_WKUP},	/* RM_ICLK */
+	{0x00, NULL},
+	{0x38, (u32 *)&CM_CLKOUT_CTRL},	/* SYS_CLOCKOUT2 */
+	{0x7, (u32 *)&CM_CLKSEL_SGX},	/* SGX_L3_FCLK */
+	{0xF00, (u32 *)&CM_CLKSEL_CORE},	/* SSI */
+	{0x180000, (u32 *)&CM_CLKSEL1_PLL_MPU},	/* DPLL1_FCLK */
+	{0x180000, (u32 *)&CM_CLKSEL1_PLL_IVA2},	/* DPLL2_FCLK */
+	{0x78, (u32 *)&CM_CLKSEL_WKUP}, 	/* USIM_FCLK */
+
+};
+
+/* Array containing possible divider values for all clocks
+ which have dividers */
+u32 div_arr[] = {
+	/* L3 divs */
+	1, 2, 0, 0, 0, 0,
+	/* L4 divs */
+	1, 2, 0, 0, 0, 0,
+	/* RM divs */
+	1, 2, 0, 0, 0, 0,
+	/* USB L4 divs */
+	0, 0, 0, 0, 0, 0,
+	/* sys clkout2 divs */
+	1, 2, 4, 8, 16, 0,
+	/* sgx divs */
+	3, 4, 6, 0, 0, 0,
+	/* SSI divs */
+	1, 2, 3, 4, 5, 6,
+	/* dpll1 fclk divs */
+	1, 2, 4, 0, 0, 0,
+	/* dpll2 fclk divs */
+	1, 2, 4, 0, 0, 0,
+	/* cm usim divs */
+	2, 4, 8, 10, 16, 20,
+};
+
+/* Possible values for Dpll dividers */
+u32 div_dpll[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+u32 div_dpll3[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,\
+		17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31 };
+
+u32 dpll_mx_shift[NO_OF_DPLL][NO_DPLL_DIV] = {
+	{0x0, 0x0, 0x0, 0x0, 0x0, 0x0},
+	{0x0, 0x0, 0x0, 0x0, 0x0, 0x0},
+	{0x1B, 0x1B, 0x10, 0x0, 0x0, 0x0},
+	{0x0, 0x0, 0x8, 0x0, 0x0, 0x18},
+	{0x0, 0x0, 0x0, 0x0, 0x0, 0x0},
+};
+
+/* Offset values in registers for clocks which have dividers */
+u32 clk_div_offset[PRCM_NO_OF_CLKS] = {
+	/* L3_ICLK */
+	0x0,
+	/* L4_ICLK */
+	0x2,
+	/* RM_ICLK */
+	0x1,
+	/* USB_L4_ICLK */
+	0x0,
+	/* SYS_CLKOUT2 */
+	0x3,
+	/* SGX_L3_FCLK */
+	0x0,
+	/* SSI_CLK */
+	0x8,
+	/* DPLL1_FCLK */
+	0x13,
+	/* DPLL2_FCLK */
+	0x13,
+	/* SYS_USIM_CLK */
+	0x3,
+};
+
+/* Tables having M,N,M2 and FreqSel values for different sys_clk speeds & OPPs*/
+/* The tables are organized as follows: */
+/* Rows : 1 - 12M, 2 - 13M, 3 - 19.2M, 4 - 26M, 5 - 38.4M */
+/* Columns : 1 - OPP1, 2 - OPP2, 3 - OPP3, 4 - OPP4  5 - OPP5 */
+
+/* MPU parameters */
+struct dpll_param mpu_dpll_param[5][PRCM_NO_VDD1_OPPS] = {
+	/* 12M values */
+	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
+	{{0x0FA, 0x05, 0x07, 0x04}, {0x0FA, 0x05, 0x07, 0x02},
+	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
+	{0x0FA, 0x05, 0x07, 0x01}, {0x113, 0x05, 0x07, 0x01},
+	/* OPP5 (625 Mhz) */
+	{0x271, 0x0B, 0x03, 0x01} },
+	/* 13M values */
+	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
+	{{0x1F4, 0x0C, 0x03, 0x04}, {0x1F4, 0x0C, 0x03, 0x02},
+	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
+	{0x1F4, 0x0C, 0x03, 0x01}, {0x226, 0x0C, 0x03, 0x01},
+	/* OPP5 (625 Mhz) */
+	{0x271, 0x0C, 0x03, 0x01} },
+	/* 19.2M values */
+	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
+	{{0x271, 0x17, 0x03, 0x04}, {0x271, 0x17, 0x03, 0x02},
+	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
+	{0x271, 0x17, 0x03, 0x01}, {0x191, 0x0D, 0x05, 0x01},
+	/* OPP5 (625 Mhz) */
+	{0x28B, 0x13, 0x03, 0x01} },
+	/* 26M values */
+	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
+	{{0x0FA, 0x0C, 0x07, 0x04}, {0x0FA, 0x0C, 0x07, 0x02},
+	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
+	{0x0FA, 0x0C, 0x07, 0x01}, {0x113, 0x0C, 0x07, 0x01},
+	/* OPP5 (625 Mhz) */
+	{0x271, 0x19, 0x03, 0x01} },
+	/* 38.4M values */
+	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
+	{{0x271, 0x2F, 0x03, 0x04}, {0x271, 0x2F, 0x03, 0x02},
+	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
+	{0x271, 0x2F, 0x03, 0x01}, {0x1BC, 0x1E, 0x04, 0x01},
+	/* OPP5 (625 Mhz) */
+	{0x1D8, 0x1C, 0x05, 0x01} },
+};
+
+
+/* IVA parameters */
+struct dpll_param iva_dpll_param[5][PRCM_NO_VDD1_OPPS] = {
+	/* 12M values */
+	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
+	{{0x0B4, 0x05, 0x07, 0x04}, {0x0B4, 0x05, 0x07, 0x02},
+	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
+	 {0x0B4, 0x05, 0x07, 0x01}, {0x0C6, 0x05, 0x07, 0x01},
+	/* OPP5 (430 Mhz) */
+	 {0x0D7, 0x05, 0x07, 0x01} },
+	/* 13M values */
+	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
+	{{0x168, 0x0C, 0x03, 0x04}, {0x168, 0x0C, 0x03, 0x02},
+	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
+	 {0x168, 0x0C, 0x03, 0x01}, {0x18C, 0x0C, 0x03, 0x01},
+	/* OPP5 (430 Mhz) */
+	 {0x1AE, 0x0C, 0x03, 0x01} },
+	/* 19.2M values */
+	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
+	{{0x0E1, 0x0B, 0x06, 0x04}, {0x0E1, 0x0B, 0x06, 0x02},
+	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
+	 {0x0E1, 0x0B, 0x06, 0x01}, {0x14A, 0x0F, 0x04, 0x01},
+	/* OPP5 (430 Mhz) */
+	 {0x203, 0x16, 0x03, 0x01} },
+	/* 26M values */
+	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
+	{{0x0B4, 0x0C, 0x07, 0x04}, {0x0B4, 0x0C, 0x07, 0x02},
+	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
+	 {0x0B4, 0x0C, 0x07, 0x01}, {0x0C6, 0x0C, 0x07, 0x01},
+	/* OPP5 (430 Mhz) */
+	 {0x0D7, 0x0C, 0x07, 0x01} },
+	/* 38.4M values */
+	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
+	{{0x0E1, 0x17, 0x06, 0x04}, {0x0E1, 0x17, 0x06, 0x02},
+	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
+	 {0x0E1, 0x17, 0x06, 0x01}, {0x14A, 0x1F, 0x04, 0x01},
+	/* OPP5 (430 Mhz) */
+	 {0x23B, 0x32, 0x01, 0x01} },
+};
+
+/* CORE parameters */
+struct dpll_param core_dpll_param[5][PRCM_NO_VDD2_OPPS] = {
+	/* 12M values */
+	/* OPP1(83 Mhz) and OPP2(166 Mhz) */
+	{{0, 0, 0, 0}, {0x0A6, 0x05, 0x07, 0x02}, {0x0A6, 0x05, 0x07, 0x01} },
+	/* 13M values */
+	/* OPP1(83 Mhz) and OPP2(166 Mhz) */
+	{{0, 0, 0, 0}, {0x14C, 0x0C, 0x03, 0x02}, {0x14C, 0x0C, 0x03, 0x01} },
+	/* 19.2M values */
+	/* OPP1(83 Mhz) and OPP2(166 Mhz) */
+	{{0, 0, 0, 0}, {0x19F, 0x17, 0x03, 0x02}, {0x19F, 0x17, 0x03, 0x01} },
+	/* 26M values */
+	/* OPP1(83 Mhz) and OPP2(166 Mhz) */
+	{{0, 0, 0, 0}, {0x0A6, 0x0C, 0x07, 0x02}, {0x0A6, 0x0C, 0x07, 0x01} },
+	/* 38.4M values */
+	/* OPP1(83 Mhz) and OPP2(166 Mhz) */
+	{{0, 0, 0, 0}, {0x19F, 0x2F, 0x03, 0x02}, {0x19F, 0x2F, 0x03, 0x01} },
+};
+
+struct dpll_param usb_dpll_param[5] = {
+	/* 12M values */
+	{0x3C, 0x05, 0x07, 0x01},
+	/* 13M values */
+	{0x78, 0x0C, 0x03, 0x01},
+	/* 19.2M values  */
+	{0x4B, 0x0B, 0x06, 0x01},
+	/* 26M values */
+	{0x3C, 0x0C, 0x07, 0x01},
+	/* 38.4M values */
+	{0x4B, 0x17, 0x06, 0x01},
+};
+
+u8 mpu_iva2_vdd1_volts [PRCM_NO_VDD1_OPPS] = {
+	/* Vsel corresponding to 0.9V (OPP1), 1.00V (OPP2),
+				1.20V (OPP3), 1.27V (OPP4), 1.35 (OPP5) */
+	0x18, 0x20, 0x30, 0x36, 0x3C
+};
+
+u8 core_l3_vdd2_volts [PRCM_NO_VDD2_OPPS] = { /* only 3 OPPs */
+	/* Vsel corresponding to 0.9V (OPP1), 1.00V (OPP2), 1.15 (OPP3) */
+	0x18, 0x20, 0x2C
+};
+
+u32 omap_prcm_get_reset_sources(void)
+{
+	omap3_clk_prepare_for_reboot();
+	return PRM_RSTST & 0x7fb;
+}
+EXPORT_SYMBOL(omap_prcm_get_reset_sources);
+
+void omap_udelay(u32 udelay)
+{
+	u32 counter_val, timeout_val;
+
+	counter_val = OMAP_TIMER32K_SYNC_CR_READ;
+	/* Since the 32 sync timer runs on a 32K clock,
+	   the granularity of the delay achieved is around 30
+	   us, hence divide the delay provided by user by 30 */
+	timeout_val = counter_val + (udelay / 30);
+	if (timeout_val < counter_val)
+		/* There seems to be a overflow */
+		/* take care of the overflow by waiting first for the
+		   CR to reach the MAX value */
+		while (OMAP_MAX_32K_CR > OMAP_TIMER32K_SYNC_CR_READ) ;
+	/* wait for the specified delay */
+	while (timeout_val > OMAP_TIMER32K_SYNC_CR_READ) ;
+	return;
+}
+
+inline int loop_wait(u32 *lcnt, u32 *rcnt, u32 delay)
+{
+	(*lcnt)++;
+	if (*lcnt > MAXLOOPCNT) {
+		*lcnt = 0;
+		if (*rcnt < MAXRETRIES)
+			omap_udelay(delay);
+		else
+			return PRCM_FAIL;
+		(*rcnt)++;
+	}
+	return PRCM_PASS;
+}
+
+/* Resets clock rates and reboots the system. Only called from system.h */
+void omap_prcm_arch_reset(char mode)
+{
+	omap3_clk_prepare_for_reboot();
+	/* Assert global software reset */
+	PRM_RSTCTRL |= 2;
+}
+
+static int check_device_status(u32 deviceid, u8 control)
+{
+	u8 curr_state;
+	u32 loop_cnt = 0, retries_cnt = 0;
+	int ret;
+
+	if ((control != PRCM_ENABLE) && (control != PRCM_DISABLE))
+		return PRCM_FAIL;
+
+	curr_state = !control;
+	while (curr_state != control) {
+		ret = prcm_is_device_accessible(deviceid, &curr_state);
+		if (ret != PRCM_PASS)
+			return ret;
+		ret = loop_wait(&loop_cnt, &retries_cnt, 100);
+		if (ret != PRCM_PASS) {
+			printk(KERN_INFO "Loop count exceeded in check "
+				"device status for device:%u\n", deviceid);
+			return ret;
+		}
+	}
+	return PRCM_PASS;
+}
+
+static int get_dpll_mx(u32 dpll_id, u32 dpll_div, u32 dpll_mxsft)
+{
+	u32 valid;
+	u32 *addr;
+
+	addr = get_addr_pll(dpll_id, dpll_div + MX_ARRAY_OFFSET);
+	valid = get_val_bits_pll(dpll_id, dpll_div + MX_ARRAY_OFFSET);
+	return (*addr & ~valid) >> dpll_mxsft;
+}
+
+int get_dpll_m_n(u32 dpll_id, u32 *mult, u32 *div)
+{
+	u32 valid;
+	u32 *addr;
+
+	addr = get_addr_pll(dpll_id, REG_CLKSEL1_PLL);
+	if (!addr)
+		return PRCM_FAIL;
+
+	valid = get_val_bits_pll(dpll_id, REG_CLKSEL1_PLL);
+	if (dpll_id == DPLL3_CORE) {
+		*mult = (*addr & ~valid) >> 16;
+		*div = (*addr & ~DPLL3_N_MASK) >> 8;
+	} else {
+		*mult = (*addr & ~valid) >> 8;
+		*div = (*addr & ~DPLL_N_MASK);
+	}
+	return PRCM_PASS;
+}
+
+static int is_dpll_locked(u32 dpll_id, int *result)
+{
+	u32 *addr;
+	u32 dpll_enbit_mask, dpll_idlest_lock_bit;
+
+	addr = get_addr_pll(dpll_id, REG_CLKEN_PLL);
+	if (!addr)
+		return PRCM_FAIL;
+
+	dpll_enbit_mask = get_dpll_enbitmask(dpll_id);
+	dpll_idlest_lock_bit = get_idlest_lock_bit(dpll_id);
+
+	if ((*addr & (~dpll_enbit_mask)) == (~dpll_enbit_mask))
+		*result = PRCM_TRUE;
+	else
+		*result = PRCM_FALSE;
+	return PRCM_PASS;
+}
+
+static int check_accessibility(u32 deviceid, u8 clk_type)
+{
+	u32 valid = 0, enbit, type, domain;
+	u32 *addr = 0;
+
+	enbit = DEV_BIT_POS(deviceid);
+	domain = DOMAIN_ID(deviceid);
+	type = DEV_TYPE(deviceid);
+
+	if (type == TARGET) {
+		/* Skip devices without CM_IDLEST register bit support */
+		addr = get_addr(domain, REG_IDLEST);
+		valid = get_val_bits(domain, REG_IDLEST);
+		if (!(addr) || !(valid & (1 << enbit)))
+			return PRCM_PASS;
+		/* Check if FCLK/ICLK is absent or ICLK is ON if present. */
+		if (clk_type == ICLK) {
+			addr = get_addr(domain, REG_FCLKEN);
+			valid = get_val_bits(domain, REG_FCLKEN);
+		} else if (clk_type == FCLK) {
+			addr = get_addr(domain, REG_ICLKEN);
+			valid = get_val_bits(domain, REG_ICLKEN);
+		}
+		if (!(addr) || !(valid & (1 << enbit))
+		    || (*addr & (1 << enbit)))
+			/* FCLK/ICLK present and is ON */
+			return check_device_status(deviceid, PRCM_ENABLE);
+	} else {		/* type = INITIATOR or INITIATOR+TARGET
+				 * IDLEST bit cannot be polled,
+				 * it only specifies the
+				 * standby status
+				 * Check if the ICLK is present and ON */
+		if (clk_type == FCLK) {
+			addr = get_addr(domain, REG_ICLKEN);
+			valid = get_val_bits(domain, REG_ICLKEN);
+		} else if (clk_type == ICLK) {
+			addr = get_addr(domain, REG_FCLKEN);
+			valid = get_val_bits(domain, REG_FCLKEN);
+		}
+		if (!(addr) || !(valid & (1 << enbit))
+		    || (*addr & (1 << enbit))) {
+			/* FCLK/ICLK present and is ON
+			 * Wait for sometime for the clocks to stabilize*/
+			omap_udelay(100);
+			return PRCM_PASS;
+		}
+	}
+	return PRCM_PASS;
+}
+
+static int calc_dpll_lock_delay(u32 dpll_id, u32 *delay)
+{
+	u32 f_ref, f_int, m, n;
+	/* Calcluate an appropriate delay based on the below formula */
+	/* This is a worst case formula which assumes there was a
+	   M/N reprogramming.
+	   2us + 350Fint_cycles (Fint_cycles = Fref/N+1)*/
+	f_ref = prcm_get_system_clock_speed();
+	if (f_ref == PRCM_FAIL) {
+		printk(KERN_INFO "Unable to get system clock\n");
+		return PRCM_FAIL;
+	}
+
+	if (get_dpll_m_n(dpll_id, &m, &n) == PRCM_FAIL) {
+		printk(KERN_INFO "Failed to get the M and N values\n");
+		return PRCM_FAIL;
+	}
+
+	f_int = f_ref / (n + 1);
+	*delay = (2 + (350*1000)/f_int);
+	return PRCM_PASS;
+}
+
+int prcm_clock_control(u32 deviceid, u8 clk_type, u8 control,
+		       u8 checkaccessibility)
+{
+	u32 domain, omap, valid, enbit;
+	u32 *addr;
+
+
+	omap = OMAP(deviceid);
+	enbit = DEV_BIT_POS(deviceid);
+	domain = DOMAIN_ID(deviceid);
+
+	if (cpu_is_omap3430() && !(omap & (AT_3430|AT_3430_ES2)))
+		return PRCM_FAIL;
+
+	switch (clk_type) {
+	case ICLK:
+		addr = get_addr(domain, REG_ICLKEN);
+		valid = get_val_bits(domain, REG_ICLKEN);
+		break;
+	case FCLK:
+		addr = get_addr(domain, REG_FCLKEN);
+		valid = get_val_bits(domain, REG_FCLKEN);
+		break;
+	default:
+		return PRCM_FAIL;
+	}
+
+	/* No functional/Interface Clk control for the device */
+	if (!(addr) || !(valid & (1 << enbit)))
+		return PRCM_FAIL;
+
+	if (control == PRCM_ENABLE)
+		*addr |= (1 << enbit);
+	else if (control == PRCM_DISABLE)
+		*addr &= ~(1 << enbit);
+
+	if (checkaccessibility)
+		return check_accessibility(deviceid, clk_type);
+
+	return PRCM_PASS;
+}
+
+int prcm_is_device_accessible(u32 deviceid, u8 *result)
+{
+	u32 domain, omap, valid, enbit;
+	u32 *addr;
+
+	omap = OMAP(deviceid);
+	enbit = DEV_BIT_POS(deviceid);
+	domain = DOMAIN_ID(deviceid);
+
+	if (cpu_is_omap3430() && !(omap & (AT_3430|AT_3430_ES2)))
+		return PRCM_FAIL;
+
+	addr = get_addr(domain, REG_IDLEST);
+	valid = get_val_bits(domain, REG_IDLEST);
+
+	if (!(addr) || !(valid & (1 << enbit)))
+		return PRCM_FAIL;
+
+
+	if (!(*addr & (1 << enbit))) {
+		*result = PRCM_TRUE;
+	} else {
+		*result = PRCM_FALSE;
+	}
+	return PRCM_PASS;
+}
+
+int prcm_enable_dpll(u32 dpll_id)
+{
+	u32 dpll_idlest_lock_bit, dpll_enbit_mask, delay;
+	u32 *addr, *addr_auto;
+	u32 dpll_autoidle;
+	int ret, enabled;
+	u32 loop_cnt = 0, retries_cnt = 0;
+
+	if (dpll_id > NO_OF_DPLL)
+		return PRCM_FAIL;
+
+	/* Currently, this API does not allow locking of core DPLL */
+	/* Locking of core DPLL needs to be done without access to SDRAM */
+	/* This can be done safely if execution is done from SRAM */
+	if (dpll_id == DPLL3_CORE)
+		return PRCM_FAIL;
+
+	/* Store the DPLL autoidle */
+	addr_auto = get_addr_pll(dpll_id, REG_AUTOIDLE_PLL);
+	dpll_autoidle = *addr_auto;
+	*addr_auto = 0x0;
+
+	ret = is_dpll_locked(dpll_id, &enabled);
+	if (ret != PRCM_PASS) {
+		*addr_auto = dpll_autoidle;
+		return ret;
+	}
+	if (enabled == PRCM_TRUE) {
+		*addr_auto = dpll_autoidle;
+		return PRCM_PASS;
+	}
+
+	addr = get_addr_pll(dpll_id, REG_CLKEN_PLL);
+
+	if (!addr) {
+		*addr_auto = dpll_autoidle;
+		return PRCM_FAIL;
+	}
+
+	dpll_enbit_mask = get_dpll_enbitmask(dpll_id);
+	dpll_idlest_lock_bit = get_idlest_lock_bit(dpll_id);
+
+	*addr |= ~dpll_enbit_mask;	/* enable DPLL in lock mode */
+
+	if (is_sil_rev_equal_to(OMAP3430_REV_ES1_0)) {
+		/* WORKAROUND FOR SILICON ERRATA 1.56 */
+		ret = calc_dpll_lock_delay(dpll_id, &delay);
+		if (ret != PRCM_PASS) {
+			*addr_auto = dpll_autoidle;
+			return ret;
+		}
+		omap_udelay(delay);
+	}
+
+	ret = calc_dpll_lock_delay(dpll_id, &delay);
+	if (ret != PRCM_PASS) {
+		*addr_auto = dpll_autoidle;
+		return ret;
+	}
+	while (!(*get_addr_pll(dpll_id, REG_IDLEST_PLL) &
+						 dpll_idlest_lock_bit)) {
+		/* wait for DPLL to lock */
+		ret = loop_wait(&loop_cnt, &retries_cnt, delay/5);
+		if (ret != PRCM_PASS) {
+		printk(KERN_INFO "Loop count exceeded in"
+				"prcm_enable_dpll for dpll:%u\n", dpll_id);
+			*addr_auto = dpll_autoidle;
+			return ret;
+		}
+	}
+	/* Restore the autoidle for the DPLL back */
+	*addr_auto = dpll_autoidle;
+	return PRCM_PASS;
+}
+
+int prcm_configure_dpll(u32 dpll_id, u32 mult, u8 div, u8 freq_sel)
+{
+	u32 valid;
+	u32 *addr, *addr_auto;
+	u32 new_reg_val = 0x0;
+	int ret, enabled, index;
+	u32 sys_clkspeed, dpll_autoidle;
+
+	if (dpll_id > NO_OF_DPLL)
+		return PRCM_FAIL;
+
+	if (is_sil_rev_equal_to(OMAP3430_REV_ES1_0)) {
+		/* WORKAROUND FOR Limitation 2.5 */
+		if (dpll_id == DPLL4_PER)
+			return PRCM_FAIL;
+	}
+
+	/* Store the DPLL autoidle */
+	addr_auto = get_addr_pll(dpll_id, REG_AUTOIDLE_PLL);
+	dpll_autoidle = *addr_auto;
+	*addr_auto = 0x0;
+
+	/* DPLL M,N,FreqSel values should be changed only if the DPLL
+	 * is in bypass mode. If it is not in bypass mode, return error */
+	ret = is_dpll_locked(dpll_id, &enabled);
+
+	if (enabled == PRCM_TRUE) {
+		printk(KERN_INFO "Dpll enabled - m,n values cannot be"
+								"changed\n");
+		*addr_auto = dpll_autoidle;
+		return PRCM_FAIL;
+	}
+
+	/* Configure M and N values */
+	addr = get_addr_pll(dpll_id, REG_CLKSEL1_PLL);
+	if (!addr)
+		return PRCM_FAIL;
+	if (dpll_id == DPLL5_PER2) {
+		/* get the M/N/freqsel values */
+		sys_clkspeed = prcm_get_system_clock_speed();
+		switch (sys_clkspeed) {
+		case (int)(12000):
+			index = 0;
+			break;
+		case (int)(13000):
+			index = 1;
+			break;
+		case (int)(19200):
+			index = 2;
+			break;
+		case (int)(26000):
+			index = 3;
+			break;
+		case (int)(38400):
+			index = 4;
+			break;
+		default:
+			return PRCM_FAIL;
+		}
+		mult = usb_dpll_param[index].dpll_m;
+		div = usb_dpll_param[index].dpll_n;
+		freq_sel = usb_dpll_param[index].dpll_freqsel;
+	}
+	valid = get_val_bits_pll(dpll_id, REG_CLKSEL1_PLL);
+	if (dpll_id == DPLL3_CORE) {
+		new_reg_val = *addr & valid & DPLL3_N_MASK;
+		new_reg_val |= (mult << 16) | (div << 8);
+		*addr = new_reg_val;
+	} else {
+		new_reg_val = *addr & valid & DPLL_N_MASK;
+		new_reg_val |= (mult << 8) | div;
+		*addr = new_reg_val;
+	}
+
+	/* Configure FreqSel values */
+	addr = get_addr_pll(dpll_id, REG_CLKEN_PLL);
+	if (!addr)
+		return PRCM_FAIL;
+	valid = get_val_bits_pll(dpll_id, REG_CLKEN_PLL);
+	if (dpll_id == DPLL4_PER) {
+		new_reg_val = *addr & valid;
+		new_reg_val |= (freq_sel << 20);
+		*addr = new_reg_val;
+	} else {
+		new_reg_val = *addr & valid;
+		new_reg_val |= (freq_sel << 4);
+		*addr = new_reg_val;
+	}
+	*addr_auto = dpll_autoidle;
+	return PRCM_PASS;
+}
+
+int prcm_put_dpll_in_bypass(u32 dpll_id, u32 bypass_mode)
+{
+	u32 new_val;
+	u32 *addr, *addr_auto;
+	u32 dpll_autoidle;
+	u32 loop_cnt = 0, retries_cnt = 0;
+	int ret = PRCM_FAIL;
+
+	if (dpll_id > NO_OF_DPLL)
+		return ret;
+
+	/* Currently, the API does not allow putting CORE dpll in bypass mode
+	 * To safely put dpll in bypass mode, it is better to execute code
+	 * from sram so that there is no access to sdram */
+	if (dpll_id == DPLL3_CORE)
+		return ret;
+
+	addr = get_addr_pll(dpll_id, REG_CLKEN_PLL);
+	if (!addr)
+		return ret;
+
+	/* This is needed if the condition in while loop returns true the */
+							/*very first time*/
+	ret = PRCM_PASS;
+
+	/* Store the DPLL autoidle */
+	addr_auto = get_addr_pll(dpll_id, REG_AUTOIDLE_PLL);
+	dpll_autoidle = *addr_auto;
+	*addr_auto = 0x0;
+
+	if (dpll_id == DPLL1_MPU) {
+		new_val = (*addr & DPLL_ENBIT_MASK) | LOW_POWER_BYPASS;
+		*addr = new_val;
+		while (*get_addr_pll(dpll_id, REG_IDLEST_PLL) & 0x1) {
+			ret = loop_wait(&loop_cnt, &retries_cnt, 1000);
+			if (ret != PRCM_PASS)
+				break;
+		}
+	} else if (dpll_id == DPLL4_PER) {
+		new_val = (*addr & DPLL4_ENBIT_MASK) | (LOW_POWER_STOP << 16);
+		*addr = new_val;
+		while (*get_addr_pll(dpll_id, REG_IDLEST_PLL) & 0x2) {
+			ret = loop_wait(&loop_cnt, &retries_cnt, 1000);
+			if (ret != PRCM_PASS)
+				break;
+		}
+	} else {
+		if ((dpll_id == DPLL5_PER2) && (bypass_mode != LOW_POWER_STOP))
+			return ret;
+		new_val = (*addr & DPLL_ENBIT_MASK) | bypass_mode;
+		*addr = new_val;
+		while (*get_addr_pll(dpll_id, REG_IDLEST_PLL) & 0x1) {
+			ret = loop_wait(&loop_cnt, &retries_cnt, 1000);
+			if (ret != PRCM_PASS)
+				break;
+		}
+	}
+	if (ret != PRCM_PASS)
+		printk(KERN_INFO "Loop count exceeded in "
+			"prcm_put_dpll_in_bypass for dpll:%u\n", dpll_id);
+
+	/* Restore the autoidle for the DPLL back */
+	*addr_auto = dpll_autoidle;
+	return ret;
+}
+
+int prcm_get_dpll_mn_output(u32 dpll, u32 *mn_output)
+{
+	u32 dpll_idlest_lock_bit, clksel1_pll, dpll_id;
+	u32 sys_clkspeed, core_clkspeed;
+	int bypassclk_divider;
+	u32 mult, div;
+	u32 *addr;
+
+	dpll_id = (dpll >> DPLL_NO_POS) & DPLL_NO_MASK;
+
+	if (dpll_id > NO_OF_DPLL)
+		return PRCM_FAIL;
+
+	dpll_idlest_lock_bit = get_idlest_lock_bit(dpll_id);
+
+	addr = get_addr_pll(dpll_id, REG_IDLEST_PLL);
+	/* Get the sys clock speed */
+	sys_clkspeed = prcm_get_system_clock_speed();
+
+	if (*addr & dpll_idlest_lock_bit) {
+		/* dpll locked */
+		get_dpll_m_n(dpll_id, &mult, &div);
+		*mn_output = ((sys_clkspeed * mult) / (div + 1));
+	} else {
+		/* dpll is in bypass mode */
+		if ((dpll_id == DPLL3_CORE) || (dpll_id == DPLL4_PER)
+						|| (dpll_id == DPLL5_PER2))
+			* mn_output = sys_clkspeed;
+		else {		/* DPLL1 and DPLL2
+				 * Check if DPLL3 is in bypass */
+			prcm_get_dpll_rate(PRCM_DPLL3_M2X2_CLK, &core_clkspeed);
+			if (dpll_id == DPLL1_MPU)
+				clksel1_pll = CM_CLKSEL1_PLL_MPU;
+			else
+				clksel1_pll = CM_CLKSEL1_PLL_IVA2;
+			bypassclk_divider = (clksel1_pll >> 19) & 0x3;
+			*mn_output = core_clkspeed / bypassclk_divider;
+		}
+	}
+	return PRCM_PASS;
+}
+
+int prcm_get_dpll_rate(u32 dpll, u32 *output)
+{
+	u32 dpll_id, dpll_div, dpll_mxsft, id_type;
+	u32 mx, omap;
+	u32 mn_output;
+
+	id_type = get_id_type(dpll);
+	if (!(id_type & ID_DPLL_OP))
+		return PRCM_FAIL;	/*Not dpll op */
+
+	omap = OMAP(dpll);
+
+	if (cpu_is_omap3430() && !(omap & (AT_3430|AT_3430_ES2)))
+		return PRCM_FAIL;
+
+	dpll_id = (dpll >> DPLL_NO_POS) & DPLL_NO_MASK;
+	if (dpll_id > NO_OF_DPLL)
+		return PRCM_FAIL;
+
+	dpll_div = (dpll >> DPLL_DIV_POS) & DPLL_DIV_MASK;
+	dpll_mxsft = dpll_mx_shift[dpll_id-1][dpll_div];
+	mx = get_dpll_mx(dpll_id, dpll_div, dpll_mxsft);
+
+	prcm_get_dpll_mn_output(dpll, &mn_output);
+
+	/* Except for DPLL_M2 all clocks are (mn_output*2)/mx */
+	if (dpll_div == DPLL_M2)
+		*output = (mn_output) / mx;
+	else
+		*output = (2 * mn_output) / mx;
+	return PRCM_PASS;
+}
+
+int prcm_configure_dpll_divider(u32 dpll, u32 setting)
+{
+	u32 dpll_id, valid, dpll_mxsft, omap, id_type;
+	u32 dpll_div, new_val = 0x00000000;
+	u32 *addr;
+
+	id_type = get_id_type(dpll);
+	if (!(id_type & ID_DPLL_OP))
+		return PRCM_FAIL;	/*Not DPLL OP */
+
+	omap = OMAP(dpll);
+
+	if (cpu_is_omap3430() && !(omap & (AT_3430|AT_3430_ES2)))
+		return PRCM_FAIL;
+
+	dpll_id = (dpll >> DPLL_NO_POS) & DPLL_NO_MASK;
+	if (dpll_id > NO_OF_DPLL)
+		return PRCM_FAIL;
+
+	if (is_sil_rev_equal_to(OMAP3430_REV_ES1_0)) {
+		/* Workaround for limiation 2.5 */
+		/* On ES 1.0, DPLL4 dividers cannot be changed */
+		if (dpll_id == DPLL4_PER)
+			return PRCM_FAIL;
+	}
+
+	dpll_div = (dpll >> DPLL_DIV_POS) & DPLL_DIV_MASK;
+	dpll_mxsft = dpll_mx_shift[dpll_id-1][dpll_div];
+	addr = get_addr_pll(dpll_id, dpll_div + MX_ARRAY_OFFSET);
+	valid = get_val_bits_pll(dpll_id, dpll_div + MX_ARRAY_OFFSET);
+
+	new_val = (*addr & valid) | (setting << dpll_mxsft);
+
+	*addr = new_val;
+	return PRCM_PASS;
+}
+
+int prcm_get_crystal_rate(void)
+{
+	u32 osc_clkspeed;
+
+	osc_clkspeed = PRM_CLKSEL & 0x7;
+
+	switch (osc_clkspeed) {
+	case 0:
+		return (int)(12000);	/*12MHz*/
+	case 1:
+		return (int)(13000);	/*13MHz*/
+	case 2:
+		return (int)(19200);	/*19.2MHz*/
+	case 3:
+		return (int)(26000);	/*26MHz*/
+	case 4:
+		return (int)(38400);	/*38.4MHz*/
+	}
+
+	return PRCM_FAIL;
+}
+
+int prcm_get_system_clock_speed(void)
+{
+	u32 osc_clkspeed, sys_clkdiv;
+
+	osc_clkspeed = prcm_get_crystal_rate();
+	sys_clkdiv = (PRM_CLKSRC_CTRL >> 6) & 0x3;
+	if (osc_clkspeed == PRCM_FAIL)
+		return PRCM_FAIL;
+	else
+		return osc_clkspeed / sys_clkdiv;
+}
+
+int prcm_select_system_clock_divider(u32 setting)
+{
+	u32 new_value = 0x00000000;
+
+	new_value = (PRM_CLKSRC_CTRL & SYSCLK_DIV_MASK);
+	new_value = new_value | (setting << 6);
+	PRM_CLKSRC_CTRL = new_value;
+
+	return PRCM_PASS;
+}
+
+int prcm_control_external_output_clock1(u32 control)
+{
+	u32 new_value = 0x00000000;
+
+	new_value = (PRM_CLKOUT_CTRL & EXTCLK_OUTCTRL_MASK);
+	new_value = new_value | (control << 7);
+	PRM_CLKOUT_CTRL = new_value;
+
+	return PRCM_PASS;
+}
+
+int prcm_control_external_output_clock2(u32 control)
+{
+	u32 new_value = 0x00000000;
+
+	new_value = (CM_CLKOUT_CTRL & EXTCLK_OUTCTRL_MASK);
+	new_value = new_value | (control << 7);
+	CM_CLKOUT_CTRL = new_value;
+
+	return PRCM_PASS;
+}
+
+int prcm_clksel_get_divider(u32 clk, u32 *div)
+{
+	u32 valid, offset, clk_id, omap, id_type;
+	u32 *addr;
+
+	id_type = get_id_type(clk);
+	if (!(id_type & ID_CLK_DIV))
+		return PRCM_FAIL;	/*No divider */
+
+	omap = OMAP(clk);
+
+	if (cpu_is_omap3430() && !(omap & (AT_3430|AT_3430_ES2)))
+		return PRCM_FAIL;
+
+	/* In case of 48m_fclk and 12m_fclk, the dividers are fixed */
+	/* So this information is not stored in an array */
+	if (clk == PRCM_48M_FCLK) {
+		(*div) = 2;
+		return PRCM_PASS;
+	} else if (clk == PRCM_12M_FCLK) {
+		(*div) = 4;
+		return PRCM_PASS;
+	}
+	clk_id = (clk >> CLK_NO_POS) & CLK_NO_MASK;
+	offset = clk_div_offset[clk_id-1];
+
+	if (clk_id > PRCM_NO_OF_CLKS)
+		return PRCM_FAIL;
+
+	addr = clksel_reg[clk_id - 1].reg_addr;
+	if (!addr)
+		return PRCM_FAIL;
+	valid = clksel_reg[clk_id - 1].valid_bits;
+
+	*div = (*addr & valid) >> offset;
+	/* For sys_clkout2, the divider is not same as value in register */
+	/* Need to do bit shifting to get actual divider value */
+	if (clk == PRCM_SYS_CLKOUT2)
+		*div = (1 << (*div));
+	if (clk == PRCM_USIM) {
+		switch (*div) {
+		case 0x3:
+			*div = 2;
+			break;
+		case 0x5:
+			*div = 8;
+			break;
+		case 0x6:
+			*div = 10;
+			break;
+		case 0x7:
+			*div = 4;
+			break;
+		case 0x9:
+			*div = 16;
+			break;
+		case 0xA:
+			*div = 20;
+			break;
+		default:
+			break;
+		}
+	}
+	if (clk == PRCM_SGX_FCLK) {
+		switch (*div) {
+		case 0x0:
+			*div = 3;
+			break;
+		case 0x1:
+			*div = 4;
+			break;
+		case 0x2:
+			*div = 6;
+			break;
+		case 0x3:
+			*div = 1;
+			break;
+		default:
+			break;
+		}
+	}
+	return PRCM_PASS;
+}
+
+int prcm_clksel_set_divider(u32 clk, u32 div)
+{
+	u32 valid, offset, clk_id, new_val, omap, id_type;
+	u32 *addr;
+	u32 divider = 0;
+	u8 reenable_clk = PRCM_FALSE;
+	u32 parent_id;
+
+	id_type = get_id_type(clk);
+	if (!(id_type & ID_CLK_DIV))
+		return PRCM_FAIL;	/*No divider */
+
+	omap = OMAP(clk);
+
+	if (cpu_is_omap3430() && !(omap & (AT_3430|AT_3430_ES2)))
+		return PRCM_FAIL;
+
+	if (clk == PRCM_48M_FCLK)
+		return PRCM_FAIL;
+	else if (clk == PRCM_12M_FCLK)
+		return PRCM_FAIL;
+	if (clk == PRCM_USIM) {
+		prcm_clk_get_source(PRCM_USIM, &parent_id);
+		switch (div) {
+		case 2:
+			if (parent_id == PRCM_DPLL4_M2X2_CLK)
+				div = 0x3;
+			break;
+		case 4:
+			if (parent_id == PRCM_DPLL5_M2_CLK)
+				div = 0x7;
+				break;
+		case 8:
+			if (parent_id == PRCM_DPLL4_M2X2_CLK)
+				div = 0x5;
+			break;
+		case 10:
+			div = 0x6;
+			break;
+		case 16:
+			div = 0x9;
+			break;
+		case 20:
+			div = 0xA;
+			break;
+		default:
+			break;
+		}
+	}
+	if (clk == PRCM_SGX_FCLK) {
+		switch (div) {
+		case 3:
+			div = 0x0;
+			break;
+		case 4:
+			div = 0x1;
+			break;
+		case 6:
+			div = 0x2;
+			break;
+		case 1:
+			div = 0x3;
+			break;
+		default:
+			break;
+		}
+	}
+	clk_id = (clk >> CLK_NO_POS) & CLK_NO_MASK;
+	offset = clk_div_offset[clk_id-1];
+
+	if (clk_id > PRCM_NO_OF_CLKS)
+		return PRCM_FAIL;
+
+	addr = clksel_reg[clk_id - 1].reg_addr;
+	if (!addr)
+		return PRCM_FAIL;
+	valid = clksel_reg[clk_id - 1].valid_bits;
+
+	/* In case of sysclkout2, the value to be programmed in the register
+	   is 0 for divider 1, 1 for divider 2, 2 for divider 4,
+	   3 for divider 8 and 4 for divider 16 */
+	if (clk == PRCM_SYS_CLKOUT2) {
+		if (is_sil_rev_equal_to(OMAP3430_REV_ES1_0)) {
+			/* WORKAROUND FOR SILICON ERRATA 1.37 */
+			/* Disabling sysclkout2, bit 7 of CM_CLKOUT_CTRL */
+			if (*addr&(1 << 7)) {
+				*addr &= (~(1 << 7));
+				reenable_clk = PRCM_TRUE;
+			}
+		}
+
+		for (divider = 0; divider <= 4; divider++) {
+			if (div & 0x1) {
+				div = divider;
+				break;
+			}
+			div >>= 1;
+		}
+	}
+	new_val = (*addr & ~valid) | (div << offset);
+	*addr = new_val;
+
+	if (is_sil_rev_equal_to(OMAP3430_REV_ES1_0) && (clk == PRCM_SYS_CLKOUT2)
+							 && (reenable_clk)) {
+			/* WORKAROUND FOR SILCON ERRATA 1.37 */
+			/* Enabling sysclkout2, bit 7 of CM_CLKOUT_CTRL */
+			*addr |= (1 << 7);
+	}
+	return PRCM_PASS;
+}
+
+int prcm_get_processor_speed(u32 domainid, u32 *processor_speed)
+{
+	int ret = PRCM_PASS;
+	switch (domainid) {
+	case DOM_MPU:
+		ret = prcm_get_dpll_rate(PRCM_DPLL1_M2X2_CLK, processor_speed);
+		if (ret != PRCM_PASS)
+			break;
+		else
+			/*There is a divider in mpu which makes the actual
+			   processor speed half the dpll output */
+			*processor_speed = *processor_speed / 2;
+		break;
+	case PRCM_IVA2:
+		ret = prcm_get_dpll_rate(PRCM_DPLL2_M2X2_CLK, processor_speed);
+		if (ret != PRCM_PASS)
+			break;
+		else
+			/*There is a divider in iva which makes the actual
+			   processor speed half the dpll output */
+			*processor_speed = *processor_speed / 2;
+		break;
+	default:
+		ret = PRCM_FAIL;
+		break;
+	}
+	return ret;
+}
+
+int prcm_clksel_round_rate(u32 clk, u32 parent_rate, u32 target_rate,
+			   u32 *newdiv)
+{
+	u32 omap, max_div = 6, div;
+	u32 index, clk_id, test_rate, dpll_id;
+	u32 id_type;
+	u32 div_96M[] = {2, 4, 8, 10, 0, 0};
+	u32 div_120M[] = {4, 8, 16, 20, 0, 0};
+	u32 div_sys[] = {1, 2, 0, 0, 0, 0};
+	u32 div_core[] = {3, 4, 6, 0, 0, 0};
+	u32 *div_array = NULL;
+
+
+	*newdiv = 0;
+	omap = OMAP(clk);
+
+	if (cpu_is_omap3430() && !(omap & (AT_3430|AT_3430_ES2)))
+		return PRCM_FAIL;
+
+	id_type = get_id_type(clk);
+
+	if (is_sil_rev_equal_to(OMAP3430_REV_ES1_0)) {
+		/* Workaround for limiation 2.5 */
+		/* On ES 1.0, DPLL4 dividers cannot be changed */
+		if (id_type & ID_DPLL_OP) {
+			dpll_id = (clk >> DPLL_NO_POS) & DPLL_NO_MASK;
+			if (dpll_id == DPLL4_PER)
+				return PRCM_FAIL;
+			/* For DPLL3, divider can only be changed */
+						/*through OPP change */
+			if (clk == PRCM_DPLL3_M3X2_CLK)
+				return PRCM_FAIL;
+		}
+	}
+
+	if (id_type & ID_DPLL_OP) {
+		switch (clk) {
+		case PRCM_DPLL3_M3X2_CLK:
+			for (index = 0; index < 31; index++) {
+				if (!div_dpll[index])
+					return PRCM_FAIL;
+				test_rate = parent_rate / div_dpll[index];
+				if (test_rate <= target_rate) {
+					*newdiv = div_dpll[index];
+					return PRCM_PASS;
+				}
+			}
+		case PRCM_DPLL5_M2_CLK:
+		case PRCM_DPLL4_M2X2_CLK:
+		case PRCM_DPLL4_M3X2_CLK:
+		case PRCM_DSS:
+		case PRCM_CAM:
+		case PRCM_DPLL4_M6X2_CLK:
+			for (index = 0; index < 16; index++) {
+				if (!div_dpll[index]) {
+					/* We have hit a NULL element
+					 * which means dividers are exhausted */
+					return PRCM_FAIL;
+				}
+				test_rate = parent_rate / div_dpll[index];
+				if (test_rate <= target_rate) {
+					*newdiv = div_dpll[index];
+					return PRCM_PASS;
+				}
+			}
+			break;
+		default:
+			/* No acceptable divider or divider
+			cannot be changed on the fly */
+			return PRCM_FAIL;
+		}
+	}
+
+	if (!(id_type & ID_CLK_DIV))
+		return PRCM_FAIL;	/* Clock rate cannot be changed */
+
+	/* For 48M Fclk and 12M Fclk, the dividers are fixed.
+	 *So we return the fixed dividers */
+	if (clk == PRCM_48M_FCLK) {
+		*newdiv = 2;
+		return PRCM_PASS;
+	}
+	if (clk == PRCM_12M_FCLK) {
+		*newdiv = 4;
+		return PRCM_PASS;
+	}
+	if (clk == PRCM_USIM) {
+		if (parent_rate == 96000000)
+			div_array = div_96M;
+		else if (parent_rate == 120000000)
+			div_array = div_120M;
+		else
+			div_array = div_sys;
+		for (index = 0; index < max_div; index++) {
+			if (!(*div_array))
+				return PRCM_FAIL;
+			test_rate = parent_rate / *div_array;
+			if (test_rate <= target_rate) {
+				*newdiv = *div_array;
+				return PRCM_PASS;
+			}
+			++div_array;
+		}
+		return PRCM_FAIL;
+	}
+	if (clk == PRCM_SGX_FCLK) {
+		if (parent_rate == 96000000) {
+			*newdiv = 1;
+			return PRCM_PASS;
+			}
+		else {
+			div_array = div_core;
+			for (index = 0; index < max_div; index++) {
+				if (!(*div_array))
+					return PRCM_FAIL;
+				test_rate = parent_rate / *div_array;
+				if (test_rate <= target_rate) {
+					*newdiv = *div_array;
+					return PRCM_PASS;
+				}
+				++div_array;
+			}
+			return PRCM_FAIL;
+		}
+	}
+	clk_id = clk & CLK_NO_MASK;
+	if (clk_id > PRCM_NO_OF_CLKS)
+		return PRCM_FAIL;
+
+	for (index = 0; index < max_div; index++) {
+		if (!div_arr[index]) {
+			/* We have hit a NULL element which means
+			dividers are exhausted */
+			return PRCM_FAIL;
+		}
+		div = div_arr[(clk_id * max_div) + index];
+		test_rate = parent_rate / div;
+		if (test_rate <= target_rate) {
+			*newdiv = div;
+			return PRCM_PASS;
+		}
+	}
+	return PRCM_FAIL;	/*No acceptable divider */
+}
+
+int prcm_clk_set_source(u32 clk_id, u32 parent_id)
+{
+	u32 valid, bit_pos, domain, bit_val, src_bit = 0, omap, id_type;
+	u8 ret = PRCM_PASS, result = -1;
+
+	u32 *addr;
+
+	id_type = get_id_type(clk_id);
+	if (!(id_type & ID_CLK_SRC))
+		return PRCM_FAIL;	/*Rate cannot be selected */
+
+	omap = OMAP(clk_id);
+
+	if (cpu_is_omap3430() && !(omap & (AT_3430|AT_3430_ES2)))
+		return PRCM_FAIL;
+
+	switch (clk_id) {
+	case PRCM_48M_FCLK:
+		/* Check the parent for this clock */
+		if (parent_id == PRCM_DPLL4_M2X2_CLK)
+			src_bit = 0;
+		else if (parent_id == PRCM_SYS_ALT_CLK)
+			src_bit = 1;
+		else
+			return PRCM_FAIL;
+		addr = (u32 *)&CM_CLKSEL1_PLL;
+		bit_pos = 0x3;
+		break;
+	case PRCM_USIM:
+		addr = (u32 *)&CM_CLKSEL_WKUP;
+		valid = *addr & 0xFFFFFF87;
+		if (parent_id == PRCM_SYS_CLK) {
+			valid |= (0x1 << 3);
+			*addr = valid;
+			}
+		else if (parent_id == PRCM_DPLL4_M2X2_CLK) {
+			valid |= (0x3 << 3);
+			*addr = valid;
+			}
+		else if (parent_id == PRCM_DPLL5_M2_CLK) {
+			valid |= (0x7 << 3);
+			*addr = valid;
+		}
+		return PRCM_PASS;
+		break;
+	case PRCM_SGX_FCLK:
+		if (parent_id == PRCM_EXT_MCBSP_CLK)
+			CM_CLKSEL_SGX = 0x3;
+		else if (parent_id == PRCM_DPLL3_M2_CLK)
+			CM_CLKSEL_SGX = 0x0; /*Default divider is 3 */
+		return PRCM_PASS;
+		break;
+	case PRCM_96M_CLK:
+		if (parent_id == PRCM_DPLL4_M2X2_CLK)
+			src_bit = 0;
+		else if (parent_id == PRCM_SYS_CLK)
+			src_bit = 1;
+		addr = (u32 *)&CM_CLKSEL1_PLL;
+		bit_pos = 0x6;
+		break;
+	case PRCM_TVOUT:
+		/* Check the parent for this clock */
+		if (parent_id == PRCM_DPLL4_M3X2_CLK)
+			src_bit = 0;
+		else if (parent_id == PRCM_SYS_ALT_CLK)
+			src_bit = 1;
+		else
+			return PRCM_FAIL;
+		addr = (u32 *)&CM_CLKSEL1_PLL;
+		bit_pos = 0x5;
+		break;
+	case PRCM_SYS_CLKOUT2:
+		/* Check the parent for this clock */
+		if (parent_id == PRCM_DPLL3_M2_CLK)
+			src_bit = 0;
+		else if (parent_id == PRCM_SYS_CLK)
+			src_bit = 1;
+		else if (parent_id == PRCM_DPLL4_M2X2_CLK)
+			src_bit = 2;
+		else if (parent_id == PRCM_TVOUT)
+			src_bit = 3;
+		else
+			return PRCM_FAIL;
+		addr = (u32 *)&CM_CLKOUT_CTRL;
+		bit_pos = 0x0;
+		valid = 0x3;
+		*addr = (*addr & ~valid) | src_bit;
+		/* Returning from here because we have already
+		 *updated the register */
+		return PRCM_PASS;
+		break;
+	case PRCM_MCBSP1:
+	case PRCM_MCBSP2:
+		ret = prcm_is_device_accessible(PRCM_OMAP_CTRL, &result);
+		if (ret == PRCM_PASS) {
+			if (result == PRCM_FALSE) {
+				/*
+				 * The device is not accessible.
+				 * So enable the interface clock.
+				 */
+				prcm_clock_control(PRCM_OMAP_CTRL, ICLK,
+						   PRCM_ENABLE, PRCM_TRUE);
+			}
+			bit_pos = CLK_SRC_BIT_POS(clk_id);
+			addr = (u32 *)&OMAP2_CONTROL_DEVCONF0;
+
+			if (parent_id == PRCM_DPLL4_M2X2_CLK)
+				src_bit = 0;
+			else if (parent_id == PRCM_EXT_MCBSP_CLK)
+				src_bit = 1;
+			else
+				return PRCM_FAIL;
+		} else
+			return ret;
+		break;
+	case PRCM_MCBSP3:
+	case PRCM_MCBSP4:
+	case PRCM_MCBSP5:
+		ret = prcm_is_device_accessible(PRCM_OMAP_CTRL, &result);
+		if (ret == PRCM_PASS) {
+			if (result == PRCM_FALSE) {
+				/*
+				 * The device is not accessible.
+				 * So enable the interface clock.
+				 */
+				prcm_clock_control(PRCM_OMAP_CTRL, ICLK,
+						   PRCM_ENABLE, PRCM_TRUE);
+			}
+			bit_pos = CLK_SRC_BIT_POS(clk_id);
+			addr = (u32 *)&OMAP2_CONTROL_DEVCONF1;
+
+			if (parent_id == PRCM_DPLL4_M2X2_CLK)
+				src_bit = 0;
+			else if (parent_id == PRCM_EXT_MCBSP_CLK)
+				src_bit = 1;
+			else
+				return PRCM_FAIL;
+		} else
+			return PRCM_FAIL;
+		break;
+	case PRCM_GPT1:
+	case PRCM_GPT2:
+	case PRCM_GPT3:
+	case PRCM_GPT4:
+	case PRCM_GPT5:
+	case PRCM_GPT6:
+	case PRCM_GPT7:
+	case PRCM_GPT8:
+	case PRCM_GPT9:
+	case PRCM_GPT10:
+	case PRCM_GPT11:
+		/* Setting clock source for GP timers. */
+		if (parent_id == PRCM_SYS_32K_CLK)
+			src_bit = 0;
+		else if (parent_id == PRCM_SYS_CLK)
+			src_bit = 1;
+		else
+			return PRCM_FAIL;
+		bit_pos = CLK_SRC_BIT_POS(clk_id);
+		domain = DOMAIN_ID(clk_id);
+		addr = get_addr(domain, REG_CLK_SRC);
+		if (!addr)
+			return PRCM_FAIL;
+		break;
+	default:
+		printk(KERN_INFO "Invalid clock ID in prcm_clk_set_source\n");
+		return PRCM_FAIL;
+	}
+	bit_val = ((1 << bit_pos) & *addr) >> bit_pos;
+
+	if (bit_val && !(src_bit))
+		*addr &= (~(1 << bit_pos));
+	else if (!(bit_val) && src_bit)
+		*addr |= (1 << bit_pos);
+
+	return PRCM_PASS;
+}
+
+int prcm_clk_get_source(u32 clk_id, u32 *parent_id)
+{
+	u32 valid, valid_val, bit_pos, domain, omap, id_type;
+	u8 ret = PRCM_PASS, result = -1;
+	u32 *addr;
+
+	id_type = get_id_type(clk_id);
+	if (!(id_type & ID_CLK_SRC))
+		return PRCM_FAIL;	/*Rate cannot be selected */
+
+	omap = OMAP(clk_id);
+
+	if (cpu_is_omap3430() && !(omap & (AT_3430|AT_3430_ES2)))
+		return PRCM_FAIL;
+
+	switch (clk_id) {
+	case PRCM_48M_FCLK:
+		addr = (u32 *)&CM_CLKSEL1_PLL;
+		bit_pos = 0x3;
+		if (((*addr & (1 << bit_pos)) >> bit_pos) == 0)
+			*parent_id = PRCM_DPLL4_M2X2_CLK;
+		else
+			*parent_id = PRCM_SYS_ALT_CLK;
+		break;
+	case PRCM_TVOUT:
+		addr = (u32 *)&CM_CLKSEL1_PLL;
+		bit_pos = 0x5;
+		if (((*addr & (1 << bit_pos)) >> bit_pos) == 0)
+			*parent_id = PRCM_DPLL4_M3X2_CLK;
+		else
+			*parent_id = PRCM_SYS_ALT_CLK;
+		break;
+	case PRCM_USIM:
+		addr = (u32 *)&CM_CLKSEL_WKUP;
+		bit_pos = 0x3;
+		valid = 0x78;
+		valid_val = (*addr & valid) >> bit_pos;
+		if ((valid_val == 0x1) || (valid_val == 0x2))
+			*parent_id = PRCM_SYS_CLK;
+		else if ((valid_val >= 0x3) && (valid_val <= 0x6))
+			*parent_id = PRCM_DPLL4_M2X2_CLK;
+		else if ((valid_val >= 0x7) && (valid_val <= 0xA))
+			*parent_id = PRCM_DPLL5_M2_CLK;
+		break;
+	case PRCM_SGX_FCLK:
+		addr = (u32 *)&CM_CLKSEL_SGX;
+		bit_pos = 0x0;
+		valid = 0x7;
+		valid_val = (*addr & valid) >> bit_pos;
+		if ((valid_val >= 0x0) && (valid_val <= 0x2))
+			*parent_id = PRCM_DPLL3_M2_CLK;
+		else
+			*parent_id = PRCM_EXT_MCBSP_CLK;
+		break;
+	case PRCM_96M_CLK:
+		addr = (u32 *)&CM_CLKSEL1_PLL;
+		bit_pos = 0x6;
+		valid_val = *addr & (1<<bit_pos);
+		if (valid_val == 0)
+			*parent_id = PRCM_DPLL4_M2X2_CLK;
+		else
+			*parent_id = PRCM_SYS_CLK;
+		break;
+	case PRCM_SYS_CLKOUT2:
+		addr = (u32 *)&CM_CLKOUT_CTRL;
+		bit_pos = 0x0;
+		valid = 0x3;
+		valid_val = *addr & (valid << bit_pos);
+		if (valid_val == 0)
+			*parent_id = PRCM_DPLL3_M2_CLK;
+		else if (valid_val == 1)
+			*parent_id = PRCM_SYS_CLK;
+		else if (valid_val == 2)
+			*parent_id = PRCM_DPLL4_M2X2_CLK;
+		else
+			*parent_id = PRCM_TVOUT;
+		break;
+	case PRCM_MCBSP1:
+	case PRCM_MCBSP2:
+		ret = prcm_is_device_accessible(PRCM_OMAP_CTRL, &result);
+		if (ret == PRCM_PASS) {
+			if (result == PRCM_FALSE) {
+				/*
+				 * The device is not accessible.
+				 * So enable the interface clock.
+				 */
+				prcm_clock_control(PRCM_OMAP_CTRL, ICLK,
+						   PRCM_ENABLE, PRCM_TRUE);
+			}
+
+			else {
+				addr = (u32 *)&OMAP2_CONTROL_DEVCONF0;
+				bit_pos = CLK_SRC_BIT_POS(clk_id);
+
+				if (((*addr & (1 << bit_pos)) >> bit_pos) == 0)
+					*parent_id = PRCM_DPLL4_M2X2_CLK;
+				else
+					*parent_id = PRCM_EXT_MCBSP_CLK;
+			}
+		} else
+			return PRCM_FAIL;
+		break;
+	case PRCM_MCBSP3:
+	case PRCM_MCBSP4:
+	case PRCM_MCBSP5:
+		ret = prcm_is_device_accessible(PRCM_OMAP_CTRL, &result);
+		if (ret == PRCM_PASS) {
+			if (result == PRCM_FALSE) {
+				/*
+				 * The device is not accessible.
+				 * So enable the interface clock.
+				 */
+				prcm_clock_control(PRCM_OMAP_CTRL, ICLK,
+						PRCM_ENABLE, PRCM_TRUE);
+			}
+
+			else {
+				addr = (u32 *)&OMAP2_CONTROL_DEVCONF1;
+				bit_pos = CLK_SRC_BIT_POS(clk_id);
+
+				if (((*addr & (1 << bit_pos)) >> bit_pos) == 0)
+					*parent_id = PRCM_DPLL4_M2X2_CLK;
+				else
+					*parent_id = PRCM_EXT_MCBSP_CLK;
+			}
+		} else
+			return PRCM_FAIL;
+		break;
+	case PRCM_GPT1:
+	case PRCM_GPT2:
+	case PRCM_GPT3:
+	case PRCM_GPT4:
+	case PRCM_GPT5:
+	case PRCM_GPT6:
+	case PRCM_GPT7:
+	case PRCM_GPT8:
+	case PRCM_GPT9:
+	case PRCM_GPT10:
+	case PRCM_GPT11:
+
+		bit_pos = CLK_SRC_BIT_POS(clk_id);
+		domain = DOMAIN_ID(clk_id);
+		addr = get_addr(domain, REG_CLK_SRC);
+		if (!addr)
+			return PRCM_FAIL;
+
+		if (((*addr & (1 << bit_pos)) >> bit_pos) == 0)
+			*parent_id = PRCM_SYS_32K_CLK;
+		else
+			*parent_id = PRCM_SYS_CLK;
+
+		break;
+
+	default:
+		printk(KERN_INFO "Invalid clock ID in prcm_clk_get_source\n");
+		return PRCM_FAIL;
+	}
+	return PRCM_PASS;
+}
+
+int prcm_do_frequency_scaling(u32 target_opp_id, u32 current_opp_id)
+{
+	u32 id_type, vdd;
+	u32 curr_m, curr_n, tar_m, tar_n, tar_freqsel, tar_m2;
+	int curr_opp_no, target_opp_no, index;
+	u32 sys_clkspeed;
+	unsigned long flags;
+	u32 rfr_ctrl = 0, actim_ctrla = 0, actim_ctrlb = 0;
+
+	if (target_opp_id == current_opp_id)
+		return PRCM_PASS;
+
+	id_type = get_other_id_type(target_opp_id);
+	if (!(id_type & ID_OPP))
+		return PRCM_FAIL;
+
+	id_type = get_other_id_type(current_opp_id);
+	if (!(id_type & ID_OPP))
+		return PRCM_FAIL;
+
+	vdd = get_vdd(target_opp_id);
+	if (vdd != get_vdd(current_opp_id))
+		return PRCM_FAIL;
+
+	sys_clkspeed = prcm_get_system_clock_speed();
+	switch (sys_clkspeed) {
+	case (int)(12000):
+		index = 0;
+		break;
+	case (int)(13000):
+		index = 1;
+		break;
+	case (int)(19200):
+		index = 2;
+		break;
+	case (int)(26000):
+		index = 3;
+		break;
+	case (int)(38400):
+		index = 4;
+		break;
+	default:
+		return PRCM_FAIL;
+	}
+
+	if (vdd == PRCM_VDD1) {
+		curr_opp_no = current_opp_id & OPP_NO_MASK;
+		target_opp_no = target_opp_id & OPP_NO_MASK;
+		curr_m = (mpu_dpll_param[index][curr_opp_no - 1].dpll_m);
+		curr_n = (mpu_dpll_param[index][curr_opp_no - 1].dpll_n);
+		tar_m = (mpu_dpll_param[index][target_opp_no - 1].dpll_m);
+		tar_n = (mpu_dpll_param[index][target_opp_no - 1].dpll_n);
+
+		if ((curr_m != tar_m) || (curr_n != tar_n)) {
+			/* M/N need to be changed - so put DPLL in bypass */
+			prcm_put_dpll_in_bypass(DPLL1_MPU, LOW_POWER_BYPASS);
+			/* Reset M2 divider */
+			prcm_configure_dpll_divider(PRCM_DPLL1_M2X2_CLK, 0x1);
+			/* Set M,N,Freqsel values */
+			tar_freqsel = (mpu_dpll_param[index]
+				       [target_opp_no - 1].dpll_freqsel);
+			prcm_configure_dpll
+			    (DPLL1_MPU, tar_m, tar_n, tar_freqsel);
+			/* Lock the DPLL */
+			prcm_enable_dpll(DPLL1_MPU);
+		}
+		/* Configure M2 */
+		tar_m2 = (mpu_dpll_param[index][target_opp_no - 1].dpll_m2);
+		prcm_configure_dpll_divider(PRCM_DPLL1_M2X2_CLK, tar_m2);
+
+		curr_m = (iva_dpll_param[index][curr_opp_no - 1].dpll_m);
+		curr_n = (iva_dpll_param[index][curr_opp_no - 1].dpll_n);
+		tar_m = (iva_dpll_param[index][target_opp_no - 1].dpll_m);
+		tar_n = (iva_dpll_param[index][target_opp_no - 1].dpll_n);
+
+		if ((curr_m != tar_m) || (curr_n != tar_n)) {
+			/* M/N need to be changed - so put DPLL in bypass */
+			prcm_put_dpll_in_bypass(DPLL2_IVA2, LOW_POWER_BYPASS);
+			/* Reset M2 divider */
+			prcm_configure_dpll_divider(PRCM_DPLL2_M2X2_CLK, 0x1);
+			/* Set M,N,Freqsel values */
+			tar_freqsel = (iva_dpll_param[index]
+				       [target_opp_no - 1].dpll_freqsel);
+			prcm_configure_dpll
+			    (DPLL2_IVA2, tar_m, tar_n, tar_freqsel);
+			/* Lock the DPLL */
+			prcm_enable_dpll(DPLL2_IVA2);
+		}
+		/* Configure M2 */
+		tar_m2 = (iva_dpll_param[index][target_opp_no - 1].dpll_m2);
+		prcm_configure_dpll_divider(PRCM_DPLL2_M2X2_CLK, tar_m2);
+
+		/* Todo: Find out if some recalibation needs to be done
+		 * in the OS since MPU freq has been changed */
+		}
+	else if (vdd == PRCM_VDD2) {
+		target_opp_no = target_opp_id & OPP_NO_MASK;
+		tar_m = (core_dpll_param[index][target_opp_no - 1].dpll_m);
+		tar_n = (core_dpll_param[index][target_opp_no - 1].dpll_n);
+		tar_freqsel = (core_dpll_param[index]
+					[target_opp_no - 1].dpll_freqsel);
+		tar_m2 = (core_dpll_param[index][target_opp_no - 1].dpll_m2);
+		/* This function is executed from SRAM */
+		local_irq_save(flags);
+		omap3_configure_core_dpll(rfr_ctrl, actim_ctrla,
+							actim_ctrlb, tar_m2);
+		local_irq_restore(flags);
+	}
+	return PRCM_PASS;
+}

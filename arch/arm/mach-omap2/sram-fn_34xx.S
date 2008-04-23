@@ -1,0 +1,156 @@
+/*
+ * linux/arch/arm/mach-omap3/sram.S
+ *
+ * Omap3 specific functions that need to be run in internal SRAM
+ *
+ * (C) Copyright 2007
+ * Texas Instruments Inc.
+ * Rajendra Nayak <rnayak@ti.com>
+ *
+ * (C) Copyright 2004
+ * Texas Instruments, <www.ti.com>
+ * Richard Woodruff <r-woodruff2@ti.com>
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR /PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
+ * MA 02111-1307 USA
+ */
+#include <linux/linkage.h>
+#include <asm/assembler.h>
+#include <asm/arch/io.h>
+#include <asm/hardware.h>
+
+#include "prcm-regs.h"
+
+#define CM_CLKSEL1_PLL_V	IO_ADDRESS(OMAP3430_CM_BASE + 0xD40)
+#define	CM_ICLKEN1_CORE_V	IO_ADDRESS(OMAP3430_CM_BASE + 0xA10)
+#define CM_IDLEST1_CORE_V	IO_ADDRESS(OMAP3430_CM_BASE + 0xA20)
+
+#define	SDRC_POWER_V		IO_ADDRESS(OMAP343X_SDRC_BASE + 0x070)
+
+	.text
+
+ENTRY(sram_ddr_init)
+	stmfd	sp!, {r0 - r12, lr}	@ save registers on stack
+	ldmfd	sp!, {r0 - r12, pc}	@ restore regs and return
+ENTRY(sram_ddr_init_sz)
+	.word	. - sram_ddr_init
+
+ENTRY(sram_reprogram_sdrc)
+	stmfd	sp!, {r0 - r10, lr}	@ save registers on stack
+	ldmfd	sp!, {r0 - r10, pc}	@ restore regs and return
+ENTRY(sram_reprogram_sdrc_sz)
+	.word	. - sram_reprogram_sdrc
+
+/*
+ * Set dividers and pll. Also recalculate DLL value for DDR and unlock mode.
+ */
+ENTRY(sram_set_prcm)
+	stmfd	sp!, {r0-r12, lr}	@ regs to stack
+ENTRY(sram_set_prcm_sz)
+	.word	. - sram_set_prcm
+
+/*
+ * Change frequency of core dpll
+ * r0 = M r1 = N  r2 = FreqSel r3 = M2
+ */
+ENTRY(sram_configure_core_dpll)
+	stmfd	sp!, {r1-r12, lr}	@ store regs to stack
+	bl	sdram_in_selfrefresh	@ put the SDRAM in self refresh
+	bl 	configure_core_dpll
+	bl	enable_sdrc
+	mov 	r0, #0 			@ return value
+	ldmfd	sp!, {r1-r12, pc}	@ restore regs and return
+sdram_in_selfrefresh:
+	mov	r5, #0x0		@ Move 0 to R5
+	mcr	p15, 0, r5, c7, c10, 5  @ memory barrier
+	ldr 	r4, sdrc_power		@ read the SDRC_POWER register
+	ldr 	r5, [r4]		@ read the contents of SDRC_POWER
+	orr 	r5, r5, #0x48		@ enable self refresh on idle req
+	str 	r5, [r4]		@ write back to SDRC_POWER register
+	ldr	r4, cm_iclken1_core	@ read the CM_ICLKEN1_CORE reg
+	ldr	r5, [r4]
+	bic	r5, r5, #0x2		@ disable iclk bit for SRDC
+	str 	r5, [r4]
+wait_sdrc_idle:
+	ldr 	r4, cm_idlest1_core
+	ldr 	r5, [r4]
+	and 	r5, r5, #0x2		@ check for SDRC idle
+	cmp 	r5, #2
+	bne 	wait_sdrc_idle
+	bx 	lr
+configure_core_dpll:
+	ldr 	r4, cm_clksel1_pll
+	ldr	r5, [r4]
+	ldr	r6, core_m2_mask_val	@ modify m2 for core dpll
+	and	r5, r5, r6
+	orr	r5, r5, r3, lsl #0x1B	@ r3 contains the M2 val
+	str	r5, [r4]
+	ldr 	r5, clk_stabilize_delay	@ wait for the clock to stabilise
+wait_clk_stable:
+	subs 	r5, r5, #1
+	bne	wait_clk_stable
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	bx	lr
+enable_sdrc:
+	ldr 	r4, cm_iclken1_core
+	ldr	r5, [r4]
+	orr 	r5, r5, #0x2		@ enable iclk bit for SDRC
+	str 	r5, [r4]
+wait_sdrc_idle1:
+	ldr 	r4, cm_idlest1_core
+	ldr	r5, [r4]
+	and 	r5, r5, #0x2
+	cmp	r5, #0
+	bne	wait_sdrc_idle1
+	ldr	r4, sdrc_power
+	ldr	r5, [r4]
+	bic 	r5, r5, #0x48
+	str 	r5, [r4]
+	bx	lr
+
+sdrc_power:
+	.word SDRC_POWER_V
+cm_clksel1_pll:
+	.word CM_CLKSEL1_PLL_V
+cm_idlest1_core:
+	.word CM_IDLEST1_CORE_V
+cm_iclken1_core:
+	.word CM_ICLKEN1_CORE_V
+core_m2_mask_val:
+	.word 0xE7FFFFFF
+clk_stabilize_delay:
+	.word 0x000002FF
+
+ENTRY(sram_configure_core_dpll_sz)
+	.word	. - sram_configure_core_dpll
+
+/*
+ * Reprogram GPMC
+ */
+ENTRY(sram_reprogram_gpmc)
+	stmfd	sp!, {r0-r12, lr}	@ regs to stack
+	ldmfd	sp!, {r0-r12, pc}	@ restore regs and return
+
+ENTRY(sram_reprogram_gpmc_sz)
+	.word	. - sram_reprogram_gpmc
