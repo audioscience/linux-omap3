@@ -217,7 +217,7 @@ static void omap_irda_tx_dma_callback(int lch, u16 ch_status, void *data)
 	struct net_device *dev = data;
 	struct omap_irda *omap_ir = netdev_priv(dev);
 
-	/*Stop DMA controller */
+	/* Stop DMA controller */
 	omap_stop_dma(omap_ir->tx_dma_channel);
 }
 
@@ -378,8 +378,12 @@ omap_irda_irq(int irq, void *dev_id)
 
 		skb_reserve(skb, 1);
 
-		w = omap_get_dma_dst_pos(omap_ir->rx_dma_channel) -
-						omap_ir->rx_buf_dma_phys;
+                w = OMAP_DMA4_CDAC(omap_ir->rx_dma_channel);
+
+                if (cpu_is_omap16xx())
+                        w -= OMAP1_DMA_CDSA_L(omap_ir->rx_dma_channel);
+                if (cpu_is_omap24xx() || cpu_is_omap34xx())
+                        w -= OMAP_DMA4_CDSA(omap_ir->rx_dma_channel);
 
 		if (!IS_FIR(omap_ir))
 			/* Copy DMA buffer to skb */
@@ -604,6 +608,8 @@ static int omap_irda_start(struct net_device *dev)
 err_irlap:
 	omap_ir->open = 0;
 	omap_irda_shutdown(omap_ir);
+	if (omap_ir->pdata->select_irda)
+		omap_ir->pdata->select_irda(omap_ir->dev, ~IR_SEL);
 err_startup:
 	dma_free_coherent(NULL, IRDA_SIR_MAX_FRAME,
 			omap_ir->tx_buf_dma_virt, omap_ir->tx_buf_dma_phys);
@@ -636,6 +642,8 @@ static int omap_irda_stop(struct net_device *dev)
 				omap_ir->tx_buf_dma_phys);
 
 	omap_irda_shutdown(omap_ir);
+	if (omap_ir->pdata->select_irda)
+		omap_ir->pdata->select_irda(omap_ir->dev, ~IR_SEL);
 
 	/* Stop IrLAP */
 	if (omap_ir->irlap) {
