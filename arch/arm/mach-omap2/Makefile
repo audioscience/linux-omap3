@@ -10,8 +10,6 @@ obj-y := irq.o id.o io.o memory.o control.o prcm.o clock.o mux.o \
 obj-$(CONFIG_OMAP_MCBSP) += mcbsp.o
 
 # Functions loaded to SRAM
-obj-$(CONFIG_ARCH_OMAP2420)		+= sram242x.o
-obj-$(CONFIG_ARCH_OMAP2430)		+= sram243x.o
 obj-$(CONFIG_ARCH_OMAP3)		+= sram34xx.o
 
 # Power Management
@@ -29,7 +27,20 @@ obj-$(CONFIG_OMAP_SMARTREFLEX)		+= smartreflex.o
 
 # Clock framework
 obj-$(CONFIG_ARCH_OMAP2)		+= clock24xx.o
-obj-$(CONFIG_ARCH_OMAP3)		+= clock34xx.o
+#obj-$(CONFIG_ARCH_OMAP3)		+= clock34xx.o
+ifeq ($(CONFIG_OMAP3_PM),)
+       obj-y += prcm.o clock.o
+       # Functions loaded to SRAM
+       obj-$(CONFIG_ARCH_OMAP2) += sram24xx.o
+       # Clock framework
+       obj-$(CONFIG_ARCH_OMAP3) += clock34xx.o
+       # Power Management
+       obj-$(CONFIG_PM) += pm.o 
+else
+       obj-y += prcm_34xx.o clock_34xx.o sram-fn_34xx.o
+       # Power Management
+endif
+
 
 # DSP
 obj-$(CONFIG_OMAP_MMU_FWK)	+= mmu_mach.o
