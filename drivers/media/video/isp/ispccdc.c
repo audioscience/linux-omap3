@@ -79,6 +79,16 @@ static struct isp_ccdc {
 	struct mutex mutexlock;
 } ispccdc_obj;
 
+static struct ispccdc_lsc_config lsc_config;
+static u8 *lsc_gain_table;
+static unsigned long lsc_ispmmu_addr;
+static int lsc_initialized;
+static int size_mismatch;
+static u8 ccdc_use_lsc;
+static u8 ispccdc_lsc_tbl[] = {
+	#include "ispccd_lsc.dat"
+};
+
 /* Structure for saving/restoring CCDC module registers*/
 static struct isp_reg ispccdc_reg_list[] = {
 	{ISPCCDC_SYN_MODE, 0},
@@ -230,6 +240,33 @@ int omap34xx_isp_ccdc_config(void *userspace_add)
 		ispccdc_config_culling(cull_t);
 	}
 
+	if (is_isplsc_activated()) {
+		if ((ISP_ABS_CCDC_CONFIG_LSC & ccdc_struct.flag) ==
+						ISP_ABS_CCDC_CONFIG_LSC) {
+			if ((ISP_ABS_CCDC_CONFIG_LSC & ccdc_struct.update) ==
+						ISP_ABS_CCDC_CONFIG_LSC) {
+				old_size = lsc_config.size;
+				if (copy_from_user(&lsc_config,
+						(struct ispccdc_lsc_config *)
+						(ccdc_struct.lsc_cfg),
+						sizeof(struct
+						ispccdc_lsc_config)))
+					goto copy_from_user_err;
+				lsc_initialized = 0;
+				if (lsc_config.size <= old_size)
+					size_mismatch = 0;
+				else
+					size_mismatch = 1;
+				ispccdc_config_lsc(&lsc_config);
+			}
+			ccdc_use_lsc = 1;
+		} else if ((ISP_ABS_CCDC_CONFIG_LSC & ccdc_struct.update) ==
+						ISP_ABS_CCDC_CONFIG_LSC) {
+				ispccdc_enable_lsc(0);
+				ccdc_use_lsc = 0;
+			}
+	}
+
 	if ((ISP_ABS_CCDC_COLPTN & ccdc_struct.update) == ISP_ABS_CCDC_COLPTN)
 		ispccdc_config_imgattr(ccdc_struct.colptn);
 
@@ -292,6 +329,154 @@ int ispccdc_free(void)
 	return 0;
 }
 EXPORT_SYMBOL(ispccdc_free);
+
+/**
+ * ispccdc_load_lsc - Load Lens Shading Compensation table.
+ * @table_size: LSC gain table size.
+ *
+ * Returns 0 if successful, or -ENOMEM of its no memory available.
+ **/
+int ispccdc_load_lsc(u32 table_size)
+{
+	if (!is_isplsc_activated())
+		return 0;
+
+	if (table_size == 0)
+		return -EINVAL;
+
+	if (lsc_initialized)
+		return 0;
+
+	ispccdc_enable_lsc(0);
+	lsc_gain_table = kmalloc(table_size, GFP_KERNEL | GFP_DMA);
+
+	if (!lsc_gain_table) {
+		printk(KERN_ERR "Cannot allocate memory for gain tables \n");
+		return -ENOMEM;
+	}
+
+	memcpy(lsc_gain_table, ispccdc_lsc_tbl, table_size);
+	lsc_ispmmu_addr = ispmmu_map(virt_to_phys(lsc_gain_table), table_size);
+	omap_writel(lsc_ispmmu_addr, ISPCCDC_LSC_TABLE_BASE);
+	lsc_initialized = 1;
+	return 0;
+}
+EXPORT_SYMBOL(ispccdc_load_lsc);
+
+/**
+ * ispccdc_config_lsc - Configures the lens shading compensation module
+ * @lsc_cfg: LSC configuration structure
+ **/
+void ispccdc_config_lsc(struct ispccdc_lsc_config *lsc_cfg)
+{
+	int reg;
+
+	if (!is_isplsc_activated())
+		return;
+
+	ispccdc_enable_lsc(0);
+	omap_writel(lsc_cfg->offset, ISPCCDC_LSC_TABLE_OFFSET);
+
+	reg = 0;
+	reg |= (lsc_cfg->gain_mode_n << ISPCCDC_LSC_GAIN_MODE_N_SHIFT);
+	reg |= (lsc_cfg->gain_mode_m << ISPCCDC_LSC_GAIN_MODE_M_SHIFT);
+	reg |= (lsc_cfg->gain_format << ISPCCDC_LSC_GAIN_FORMAT_SHIFT);
+	omap_writel(reg, ISPCCDC_LSC_CONFIG);
+
+	reg = 0;
+	reg &= ~ISPCCDC_LSC_INITIAL_X_MASK;
+	reg |= (lsc_cfg->initial_x << ISPCCDC_LSC_INITIAL_X_SHIFT);
+	reg &= ~ISPCCDC_LSC_INITIAL_Y_MASK;
+	reg |= (lsc_cfg->initial_y << ISPCCDC_LSC_INITIAL_Y_SHIFT);
+	omap_writel(reg, ISPCCDC_LSC_INITIAL);
+}
+EXPORT_SYMBOL(ispccdc_config_lsc);
+
+/**
+ * ispccdc_enable_lsc - Enables/Disables the Lens Shading Compensation module.
+ * @enable: 0 Disables LSC, 1 Enables LSC.
+ **/
+void ispccdc_enable_lsc(u8 enable)
+{
+	if (!is_isplsc_activated())
+		return;
+
+	if (enable) {
+		omap_writel(omap_readl(ISP_CTRL) | ISPCTRL_SBL_SHARED_RPORTB |
+					ISPCTRL_SBL_RD_RAM_EN, ISP_CTRL);
+		omap_writel(omap_readl(ISPCCDC_LSC_CONFIG) | 0x1,
+							ISPCCDC_LSC_CONFIG);
+		ispccdc_obj.lsc_en = 1;
+	} else {
+		omap_writel(omap_readl(ISPCCDC_LSC_CONFIG) & 0xFFFE,
+							ISPCCDC_LSC_CONFIG);
+		ispccdc_obj.lsc_en = 0;
+	}
+}
+EXPORT_SYMBOL(ispccdc_enable_lsc);
+
+/**
+ * omap34xx_isp_lsc_update - Abstraction layer LSC Updates.
+ * @userspace_add: Structure containing CCDC configuration sent from userspace.
+ *
+ * Returns 0 if successful, -EINVAL if the pointer to the configuration
+ * structure is null, or the copy_from_user function fails to copy user space
+ * memory to kernel space memory.
+ **/
+int omap34xx_isp_lsc_update(void *userspace_add)
+{
+	struct isptables_update isptables_struct;
+
+	if (!is_isplsc_activated())
+		return 0;
+
+	if (userspace_add == NULL)
+		return -EINVAL;
+
+	if (copy_from_user(&isptables_struct,
+				(struct isptables_update *)(userspace_add),
+				sizeof(struct isptables_update)))
+				goto copy_from_user_err;
+
+	if ((ISP_ABS_TBL_LSC & isptables_struct.flag) == ISP_ABS_TBL_LSC) {
+		if ((ISP_ABS_TBL_LSC & isptables_struct.update) ==
+							ISP_ABS_TBL_LSC) {
+			if (size_mismatch) {
+				ispmmu_unmap(lsc_ispmmu_addr);
+				kfree(lsc_gain_table);
+				lsc_gain_table = kmalloc(lsc_config.size,
+					GFP_KERNEL | GFP_DMA);
+				if (!lsc_gain_table) {
+					printk(KERN_ERR "Cannot allocate\
+						memory for gain tables \n");
+					return -ENOMEM;
+				}
+				lsc_ispmmu_addr = ispmmu_map(
+						virt_to_phys(lsc_gain_table),
+						lsc_config.size);
+				omap_writel(lsc_ispmmu_addr,
+						ISPCCDC_LSC_TABLE_BASE);
+				lsc_initialized = 1;
+				size_mismatch = 0;
+			}
+			if (copy_from_user(&lsc_gain_table,
+				(isptables_struct.lsc), lsc_config.size))
+				goto copy_from_user_err;
+		}
+		ccdc_use_lsc = 1;
+	} else {
+		if ((ISP_ABS_TBL_LSC & isptables_struct.update) ==
+							ISP_ABS_TBL_LSC) {
+			ispccdc_enable_lsc(0);
+			ccdc_use_lsc = 0;
+		}
+	}
+	return 0;
+
+copy_from_user_err:
+	printk(KERN_ERR "LSC Update: Copy From User Error");
+	return -EINVAL;
+}
 
 /**
  * ispccdc_config_crop - Configures crop parameters for the ISP CCDC.
@@ -419,6 +604,21 @@ int ispccdc_config_datapath(enum ccdc_input input, enum ccdc_output output)
 		DPRINTK_ISPCCDC("ISP_ERR: Wrong CCDC Output");
 		return -EINVAL;
 	};
+
+	if (is_isplsc_activated()) {
+		if (input == CCDC_RAW) {
+			lsc_config.initial_x = 0;
+			lsc_config.initial_y = 0;
+			lsc_config.gain_mode_n = 0x6;
+			lsc_config.gain_mode_m = 0x6;
+			lsc_config.gain_format = 0x4;
+			lsc_config.offset = 0x60;
+			ispccdc_config_lsc(&lsc_config);
+			ispccdc_load_lsc((u32)sizeof(ispccdc_lsc_tbl));
+			mdelay(100);
+			ispccdc_enable_lsc(1);
+		}
+	}
 
 	omap_writel(syn_mode, ISPCCDC_SYN_MODE);
 
@@ -884,7 +1084,10 @@ EXPORT_SYMBOL(ispccdc_config_imgattr);
  **/
 void ispccdc_config_shadow_registers(void)
 {
-	return;
+	if (ccdc_use_lsc && !ispccdc_obj.lsc_en && (ispccdc_obj.ccdc_inpfmt ==
+								CCDC_RAW))
+		ispccdc_enable_lsc(1);
+
 }
 EXPORT_SYMBOL(ispccdc_config_shadow_registers);
 
@@ -1049,6 +1252,13 @@ int ispccdc_config_size(u32 input_w, u32 input_h, u32 output_w, u32 output_h)
 					ISPCCDC_VDINT_0_SHIFT) |
 					((50 & ISPCCDC_VDINT_1_MASK) <<
 					ISPCCDC_VDINT_1_SHIFT), ISPCCDC_VDINT);
+	}
+
+	if (is_isplsc_activated()) {
+		if (ispccdc_obj.ccdc_inpfmt == CCDC_RAW) {
+			ispccdc_config_lsc(&lsc_config);
+			ispccdc_load_lsc(lsc_config.size);
+		}
 	}
 
 	return 0;
@@ -1281,6 +1491,17 @@ static int __init isp_ccdc_init(void)
 	ispccdc_config_crop(0, 0, 0, 0);
 	mutex_init(&ispccdc_obj.mutexlock);
 
+	if (is_isplsc_activated()) {
+		lsc_config.initial_x = 0;
+		lsc_config.initial_y = 0;
+		lsc_config.gain_mode_n = 0x6;
+		lsc_config.gain_mode_m = 0x6;
+		lsc_config.gain_format = 0x4;
+		lsc_config.offset = 0x60;
+		lsc_config.size = sizeof(ispccdc_lsc_tbl);
+		ccdc_use_lsc = 1;
+	}
+
 	return 0;
 }
 
@@ -1289,6 +1510,14 @@ static int __init isp_ccdc_init(void)
  **/
 static void isp_ccdc_cleanup(void)
 {
+	if (is_isplsc_activated()) {
+		if (lsc_initialized) {
+			ispmmu_unmap(lsc_ispmmu_addr);
+			kfree(lsc_gain_table);
+			lsc_initialized = 0;
+		}
+	}
+
 	if (fpc_table_add_m != 0) {
 		ispmmu_unmap(fpc_table_add_m);
 		kfree(fpc_table_add);

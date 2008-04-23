@@ -32,6 +32,10 @@
 #include "isp/ispmmu.h"
 #include "isp/ispreg.h"
 #include "isp/ispccdc.h"
+#include "isp/isph3a.h"
+#include "isp/isphist.h"
+#include "isp/isppreview.h"
+#include "isp/ispresizer.h"
 
 #define OMAP34XXCAM_VERSION KERNEL_VERSION(0, 0, 0)
 
@@ -355,16 +359,21 @@ int omap34xxcam_update_vbq(struct videobuf_buffer *vb)
 {
 	struct omap34xxcam_fh *fh = camfh_saved;
 	struct omap34xxcam_device *cam = fh->cam;
+	struct isph3a_aewb_xtrastats xtrastats;
 	int rval = 0;
 
 	do_gettimeofday(&vb->ts);
 	vb->field_count = atomic_add_return(2, &fh->field_count);
 	vb->state = VIDEOBUF_DONE;
 
+	xtrastats.ts = vb->ts;
+	xtrastats.field_count = vb->field_count;
+
 	if (cam->streaming)
 		rval = 1;
 
 	wake_up(&vb->done);
+	isph3a_aewb_setxtrastats(&xtrastats);
 
 	return rval;
 }
@@ -1079,15 +1088,40 @@ static int vidioc_s_ctrl(struct file *file, void *fh, struct v4l2_control *a)
 	int rval;
 
 	mutex_lock(&cam->mutex);
-	if (sens->sensor_isp)
+	if (sens->sensor_isp) {
 		rval = vidioc_int_s_ctrl(cam->sdev, a);
-	else {
+	} else {
+		if (a->id == V4L2_CID_PRIVATE_ISP_AEWB_REQ) {
+			/* Need to update sensor first */
+			struct isph3a_aewb_data data;
+			struct v4l2_control vc;
+			if (copy_from_user(&data, (void *)a->value,
+					   sizeof(data))) {
+				rval = -EFAULT;
+				printk(KERN_ERR "Failed copy_from_user\n");
+				goto out;
+			}
+			if (data.update & SET_EXPOSURE) {
+				vc.id = V4L2_CID_EXPOSURE;
+				vc.value = data.shutter;
+				rval = vidioc_int_s_ctrl(cam->sdev, &vc);
+				if (rval)
+					goto out;
+			}
+			if (data.update & SET_ANALOG_GAIN) {
+				vc.id = V4L2_CID_GAIN;
+				vc.value = data.gain;
+				rval = vidioc_int_s_ctrl(cam->sdev, &vc);
+				if (rval)
+					goto out;
+			}
+		}
 		rval = isp_s_ctrl(a);
 		/* If control not supported on ISP, try sensor */
 		if (rval)
 			rval = vidioc_int_s_ctrl(cam->sdev, a);
 	}
-
+out:
 	mutex_unlock(&cam->mutex);
 
 	return rval;
