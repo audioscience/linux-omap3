@@ -5,5 +5,6 @@ obj-$(CONFIG_VIDEO_OMAP3) += \
 	isp.o ispccdc.o ispmmu.o
 else
 obj-$(CONFIG_VIDEO_OMAP3) += \
-	isp.o ispccdc.o ispmmu.o
+	isp.o ispccdc.o ispmmu.o \
+	isppreview.o ispresizer.o isph3a.o isphist.o
 endif

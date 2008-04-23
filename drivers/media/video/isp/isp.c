@@ -32,7 +32,10 @@
 #include "ispmmu.h"
 #include "ispreg.h"
 #include "ispccdc.h"
-
+#include "isph3a.h"
+#include "isphist.h"
+#include "isppreview.h"
+#include "ispresizer.h"
 
 /* List of image formats supported via OMAP ISP */
 const static struct v4l2_fmtdesc isp_formats[] = {
@@ -52,6 +55,7 @@ const static struct v4l2_fmtdesc isp_formats[] = {
 
 /* ISP Crop capabilities */
 static struct v4l2_rect ispcroprect;
+static struct v4l2_rect cur_rect;
 
 /**
  * struct vcontrol - Video control structure.
@@ -61,7 +65,104 @@ static struct v4l2_rect ispcroprect;
 static struct vcontrol {
 	struct v4l2_queryctrl qc;
 	int current_value;
-} video_control[] = { };
+} video_control[] = {
+	{
+		{
+			.id = V4L2_CID_BRIGHTNESS,
+			.type = V4L2_CTRL_TYPE_INTEGER,
+			.name = "Brightness",
+			.minimum = ISPPRV_BRIGHT_LOW,
+			.maximum = ISPPRV_BRIGHT_HIGH,
+			.step = ISPPRV_BRIGHT_STEP,
+			.default_value = ISPPRV_BRIGHT_DEF,
+		},
+		.current_value = ISPPRV_BRIGHT_DEF,
+	},
+	{
+		{
+			.id = V4L2_CID_CONTRAST,
+			.type = V4L2_CTRL_TYPE_INTEGER,
+			.name = "Contrast",
+			.minimum = ISPPRV_CONTRAST_LOW,
+			.maximum = ISPPRV_CONTRAST_HIGH,
+			.step = ISPPRV_CONTRAST_STEP,
+			.default_value = ISPPRV_CONTRAST_DEF,
+		},
+		.current_value = ISPPRV_CONTRAST_DEF,
+	},
+	{
+		{
+			.id = V4L2_CID_PRIVATE_ISP_COLOR_FX,
+			.type = V4L2_CTRL_TYPE_INTEGER,
+			.name = "Color Effects",
+			.minimum = PREV_DEFAULT_COLOR,
+			.maximum = PREV_SEPIA_COLOR,
+			.step = 1,
+			.default_value = PREV_DEFAULT_COLOR,
+		},
+		.current_value = PREV_DEFAULT_COLOR,
+	},
+	{
+		{
+			.id = V4L2_CID_PRIVATE_ISP_CCDC_CFG,
+			.type = V4L2_CTRL_TYPE_INTEGER,
+			.name = "CCDC",
+			.minimum = 0,
+			.maximum = 1,
+			.step = 1,
+			.default_value = 0,
+		},
+		.current_value = 0,
+	},
+	{
+		{
+			.id = V4L2_CID_PRIVATE_ISP_PRV_CFG,
+			.type = V4L2_CTRL_TYPE_INTEGER,
+			.name = "Previewer",
+			.minimum = 0,
+			.maximum = 1,
+			.step = 1,
+			.default_value = 0,
+		},
+		.current_value = 0,
+	},
+	{
+		{
+			.id = V4L2_CID_PRIVATE_ISP_LSC_UPDATE,
+			.type = V4L2_CTRL_TYPE_INTEGER,
+			.name = "Tables",
+			.minimum = 0,
+			.maximum = 1,
+			.step = 1,
+			.default_value = 0,
+		},
+		.current_value = 0,
+	},
+	{
+		{
+			.id = V4L2_CID_PRIVATE_ISP_AEWB_CFG,
+			.type = V4L2_CTRL_TYPE_INTEGER,
+			.name = "Auto Exposure, Auto WB Config",
+			.minimum = 0,
+			.maximum = 1,
+			.step = 1,
+			.default_value = 0,
+		},
+		.current_value = 0,
+	},
+	{
+		{
+			.id = V4L2_CID_PRIVATE_ISP_AEWB_REQ,
+			.type = V4L2_CTRL_TYPE_INTEGER,
+			.name = "AEWB Request Statistics",
+			.minimum = 0,
+			.maximum = 1,
+			.step = 1,
+			.default_value = 0,
+		},
+		.current_value = 0,
+	}
+};
 
 
 /**
@@ -217,8 +318,10 @@ static int find_vctrl(int id)
 	for (i = (ARRAY_SIZE(video_control) - 1); i >= 0; i--)
 		if (video_control[i].qc.id == id)
 			break;
+
 	if (i < 0)
 		i = -EINVAL;
+
 	return i;
 }
 
@@ -228,7 +331,8 @@ static int find_vctrl(int id)
 void isp_open(void)
 {
 	ispccdc_request();
-
+	isppreview_request();
+	ispresizer_request();
 	return;
 }
 
@@ -238,7 +342,8 @@ void isp_open(void)
 void isp_close(void)
 {
 	ispccdc_free();
-
+	isppreview_free();
+	ispresizer_free();
 	return;
 }
 
@@ -253,6 +358,17 @@ static int off_mode;
 int isp_set_sgdma_callback(struct isp_sgdma_state *sgdma_state,
 						isp_vbq_callback_ptr func_ptr)
 {
+	if ((ispmodule_obj.isp_pipeline & OMAP_ISP_RESIZER) &&
+						is_ispresizer_enabled()) {
+		isp_set_callback(CBK_RESZ_DONE, sgdma_state->callback,
+						func_ptr, sgdma_state->arg);
+	}
+
+	if ((ispmodule_obj.isp_pipeline & OMAP_ISP_PREVIEW) &&
+						is_isppreview_enabled()) {
+			isp_set_callback(CBK_PREV_DONE, sgdma_state->callback,
+						func_ptr, sgdma_state->arg);
+	}
 
 	if (ispmodule_obj.isp_pipeline & OMAP_ISP_CCDC) {
 		isp_set_callback(CBK_CCDC_VD0, sgdma_state->callback, func_ptr,
@@ -300,6 +416,18 @@ int isp_set_callback(enum isp_callback_type type, isp_callback_t callback,
 		omap_writel(omap_readl(ISP_IRQ0ENABLE) | IRQ0ENABLE_HS_VS_IRQ,
 							ISP_IRQ0ENABLE);
 		break;
+	case CBK_PREV_DONE:
+		omap_writel(IRQ0ENABLE_PRV_DONE_IRQ, ISP_IRQ0STATUS);
+		omap_writel(omap_readl(ISP_IRQ0ENABLE) |
+					IRQ0ENABLE_PRV_DONE_IRQ,
+					ISP_IRQ0ENABLE);
+		break;
+	case CBK_RESZ_DONE:
+		omap_writel(IRQ0ENABLE_RSZ_DONE_IRQ, ISP_IRQ0STATUS);
+		omap_writel(omap_readl(ISP_IRQ0ENABLE) |
+					IRQ0ENABLE_RSZ_DONE_IRQ,
+					ISP_IRQ0ENABLE);
+		break;
 	case CBK_MMU_ERR:
 		omap_writel(omap_readl(ISP_IRQ0ENABLE) |
 					IRQ0ENABLE_MMU_ERR_IRQ,
@@ -312,6 +440,29 @@ int isp_set_callback(enum isp_callback_type type, isp_callback_t callback,
 					IRQENABLE_TRANSLNFAULT |
 					IRQENABLE_TLBMISS,
 					ISPMMU_IRQENABLE);
+		break;
+	case CBK_H3A_AWB_DONE:
+		omap_writel(IRQ0ENABLE_H3A_AWB_DONE_IRQ, ISP_IRQ0STATUS);
+		omap_writel(omap_readl(ISP_IRQ0ENABLE) |
+					IRQ0ENABLE_H3A_AWB_DONE_IRQ,
+					ISP_IRQ0ENABLE);
+		break;
+	case CBK_HIST_DONE:
+		omap_writel(IRQ0ENABLE_HIST_DONE_IRQ, ISP_IRQ0STATUS);
+		omap_writel(omap_readl(ISP_IRQ0ENABLE) |
+					IRQ0ENABLE_HIST_DONE_IRQ,
+					ISP_IRQ0ENABLE);
+		break;
+	case CBK_LSC_ISR:
+		omap_writel(IRQ0ENABLE_CCDC_LSC_DONE_IRQ |
+					IRQ0ENABLE_CCDC_LSC_PREF_COMP_IRQ |
+					IRQ0ENABLE_CCDC_LSC_PREF_ERR_IRQ,
+					ISP_IRQ0STATUS);
+		omap_writel(omap_readl(ISP_IRQ0ENABLE) |
+					IRQ0ENABLE_CCDC_LSC_DONE_IRQ |
+					IRQ0ENABLE_CCDC_LSC_PREF_COMP_IRQ |
+					IRQ0ENABLE_CCDC_LSC_PREF_ERR_IRQ,
+					ISP_IRQ0ENABLE);
 		break;
 	default:
 		break;
@@ -349,6 +500,16 @@ int isp_unset_callback(enum isp_callback_type type)
 						~IRQ0ENABLE_CCDC_VD1_IRQ,
 						ISP_IRQ0ENABLE);
 		break;
+	case CBK_PREV_DONE:
+		omap_writel((omap_readl(ISP_IRQ0ENABLE)) &
+						~IRQ0ENABLE_PRV_DONE_IRQ,
+						ISP_IRQ0ENABLE);
+		break;
+	case CBK_RESZ_DONE:
+		omap_writel((omap_readl(ISP_IRQ0ENABLE)) &
+						~IRQ0ENABLE_RSZ_DONE_IRQ,
+						ISP_IRQ0ENABLE);
+		break;
 	case CBK_MMU_ERR:
 		omap_writel(omap_readl(ISPMMU_IRQENABLE) &
 						~(IRQENABLE_MULTIHITFAULT |
@@ -358,10 +519,27 @@ int isp_unset_callback(enum isp_callback_type type)
 						IRQENABLE_TLBMISS),
 						ISPMMU_IRQENABLE);
 		break;
+	case CBK_H3A_AWB_DONE:
+		omap_writel((omap_readl(ISP_IRQ0ENABLE)) &
+						~IRQ0ENABLE_H3A_AWB_DONE_IRQ,
+						ISP_IRQ0ENABLE);
+		break;
+	case CBK_HIST_DONE:
+		omap_writel((omap_readl(ISP_IRQ0ENABLE)) &
+						~IRQ0ENABLE_HIST_DONE_IRQ,
+						ISP_IRQ0ENABLE);
+		break;
 	case CBK_HS_VS:
 		omap_writel((omap_readl(ISP_IRQ0ENABLE)) &
 						~IRQ0ENABLE_HS_VS_IRQ,
 						ISP_IRQ0ENABLE);
+		break;
+	case CBK_LSC_ISR:
+		omap_writel(omap_readl(ISP_IRQ0ENABLE) &
+					~(IRQ0ENABLE_CCDC_LSC_DONE_IRQ |
+					IRQ0ENABLE_CCDC_LSC_PREF_COMP_IRQ |
+					IRQ0ENABLE_CCDC_LSC_PREF_ERR_IRQ),
+					ISP_IRQ0ENABLE);
 		break;
 	default:
 		break;
@@ -541,7 +719,8 @@ void isp_power_settings(struct isp_sysc isp_sysconfig)
 	if (isp_sysconfig.idle_mode) {
 		omap_writel(ISP_SYSCONFIG_AUTOIDLE |
 				(ISP_SYSCONFIG_MIdleMode_SmartStandBy <<
-				ISP_SYSCONFIG_MIdleMode_SHIFT), ISP_SYSCONFIG);
+				ISP_SYSCONFIG_MIdleMode_SHIFT),
+				ISP_SYSCONFIG);
 
 		omap_writel(ISPMMU_AUTOIDLE | (ISPMMU_SIdlemode_Smartidle <<
 						ISPMMU_SIdlemode_Shift),
@@ -561,7 +740,8 @@ void isp_power_settings(struct isp_sysc isp_sysconfig)
 	} else {
 		omap_writel(ISP_SYSCONFIG_AUTOIDLE |
 				(ISP_SYSCONFIG_MIdleMode_ForceStandBy <<
-				ISP_SYSCONFIG_MIdleMode_SHIFT), ISP_SYSCONFIG);
+				ISP_SYSCONFIG_MIdleMode_SHIFT),
+				ISP_SYSCONFIG);
 
 		omap_writel(ISPMMU_AUTOIDLE |
 			(ISPMMU_SIdlemode_Noidle << ISPMMU_SIdlemode_Shift),
@@ -579,9 +759,7 @@ void isp_power_settings(struct isp_sysc isp_sysconfig)
 		}
 
 		omap_writel(ISPCTRL_SBL_AutoIdle, ISP_CTRL);
-
 	}
-
 }
 EXPORT_SYMBOL(isp_power_settings);
 
@@ -702,12 +880,53 @@ static irqreturn_t omap34xx_isp_isr(int irq, void *ispirq_disp)
 		is_irqhandled = 1;
 	}
 
+	if ((irqstatus & PREV_DONE) == PREV_DONE) {
+		if (irqdis->isp_callbk[CBK_PREV_DONE])
+			irqdis->isp_callbk[CBK_PREV_DONE](PREV_DONE,
+				irqdis->isp_callbk_arg1[CBK_PREV_DONE],
+				irqdis->isp_callbk_arg2[CBK_PREV_DONE]);
+		is_irqhandled = 1;
+	}
+
+	if ((irqstatus & RESZ_DONE) == RESZ_DONE) {
+		if (irqdis->isp_callbk[CBK_RESZ_DONE])
+			irqdis->isp_callbk[CBK_RESZ_DONE](RESZ_DONE,
+				irqdis->isp_callbk_arg1[CBK_RESZ_DONE],
+				irqdis->isp_callbk_arg2[CBK_RESZ_DONE]);
+		is_irqhandled = 1;
+	}
+
+	if ((irqstatus & H3A_AWB_DONE) == H3A_AWB_DONE) {
+		if (irqdis->isp_callbk[CBK_H3A_AWB_DONE])
+			irqdis->isp_callbk[CBK_H3A_AWB_DONE](H3A_AWB_DONE,
+				irqdis->isp_callbk_arg1[CBK_H3A_AWB_DONE],
+				irqdis->isp_callbk_arg2[CBK_H3A_AWB_DONE]);
+		is_irqhandled = 1;
+	}
+
+	if ((irqstatus & HIST_DONE) == HIST_DONE) {
+		if (irqdis->isp_callbk[CBK_HIST_DONE])
+			irqdis->isp_callbk[CBK_HIST_DONE](HIST_DONE,
+				irqdis->isp_callbk_arg1[CBK_HIST_DONE],
+				irqdis->isp_callbk_arg2[CBK_HIST_DONE]);
+		is_irqhandled = 1;
+	}
+
 	if ((irqstatus & HS_VS) == HS_VS) {
 		if (irqdis->isp_callbk[CBK_HS_VS])
 			irqdis->isp_callbk[CBK_HS_VS](HS_VS,
 				irqdis->isp_callbk_arg1[CBK_HS_VS],
 				irqdis->isp_callbk_arg2[CBK_HS_VS]);
 		is_irqhandled = 1;
+	}
+
+	if (irqstatus & LSC_PRE_ERR) {
+		DPRINTK_ISPCTRL("isp_sr: LSC_PRE_ERR \n");
+		omap_writel(irqstatus, ISP_IRQ0STATUS);
+		ispccdc_enable_lsc(0);
+		ispccdc_enable_lsc(1);
+		spin_unlock_irqrestore(&isp_obj.lock, irqflags);
+		return IRQ_HANDLED;
 	}
 
 out:
@@ -752,6 +971,14 @@ void omapisp_unset_callback()
 {
 	isp_unset_callback(CBK_HS_VS);
 
+	if ((ispmodule_obj.isp_pipeline & OMAP_ISP_RESIZER) &&
+						is_ispresizer_enabled())
+		isp_unset_callback(CBK_RESZ_DONE);
+
+	if ((ispmodule_obj.isp_pipeline & OMAP_ISP_PREVIEW) &&
+						is_isppreview_enabled())
+		isp_unset_callback(CBK_PREV_DONE);
+
 	if (ispmodule_obj.isp_pipeline & OMAP_ISP_CCDC) {
 		isp_unset_callback(CBK_CCDC_VD0);
 		isp_unset_callback(CBK_CCDC_VD1);
@@ -768,6 +995,10 @@ void omapisp_unset_callback()
  **/
 void isp_start(void)
 {
+	if ((ispmodule_obj.isp_pipeline & OMAP_ISP_PREVIEW) &&
+						is_isppreview_enabled())
+		isppreview_enable(1);
+
 	return;
 }
 
@@ -783,6 +1014,26 @@ void isp_stop()
 	spin_unlock(&isp_obj.isp_temp_buf_lock);
 	omapisp_unset_callback();
 
+	if ((ispmodule_obj.isp_pipeline & OMAP_ISP_RESIZER) &&
+						is_ispresizer_enabled()) {
+		ispresizer_enable(0);
+		timeout = 0;
+		while (ispresizer_busy() && (timeout < 20)) {
+			timeout++;
+			mdelay(10);
+		}
+	}
+
+	if ((ispmodule_obj.isp_pipeline & OMAP_ISP_PREVIEW) &&
+						is_isppreview_enabled()) {
+		isppreview_enable(0);
+		timeout = 0;
+		while (isppreview_busy() && (timeout < 20)) {
+			timeout++;
+			mdelay(10);
+		}
+	}
+
 	if (ispmodule_obj.isp_pipeline & OMAP_ISP_CCDC) {
 		ispccdc_enable(0);
 		timeout = 0;
@@ -791,7 +1042,7 @@ void isp_stop()
 			mdelay(10);
 		}
 	}
-	if (ispccdc_busy()) {
+	if (ispccdc_busy() || isppreview_busy() || ispresizer_busy()) {
 		isp_save_ctx();
 		omap_writel(omap_readl(ISP_SYSCONFIG) |
 			ISP_SYSCONFIG_SOFTRESET, ISP_SYSCONFIG);
@@ -810,6 +1061,16 @@ void isp_stop()
  **/
 void isp_set_buf(struct isp_sgdma_state *sgdma_state)
 {
+	if ((ispmodule_obj.isp_pipeline & OMAP_ISP_RESIZER) &&
+						is_ispresizer_enabled())
+		ispresizer_set_outaddr(sgdma_state->isp_addr);
+	else
+
+	if ((ispmodule_obj.isp_pipeline & OMAP_ISP_PREVIEW) &&
+						is_isppreview_enabled())
+		isppreview_set_outaddr(sgdma_state->isp_addr);
+	else
+
 	if (ispmodule_obj.isp_pipeline & OMAP_ISP_CCDC)
 		ispccdc_set_outaddr(sgdma_state->isp_addr);
 
@@ -829,6 +1090,8 @@ void isp_calc_pipeline(struct v4l2_pix_format *pix_input,
 		ispmodule_obj.isp_pipeline |= (OMAP_ISP_PREVIEW |
 							OMAP_ISP_RESIZER);
 		ispccdc_config_datapath(CCDC_RAW, CCDC_OTHERS_VP);
+		isppreview_config_datapath(PRV_RAW_CCDC, PREVIEW_RSZ);
+		ispresizer_config_datapath(RSZ_OTFLY_YUV);
 	} else {
 		if (pix_input->pixelformat == V4L2_PIX_FMT_SGRBG10)
 			ispccdc_config_datapath(CCDC_RAW, CCDC_OTHERS_MEM);
@@ -854,6 +1117,28 @@ void isp_config_pipeline(struct v4l2_pix_format *pix_input,
 			ispmodule_obj.ccdc_input_height,
 			ispmodule_obj.ccdc_output_width,
 			ispmodule_obj.ccdc_output_height);
+
+	if (ispmodule_obj.isp_pipeline & OMAP_ISP_PREVIEW)
+		isppreview_config_size(ispmodule_obj.preview_input_width,
+			ispmodule_obj.preview_input_height,
+			ispmodule_obj.preview_output_width,
+			ispmodule_obj.preview_output_height);
+
+	if (ispmodule_obj.isp_pipeline & OMAP_ISP_RESIZER)
+		ispresizer_config_size(ispmodule_obj.resizer_input_width,
+			ispmodule_obj.resizer_input_height,
+			ispmodule_obj.resizer_output_width,
+			ispmodule_obj.resizer_output_height);
+
+	if (pix_output->pixelformat == V4L2_PIX_FMT_UYVY) {
+		isppreview_config_ycpos(YCPOS_YCrYCb);
+		if (is_ispresizer_enabled())
+			ispresizer_config_ycpos(0);
+	} else {
+		isppreview_config_ycpos(YCPOS_CrYCbY);
+		if (is_ispresizer_enabled())
+			ispresizer_config_ycpos(1);
+	}
 
 	return;
 }
@@ -889,7 +1174,6 @@ void isp_vbq_done(unsigned long status, isp_vbq_callback_ptr arg1, void *arg2)
 			}
 		}
 		break;
-
 	case CCDC_VD1:
 		if ((ispmodule_obj.isp_pipeline & OMAP_ISP_RESIZER) ||
 			(ispmodule_obj.isp_pipeline & OMAP_ISP_PREVIEW))
@@ -903,7 +1187,37 @@ void isp_vbq_done(unsigned long status, isp_vbq_callback_ptr arg1, void *arg2)
 		spin_unlock(&isp_obj.isp_temp_buf_lock);
 		return;
 		break;
-
+	case PREV_DONE:
+		if (is_isppreview_enabled()) {
+			if (ispmodule_obj.isp_pipeline & OMAP_ISP_RESIZER) {
+				if (!ispmodule_obj.applyCrop && (ispmodule_obj.
+							isp_temp_state ==
+							ISP_BUF_INIT))
+					ispresizer_enable(1);
+				if (ispmodule_obj.applyCrop &&
+							!ispresizer_busy()) {
+					ispresizer_enable(0);
+					ispresizer_applycrop();
+					ispmodule_obj.applyCrop = 0;
+				}
+			}
+			isppreview_config_shadow_registers();
+			isph3a_update_wb();
+			if (ispmodule_obj.isp_pipeline & OMAP_ISP_RESIZER)
+				return;
+		}
+		break;
+	case RESZ_DONE:
+		if (is_ispresizer_enabled()) {
+			ispresizer_config_shadow_registers();
+			spin_lock(&isp_obj.isp_temp_buf_lock);
+			if (ispmodule_obj.isp_temp_state != ISP_BUF_INIT) {
+				spin_unlock(&isp_obj.isp_temp_buf_lock);
+				return;
+			}
+			spin_unlock(&isp_obj.isp_temp_buf_lock);
+		}
+		break;
 	case HS_VS:
 		spin_lock(&isp_obj.isp_temp_buf_lock);
 		if (ispmodule_obj.isp_temp_state == ISP_BUF_TRAN) {
@@ -912,7 +1226,6 @@ void isp_vbq_done(unsigned long status, isp_vbq_callback_ptr arg1, void *arg2)
 		}
 		spin_unlock(&isp_obj.isp_temp_buf_lock);
 		return;
-
 	default:
 		break;
 	}
@@ -1122,7 +1435,43 @@ int isp_queryctrl(struct v4l2_queryctrl *a)
  **/
 int isp_g_ctrl(struct v4l2_control *a)
 {
-	return 0;
+	u8 current_value;
+	int rval = 0;
+
+	switch (a->id) {
+	case V4L2_CID_BRIGHTNESS:
+		isppreview_query_brightness(&current_value);
+		a->value = current_value / ISPPRV_BRIGHT_UNITS;
+		break;
+	case V4L2_CID_CONTRAST:
+		isppreview_query_contrast(&current_value);
+		a->value = current_value / ISPPRV_CONTRAST_UNITS;
+		break;
+	case V4L2_CID_PRIVATE_ISP_COLOR_FX:
+		isppreview_get_color(&current_value);
+		a->value = current_value;
+		break;
+	case V4L2_CID_PRIVATE_ISP_CCDC_CFG:
+		a->value = 0;
+		break;
+	case V4L2_CID_PRIVATE_ISP_PRV_CFG:
+		a->value = 0;
+		break;
+	case V4L2_CID_PRIVATE_ISP_LSC_UPDATE:
+		a->value = 0;
+		break;
+	case V4L2_CID_PRIVATE_ISP_AEWB_CFG:
+		a->value = 0;
+		break;
+	case V4L2_CID_PRIVATE_ISP_AEWB_REQ:
+		a->value = 0;
+		break;
+	default:
+		rval = -EINVAL;
+		break;
+	}
+
+	return rval;
 }
 
 /**
@@ -1136,7 +1485,78 @@ int isp_g_ctrl(struct v4l2_control *a)
  **/
 int isp_s_ctrl(struct v4l2_control *a)
 {
-	return 0;
+	int rval = 0;
+	u8 new_value = a->value;
+
+	switch (a->id) {
+	case V4L2_CID_BRIGHTNESS:
+		if (new_value > ISPPRV_BRIGHT_HIGH)
+			rval = -EINVAL;
+		else
+			isppreview_update_brightness(&new_value);
+		break;
+	case V4L2_CID_CONTRAST:
+		if (new_value > ISPPRV_CONTRAST_HIGH)
+			rval = -EINVAL;
+		else
+			isppreview_update_contrast(&new_value);
+		break;
+	case V4L2_CID_PRIVATE_ISP_COLOR_FX:
+		if (new_value > PREV_SEPIA_COLOR)
+			rval = -EINVAL;
+		else
+			isppreview_set_color(&new_value);
+		break;
+	case V4L2_CID_PRIVATE_ISP_CCDC_CFG:
+		omap34xx_isp_ccdc_config((void *)a->value);
+		break;
+	case V4L2_CID_PRIVATE_ISP_PRV_CFG:
+		omap34xx_isp_preview_config((void *)a->value);
+		break;
+	case V4L2_CID_PRIVATE_ISP_LSC_UPDATE:
+		omap34xx_isp_tables_update((void *)a->value);
+		omap34xx_isp_lsc_update((void *)a->value);
+		break;
+	case V4L2_CID_PRIVATE_ISP_AEWB_CFG:
+		if (!a->value)
+			rval = -EFAULT;
+		else {
+			struct isph3a_aewb_config params;
+			if (copy_from_user(&params, (void *)a->value,
+							sizeof(params))) {
+				rval = -EFAULT;
+				printk(KERN_ERR "Failed copy_from_user\n");
+			} else
+				rval = isph3a_aewb_configure(&params);
+		}
+		break;
+	case V4L2_CID_PRIVATE_ISP_AEWB_REQ:
+		if (!a->value)
+			rval = -EFAULT;
+		else {
+			struct isph3a_aewb_data data;
+			if (copy_from_user(&data, (void *)a->value,
+							sizeof(data))) {
+				rval = -EFAULT;
+				printk(KERN_ERR "Failed copy_from_user\n");
+				break;
+			}
+			rval = isph3a_aewb_request_statistics(&data);
+			if (!rval)
+				if (copy_to_user((void *)a->value, &data,
+							sizeof(data))) {
+					rval = -EFAULT;
+					printk(KERN_ERR
+						"Failed copy_to_user\n");
+				}
+		}
+		break;
+	default:
+		rval = -EINVAL;
+		break;
+	}
+
+	return rval;
 }
 
 /**
@@ -1195,7 +1615,9 @@ void isp_g_fmt_cap(struct v4l2_format *f)
 int isp_s_fmt_cap(struct v4l2_pix_format *pix_input,
 					struct v4l2_pix_format *pix_output)
 {
+	int crop_scaling_w, crop_scaling_h = 0;
 	int rval = 0;
+
 	isp_calc_pipeline(pix_input, pix_output);
 	rval = isp_try_size(pix_input, pix_output);
 
@@ -1207,16 +1629,21 @@ int isp_s_fmt_cap(struct v4l2_pix_format *pix_input,
 		goto out;
 
 	if (ispcroprect.width != pix_output->width) {
+		crop_scaling_w = 1;
 		ispcroprect.left = 0;
 		ispcroprect.width = pix_output->width;
 	}
 
 	if (ispcroprect.height != pix_output->height) {
+		crop_scaling_h = 1;
 		ispcroprect.top = 0;
 		ispcroprect.height = pix_output->height;
 	}
 
 	isp_config_pipeline(pix_input, pix_output);
+
+	if (crop_scaling_h || crop_scaling_w)
+		isp_config_crop(pix_output);
 
 out:
 	return rval;
@@ -1229,6 +1656,25 @@ EXPORT_SYMBOL(isp_s_fmt_cap);
  **/
 void isp_config_crop(struct v4l2_pix_format *croppix)
 {
+	u8 crop_scaling_w;
+	u8 crop_scaling_h;
+	struct v4l2_pix_format *pix = croppix;
+
+	crop_scaling_w = (ispmodule_obj.preview_output_width * 10) /
+								pix->width;
+	crop_scaling_h = (ispmodule_obj.preview_output_height * 10) /
+								pix->height;
+
+	cur_rect.left = (ispcroprect.left * crop_scaling_w) / 10;
+	cur_rect.top = (ispcroprect.top * crop_scaling_h) / 10;
+	cur_rect.width = (ispcroprect.width * crop_scaling_w) / 10;
+	cur_rect.height = (ispcroprect.height * crop_scaling_h) / 10;
+
+	ispresizer_trycrop(cur_rect.left, cur_rect.top, cur_rect.width,
+					cur_rect.height,
+					ispmodule_obj.resizer_output_width,
+					ispmodule_obj.resizer_output_height);
+
 	return;
 }
 
@@ -1336,6 +1782,32 @@ int isp_try_size(struct v4l2_pix_format *pix_input,
 		pix_output->height = ispmodule_obj.ccdc_output_height;
 	}
 
+	if (ispmodule_obj.isp_pipeline & OMAP_ISP_PREVIEW) {
+		ispmodule_obj.preview_input_width =
+					ispmodule_obj.ccdc_output_width;
+		ispmodule_obj.preview_input_height =
+					ispmodule_obj.ccdc_output_height;
+		rval = isppreview_try_size(ispmodule_obj.preview_input_width,
+					ispmodule_obj.preview_input_height,
+					&ispmodule_obj.preview_output_width,
+					&ispmodule_obj.preview_output_height);
+		pix_output->width = ispmodule_obj.preview_output_width;
+		pix_output->height = ispmodule_obj.preview_output_height;
+	}
+
+	if (ispmodule_obj.isp_pipeline & OMAP_ISP_RESIZER) {
+		ispmodule_obj.resizer_input_width =
+					ispmodule_obj.preview_output_width;
+		ispmodule_obj.resizer_input_height =
+					ispmodule_obj.preview_output_height;
+		rval = ispresizer_try_size(&ispmodule_obj.resizer_input_width,
+					&ispmodule_obj.resizer_input_height,
+					&ispmodule_obj.resizer_output_width,
+					&ispmodule_obj.resizer_output_height);
+		pix_output->width = ispmodule_obj.resizer_output_width;
+		pix_output->height = ispmodule_obj.resizer_output_height;
+	}
+
 	return rval;
 }
 EXPORT_SYMBOL(isp_try_size);
@@ -1385,30 +1857,38 @@ int isp_try_fmt(struct v4l2_pix_format *pix_input,
 	return 0;
 }
 /**
- * isp_save_ctx - Saves ISP, CCDC & MMU context.
+ * isp_save_ctx - Saves ISP, CCDC, HIST, H3A, PREV, RESZ & MMU context.
  *
  * Routine for saving the context of each module in the ISP.
- * CCDC and MMU.
+ * CCDC, HIST, H3A, PREV, RESZ and MMU.
  **/
 void isp_save_ctx(void)
 {
 	isp_save_context(isp_reg_list);
 	ispccdc_save_context();
 	ispmmu_save_context();
+	isphist_save_context();
+	isph3a_save_context();
+	isppreview_save_context();
+	ispresizer_save_context();
 }
 EXPORT_SYMBOL(isp_save_ctx);
 
 /**
- * isp_restore_ctx - Restores ISP, CCDC & MMU context.
+ * isp_restore_ctx - Restores ISP, CCDC, HIST, H3A, PREV, RESZ & MMU context.
  *
  * Routine for restoring the context of each module in the ISP.
- * CCDC and MMU.
+ * CCDC, HIST, H3A, PREV, RESZ and MMU.
  **/
 void isp_restore_ctx(void)
 {
 	isp_restore_context(isp_reg_list);
 	ispccdc_restore_context();
 	ispmmu_restore_context();
+	isphist_restore_context();
+	isph3a_restore_context();
+	isppreview_restore_context();
+	ispresizer_restore_context();
 }
 EXPORT_SYMBOL(isp_restore_ctx);
 
