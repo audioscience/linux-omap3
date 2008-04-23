@@ -97,4 +97,9 @@ config SND_OMAP24XX_EAC
 	  To compile this driver as a module, choose M here: the module
 	  will be called snd-omap24xx-eac.
 
+config SND_OMAP3_TWL4030
+        tristate "OMAP3 TWL4030 alsa driver"
+        depends on ARCH_OMAP3430 && SND
+        select SND_PCM
+
 endmenu

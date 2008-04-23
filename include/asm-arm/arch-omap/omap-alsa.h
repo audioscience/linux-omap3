@@ -35,6 +35,7 @@
  *  2005/07/25 INdT-10LE Kernel Team - 	Alsa driver for omap osk,
  *  					original version based in sa1100 driver
  *  					and omap oss driver.
+ *  2007/12/17 Misael Lopez Cruz     -  Added support for 3430 platform
  */
 
 #ifndef __OMAP_ALSA_H
@@ -118,8 +119,9 @@ struct omap_alsa_codec_config {
 	struct	snd_pcm_hw_constraint_list *hw_constraints_rates;
 	struct	snd_pcm_hardware *snd_omap_alsa_playback;
 	struct	snd_pcm_hardware *snd_omap_alsa_capture;
-	void	(*codec_configure_dev)(void);
-	void	(*codec_set_samplerate)(long);
+	int	(*codec_configure_dev)(void);
+	int	(*codec_set_samplerate)(long);
+	int	(*codec_set_stereomode)(int, int);
 	void	(*codec_clock_setup)(void);
 	int	(*codec_clock_on)(void);
 	int 	(*codec_clock_off)(void);
