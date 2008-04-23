@@ -7,4 +7,11 @@ else
 obj-$(CONFIG_VIDEO_OMAP3) += \
 	isp.o ispccdc.o ispmmu.o \
 	isppreview.o ispresizer.o isph3a.o isphist.o
+
+obj-$(CONFIG_VIDEO_OMAP34XX_ISP_PREVIEWER) += \
+	omap_previewer.o
+
+obj-$(CONFIG_VIDEO_OMAP34XX_ISP_RESIZER) += \
+	omap_resizer.o
+
 endif
