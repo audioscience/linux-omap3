@@ -111,14 +111,9 @@
 static const char *part_probes[] = { "cmdlinepart", NULL };
 #endif
 
-static int hw_ecc = 1;
-
-/* new oob placement block for use with hardware ecc generation */
-static struct nand_ecclayout omap_hw_eccoob = {
-	.eccbytes = 12,
-	.eccpos = {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13},
-	.oobfree = {{16, 32}, {33, 63} },
-};
+#ifndef MTD_NAND_OMAP_HWECC
+#define MTD_NAND_OMAP_HWECC	0
+#endif
 
 struct omap_nand_info {
 	struct nand_hw_control		controller;
@@ -254,6 +249,7 @@ static void omap_hwecc_init(struct mtd_info *mtd)
 {
 	struct omap_nand_info *info = container_of(mtd, struct omap_nand_info,
 							mtd);
+	register struct nand_chip *chip = mtd->priv;
 	unsigned long val = 0x0;
 
 	/* Read from ECC Control Register */
@@ -264,11 +260,9 @@ static void omap_hwecc_init(struct mtd_info *mtd)
 
 	/* Read from ECC Size Config Register */
 	val = __raw_readl(info->gpmc_baseaddr + GPMC_ECC_SIZE_CONFIG);
-	/* ECCSIZE1=512 | ECCSIZE0=8bytes | Select eccResultsize[0123] */
-	val = ((0x000000FF<<22) | (0x00000003<<12) | (0x0000000F));
+	/* ECCSIZE1=512 | Select eccResultsize[0123] */
+	val = ((((chip->ecc.size >> 1) - 1) << 22) | (0x0000000F));
 	__raw_writel(val, info->gpmc_baseaddr + GPMC_ECC_SIZE_CONFIG);
-
-
 }
 
 /*
@@ -451,26 +445,16 @@ static int omap_calculate_ecc(struct mtd_info *mtd, const u_char *dat,
 	struct omap_nand_info *info = container_of(mtd, struct omap_nand_info,
 							mtd);
 	unsigned long val = 0x0;
-	unsigned long reg, n;
-
-	/* Ex NAND_ECC_HW12_2048 */
-	if ((info->nand.ecc.mode == NAND_ECC_HW) &&
-		(info->nand.ecc.size  == 2048))
-		n = 4;
-	else
-		n = 1;
+	unsigned long reg;
 
 	/* Start Reading from HW ECC1_Result = 0x200 */
 	reg = (unsigned long)(info->gpmc_baseaddr + GPMC_ECC1_RESULT);
-	while (n--) {
-		val = __raw_readl(reg);
-		*ecc_code++ = val;		/* P128e, ..., P1e */
-		*ecc_code++ = val >> 16;	/* P128o, ..., P1o */
-		/* P2048o, P1024o, P512o, P256o, P2048e, P1024e, P512e, P256e */
-		*ecc_code++ = ((val >> 8) & 0x0f) | ((val >> 20) & 0xf0);
-		reg += 4;
-	}
-
+	val = __raw_readl(reg);
+	*ecc_code++ = val;              /* P128e, ..., P1e */
+	*ecc_code++ = val >> 16;        /* P128o, ..., P1o */
+	/* P2048o, P1024o, P512o, P256o, P2048e, P1024e, P512e, P256e */
+	*ecc_code++ = ((val >> 8) & 0x0f) | ((val >> 20) & 0xf0);
+	reg += 4;
 	return 0;
 } /* omap_calculate_ecc */
 
@@ -478,23 +462,25 @@ static void omap_enable_hwecc(struct mtd_info *mtd, int mode)
 {
 	struct omap_nand_info *info = container_of(mtd, struct omap_nand_info,
 							mtd);
+	register struct nand_chip *chip = mtd->priv;
+	unsigned int dev_width = (chip->options & NAND_BUSWIDTH_16) ? 1 : 0;
 	unsigned long val = __raw_readl(info->gpmc_baseaddr + GPMC_ECC_CONFIG);
 
 	switch (mode) {
 	case NAND_ECC_READ    :
 		__raw_writel(0x101, info->gpmc_baseaddr + GPMC_ECC_CONTROL);
-		/* ECC 16 bit col) | ( CS 0 )  | ECC Enable */
-		val = (1 << 7) | (0x0) | (0x1) ;
+		/* (ECC 8 or 16 bit col) | ( CS )  | ECC Enable */
+		val = (dev_width << 7) | (info->gpmc_cs << 1) | (0x1);
 		break;
 	case NAND_ECC_READSYN :
 		__raw_writel(0x100, info->gpmc_baseaddr + GPMC_ECC_CONTROL);
-		/* ECC 16 bit col) | ( CS 0 )  | ECC Enable */
-		val = (1 << 7) | (0x0) | (0x1) ;
+		/* (ECC 8 or 16 bit col) | ( CS )  | ECC Enable */
+		val = (dev_width << 7) | (info->gpmc_cs << 1) | (0x1);
 		break;
 	case NAND_ECC_WRITE   :
 		__raw_writel(0x101, info->gpmc_baseaddr + GPMC_ECC_CONTROL);
-		/* ECC 16 bit col) | ( CS 0 )  | ECC Enable */
-		val = (1 << 7) | (0x0) | (0x1) ;
+		/* (ECC 8 or 16 bit col) | ( CS )  | ECC Enable */
+		val = (dev_width << 7) | (info->gpmc_cs << 1) | (0x1);
 		break;
 	default:
 		DEBUG(MTD_DEBUG_LEVEL0, "Error: Unrecognized Mode[%d]!\n",
@@ -503,6 +489,32 @@ static void omap_enable_hwecc(struct mtd_info *mtd, int mode)
 	}
 
 	__raw_writel(val, info->gpmc_baseaddr + GPMC_ECC_CONFIG);
+}
+
+/*
+ * omap_wait - Wait function is called during Program and erase
+ * operations and the way it is called from MTD layer, we should wait
+ * till the NAND chip is ready after the programming/erase operation
+ * has completed.
+ * @mtd: MTD device structure
+ * @chip: NAND Chip structure
+ */
+static int omap_wait(struct mtd_info *mtd, struct nand_chip *chip)
+{
+	register struct nand_chip *this = mtd->priv;
+	struct omap_nand_info *info = container_of(mtd,
+					struct omap_nand_info,
+					mtd);
+	int status = 0;
+
+	this->IO_ADDR_W = (void *) info->gpmc_cs_baseaddr +
+					GPMC_CS_NAND_COMMAND;
+
+	while (!(status & 0x40)) {
+		__raw_writeb(NAND_CMD_STATUS & 0xFF, this->IO_ADDR_W);
+		status = __raw_readb(this->IO_ADDR_R);
+	}
+	return status;
 }
 
 static int omap_dev_ready(struct mtd_info *mtd)
@@ -568,14 +580,19 @@ static int __devinit omap_nand_probe(struct platform_device *pdev)
 	}
 
 	/* Enable RD PIN Monitoring Reg */
-	val  = gpmc_cs_read_reg(info->gpmc_cs, GPMC_CS_CONFIG1);
-	val |= WR_RD_PIN_MONITORING;
-	gpmc_cs_write_reg(info->gpmc_cs, GPMC_CS_CONFIG1, val);
+	if (pdata->dev_ready) {
+		val  = gpmc_cs_read_reg(info->gpmc_cs, GPMC_CS_CONFIG1);
+		val |= WR_RD_PIN_MONITORING;
+		gpmc_cs_write_reg(info->gpmc_cs, GPMC_CS_CONFIG1, val);
+	}
 
 	val  = gpmc_cs_read_reg(info->gpmc_cs, GPMC_CS_CONFIG7);
 	val &= ~(0xf << 8);
 	val |=  (0xc & 0xf) << 8;
 	gpmc_cs_write_reg(info->gpmc_cs, GPMC_CS_CONFIG7, val);
+
+	/* NAND write protect off */
+	omap_nand_wp(&info->mtd, NAND_WP_OFF);
 
 	if (!request_mem_region(info->phys_base, NAND_IO_SIZE,
 				pdev->dev.driver->name)) {
@@ -597,28 +614,40 @@ static int __devinit omap_nand_probe(struct platform_device *pdev)
 	info->nand.write_buf  = omap_write_buf;
 	info->nand.verify_buf = omap_verify_buf;
 
-	info->nand.dev_ready  = omap_dev_ready;
-	info->nand.chip_delay = 0;
+	/*
+	 * If RDY/BSY line is connected to OMAP then use the omap ready function
+	 * and the generic nand_wait function which reads the status register
+	 * after monitoring the RDY/BSY line. Otherwise use a standard chip
+	 * delay which is slightly more than tR (AC Timing) of the NAND device
+	 * and read the status register until you get a failure or success.
+	 */
+	if (pdata->dev_ready) {
+		info->nand.dev_ready = omap_dev_ready;
+		info->nand.chip_delay = 0;
+	} else {
+		info->nand.waitfunc = omap_wait;
+		info->nand.chip_delay = 50;
+	}
 
 	/* Options */
-	info->nand.options   = NAND_BUSWIDTH_16;
 	info->nand.options  |= NAND_SKIP_BBTSCAN;
+	if ((gpmc_cs_read_reg(info->gpmc_cs, GPMC_CS_CONFIG1)
+				& 0x3000) == 0x1000)
+		info->nand.options  |= NAND_BUSWIDTH_16;
 
-	if (hw_ecc) {
-		/* init HW ECC */
-		omap_hwecc_init(&info->mtd);
-
+#if CONFIG_MTD_NAND_OMAP_HWECC
 		info->nand.ecc.calculate = omap_calculate_ecc;
 		info->nand.ecc.hwctl     = omap_enable_hwecc;
 		info->nand.ecc.correct   = omap_correct_data;
 		info->nand.ecc.mode      = NAND_ECC_HW;
-		info->nand.ecc.bytes     = 12;
-		info->nand.ecc.size      = 2048;
-		info->nand.ecc.layout    = &omap_hw_eccoob;
+		info->nand.ecc.bytes     = 3;
+		info->nand.ecc.size      = 512;
 
-	} else {
+		/* init HW ECC */
+		omap_hwecc_init(&info->mtd);
+#else
 		info->nand.ecc.mode = NAND_ECC_SOFT;
-	}
+#endif
 
 
 	/* DIP switches on some boards change between 8 and 16 bit
@@ -641,8 +670,6 @@ static int __devinit omap_nand_probe(struct platform_device *pdev)
 	else
 #endif
 		add_mtd_device(&info->mtd);
-
-	omap_nand_wp(&info->mtd, NAND_WP_OFF);
 
 	platform_set_drvdata(pdev, &info->mtd);
 
