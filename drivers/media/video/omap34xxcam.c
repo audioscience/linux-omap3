@@ -396,6 +396,7 @@ static int omap34xxcam_vbq_setup(struct videobuf_queue *vbq, unsigned int *cnt,
 				 unsigned int *size)
 {
 	struct omap34xxcam_fh *fh = vbq->priv_data;
+	struct v4l2_format format;
 
 	if (*cnt <= 0)
 		*cnt = VIDEO_MAX_FRAME;	/* supply a default number of buffers */
@@ -403,7 +404,8 @@ static int omap34xxcam_vbq_setup(struct videobuf_queue *vbq, unsigned int *cnt,
 	if (*cnt > VIDEO_MAX_FRAME)
 		*cnt = VIDEO_MAX_FRAME;
 
-	*size = fh->pix.sizeimage;
+	isp_g_fmt_cap(&format);
+	*size = format.fmt.pix.sizeimage;
 
 	/* accessing fh->cam->capture_mem is ok, it's constant */
 	while (*size * *cnt > fh->cam->capture_mem)
@@ -447,26 +449,32 @@ static int omap34xxcam_vbq_prepare(struct videobuf_queue *vbq,
 				   struct videobuf_buffer *vb,
 				   enum v4l2_field field)
 {
-	struct omap34xxcam_fh *fh = vbq->priv_data;
+	struct v4l2_format format;
+	unsigned int size;
 	int err = 0;
+
+	isp_g_fmt_cap(&format);
+	size = format.fmt.pix.sizeimage;
 	/*
 	 * Accessing pix here is okay since it's constant while
 	 * streaming is on (and we only get called then).
 	 */
 	if (vb->baddr) {
 		/* This is a userspace buffer. */
-		if (fh->pix.sizeimage > vb->bsize) {
+		if (size > vb->bsize)
 			/* The buffer isn't big enough. */
 			err = -EINVAL;
-		} else
-			vb->size = fh->pix.sizeimage;
+		else {
+			vb->size = size;
+			vb->bsize = vb->size;
+		}
 	} else {
 		if (vb->state != VIDEOBUF_NEEDS_INIT) {
 			/*
 			 * We have a kernel bounce buffer that has
 			 * already been allocated.
 			 */
-			if (fh->pix.sizeimage > vb->size) {
+			if (size > vb->size) {
 				/*
 				 * The image size has been changed to
 				 * a larger size since this buffer was
@@ -474,19 +482,19 @@ static int omap34xxcam_vbq_prepare(struct videobuf_queue *vbq,
 				 * reallocate it.
 				 */
 				omap34xxcam_vbq_release(vbq, vb);
-				vb->size = fh->pix.sizeimage;
+				vb->size = size;
 			}
 		} else {
 			/* We need to allocate a new kernel bounce buffer. */
-			vb->size = fh->pix.sizeimage;
+			vb->size = size;
 		}
 	}
 
 	if (err)
 		return err;
 
-	vb->width = fh->pix.width;
-	vb->height = fh->pix.height;
+	vb->width = format.fmt.pix.width;
+	vb->height = format.fmt.pix.height;
 	vb->field = field;
 
 	if (vb->state == VIDEOBUF_NEEDS_INIT) {
