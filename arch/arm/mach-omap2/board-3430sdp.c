@@ -45,6 +45,7 @@
 #include <media/v4l2-int-device.h>
 #include <../drivers/media/video/mt9p012.h>
 #include <../drivers/media/video/omap34xxcam.h>
+#include <../drivers/media/video/isp/ispreg.h>
 #include "ti-compat.h"
 
 #include <asm/io.h>
@@ -448,7 +449,7 @@ const static struct mt9p012_reg mt9p012_common[] = {
 
 };
 
-static struct omap34xxcam_hw_config cam_hwc = {
+static struct omap34xxcam_sensor_config cam_hwc = {
 	.sensor_isp = V4L2_IF_CAP_RAW,
 	.xclk = OMAP34XXCAM_XCLK_A,
 };
@@ -484,10 +485,26 @@ static int mt9p012_sensor_set_prv_data(void *priv)
 {
 	struct omap34xxcam_hw_config *hwc = priv;
 
-	hwc->sensor_isp = cam_hwc.sensor_isp;
-	hwc->xclk = cam_hwc.xclk;
+	hwc->u.sensor.xclk = cam_hwc.xclk;
+	hwc->u.sensor.sensor_isp = cam_hwc.sensor_isp;
+	hwc->dev_index = 0;
+	hwc->dev_minor = 0;
+	hwc->dev_type = OMAP34XXCAM_SLAVE_SENSOR;
 	return 0;
 }
+
+static struct isp_interface_config mt9p012_if_config = {
+	.ccdc_par_ser = ISP_PARLL,
+	.dataline_shift = 0x1,
+	.hsvs_syncdetect = ISPCTRL_SYNC_DETECT_VSRISE,	
+	.vdint0_timing = 0x0,
+	.vdint1_timing = 0x0,
+	.strobe = 0x0,
+	.prestrobe = 0x0,
+	.shutter = 0x0,
+	.u.par.par_bridge = 0x0,
+	.u.par.par_clk_pol = 0x0,
+};
 
 static int mt9p012_sensor_power_set(enum v4l2_power power)
 {
@@ -507,6 +524,7 @@ static int mt9p012_sensor_power_set(enum v4l2_power power)
 		break;
 	case V4L2_POWER_ON:
 		/* Power Up Sequence */
+		isp_configure_interface(&mt9p012_if_config);
 
 		/* Request and configure gpio pins */
 		if (omap_request_gpio(MT9P012_STANDBY_GPIO) != 0) {
@@ -570,7 +588,7 @@ static int mt9p012_sensor_power_set(enum v4l2_power power)
 		break;
 	}
 
-    return 0;
+	return 0;
 }
 
 static struct v4l2_ifparm ifparm = {
