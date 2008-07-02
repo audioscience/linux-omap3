@@ -64,8 +64,6 @@ struct omap34xxcam_hw_config {
  * @mutex: mutex serialises access to this structure. Also camera
  * opening and releasing is synchronised by this.
  * @users: user (open file handle) count.
- * @core_enable_disable_lock: Lock to serialise core enabling and
- * disabling and access to sgdma_in_queue.
  * @sgdma_in_queue: Number or sgdma requests in scatter-gather queue,
  * protected by the lock above.
  * @sens: Sensor interface parameters
@@ -80,14 +78,9 @@ struct omap34xxcam_hw_config {
  * @sdev: V4L2 device structure
  * @dev: device structure
  * @vfd: video device file handle
- * @sensor_reset_work: sensor reset work structure
- * @in_reset: flag to indicate in reset operation.  Don't enable core if
  * this is non-zero! This exists to help decisionmaking in a case
  * where videobuf_qbuf is called while we are in the middle of
  * a reset.
- * @reset_disable: flag to disallow resets.  Non-zero if we don't want any
- * resets for now. Used to prevent reset work to run when we're about to
- * stop streaming.
  * @capture_mem: memory reserved for capturing image data.
  * @fck: camera module fck clock information
  * @ick: camera module ick clock information
@@ -96,7 +89,6 @@ struct omap34xxcam_hw_config {
 struct omap34xxcam_device {
 	struct mutex mutex;
 	atomic_t users;
-	spinlock_t core_enable_disable_lock;
 	int sgdma_in_queue;
 	struct omap34xxcam_sensor sens;
 	union {
@@ -118,12 +110,6 @@ struct omap34xxcam_device {
 	struct v4l2_int_device *sdev;
 	struct device *dev;
 	struct video_device *vfd;
-
-	/*** camera and sensor reset related stuff ***/
-	struct work_struct sensor_reset_work;
-
-	atomic_t in_reset;
-	atomic_t reset_disable;
 
 	/*** video device parameters ***/
 	int capture_mem;

@@ -532,49 +532,6 @@ static void omap34xxcam_vbq_queue(struct videobuf_queue *vbq,
 
 }
 
-/**
- * omap34xxcam_capture_stop - stops the current capture operation
- * @cam: per-device camera information data structure
- *
- * Stops the current capture in the ISP pipeline.
- */
-static void omap34xxcam_capture_stop(struct omap34xxcam_device *cam)
-{
-	unsigned long flags;
-
-	spin_lock_irqsave(&cam->core_enable_disable_lock, flags);
-
-	if (atomic_inc_return(&cam->in_reset) != 1) {
-		spin_unlock_irqrestore(&cam->core_enable_disable_lock, flags);
-		return;
-	}
-
-	isp_stop();
-
-	spin_unlock_irqrestore(&cam->core_enable_disable_lock, flags);
-}
-
-/**
- * omap34xxcam_capture_cont - resumes capture operation
- * @cam: per-device camera information data structure
- *
- * Resumes capture operation by restarting ISP pipeline
- */
-static void omap34xxcam_capture_cont(struct omap34xxcam_device *cam)
-{
-	unsigned long flags;
-
-	spin_lock_irqsave(&cam->core_enable_disable_lock, flags);
-
-	if (atomic_read(&cam->in_reset) != 1)
-		goto out;
-
-	isp_start();
-out:
-	atomic_dec(&cam->in_reset);
-	spin_unlock_irqrestore(&cam->core_enable_disable_lock, flags);
-}
-
 static struct videobuf_queue_ops omap34xxcam_vbq_ops = {
 	.buf_setup = omap34xxcam_vbq_setup,
 	.buf_prepare = omap34xxcam_vbq_prepare,
@@ -825,35 +782,8 @@ static int vidioc_qbuf(struct file *file, void *fh, struct v4l2_buffer *b)
 static int vidioc_dqbuf(struct file *file, void *fh, struct v4l2_buffer *b)
 {
 	struct omap34xxcam_fh *ofh = fh;
-	struct omap34xxcam_device *cam = ofh->cam;
-	struct videobuf_buffer *vb;
-	int rval;
 
-	rval = videobuf_dqbuf(&ofh->vbq, b, file->f_flags & O_NONBLOCK);
-	if (rval)
-		goto out;
-
-	vb = ofh->vbq.bufs[b->index];
-
-	mutex_lock(&cam->mutex);
-	/* _needs_reset returns -EIO if reset is required. */
-	rval = vidioc_int_g_needs_reset(cam->sdev, (void *)vb->baddr);
-	mutex_unlock(&cam->mutex);
-	if (rval == -EIO)
-		schedule_work(&cam->sensor_reset_work);
-	else
-		rval = 0;
-
-out:
-	/*
-	 * This is a hack. User space won't get the index of this
-	 * buffer and does not want to requeue it so we requeue it
-	 * here.
-	 */
-	if (rval == -EIO)
-		videobuf_qbuf(&ofh->vbq, b);
-
-	return rval;
+	return videobuf_dqbuf(&ofh->vbq, b, file->f_flags & O_NONBLOCK);
 }
 
 /**
@@ -914,9 +844,6 @@ static int vidioc_streamoff(struct file *file, void *fh, enum v4l2_buf_type i)
 	int bufcount;
 	int rval;
 
-	atomic_inc(&cam->reset_disable);
-
-	flush_scheduled_work();
 	for (bufcount = 0; bufcount < VIDEO_MAX_FRAME; bufcount++) {
 		if (NULL == q->bufs[bufcount])
 			continue;
@@ -935,8 +862,6 @@ static int vidioc_streamoff(struct file *file, void *fh, enum v4l2_buf_type i)
 		cam->streaming = NULL;
 		mutex_unlock(&cam->mutex);
 	}
-
-	atomic_dec(&cam->reset_disable);
 
 	return rval;
 }
@@ -1438,10 +1363,6 @@ static int omap34xxcam_release(struct inode *inode, struct file *file)
 		full_deinit = true;
 	mutex_unlock(&cam->mutex);
 
-	atomic_inc(&cam->reset_disable);
-
-	flush_scheduled_work();
-
 	if (full_deinit)
 		isp_close();
 
@@ -1457,16 +1378,6 @@ static int omap34xxcam_release(struct inode *inode, struct file *file)
 			mutex_unlock(&cam->mutex);
 		}
 	}
-
-	atomic_dec(&cam->reset_disable);
-
-	/*
-	 * Make sure the reset work we might have scheduled is not
-	 * pending! It may be run *only* if we have users. (And it may
-	 * not be scheduled anymore since streaming is already
-	 * disabled.)
-	 */
-	flush_scheduled_work();
 
 	if (full_deinit) {
 		mutex_lock(&cam->mutex);
@@ -1647,9 +1558,6 @@ static int omap34xxcam_suspend(struct platform_device *pdev, pm_message_t state)
 	if (atomic_read(&cam->users) == 0)
 		return 0;
 
-	if (!atomic_read(&cam->reset_disable))
-		omap34xxcam_capture_stop(cam);
-
 	omap34xxcam_sensor_disable(cam);
 
 	return 0;
@@ -1669,9 +1577,6 @@ static int omap34xxcam_resume(struct platform_device *pdev)
 
 	if (atomic_read(&cam->users) == 0)
 		return 0;
-
-	if (!atomic_read(&cam->reset_disable))
-		omap34xxcam_capture_cont(cam);
 
 	omap34xxcam_sensor_enable(cam);
 
@@ -1753,7 +1658,6 @@ static int omap34xxcam_probe(struct platform_device *pdev)
 	}
 
 	mutex_init(&cam->mutex);
-	spin_lock_init(&cam->core_enable_disable_lock);
 
 	omap34xxcam.priv = cam;
 	isp_sgdma_init();
