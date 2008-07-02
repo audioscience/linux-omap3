@@ -94,7 +94,8 @@ obj-$(CONFIG_VIDEO_BTCX)  += btcx-risc.o
 obj-$(CONFIG_VIDEO_TVEEPROM) += tveeprom.o
 
 obj-$(CONFIG_VIDEO_M32R_AR_M64278) += arv.o
-obj-$(CONFIG_VIDEO_OMAP_CAMERA) += omap/
+obj-y += omap/
+#obj-$(CONFIG_VIDEO_OMAP_CAMERA) += omap/
 
 obj-$(CONFIG_VIDEO_CX25840) += cx25840/
 obj-$(CONFIG_VIDEO_UPD64031A) += upd64031a.o

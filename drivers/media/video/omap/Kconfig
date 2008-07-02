@@ -5,3 +5,18 @@ config VIDEO_OMAP_CAMERA
 	depends on VIDEO_DEV && (ARCH_OMAP16XX || ARCH_OMAP24XX)
 	help
 	  V4L2 camera driver support for OMAP1/2 based boards.
+menu "OMAP2/OMAP3 V4L2 drivers"
+	depends on VIDEO_DEV && (ARCH_OMAP24XX || ARCH_OMAP34XX)
+config VIDEO_OMAP24XX_VIDEOLIB
+	tristate "Video out library"
+
+config VIDEO_OMAP24XX_VIDEOOUT
+	tristate "Video out driver"
+	depends on VIDEO_OMAP24XX_VIDEOLIB
+	select VIDEO_BUF
+	select VIDEOBUF_GEN
+	select VIDEOBUF_DMA_SG
+
+config VIDEO_OMAP24XX_TVOUT
+	bool "TV out support"
+endmenu
