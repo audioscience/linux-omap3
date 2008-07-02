@@ -151,6 +151,7 @@ static int omap34xxcam_sensor_if_enable(struct omap34xxcam_device *cam)
 {
 	struct v4l2_ifparm p;
 	struct omap34xxcam_hw_config hwc;
+	struct isp_sysc isp_sysconfig;
 	int rval;
 
 	rval = vidioc_int_g_ifparm(cam->sdev, &p);
@@ -175,6 +176,9 @@ static int omap34xxcam_sensor_if_enable(struct omap34xxcam_device *cam)
 
 	/* Enable the ISP clock. This provides clock to the sensor */
 	isp_get();
+	isp_sysconfig.reset = 0;
+	isp_sysconfig.idle_mode = 1;
+	isp_power_settings(isp_sysconfig);
 
 	/* Enable the ISP interface on OMAP3 */
 	rval = omap34xxcamisp_configure_interface(&p, cam);
