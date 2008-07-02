@@ -148,61 +148,58 @@ int omap34xx_isp_ccdc_config(void *userspace_add)
 	struct ispccdc_blcomp blcomp_t;
 	struct ispccdc_fpc fpc_t;
 	struct ispccdc_culling cull_t;
-	struct ispccdc_update_config ccdc_struct;
+	struct ispccdc_update_config *ccdc_struct;
 	u32 old_size;
 
 	if (userspace_add == NULL)
 		return -EINVAL;
 
-	if (copy_from_user(&ccdc_struct, (struct ispccdc_update_config *)
-					(userspace_add),
-					sizeof(struct ispccdc_update_config)))
-		goto copy_from_user_err;
+	ccdc_struct = (struct ispccdc_update_config *) userspace_add;
 
-	if ((ISP_ABS_CCDC_ALAW & ccdc_struct.flag) == ISP_ABS_CCDC_ALAW) {
-		if ((ISP_ABS_CCDC_ALAW & ccdc_struct.update) ==
+	if ((ISP_ABS_CCDC_ALAW & ccdc_struct->flag) == ISP_ABS_CCDC_ALAW) {
+		if ((ISP_ABS_CCDC_ALAW & ccdc_struct->update) ==
 							ISP_ABS_CCDC_ALAW)
-			ispccdc_config_alaw(ccdc_struct.alawip);
+			ispccdc_config_alaw(ccdc_struct->alawip);
 		ispccdc_enable_alaw(1);
-	} else if ((ISP_ABS_CCDC_ALAW & ccdc_struct.update) ==
+	} else if ((ISP_ABS_CCDC_ALAW & ccdc_struct->update) ==
 							ISP_ABS_CCDC_ALAW)
 		ispccdc_enable_alaw(0);
 
-	if ((ISP_ABS_CCDC_LPF & ccdc_struct.flag) == ISP_ABS_CCDC_LPF)
+	if ((ISP_ABS_CCDC_LPF & ccdc_struct->flag) == ISP_ABS_CCDC_LPF)
 		ispccdc_enable_lpf(1);
 	else
 		ispccdc_enable_lpf(0);
 
-	if ((ISP_ABS_CCDC_BLCLAMP & ccdc_struct.flag) ==
+	if ((ISP_ABS_CCDC_BLCLAMP & ccdc_struct->flag) ==
 		ISP_ABS_CCDC_BLCLAMP) {
-		if ((ISP_ABS_CCDC_BLCLAMP & ccdc_struct.update) ==
+		if ((ISP_ABS_CCDC_BLCLAMP & ccdc_struct->update) ==
 			ISP_ABS_CCDC_BLCLAMP) {
 			if (copy_from_user(&bclamp_t, (struct ispccdc_bclamp *)
-						(ccdc_struct.bclamp),
+						(ccdc_struct->bclamp),
 						sizeof(struct ispccdc_bclamp)))
 				goto copy_from_user_err;
 
 			ispccdc_config_black_clamp(bclamp_t);
 		}
 		ispccdc_enable_black_clamp(1);
-	} else if ((ISP_ABS_CCDC_BLCLAMP & ccdc_struct.update) ==
+	} else if ((ISP_ABS_CCDC_BLCLAMP & ccdc_struct->update) ==
 							ISP_ABS_CCDC_BLCLAMP)
 			ispccdc_enable_black_clamp(0);
 
-	if ((ISP_ABS_CCDC_BCOMP & ccdc_struct.update) == ISP_ABS_CCDC_BCOMP) {
+	if ((ISP_ABS_CCDC_BCOMP & ccdc_struct->update) == ISP_ABS_CCDC_BCOMP) {
 		if (copy_from_user(&blcomp_t, (struct ispccdc_blcomp *)
-							(ccdc_struct.blcomp),
+							(ccdc_struct->blcomp),
 							sizeof(blcomp_t)))
 			goto copy_from_user_err;
 
 		ispccdc_config_black_comp(blcomp_t);
 	}
 
-	if ((ISP_ABS_CCDC_FPC & ccdc_struct.flag) == ISP_ABS_CCDC_FPC) {
-		if ((ISP_ABS_CCDC_FPC & ccdc_struct.update) ==
+	if ((ISP_ABS_CCDC_FPC & ccdc_struct->flag) == ISP_ABS_CCDC_FPC) {
+		if ((ISP_ABS_CCDC_FPC & ccdc_struct->update) ==
 							ISP_ABS_CCDC_FPC) {
 			if (copy_from_user(&fpc_t, (struct ispccdc_fpc *)
-							(ccdc_struct.fpc),
+							(ccdc_struct->fpc),
 							sizeof(fpc_t)))
 				goto copy_from_user_err;
 			fpc_table_add = kmalloc((64 + (fpc_t.fpnum * 4)),
@@ -228,27 +225,27 @@ int omap34xx_isp_ccdc_config(void *userspace_add)
 			ispccdc_config_fpc(fpc_t);
 		}
 		ispccdc_enable_fpc(1);
-	} else if ((ISP_ABS_CCDC_FPC & ccdc_struct.update) ==
+	} else if ((ISP_ABS_CCDC_FPC & ccdc_struct->update) ==
 							ISP_ABS_CCDC_FPC)
 			ispccdc_enable_fpc(0);
 
-	if ((ISP_ABS_CCDC_CULL & ccdc_struct.update) == ISP_ABS_CCDC_CULL) {
+	if ((ISP_ABS_CCDC_CULL & ccdc_struct->update) == ISP_ABS_CCDC_CULL) {
 		if (copy_from_user(&cull_t, (struct ispccdc_culling *)
-							(ccdc_struct.cull),
+							(ccdc_struct->cull),
 							sizeof(cull_t)))
 			goto copy_from_user_err;
 		ispccdc_config_culling(cull_t);
 	}
 
 	if (is_isplsc_activated()) {
-		if ((ISP_ABS_CCDC_CONFIG_LSC & ccdc_struct.flag) ==
+		if ((ISP_ABS_CCDC_CONFIG_LSC & ccdc_struct->flag) ==
 						ISP_ABS_CCDC_CONFIG_LSC) {
-			if ((ISP_ABS_CCDC_CONFIG_LSC & ccdc_struct.update) ==
+			if ((ISP_ABS_CCDC_CONFIG_LSC & ccdc_struct->update) ==
 						ISP_ABS_CCDC_CONFIG_LSC) {
 				old_size = lsc_config.size;
 				if (copy_from_user(&lsc_config,
 						(struct ispccdc_lsc_config *)
-						(ccdc_struct.lsc_cfg),
+						(ccdc_struct->lsc_cfg),
 						sizeof(struct
 						ispccdc_lsc_config)))
 					goto copy_from_user_err;
@@ -260,15 +257,42 @@ int omap34xx_isp_ccdc_config(void *userspace_add)
 				ispccdc_config_lsc(&lsc_config);
 			}
 			ccdc_use_lsc = 1;
-		} else if ((ISP_ABS_CCDC_CONFIG_LSC & ccdc_struct.update) ==
+		} else if ((ISP_ABS_CCDC_CONFIG_LSC & ccdc_struct->update) ==
 						ISP_ABS_CCDC_CONFIG_LSC) {
 				ispccdc_enable_lsc(0);
 				ccdc_use_lsc = 0;
+		}
+		if ((ISP_ABS_TBL_LSC & ccdc_struct->update)
+			== ISP_ABS_TBL_LSC) {
+			if (size_mismatch) {
+				ispmmu_unmap(lsc_ispmmu_addr);
+				kfree(lsc_gain_table);
+				lsc_gain_table = kmalloc(
+					lsc_config.size,
+					GFP_KERNEL | GFP_DMA);
+				if (!lsc_gain_table) {
+					printk(KERN_ERR
+						"Cannot allocate\
+						memory for \
+						gain tables \n");
+					return -ENOMEM;
+				}
+				lsc_ispmmu_addr = ispmmu_map(
+					virt_to_phys(lsc_gain_table),
+					lsc_config.size);
+				omap_writel(lsc_ispmmu_addr,
+					ISPCCDC_LSC_TABLE_BASE);
+				lsc_initialized = 1;
+				size_mismatch = 0;
 			}
+			if (copy_from_user(lsc_gain_table,
+				(ccdc_struct->lsc), lsc_config.size))
+				goto copy_from_user_err;
+		}
 	}
 
-	if ((ISP_ABS_CCDC_COLPTN & ccdc_struct.update) == ISP_ABS_CCDC_COLPTN)
-		ispccdc_config_imgattr(ccdc_struct.colptn);
+	if ((ISP_ABS_CCDC_COLPTN & ccdc_struct->update) == ISP_ABS_CCDC_COLPTN)
+		ispccdc_config_imgattr(ccdc_struct->colptn);
 
 	return 0;
 
@@ -415,68 +439,6 @@ void ispccdc_enable_lsc(u8 enable)
 }
 EXPORT_SYMBOL(ispccdc_enable_lsc);
 
-/**
- * omap34xx_isp_lsc_update - Abstraction layer LSC Updates.
- * @userspace_add: Structure containing CCDC configuration sent from userspace.
- *
- * Returns 0 if successful, -EINVAL if the pointer to the configuration
- * structure is null, or the copy_from_user function fails to copy user space
- * memory to kernel space memory.
- **/
-int omap34xx_isp_lsc_update(void *userspace_add)
-{
-	struct isptables_update isptables_struct;
-
-	if (!is_isplsc_activated())
-		return 0;
-
-	if (userspace_add == NULL)
-		return -EINVAL;
-
-	if (copy_from_user(&isptables_struct,
-				(struct isptables_update *)(userspace_add),
-				sizeof(struct isptables_update)))
-				goto copy_from_user_err;
-
-	if ((ISP_ABS_TBL_LSC & isptables_struct.flag) == ISP_ABS_TBL_LSC) {
-		if ((ISP_ABS_TBL_LSC & isptables_struct.update) ==
-							ISP_ABS_TBL_LSC) {
-			if (size_mismatch) {
-				ispmmu_unmap(lsc_ispmmu_addr);
-				kfree(lsc_gain_table);
-				lsc_gain_table = kmalloc(lsc_config.size,
-					GFP_KERNEL | GFP_DMA);
-				if (!lsc_gain_table) {
-					printk(KERN_ERR "Cannot allocate\
-						memory for gain tables \n");
-					return -ENOMEM;
-				}
-				lsc_ispmmu_addr = ispmmu_map(
-						virt_to_phys(lsc_gain_table),
-						lsc_config.size);
-				omap_writel(lsc_ispmmu_addr,
-						ISPCCDC_LSC_TABLE_BASE);
-				lsc_initialized = 1;
-				size_mismatch = 0;
-			}
-			if (copy_from_user(&lsc_gain_table,
-				(isptables_struct.lsc), lsc_config.size))
-				goto copy_from_user_err;
-		}
-		ccdc_use_lsc = 1;
-	} else {
-		if ((ISP_ABS_TBL_LSC & isptables_struct.update) ==
-							ISP_ABS_TBL_LSC) {
-			ispccdc_enable_lsc(0);
-			ccdc_use_lsc = 0;
-		}
-	}
-	return 0;
-
-copy_from_user_err:
-	printk(KERN_ERR "LSC Update: Copy From User Error");
-	return -EINVAL;
-}
 
 /**
  * ispccdc_config_crop - Configures crop parameters for the ISP CCDC.
