@@ -252,9 +252,17 @@ static int ads7846_vaux_control(int vaux_cntrl)
 }
 
 static struct ads7846_platform_data tsc2046_config __initdata = {
-	.get_pendown_state	= ads7846_get_pendown_state,
-	.keep_vref_on		= 1,
-	.vaux_control		= ads7846_vaux_control,
+	.x_max			= 0x0fff,
+	.y_max			= 0x0fff,
+	.x_plate_ohms		= 180,
+	.pressure_max		= 255,
+	.debounce_max		= 10,
+	.debounce_tol		= 10,
+	.debounce_rep		= 1,
+ 	.get_pendown_state	= ads7846_get_pendown_state,
+ 	.keep_vref_on		= 1,
+ 	.vaux_control		= ads7846_vaux_control,
+	.settle_delay_usecs	= 100,
 };
 
 
