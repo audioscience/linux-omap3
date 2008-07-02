@@ -156,7 +156,7 @@ struct isp_sgdma {
  * @par_bridge: CCDC Bridge input control. Parallel interface.
  *                  0 - Disable, 1 - Enable, first byte->cam_d(bits 7 to 0)
  *                  2 - Enable, first byte -> cam_d(bits 15 to 8)
- * @para_clk_pol: Pixel clock polarity on the parallel interface.
+ * @par_clk_pol: Pixel clock polarity on the parallel interface.
  *                    0 - Non Inverted, 1 - Inverted
  * @dataline_shift: Data lane shifter.
  *                      0 - No Shift, 1 - CAMEXT[13 to 2]->CAM[11 to 0]
@@ -173,8 +173,6 @@ struct isp_sgdma {
  */
 struct isp_interface_config {
 	enum isp_interface_type ccdc_par_ser;
-	u8 par_bridge;
-	u8 para_clk_pol;
 	u8 dataline_shift;
 	u32 hsvs_syncdetect;
 	u16 vdint0_timing;
@@ -182,6 +180,25 @@ struct isp_interface_config {
 	int strobe;
 	int prestrobe;
 	int shutter;
+	union {
+		struct par {
+			unsigned par_bridge:2;
+			unsigned par_clk_pol:1;
+		} par;
+		struct csi {
+			unsigned crc:1;
+			unsigned mode:1;
+			unsigned edge:1;
+			unsigned signalling:1;
+			unsigned strobe_clock_inv:1;
+			unsigned vs_edge:1;
+			unsigned channel:3;
+			unsigned vpclk:2;	/* Video port output clock */
+			unsigned int data_start;
+			unsigned int data_size;
+			u32 format;		/* V4L2_PIX_FMT_* */
+		} csi;
+	} u;
 };
 
 /**

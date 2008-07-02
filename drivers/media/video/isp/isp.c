@@ -23,10 +23,13 @@
 #include <linux/interrupt.h>
 #include <linux/clk.h>
 #include <asm/irq.h>
+#include <asm/bitops.h>
 #include <asm/scatterlist.h>
 #include <asm/mach-types.h>
 #include <asm/arch/clock.h>
+#include <asm/arch/io.h>
 #include <linux/device.h>
+#include <linux/videodev2.h>
 
 #include "isp.h"
 #include "ispmmu.h"
@@ -700,6 +703,113 @@ void isp_power_settings(struct isp_sysc isp_sysconfig)
 }
 EXPORT_SYMBOL(isp_power_settings);
 
+#define BIT_SET(var,shift,mask,val)		\
+	do {					\
+		var = (var & ~(mask << shift))	\
+			| (val << shift);	\
+	} while (0)
+
+static int isp_init_csi(struct isp_interface_config *config)
+{
+	u32 i = 0, val, reg;
+	int format;
+
+	switch (config->u.csi.format) {
+	case V4L2_PIX_FMT_SGRBG10:
+		format = 0x16;		/* RAW10+VP */
+		break;
+	case V4L2_PIX_FMT_SGRBG10DPCM8:
+		format = 0x12;		/* RAW8+DPCM10+VP */
+		break;
+	default:
+		printk(KERN_ERR "isp_init_csi: bad csi format\n");
+		return -EINVAL;
+	}
+
+	/* Reset the CSI and wait for reset to complete */
+	omap_writel(omap_readl(ISPCSI1_SYSCONFIG) | BIT(1), ISPCSI1_SYSCONFIG);
+	while (!(omap_readl(ISPCSI1_SYSSTATUS) & BIT(0))) {
+		udelay(10);
+		if(i++ > 10) break;
+	}
+	if (!(omap_readl(ISPCSI1_SYSSTATUS) & BIT(0))) {
+		printk(KERN_WARNING
+		       "omap3_isp: timeout waiting for csi reset\n");
+	}
+
+	/* CONTROL_CSIRXFE */
+	omap_writel(
+		(config->u.csi.signalling<<10) 	/* CSIb receiver data/clock or data/strobe mode */
+		| BIT(12)		/* Enable differential transceiver */
+		| BIT(13)		/* Disable reset */
+#ifdef TERM_RESISTOR
+		| BIT(8)		/* Enable internal CSIb resistor (no effect) */
+#endif
+/*		| BIT(7) */		/* Strobe/clock inversion (no effect) */
+	, CONTROL_CSIRXFE);
+
+#ifdef TERM_RESISTOR
+	/* Set CONTROL_CSI */
+	val = omap_readl(CONTROL_CSI);
+	val &= ~(0x1F<<16);
+	val |= BIT(31) | (TERM_RESISTOR<<16);
+	omap_writel(val, CONTROL_CSI);
+#endif
+
+	/* ISPCSI1_CTRL */
+	val = omap_readl(ISPCSI1_CTRL);
+	val &= ~BIT(11);		/* Enable VP only off -> extract embedded data to interconnect */
+	BIT_SET(val, 8, 0x3, config->u.csi.vpclk);	/* Video port clock */
+/*	val |= BIT(3);	*/		/* Wait for FEC before disabling interface */
+	val |= BIT(2);			/* I/O cell output is parallel (no effect, but errata says should be enabled for class1/2) */
+	val |= BIT(12);			/* VP clock polarity to falling edge (needed or bad picture!) */
+
+
+	/* Data/strobe physical layer */
+	BIT_SET(val, 1, 1, config->u.csi.signalling);
+	BIT_SET(val, 10, 1, config->u.csi.strobe_clock_inv);
+        val |= BIT(4);                  /* Magic bit to enable CSI1 and strobe mode */
+	omap_writel(val, ISPCSI1_CTRL);
+
+	/* ISPCSI1_LCx_CTRL logical channel #0 */
+	reg = ISPCSI1_LCx_CTRL(0);			/* reg = ISPCSI1_CTRL1; */
+	val = omap_readl(reg);
+	/* Format = RAW10+VP or RAW8+DPCM10+VP*/
+	BIT_SET(val, 3, 0x1f, format);
+	/* Enable setting of frame regions of interest */
+	BIT_SET(val, 1, 1, 1);
+	BIT_SET(val, 2, 1, config->u.csi.crc);
+	omap_writel(val, reg);
+
+	/* ISPCSI1_DAT_START for logical channel #0 */
+	reg = ISPCSI1_LCx_DAT_START(0);			/* reg = ISPCSI1_DAT_START; */
+	val = omap_readl(reg);
+	BIT_SET(val, 16, 0xfff, config->u.csi.data_start);
+	omap_writel(val, reg);
+
+	/* ISPCSI1_DAT_SIZE for logical channel #0 */
+	reg = ISPCSI1_LCx_DAT_SIZE(0);			/* reg = ISPCSI1_DAT_SIZE; */
+	val = omap_readl(reg);
+	BIT_SET(val, 16, 0xfff, config->u.csi.data_size);
+	omap_writel(val, reg);
+
+	/* Clear status bits for logical channel #0 */
+	omap_writel(0xFFF & ~BIT(6), ISPCSI1_LC01_IRQSTATUS);
+
+	/* Enable CSI1 */
+	val = omap_readl(ISPCSI1_CTRL);
+	val |=  BIT(0) | BIT(4);
+	omap_writel(val, ISPCSI1_CTRL);
+
+	if (!(omap_readl(ISPCSI1_CTRL) & BIT(4))) {
+		printk(KERN_WARNING "OMAP3 CSI1 bus not available\n");
+		if (config->u.csi.signalling)	/* Strobe mode requires CSI1 */
+			return -EIO;
+	}
+
+	return 0;
+}
+
 /**
  * isp_configure_interface - Configures ISP Control I/F related parameters.
  * @config: Pointer to structure containing the desired configuration for the
@@ -717,15 +827,30 @@ int isp_configure_interface(struct isp_interface_config *config)
 {
 	u32 ispctrl_val = omap_readl(ISP_CTRL);
 	u32 ispccdc_vdint_val;
+	int r;
 
-	ispctrl_val &= (ISPCTRL_PAR_SER_CLK_SEL_MASK);
-	ispctrl_val |= config->ccdc_par_ser;
 	ispctrl_val &= ISPCTRL_SHIFT_MASK;
 	ispctrl_val |= (config->dataline_shift << ISPCTRL_SHIFT_SHIFT);
 	ispctrl_val &= ~ISPCTRL_PAR_CLK_POL_INV;
-	ispctrl_val |= (config->para_clk_pol << ISPCTRL_PAR_CLK_POL_SHIFT);
-	ispctrl_val &= ~ISPCTRL_PAR_BRIDGE_BENDIAN;
-	ispctrl_val |= (config->par_bridge << ISPCTRL_PAR_BRIDGE_SHIFT);
+
+	ispctrl_val &= (ISPCTRL_PAR_SER_CLK_SEL_MASK);
+	switch (config->ccdc_par_ser) {
+	case ISP_PARLL:
+		ispctrl_val |= ISPCTRL_PAR_SER_CLK_SEL_parallel;
+		ispctrl_val |= (config->u.par.par_clk_pol << ISPCTRL_PAR_CLK_POL_SHIFT);
+		ispctrl_val &= ~ISPCTRL_PAR_BRIDGE_BENDIAN;
+		ispctrl_val |= (config->u.par.par_bridge << ISPCTRL_PAR_BRIDGE_SHIFT);
+		break;
+	case ISP_CSIB:
+		ispctrl_val |= ISPCTRL_PAR_SER_CLK_SEL_CSIB;
+		r = isp_init_csi(config);
+		if (r)
+			return r;
+		break;
+	default:
+		return -EINVAL;
+	}
+
 	ispctrl_val &= ~(ISPCTRL_SYNC_DETECT_VSRISE);
 	ispctrl_val |= (config->hsvs_syncdetect);
 
@@ -738,6 +863,7 @@ int isp_configure_interface(struct isp_interface_config *config)
 						(config->vdint1_timing <<
 						ISPCCDC_VDINT_1_SHIFT),
 						ISPCCDC_VDINT);
+
 	return 0;
 }
 EXPORT_SYMBOL(isp_configure_interface);
@@ -864,6 +990,13 @@ static irqreturn_t omap34xx_isp_isr(int irq, void *ispirq_disp)
 		ispccdc_enable_lsc(1);
 		spin_unlock_irqrestore(&isp_obj.lock, irqflags);
 		return IRQ_HANDLED;
+	}
+
+	if (irqstatus & IRQ0STATUS_CSIB_IRQ) {
+		u32 ispcsi1_irqstatus;
+
+		ispcsi1_irqstatus = omap_readl(ISPCSI1_LC01_IRQSTATUS);
+		printk("%x\n", ispcsi1_irqstatus);
 	}
 
 out:

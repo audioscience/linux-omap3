@@ -77,26 +77,53 @@ omap34xxcamisp_configure_interface(struct omap34xxcam_videodev *vdev,
 {
 	struct isp_interface_config config;
 
-	/* We still dont support serial interface */
-	if (p->if_type == V4L2_IF_TYPE_BT656)
-		config.ccdc_par_ser = 0;
-	else
-		return -EINVAL;
+	memzero(&config, sizeof(config));
 
-	switch (vdev->vdev_sensor_config.sensor_isp) {
-	case V4L2_IF_CAP_RAW:
-		/* Configured for RAW Bayer 10 default */
-		if (p->u.bt656.mode == V4L2_IF_TYPE_BT656_MODE_NOBT_10BIT)
-			config.dataline_shift = 1;	/*Choose 10 bits */
-
+	switch (p->if_type) {
+	case V4L2_IF_TYPE_BT656:
 		if (p->u.bt656.frame_start_on_rising_vs)
 			config.hsvs_syncdetect = ISPCTRL_SYNC_DETECT_VSRISE;
 		else
 			config.hsvs_syncdetect = ISPCTRL_SYNC_DETECT_VSFALL;
 
-		config.para_clk_pol = p->u.bt656.latch_clk_inv;
-		config.par_bridge = 0;
+		config.ccdc_par_ser = ISP_PARLL;
+		break;
+	case V4L2_IF_TYPE_CCP2:
+		config.ccdc_par_ser = ISP_CSIB;
+		config.u.csi.crc = p->u.ccp2.crc;
+		config.u.csi.mode = p->u.ccp2.mode;
+		config.u.csi.edge = p->u.ccp2.edge;
+		config.u.csi.signalling = p->u.ccp2.signalling;
+		config.u.csi.strobe_clock_inv = p->u.ccp2.strobe_clock_inv;
+		config.u.csi.vs_edge = p->u.ccp2.vs_edge;
+		config.u.csi.channel = p->u.ccp2.channel;
+		config.u.csi.vpclk = 1; /* FIXME: = 2 for VGA cam */
+		config.u.csi.data_start = p->u.ccp2.data_start;
+		config.u.csi.data_size = p->u.ccp2.data_size;
+		config.u.csi.format =  p->u.ccp2.format;
+		break;
+	default:
+		return -EINVAL;
+	}
 
+	switch (vdev->vdev_sensor_config.sensor_isp) {
+	case V4L2_IF_CAP_RAW:
+		switch (p->if_type) {
+		case V4L2_IF_TYPE_BT656:
+			/* Configured for RAW Bayer 10 default */
+			if (p->u.bt656.mode ==
+			    V4L2_IF_TYPE_BT656_MODE_NOBT_10BIT)
+				config.dataline_shift = 1; /*Choose 10 bits */
+
+			config.u.par.par_clk_pol = p->u.bt656.latch_clk_inv;
+			config.u.par.par_bridge = 0;
+
+			break;
+		case V4L2_IF_TYPE_CCP2:
+			config.dataline_shift = 1;
+
+			break;
+		}
 		break;
 
 	case V4L2_IF_CAP_SOC:
@@ -104,13 +131,8 @@ omap34xxcamisp_configure_interface(struct omap34xxcam_videodev *vdev,
 
 		config.dataline_shift = 2;
 
-		if (p->u.bt656.frame_start_on_rising_vs)
-			config.hsvs_syncdetect = ISPCTRL_SYNC_DETECT_VSRISE;
-		else
-			config.hsvs_syncdetect = ISPCTRL_SYNC_DETECT_VSFALL;
-
-		config.para_clk_pol = p->u.bt656.latch_clk_inv;
-		config.par_bridge = 3;
+		config.u.par.par_clk_pol = p->u.bt656.latch_clk_inv;
+		config.u.par.par_bridge = 3;
 
 		/* Need to reconfigure in set format for any updates */
 
@@ -184,9 +206,8 @@ int omap34xxcam_sensor_if_enable(struct omap34xxcam_videodev *vdev)
 		 * We have to adjust the xclk from OMAP 2 side to
 		 * match the sensor's wish as closely as possible.
 		 */
-		if (p.u.bt656.clock_curr != vdev->if_u.bt656.xclk) {
-			u32 xclk = p.u.bt656.clock_curr;
-
+		xclk = p.u.bt656.clock_curr;
+		if (p.u.bt656.clock_curr != vdev->xclk) {
 			if (xclk == 0)
 				return -EINVAL;
 
@@ -194,14 +215,27 @@ int omap34xxcam_sensor_if_enable(struct omap34xxcam_videodev *vdev)
 			    || xclk > p.u.bt656.clock_max)
 				return -EINVAL;
 
-			vdev->if_u.bt656.xclk = xclk;
+			vdev->xclk = xclk;
 		}
 
 		/* program the agreed new xclk frequency */
 		if (vdev->vdev_sensor_config.xclk != OMAP34XXCAM_XCLK_NONE)
-			vdev->if_u.bt656.xclk =
-				isp_set_xclk(vdev->if_u.bt656.xclk,
+			vdev->xclk =
+				isp_set_xclk(vdev->xclk,
 					     vdev->vdev_sensor_config.xclk);
+		break;
+
+	case V4L2_IF_TYPE_CCP2:
+		xclk = p.u.ccp2.clock_curr;
+		if (p.u.ccp2.clock_curr != vdev->xclk) {
+			if (xclk == 0)
+				return -EINVAL;
+			if (xclk < p.u.ccp2.clock_min
+			    || xclk > p.u.ccp2.clock_max)
+				return -EINVAL;
+
+			vdev->xclk = xclk;
+		}
 		break;
 
 	default:
@@ -211,6 +245,12 @@ int omap34xxcam_sensor_if_enable(struct omap34xxcam_videodev *vdev)
 		return -EINVAL;
 	}
 
+	/* program the agreed new xclk frequency */
+	if (vdev->vdev_sensor_config.xclk != OMAP34XXCAM_XCLK_NONE)
+		vdev->xclk =
+			isp_set_xclk(vdev->xclk,
+				     vdev->vdev_sensor_config.xclk
+				     == OMAP34XXCAM_XCLK_B);
 	return 0;
 
 }
@@ -230,13 +270,7 @@ void omap34xxcam_sensor_if_disable(const struct omap34xxcam_videodev *vdev)
 
 	BUG_ON(vidioc_int_g_ifparm(vdev->vdev_sensor, &p) < 0);
 
-	switch (p.if_type) {
-	case V4L2_IF_TYPE_BT656:
-		isp_set_xclk(0, vdev->vdev_sensor_config.xclk);
-		break;
-	default:
-		break;
-	}
+	isp_set_xclk(0, vdev->vdev_sensor_config.xclk);
 }
 
 /**
