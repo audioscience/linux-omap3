@@ -45,6 +45,7 @@
 #include <media/v4l2-int-device.h>
 #include <../drivers/media/video/mt9p012.h>
 #include <../drivers/media/video/omap34xxcam.h>
+#include "ti-compat.h"
 
 #include <asm/io.h>
 #include <asm/delay.h>
