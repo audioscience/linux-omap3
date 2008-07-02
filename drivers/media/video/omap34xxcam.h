@@ -182,8 +182,4 @@ struct omap34xxcam_fh {
 	struct omap34xxcam_videodev *vdev;
 };
 
-int omap34xxcam_sensor_if_enable(struct omap34xxcam_videodev *vdev);
-void omap34xxcam_sensor_if_disable(const struct omap34xxcam_videodev *vdev);
-
-
 #endif /* ifndef OMAP34XXCAM_H */
