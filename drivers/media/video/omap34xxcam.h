@@ -112,11 +112,7 @@ struct omap34xxcam_videodev {
 	 * Sensor interface parameters: interface type, CC_CTRL
 	 * register value and interface specific data.
 	 */
-	union {
-		struct parallel {
-			u32 xclk;
-		} bt656;
-	} if_u;
+	u32 xclk;
 	/* index to omap34xxcam_videodevs of this structure */
 	int index;
 	atomic_t users;
