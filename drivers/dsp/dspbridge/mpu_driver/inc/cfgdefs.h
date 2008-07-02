@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/cfgdefs.h
+ * dspbridge/mpu_driver/inc/cfgdefs.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -13,7 +13,6 @@
  * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
  * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
-
 
 /*
  *  ======== cfgdefs.h ========
@@ -104,15 +103,6 @@ extern "C" {
 		DWORD dwChnlOffset;
 		DWORD dwChnlBufSize;
 		DWORD dwNumChnls;
-
-#ifdef OMAP_2430
-		DWORD dwPrcmBase;
-		DWORD dwWdTimerDspBase;
-		DWORD dwMboxBase;
-		DWORD dwDmmuBase;
-		DWORD dwDipiBase;
-		DWORD dwSysCtrlBase;
-#endif
 
 #ifdef OMAP_3430
 		DWORD dwPrmBase;

@@ -14,7 +14,6 @@
  * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-
 /*
  *  ======== tiomap_sm.c ========
  *  Description:
@@ -46,7 +45,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbg.h>
-#include <dbg_zones.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
 #include <cfg.h>
@@ -69,10 +67,6 @@
 #include "_tiomap.h"
 #include <chnl_sm.h>
 
-#ifdef LTT_SOC
-#include <soc.h>
-#endif
-
 #ifndef DISABLE_BRIDGE_PM
 #ifndef DISABLE_BRIDGE_DVFS
 #include <asm/arch/resource.h>
@@ -87,18 +81,15 @@ extern struct constraint_handle *dsp_constraint_handle;
 extern LARGE_INTEGER tiomap1510_liTicksPerSecond;	/* Timer frequency */
 #endif
 
-#ifdef LTT_SOC
-extern ULONG GMW, GMR;
-#endif
 extern struct MAILBOX_CONTEXT mboxsetting;
-extern DSP_STATUS DSP_PeripheralClocks_Enable
-				  (struct WMD_DEV_CONTEXT *pDevContext, IN PVOID pArgs);
+extern DSP_STATUS DSP_PeripheralClocks_Enable(struct WMD_DEV_CONTEXT
+					     *pDevContext, IN PVOID pArgs);
 /*
  *  ======== CHNLSM_EnableInterrupt ========
  *  purpose:
  *      Enables interrupts from DSP.
  */
-DSP_STATUS CHNLSM_EnableInterrupt(struct WMD_DEV_CONTEXT* hDevContext)
+DSP_STATUS CHNLSM_EnableInterrupt(struct WMD_DEV_CONTEXT *hDevContext)
 {
 	DSP_STATUS status = DSP_SOK;
 	HAL_STATUS halStatus;
@@ -108,7 +99,7 @@ DSP_STATUS CHNLSM_EnableInterrupt(struct WMD_DEV_CONTEXT* hDevContext)
 	DWORD mbxValue;
 	struct CFG_HOSTRES resources;
 	UINT devType;
-	struct IO_MGR* hIOMgr;
+	struct IO_MGR *hIOMgr;
 
 	DBG_Trace(DBG_ENTER, "CHNLSM_EnableInterrupt(0x%x)\n", pDevContext);
 
@@ -119,36 +110,37 @@ DSP_STATUS CHNLSM_EnableInterrupt(struct WMD_DEV_CONTEXT* hDevContext)
 	/* Read the messages in the mailbox until the message queue is empty */
 
 	status = CFG_GetHostResources(
-					(struct CFG_DEVNODE*)DRV_GetFirstDevExtension(),&resources);
+			(struct CFG_DEVNODE *)DRV_GetFirstDevExtension(),
+			&resources);
 	status = DEV_GetDevType(pDevContext->hDevObject, &devType);
 	status = DEV_GetIOMgr(pDevContext->hDevObject, &hIOMgr);
 	if (devType == DSP_UNIT) {
-		halStatus = HAL_MBOX_NumMsgGet(resources.dwMboxBase, MBOX_DSP2ARM,
-																	&numMbxMsg);
+		halStatus = HAL_MBOX_NumMsgGet(resources.dwMboxBase,
+					       MBOX_DSP2ARM, &numMbxMsg);
 		while (numMbxMsg != 0) {
-			halStatus = HAL_MBOX_MsgRead(resources.dwMboxBase, MBOX_DSP2ARM,
-																	&mbxValue);
+			halStatus = HAL_MBOX_MsgRead(resources.dwMboxBase,
+						     MBOX_DSP2ARM,
+						     &mbxValue);
 			numMbxMsg--;
 		}
 		/* clear the DSP mailbox as well...*/
-		halStatus = HAL_MBOX_NumMsgGet(resources.dwMboxBase, MBOX_ARM2DSP,
-																	&numMbxMsg);
+		halStatus = HAL_MBOX_NumMsgGet(resources.dwMboxBase,
+					       MBOX_ARM2DSP, &numMbxMsg);
 		while (numMbxMsg != 0) {
-			halStatus = HAL_MBOX_MsgRead(resources.dwMboxBase, MBOX_ARM2DSP,
-																	&mbxValue);
+			halStatus = HAL_MBOX_MsgRead(resources.dwMboxBase,
+						    MBOX_ARM2DSP, &mbxValue);
 			numMbxMsg--;
 			UTIL_Wait(10);
-#ifdef OMAP_2430
+
 			HAL_MBOX_EventAck(resources.dwMboxBase, MBOX_ARM2DSP,
-										HAL_MBOX_U1_DSP1, HAL_MBOX_INT_NEW_MSG);
-#else
-			HAL_MBOX_EventAck(resources.dwMboxBase, MBOX_ARM2DSP,
-										HAL_MBOX_U1_DSP1, HAL_MBOX_INT_NEW_MSG);
-#endif
+					  HAL_MBOX_U1_DSP1,
+					  HAL_MBOX_INT_NEW_MSG);
 		}
 		/* Enable the new message events on this IRQ line */
-		halStatus = HAL_MBOX_EventEnable(resources.dwMboxBase, MBOX_DSP2ARM,
-												MBOX_ARM, HAL_MBOX_INT_NEW_MSG);
+		halStatus = HAL_MBOX_EventEnable(resources.dwMboxBase,
+						 MBOX_DSP2ARM,
+						 MBOX_ARM,
+						 HAL_MBOX_INT_NEW_MSG);
 	}
 	/*  Enable the interrupt */
 	/*  Clear the ITR register */
@@ -165,7 +157,7 @@ DSP_STATUS CHNLSM_EnableInterrupt(struct WMD_DEV_CONTEXT* hDevContext)
  *  purpose:
  *      Disables interrupts from DSP.
  */
-DSP_STATUS CHNLSM_DisableInterrupt(struct WMD_DEV_CONTEXT* hDevContext)
+DSP_STATUS CHNLSM_DisableInterrupt(struct WMD_DEV_CONTEXT *hDevContext)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
@@ -175,12 +167,13 @@ DSP_STATUS CHNLSM_DisableInterrupt(struct WMD_DEV_CONTEXT* hDevContext)
 	DBG_Trace(DBG_ENTER, "CHNLSM_DisableInterrupt(0x%x)\n", pDevContext);
 
     /**(volatile DWORD *)(pDevContext->dwIntAddr + INTH_IT_REG_OFFSET +
-        INTH_MASK_IT_REG_OFFSET) |= (1 << DSP_MAILBOX1_INT) ;*/
+     *		INTH_MASK_IT_REG_OFFSET) |= (1 << DSP_MAILBOX1_INT) ;*/
 
 	status = CFG_GetHostResources(
-					(struct CFG_DEVNODE*)DRV_GetFirstDevExtension(),&resources);
+			(struct CFG_DEVNODE *)DRV_GetFirstDevExtension(),
+			&resources);
 	halStatus = HAL_MBOX_EventDisable(resources.dwMboxBase, MBOX_DSP2ARM,
-												MBOX_ARM, HAL_MBOX_INT_NEW_MSG);
+					  MBOX_ARM, HAL_MBOX_INT_NEW_MSG);
 	return (status);
 }
 
@@ -189,7 +182,7 @@ DSP_STATUS CHNLSM_DisableInterrupt(struct WMD_DEV_CONTEXT* hDevContext)
  *  Purpose:
  *      Send an interrupt to the DSP processor(s).
  */
-DSP_STATUS CHNLSM_InterruptDSP(struct WMD_DEV_CONTEXT* hDevContext)
+DSP_STATUS CHNLSM_InterruptDSP(struct WMD_DEV_CONTEXT *hDevContext)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
@@ -205,46 +198,53 @@ DSP_STATUS CHNLSM_InterruptDSP(struct WMD_DEV_CONTEXT* hDevContext)
 	/* We are waiting indefinitely here. This needs to be fixed in the
 	 * second phase */
 	status = CFG_GetHostResources(
-					(struct CFG_DEVNODE*)DRV_GetFirstDevExtension(),&resources);
+			(struct CFG_DEVNODE *)DRV_GetFirstDevExtension(),
+			&resources);
 
 	if  (pDevContext->dwBrdState == BRD_DSP_HIBERNATION ||
-		                  pDevContext->dwBrdState == BRD_HIBERNATION) {
+	    pDevContext->dwBrdState == BRD_HIBERNATION) {
 		pDevContext->dwBrdState = BRD_RUNNING;
 #ifndef DISABLE_BRIDGE_PM
 #ifndef DISABLE_BRIDGE_DVFS
-		opplevel=  constraint_get_level(dsp_constraint_handle);
-		/* If OPP is at minimum level, increase it before waking up the DSP */
+		opplevel = constraint_get_level(dsp_constraint_handle);
+		/* If OPP is at minimum level, increase it before waking up
+		 * the DSP */
 		if (opplevel == 1) {
-			if ( constraint_set(dsp_constraint_handle, (opplevel+1) ) != 0 ) {
-				DBG_Trace(DBG_LEVEL7,"CHNLSM_InterruptDSP: Constraint set failed\n");
+			if (constraint_set(dsp_constraint_handle,
+			   (opplevel+1)) != 0) {
+				DBG_Trace(DBG_LEVEL7, "CHNLSM_InterruptDSP: "
+					 "Constraint set failed\n");
 				return DSP_EFAIL;
 			}
-			DBG_Trace(DBG_LEVEL7, "CHNLSM_InterruptDSP:Setting the vdd1 constraint"
-	                               "level to %d before  waking DSP \n", (opplevel+1));
+			DBG_Trace(DBG_LEVEL7, "CHNLSM_InterruptDSP:Setting "
+				 "the vdd1 constraint level to %d before "
+				 "waking DSP \n", (opplevel + 1));
 		}
 
 #endif
 #endif
 		/* Read MMU register to invoke short wakeup of DSP */
-		temp = (UWORD32) * ((REG_UWORD32 *) ((UWORD32) (resources.dwDmmuBase) + 0x10));
+		temp = (UWORD32) *((REG_UWORD32 *) ((UWORD32)
+		       (resources.dwDmmuBase) + 0x10));
 
 		/* Restore mailbox settings */
 		status = HAL_MBOX_restoreSettings(resources.dwMboxBase);
 		DBG_Trace(DBG_LEVEL6, "MailBoxSettings: SYSCONFIG = 0x%x\n",
-	                                                   mboxsetting.sysconfig);
+			  mboxsetting.sysconfig);
 		DBG_Trace(DBG_LEVEL6, "MailBoxSettings: IRQENABLE0 = 0x%x\n",
-	                                                   mboxsetting.irqEnable0);
+			  mboxsetting.irqEnable0);
 		DBG_Trace(DBG_LEVEL6, "MailBoxSettings: IRQENABLE1 = 0x%x\n",
-	                                                   mboxsetting.irqEnable1);
+			 mboxsetting.irqEnable1);
 		/* Restart the peripheral clocks that were disabled */
 		DSP_PeripheralClocks_Enable(hDevContext, NULL);
 
 	}
 	while (--cnt) {
-		halStatus = HAL_MBOX_IsFull(resources.dwMboxBase,MBOX_ARM2DSP,&mbxFull);
-		if (mbxFull) {
+		halStatus = HAL_MBOX_IsFull(resources.dwMboxBase,
+					   MBOX_ARM2DSP, &mbxFull);
+		if (mbxFull)
 			UTIL_Wait(1000);	/* wait for 1 ms)      */
-		} else
+		else
 			break;
 	}
 	if (!cnt) {
@@ -252,13 +252,11 @@ DSP_STATUS CHNLSM_InterruptDSP(struct WMD_DEV_CONTEXT* hDevContext)
 		status = WMD_E_TIMEOUT;
 		return status;
 	}
-	DBG_Trace(DBG_LEVEL3, "writing %x to Mailbox\n", pDevContext->wIntrVal2Dsp);
-#ifdef LTT_SOC
-	SOC_Trace(GMW, pDevContext->wIntrVal2Dsp);
-#endif
+	DBG_Trace(DBG_LEVEL3, "writing %x to Mailbox\n",
+		 pDevContext->wIntrVal2Dsp);
 
 	halStatus = HAL_MBOX_MsgWrite(resources.dwMboxBase, MBOX_ARM2DSP,
-													pDevContext->wIntrVal2Dsp);
+				     pDevContext->wIntrVal2Dsp);
 	/* set the Mailbox interrupt to default value */
 	pDevContext->wIntrVal2Dsp = MBX_PCPY_CLASS;
 	return (status);
@@ -269,7 +267,8 @@ DSP_STATUS CHNLSM_InterruptDSP(struct WMD_DEV_CONTEXT* hDevContext)
  *  Purpose:
  *      Set MBX value & send an interrupt to the DSP processor(s).
  */
-DSP_STATUS CHNLSM_InterruptDSP2(struct WMD_DEV_CONTEXT* hDevContext,WORD wMbVal)
+DSP_STATUS CHNLSM_InterruptDSP2(struct WMD_DEV_CONTEXT *hDevContext,
+				WORD wMbVal)
 {
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
 
@@ -281,59 +280,16 @@ DSP_STATUS CHNLSM_InterruptDSP2(struct WMD_DEV_CONTEXT* hDevContext,WORD wMbVal)
 /*
  *  ======== CHNLSM_DPC ========
  */
-void CHNLSM_DPC(struct WMD_DEV_CONTEXT* hDevContext)
+void CHNLSM_DPC(struct WMD_DEV_CONTEXT *hDevContext)
 {
 	DBG_Trace(DBG_ENTER, "CHNLSM_DPC(0x%x)\n", hDevContext);
 }
 
-#ifndef LINUX
-
-/*
- *  ======== CHNLSM_Read ========
- */
-DSP_STATUS CHNLSM_Read(struct WMD_DEV_CONTEXT* hDevContext, OUT BYTE *pbHostBuf,
-											DWORD dwDSPOffset, ULONG ulNumBytes)
-{
-	DSP_STATUS status = DSP_SOK;
-	DBG_Trace(DBG_LEVEL7, "CHNLSM_Read, hDevContext:0x%x\n\t\tpbHostBuf:0x%x\n"
-							"\t\tdwDSPOffset:  0x%x\n\t\tulNumBytes:  0x%x\n",
-								hDevContext, pbHostBuf, dwDSPOffset,ulNumBytes);
-
-	return (status);
-}
-
-/*
- *  ======== CHNLSM_Write ========
- */
-DSP_STATUS CHNLSM_Write(struct WMD_DEV_CONTEXT* hDevContext, IN BYTE *pbHostBuf,
-											DWORD dwDSPOffset, ULONG ulNumBytes)
-{
-	DSP_STATUS status = DSP_SOK;
-	DBG_Trace(DBG_LEVEL7, "CHNLSM_Write, hDevContext:0x%x\n\t\tpbHostBuf:0x%x\n"
-							"\t\tdwDSPOffset:  0x%x\n\t\tulNumBytes:  0x%x\n",
-								hDevContext, pbHostBuf, dwDSPOffset,ulNumBytes);
-	return (status);
-}
-
-/*
- *  ======== CHNLSM_UpdateSHMLength ========
- */
-BOOL CHNLSM_UpdateSHMLength(struct WMD_DEV_CONTEXT* hDevContext,
-														OUT ULONG *pSHMLength)
-{
-	DSP_STATUS status = DSP_SOK;
-
-	DBG_Trace(DBG_ENTER, "CHNLSM_UpdateSHMLength(0x%x)\n", hDevContext);
-
-	return (status);
-}
-
-#endif
 /*
  *  ======== CHNLSM_ISR ========
  */
-BOOL CHNLSM_ISR(struct WMD_DEV_CONTEXT* hDevContext, OUT BOOL *pfSchedDPC,
-															OUT WORD *pwIntrVal)
+BOOL CHNLSM_ISR(struct WMD_DEV_CONTEXT *hDevContext, OUT BOOL *pfSchedDPC,
+		OUT WORD *pwIntrVal)
 {
 	BOOL fMyInterrupt = TRUE;	/*
 					 * We own the mbx and
@@ -347,35 +303,25 @@ BOOL CHNLSM_ISR(struct WMD_DEV_CONTEXT* hDevContext, OUT BOOL *pfSchedDPC,
 	DBG_Trace(DBG_ENTER, "CHNLSM_ISR(0x%x)\n", hDevContext);
 
 	/* need to read it to clear interrupt */
-    /**pwIntrVal = *(volatile WORD *)
-        (pDevContext->dwMailBoxBase + MB_DSP2ARM1B_REG_OFFSET);*/
+	/* *pwIntrVal = *(volatile WORD *) */
+	/* (pDevContext->dwMailBoxBase + MB_DSP2ARM1B_REG_OFFSET);*/
 
 	CFG_GetHostResources(
-					(struct CFG_DEVNODE*)DRV_GetFirstDevExtension(),&resources);
+		(struct CFG_DEVNODE *)DRV_GetFirstDevExtension(), &resources);
 
 	HAL_MBOX_NumMsgGet(resources.dwMboxBase, MBOX_DSP2ARM, &numMbxMsg);
 
 	if (numMbxMsg > 0) {
 		HAL_MBOX_MsgRead(resources.dwMboxBase, MBOX_DSP2ARM, &mbxValue);
-#ifdef OMAP_2430
-		HAL_MBOX_EventAck(resources.dwMboxBase, MBOX_DSP2ARM, HAL_MBOX_U0_ARM,
-														HAL_MBOX_INT_NEW_MSG);
-#else
-		HAL_MBOX_EventAck(resources.dwMboxBase, MBOX_DSP2ARM, HAL_MBOX_U0_ARM,
-														HAL_MBOX_INT_NEW_MSG);
-#endif
-#ifdef LTT_SOC
-		SOC_Trace(GMR, mbxValue);
-#endif
+
+		HAL_MBOX_EventAck(resources.dwMboxBase, MBOX_DSP2ARM,
+				 HAL_MBOX_U0_ARM, HAL_MBOX_INT_NEW_MSG);
+
 		DBG_Trace(DBG_LEVEL3, "Read %x from Mailbox\n", mbxValue);
 		*pwIntrVal = (WORD) mbxValue;
 	}
 	/* Set *pfSchedDPC to TRUE; */
 	*pfSchedDPC = TRUE;
-#ifdef PERF
-	/* If this device caused the interrupt, increment count for ISR tests: */
-	pDevContext->ulIntsRecvd++;
-#endif
 	return (fMyInterrupt);
 }
 

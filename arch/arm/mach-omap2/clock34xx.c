@@ -62,11 +62,14 @@ static void omap3_dpll_recalc(struct clk *clk)
 static void _omap3_dpll_write_clken(struct clk *clk, u8 clken_bits)
 {
 	const struct dpll_data *dd;
+	u32 v;
 
 	dd = clk->dpll_data;
 
-	cm_rmw_reg_bits(dd->enable_mask, clken_bits << __ffs(dd->enable_mask),
-			dd->control_reg);
+	v = __raw_readl(dd->control_reg);
+	v &= ~dd->enable_mask;
+	v |= clken_bits << __ffs(dd->enable_mask);
+	__raw_writel(v, dd->control_reg);
 }
 
 /* _omap3_wait_dpll_status: wait for a DPLL to enter a specific state */
@@ -273,7 +276,7 @@ static int omap3_noncore_dpll_enable(struct clk *clk)
 	if (clk == &dpll3_ck)
 		return -EINVAL;
 
-	if (clk->parent->rate == clk_get_rate(clk))
+	if (clk->parent->rate == omap2_get_dpll_rate(clk))
 		r = _omap3_noncore_dpll_bypass(clk);
 	else
 		r = _omap3_noncore_dpll_lock(clk);
@@ -343,14 +346,17 @@ static int omap3_noncore_dpll_program(struct clk *clk, u16 m, u8 n, u16 freqsel)
 	/* 3430 ES2 TRM: 4.7.6.9 DPLL Programming Sequence */
 	_omap3_noncore_dpll_bypass(clk);
 
+	/* Set jitter correction */
+	v = __raw_readl(dd->control_reg);
+	v &= ~dd->freqsel_mask;
+	v |= freqsel << __ffs(dd->freqsel_mask);
+	__raw_writel(v, dd->control_reg);
+
+	/* Set DPLL multiplier, divider */
 	v = __raw_readl(dd->mult_div1_reg);
 	v &= ~(dd->mult_mask | dd->div1_mask);
-
-	/* Set mult (M), div1 (N), freqsel */
 	v |= m << __ffs(dd->mult_mask);
-	v |= n << __ffs(dd->div1_mask);
-	v |= freqsel << __ffs(dd->freqsel_mask);
-
+	v |= (n - 1) << __ffs(dd->div1_mask);
 	__raw_writel(v, dd->mult_div1_reg);
 
 	/* We let the clock framework set the other output dividers later */
@@ -443,6 +449,7 @@ static u32 omap3_dpll_autoidle_read(struct clk *clk)
 static void omap3_dpll_allow_idle(struct clk *clk)
 {
 	const struct dpll_data *dd;
+	u32 v;
 
 	if (!clk || !clk->dpll_data)
 		return;
@@ -454,9 +461,10 @@ static void omap3_dpll_allow_idle(struct clk *clk)
 	 * by writing 0x5 instead of 0x1.  Add some mechanism to
 	 * optionally enter this mode.
 	 */
-	cm_rmw_reg_bits(dd->autoidle_mask,
-			DPLL_AUTOIDLE_LOW_POWER_STOP << __ffs(dd->autoidle_mask),
-			dd->autoidle_reg);
+	v = __raw_readl(dd->autoidle_reg);
+	v &= ~dd->autoidle_mask;
+	v |= DPLL_AUTOIDLE_LOW_POWER_STOP << __ffs(dd->autoidle_mask);
+	__raw_writel(v, dd->autoidle_reg);
 }
 
 /**
@@ -468,15 +476,17 @@ static void omap3_dpll_allow_idle(struct clk *clk)
 static void omap3_dpll_deny_idle(struct clk *clk)
 {
 	const struct dpll_data *dd;
+	u32 v;
 
 	if (!clk || !clk->dpll_data)
 		return;
 
 	dd = clk->dpll_data;
 
-	cm_rmw_reg_bits(dd->autoidle_mask,
- 			DPLL_AUTOIDLE_DISABLE << __ffs(dd->autoidle_mask),
-			dd->autoidle_reg);
+	v = __raw_readl(dd->autoidle_reg);
+	v &= ~dd->autoidle_mask;
+	v |= DPLL_AUTOIDLE_DISABLE << __ffs(dd->autoidle_mask);
+	__raw_writel(v, dd->autoidle_reg);
 }
 
 /* Clock control for DPLL outputs */
@@ -637,8 +647,10 @@ int __init omap2_clk_init(void)
 	for (clkp = onchip_34xx_clks;
 	     clkp < onchip_34xx_clks + ARRAY_SIZE(onchip_34xx_clks);
 	     clkp++) {
-		if ((*clkp)->flags & cpu_clkflg)
+		if ((*clkp)->flags & cpu_clkflg) {
 			clk_register(*clkp);
+			omap2_init_clk_clkdm(*clkp);
+		}
 	}
 
 	/* REVISIT: Not yet ready for OMAP3 */

@@ -29,7 +29,6 @@
  *      LST_Init
  *      LST_InitElem
  *      LST_InsertBefore
- *      LST_IsEmpty
  *      LST_Next
  *      LST_PutTail
  *      LST_RemoveElem
@@ -53,7 +52,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gt.h>
 
 /*  ----------------------------------- OS Adaptation Layer */

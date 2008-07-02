@@ -103,7 +103,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gt.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
@@ -146,10 +145,6 @@
 #include <dbll.h>
 #include <nldr.h>
 
-#ifdef LTT_SOC
-#include <soc.h>
-#endif
-
 #ifndef RES_CLEANUP_DISABLE
 #include <drv.h>
 #include <drv_interface.h>
@@ -157,6 +152,12 @@
 #include <prcs.h>
 #include <dbreg.h>
 #include <resourcecleanup.h>
+#endif
+
+#ifndef DISABLE_BRIDGE_PM
+#ifndef DISABLE_BRIDGE_DVFS
+#include <asm/arch/resource.h>
+#endif
 #endif
 
 #define NODE_SIGNATURE      0x45444f4e	/* "EDON" */
@@ -204,10 +205,13 @@
 #define RMSREADMEMORY	   6
 #define RMSWRITEMEMORY	  7
 #define RMSCOPY		 8
+#define MAXTIMEOUT              2000
 
 #define NUMRMSFXNS	      9
 
 #define PWR_TIMEOUT	     500	/* default PWR timeout in msec */
+
+#define STACKSEGLABEL "L1DSRAM_HEAP"  /* Label for DSP Stack Segment Address */
 
 /*
  *  ======== NODE_MGR ========
@@ -281,11 +285,9 @@ struct NODE_OBJECT {
 	struct DSP_UUID nodeId;	/* Node's ID */
 	INT nPriority;		/* Node's current priority */
 	UINT uTimeout;		/* Timeout for blocking NODE calls */
-#if defined(OMAP_2430) || defined(OMAP_3430)
 	UINT uHeapSize;		/* Heap Size */
 	UINT uDSPHeapVirtAddr;	/* Heap Size */
 	UINT uGPPHeapVirtAddr;	/* Heap Size */
-#endif
 	NODE_TYPE nType;	/* Type of node: message, task, etc */
 	NODE_STATE nState;	/* NODE_ALLOCATED, NODE_CREATED, ... */
 	UINT uNumInputs;	/* Current number of inputs */
@@ -349,15 +351,7 @@ static DSP_STATUS GetNodeProps(struct DCD_MANAGER *hDcdMgr,
 			       struct DCD_GENERICOBJ *pdcdProps);
 static DSP_STATUS GetProcProps(struct NODE_MGR *hNodeMgr,
 			      struct DEV_OBJECT *hDevObject);
-#ifndef LINUX
-static DSP_STATUS GetRMSFxn(struct NODE_MGR *hNodeMgr, CHAR *pszFxn,
-			   ULONG ulAddr);
-#endif
 static DSP_STATUS GetRMSFxns(struct NODE_MGR *hNodeMgr);
-#ifndef LINUX
-static VOID OnNodeDone(struct NODE_OBJECT *hNode, INT nStatus);
-#endif
-
 static CDECL ULONG Ovly(PVOID pPrivRef, ULONG ulDspRunAddr, ULONG ulDspLoadAddr,
 			ULONG ulNumBytes, UINT nMemSpace);
 static CDECL ULONG Write(PVOID pPrivRef, ULONG ulDspAddr, PVOID pBuf,
@@ -385,11 +379,11 @@ static struct NLDR_FXNS nldrFxns = {
 	NLDR_Unload,
 };
 
-#ifdef LTT_SOC
-extern ULONG GNG, GNP, GNC;
+#ifndef DISABLE_BRIDGE_PM
+#ifndef DISABLE_BRIDGE_DVFS
+extern struct constraint_handle *mpu_constraint_handle;
 #endif
-
-
+#endif
 NODE_STATE NODE_GetState(HANDLE hNode)
 {
    struct NODE_OBJECT *pNode = (struct NODE_OBJECT *)hNode;
@@ -419,18 +413,18 @@ DSP_STATUS NODE_Allocate(struct PROC_OBJECT *hProcessor,
 	struct CMM_OBJECT *hCmmMgr = NULL;	/* Shared memory manager hndl */
 	UINT procId;
 	UINT i = 0;
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-	struct DSP_UUID ivaUuid;
-	UINT chanId = 1;
-#endif
+	PSTR label;
+	ULONG pulValue;
+	ULONG dynextBase;
+	ULONG offSet = 0;
+	ULONG ulStackSegAddr, ulStackSegVal;
+	ULONG ulGppMemBase;
+	struct CFG_HOSTRES hostRes;
 
-#if defined(OMAP_2430) || defined(OMAP_3430)
 	ULONG pMappedAddr = 0;
 	PVOID pGPPalignedAddr = 0;
 	ULONG mapAttrs = 0x0;
 	UINT temp;
-#endif
-
 
 #ifndef RES_CLEANUP_DISABLE
 
@@ -460,16 +454,16 @@ DSP_STATUS NODE_Allocate(struct PROC_OBJECT *hProcessor,
 	status = PROC_GetDevObject(hProcessor, &hDevObject);
 	if (DSP_SUCCEEDED(status)) {
 		status = DEV_GetNodeManager(hDevObject, &hNodeMgr);
-		if (hNodeMgr == NULL) {
+		if (hNodeMgr == NULL)
 			status = DSP_EFAIL;
-		}
+
 	}
-	if (procId != DSP_UNIT) {
+	if (procId != DSP_UNIT)
 		goto func_cont;
-	}
-	if (!DSP_SUCCEEDED(status)) {
+
+	if (!DSP_SUCCEEDED(status))
 		goto func_cont;
-	}
+
 	/* Assuming that 0 is not a valid function address */
 	if (hNodeMgr->ulFxnAddrs[0] == 0) {
 		/* No RMS on target - we currently can't handle this */
@@ -488,9 +482,9 @@ DSP_STATUS NODE_Allocate(struct PROC_OBJECT *hProcessor,
 	}
 func_cont:
 	/* Allocate node object and fill in */
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_cont2;
-	}
+
 	MEM_AllocObject(pNode, struct NODE_OBJECT, NODE_SIGNATURE);
 	if (pNode == NULL) {
 		status = DSP_EMEMORY;
@@ -499,34 +493,34 @@ func_cont:
 	pNode->hNodeMgr = hNodeMgr;
 	/* This critical section protects GetNodeProps */
 	status = SYNC_EnterCS(hNodeMgr->hAllocSync);
-	if (procId != DSP_UNIT) {
+	if (procId != DSP_UNIT)
 		goto func_cont3;
-	}
+
 	/* Get DSP_NDBPROPS from node database */
 	status = GetNodeProps(hNodeMgr->hDcdMgr, pNode, pNodeId,
 			     &(pNode->dcdProps));
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_cont3;
-	}
+
 	pNode->nodeId = *pNodeId;
 	pNode->hProcessor = hProcessor;
 	pNode->nType = pNode->dcdProps.objData.nodeObj.ndbProps.uNodeType;
 	pNode->uTimeout = pNode->dcdProps.objData.nodeObj.ndbProps.uTimeout;
 	pNode->nPriority = pNode->dcdProps.objData.nodeObj.ndbProps.iPriority;
-#if defined(OMAP_2430) || defined(OMAP_3430)
+
 	/* Currently only C64 DSP builds support Node Dynamic * heaps */
 	/* Allocate memory for node heap */
 	pNode->createArgs.asa.taskArgs.uHeapSize = 0;
 	pNode->createArgs.asa.taskArgs.uDSPHeapAddr = 0;
 	pNode->createArgs.asa.taskArgs.uDSPHeapResAddr = 0;
 	pNode->createArgs.asa.taskArgs.uGPPHeapAddr = 0;
-	if (!pAttrIn) {
+	if (!pAttrIn)
 		goto func_cont3;
-	}
+
 	/* Check if we have a user allocated node heap */
-	if (!(pAttrIn->pGPPVirtAddr)) {
+	if (!(pAttrIn->pGPPVirtAddr))
 		goto func_cont3;
-	}
+
 	/* check for page aligned Heap size */
 	if (((pAttrIn->uHeapSize) & (PG_SIZE_4K - 1))) {
 		GT_1trace(NODE_debugMask, GT_7CLASS,
@@ -539,9 +533,9 @@ func_cont:
 		pNode->createArgs.asa.taskArgs.uGPPHeapAddr =
 						 pAttrIn->pGPPVirtAddr;
 	}
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_cont3;
-	}
+
 	status = PROC_ReserveMemory(hProcessor,
 			pNode->createArgs.asa.taskArgs.uHeapSize + PAGE_SIZE,
 			(PVOID *)&(pNode->createArgs.asa.taskArgs.
@@ -555,9 +549,9 @@ func_cont:
 			 "NODE_Allocate: DSPProcessor_Reserve"
 			 " Memory successful: 0x%x\n", status);
 	}
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_cont3;
-	}
+
 	mapAttrs |= DSP_MAPLITTLEENDIAN;
 	mapAttrs |= DSP_MAPELEMSIZE32;
 	mapAttrs |= DSP_MAPVIRTUALADDR;
@@ -576,7 +570,7 @@ func_cont:
 			 "NODE_Allocate:DSPProcessor_Map"
 			 " successful: 0x%x\n", status);
 	}
-#endif
+
 func_cont3:
 	(VOID)SYNC_LeaveCS(hNodeMgr->hAllocSync);
 func_cont1:
@@ -587,9 +581,9 @@ func_cont1:
 	}
 func_cont2:
 	/* Create object to manage notifications */
-	if (DSP_SUCCEEDED(status)) {
+	if (DSP_SUCCEEDED(status))
 		status = NTFY_Create(&pNode->hNtfy);
-	}
+
 	if (DSP_SUCCEEDED(status)) {
 		nodeType = NODE_GetType(pNode);
 		 /*  Allocate DSP_STREAMCONNECT array for device, task, and
@@ -599,9 +593,9 @@ func_cont2:
 			pNode->streamConnect = MEM_Calloc(uNumStreams *
 					       sizeof(struct DSP_STREAMCONNECT),
 					       MEM_PAGED);
-			if (uNumStreams > 0 && pNode->streamConnect == NULL) {
+			if (uNumStreams > 0 && pNode->streamConnect == NULL)
 				status = DSP_EMEMORY;
-			}
+
 		}
 		if (DSP_SUCCEEDED(status) && (nodeType == NODE_TASK ||
 		   nodeType == NODE_DAISSOCKET)) {
@@ -635,8 +629,8 @@ func_cont2:
 		status = SYNC_OpenEvent(&pNode->hSyncDone, NULL);
 		if (DSP_SUCCEEDED(status)) {
 			/*Get the shared mem mgr for this nodes dev object */
-			if (DSP_FAILED(status = CMM_GetHandle(hProcessor,
-			   &hCmmMgr))) {
+			status = CMM_GetHandle(hProcessor, &hCmmMgr);
+			if (DSP_FAILED(status)) {
 				GT_1trace(NODE_debugMask, GT_5CLASS,
 					 "NODE_Allocate: Failed to"
 					 " get CMM Mgr handle: 0x%x\n", status);
@@ -681,6 +675,7 @@ func_cont2:
 
 	if (DSP_SUCCEEDED(status)) {
 		/* Create object for dynamic loading */
+
 		status = hNodeMgr->nldrFxns.pfnAllocate(hNodeMgr->hNldr,
 					     (PVOID) pNode,
 					     &pNode->dcdProps.objData.nodeObj,
@@ -692,6 +687,65 @@ func_cont2:
 				 "allocate NLDR node: 0x%x\n", status);
 		}
 	}
+
+	/* Comapare value read from Node Properties and check if it is same as
+	 * STACKSEGLABEL, if yes read the Address of STACKSEGLABEL, calculate
+	 * GPP Address, Read the value in that address and override the
+	 * uStackSeg value in task args */
+	if (DSP_SUCCEEDED(status)
+	   && pNode->dcdProps.objData.nodeObj.ndbProps.uStackSegName != NULL) {
+		label = MEM_Calloc(sizeof(STACKSEGLABEL)+1, MEM_PAGED);
+		CSL_Strcpyn(label, STACKSEGLABEL, sizeof(STACKSEGLABEL)+1);
+
+		if (CSL_Strcmp((PSTR)pNode->dcdProps.objData.nodeObj.
+				     ndbProps.uStackSegName, label) == 0) {
+			status = hNodeMgr->nldrFxns.pfnGetFxnAddr(pNode->
+				 hNldrNode, "DYNEXT_BEG", &dynextBase);
+			if (!DSP_SUCCEEDED(status)) {
+				GT_1trace(NODE_debugMask, GT_5CLASS,
+				"NODE_Allocate: Failed to get Address for "
+				"DYNEXT_BEG: 0x%x\n", status);
+			}
+
+			status = hNodeMgr->nldrFxns.pfnGetFxnAddr(pNode->
+				 hNldrNode, "L1DSRAM_HEAP", &pulValue);
+
+			if (!DSP_SUCCEEDED(status)) {
+				GT_1trace(NODE_debugMask, GT_5CLASS,
+				"NODE_Allocate: Failed to get Address for "
+				"L1DSRAM_HEAP: 0x%x\n", status);
+			}
+
+			status = CFG_GetHostResources((struct CFG_DEVNODE *)
+				 DRV_GetFirstDevExtension(), &hostRes);
+
+			if (DSP_FAILED(status)) {
+				GT_1trace(NODE_debugMask, GT_5CLASS,
+				"NODE_Allocate: Failed to get host resource "
+				"0x%x\n", status);
+			}
+
+			ulGppMemBase = hostRes.dwMemBase[1];
+			offSet = pulValue - dynextBase;
+			ulStackSegAddr = ulGppMemBase + offSet;
+			ulStackSegVal = (UWORD32)*((REG_UWORD32 *)
+					((UWORD32)(ulStackSegAddr)));
+
+			GT_1trace(NODE_debugMask, GT_5CLASS,
+				 "StackSegVal =0x%x\n", ulStackSegVal);
+			GT_1trace(NODE_debugMask, GT_5CLASS,
+				 "ulStackSegAddr = 0x%x\n", ulStackSegAddr);
+
+			pNode->createArgs.asa.taskArgs.uStackSeg =
+				ulStackSegVal;
+
+		}
+
+		if (label)
+			MEM_Free(label);
+
+	}
+
 
 	if (DSP_SUCCEEDED(status)) {
 		/* Add the node to the node manager's list of allocated
@@ -714,17 +768,17 @@ func_cont2:
 		 * (for overlay and dll) */
 		pNode->fPhaseSplit = TRUE;
 
-		if (DSP_SUCCEEDED(status)) {
+		if (DSP_SUCCEEDED(status))
 			*phNode = pNode;
-		}
+
 
 		/* Notify all clients registered for DSP_NODESTATECHANGE. */
 		PROC_NotifyAllClients(hProcessor, DSP_NODESTATECHANGE);
 	} else {
 		/* Cleanup */
-		if (pNode) {
+		if (pNode)
 			DeleteNode(pNode);
-		}
+
 	}
 
 #ifndef RES_CLEANUP_DISABLE
@@ -794,20 +848,18 @@ DBAPI NODE_AllocMsgBuf(struct NODE_OBJECT *hNode, UINT uSize,
 		 " 0x%x\tpAttr: 0x%x\tpBuffer: %d\n", pNode, uSize, pAttr,
 		 pBuffer);
 
-	if (!MEM_IsValidHandle(pNode, NODE_SIGNATURE)) {
+	if (!MEM_IsValidHandle(pNode, NODE_SIGNATURE))
 		status = DSP_EHANDLE;
-	}
 
-	if (NODE_GetType(pNode) == NODE_DEVICE) {
+	if (NODE_GetType(pNode) == NODE_DEVICE)
 		status = DSP_ENODETYPE;
-	}
 
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_end;
-	}
-	if (pAttr == NULL) {
+
+	if (pAttr == NULL)
 		pAttr = &NODE_DFLTBUFATTRS;	/* set defaults */
-	}
+
 	status = PROC_GetProcessorId(pNode->hProcessor, &procId);
 	if (procId != DSP_UNIT) {
 		DBC_Assert(NULL);
@@ -824,8 +876,9 @@ DBAPI NODE_AllocMsgBuf(struct NODE_OBJECT *hNode, UINT uSize,
 			   TRUE : FALSE;
 		pAttr->uSegment &= ~MEM_MASKVIRTUALSEGID; /* clear mask bits */
 		/* Set/get this node's translators virtual address base/size */
-		if (DSP_FAILED(status = CMM_XlatorInfo(pNode->hXlator, pBuffer,
-			       uSize, pAttr->uSegment, bSetInfo))) {
+		status = CMM_XlatorInfo(pNode->hXlator, pBuffer, uSize,
+					pAttr->uSegment, bSetInfo);
+		if (DSP_FAILED(status)) {
 			GT_1trace(NODE_debugMask, GT_7CLASS,
 				 "NODE_AllocMsgBuf "
 				 "failed: 0x%lx\n", status);
@@ -904,14 +957,14 @@ DSP_STATUS NODE_ChangePriority(struct NODE_OBJECT *hNode, INT nPriority)
 		}
 	}
 
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_end;
-	}
+
 	/* Enter critical section */
 	status = SYNC_EnterCS(hNodeMgr->hSync);
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_cont;
-	}
+
 	state = NODE_GetState(hNode);
 	if (state == NODE_ALLOCATED || state == NODE_PAUSED) {
 		NODE_SetPriority(hNode, nPriority);
@@ -929,9 +982,9 @@ DSP_STATUS NODE_ChangePriority(struct NODE_OBJECT *hNode, INT nPriority)
 				    hNodeMgr->ulFxnAddrs[RMSCHANGENODEPRIORITY],
 				    hNode->nodeEnv, nPriority);
 			}
-			if (DSP_SUCCEEDED(status)) {
+			if (DSP_SUCCEEDED(status))
 				NODE_SetPriority(hNode, nPriority);
-			}
+
 		}
 	}
 func_cont:
@@ -940,44 +993,6 @@ func_cont:
 func_end:
 	return (status);
 }
-
-#ifndef LINUX
-/*
- *  ======== NODE_CloseOrphans ========
- *  Purpose:
- *      Delete all nodes whose owning processor is being destroyed.
- */
-DSP_STATUS NODE_CloseOrphans(struct NODE_MGR *hNodeMgr,
-			    struct PROC_OBJECT *hProc)
-{
-	struct NODE_OBJECT *hNode;
-	struct NODE_OBJECT *hNodeNext;
-	DSP_STATUS status = DSP_SOK;
-	DSP_STATUS cRetval = DSP_SOK;
-
-	DBC_Require(MEM_IsValidHandle(hNodeMgr, NODEMGR_SIGNATURE));
-	DBC_Require(hProc != NULL);
-
-	GT_2trace(NODE_debugMask, GT_ENTER, "NODE_CloseOrphans: hNodeMgr: "
-		 "0x%x\thProc: 0x%x\n", hNodeMgr, hProc);
-
-	/* Remove all nodes in list that belong to hProc. */
-	hNode = (struct NODE_OBJECT *) LST_First(hNodeMgr->nodeList);
-	while (hNode != NULL) {
-		hNodeNext = (struct NODE_OBJECT *)LST_Next(hNodeMgr->nodeList,
-			    (struct LST_ELEM *)hNode);
-		if (hNode->hProcessor == hProc) {
-			status = NODE_Delete(hNode);
-			if (DSP_FAILED(status)) {
-				cRetval = DSP_EFAIL;
-			}
-		}
-		hNode = hNodeNext;
-	}
-	status = cRetval;
-	return (status);
-}
-#endif
 
 /*
  *  ======== NODE_Connect ========
@@ -989,10 +1004,6 @@ DSP_STATUS NODE_Connect(struct NODE_OBJECT *hNode1, UINT uStream1,
 			UINT uStream2, OPTIONAL IN struct DSP_STRMATTR *pAttrs,
 			OPTIONAL IN struct DSP_CBDATA *pConnParam)
 {
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-	struct NODE_OBJECT *pNode1 = (struct NODE_OBJECT *)hNode1;
-	struct NODE_OBJECT *pNode2 = (struct NODE_OBJECT *)hNode2;
-#endif
 	struct NODE_MGR *hNodeMgr;
 	PSTR pstrDevName = NULL;
 	PSTR pstrDevName1;
@@ -1009,10 +1020,6 @@ DSP_STATUS NODE_Connect(struct NODE_OBJECT *hNode1, UINT uStream1,
 	GB_BitNum chnlId = GB_NOBITS;
 	CHNL_MODE uMode;
 	DWORD dwLength;
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-	UINT procId1;
-	UINT procId2;
-#endif
 	DSP_STATUS status = DSP_SOK;
 	DBC_Require(cRefs > 0);
 	GT_5trace(NODE_debugMask, GT_ENTER,
@@ -1035,9 +1042,9 @@ DSP_STATUS NODE_Connect(struct NODE_OBJECT *hNode1, UINT uStream1,
 			status = DSP_EFAIL;
 		}
 		/* Cannot connect a node to itself */
-		if (hNode1 == hNode2) {
+		if (hNode1 == hNode2)
 			status = DSP_EFAIL;
-		}
+
 	}
 	if (DSP_SUCCEEDED(status)) {
 		/* NODE_GetType() will return NODE_GPP if hNode =
@@ -1071,21 +1078,13 @@ DSP_STATUS NODE_Connect(struct NODE_OBJECT *hNode1, UINT uStream1,
 	 * Check stream mode. Default is STRMMODE_PROCCOPY.
 	 */
 	if (DSP_SUCCEEDED(status) && pAttrs) {
-#if defined(OMAP_2430) || defined(OMAP_3430)
-		if (pAttrs->lMode != STRMMODE_PROCCOPY) {
-#else
-		if ((pAttrs->lMode != STRMMODE_PROCCOPY) &&
-#ifndef OMAP_24xx
-		    (pAttrs->lMode != STRMMODE_RDMA) &&
-#endif
-		    (pAttrs->lMode != STRMMODE_ZEROCOPY)) {
-#endif
+		if (pAttrs->lMode != STRMMODE_PROCCOPY)
 			status = DSP_ESTRMMODE;	/* illegal stream mode */
-		}
+
 	}
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_end;
-	}
+
 	if (node1Type != NODE_GPP) {
 		hNodeMgr = hNode1->hNodeMgr;
 	} else {
@@ -1094,32 +1093,32 @@ DSP_STATUS NODE_Connect(struct NODE_OBJECT *hNode1, UINT uStream1,
 	}
 	/* Enter critical section */
 	status = SYNC_EnterCS(hNodeMgr->hSync);
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_cont;
-	}
+
 	/* Nodes must be in the allocated state */
-	if (node1Type != NODE_GPP && NODE_GetState(hNode1) != NODE_ALLOCATED) {
+	if (node1Type != NODE_GPP && NODE_GetState(hNode1) != NODE_ALLOCATED)
 		status = DSP_EWRONGSTATE;
-	}
-	if (node2Type != NODE_GPP && NODE_GetState(hNode2) != NODE_ALLOCATED) {
+
+	if (node2Type != NODE_GPP && NODE_GetState(hNode2) != NODE_ALLOCATED)
 		status = DSP_EWRONGSTATE;
-	}
+
 	if (DSP_SUCCEEDED(status)) {
 		 /*  Check that stream indices for task and dais socket nodes
 		 *  are not already be used. (Device nodes checked later) */
 		if (node1Type == NODE_TASK || node1Type == NODE_DAISSOCKET) {
 			pOutput = &(hNode1->createArgs.asa.taskArgs.
 				  strmOutDef[uStream1]);
-			if (pOutput->szDevice != NULL) {
+			if (pOutput->szDevice != NULL)
 				status = DSP_EALREADYCONNECTED;
-			}
+
 		}
 		if (node2Type == NODE_TASK || node2Type == NODE_DAISSOCKET) {
 			pInput = &(hNode2->createArgs.asa.taskArgs.
 				 strmInDef[uStream2]);
-			if (pInput->szDevice != NULL) {
+			if (pInput->szDevice != NULL)
 				status = DSP_EALREADYCONNECTED;
-			}
+
 		}
 	}
 	/* Connecting two task nodes? */
@@ -1142,12 +1141,12 @@ DSP_STATUS NODE_Connect(struct NODE_OBJECT *hNode1, UINT uStream1,
 			if (pOutput->szDevice == NULL ||
 			   pInput->szDevice == NULL) {
 				/* Undo the connection */
-				if (pOutput->szDevice) {
+				if (pOutput->szDevice)
 					MEM_Free(pOutput->szDevice);
-				}
-				if (pInput->szDevice) {
+
+				if (pInput->szDevice)
 					MEM_Free(pInput->szDevice);
-				}
+
 				pOutput->szDevice = NULL;
 				pInput->szDevice = NULL;
 				GB_clear(hNodeMgr->pipeMap, pipeId);
@@ -1207,9 +1206,9 @@ DSP_STATUS NODE_Connect(struct NODE_OBJECT *hNode1, UINT uStream1,
 			goto func_cont2;
 		}
 		pstrDevName = MEM_Calloc(HOSTNAMELEN + 1, MEM_PAGED);
-		if (pstrDevName != NULL) {
+		if (pstrDevName != NULL)
 			goto func_cont2;
-		}
+
 		if (pAttrs) {
 			if (pAttrs->lMode == STRMMODE_RDMA) {
 				GB_clear(hNodeMgr->dmaChnlMap, chnlId -
@@ -1296,15 +1295,15 @@ func_cont2:
 		/* Update hNode1 and hNode2 streamConnect */
 		if (node1Type != NODE_GPP && node1Type != NODE_DEVICE) {
 			hNode1->uNumOutputs++;
-			if (uStream1 > hNode1->uMaxOutputIndex) {
+			if (uStream1 > hNode1->uMaxOutputIndex)
 				hNode1->uMaxOutputIndex = uStream1;
-			}
+
 		}
 		if (node2Type != NODE_GPP && node2Type != NODE_DEVICE) {
 			hNode2->uNumInputs++;
-			if (uStream2 > hNode2->uMaxInputIndex) {
+			if (uStream2 > hNode2->uMaxInputIndex)
 				hNode2->uMaxInputIndex = uStream2;
-			}
+
 		}
 		FillStreamConnect(hNode1, hNode2, uStream1, uStream2);
 	}
@@ -1333,8 +1332,6 @@ DSP_STATUS NODE_Create(struct NODE_OBJECT *hNode)
 	BOOL bJustWokeDSP = FALSE;
 	struct DSP_CBDATA cbData;
 	UINT procId;
-	/*UINT		uTimeout = 0x1000;
-	   struct DSP_MSG	     msg; */
 #ifndef RES_CLEANUP_DISABLE
 	HANDLE	      hProcess;
 	HANDLE	      hDrvObject;
@@ -1357,22 +1354,22 @@ DSP_STATUS NODE_Create(struct NODE_OBJECT *hNode)
 	pIntfFxns = hNodeMgr->pIntfFxns;
 	/* Get access to node dispatcher */
 	status = SYNC_EnterCS(hNodeMgr->hSync);
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_cont;
-	}
+
 	/* Check node state */
-	if (NODE_GetState(hNode) != NODE_ALLOCATED) {
+	if (NODE_GetState(hNode) != NODE_ALLOCATED)
 		status = DSP_EWRONGSTATE;
-	}
-	if (DSP_SUCCEEDED(status)) {
+
+	if (DSP_SUCCEEDED(status))
 		status = PROC_GetProcessorId(pNode->hProcessor, &procId);
-	}
-	if (!DSP_SUCCEEDED(status)) {
+
+	if (!DSP_SUCCEEDED(status))
 		goto func_cont2;
-	}
-	if (procId != DSP_UNIT) {
+
+	if (procId != DSP_UNIT)
 		goto func_cont2;
-	}
+
 	/* Make sure streams are properly connected */
 	if ((hNode->uNumInputs && hNode->uMaxInputIndex >
 	   hNode->uNumInputs - 1) ||
@@ -1380,25 +1377,22 @@ DSP_STATUS NODE_Create(struct NODE_OBJECT *hNode)
 	   hNode->uNumOutputs - 1)) {
 		status = DSP_ENOTCONNECTED;
 	}
-#warning "Remove this build flag for Real 3430 HW"
-#ifndef OMAP_3430
-	/* See if need to wake DSP from "nap" */
-	if (DSP_SUCCEEDED(status)) {
-		if (hNodeMgr->uNumCreated == 0) {
-			status = PROC_Ctrl(hNode->hProcessor, WMDIOCTL_WAKEUP,
-					  &cbData);
-			if (DSP_FAILED(status)) {
-				GT_1trace(NODE_debugMask, GT_5CLASS,
-					 "NODE_Create:Failed to wake"
-					 " up DSP: 0x%x\n", status);
-			} else {
-				bJustWokeDSP = TRUE;
-			}
-		}
-	}
-#endif
 	if (DSP_SUCCEEDED(status)) {
 		/* If node's create function is not loaded, load it */
+#ifndef DISABLE_BRIDGE_PM
+#ifndef DISABLE_BRIDGE_DVFS
+		/* Boost the OPP level to one level less than the maximum */
+		if (constraint_set(mpu_constraint_handle,
+		   ((CO_VDD1_OPP5-1))) != 0) {
+			GT_1trace(NODE_debugMask, GT_4CLASS, "NODE_Create:"
+			"Constraint set of %d failed\n", (CO_VDD1_OPP5-1));
+		} else {
+			GT_1trace(NODE_debugMask, GT_4CLASS, "NODE_Create:"
+				 "Constraint set of %d passed\n",
+				 (CO_VDD1_OPP5-1));
+		}
+#endif
+#endif
 		status = hNodeMgr->nldrFxns.pfnLoad(hNode->hNldrNode,
 						   NLDR_CREATE);
 		/* Get address of node's create function */
@@ -1413,6 +1407,19 @@ DSP_STATUS NODE_Create(struct NODE_OBJECT *hNode)
 				 "NODE_Create: failed to load"
 				 " create code: 0x%x\n", status);
 		}
+#ifndef DISABLE_BRIDGE_PM
+#ifndef DISABLE_BRIDGE_DVFS
+		if (constraint_set(mpu_constraint_handle,
+		   (CO_VDD1_OPP1)) != 0) {
+			GT_1trace(NODE_debugMask, GT_4CLASS,
+				 "NODE_Create: Constraint set of %d "
+				 "failed\n", CO_VDD1_OPP1);
+		} else {
+			GT_1trace(NODE_debugMask, GT_4CLASS, "NODE_Create:"
+			"Constraint set of %d passed\n", CO_VDD1_OPP1);
+		}
+#endif
+#endif
 		/* Get address of iAlg functions, if socket node */
 		if (DSP_SUCCEEDED(status)) {
 			if (nodeType == NODE_DAISSOCKET) {
@@ -1489,30 +1496,6 @@ func_end:
 		NTFY_Notify(hNode->hNtfy, DSP_NODESTATECHANGE);
 	}
 
-
-
-#if 0
-	if (DSP_SUCCEEDED(status)) {
-		/* Update the node resource status */
-		PRCS_GetCurrentHandle(&hProcess);
-		res_status = CFG_GetObject((DWORD *)&hDrvObject,
-					  REG_DRV_OBJECT);
-		if (DSP_SUCCEEDED(res_status)) {
-			DRV_GetProcContext(hProcess, hDrvObject, &pCtxt,
-					  hNode, NULL);
-			if (pCtxt != NULL) {
-				if (DRV_GetNodeResElement(hNode, &nodeRes,
-				   pCtxt) != DSP_ENOTFOUND) {
-					DRV_ProcNodeUpdateStatus(nodeRes, TRUE);
-				}
-			}
-		}
-	}
-#endif
-
-#ifdef LTT_SOC
-	SOC_Trace(GNC, hNode, hNode->nodeEnv);
-#endif
 	return (status);
 }
 
@@ -1527,9 +1510,6 @@ DSP_STATUS NODE_CreateMgr(OUT struct NODE_MGR **phNodeMgr,
 	UINT i;
 	struct NODE_MGR *pNodeMgr = NULL;
 	struct DISP_ATTRS dispAttrs;
-#ifndef LINUX
-	struct CFG_DEVNODE *hDevNode;
-#endif
 	CHAR *szZLFile = "";
 	struct NLDR_ATTRS nldrAttrs;
 	DSP_STATUS status = DSP_SOK;
@@ -1563,34 +1543,16 @@ DSP_STATUS NODE_CreateMgr(OUT struct NODE_MGR **phNodeMgr,
 			 "NODE_CreateMgr: Memory allocation failed\n");
 		status = DSP_EMEMORY;
 	}
-#ifndef LINUX
-	/* Attempt to acquire the ZL module name for this device: */
-	if (DSP_SUCCEEDED(status)) {
-		status = DEV_GetDevNode(hDevObject, &hDevNode);
-		if (DSP_SUCCEEDED(status)) {
-			status = CFG_GetZLFile(hDevNode, COD_MAXPATHLENGTH,
-					      szZLFile);
-			if (DSP_FAILED(status)) {
-				GT_0trace(NODE_debugMask, GT_6CLASS,
-					 "NODE_CreateMgr: Failed to"
-					 " get ZL file name\n");
-			}
-		} else {
-			GT_0trace(NODE_debugMask, GT_6CLASS,
-				 "NODE_CreateMgr: Failed to get DEV node\n");
-		}
-	}
-#endif
 	/* get devNodeType */
-	if (DSP_SUCCEEDED(status)) {
+	if (DSP_SUCCEEDED(status))
 		status = DEV_GetDevType(hDevObject, &devType);
-	}
+
 	/* Create the DCD Manager */
 	if (DSP_SUCCEEDED(status)) {
 		status = DCD_CreateManager(szZLFile, &pNodeMgr->hDcdMgr);
-		if (DSP_SUCCEEDED(status)) {
+		if (DSP_SUCCEEDED(status))
 			status = GetProcProps(pNodeMgr, hDevObject);
-		}
+
 	}
 	/* Create NODE Dispatcher */
 	if (DSP_SUCCEEDED(status)) {
@@ -1601,22 +1563,22 @@ DSP_STATUS NODE_CreateMgr(OUT struct NODE_MGR **phNodeMgr,
 		status = DISP_Create(&pNodeMgr->hDisp, hDevObject, &dispAttrs);
 	}
 	/* Create a STRM Manager */
-	if (DSP_SUCCEEDED(status)) {
+	if (DSP_SUCCEEDED(status))
 		status = STRM_Create(&pNodeMgr->hStrmMgr, hDevObject);
-	}
+
 	if (DSP_SUCCEEDED(status)) {
 		DEV_GetIntfFxns(hDevObject, &pNodeMgr->pIntfFxns);
 		/* Get MSG queue manager */
 		DEV_GetMsgMgr(hDevObject, &pNodeMgr->hMsg);
 		status = SYNC_InitializeCS(&pNodeMgr->hSync);
-		if (DSP_FAILED(status)) {
+		if (DSP_FAILED(status))
 			status = DSP_EMEMORY;
-		}
+
 		if (DSP_SUCCEEDED(status)) {
 			status = SYNC_InitializeCS(&pNodeMgr->hAllocSync);
-			if (DSP_FAILED(status)) {
+			if (DSP_FAILED(status))
 				status = DSP_EMEMORY;
-			}
+
 		}
 	}
 	if (DSP_SUCCEEDED(status)) {
@@ -1630,9 +1592,9 @@ DSP_STATUS NODE_CreateMgr(OUT struct NODE_MGR **phNodeMgr,
 			status = DSP_EMEMORY;
 		} else {
 			/* Block out reserved channels */
-			for (i = 0; i < pNodeMgr->ulChnlOffset; i++) {
+			for (i = 0; i < pNodeMgr->ulChnlOffset; i++)
 				GB_set(pNodeMgr->chnlMap, i);
-			}
+
 			/* Block out channels reserved for RMS */
 			GB_set(pNodeMgr->chnlMap, pNodeMgr->ulChnlOffset);
 			GB_set(pNodeMgr->chnlMap, pNodeMgr->ulChnlOffset + 1);
@@ -1671,11 +1633,11 @@ DSP_STATUS NODE_CreateMgr(OUT struct NODE_MGR **phNodeMgr,
 				 "create loader: status = 0x%x\n", status);
 		}
 	}
-	if (DSP_SUCCEEDED(status)) {
+	if (DSP_SUCCEEDED(status))
 		*phNodeMgr = pNodeMgr;
-	} else {
+	else
 		DeleteNodeMgr(pNodeMgr);
-	}
+
 	DBC_Ensure((DSP_FAILED(status) && (*phNodeMgr == NULL)) ||
 		  (DSP_SUCCEEDED(status) &&
 		  MEM_IsValidHandle((*phNodeMgr), NODEMGR_SIGNATURE)));
@@ -1729,9 +1691,9 @@ DSP_STATUS NODE_Delete(struct NODE_OBJECT *hNode)
 	pIntfFxns = hNodeMgr->pIntfFxns;
 	/* Enter critical section */
 	status = SYNC_EnterCS(hNodeMgr->hSync);
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_end;
-	}
+
 	state = NODE_GetState(hNode);
 	 /*  Execute delete phase code for non-device node in all cases
 	  *  except when the node was only allocated. Delete phase must be
@@ -1741,9 +1703,9 @@ DSP_STATUS NODE_Delete(struct NODE_OBJECT *hNode)
 	if (!(state == NODE_ALLOCATED && hNode->nodeEnv == (DWORD)NULL) &&
 	   nodeType != NODE_DEVICE) {
 		status = PROC_GetProcessorId(pNode->hProcessor, &procId);
-		if (!DSP_SUCCEEDED(status)) {
+		if (!DSP_SUCCEEDED(status))
 			goto func_cont1;
-		}
+
 		if (procId == DSP_UNIT || procId == IVA_UNIT) {
 			 /*  If node has terminated, execute phase code will
 			  *  have already been unloaded in NODE_OnExit(). If the
@@ -1815,56 +1777,6 @@ func_cont1:
 				}
 			}
 		}
-#if 0
-		else if (procId == IVA_UNIT) {
-			/* Unload execute, if not unloaded, and delete
-			 * function */
-			if (state == NODE_RUNNING && hNode->fPhaseSplit) {
-				status = hNodeMgr->nldrFxns.pfnUnload(hNode->
-					 hNldrNode, NLDR_EXECUTE);
-				if (DSP_FAILED(status1)) {
-					GT_1trace(NODE_debugMask, GT_ENTER,
-						 "NODE_Delete: failed to"
-						 " unload execute code: 0x%x\n",
-						 status);
-				}
-				status = hNodeMgr->nldrFxns.pfnLoad(hNode->
-					 hNldrNode, NLDR_DELETE);
-				status = hNodeMgr->nldrFxns.pfnUnload(hNode->
-					 hNldrNode, NLDR_DELETE);
-				if (DSP_FAILED(status)) {
-					GT_1trace(NODE_debugMask, GT_ENTER,
-						  "NODE_Delete: failed to"
-						  " unload delete code: 0x%x\n",
-						  status);
-					hNode->fLoaded = FALSE;
-				} else
-					GT_0trace(NODE_debugMask, GT_7CLASS,
-						 "IVA Node Delete : "
-						 "unload succeeded \n");
-			} else {
-#if 0
-				status = hNodeMgr->nldrFxns.pfnUnload(hNode->
-					 hNldrNode, NLDR_CREATE);
-				hNode->fLoaded = FALSE;
-				status = hNodeMgr->nldrFxns.pfnLoad(hNode->
-					 hNldrNode, NLDR_DELETE);
-				status = hNodeMgr->nldrFxns.pfnUnload(hNode->
-					 hNldrNode, NLDR_DELETE);
-				hNode->fLoaded = FALSE;
-				if (DSP_SUCCEEDED(status)) {
-					GT_0trace(NODE_debugMask, GT_7CLASS,
-						 "IVA Node Delete : unload "
-						 "succeeded \n");
-				} else {
-					GT_0trace(NODE_debugMask, GT_7CLASS,
-						 "IVA Node Delete: unload "
-						 "Failed \n");
-				}
-#endif
-			}
-		}
-#endif
 	}
 	/* Free host side resources even if a failure occurred */
 	/* Remove node from hNodeMgr->nodeList */
@@ -1877,29 +1789,23 @@ func_cont1:
 		/* This is not acceptable since in deep sleep, all the
 		 * peripherals are switched off We just need to put DSP
 		 * CPU in idle mode */
-#ifndef LINUX
-		/* If this was the last DSP node deleted, sleep the DSP */
-		if (hNodeMgr->uNumCreated == 0) {
-			PROC_Ctrl(hProcessor, WMDIOCTL_DEEPSLEEP, &cbData);
-		}
-#endif
 	}
 	 /*  Free host-side resources allocated by NODE_Create()
 	 *  DeleteNode() fails if SM buffers not freed by client!  */
 #ifndef RES_CLEANUP_DISABLE
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_cont;
-	}
+
 	/* Update the node and stream resource status */
 	PRCS_GetCurrentHandle(&hProcess);
 	res_status = CFG_GetObject((DWORD *)&hDrvObject, REG_DRV_OBJECT);
-	if (!DSP_SUCCEEDED(res_status)) {
+	if (!DSP_SUCCEEDED(res_status))
 		goto func_cont;
-	}
+
 	DRV_GetProcContext(hProcess, hDrvObject, &pCtxt, hNode, NULL);
-	if (pCtxt == NULL) {
+	if (pCtxt == NULL)
 		goto func_cont;
-	}
+
 	if (DRV_GetNodeResElement(hNode, &nodeRes, pCtxt) != DSP_ENOTFOUND) {
 		GT_0trace(NODE_debugMask, GT_5CLASS, "\nNODE_Delete12:\n");
 		DRV_ProcNodeUpdateStatus(nodeRes, FALSE);
@@ -1911,9 +1817,9 @@ func_cont:
 #ifndef RES_CLEANUP_DISABLE
 	if (DSP_SUCCEEDED(status)) {
 		GT_0trace(NODE_debugMask, GT_5CLASS, "\nNODE_Delete2:\n ");
-		if (pCtxt != NULL) {
+		if (pCtxt != NULL)
 			DRV_RemoveNodeResElement(nodeRes, pCtxt);
-		}
+
 	}
 #endif
 	GT_0trace(NODE_debugMask, GT_ENTER, "\nNODE_Delete3:\n ");
@@ -2026,9 +1932,9 @@ extern DSP_STATUS NODE_FreeMsgBuf(struct NODE_OBJECT *hNode, IN BYTE *pBuffer,
 	DBC_Require(pNode->hXlator != NULL);
 	GT_3trace(NODE_debugMask, GT_ENTER, "NODE_FreeMsgBuf: hNode: 0x%x\t"
 		 "pBuffer: 0x%x\tpAttr: 0x%x\n", hNode, pBuffer, pAttr);
-	if (!MEM_IsValidHandle(hNode, NODE_SIGNATURE)) {
+	if (!MEM_IsValidHandle(hNode, NODE_SIGNATURE))
 		status = DSP_EHANDLE;
-	}
+
 	status = PROC_GetProcessorId(pNode->hProcessor, &procId);
 	if (procId == DSP_UNIT) {
 		if (DSP_SUCCEEDED(status)) {
@@ -2037,12 +1943,12 @@ extern DSP_STATUS NODE_FreeMsgBuf(struct NODE_OBJECT *hNode, IN BYTE *pBuffer,
 				pAttr = &NODE_DFLTBUFATTRS;
 			}
 			 /* Node supports single SM segment only */
-			if (pAttr->uSegment != 1) {
+			if (pAttr->uSegment != 1)
 				status = DSP_EBADSEGID;
-			}
+
 			/* pBuffer is clients Va. */
-			if (DSP_FAILED(status = CMM_XlatorFreeBuf(pNode->
-			   hXlator, pBuffer))) {
+			status = CMM_XlatorFreeBuf(pNode->hXlator, pBuffer);
+			if (DSP_FAILED(status)) {
 				status = DSP_EFAIL;
 			} else {
 				status = DSP_SOK;
@@ -2184,16 +2090,18 @@ DSP_STATUS NODE_GetMessage(struct NODE_OBJECT *hNode, OUT struct DSP_MSG *pMsg,
 	pIntfFxns = hNodeMgr->pIntfFxns;
 	status = (*pIntfFxns->pfnMsgGet)(hNode->hMsgQueue, pMsg, uTimeout);
 	/* Check if message contains SM descriptor */
-	if (!DSP_SUCCEEDED(status) ||  !(pMsg->dwCmd & DSP_RMSBUFDESC)) {
+	if (!DSP_SUCCEEDED(status) ||  !(pMsg->dwCmd & DSP_RMSBUFDESC))
 		goto func_end;
-	}
+
 	 /* Translate DSP byte addr to GPP Va.  */
-	if ((pTmpBuf = CMM_XlatorTranslate(hNode->hXlator,
-	   (PVOID)(pMsg->dwArg1 * hNode->hNodeMgr->uDSPWordSize),
-	   CMM_DSPPA2PA)) != NULL) {
+	pTmpBuf = CMM_XlatorTranslate(hNode->hXlator,
+		(PVOID)(pMsg->dwArg1 * hNode->hNodeMgr->uDSPWordSize), 
+		CMM_DSPPA2PA);
+	if (pTmpBuf  != NULL) {
 		/* now convert this GPP Pa to Va */
-		if ((pTmpBuf = CMM_XlatorTranslate(hNode->hXlator, pTmpBuf,
-		   CMM_PA2VA)) != NULL) {
+		pTmpBuf = CMM_XlatorTranslate(hNode->hXlator, pTmpBuf,
+							CMM_PA2VA);
+		if (pTmpBuf != NULL) {
 			/* Adjust SM size in msg */
 			pMsg->dwArg1 = (DWORD) pTmpBuf;
 			pMsg->dwArg2 *= hNode->hNodeMgr->uDSPWordSize;
@@ -2208,9 +2116,6 @@ DSP_STATUS NODE_GetMessage(struct NODE_OBJECT *hNode, OUT struct DSP_MSG *pMsg,
 		status = DSP_ETRANSLATE;
 	}
 func_end:
-#ifdef LTT_SOC
-	SOC_Trace(GNG, hNode, pMsg->dwCmd, pMsg->dwArg1, pMsg->dwArg2);
-#endif
 	return (status);
 }
 
@@ -2226,11 +2131,11 @@ DSP_STATUS NODE_GetNldrObj(struct NODE_MGR *hNodeMgr,
 	GT_2trace(NODE_debugMask, GT_ENTER,
 		 "Entered NODE_GetNldrObj, hNodeMgr: "
 		 "0x%x\n\tphNldrObj:  0x%x\n", hNodeMgr, phNldrObj);
-	if (!MEM_IsValidHandle(hNodeMgr, NODEMGR_SIGNATURE)) {
+	if (!MEM_IsValidHandle(hNodeMgr, NODEMGR_SIGNATURE))
 		status = DSP_EHANDLE;
-	} else {
+	else
 		*phNldrObj = pNodeMgr->hNldr;
-	}
+
 	GT_2trace(NODE_debugMask, GT_ENTER,
 		 "Exit NODE_GetNldrObj: status 0x%x\n\t"
 		 "phNldrObj:  0x%x\n", status, *phNldrObj);
@@ -2251,11 +2156,10 @@ DSP_STATUS NODE_GetStrmMgr(struct NODE_OBJECT *hNode,
 
 	DBC_Require(cRefs > 0);
 
-	if (!MEM_IsValidHandle(hNode, NODE_SIGNATURE)) {
+	if (!MEM_IsValidHandle(hNode, NODE_SIGNATURE))
 		status = DSP_EHANDLE;
-	} else {
+	else
 		*phStrmMgr = hNode->hNodeMgr->hStrmMgr;
-	}
 
 	return (status);
 }
@@ -2293,11 +2197,10 @@ NODE_TYPE NODE_GetType(struct NODE_OBJECT *hNode)
 {
 	NODE_TYPE nodeType;
 
-	if (hNode == (struct NODE_OBJECT *) DSP_HGPPNODE) {
+	if (hNode == (struct NODE_OBJECT *) DSP_HGPPNODE)
 		nodeType = NODE_GPP;
-	} else {
+	else
 		nodeType = hNode->nType;
-	}
 
 	return (nodeType);
 }
@@ -2318,9 +2221,8 @@ BOOL NODE_Init()
 		GT_create(&NODE_debugMask, "NO");	/* "NO" for NOde */
 	}
 
-	if (fRetVal) {
+	if (fRetVal)
 		cRefs++;
-	}
 
 	GT_1trace(NODE_debugMask, GT_5CLASS, "NODE_Init(), ref count: 0x%x\n",
 		 cRefs);
@@ -2376,16 +2278,15 @@ DSP_STATUS NODE_Pause(struct NODE_OBJECT *hNode)
 		status = DSP_EHANDLE;
 	} else {
 		nodeType = NODE_GetType(hNode);
-		if (nodeType != NODE_TASK && nodeType != NODE_DAISSOCKET) {
+		if (nodeType != NODE_TASK && nodeType != NODE_DAISSOCKET)
 			status = DSP_ENODETYPE;
-		}
+
 	}
 
 	status = PROC_GetProcessorId(pNode->hProcessor, &procId);
 
-	if (procId == IVA_UNIT) {
+	if (procId == IVA_UNIT)
 		status = DSP_ENOTIMPL;
-	}
 
 	if (DSP_SUCCEEDED(status)) {
 		hNodeMgr = hNode->hNodeMgr;
@@ -2395,9 +2296,9 @@ DSP_STATUS NODE_Pause(struct NODE_OBJECT *hNode)
 
 		if (DSP_SUCCEEDED(status)) {
 			/* Check node state */
-			if ((state = NODE_GetState(hNode)) != NODE_RUNNING) {
+			if ((state = NODE_GetState(hNode)) != NODE_RUNNING)
 				status = DSP_EWRONGSTATE;
-			}
+
 			if (DSP_SUCCEEDED(status)) {
 				status = DISP_NodeChangePriority(hNodeMgr->
 				   hDisp, hNode,
@@ -2443,9 +2344,7 @@ DSP_STATUS NODE_PutMessage(struct NODE_OBJECT *hNode,
 	DSP_STATUS status = DSP_SOK;
 	PVOID pTmpBuf;
 	struct DSP_MSG newMsg;
-#ifdef LTT_SOC
-	SOC_Trace(GNP, hNode, pMsg->dwCmd, pMsg->dwArg1, pMsg->dwArg2);
-#endif
+
 	DBC_Require(cRefs > 0);
 	DBC_Require(pMsg != NULL);
 	GT_3trace(NODE_debugMask, GT_ENTER,
@@ -2472,23 +2371,24 @@ DSP_STATUS NODE_PutMessage(struct NODE_OBJECT *hNode,
 		status = SYNC_EnterCS(hNodeMgr->hSync);
 		if (DSP_SUCCEEDED(status)) {
 			state = NODE_GetState(hNode);
-			if (state == NODE_TERMINATING || state == NODE_DONE) {
+			if (state == NODE_TERMINATING || state == NODE_DONE)
 				status = DSP_EWRONGSTATE;
-			}
+
 		}
 		/* end of SYNC_EnterCS */
 		(VOID)SYNC_LeaveCS(hNodeMgr->hSync);
 	}
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_end;
-	}
+
 	/* assign pMsg values to new msg  */
 	newMsg = *pMsg;
 	/* Now, check if message contains a SM buffer descriptor */
 	if (pMsg->dwCmd & DSP_RMSBUFDESC) {
 		/* Translate GPP Va to DSP physical buf Ptr. */
-		if ((pTmpBuf = CMM_XlatorTranslate(hNode->hXlator,
-		   (PVOID)newMsg.dwArg1, CMM_VA2DSPPA)) != NULL) {
+		pTmpBuf = CMM_XlatorTranslate(hNode->hXlator,
+			(PVOID)newMsg.dwArg1, CMM_VA2DSPPA);
+		if (pTmpBuf != NULL) {
 			/* got translation, convert to MAUs in msg */
 			if (hNode->hNodeMgr->uDSPWordSize != 0) {
 				newMsg.dwArg1 =
@@ -2547,17 +2447,15 @@ DSP_STATUS NODE_RegisterNotify(struct NODE_OBJECT *hNode, UINT uEventMask,
 			status = DSP_EVALUE;
 		}
 		/* Check if notify type is valid */
-		if (uNotifyType != DSP_SIGNALEVENT) {
+		if (uNotifyType != DSP_SIGNALEVENT)
 			status = DSP_EVALUE;
-		}
-#ifdef LINUX
+
 		/* Only one Notification can be registered at a
 		 * time - Limitation */
 		if (uEventMask == (DSP_NODESTATECHANGE |
 		   DSP_NODEMESSAGEREADY)) {
 			status = DSP_EVALUE;
 		}
-#endif
 	}
 	if (DSP_SUCCEEDED(status)) {
 		if (uEventMask == DSP_NODESTATECHANGE) {
@@ -2572,16 +2470,6 @@ DSP_STATUS NODE_RegisterNotify(struct NODE_OBJECT *hNode, UINT uEventMask,
 				 hNotification);
 		}
 
-#ifndef LINUX
-		if (DSP_FAILED(status2) && status2 != DSP_EVALUE) {
-			status = status2;
-		}
-		if (status2 == DSP_EVALUE && status1 == DSP_EVALUE) {
-			 /*  Event mask was 0 and notification was not
-			  *  registered with NODE or MSG.  */
-			status = DSP_EVALUE;
-		}
-#endif
 	}
 	return (status);
 }
@@ -2612,33 +2500,32 @@ DSP_STATUS NODE_Run(struct NODE_OBJECT *hNode)
 		status = DSP_EHANDLE;
 	} else {
 		nodeType = NODE_GetType(hNode);
-		if (nodeType == NODE_DEVICE) {
+		if (nodeType == NODE_DEVICE)
 			status = DSP_ENODETYPE;
-		}
 	}
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_end;
-	}
+
 	hNodeMgr = hNode->hNodeMgr;
 	pIntfFxns = hNodeMgr->pIntfFxns;
 	/* Enter critical section */
 	status = SYNC_EnterCS(hNodeMgr->hSync);
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_cont;
-	}
+
 	state = NODE_GetState(hNode);
-	if (state != NODE_CREATED && state != NODE_PAUSED) {
+	if (state != NODE_CREATED && state != NODE_PAUSED)
 		status = DSP_EWRONGSTATE;
-	}
-	if (DSP_SUCCEEDED(status)) {
+
+	if (DSP_SUCCEEDED(status))
 		status = PROC_GetProcessorId(pNode->hProcessor, &procId);
-	}
-	if (!DSP_SUCCEEDED(status)) {
+
+	if (!DSP_SUCCEEDED(status))
 		goto func_cont1;
-	}
-	if ((procId != DSP_UNIT) && (procId != IVA_UNIT)) {
+
+	if ((procId != DSP_UNIT) && (procId != IVA_UNIT))
 		goto func_cont1;
-	}
+
 	if (state == NODE_CREATED) {
 		/* If node's execute function is not loaded, load it */
 		if (!(hNode->fLoaded) && hNode->fPhaseSplit) {
@@ -2677,22 +2564,20 @@ DSP_STATUS NODE_Run(struct NODE_OBJECT *hNode)
 		DBC_Assert(FALSE);
 	}
 func_cont1:
-			/* Update node state. */
-			if (DSP_SUCCEEDED(status)) {
-				NODE_SetState(hNode, NODE_RUNNING);
-			} else {
-				/* Set state back to previous value */
-				NODE_SetState(hNode, state);
-			}
-		/*End of SYNC_EnterCS */
-		/* Exit critical section */
+	/* Update node state. */
+	if (DSP_SUCCEEDED(status))
+		NODE_SetState(hNode, NODE_RUNNING);
+	 else /* Set state back to previous value */
+		NODE_SetState(hNode, state);
+	/*End of SYNC_EnterCS */
+	/* Exit critical section */
 func_cont:
-		(VOID)SYNC_LeaveCS(hNodeMgr->hSync);
-		if (DSP_SUCCEEDED(status)) {
-			PROC_NotifyClients(hNode->hProcessor,
-					  DSP_NODESTATECHANGE);
-			NTFY_Notify(hNode->hNtfy, DSP_NODESTATECHANGE);
-		}
+	(VOID)SYNC_LeaveCS(hNodeMgr->hSync);
+	if (DSP_SUCCEEDED(status)) {
+		PROC_NotifyClients(hNode->hProcessor,
+			  DSP_NODESTATECHANGE);
+		NTFY_Notify(hNode->hNtfy, DSP_NODESTATECHANGE);
+	}
 func_end:
 	return (status);
 }
@@ -2710,19 +2595,18 @@ DSP_STATUS NODE_Terminate(struct NODE_OBJECT *hNode, OUT DSP_STATUS *pStatus)
 	NODE_TYPE nodeType;
 	struct WMD_DRV_INTERFACE *pIntfFxns;
 	NODE_STATE state;
-	struct DSP_MSG msg;
+	struct DSP_MSG msg, killmsg;
 	DSP_STATUS status = DSP_SOK;
 	/*UINT		uTimeout = 0x1000; */
-	UINT procId;
-
-
+	UINT procId, killTimeOut;
+	struct DEH_MGR *hDehMgr;
 #ifndef RES_CLEANUP_DISABLE
-	    HANDLE	      hProcess;
-	    HANDLE	      pCtxt = NULL;
-	    HANDLE	      hDrvObject;
-	    HANDLE	      nodeRes;
-	    HANDLE	      DSPHEAPRes;
-		DSP_STATUS res_status = DSP_SOK;
+	HANDLE	      hProcess;
+	HANDLE	      pCtxt = NULL;
+	HANDLE	      hDrvObject;
+	HANDLE	      nodeRes;
+	HANDLE	      DSPHEAPRes;
+	DSP_STATUS res_status = DSP_SOK;
 #endif
 
 	DBC_Require(cRefs > 0);
@@ -2755,9 +2639,9 @@ DSP_STATUS NODE_Terminate(struct NODE_OBJECT *hNode, OUT DSP_STATUS *pStatus)
 				status = DSP_EWRONGSTATE;
 				/* Set the exit status if node terminated on
 				 * its own. */
-				if (state == NODE_DONE) {
+				if (state == NODE_DONE)
 					*pStatus = hNode->nExitStatus;
-				}
+
 			} else {
 				NODE_SetState(hNode, NODE_TERMINATING);
 			}
@@ -2774,26 +2658,53 @@ DSP_STATUS NODE_Terminate(struct NODE_OBJECT *hNode, OUT DSP_STATUS *pStatus)
 			 "NODE_Terminate: env = 0x%x\n", hNode->nodeEnv);
 		msg.dwCmd = RMS_EXIT;
 		msg.dwArg1 = hNode->nodeEnv;
+		killmsg.dwCmd = RMS_KILLTASK;
+		killmsg.dwArg1 = hNode->nodeEnv;
 		pIntfFxns = hNodeMgr->pIntfFxns;
+
+		if (hNode->uTimeout > MAXTIMEOUT)
+			killTimeOut = MAXTIMEOUT;
+		else
+			killTimeOut = (hNode->uTimeout)*2;
+
 		status = (*pIntfFxns->pfnMsgPut)(hNode->hMsgQueue, &msg,
-			 hNode->uTimeout);
+							hNode->uTimeout);
 		if (DSP_SUCCEEDED(status)) {
 			/*  Wait on synchronization object that will be
 			 *  posted in the callback on receiving RMS_EXIT
 			 *  message, or by NODE_Delete. Check for valid hNode,
 			 *  in case posted by NODE_Delete().  */
 			status = SYNC_WaitOnEvent(hNode->hSyncDone,
-				 hNode->uTimeout);
+							killTimeOut/2);
 			if (DSP_FAILED(status)) {
-				if (status == SYNC_E_TIMEOUT) {
-					status = DSP_ETIMEOUT;
-				} else {
+				if (status == DSP_ETIMEOUT) {
+					status = (*pIntfFxns->pfnMsgPut)
+						 (hNode->hMsgQueue, &killmsg,
+						 hNode->uTimeout);
+					if (DSP_SUCCEEDED(status)) {
+						status =
+						      SYNC_WaitOnEvent(hNode->
+						      hSyncDone, killTimeOut/2);
+						if (DSP_FAILED(status)) {
+						/* Here it goes the part of the
+						 * simulation of the DSP
+						 * exception */
+						    DEV_GetDehMgr(hNodeMgr->
+							hDevObject, &hDehMgr);
+						    if (hDehMgr) {
+							(*pIntfFxns->
+							pfnDehNotify)(hDehMgr,
+							DSP_SYSERROR,
+							DSP_EXCEPTIONABORT);
+							status = DSP_EFAIL;
+						    }
+						} else
+							status = DSP_SOK;
+					}
+				} else
 					status = DSP_EFAIL;
-				}
-			} else {
-				/* Convert SYNC status to DSP status */
+			} else 	/* Convert SYNC status to DSP status */
 				status = DSP_SOK;
-			}
 		}
 	}
 	if (DSP_SUCCEEDED(status)) {
@@ -2812,30 +2723,6 @@ DSP_STATUS NODE_Terminate(struct NODE_OBJECT *hNode, OUT DSP_STATUS *pStatus)
 		(VOID)SYNC_LeaveCS(hNodeMgr->hSync);
 	}		/*End of SYNC_EnterCS */
 
-
-#if 0
-	if (DSP_SUCCEEDED(status)) {
-		/* Update the DSP node heap resource status */
-		PRCS_GetCurrentHandle(&hProcess);
-		GT_1trace(NODE_debugMask, GT_5CLASS,
-			 "PRCS_GetCurrentHandle hProcess: 0x%x", hProcess);
-		res_status = CFG_GetObject((DWORD *)&hDrvObject,
-			     REG_DRV_OBJECT);
-		if (DSP_SUCCEEDED(res_status)) {
-			if (DRV_GetProcContext(hProcess, hDrvObject, &pCtxt,
-			  hNode, NULL) != DSP_ENOTFOUND) {
-				if (DRV_GetDSPHEAPResElement(
-					pNode->createArgs.asa.taskArgs.
-					       uDSPHeapAddr, &DSPHEAPRes,
-					       pCtxt) != DSP_ENOTFOUND) {
-					DRV_RemoveDSPHEAPResElement(DSPHEAPRes,
-								   pCtxt);
-				}
-				DRV_ProcNodeUpdateHeapStatus(nodeRes, FALSE);
-			}
-		}
-	}
-#endif
 	return (status);
 }
 
@@ -2861,17 +2748,17 @@ static VOID DeleteNode(struct NODE_OBJECT *hNode)
 	nodeType = NODE_GetType(hNode);
 	if (nodeType != NODE_DEVICE) {
 		msgArgs = hNode->createArgs.asa.msgArgs;
-		if (msgArgs.pData) {
+		if (msgArgs.pData)
 			MEM_Free(msgArgs.pData);
-		}
+
 		/* Free MSG queue */
 		if (hNode->hMsgQueue) {
 			pIntfFxns = hNodeMgr->pIntfFxns;
 			(*pIntfFxns->pfnMsgDeleteQueue) (hNode->hMsgQueue);
 		}
-		if (hNode->hSyncDone) {
+		if (hNode->hSyncDone)
 			(VOID) SYNC_CloseEvent(hNode->hSyncDone);
-		}
+
 		/* Free all stream info */
 		if (hNode->inputs) {
 			for (i = 0; i < MaxInputs(hNode); i++) {
@@ -2908,7 +2795,6 @@ static VOID DeleteNode(struct NODE_OBJECT *hNode)
 			MEM_Free(taskArgs.strmOutDef);
 			taskArgs.strmOutDef = NULL;
 		}
-#if defined(OMAP_2430) || defined(OMAP_3430)
 		if (taskArgs.uDSPHeapResAddr) {
 			status = PROC_UnMap(hNode->hProcessor,
 					   (PVOID)taskArgs.uDSPHeapAddr);
@@ -2933,39 +2819,38 @@ static VOID DeleteNode(struct NODE_OBJECT *hNode)
 					 (UINT)status);
 			}
 		}
-#endif
 	}
 	if (nodeType != NODE_MESSAGE) {
-		if (hNode->streamConnect) {
+		if (hNode->streamConnect)
 			MEM_Free(hNode->streamConnect);
-		}
+
 	}
-	if (hNode->pstrDevName) {
+	if (hNode->pstrDevName)
 		MEM_Free(hNode->pstrDevName);
-	}
-	if (hNode->hNtfy) {
+
+	if (hNode->hNtfy)
 		NTFY_Delete(hNode->hNtfy);
-	}
+
 	/* These were allocated in DCD_GetObjectDef (via NODE_Allocate) */
-	if (hNode->dcdProps.objData.nodeObj.pstrCreatePhaseFxn) {
+	if (hNode->dcdProps.objData.nodeObj.pstrCreatePhaseFxn)
 		MEM_Free(hNode->dcdProps.objData.nodeObj.pstrCreatePhaseFxn);
-	}
-	if (hNode->dcdProps.objData.nodeObj.pstrExecutePhaseFxn) {
+
+	if (hNode->dcdProps.objData.nodeObj.pstrExecutePhaseFxn)
 		MEM_Free(hNode->dcdProps.objData.nodeObj.pstrExecutePhaseFxn);
-	}
-	if (hNode->dcdProps.objData.nodeObj.pstrDeletePhaseFxn) {
+
+	if (hNode->dcdProps.objData.nodeObj.pstrDeletePhaseFxn)
 		MEM_Free(hNode->dcdProps.objData.nodeObj.pstrDeletePhaseFxn);
-	}
-	if (hNode->dcdProps.objData.nodeObj.pstrIAlgName) {
+
+	if (hNode->dcdProps.objData.nodeObj.pstrIAlgName)
 		MEM_Free(hNode->dcdProps.objData.nodeObj.pstrIAlgName);
-	}
+
 	/* Free all SM address translator resources */
-	if (hXlator) {
+	if (hXlator)
 		(VOID) CMM_XlatorDelete(hXlator, TRUE);	/* force free */
-	}
-	if (hNode->hNldrNode) {
+
+	if (hNode->hNldrNode)
 		hNodeMgr->nldrFxns.pfnFree(hNode->hNldrNode);
-	}
+
 	MEM_FreeObject(hNode);
 }
 
@@ -2980,9 +2865,9 @@ static VOID DeleteNodeMgr(struct NODE_MGR *hNodeMgr)
 
 	if (MEM_IsValidHandle(hNodeMgr, NODEMGR_SIGNATURE)) {
 		/* Free resources */
-		if (hNodeMgr->hDcdMgr) {
+		if (hNodeMgr->hDcdMgr)
 			DCD_DestroyManager(hNodeMgr->hDcdMgr);
-		}
+
 		/* Remove any elements remaining in lists */
 		if (hNodeMgr->nodeList) {
 			while ((hNode =
@@ -2993,43 +2878,43 @@ static VOID DeleteNodeMgr(struct NODE_MGR *hNodeMgr)
 			DBC_Assert(LST_IsEmpty(hNodeMgr->nodeList));
 			LST_Delete(hNodeMgr->nodeList);
 		}
-		if (hNodeMgr->hNtfy) {
+		if (hNodeMgr->hNtfy)
 			NTFY_Delete(hNodeMgr->hNtfy);
-		}
-		if (hNodeMgr->pipeMap) {
+
+		if (hNodeMgr->pipeMap)
 			GB_delete(hNodeMgr->pipeMap);
-		}
-		if (hNodeMgr->pipeDoneMap) {
+
+		if (hNodeMgr->pipeDoneMap)
 			GB_delete(hNodeMgr->pipeDoneMap);
-		}
-		if (hNodeMgr->chnlMap) {
+
+		if (hNodeMgr->chnlMap)
 			GB_delete(hNodeMgr->chnlMap);
-		}
-		if (hNodeMgr->dmaChnlMap) {
+
+		if (hNodeMgr->dmaChnlMap)
 			GB_delete(hNodeMgr->dmaChnlMap);
-		}
-		if (hNodeMgr->zChnlMap) {
+
+		if (hNodeMgr->zChnlMap)
 			GB_delete(hNodeMgr->zChnlMap);
-		}
-		if (hNodeMgr->hDisp) {
+
+		if (hNodeMgr->hDisp)
 			DISP_Delete(hNodeMgr->hDisp);
-		}
-		if (hNodeMgr->hSync) {
+
+		if (hNodeMgr->hSync)
 			SYNC_DeleteCS(hNodeMgr->hSync);
-		}
-		if (hNodeMgr->hSync) {
+
+		if (hNodeMgr->hSync)
 			SYNC_DeleteCS(hNodeMgr->hAllocSync);
-		}
-		if (hNodeMgr->hStrmMgr) {
+
+		if (hNodeMgr->hStrmMgr)
 			STRM_Delete(hNodeMgr->hStrmMgr);
-		}
+
 		/* Delete the loader */
-		if (hNodeMgr->hNldr) {
+		if (hNodeMgr->hNldr)
 			hNodeMgr->nldrFxns.pfnDelete(hNodeMgr->hNldr);
-		}
-		if (hNodeMgr->fLoaderInit) {
+
+		if (hNodeMgr->fLoaderInit)
 			hNodeMgr->nldrFxns.pfnExit();
-		}
+
 		MEM_FreeObject(hNodeMgr);
 	}
 }
@@ -3217,9 +3102,9 @@ VOID GetNodeInfo(struct NODE_OBJECT *hNode, struct DSP_NODEINFO *pNodeInfo)
 	pNodeInfo->nsExecutionState = NODE_GetState(hNode);
 
 	/* Copy stream connect data */
-	for (i = 0; i < hNode->uNumInputs + hNode->uNumOutputs; i++) {
+	for (i = 0; i < hNode->uNumInputs + hNode->uNumOutputs; i++)
 		pNodeInfo->scStreamConnection[i] = hNode->streamConnect[i];
-	}
+
 }
 
 /*
@@ -3269,24 +3154,14 @@ static DSP_STATUS GetNodeProps(struct DCD_MANAGER *hDcdMgr,
 #endif
 		} else {
 			/* Copy device name */
-#ifdef UNICODE
-			uLen = CSL_Wstrlen(pndbProps->acName);
-#else
 			uLen = CSL_Strlen(pndbProps->acName);
-#endif
 			DBC_Assert(uLen < MAXDEVNAMELEN);
 			hNode->pstrDevName = MEM_Calloc(uLen + 1, MEM_PAGED);
 			if (hNode->pstrDevName == NULL) {
 				status = DSP_EMEMORY;
 			} else {
-#ifdef UNICODE
-				CSL_WcharToAnsi(hNode->pstrDevName,
-						(WCHAR *)pndbProps->acName,
-						uLen);
-#else
 				CSL_Strcpyn(hNode->pstrDevName,
 					   pndbProps->acName, uLen);
-#endif
 			}
 		}
 	}
@@ -3304,18 +3179,11 @@ static DSP_STATUS GetNodeProps(struct DCD_MANAGER *hDcdMgr,
 				 " Size: 0x%x words\n" "** (node) System Stack"
 				 " Size: 0x%x words\n" "** (node) Stack"
 				 " Segment: 0x%x\n\n",
-#if defined(OMAP_2430) || defined(OMAP_3430)
 				  "** (node) profile count : 0x%x \n \n",
-#endif
 				  pTaskArgs->nPriority, pTaskArgs->uStackSize,
-#if defined(OMAP_2430) || defined(OMAP_3430)
 				  pTaskArgs->uSysStackSize,
 				  pTaskArgs->uStackSeg,
 				  pndbProps->uCountProfiles);
-#else
-				  pTaskArgs->uSysStackSize,
-				  pTaskArgs->uStackSeg);
-#endif
 #endif
 		}
 	}
@@ -3336,9 +3204,8 @@ static DSP_STATUS GetProcProps(struct NODE_MGR *hNodeMgr,
 	DSP_STATUS status = DSP_SOK;
 
 	status = DEV_GetDevNode(hDevObject, &hDevNode);
-	if (DSP_SUCCEEDED(status)) {
+	if (DSP_SUCCEEDED(status))
 		status = CFG_GetHostResources(hDevNode, &hostRes);
-	}
 
 	if (DSP_SUCCEEDED(status)) {
 		hNodeMgr->ulChnlOffset = hostRes.dwChnlOffset;
@@ -3349,14 +3216,9 @@ static DSP_STATUS GetProcProps(struct NODE_MGR *hNodeMgr,
 		 *  PROC will add an API to get DSP_PROCESSORINFO.
 		 *  Fill in default values for now.
 		 */
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-		hNodeMgr->procFamily = 5000;
-		hNodeMgr->procType = 5510;
-#else
 		/* TODO -- Instead of hard coding, take from registry */
 		hNodeMgr->procFamily = 6000;
 		hNodeMgr->procType = 6410;
-#endif
 		hNodeMgr->nMinPri = DSP_NODE_MIN_PRIORITY;
 		hNodeMgr->nMaxPri = DSP_NODE_MAX_PRIORITY;
 		hNodeMgr->uDSPWordSize = DSPWORDSIZE;
@@ -3397,9 +3259,9 @@ DSP_STATUS NODE_GetUUIDProps(DSP_HPROCESSOR hProcessor,
     status = PROC_GetDevObject(hProcessor, &hDevObject);
     if (DSP_SUCCEEDED(status)) {
 		status = DEV_GetNodeManager(hDevObject, &hNodeMgr);
-	if (hNodeMgr == NULL) {
+	if (hNodeMgr == NULL)
 			status = DSP_EFAIL;
-	}
+
     }
 
     if (DSP_SUCCEEDED(status)) {
@@ -3429,29 +3291,6 @@ DSP_STATUS NODE_GetUUIDProps(DSP_HPROCESSOR hProcessor,
 
 	return status;
 }
-
-#ifndef LINUX
-/*
- *  ======== GetRMSFxn ========
- */
-static DSP_STATUS GetRMSFxn(struct NODE_MGR *hNodeMgr, CHAR *pszFxn,
-			   ULONG ulAddr)
-{
-	struct DEV_OBJECT *hDev = hNodeMgr->hDevObject;
-	DSP_STATUS status = DSP_SOK;
-
-	status = DEV_GetSymbol(hDev, pszFxn, &ulAddr);
-	if (status == COD_E_SYMBOLNOTFOUND) {
-		/*
-		 *  Dynamically load the code for RMS function.
-		 *  If successfuly, status = DSP_SOK.
-		 */
-	}
-
-	return (status);
-}
-
-#endif
 
 /*
  *  ======== GetRMSFxns ========
@@ -3531,9 +3370,8 @@ static CDECL ULONG Ovly(PVOID pPrivRef, ULONG ulDspRunAddr, ULONG ulDspLoadAddr,
 	status = (*pIntfFxns->pfnBrdMemCopy)(hWmdContext, ulDspRunAddr,
 		 ulDspLoadAddr,	ulNumBytes, (ULONG) nMemSpace);
 
-	if (DSP_SUCCEEDED(status)) {
+	if (DSP_SUCCEEDED(status))
 		ulBytes = ulNumBytes;
-	}
 
 	return (ulBytes);
 }

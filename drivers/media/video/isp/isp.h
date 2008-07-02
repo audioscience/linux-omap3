@@ -27,15 +27,24 @@
 
 /* Our ISP specific controls */
 #define V4L2_CID_PRIVATE_ISP_COLOR_FX		(V4L2_CID_PRIVATE_BASE + 0)
-#define V4L2_CID_PRIVATE_ISP_CCDC_CFG		(V4L2_CID_PRIVATE_BASE + 1)
-#define V4L2_CID_PRIVATE_ISP_PRV_CFG		(V4L2_CID_PRIVATE_BASE + 2)
-#define V4L2_CID_PRIVATE_ISP_LSC_UPDATE		(V4L2_CID_PRIVATE_BASE + 3)
-#define V4L2_CID_PRIVATE_ISP_AEWB_CFG		(V4L2_CID_PRIVATE_BASE + 4)
-#define V4L2_CID_PRIVATE_ISP_AEWB_REQ		(V4L2_CID_PRIVATE_BASE + 5)
-#define V4L2_CID_PRIVATE_ISP_HIST_CFG		(V4L2_CID_PRIVATE_BASE + 6)
-#define V4L2_CID_PRIVATE_ISP_HIST_REQ		(V4L2_CID_PRIVATE_BASE + 7)
-#define V4L2_CID_PRIVATE_ISP_AF_CFG		(V4L2_CID_PRIVATE_BASE + 8)
-#define V4L2_CID_PRIVATE_ISP_AF_REQ		(V4L2_CID_PRIVATE_BASE + 9)
+
+/* ISP Private IOCTLs */
+#define VIDIOC_PRIVATE_ISP_CCDC_CFG	\
+	_IOWR('V', BASE_VIDIOC_PRIVATE + 1, struct ispccdc_update_config)
+#define VIDIOC_PRIVATE_ISP_PRV_CFG \
+	_IOWR('V', BASE_VIDIOC_PRIVATE + 2, struct ispprv_update_config)
+#define VIDIOC_PRIVATE_ISP_AEWB_CFG \
+	_IOWR('V', BASE_VIDIOC_PRIVATE + 4, struct isph3a_aewb_config)
+#define VIDIOC_PRIVATE_ISP_AEWB_REQ \
+	_IOWR('V', BASE_VIDIOC_PRIVATE + 5, struct isph3a_aewb_data)
+#define VIDIOC_PRIVATE_ISP_HIST_CFG \
+	_IOWR('V', BASE_VIDIOC_PRIVATE + 6, struct isp_hist_config)
+#define VIDIOC_PRIVATE_ISP_HIST_REQ \
+	_IOWR('V', BASE_VIDIOC_PRIVATE + 7, struct isp_hist_data)
+#define VIDIOC_PRIVATE_ISP_AF_CFG \
+	_IO('V', BASE_VIDIOC_PRIVATE + 8)
+#define VIDIOC_PRIVATE_ISP_AF_REQ \
+	_IO('V', BASE_VIDIOC_PRIVATE + 9)
 
 #define ISP_TOK_TERM		0xFFFFFFFF	/*
 						 * terminating token for ISP
@@ -155,7 +164,7 @@ struct isp_sgdma {
  * @par_bridge: CCDC Bridge input control. Parallel interface.
  *                  0 - Disable, 1 - Enable, first byte->cam_d(bits 7 to 0)
  *                  2 - Enable, first byte -> cam_d(bits 15 to 8)
- * @para_clk_pol: Pixel clock polarity on the parallel interface.
+ * @par_clk_pol: Pixel clock polarity on the parallel interface.
  *                    0 - Non Inverted, 1 - Inverted
  * @dataline_shift: Data lane shifter.
  *                      0 - No Shift, 1 - CAMEXT[13 to 2]->CAM[11 to 0]
@@ -172,15 +181,32 @@ struct isp_sgdma {
  */
 struct isp_interface_config {
 	enum isp_interface_type ccdc_par_ser;
-	u8 par_bridge;
-	u8 para_clk_pol;
 	u8 dataline_shift;
-	u8 hsvs_syncdetect;
+	u32 hsvs_syncdetect;
 	u16 vdint0_timing;
 	u16 vdint1_timing;
 	int strobe;
 	int prestrobe;
 	int shutter;
+	union {
+		struct par {
+			unsigned par_bridge:2;
+			unsigned par_clk_pol:1;
+		} par;
+		struct csi {
+			unsigned crc:1;
+			unsigned mode:1;
+			unsigned edge:1;
+			unsigned signalling:1;
+			unsigned strobe_clock_inv:1;
+			unsigned vs_edge:1;
+			unsigned channel:3;
+			unsigned vpclk:2;	/* Video port output clock */
+			unsigned int data_start;
+			unsigned int data_size;
+			u32 format;		/* V4L2_PIX_FMT_* */
+		} csi;
+	} u;
 };
 
 /**
@@ -276,6 +302,8 @@ int isp_try_size(struct v4l2_pix_format *pix_input,
 
 int isp_try_fmt(struct v4l2_pix_format *pix_input,
 					struct v4l2_pix_format *pix_output);
+
+int isp_handle_private(int cmd, void *arg);
 
 void isp_save_context(struct isp_reg *);
 

@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/osal.h
+ * dspbridge/mpu_driver/inc/osal.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

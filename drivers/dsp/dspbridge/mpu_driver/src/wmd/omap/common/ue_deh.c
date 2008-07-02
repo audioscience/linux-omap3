@@ -42,7 +42,6 @@
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
 #include <dbg.h>
-#include <dbg_zones.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
 #include <csl.h>
@@ -60,19 +59,13 @@
 #include <dev.h>
 #include <wcd.h>
 
-#if defined(OMAP_2430) || defined(OMAP_3430)
 /* ------------------------------------ Hardware Abstraction Layer */
 #include <hal_defs.h>
 #include <hal_mmu.h>
-#endif
 
 /*  ----------------------------------- This */
 #include "mmu_fault.h"
-#ifdef OMAP_3430
 #include "_tiomap.h"
-#else
-#include "_tiomap.h"
-#endif
 #include "_deh.h"
 #include <_tiomap_mmu.h>
 
@@ -106,18 +99,18 @@ DSP_STATUS WMD_DEH_Create(OUT struct DEH_MGR **phDehMgr,
 		status = DSP_EMEMORY;
 	} else {
 		/* Create an NTFY object to manage notifications */
-		if (DSP_SUCCEEDED(status)) {
+		if (DSP_SUCCEEDED(status))
 			status = NTFY_Create(&pDehMgr->hNtfy);
-		}
+
 		/* Create a DPC object. */
 		status = DPC_Create(&pDehMgr->hMmuFaultDpc, MMU_FaultDpc,
 				   (PVOID)pDehMgr);
-		if (DSP_SUCCEEDED(status)) {
+		if (DSP_SUCCEEDED(status))
 			status = DEV_GetDevNode(hDevObject, &hDevNode);
-		}
-		if (DSP_SUCCEEDED(status)) {
+
+		if (DSP_SUCCEEDED(status))
 			status = CFG_GetHostResources(hDevNode, &cfgHostRes);
-		}
+
 		if (DSP_SUCCEEDED(status)) {
 			/* Fill in context structure */
 			pDehMgr->hWmdContext = hWmdContext;
@@ -155,9 +148,9 @@ DSP_STATUS WMD_DEH_Destroy(struct DEH_MGR *hDehMgr)
 	DBG_Trace(DBG_LEVEL1, "Entering DEH_Destroy: 0x%x\n", pDehMgr);
 	if (MEM_IsValidHandle(pDehMgr, SIGNATURE)) {
 		/* If notification object exists, delete it */
-		if (pDehMgr->hNtfy) {
+		if (pDehMgr->hNtfy)
 			(VOID)NTFY_Delete(pDehMgr->hNtfy);
-		}
+
 		/* Disable DSP MMU fault */
 		(VOID)ISR_Uninstall(pDehMgr->hMmuFaultIsr);
 		(VOID)DPC_Destroy(pDehMgr->hMmuFaultDpc);
@@ -223,7 +216,8 @@ static DSP_STATUS PackTraceBuffer(PSTR lpBuf, ULONG nBytes, ULONG ulNumWords)
 	DSP_STATUS status = DSP_SOK;
 
 	/* tmp workspace, 1 KB longer than input buf */
-	if ((lpTmpBuf = MEM_Calloc((nBytes + ulNumWords), MEM_PAGED)) == NULL) {
+	lpTmpBuf = MEM_Calloc((nBytes + ulNumWords), MEM_PAGED);
+	if (lpTmpBuf == NULL) {
 		DBG_Trace(DBG_LEVEL7, "PackTrace buffer:OutofMemory \n");
 		status = DSP_EMEMORY;
 	}
@@ -255,141 +249,6 @@ static DSP_STATUS PackTraceBuffer(PSTR lpBuf, ULONG nBytes, ULONG ulNumWords)
 		MEM_Free(lpTmpStart);
 	}
 	return (status);
-}
-
-/*
- *  ======== PrintDspTraceBuffer ========
- *  Purpose:
- *      Prints the trace buffer returned from the DSP (if DBG_Trace is enabled).
- *  Parameters:
- *    hDehMgr:          Handle to DEH manager object
- *                      number of extra carriage returns to generate.
- *  Returns:
- *      DSP_SOK:        Success.
- *      DSP_EMEMORY:    Unable to allocate memory.
- *  Requires:
- *      hDehMgr muse be valid. Checked in WMD_DEH_Notify.
- */
-static DSP_STATUS PrintDspTraceBuffer(struct DEH_MGR *hDehMgr)
-{
-	DBG_Trace(DBG_LEVEL1, "PrintDspTraceBuffer: Entered\n");
-
-	DSP_STATUS status;
-	struct COD_MANAGER *hCodMgr;
-	ULONG ulTraceEnd;
-	ULONG ulTraceBegin;
-	ULONG ulNumBytes = 0;
-	ULONG ulNumWords = 0;
-	ULONG ulWordSize = 2;
-	CONST UINT uMaxSize = 512;
-	CHAR *pszBuf;
-	WCHAR *lpszBuf;
-	struct WMD_DRV_INTERFACE *pIntfFxns;
-	struct DEH_MGR *pDehMgr = (struct DEH_MGR *)hDehMgr;
-	struct DEV_OBJECT *hDevObject = ((struct WMD_DEV_CONTEXT *)
-					pDehMgr->hWmdContext)->hDevObject;
-
-	status = DEV_GetCodMgr(hDevObject, &hCodMgr);
-	if (DSP_FAILED(status)) {
-		DBG_Trace(DBG_LEVEL7,
-			 "PrintDspTraceBuffer: Failed on DEV_GetCodMgr.\n");
-	}
-
-	if (DSP_SUCCEEDED(status)) {
-		/* Look for SYS_PUTCBEG/SYS_PUTCEND: */
-		status = COD_GetSymValue(hCodMgr, COD_TRACEBEG, &ulTraceBegin);
-		DBG_Trace(DBG_LEVEL1,
-			 "PrintDspTraceBuffer: ulTraceBegin Value 0x%x\n",
-			 ulTraceBegin);
-		if (DSP_FAILED(status)) {
-			DBG_Trace(DBG_LEVEL7, "PrintDspTraceBuffer: Failed on "
-				 "COD_GetSymValue.\n");
-		}
-	}
-	if (DSP_SUCCEEDED(status)) {
-		status = COD_GetSymValue(hCodMgr, COD_TRACEEND, &ulTraceEnd);
-		DBG_Trace(DBG_LEVEL1,
-			 "PrintDspTraceBuffer: ulTraceEnd Value 0x%x\n",
-			 ulTraceEnd);
-		if (DSP_FAILED(status)) {
-			DBG_Trace(DBG_LEVEL7, "PrintDspTraceBuffer: Failed on "
-				 "COD_GetSymValue.\n");
-		}
-	}
-	if (DSP_SUCCEEDED(status)) {
-		ulNumBytes = (ulTraceEnd - ulTraceBegin) * ulWordSize;
-		 /*  If the chip type is 55 then the addresses will be
-		 *  byte addresses; convert them to word addresses.  */
-		ulTraceBegin *= ulWordSize;
-		if (ulNumBytes > uMaxSize) {
-			ulNumBytes = uMaxSize;
-		}
-		/* make sure the data we request fits evenly */
-		ulNumBytes = (ulNumBytes / ulWordSize) * ulWordSize;
-		DBG_Trace(DBG_LEVEL1, "PrintDspTraceBuffer: ulNumBytes 0x%x\n",
-			 ulNumBytes);
-		ulNumWords = ulNumBytes * ulWordSize;
-		DBG_Trace(DBG_LEVEL1, "PrintDspTraceBuffer: ulNumWords 0x%x\n",
-			 ulNumWords);
-		status = DEV_GetIntfFxns(hDevObject, &pIntfFxns);
-	}
-
-#if 0
-	if (DSP_FAILED(status)) {
-			DBG_Trace(DBG_LEVEL7,
-			   "PrintDspTraceBuffer: Failed on DEV_GetIntfFxns.\n");
-		}
-	  }
-
-	if (DSP_SUCCEEDED(status)) {
-		/* Stop the Board */
-		status = (*pIntfFxns->pfnBrdStop) (pDehMgr->hWmdContext);
-		if (DSP_FAILED(status)) {
-			DBG_Trace(DBG_LEVEL7,
-			   "PrintDspTraceBuffer: Failed to Stop the Board.\n");
-		}
-	  }
-
-	  if (DSP_SUCCEEDED(status)) {
-		/* Place the Board in the Monitor State */
-		status = (*pIntfFxns->pfnBrdMonitor) (pDehMgr->hWmdContext);
-		if (DSP_FAILED(status)) {
-			DBG_Trace(DBG_LEVEL7, "PrintDspTraceBuffer: Failed to "
-				"Place the Board in the Monitor State.\n");
-		}
-	}
-#endif
-
-	if (DSP_SUCCEEDED(status)) {
-		pszBuf = MEM_Calloc(uMaxSize, MEM_NONPAGED);
-		lpszBuf = MEM_Calloc(ulNumBytes * 2, MEM_NONPAGED);
-		if (pszBuf != NULL) {
-			/* Read bytes from the DSP trace buffer... */
-			status = (*pIntfFxns->pfnBrdRead)(pDehMgr->hWmdContext,
-				 pszBuf, ulTraceBegin, ulNumBytes, 0);
-			if (DSP_FAILED(status)) {
-				DBG_Trace(DBG_LEVEL7, "PrintDspTraceBuffer: "
-					 "Failed to Read Trace Buffer.\n");
-			}
-			if (DSP_SUCCEEDED(status)) {
-				/* Pack and do newline conversion */
-				DBG_Trace(DBG_LEVEL1, "PrintDspTraceBuffer: "
-					 "before pack and unpack.\n");
-				PackTraceBuffer(pszBuf, ulNumBytes, ulNumWords);
-				/*CSL_AnsiToWchar(lpszBuf, pszBuf,
-				 * ulNumBytes * 2);*/
-				DBG_Trace(DBG_LEVEL7, "DSP Trace Buffer:\n%s\n",
-					 pszBuf);
-			}
-			MEM_Free(pszBuf);
-			MEM_Free(lpszBuf);
-		} else {
-			DBG_Trace(DBG_LEVEL7, "PrintDspTraceBuffer: Failed to "
-				 "allocate trace buffer.\n");
-			status = DSP_EMEMORY;
-		}
-	}
-	return status;
 }
 
 #endif	/* #if ((defined DEBUG) || (defined DDSP_DEBUG_PRODUCT)) && GT_TRACE */
@@ -427,8 +286,8 @@ VOID CDECL WMD_DEH_Notify(struct DEH_MGR *hDehMgr, ULONG ulEventMask,
 	DBG_Trace(DBG_LEVEL1, "Entering WMD_DEH_Notify: 0x%x, 0x%x\n", pDehMgr,
 		 ulEventMask);
 	if (MEM_IsValidHandle(pDehMgr, SIGNATURE)) {
-		printk("WMD_DEH_Notify: ********** DEVICE EXCEPTION ****"
-		       "******\n");
+		printk(KERN_INFO "WMD_DEH_Notify: ********** DEVICE EXCEPTION "
+			"**********\n");
 		switch (ulEventMask) {
 		case DSP_SYSERROR:
 			/* reset errInfo structure before use */
@@ -437,26 +296,21 @@ VOID CDECL WMD_DEH_Notify(struct DEH_MGR *hDehMgr, ULONG ulEventMask,
 			pDehMgr->errInfo.dwVal2 = 0L;
 			pDehMgr->errInfo.dwVal3 = 0L;
 			pDehMgr->errInfo.dwVal1 = dwErrInfo;
-			printk("WMD_DEH_Notify: DSP_SYSERROR, errInfo = 0x%x\n",
-				dwErrInfo);
-#if ((defined DEBUG) || (defined DDSP_DEBUG_PRODUCT)) && GT_TRACE
-#if 0
-			PrintDspTraceBuffer(hDehMgr);
-#endif
-#endif
+			printk(KERN_ERR "WMD_DEH_Notify: DSP_SYSERROR, errInfo "
+				"= 0x%x\n", dwErrInfo);
 			break;
 		case DSP_MMUFAULT:
 			/* MMU fault routine should have set err info
 			 * structure */
 			pDehMgr->errInfo.dwErrMask = DSP_MMUFAULT;
-			printk("WMD_DEH_Notify: DSP_MMUFAULT, errInfo = 0x%x\n",
-				dwErrInfo);
-			printk("WMD_DEH_Notify: DSP_MMUFAULT, High Address = "
-			       "0x%x\n", pDehMgr->errInfo.dwVal1);
-			printk("WMD_DEH_Notify: DSP_MMUFAULT, Low Address = "
-			       "0x%x\n", pDehMgr->errInfo.dwVal2);
-			printk("WMD_DEH_Notify: DSP_MMUFAULT, fault address "
-			       "= 0x%x\n", faultAddr);
+			printk(KERN_INFO "WMD_DEH_Notify: DSP_MMUFAULT, errInfo "
+				"= 0x%x\n", dwErrInfo);
+			printk(KERN_INFO "WMD_DEH_Notify: DSP_MMUFAULT, High "
+				"Address = 0x%x\n", pDehMgr->errInfo.dwVal1);
+			printk(KERN_INFO "WMD_DEH_Notify: DSP_MMUFAULT, Low "
+				"Address = 0x%x\n", pDehMgr->errInfo.dwVal2);
+			printk(KERN_INFO "WMD_DEH_Notify: DSP_MMUFAULT, fault "
+				"address = 0x%x\n", faultAddr);
 			dummyVaAddr = (ULONG)MEM_Calloc(sizeof(char) * 0x1000,
 					MEM_PAGED);
 			memPhysical = (ULONG)MEM_Calloc(sizeof(char) * 0x1000,

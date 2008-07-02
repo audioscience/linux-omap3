@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/ddmatypes.h
+ * dspbridge/mpu_driver/inc/ddmatypes.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -28,20 +28,9 @@
 #ifndef DDMATYPES_
 #define DDMATYPES_
 
-#ifdef CHNL_DDMA
-
-/* GPP-side type definitions */
-typedef DWORD DDMA_DWORD;
-typedef SHORT DDMA_WORD;
-typedef DWORD DDMA_STATUS;
-
-#else				/* default to DSP-side */
-
 /* DSP-side definitions */
 typedef LgUns DDMA_DWORD;
 typedef Uns DDMA_WORD;
 typedef LgUns DDMA_STATUS;
-
-#endif
 
 #endif				/* DDMATYPES_ */

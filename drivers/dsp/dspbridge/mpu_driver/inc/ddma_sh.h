@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/ddma_sh.h
+ * dspbridge/mpu_driver/inc/ddma_sh.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -83,18 +83,6 @@ struct DDMA_CHNLDESC {
  * Zero-copy channel descriptor(SM buffer swap)
  */
 struct DDMA_ZCPYCHNLDESC {
-#ifdef CHNL_DDZC
-	/* GPP-side */
-	DDMA_DWORD outBuf;	/* address of output buffer  */
-	DDMA_DWORD outDataSize;	/* Data size of outBuf  (DSP MAUs) */
-	DDMA_DWORD outBufSize;	/* Actual buffer size of outBuf  (DSP MAUs) */
-	DDMA_DWORD outUserArg;	/* Optional out user argument */
-
-	DDMA_DWORD inBuf;	/* address of input buffer */
-	DDMA_DWORD inDataSize;	/* Data size of inBuf  (DSP MAUs) */
-	DDMA_DWORD inBufSize;	/* Actual buffer size of inBuf  (DSP MAUs) */
-	DDMA_DWORD inUserArg;	/* Optional in user argument */
-#else
 	/* DSP-Side */
 	DDMA_DWORD inBuf;	/* address of input buffer */
 	DDMA_DWORD inDataSize;	/* Data size of inBuf  (DSP MAUs) */
@@ -105,7 +93,6 @@ struct DDMA_ZCPYCHNLDESC {
 	DDMA_DWORD outDataSize;	/* Data size of outBuf  (DSP MAUs) */
 	DDMA_DWORD outBufSize;	/* Actual buffer size of outBuf  (DSP MAUs) */
 	DDMA_DWORD outUserArg;	/* Optional out user argument */
-#endif
 	} ;
 
 #ifdef __cplusplus

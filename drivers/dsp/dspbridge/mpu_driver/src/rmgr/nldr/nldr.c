@@ -58,7 +58,6 @@
 
 #include <dbc.h>
 #include <gt.h>
-#include <dbg_zones.h>
 #ifdef DEBUG
 #include <dbg.h>
 #endif
@@ -66,7 +65,6 @@
 /* OS adaptation layer */
 #include <csl.h>
 #include <mem.h>
-#include <perf.h>
 
 /* Platform manager */
 #include <cod.h>
@@ -79,9 +77,6 @@
 #include <uuidutil.h>
 
 #include <nldr.h>
-
-/* 0/1 PERF to enable/disable performance benchmarking */
-#define PERF 0
 
 #define NLDR_SIGNATURE      0x52444c4e	/* "RDLN" */
 #define NLDR_NODESIGNATURE  0x4e444c4e	/* "NDLN" */
@@ -361,9 +356,7 @@ static DSP_STATUS RemoteAlloc(PVOID *pRef, USHORT memType, ULONG size,
 static DSP_STATUS RemoteFree(PVOID *pRef, USHORT space, ULONG dspAddr,
 			    ULONG size, BOOL reserve);
 
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
 static VOID SwapBytes(CHAR *buf, ULONG ulLen);
-#endif
 
 static VOID UnloadLib(struct NLDR_NODEOBJECT *hNldrNode, struct LibNode *root);
 static VOID UnloadOvly(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase);
@@ -468,16 +461,16 @@ DSP_STATUS NLDR_Allocate(struct NLDR_OBJECT *hNldr, PVOID pPrivRef,
 			 * base image */
 			pNldrNode->root.lib = hNldr->baseLib;
 			/* Check for overlay node */
-			if (pNodeProps->usLoadType == NLDR_OVLYLOAD) {
+			if (pNodeProps->usLoadType == NLDR_OVLYLOAD)
 				pNldrNode->fOverlay = TRUE;
-			}
+
 		}
 		*phNldrNode = (struct NLDR_NODEOBJECT *) pNldrNode;
 	}
 	/* Cleanup on failure */
-	if (DSP_FAILED(status) && pNldrNode) {
+	if (DSP_FAILED(status) && pNldrNode)
 		NLDR_Free((struct NLDR_NODEOBJECT *) pNldrNode);
-	}
+
 	DBC_Ensure((DSP_SUCCEEDED(status) &&
 		  MEM_IsValidHandle(((struct NLDR_NODEOBJECT *)(*phNldrNode)),
 		  NLDR_NODESIGNATURE)) || (DSP_FAILED(status) &&
@@ -533,18 +526,18 @@ DSP_STATUS NLDR_Create(OUT struct NLDR_OBJECT **phNldr,
 		pNldr->usDSPMauSize = pAttrs->usDSPMauSize;
 		pNldr->usDSPWordSize = pAttrs->usDSPWordSize;
 		pNldr->dbllFxns = dbllFxns;
-		if (!(pNldr->dbllFxns.initFxn())) {
+		if (!(pNldr->dbllFxns.initFxn()))
 			status = DSP_EMEMORY;
-		}
+
 	} else {
 		GT_0trace(NLDR_debugMask, GT_6CLASS, "NLDR_Create: "
 			 "Memory allocation failed\n");
 		status = DSP_EMEMORY;
 	}
 	/* Create the DCD Manager */
-	if (DSP_SUCCEEDED(status)) {
+	if (DSP_SUCCEEDED(status))
 		status = DCD_CreateManager(NULL, &pNldr->hDcdMgr);
-	}
+
 	/* Get dynamic loading memory sections from base lib */
 	if (DSP_SUCCEEDED(status)) {
 		status = pNldr->dbllFxns.getSectFxn(pNldr->baseLib, DYNMEMSECT,
@@ -577,13 +570,6 @@ DSP_STATUS NLDR_Create(OUT struct NLDR_OBJECT **phNldr,
 				 "NLDR_Create: DBLL_read Section"
 				 "failed: 0x%lx\n", status);
 		}
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-		else {
-#ifdef _DB_TIOMAP
-			SwapBytes(pszCoffBuf, ulLen);
-#endif
-		}
-#endif
 	}
 	if (DSP_SUCCEEDED(status) && ulLen > 0) {
 		/* Parse memory segment data */
@@ -621,9 +607,9 @@ DSP_STATUS NLDR_Create(OUT struct NLDR_OBJECT **phNldr,
 		}
 	}
 	/* Create Remote memory manager */
-	if (DSP_SUCCEEDED(status)) {
+	if (DSP_SUCCEEDED(status))
 		status = RMM_create(&pNldr->rmm, rmmSegs, nSegs);
-	}
+
 	if (DSP_SUCCEEDED(status)) {
 		/* set the alloc, free, write functions for loader */
 		pNldr->dbllFxns.getAttrsFxn(pNldr->dbll, &saveAttrs);
@@ -637,12 +623,12 @@ DSP_STATUS NLDR_Create(OUT struct NLDR_OBJECT **phNldr,
 		pNldr->writeFxn = pAttrs->pfnWrite;
 		pNldr->dbllAttrs = newAttrs;
 	}
-	if (rmmSegs) {
+	if (rmmSegs)
 		MEM_Free(rmmSegs);
-	}
-	if (pszCoffBuf) {
+
+	if (pszCoffBuf)
 		MEM_Free(pszCoffBuf);
-	}
+
 	/* Get overlay nodes */
 	if (DSP_SUCCEEDED(status)) {
 		status = COD_GetBaseName(hCodMgr, szZLFile, COD_MAXPATHLENGTH);
@@ -676,9 +662,9 @@ DSP_STATUS NLDR_Create(OUT struct NLDR_OBJECT **phNldr,
 	if (DSP_SUCCEEDED(status)) {
 		*phNldr = (struct NLDR_OBJECT *) pNldr;
 	} else {
-		if (pNldr) {
+		if (pNldr)
 			NLDR_Delete((struct NLDR_OBJECT *) pNldr);
-		}
+
 		*phNldr = NULL;
 	}
 	/* FIXME:Temp. Fix. Must be removed */
@@ -701,15 +687,15 @@ VOID NLDR_Delete(struct NLDR_OBJECT *hNldr)
 	DBC_Require(MEM_IsValidHandle(hNldr, NLDR_SIGNATURE));
 	GT_1trace(NLDR_debugMask, GT_ENTER, "NLDR_Delete(0x%x)\n", hNldr);
 	hNldr->dbllFxns.exitFxn();
-	if (hNldr->rmm) {
+	if (hNldr->rmm)
 		RMM_delete(hNldr->rmm);
-	}
-	if (hNldr->segTable) {
+
+	if (hNldr->segTable)
 		MEM_Free(hNldr->segTable);
-	}
-	if (hNldr->hDcdMgr) {
+
+	if (hNldr->hDcdMgr)
 		DCD_DestroyManager(hNldr->hDcdMgr);
-	}
+
 	/* Free overlay node information */
 	if (hNldr->ovlyTable) {
 		for (i = 0; i < hNldr->nOvlyNodes; i++) {
@@ -821,9 +807,9 @@ DSP_STATUS NLDR_GetFxnAddr(struct NLDR_NODEOBJECT *hNldrNode, PSTR pstrFxn,
 		root = hNldrNode->root;
 	}
 	status1 = hNldr->dbllFxns.getCAddrFxn(root.lib, pstrFxn, &pSym);
-	if (!status1) {
+	if (!status1)
 		status1 = hNldr->dbllFxns.getAddrFxn(root.lib, pstrFxn, &pSym);
-	}
+
 	/* If symbol not found, check dependent libraries */
 	if (!status1) {
 		for (i = 0; i < root.nDepLibs; i++) {
@@ -930,11 +916,6 @@ DSP_STATUS NLDR_Load(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase)
 	struct NLDR_OBJECT *hNldr;
 	struct DSP_UUID libUUID;
 	DSP_STATUS status = DSP_SOK;
-#if PERF
-	ULONG ulCounterStart = 0;
-	ULONG ulCounterDelta = 0;
-	FLOAT flCounterMSeconds = 0;
-#endif
 
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(hNldrNode, NLDR_NODESIGNATURE));
@@ -949,10 +930,6 @@ DSP_STATUS NLDR_Load(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase)
 
 		libUUID = hNldrNode->uuid;
 
-#if PERF
-		ulCounterStart = PERF_GetSysTicks();
-#endif
-
 		/* At this point, we may not know if node is split into
 		 * different libraries. So we'll go ahead and load the
 		 * library, and then save the pointer to the appropriate
@@ -961,33 +938,19 @@ DSP_STATUS NLDR_Load(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase)
 		status = LoadLib(hNldrNode, &hNldrNode->root, libUUID, FALSE,
 				hNldrNode->libPath, phase, 0);
 
-#if PERF
-		ulCounterDelta = PERF_GetSysTicksDelta(ulCounterStart);
-#endif
-
 		if (DSP_SUCCEEDED(status)) {
 			if (*hNldrNode->pfPhaseSplit) {
 				switch (phase) {
 				case NLDR_CREATE:
 					hNldrNode->createLib = hNldrNode->root;
-#if PERF
-					RETAILMSG(1, (TEXT("* Phase: Create")));
-#endif
 					break;
 
 				case NLDR_EXECUTE:
 					hNldrNode->executeLib = hNldrNode->root;
-#if PERF
-					RETAILMSG(1,
-						 (TEXT("* Phase: Execute")));
-#endif
 					break;
 
 				case NLDR_DELETE:
 					hNldrNode->deleteLib = hNldrNode->root;
-#if PERF
-					RETAILMSG(1, (TEXT("* Phase: Delete")));
-#endif
 					break;
 
 				default:
@@ -996,16 +959,10 @@ DSP_STATUS NLDR_Load(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase)
 				}
 			}
 		}
-#if PERF
-		flCounterMSeconds = PERF_GetSysTickSeconds(ulCounterDelta *
-							  1000);
-		RETAILMSG(1, (TEXT("\tDynamic Load Time: %lu msecs\n"),
-			 (ULONG)flCounterMSeconds));
-#endif
 	} else {
-		if (hNldrNode->fOverlay) {
+		if (hNldrNode->fOverlay)
 			status = LoadOvly(hNldrNode, phase);
-		}
+
 	}
 
 	return (status);
@@ -1054,9 +1011,9 @@ DSP_STATUS NLDR_Unload(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase)
 			}
 			UnloadLib(hNldrNode, pRootLib);
 		} else {
-			if (hNldrNode->fOverlay) {
+			if (hNldrNode->fOverlay)
 				UnloadOvly(hNldrNode, phase);
-			}
+
 		}
 	}
 	return (status);
@@ -1078,9 +1035,9 @@ static DSP_STATUS AddOvlyInfo(PVOID handle, struct DBLL_SectInfo *sectInfo,
 	DSP_STATUS status = DSP_SOK;
 
 	/* Is this an overlay section (load address != run address)? */
-	if (sectInfo->loadAddr == sectInfo->runAddr) {
+	if (sectInfo->loadAddr == sectInfo->runAddr)
 		goto func_end;
-	}
+
 	/* Find the node it belongs to */
 	for (i = 0; i < hNldr->nOvlyNodes; i++) {
 		pNodeName = hNldr->ovlyTable[i].pNodeName;
@@ -1090,9 +1047,9 @@ static DSP_STATUS AddOvlyInfo(PVOID handle, struct DBLL_SectInfo *sectInfo,
 				break;
 		}
 	}
-	if (!(i < hNldr->nOvlyNodes)) {
+	if (!(i < hNldr->nOvlyNodes))
 		goto func_end;
-	}
+
 	/* Determine which phase this section belongs to. */
 	for (pch = pSectName + 1; *pch && *pch != seps; pch++) {
 	}
@@ -1101,33 +1058,33 @@ static DSP_STATUS AddOvlyInfo(PVOID handle, struct DBLL_SectInfo *sectInfo,
 		if (CSL_Strncmp(pch, PCREATE, CSL_Strlen(PCREATE)) == 0) {
 			status = AddOvlySect(hNldr, &hNldr->ovlyTable[i].
 				pCreateSects, sectInfo, &fExists, addr, nBytes);
-			if (DSP_SUCCEEDED(status) && !fExists) {
+			if (DSP_SUCCEEDED(status) && !fExists)
 				hNldr->ovlyTable[i].nCreateSects++;
-			}
+
 		} else
 		if (CSL_Strncmp(pch, PDELETE, CSL_Strlen(PDELETE)) == 0) {
 			status = AddOvlySect(hNldr, &hNldr->ovlyTable[i].
 					    pDeleteSects, sectInfo, &fExists,
 					    addr, nBytes);
-			if (DSP_SUCCEEDED(status) && !fExists) {
+			if (DSP_SUCCEEDED(status) && !fExists)
 				hNldr->ovlyTable[i].nDeleteSects++;
-			}
+
 		} else
 		if (CSL_Strncmp(pch, PEXECUTE, CSL_Strlen(PEXECUTE)) == 0) {
 			status = AddOvlySect(hNldr, &hNldr->ovlyTable[i].
 					    pExecuteSects, sectInfo, &fExists,
 					    addr, nBytes);
-			if (DSP_SUCCEEDED(status) && !fExists) {
+			if (DSP_SUCCEEDED(status) && !fExists)
 				hNldr->ovlyTable[i].nExecuteSects++;
-			}
+
 		} else {
 			/* Put in "other" sectins */
 			status = AddOvlySect(hNldr, &hNldr->ovlyTable[i].
 					    pOtherSects, sectInfo, &fExists,
 					    addr, nBytes);
-			if (DSP_SUCCEEDED(status) && !fExists) {
+			if (DSP_SUCCEEDED(status) && !fExists)
 				hNldr->ovlyTable[i].nOtherSects++;
-			}
+
 		}
 	}
 func_end:
@@ -1148,13 +1105,13 @@ static DSP_STATUS AddOvlyNode(struct DSP_UUID *pUuid, DSP_DCDOBJTYPE objType,
 	struct DCD_GENERICOBJ objDef;
 	DSP_STATUS status = DSP_SOK;
 
-	if (objType != DSP_DCDNODETYPE) {
+	if (objType != DSP_DCDNODETYPE)
 		goto func_end;
-	}
+
 	status = DCD_GetObjectDef(hNldr->hDcdMgr, pUuid, objType, &objDef);
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_end;
-	}
+
 	/* If overlay node, add to the list */
 	if (objDef.objData.nodeObj.usLoadType == NLDR_OVLYLOAD) {
 		if (hNldr->ovlyTable == NULL) {
@@ -1162,41 +1119,32 @@ static DSP_STATUS AddOvlyNode(struct DSP_UUID *pUuid, DSP_DCDOBJTYPE objType,
 		} else {
 			/* Add node to table */
 			hNldr->ovlyTable[hNldr->nNode].uuid = *pUuid;
-#ifdef UNICODE
-			uLen = CSL_Wstrlen(objDef.objData.nodeObj.ndbProps.
-					  acName);
-#else
 			uLen = CSL_Strlen(objDef.objData.nodeObj.ndbProps.
 					 acName);
-#endif
 			pNodeName = objDef.objData.nodeObj.ndbProps.acName;
 			pBuf = MEM_Calloc(uLen + 1, MEM_PAGED);
 			if (pBuf == NULL) {
 				status = DSP_EMEMORY;
 			} else {
-#ifdef UNICODE
-				CSL_WcharToAnsi(pBuf, (WCHAR *)pNodeName, uLen);
-#else
 				CSL_Strcpyn(pBuf, pNodeName, uLen);
-#endif
 				hNldr->ovlyTable[hNldr->nNode].pNodeName = pBuf;
 				hNldr->nNode++;
 			}
 		}
 	}
 	/* These were allocated in DCD_GetObjectDef */
-	if (objDef.objData.nodeObj.pstrCreatePhaseFxn) {
+	if (objDef.objData.nodeObj.pstrCreatePhaseFxn)
 		MEM_Free(objDef.objData.nodeObj.pstrCreatePhaseFxn);
-	}
-	if (objDef.objData.nodeObj.pstrExecutePhaseFxn) {
+
+	if (objDef.objData.nodeObj.pstrExecutePhaseFxn)
 		MEM_Free(objDef.objData.nodeObj.pstrExecutePhaseFxn);
-	}
-	if (objDef.objData.nodeObj.pstrDeletePhaseFxn) {
+
+	if (objDef.objData.nodeObj.pstrDeletePhaseFxn)
 		MEM_Free(objDef.objData.nodeObj.pstrDeletePhaseFxn);
-	}
-	if (objDef.objData.nodeObj.pstrIAlgName) {
+
+	if (objDef.objData.nodeObj.pstrIAlgName)
 		MEM_Free(objDef.objData.nodeObj.pstrIAlgName);
-	}
+
 func_end:
 	return (status);
 }
@@ -1304,9 +1252,9 @@ static BOOL GetSymbolValue(PVOID handle, PVOID pArg, PVOID rmmHandle,
 
 	/* check the base image */
 	status = hNldr->dbllFxns.getAddrFxn(hNldr->baseLib, name, sym);
-	if (!status) {
+	if (!status)
 		status = hNldr->dbllFxns.getCAddrFxn(hNldr->baseLib, name, sym);
-	}
+
 	/*
 	 *  Check in root lib itself. If the library consists of
 	 *  multiple object files linked together, some symbols in the
@@ -1392,9 +1340,9 @@ static DSP_STATUS LoadLib(struct NLDR_NODEOBJECT *hNldrNode,
 	root->lib = NULL;
 	/* Allocate a buffer for library file name of size DBL_MAXPATHLENGTH */
 	pszFileName = MEM_Calloc(DBLL_MAXPATHLENGTH, MEM_PAGED);
-	if (pszFileName == NULL) {
+	if (pszFileName == NULL)
 		status = DSP_EMEMORY;
-	}
+
 	if (DSP_SUCCEEDED(status)) {
 		/* Get the name of the library */
 		if (depth == 0) {
@@ -1414,9 +1362,9 @@ static DSP_STATUS LoadLib(struct NLDR_NODEOBJECT *hNldrNode,
 			 DBLL_NOLOAD, &root->lib);
 	}
 	/* Done with file name */
-	if (pszFileName) {
+	if (pszFileName)
 		MEM_Free(pszFileName);
-	}
+
 	/* Check to see if library not already loaded */
 	if (DSP_SUCCEEDED(status) && rootPersistent) {
 		fStatus = findInPersistentLibArray(hNldrNode, root->lib);
@@ -1446,9 +1394,9 @@ static DSP_STATUS LoadLib(struct NLDR_NODEOBJECT *hNldrNode,
 	}
 	DBC_Assert(nLibs >= nPLibs);
 	if (DSP_SUCCEEDED(status)) {
-		if (!(*hNldrNode->pfPhaseSplit)) {
+		if (!(*hNldrNode->pfPhaseSplit))
 			nPLibs = 0;
-		}
+
 		/* nLibs = #of dependent libraries */
 		root->nDepLibs = nLibs - nPLibs;
 		if (nLibs > 0) {
@@ -1456,18 +1404,18 @@ static DSP_STATUS LoadLib(struct NLDR_NODEOBJECT *hNldrNode,
 				      nLibs, MEM_PAGED);
 			persistentDepLibs = MEM_Calloc(sizeof(BOOL) *
 					    nLibs, MEM_PAGED);
-			if (!depLibUUIDs || !persistentDepLibs) {
+			if (!depLibUUIDs || !persistentDepLibs)
 				status = DSP_EMEMORY;
-			}
+
 			if (root->nDepLibs > 0) {
 				/* Allocate arrays for dependent lib UUIDs,
 				 * lib nodes */
 				root->pDepLibs = MEM_Calloc
 					(sizeof(struct LibNode) *
 					(root->nDepLibs), MEM_PAGED);
-				if (!(root->pDepLibs)) {
+				if (!(root->pDepLibs))
 					status = DSP_EMEMORY;
-				}
+
 			}
 
 			if (DSP_SUCCEEDED(status)) {
@@ -1482,7 +1430,7 @@ static DSP_STATUS LoadLib(struct NLDR_NODEOBJECT *hNldrNode,
 	/*
 	 *  Recursively load dependent libraries.
 	 */
-	if (DSP_SUCCEEDED(status)) {
+	if (DSP_SUCCEEDED(status) && persistentDepLibs) {
 		for (i = 0; i < nLibs; i++) {
 			/* If root library is NOT persistent, and dep library
 			 * is, then record it.  If root library IS persistent,
@@ -1498,17 +1446,23 @@ static DSP_STATUS LoadLib(struct NLDR_NODEOBJECT *hNldrNode,
 				pDepLib = &hNldrNode->persLib[hNldrNode->
 					  nPersLib];
 			} else {
-				if (rootPersistent) {
+				if (rootPersistent)
 					persistentDepLibs[i] = TRUE;
-				}
+
 
 				/* Allocate library within phase */
 				pDepLib = &root->pDepLibs[nLoaded];
 			}
 
-			status = LoadLib(hNldrNode, pDepLib, depLibUUIDs[i],
-					persistentDepLibs[i], libPath, phase,
-					depth);
+			if (depLibUUIDs) {
+				status = LoadLib(hNldrNode, pDepLib,
+						depLibUUIDs[i],
+						persistentDepLibs[i], libPath,
+						phase,
+						depth);
+			} else {
+				status = DSP_EMEMORY;
+			}
 
 			if (DSP_SUCCEEDED(status)) {
 				if ((status != DSP_SALREADYLOADED) &&
@@ -1546,17 +1500,17 @@ static DSP_STATUS LoadLib(struct NLDR_NODEOBJECT *hNldrNode,
 	 */
 	if (DSP_FAILED(status)) {
 		if (phase != NLDR_EXECUTE) {
-			for (i = 0; i < hNldrNode->nPersLib; i++) {
+			for (i = 0; i < hNldrNode->nPersLib; i++)
 				UnloadLib(hNldrNode, &hNldrNode->persLib[i]);
-			}
+
 			hNldrNode->nPersLib = 0;
 		}
-		for (i = 0; i < nLoaded; i++) {
+		for (i = 0; i < nLoaded; i++)
 			UnloadLib(hNldrNode, &root->pDepLibs[i]);
-		}
-		if (root->lib) {
+
+		if (root->lib)
 			hNldr->dbllFxns.closeFxn(root->lib);
-		}
+
 	}
 
 	/* Going up one node in the dependency tree */
@@ -1627,15 +1581,15 @@ static DSP_STATUS LoadOvly(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase)
 	}
 
 	DBC_Assert(pRefCount != NULL);
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_end;
-	}
-	if (pRefCount == NULL) {
+
+	if (pRefCount == NULL)
 		goto func_end;
-	}
-	if (*pRefCount != 0) {
+
+	if (*pRefCount != 0)
 		goto func_end;
-	}
+
 	/* 'Allocate' memory for overlay sections of this phase */
 	pSect = pPhaseSects;
 	while (pSect) {
@@ -1677,9 +1631,9 @@ static DSP_STATUS LoadOvly(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase)
 				nBytes = (*hNldr->ovlyFxn)(hNldrNode->pPrivRef,
 					 pSect->runAddr, pSect->loadAddr,
 					 pSect->size, pSect->page);
-				if (nBytes != pSect->size) {
+				if (nBytes != pSect->size)
 					status = DSP_EFAIL;
-				}
+
 				pSect = pSect->pNextSect;
 			}
 		}
@@ -1692,9 +1646,9 @@ static DSP_STATUS LoadOvly(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase)
 				nBytes = (*hNldr->ovlyFxn)(hNldrNode->pPrivRef,
 					 pSect->runAddr, pSect->loadAddr,
 					 pSect->size, pSect->page);
-				if (nBytes != pSect->size) {
+				if (nBytes != pSect->size)
 					status = DSP_EFAIL;
-				}
+
 				pSect = pSect->pNextSect;
 			}
 		}
@@ -1705,40 +1659,15 @@ static DSP_STATUS LoadOvly(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase)
 		FreeSects(hNldr, pOtherSects, nOtherAlloc);
 	}
 func_end:
-	if (DSP_SUCCEEDED(status)) {
+	if (DSP_SUCCEEDED(status) && (pRefCount != NULL)) {
 		*pRefCount += 1;
-		if (pOtherRef) {
+		if (pOtherRef)
 			*pOtherRef += 1;
-		}
+
 	}
 
 	return (status);
 }
-
-/*
- *  ======== NoOp ========
- *
- */
-/*
-   static BOOL NoOp(VOID)
-   {
-   return (TRUE);
-   }
- */
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-/*
- *  ======== SwapBytes ========
- */
-static VOID SwapBytes(CHAR *buf, ULONG ulLen)
-{
-	ULONG *tmp = (ULONG *) buf;
-	ULONG i;
-
-	for (i = 0; i < ulLen / 4; i++) {
-		tmp[i] = SWAPLONG(tmp[i]);
-	}
-}
-#endif
 
 /*
  *  ======== RemoteAlloc ========
@@ -1767,11 +1696,9 @@ static DSP_STATUS RemoteAlloc(PVOID *pRef, USHORT space, ULONG size,
 	/* Convert size to DSP words */
 	nWords = (size + hNldr->usDSPWordSize - 1) / hNldr->usDSPWordSize;
 	/* Modify memory 'align' to account for DSP cache line size */
-#if defined(OMAP_2430) || defined(OMAP_3430)
 	align = findLcm(GEM_CACHE_LINE_SIZE, align);
 	GT_1trace(NLDR_debugMask, GT_7CLASS,
 		 "RemoteAlloc: memory align to 0x%x \n", align);
-#endif
 	if (segmentId != -1) {
 		pRmmAddr->segid = segmentId;
 		segid = segmentId;
@@ -1791,39 +1718,20 @@ static DSP_STATUS RemoteAlloc(PVOID *pRef, USHORT space, ULONG size,
 			DBC_Assert(FALSE);
 			break;
 		}
-		if (space == DBLL_CODE) {
+		if (space == DBLL_CODE)
 			memPhaseBit++;
-		}
+
 		/*segid = hNode->segId[memPhaseBit];*/
-		if (memPhaseBit < MAXFLAGS) {
+		if (memPhaseBit < MAXFLAGS)
 			segid = hNode->segId[memPhaseBit];
-		}
+
 		/* Determine if there is a memory loading requirement */
-		if ((hNode->codeDataFlagMask >> memPhaseBit) & 0x1) {
+		if ((hNode->codeDataFlagMask >> memPhaseBit) & 0x1)
 			fReq = TRUE;
-		}
+
 	}
 	memType = (space == DBLL_CODE) ? DYNM_CODE : DYNM_DATA;
-	/*
-	 *  The .bss section must go into internal memory due to endianism
-	 *  issues on the OMAP.
-	 *  If .bss section and preferred memory is not internal, have to
-	 *  change. Make internal memory a requirement.
-	 */
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-	if (space == DBLL_BSS) {
-		if (IsExternal(hNldr, segid)) {
-			GT_0trace(NLDR_debugMask, GT_6CLASS,
-				 "RemoteAlloc: Forcing load of"
-				 " .bss section to internal memory.\n");
 
-			segid = MEMINTERNALID;
-		}
-		if (IsInternal(hNldr, segid)) {
-			fReq = TRUE;
-		}
-	}
-#endif
 	/* Find an appropriate segment based on space */
 	if (segid == NULLID) {
 		/* No memory requirements of preferences */
@@ -1848,9 +1756,9 @@ static DSP_STATUS RemoteAlloc(PVOID *pRef, USHORT space, ULONG size,
 		memType |= segid == MEMINTERNALID ?
 				 DYNM_INTERNAL : DYNM_EXTERNAL;
 		for (i = 0; i < hNldr->nSegs; i++) {
-			if ((hNldr->segTable[i] & memType) != memType) {
+			if ((hNldr->segTable[i] & memType) != memType)
 				continue;
-			}
+
 			status = RMM_alloc(rmm, i, nWords, align, dspAddr,
 					   FALSE);
 			if (DSP_SUCCEEDED(status)) {
@@ -1866,17 +1774,11 @@ func_cont:
 		GT_0trace(NLDR_debugMask, GT_6CLASS,
 			 "RemoteAlloc: Preferred segment "
 			 "unavailable, trying another segment.\n");
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-		/* .bss must go in internal memory (OMAP endianism issues) */
-		if (space == DBLL_BSS) {
-			memType |= DYNM_INTERNAL;
-		}
-#endif
 		for (i = 0; i < hNldr->nSegs; i++) {
 			/* All bits of memType must be set */
-			if ((hNldr->segTable[i] & memType) != memType) {
+			if ((hNldr->segTable[i] & memType) != memType)
 				continue;
-			}
+
 			status = RMM_alloc(rmm, i, nWords, align, dspAddr,
 					  FALSE);
 			if (DSP_SUCCEEDED(status)) {
@@ -1905,9 +1807,8 @@ static DSP_STATUS RemoteFree(PVOID *pRef, USHORT space, ULONG dspAddr,
 	/* Convert size to DSP words */
 	nWords = (size + hNldr->usDSPWordSize - 1) / hNldr->usDSPWordSize;
 
-	if (RMM_free(rmm, space, dspAddr, nWords, reserve)) {
+	if (RMM_free(rmm, space, dspAddr, nWords, reserve))
 		status = DSP_SOK;
-	}
 
 	return (status);
 }
@@ -1924,9 +1825,8 @@ static VOID UnloadLib(struct NLDR_NODEOBJECT *hNldrNode, struct LibNode *root)
 	DBC_Assert(root != NULL);
 
 	/* Unload dependent libraries */
-	for (i = 0; i < root->nDepLibs; i++) {
+	for (i = 0; i < root->nDepLibs; i++)
 		UnloadLib(hNldrNode, &root->pDepLibs[i]);
-	}
 
 	root->nDepLibs = 0;
 
@@ -2009,13 +1909,13 @@ static VOID UnloadOvly(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase)
 			}
 		}
 	}
-	if (*pRefCount == 0) {
+	if (pRefCount && (*pRefCount == 0)) {
 		/* 'Deallocate' memory */
 		FreeSects(hNldr, pPhaseSects, nAlloc);
 	}
-	if (pOtherRef && *pOtherRef == 0) {
+	if (pOtherRef && *pOtherRef == 0)
 		FreeSects(hNldr, pOtherSects, nOtherAlloc);
-	}
+
 }
 
 /*
@@ -2027,9 +1927,9 @@ static BOOL findInPersistentLibArray(struct NLDR_NODEOBJECT *hNldrNode,
 	INT i = 0;
 
 	for (i = 0; i < hNldrNode->nPersLib; i++) {
-		if (lib == hNldrNode->persLib[i].lib) {
+		if (lib == hNldrNode->persLib[i].lib)
 			return TRUE;
-		}
+
 	}
 
 	return FALSE;

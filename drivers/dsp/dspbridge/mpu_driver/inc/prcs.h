@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/prcs.h
+ * dspbridge/mpu_driver/inc/prcs.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

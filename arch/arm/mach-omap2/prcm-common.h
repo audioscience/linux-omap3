@@ -32,6 +32,7 @@
 
 
 /* Chip-specific module offsets */
+#define OMAP24XX_GR_MOD					OCP_MOD
 #define OMAP24XX_DSP_MOD				0x800
 
 #define OMAP2430_MDM_MOD				0xc00
@@ -311,7 +312,8 @@
 #define OMAP3430_ST_GPT2				(1 << 3)
 
 /* CM_SLEEPDEP_PER, PM_WKDEP_IVA2, PM_WKDEP_MPU, PM_WKDEP_PER shared bits */
-#define OMAP3430_EN_CORE				(1 << 0)
+#define OMAP3430_EN_CORE_SHIFT				0
+#define OMAP3430_EN_CORE_MASK				(1 << 0)
 
 #endif
 

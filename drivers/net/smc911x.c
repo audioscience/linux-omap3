@@ -1,6 +1,6 @@
 /*
  * smc911x.c
- * This is a driver for SMSC's LAN911{5,6,7,8} single-chip Ethernet devices.
+ * Driver for SMSC's LAN9{115,116,117,118, 211} single-chip Ethernet devices.
  *
  * Copyright (C) 2005 Sensoria Corp
  *	   Derived from the unified SMC91x driver by Nicolas Pitre
@@ -92,6 +92,7 @@ module_param(tx_fifo_kb, int, 0400);
 MODULE_PARM_DESC(tx_fifo_kb,"transmit FIFO size in KB (1<x<15)(default=8)");
 
 MODULE_LICENSE("GPL");
+MODULE_ALIAS("platform:smc911x");
 
 /*
  * The internal workings of the driver.  If you are changing anything
@@ -135,7 +136,6 @@ struct smc911x_local {
 
 	/* work queue */
 	struct work_struct phy_configure;
-	int work_pending;
 
 	int tx_throttle;
 	spinlock_t lock;
@@ -232,16 +232,8 @@ static void smc911x_reset(struct net_device *dev)
 	struct smc911x_local *lp = netdev_priv(dev);
 	unsigned int reg, timeout=0, resets=1;
 	unsigned long flags;
-	int phyaddr = lp->mii.phy_id;
-	int bmcr;
 
 	DBG(SMC_DEBUG_FUNC, "%s: --> %s\n", dev->name, __FUNCTION__);
-
-	/* Link Power ON */
-	SMC_GET_PHY_BMCR(phyaddr, bmcr);
-	bmcr &= ~BMCR_PDOWN;
-	SMC_SET_PHY_BMCR(phyaddr, bmcr);
-	mdelay(10);
 
 	/*	 Take out of PM setting first */
 	if ((SMC_GET_PMT_CTRL() & PMT_CTRL_READY_) == 0) {
@@ -251,8 +243,8 @@ static void smc911x_reset(struct net_device *dev)
 		do {
 			udelay(10);
 			reg = SMC_GET_PMT_CTRL() & PMT_CTRL_READY_;
-		} while ( timeout-- && !reg);
-		if (timeout <= 0) {
+		} while (--timeout && !reg);
+		if (timeout == 0) {
 			PRINTK("%s: smc911x_reset timeout waiting for PM restore\n", dev->name);
 			return;
 		}
@@ -275,9 +267,9 @@ static void smc911x_reset(struct net_device *dev)
 				resets++;
 				break;
 			}
-		} while ( timeout-- && (reg & HW_CFG_SRST_));
+		} while (--timeout && (reg & HW_CFG_SRST_));
 	}
-	if (timeout <= 0) {
+	if (timeout == 0) {
 		PRINTK("%s: smc911x_reset timeout waiting for reset\n", dev->name);
 		return;
 	}
@@ -287,7 +279,7 @@ static void smc911x_reset(struct net_device *dev)
 	while ( timeout-- && (SMC_GET_E2P_CMD() & E2P_CMD_EPC_BUSY_)) {
 		udelay(10);
 	}
-	if (timeout <= 0) {
+	if (timeout == 0){
 		PRINTK("%s: smc911x_reset timeout waiting for EEPROM busy\n", dev->name);
 		return;
 	}
@@ -421,9 +413,10 @@ static inline void smc911x_drop_pkt(struct net_device *dev)
 		do {
 			udelay(10);
 			reg = SMC_GET_RX_DP_CTRL() & RX_DP_CTRL_FFWD_BUSY_;
-		} while ( timeout-- && reg);
-		if (timeout <= 0)
+		} while (--timeout && reg);
+		if (timeout == 0) {
 			PRINTK("%s: timeout waiting for RX fast forward\n", dev->name);
+		}
 	}
 }
 
@@ -966,11 +959,11 @@ static void smc911x_phy_configure(struct work_struct *work)
 	 * We should not be called if phy_type is zero.
 	 */
 	if (lp->phy_type == 0)
-		 goto smc911x_phy_configure_exit_nolock;
+		return;
 
 	if (smc911x_phy_reset(dev, phyaddr)) {
 		printk("%s: PHY reset timed out\n", dev->name);
-		goto smc911x_phy_configure_exit_nolock;
+		return;
 	}
 	spin_lock_irqsave(&lp->lock, flags);
 
@@ -1039,8 +1032,6 @@ static void smc911x_phy_configure(struct work_struct *work)
 
 smc911x_phy_configure_exit:
 	spin_unlock_irqrestore(&lp->lock, flags);
-smc911x_phy_configure_exit_nolock:
-	lp->work_pending = 0;
 }
 
 /*
@@ -1362,11 +1353,8 @@ static void smc911x_timeout(struct net_device *dev)
 	 * smc911x_phy_configure() calls msleep() which calls schedule_timeout()
 	 * which calls schedule().	 Hence we use a work queue.
 	 */
-	if (lp->phy_type != 0) {
-		if (schedule_work(&lp->phy_configure)) {
-			lp->work_pending = 1;
-		}
-	}
+	if (lp->phy_type != 0)
+		schedule_work(&lp->phy_configure);
 
 	/* We can accept TX packets again */
 	dev->trans_start = jiffies;
@@ -1537,16 +1525,8 @@ static int smc911x_close(struct net_device *dev)
 	if (lp->phy_type != 0) {
 		/* We need to ensure that no calls to
 		 * smc911x_phy_configure are pending.
-
-		 * flush_scheduled_work() cannot be called because we
-		 * are running with the netlink semaphore held (from
-		 * devinet_ioctl()) and the pending work queue
-		 * contains linkwatch_event() (scheduled by
-		 * netif_carrier_off() above). linkwatch_event() also
-		 * wants the netlink semaphore.
 		 */
-		while (lp->work_pending)
-			schedule();
+		cancel_work_sync(&lp->phy_configure);
 		smc911x_phy_powerdown(dev, lp->mii.phy_id);
 	}
 
@@ -2143,7 +2123,7 @@ static int smc911x_drv_probe(struct platform_device *pdev)
 		ret = -ENODEV;
 		goto out;
 	}
-#ifndef SMC_MEM_REGION_RESERVED
+#ifndef SMC_MEM_RESERVED
 	/*
 	 * Request the regions.
 	 */
@@ -2168,7 +2148,6 @@ static int smc911x_drv_probe(struct platform_device *pdev)
 	addr = ioremap(res->start, SMC911X_IO_EXTENT);
 	if (!addr) {
 		ret = -ENOMEM;
-		printk("c\n");
 		goto release_both;
 	}
 
@@ -2180,7 +2159,7 @@ static int smc911x_drv_probe(struct platform_device *pdev)
 release_both:
 		free_netdev(ndev);
 release_1:
-#ifndef SMC_MEM_REGION_RESERVED
+#ifndef SMC_MEM_RESERVED
 		release_mem_region(res->start, SMC911X_IO_EXTENT);
 #endif
 out:
@@ -2221,7 +2200,7 @@ static int smc911x_drv_remove(struct platform_device *pdev)
 #endif
 	iounmap((void *)ndev->base_addr);
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-#ifndef SMC_MEM_REGION_RESERVED
+#ifndef SMC_MEM_RESERVED
 	release_mem_region(res->start, SMC911X_IO_EXTENT);
 #endif
 	free_netdev(ndev);
@@ -2273,6 +2252,7 @@ static struct platform_driver smc911x_driver = {
 	.resume	 = smc911x_drv_resume,
 	.driver	 = {
 		.name	 = CARDNAME,
+		.owner	= THIS_MODULE,
 	},
 };
 

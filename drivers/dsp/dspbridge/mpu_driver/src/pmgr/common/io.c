@@ -47,7 +47,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gt.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
@@ -91,14 +90,6 @@ DSP_STATUS IO_Create(OUT struct IO_MGR **phIOMgr, struct DEV_OBJECT *hDevObject,
 		 phIOMgr, hDevObject, pMgrAttrs);
 
 	*phIOMgr = NULL;
-
-#ifndef OMAP_2430
-	/* Validate args: */
-	if (pMgrAttrs->bIRQ > IO_MAXIRQ) {
-		status = CHNL_E_INVALIDIRQ;
-		GT_0trace(IO_DebugMask, GT_7CLASS, "IO_Create:Invalid IRQ\n");
-	}
-#endif
 
 	/* A memory base of 0 implies no memory base:  */
 	if ((pMgrAttrs->dwSMBase != 0) && (pMgrAttrs->uSMLength == 0)) {
@@ -211,33 +202,3 @@ BOOL IO_Init()
 
 	return (fRetval);
 }
-
-#ifndef LINUX
-
-/*
- *  ======== IO_OnLoaded ========
- *  Purpose:
- *      Called when a program is loaded so IO manager can update its
- *      internal state.
- */
-DSP_STATUS IO_OnLoaded(struct IO_MGR *hIOMgr)
-{
-	struct WMD_DRV_INTERFACE *pIntfFxns;
-	struct IO_MGR_ *pIOMgr = (struct IO_MGR_ *)hIOMgr;
-	DSP_STATUS status;
-
-	DBC_Require(cRefs > 0);
-
-	GT_1trace(IO_DebugMask, GT_ENTER,
-		 "Entering IO_OnLoaded: hChnlMgr: 0x%x\n", hIOMgr);
-
-	pIntfFxns = pIOMgr->pIntfFxns;
-
-	/* Let WMD channel module destroy the IO_MGR: */
-	status = (*pIntfFxns->pfnIOOnLoaded) (hIOMgr);
-
-	return (status);
-}
-
-#endif
-

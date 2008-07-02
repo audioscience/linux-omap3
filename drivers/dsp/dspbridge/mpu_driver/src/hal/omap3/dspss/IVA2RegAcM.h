@@ -24,28 +24,10 @@ extern "C" {
 #endif				/* defined(__cplusplus) */
 
 #include <GlobalTypes.h>
-/* #include "BaseAddress.h" */
 #include <EasiGlobal.h>
 #include <EasiBase.h>
-
 
 #define SYSC_IVA2BOOTMOD_OFFSET	    0x404
 #define SYSC_IVA2BOOTADDR_OFFSET	    0x400
 
-/*****************************************************************************
-* EXPORTED DEFINITIONS
-******************************************************************************
-*/
-
-#define IVA2_BOOTCFGBootModeWrite32(baseAddress, value)\
-    {\
-	const UWORD32 offset = SYSC_IVA2BOOTMOD_OFFSET;\
-	WR_MEM_32_VOLATILE(baseAddress + offset, value);\
-    }
-
-#define IVA2_BOOTCFGBootAddressWrite32(baseAddress, value)\
-    {\
-	const UWORD32 offset = SYSC_IVA2BOOTADDR_OFFSET;\
-	WR_MEM_32_VOLATILE((baseAddress) + offset, value);\
-    }
 #endif

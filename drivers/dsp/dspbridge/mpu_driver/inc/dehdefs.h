@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/dehdefs.h
+ * dspbridge/mpu_driver/inc/dehdefs.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

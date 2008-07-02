@@ -2,10 +2,12 @@
 # Makefile for the new OMAP framebuffer device driver
 #
 
+
+ifeq ($(CONFIG_ARCH_OMAP3),y)
+   obj-$(CONFIG_FB_OMAP)  += omap_disp_out.o
+   obj-$(CONFIG_FB_OMAP)  += omap_fb.o
+else
 obj-$(CONFIG_FB_OMAP) += omapfb.o
-
-objs-yy := omapfb_main.o
-
 objs-y$(CONFIG_ARCH_OMAP1) += lcdc.o
 objs-y$(CONFIG_ARCH_OMAP2) += dispc.o
 objs-y$(CONFIG_ARCH_OMAP3) += dispc.o
@@ -31,7 +33,10 @@ objs-y$(CONFIG_MACH_SX1) += lcd_sx1.o
 objs-y$(CONFIG_MACH_OMAP_APOLLON) += lcd_apollon.o
 objs-y$(CONFIG_MACH_OMAP_2430SDP) += lcd_2430sdp.o
 objs-y$(CONFIG_MACH_OMAP_3430SDP) += lcd_2430sdp.o
+objs-y$(CONFIG_MACH_OMAP3EVM) += lcd_omap3evm.o
+objs-y$(CONFIG_MACH_OMAP3_BEAGLE) += lcd_omap3beagle.o
 objs-y$(CONFIG_FB_OMAP_LCD_MIPID) += lcd_mipid.o
+endif
 
 omapfb-objs := $(objs-yy)
 

@@ -17,6 +17,7 @@
 #ifndef OMAP_ISP_PREVIEW_H
 #define OMAP_ISP_PREVIEW_H
 
+#include <asm/arch/isp_user.h>
 /* Isp query control structure */
 
 #define ISPPRV_BRIGHT_STEP		0x1
@@ -39,7 +40,6 @@
 #define AVE_EVEN_PIXEL_DIST		(1 << 2)
 
 #define WB_GAIN_MAX			4
-#define RGB_MAX				3
 
 /* Features list */
 #define PREV_AVERAGER			(1 << 0)
@@ -55,23 +55,6 @@
 #define PREV_DARK_FRAME_CAPTURE		(1 << 10)
 #define PREV_DEFECT_COR			(1 << 11)
 
-/*Abstraction layer preview configurations*/
-#define ISP_ABS_PREV_LUMAENH		(1 << 1)
-#define ISP_ABS_PREV_INVALAW		(1 << 2)
-#define ISP_ABS_PREV_HRZ_MED		(1 << 5)
-#define ISP_ABS_PREV_CFA		(1 << 6)
-#define ISP_ABS_PREV_CHROMA_SUPP	(1 << 7)
-#define ISP_ABS_PREV_WB			(1 << 8)
-#define ISP_ABS_PREV_BLKADJ		(1 << 9)
-#define ISP_ABS_PREV_RGB2RGB		(1 << 10)
-#define ISP_ABS_PREV_COLOR_CONV		(1 << 11)
-#define ISP_ABS_PREV_YC_LIMIT		(1 << 12)
-#define ISP_ABS_PREV_DEFECT_COR		(1 << 13)
-#define ISP_ABS_PREV_GAMMABYPASS	(1 << 14)
-#define ISP_ABS_TBL_NF 			(1 << 1)
-#define ISP_ABS_TBL_REDGAMMA		(1 << 2)
-#define ISP_ABS_TBL_GREENGAMMA		(1 << 3)
-#define ISP_ABS_TBL_BLUEGAMMA		(1 << 4)
 
 #define ISP_NF_TABLE_SIZE 		(1 << 10)
 
@@ -108,60 +91,6 @@ enum preview_color_effect {
 	PREV_SEPIA_COLOR = 2
 };
 
-/*
- * Enumeration for CFA Formats supported by preview
- */
-enum cfa_fmt {
-	CFAFMT_BAYER, CFAFMT_SONYVGA, CFAFMT_RGBFOVEON,
-	CFAFMT_DNSPL, CFAFMT_HONEYCOMB, CFAFMT_RRGGBBFOVEON
-};
-
-/**
- * struct ispprev_hmed - Structure for Horizontal Median Filter.
- * @odddist: Distance between consecutive pixels of same color in the odd line.
- * @evendist: Distance between consecutive pixels of same color in the even
- *            line.
- * @thres: Horizontal median filter threshold.
- */
-struct ispprev_hmed {
-	u8 odddist;
-	u8 evendist;
-	u8 thres;
-};
-
-/**
- * struct ispprev_nf - Structure for Noise Filter
- * @spread: Spread value to be used in Noise Filter
- * @table: Pointer to the Noise Filter table
- */
-struct ispprev_nf {
-	u8 spread;
-	u32 *table;
-};
-
-/**
- * struct ispprev_dcor - Structure for Defect correction.
- * @couplet_mode_en: Flag to enable or disable the couplet dc Correction in NF
- * @detect_correct: Thresholds for correction bit 0:10 detect 16:25 correct
- */
-struct ispprev_dcor {
-	u8 couplet_mode_en;
-	u32 detect_correct[4];
-};
-
-/**
- * struct ispprev_cfa - Structure for CFA Inpterpolation.
- * @cfafmt: CFA Format Enum value supported by preview.
- * @cfa_gradthrs_vert: CFA Gradient Threshold - Vertical.
- * @cfa_gradthrs_horz: CFA Gradient Threshold - Horizontal.
- * @cfa_table: Pointer to the CFA table.
- */
-struct ispprev_cfa {
-	enum cfa_fmt cfafmt;
-	u8 cfa_gradthrs_vert;
-	u8 cfa_gradthrs_horz;
-	u32 *cfa_table;
-};
 
 /**
  * struct ispprev_gtable - Structure for Gamma Correction.
@@ -176,34 +105,6 @@ struct ispprev_gtable {
 };
 
 /**
- * struct ispprev_csup - Structure for Chrominance Suppression.
- * @gain: Gain.
- * @thres: Threshold.
- * @hypf_en: Flag to enable/disable the High Pass Filter.
- */
-struct ispprev_csup {
-	u8 gain;
-	u8 thres;
-	u8 hypf_en;
-};
-
-/**
- * struct ispprev_wbal - Structure for White Balance.
- * @dgain: Digital gain (U10Q8).
- * @coef3: White balance gain - COEF 3 (U8Q5).
- * @coef2: White balance gain - COEF 2 (U8Q5).
- * @coef1: White balance gain - COEF 1 (U8Q5).
- * @coef0: White balance gain - COEF 0 (U8Q5).
- */
-struct ispprev_wbal {
-	u16 dgain;
-	u8 coef3;
-	u8 coef2;
-	u8 coef1;
-	u8 coef0;
-};
-
-/**
  * struct prev_white_balance - Structure for White Balance 2.
  * @wb_dgain: White balance common gain.
  * @wb_gain: Individual color gains.
@@ -213,61 +114,6 @@ struct prev_white_balance {
 	u16 wb_dgain; /* white balance common gain */
 	u8 wb_gain[WB_GAIN_MAX]; /* individual color gains */
 	u8 wb_coefmatrix[WB_GAIN_MAX][WB_GAIN_MAX];
-};
-
-/**
- * struct ispprev_blkadj - Structure for Black Adjustment.
- * @red: Black level offset adjustment for Red in 2's complement format
- * @green: Black level offset adjustment for Green in 2's complement format
- * @blue: Black level offset adjustment for Blue in 2's complement format
- */
-struct ispprev_blkadj {
-	/*Black level offset adjustment for Red in 2's complement format */
-	u8 red;
-	/*Black level offset adjustment for Green in 2's complement format */
-	u8 green;
-	/* Black level offset adjustment for Blue in 2's complement format */
-	u8 blue;
-};
-
-/**
- * struct ispprev_rgbtorgb - Structure for RGB to RGB Blending.
- * @matrix: Blending values(S12Q8 format)
- *              [RR] [GR] [BR]
- *              [RG] [GG] [BG]
- *              [RB] [GB] [BB]
- * @offset: Blending offset value for R,G,B in 2's complement integer format.
- */
-struct ispprev_rgbtorgb {
-	u16 matrix[3][3];
-	u16 offset[3];
-};
-
-/**
- * struct ispprev_csc - Structure for Color Space Conversion from RGB-YCbYCr
- * @matrix: Color space conversion coefficients(S10Q8)
- *              [CSCRY]  [CSCGY]  [CSCBY]
- *              [CSCRCB] [CSCGCB] [CSCBCB]
- *              [CSCRCR] [CSCGCR] [CSCBCR]
- * @offset: CSC offset values for Y offset, CB offset and CR offset respectively
- */
-struct ispprev_csc {
-	u16 matrix[RGB_MAX][RGB_MAX];
-	s16 offset[RGB_MAX];
-};
-
-/**
- * struct ispprev_yclimit - Structure for Y, C Value Limit.
- * @minC: Minimum C value
- * @maxC: Maximum C value
- * @minY: Minimum Y value
- * @maxY: Maximum Y value
- */
-struct ispprev_yclimit {
-	u8 minC;
-	u8 maxC;
-	u8 minY;
-	u8 maxY;
 };
 
 /**
@@ -354,59 +200,6 @@ struct prev_params {
 	u8 brightness;
 };
 
-/**
- * struct ispprv_update_config - Structure for Preview Configuration (user).
- * @update: Specifies which ISP Preview registers should be updated.
- * @flag: Specifies which ISP Preview functions should be enabled.
- * @yen: Pointer to luma enhancement table.
- * @shading_shift: 3bit value of shift used in shading compensation.
- * @prev_hmed: Pointer to structure containing the odd and even distance.
- *             between the pixels in the image along with the filter threshold.
- * @prev_cfa: Pointer to structure containing the CFA interpolation table, CFA.
- *            format in the image, vertical and horizontal gradient threshold.
- * @csup: Pointer to Structure for Chrominance Suppression coefficients.
- * @prev_wbal: Pointer to structure for White Balance.
- * @prev_blkadj: Pointer to structure for Black Adjustment.
- * @rgb2rgb: Pointer to structure for RGB to RGB Blending.
- * @prev_csc: Pointer to structure for Color Space Conversion from RGB-YCbYCr.
- * @yclimit: Pointer to structure for Y, C Value Limit.
- * @prev_dcor: Pointer to structure for defect correction.
- */
-struct ispprv_update_config {
-	u16 update;
-	u16 flag;
-	void *yen;
-	u32 shading_shift;
-	struct ispprev_hmed *prev_hmed;
-	struct ispprev_cfa *prev_cfa;
-	struct ispprev_csup *csup;
-	struct ispprev_wbal *prev_wbal;
-	struct ispprev_blkadj *prev_blkadj;
-	struct ispprev_rgbtorgb *rgb2rgb;
-	struct ispprev_csc *prev_csc;
-	struct ispprev_yclimit *yclimit;
-	struct ispprev_dcor *prev_dcor;
-};
-
-/**
- * struct isptables_update - Structure for Table Configuration.
- * @update: Specifies which tables should be updated.
- * @flag: Specifies which tables should be enabled.
- * @prev_nf: Pointer to structure for Noise Filter
- * @lsc: Pointer to LSC gain table. (currently not used)
- * @red_gamma: Pointer to red gamma correction table.
- * @green_gamma: Pointer to green gamma correction table.
- * @blue_gamma: Pointer to blue gamma correction table.
- */
-struct isptables_update {
-	u16 update;
-	u16 flag;
-	struct ispprev_nf *prev_nf;
-	u32 *lsc;
-	u32 *red_gamma;
-	u32 *green_gamma;
-	u32 *blue_gamma;
-};
 
 void isppreview_config_shadow_registers(void);
 
@@ -528,6 +321,6 @@ static inline void isppreview_restore_context(void) {}
 
 int omap34xx_isp_preview_config(void *userspace_add);
 
-int omap34xx_isp_tables_update(void *userspace_add);
+int omap34xx_isp_tables_update(struct isptables_update *isptables_struct);
 
 #endif/* OMAP_ISP_PREVIEW_H */

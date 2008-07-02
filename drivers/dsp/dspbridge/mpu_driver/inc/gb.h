@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/gb.h
+ * dspbridge/mpu_driver/inc/gb.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -13,7 +13,6 @@
  * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
  * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
-
 
 /*
  *  ======== gb.h ========
@@ -30,15 +29,6 @@
 
 typedef Int GB_BitNum;
 struct GB_TMap;
-/*typedef struct GB_TMap *GB_Map;*/
-
-/*
- *  ======== GB_and ========
- *  And the two bit maps src and dst together and put result in dst.
- *  src and dst are assumed to have the same length.
- */
-
-extern Void GB_and(struct GB_TMap *dst, struct GB_TMap *src);
 
 /*
  *  ======== GB_clear ========
@@ -63,14 +53,6 @@ extern struct GB_TMap *GB_create(GB_BitNum len);
 extern Void GB_delete(struct GB_TMap *map);
 
 /*
- *  ======== GB_empty ========
- *  Returns TRUE is no bits are set in map; otherwise, GB_empty returns
- *  FALSE.
- */
-
-extern Bool GB_empty(struct GB_TMap *map);
-
-/*
  *  ======== GB_findandset ========
  *  Finds a clear bit, sets it, and returns the position
  */
@@ -78,55 +60,11 @@ extern Bool GB_empty(struct GB_TMap *map);
 extern GB_BitNum GB_findandset(struct GB_TMap *map);
 
 /*
- *  ======== GB_full ========
- *  Returns TRUE all bits are set in map; otherwise, GB_full returns
- *  FALSE.
- */
-
-extern Bool GB_full(struct GB_TMap *map);
-
-/*
- *  ======== GB_init ========
- *  Initialize the GB module
- */
-
-extern Void GB_init(void);
-
-/*
- *  ======== GB_len ========
- *  Returns the number of bits map was created with.
- */
-
-extern GB_BitNum GB_len(struct GB_TMap *map);
-
-/*
  *  ======== GB_minclear ========
  *  GB_minclear returns the minimum clear bit position.  If no bit is
  *  clear, GB_minclear returns -1.
  */
 extern GB_BitNum GB_minclear(struct GB_TMap *map);
-
-/*
- *  ======== GB_minset ========
- *  GB_minset returns the minimum set bit position.  If no bit is
- *  set, GB_minset returns -1.
- */
-extern GB_BitNum GB_minset(struct GB_TMap *map);
-
-/*
- *  ======== GB_not ========
- *  Negates all bits in dst
- */
-
-extern Void GB_not(struct GB_TMap *dst);
-
-/*
- *  ======== GB_or ========
- *  Or the two bit maps src and dst together and put result in dst.
- *  src and dst are assumed to have the same length.
- */
-
-extern Void GB_or(struct GB_TMap *dst, struct GB_TMap *src);
 
 /*
  *  ======== GB_set ========

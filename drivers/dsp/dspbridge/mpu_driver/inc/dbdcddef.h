@@ -1,19 +1,19 @@
 /*
- * dspbridge/inc/dbdcddef.h
+ * dspbridge/mpu_driver/inc/dbdcddef.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
- * Copyright (C) 2007 Texas Instruments, Inc.
+ * Copyright (C) 2008 Texas Instruments, Inc.
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation version 2.1 of the License.
+ * This package is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
  *
- * This program is distributed .as is. WITHOUT ANY WARRANTY of any kind,
- * whether express or implied; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * THIS PACKAGE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+ * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
+
 
 /*
  *  ======== dbdcddef.h ========
@@ -94,10 +94,6 @@ extern "C" {
        typedef DSP_STATUS(CDECL * DCD_REGISTERFXN) (IN struct DSP_UUID *pUuid,
 						     IN DSP_DCDOBJTYPE objType,
 						     IN PVOID handle);
-
-       typedef DSP_STATUS(CDECL * DCD_UNREGISTERFXN) (IN struct DSP_UUID *pUuid,
-						       IN DSP_DCDOBJTYPE
-						       objType);
 
 #ifdef __cplusplus
 }

@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/dblldefs.h
+ * dspbridge/mpu_driver/inc/dblldefs.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -95,27 +95,6 @@ struct DBLL_Symbol {
 typedef Int(*DBLL_AllocFxn) (Void *hdl, Int space, LgUns size, Uns align,
 			     LgUns *dspAddr, Int segId, Int req,
 			     Bool reserved);
-
-/*
- *  ======== DBLL_CinitFxn ========
- *  Process .cinit records.
- *  Parameters:
- *      hdl             - Opaque handle
- *      dspAddress      - DSP address of .cinit section
- *      buf             - Buffer containing .cinit section
- *      nBytes          - Size of .cinit section (host bytes)
- *      mtype           - Page? (does not need to be used)
- *
- *  Returns:
- *      nBytes          - Success
- *      < nBytes        - Failure
- *
- *  Note: Cinit processing can either be done by the DSP, in which case
- *  the .cinit section must have already been written, or on the host,
- *  in which case we need to use the data in buf.
- */
-typedef Int(*DBLL_CinitFxn) (Void *hdl, LgUns dspAddr, Void *buf,
-			     LgUns nBytes, Int mtype);
 
 /*
  *  ======== DBLL_CloseFxn ========

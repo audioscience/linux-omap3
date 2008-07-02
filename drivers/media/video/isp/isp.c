@@ -23,10 +23,13 @@
 #include <linux/interrupt.h>
 #include <linux/clk.h>
 #include <asm/irq.h>
+#include <asm/bitops.h>
 #include <asm/scatterlist.h>
 #include <asm/mach-types.h>
 #include <asm/arch/clock.h>
+#include <asm/arch/io.h>
 #include <linux/device.h>
+#include <linux/videodev2.h>
 
 #include "isp.h"
 #include "ispmmu.h"
@@ -101,66 +104,6 @@ static struct vcontrol {
 			.default_value = PREV_DEFAULT_COLOR,
 		},
 		.current_value = PREV_DEFAULT_COLOR,
-	},
-	{
-		{
-			.id = V4L2_CID_PRIVATE_ISP_CCDC_CFG,
-			.type = V4L2_CTRL_TYPE_INTEGER,
-			.name = "CCDC",
-			.minimum = 0,
-			.maximum = 1,
-			.step = 1,
-			.default_value = 0,
-		},
-		.current_value = 0,
-	},
-	{
-		{
-			.id = V4L2_CID_PRIVATE_ISP_PRV_CFG,
-			.type = V4L2_CTRL_TYPE_INTEGER,
-			.name = "Previewer",
-			.minimum = 0,
-			.maximum = 1,
-			.step = 1,
-			.default_value = 0,
-		},
-		.current_value = 0,
-	},
-	{
-		{
-			.id = V4L2_CID_PRIVATE_ISP_LSC_UPDATE,
-			.type = V4L2_CTRL_TYPE_INTEGER,
-			.name = "Tables",
-			.minimum = 0,
-			.maximum = 1,
-			.step = 1,
-			.default_value = 0,
-		},
-		.current_value = 0,
-	},
-	{
-		{
-			.id = V4L2_CID_PRIVATE_ISP_AEWB_CFG,
-			.type = V4L2_CTRL_TYPE_INTEGER,
-			.name = "Auto Exposure, Auto WB Config",
-			.minimum = 0,
-			.maximum = 1,
-			.step = 1,
-			.default_value = 0,
-		},
-		.current_value = 0,
-	},
-	{
-		{
-			.id = V4L2_CID_PRIVATE_ISP_AEWB_REQ,
-			.type = V4L2_CTRL_TYPE_INTEGER,
-			.name = "AEWB Request Statistics",
-			.minimum = 0,
-			.maximum = 1,
-			.step = 1,
-			.default_value = 0,
-		},
-		.current_value = 0,
 	}
 };
 
@@ -206,7 +149,7 @@ static struct isp {
 	u8 interfacetype;
 	int ref_count;
 	struct clk *cam_ick;
-	struct clk *cam_fck;
+	struct clk *cam_mclk;
 } isp_obj;
 
 struct isp_sgdma ispsg;
@@ -619,37 +562,34 @@ u32 isp_set_xclk(u32 xclk, u8 xclksel)
 	u32 divisor;
 	u32 currentxclk;
 
-	if (xclk == CM_CAM_MCLK_HZ) {
-		divisor = (xclksel == 0) ? ISPTCTRL_CTRL_DIVA_Bypass :
-					ISPTCTRL_CTRL_DIVB_Bypass;
+	if (xclk >= CM_CAM_MCLK_HZ) {
+		divisor = ISPTCTRL_CTRL_DIV_Bypass;
 		currentxclk = CM_CAM_MCLK_HZ;
+	} else if (xclk >= 2) {
+		divisor = CM_CAM_MCLK_HZ / xclk;
+		if (divisor >= ISPTCTRL_CTRL_DIV_Bypass)
+			divisor = ISPTCTRL_CTRL_DIV_Bypass - 1;
+		currentxclk = CM_CAM_MCLK_HZ / divisor;
 	} else {
-		if (xclk >= 2) {
-			divisor = CM_CAM_MCLK_HZ / xclk;
-			divisor &= (xclksel == 0) ? ISPTCTRL_CTRL_DIVA_Bypass :
-					ISPTCTRL_CTRL_DIVB_Bypass;
-			currentxclk = CM_CAM_MCLK_HZ / divisor;
-		} else {
-			divisor = xclk;
-			currentxclk = 0;
-		}
+		divisor = xclk;
+		currentxclk = 0;
 	}
 
 	switch (xclksel) {
 	case 0:
 		omap_writel((omap_readl(ISP_TCTRL_CTRL) &
-				~ISPTCTRL_CTRL_DIVA_Bypass) |
+				~ISPTCTRL_CTRL_DIVA_MASK) |
 				(divisor << ISPTCTRL_CTRL_DIVA_SHIFT),
 				ISP_TCTRL_CTRL);
-		DPRINTK_ISPCTRL("isp_set_xclk(): cam_xclka set to %x Hz\n",
+		DPRINTK_ISPCTRL("isp_set_xclk(): cam_xclka set to %d Hz\n",
 								currentxclk);
 		break;
 	case 1:
 		omap_writel((omap_readl(ISP_TCTRL_CTRL) &
-				~ISPTCTRL_CTRL_DIVB_Bypass) |
+				~ISPTCTRL_CTRL_DIVB_MASK) |
 				(divisor << ISPTCTRL_CTRL_DIVB_SHIFT),
 				ISP_TCTRL_CTRL);
-		DPRINTK_ISPCTRL("isp_set_xclk(): cam_xclkb set to %x Hz\n",
+		DPRINTK_ISPCTRL("isp_set_xclk(): cam_xclkb set to %d Hz\n",
 								currentxclk);
 		break;
 	default:
@@ -763,6 +703,113 @@ void isp_power_settings(struct isp_sysc isp_sysconfig)
 }
 EXPORT_SYMBOL(isp_power_settings);
 
+#define BIT_SET(var,shift,mask,val)		\
+	do {					\
+		var = (var & ~(mask << shift))	\
+			| (val << shift);	\
+	} while (0)
+
+static int isp_init_csi(struct isp_interface_config *config)
+{
+	u32 i = 0, val, reg;
+	int format;
+
+	switch (config->u.csi.format) {
+	case V4L2_PIX_FMT_SGRBG10:
+		format = 0x16;		/* RAW10+VP */
+		break;
+	case V4L2_PIX_FMT_SGRBG10DPCM8:
+		format = 0x12;		/* RAW8+DPCM10+VP */
+		break;
+	default:
+		printk(KERN_ERR "isp_init_csi: bad csi format\n");
+		return -EINVAL;
+	}
+
+	/* Reset the CSI and wait for reset to complete */
+	omap_writel(omap_readl(ISPCSI1_SYSCONFIG) | BIT(1), ISPCSI1_SYSCONFIG);
+	while (!(omap_readl(ISPCSI1_SYSSTATUS) & BIT(0))) {
+		udelay(10);
+		if(i++ > 10) break;
+	}
+	if (!(omap_readl(ISPCSI1_SYSSTATUS) & BIT(0))) {
+		printk(KERN_WARNING
+		       "omap3_isp: timeout waiting for csi reset\n");
+	}
+
+	/* CONTROL_CSIRXFE */
+	omap_writel(
+		(config->u.csi.signalling<<10) 	/* CSIb receiver data/clock or data/strobe mode */
+		| BIT(12)		/* Enable differential transceiver */
+		| BIT(13)		/* Disable reset */
+#ifdef TERM_RESISTOR
+		| BIT(8)		/* Enable internal CSIb resistor (no effect) */
+#endif
+/*		| BIT(7) */		/* Strobe/clock inversion (no effect) */
+	, CONTROL_CSIRXFE);
+
+#ifdef TERM_RESISTOR
+	/* Set CONTROL_CSI */
+	val = omap_readl(CONTROL_CSI);
+	val &= ~(0x1F<<16);
+	val |= BIT(31) | (TERM_RESISTOR<<16);
+	omap_writel(val, CONTROL_CSI);
+#endif
+
+	/* ISPCSI1_CTRL */
+	val = omap_readl(ISPCSI1_CTRL);
+	val &= ~BIT(11);		/* Enable VP only off -> extract embedded data to interconnect */
+	BIT_SET(val, 8, 0x3, config->u.csi.vpclk);	/* Video port clock */
+/*	val |= BIT(3);	*/		/* Wait for FEC before disabling interface */
+	val |= BIT(2);			/* I/O cell output is parallel (no effect, but errata says should be enabled for class1/2) */
+	val |= BIT(12);			/* VP clock polarity to falling edge (needed or bad picture!) */
+
+
+	/* Data/strobe physical layer */
+	BIT_SET(val, 1, 1, config->u.csi.signalling);
+	BIT_SET(val, 10, 1, config->u.csi.strobe_clock_inv);
+        val |= BIT(4);                  /* Magic bit to enable CSI1 and strobe mode */
+	omap_writel(val, ISPCSI1_CTRL);
+
+	/* ISPCSI1_LCx_CTRL logical channel #0 */
+	reg = ISPCSI1_LCx_CTRL(0);			/* reg = ISPCSI1_CTRL1; */
+	val = omap_readl(reg);
+	/* Format = RAW10+VP or RAW8+DPCM10+VP*/
+	BIT_SET(val, 3, 0x1f, format);
+	/* Enable setting of frame regions of interest */
+	BIT_SET(val, 1, 1, 1);
+	BIT_SET(val, 2, 1, config->u.csi.crc);
+	omap_writel(val, reg);
+
+	/* ISPCSI1_DAT_START for logical channel #0 */
+	reg = ISPCSI1_LCx_DAT_START(0);			/* reg = ISPCSI1_DAT_START; */
+	val = omap_readl(reg);
+	BIT_SET(val, 16, 0xfff, config->u.csi.data_start);
+	omap_writel(val, reg);
+
+	/* ISPCSI1_DAT_SIZE for logical channel #0 */
+	reg = ISPCSI1_LCx_DAT_SIZE(0);			/* reg = ISPCSI1_DAT_SIZE; */
+	val = omap_readl(reg);
+	BIT_SET(val, 16, 0xfff, config->u.csi.data_size);
+	omap_writel(val, reg);
+
+	/* Clear status bits for logical channel #0 */
+	omap_writel(0xFFF & ~BIT(6), ISPCSI1_LC01_IRQSTATUS);
+
+	/* Enable CSI1 */
+	val = omap_readl(ISPCSI1_CTRL);
+	val |=  BIT(0) | BIT(4);
+	omap_writel(val, ISPCSI1_CTRL);
+
+	if (!(omap_readl(ISPCSI1_CTRL) & BIT(4))) {
+		printk(KERN_WARNING "OMAP3 CSI1 bus not available\n");
+		if (config->u.csi.signalling)	/* Strobe mode requires CSI1 */
+			return -EIO;
+	}
+
+	return 0;
+}
+
 /**
  * isp_configure_interface - Configures ISP Control I/F related parameters.
  * @config: Pointer to structure containing the desired configuration for the
@@ -780,17 +827,32 @@ int isp_configure_interface(struct isp_interface_config *config)
 {
 	u32 ispctrl_val = omap_readl(ISP_CTRL);
 	u32 ispccdc_vdint_val;
+	int r;
 
-	ispctrl_val &= (ISPCTRL_PAR_SER_CLK_SEL_MASK);
-	ispctrl_val |= config->ccdc_par_ser;
 	ispctrl_val &= ISPCTRL_SHIFT_MASK;
 	ispctrl_val |= (config->dataline_shift << ISPCTRL_SHIFT_SHIFT);
 	ispctrl_val &= ~ISPCTRL_PAR_CLK_POL_INV;
-	ispctrl_val |= (config->para_clk_pol << ISPCTRL_PAR_CLK_POL_SHIFT);
-	ispctrl_val &= ~ISPCTRL_PAR_BRIDGE_BENDIAN;
-	ispctrl_val |= (config->par_bridge << ISPCTRL_PAR_BRIDGE_SHIFT);
+
+	ispctrl_val &= (ISPCTRL_PAR_SER_CLK_SEL_MASK);
+	switch (config->ccdc_par_ser) {
+	case ISP_PARLL:
+		ispctrl_val |= ISPCTRL_PAR_SER_CLK_SEL_parallel;
+		ispctrl_val |= (config->u.par.par_clk_pol << ISPCTRL_PAR_CLK_POL_SHIFT);
+		ispctrl_val &= ~ISPCTRL_PAR_BRIDGE_BENDIAN;
+		ispctrl_val |= (config->u.par.par_bridge << ISPCTRL_PAR_BRIDGE_SHIFT);
+		break;
+	case ISP_CSIB:
+		ispctrl_val |= ISPCTRL_PAR_SER_CLK_SEL_CSIB;
+		r = isp_init_csi(config);
+		if (r)
+			return r;
+		break;
+	default:
+		return -EINVAL;
+	}
+
 	ispctrl_val &= ~(ISPCTRL_SYNC_DETECT_VSRISE);
-	ispctrl_val |= (config->hsvs_syncdetect << ISPCTRL_SYNC_DETECT_SHIFT);
+	ispctrl_val |= (config->hsvs_syncdetect);
 
 	omap_writel(ispctrl_val, ISP_CTRL);
 
@@ -801,6 +863,7 @@ int isp_configure_interface(struct isp_interface_config *config)
 						(config->vdint1_timing <<
 						ISPCCDC_VDINT_1_SHIFT),
 						ISPCCDC_VDINT);
+
 	return 0;
 }
 EXPORT_SYMBOL(isp_configure_interface);
@@ -921,12 +984,19 @@ static irqreturn_t omap34xx_isp_isr(int irq, void *ispirq_disp)
 	}
 
 	if (irqstatus & LSC_PRE_ERR) {
-		DPRINTK_ISPCTRL("isp_sr: LSC_PRE_ERR \n");
+		printk(KERN_ERR "isp_sr: LSC_PRE_ERR \n");
 		omap_writel(irqstatus, ISP_IRQ0STATUS);
 		ispccdc_enable_lsc(0);
 		ispccdc_enable_lsc(1);
 		spin_unlock_irqrestore(&isp_obj.lock, irqflags);
 		return IRQ_HANDLED;
+	}
+
+	if (irqstatus & IRQ0STATUS_CSIB_IRQ) {
+		u32 ispcsi1_irqstatus;
+
+		ispcsi1_irqstatus = omap_readl(ISPCSI1_LC01_IRQSTATUS);
+		printk("%x\n", ispcsi1_irqstatus);
 	}
 
 out:
@@ -1035,6 +1105,7 @@ void isp_stop()
 	}
 
 	if (ispmodule_obj.isp_pipeline & OMAP_ISP_CCDC) {
+		ispccdc_enable_lsc(0);
 		ispccdc_enable(0);
 		timeout = 0;
 		while (ispccdc_busy() && (timeout < 20)) {
@@ -1402,7 +1473,6 @@ void isp_vbq_release(struct videobuf_queue *vbq, struct videobuf_buffer *vb)
 {
 	ispmmu_unmap(ispsg.isp_addr_capture[vb->i]);
 	ispsg.isp_addr_capture[vb->i] = (dma_addr_t) NULL;
-	vb->state = VIDEOBUF_NEEDS_INIT;
 	return;
 }
 
@@ -1451,21 +1521,6 @@ int isp_g_ctrl(struct v4l2_control *a)
 		isppreview_get_color(&current_value);
 		a->value = current_value;
 		break;
-	case V4L2_CID_PRIVATE_ISP_CCDC_CFG:
-		a->value = 0;
-		break;
-	case V4L2_CID_PRIVATE_ISP_PRV_CFG:
-		a->value = 0;
-		break;
-	case V4L2_CID_PRIVATE_ISP_LSC_UPDATE:
-		a->value = 0;
-		break;
-	case V4L2_CID_PRIVATE_ISP_AEWB_CFG:
-		a->value = 0;
-		break;
-	case V4L2_CID_PRIVATE_ISP_AEWB_REQ:
-		a->value = 0;
-		break;
 	default:
 		rval = -EINVAL;
 		break;
@@ -1507,48 +1562,71 @@ int isp_s_ctrl(struct v4l2_control *a)
 		else
 			isppreview_set_color(&new_value);
 		break;
-	case V4L2_CID_PRIVATE_ISP_CCDC_CFG:
-		omap34xx_isp_ccdc_config((void *)a->value);
+	default:
+		rval = -EINVAL;
 		break;
-	case V4L2_CID_PRIVATE_ISP_PRV_CFG:
-		omap34xx_isp_preview_config((void *)a->value);
+	}
+
+	return rval;
+}
+
+/**
+ * isp_handle_private - Handle all private ioctls for isp module.
+ * @cmd: ioctl cmd value
+ * @arg: ioctl arg value
+ *
+ * Return 0 if successful, -EINVAL if chosen cmd value is not handled or value
+ * is out of bounds, -EFAULT if ioctl arg value is not valid.
+ * Function simply routes the input ioctl cmd id to the appropriate handler in
+ * the isp module.
+ **/
+int isp_handle_private(int cmd, void *arg)
+{
+	int rval = 0;
+
+	switch (cmd) {
+	case VIDIOC_PRIVATE_ISP_CCDC_CFG:
+		rval = omap34xx_isp_ccdc_config(arg);
 		break;
-	case V4L2_CID_PRIVATE_ISP_LSC_UPDATE:
-		omap34xx_isp_tables_update((void *)a->value);
-		omap34xx_isp_lsc_update((void *)a->value);
+	case VIDIOC_PRIVATE_ISP_PRV_CFG:
+		rval = omap34xx_isp_preview_config(arg);
 		break;
-	case V4L2_CID_PRIVATE_ISP_AEWB_CFG:
-		if (!a->value)
+	case VIDIOC_PRIVATE_ISP_AEWB_CFG:
+		if (!arg)
 			rval = -EFAULT;
 		else {
-			struct isph3a_aewb_config params;
-			if (copy_from_user(&params, (void *)a->value,
-							sizeof(params))) {
-				rval = -EFAULT;
-				printk(KERN_ERR "Failed copy_from_user\n");
-			} else
-				rval = isph3a_aewb_configure(&params);
+			struct isph3a_aewb_config *params;
+			params = (struct isph3a_aewb_config *) arg;
+			rval = isph3a_aewb_configure(params);
 		}
 		break;
-	case V4L2_CID_PRIVATE_ISP_AEWB_REQ:
-		if (!a->value)
+	case VIDIOC_PRIVATE_ISP_AEWB_REQ:
+		if (!arg)
 			rval = -EFAULT;
 		else {
-			struct isph3a_aewb_data data;
-			if (copy_from_user(&data, (void *)a->value,
-							sizeof(data))) {
-				rval = -EFAULT;
-				printk(KERN_ERR "Failed copy_from_user\n");
-				break;
-			}
-			rval = isph3a_aewb_request_statistics(&data);
-			if (!rval)
-				if (copy_to_user((void *)a->value, &data,
-							sizeof(data))) {
-					rval = -EFAULT;
-					printk(KERN_ERR
-						"Failed copy_to_user\n");
-				}
+			struct isph3a_aewb_data *data;
+			data = (struct isph3a_aewb_data *) arg;
+			rval = isph3a_aewb_request_statistics(data);
+		}
+		break;
+	case VIDIOC_PRIVATE_ISP_HIST_CFG:
+	if (!arg)
+			rval = -EFAULT;
+		else {
+			struct isp_hist_config *params;
+
+			params = (struct isp_hist_config *) arg;
+			rval = isp_hist_configure(params);
+		}
+		break;
+	case VIDIOC_PRIVATE_ISP_HIST_REQ:
+	if (!arg)
+			rval = -EFAULT;
+		else {
+			struct isp_hist_data *data;
+
+			data = (struct isp_hist_data *) arg;
+			rval = isp_hist_request_statistics(data);
 		}
 		break;
 	default:
@@ -1570,27 +1648,28 @@ int isp_enum_fmt_cap(struct v4l2_fmtdesc *f)
 {
 	int index = f->index;
 	enum v4l2_buf_type type = f->type;
-	int rval;
+	int rval = -EINVAL;
 
 	if (index >= NUM_ISP_CAPTURE_FORMATS)
-		return -EINVAL;
+		goto err;
+
 	memset(f, 0, sizeof(*f));
 	f->index = index;
 	f->type = type;
 
 	switch (f->type) {
 	case V4L2_BUF_TYPE_VIDEO_CAPTURE:
-	if (index >= NUM_ISP_CAPTURE_FORMATS)
-		rval = -EINVAL;
-	break;
+		rval = 0;
+		break;
 	default:
-		rval = -EINVAL;
+		goto err;
 	}
 
 	f->flags = isp_formats[index].flags;
 	strncpy(f->description, isp_formats[index].description,
 						sizeof(f->description));
 	f->pixelformat = isp_formats[index].pixelformat;
+err:
 	return rval;
 }
 EXPORT_SYMBOL(isp_enum_fmt_cap);
@@ -1903,33 +1982,27 @@ int isp_get(void)
 	DPRINTK_ISPCTRL("isp_get: old %d\n", isp_obj.ref_count);
 	mutex_lock(&(isp_obj.isp_mutex));
 	if (isp_obj.ref_count == 0) {
-		isp_obj.cam_ick = clk_get(&camera_dev, "cam_l3_ick");
+		isp_obj.cam_ick = clk_get(&camera_dev, "cam_ick");
 		if (IS_ERR(isp_obj.cam_ick)) {
-			mutex_unlock(&(isp_obj.isp_mutex));
-			DPRINTK_ISPCTRL("ISP_ERR: clk_get for ick failed\n");
-			return PTR_ERR(isp_obj.cam_ick);
+			DPRINTK_ISPCTRL("ISP_ERR: clk_get for cam_ick failed\n");
+			ret_err = PTR_ERR(isp_obj.cam_ick);
+			goto out_clk_get_ick;
 		}
-		isp_obj.cam_fck = clk_get(&camera_dev, "cam_mclk");
-		if (IS_ERR(isp_obj.cam_fck)) {
-			mutex_unlock(&(isp_obj.isp_mutex));
-			DPRINTK_ISPCTRL("ISP_ERR: clk_get for fck failed\n");
-			return PTR_ERR(isp_obj.cam_fck);
+		isp_obj.cam_mclk = clk_get(&camera_dev, "cam_mclk");
+		if (IS_ERR(isp_obj.cam_mclk)) {
+			DPRINTK_ISPCTRL("ISP_ERR: clk_get for cam_mclk failed\n");
+			ret_err = PTR_ERR(isp_obj.cam_mclk);
+			goto out_clk_get_mclk;
 		}
 		ret_err = clk_enable(isp_obj.cam_ick);
 		if (ret_err) {
-			mutex_unlock(&(isp_obj.isp_mutex));
-			clk_put(isp_obj.cam_ick);
-			clk_put(isp_obj.cam_fck);
 			DPRINTK_ISPCTRL("ISP_ERR: clk_en for ick failed\n");
-			return ret_err;
+			goto out_clk_enable_ick;
 		}
-		ret_err = clk_enable(isp_obj.cam_fck);
+		ret_err = clk_enable(isp_obj.cam_mclk);
 		if (ret_err) {
-			mutex_unlock(&(isp_obj.isp_mutex));
-			clk_put(isp_obj.cam_ick);
-			clk_put(isp_obj.cam_fck);
-			DPRINTK_ISPCTRL("ISP_ERR: clk_en for fck failed\n");
-			return ret_err;
+			DPRINTK_ISPCTRL("ISP_ERR: clk_en for mclk failed\n");
+			goto out_clk_enable_mclk;
 		}
 		if (off_mode == 1)
 			isp_restore_ctx();
@@ -1940,6 +2013,18 @@ int isp_get(void)
 
 	DPRINTK_ISPCTRL("isp_get: new %d\n", isp_obj.ref_count);
 	return isp_obj.ref_count;
+
+out_clk_enable_mclk:
+	clk_disable(isp_obj.cam_ick);
+out_clk_enable_ick:
+	clk_put(isp_obj.cam_mclk);
+out_clk_get_mclk:
+	clk_put(isp_obj.cam_ick);
+out_clk_get_ick:
+
+	mutex_unlock(&(isp_obj.isp_mutex));
+
+	return ret_err;
 }
 EXPORT_SYMBOL(isp_get);
 
@@ -1958,9 +2043,9 @@ int isp_put(void)
 			off_mode = 1;
 
 			clk_disable(isp_obj.cam_ick);
-			clk_disable(isp_obj.cam_fck);
+			clk_disable(isp_obj.cam_mclk);
 			clk_put(isp_obj.cam_ick);
-			clk_put(isp_obj.cam_fck);
+			clk_put(isp_obj.cam_mclk);
 		}
 	mutex_unlock(&(isp_obj.isp_mutex));
 	DPRINTK_ISPCTRL("isp_put: new %d\n", isp_obj.ref_count);

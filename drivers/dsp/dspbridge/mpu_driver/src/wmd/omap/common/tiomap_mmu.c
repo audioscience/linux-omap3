@@ -37,7 +37,6 @@
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
 #include <dbg.h>
-#include <dbg_zones.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
 #include <mem.h>
@@ -80,32 +79,3 @@ void configureDspMmu(struct WMD_DEV_CONTEXT *pDevContext, DWORD dataBasePhys,
 				dspBaseVirt, sizeInBytes, nEntryStart,
 				&mapAttrs, HAL_SET, HAL_SET);
 }
-
-/*
- *  ======== dspMmuDisableWtl ========
- *  Purpose:
- *      Disables MMU walking table logic.
- */
-void dspMmuDisableWtl(struct WMD_DEV_CONTEXT *pDevContext)
-{
-	/* Clear bit to disable DSP MMU Walking Table Logic */
-	/*ClearBit(*(volatile DWORD *)
-	   (pDevContext->dwDSPMmuBase + CNTL_REG_OFFSET), WTL_ENABLE_MASK); */
-}
-
-/*
- *  ======== dspMmuInit ========
- *  Purpose:
- *      Initializes DSP MMU.
- */
-void dspMmuInit(struct WMD_DEV_CONTEXT *pDevContext)
-{
-	/*  Release Reset of DSP MMU module */
-	/*SetBit (*(volatile DWORD *)
-	   (pDevContext->dwDSPMmuBase + CNTL_REG_OFFSET), RESET_SW_MMU_MASK); */
-
-	/*  Enable DSP MMU */
-	/* SetBit(*(volatile DWORD *)
-	   (pDevContext->dwDSPMmuBase + CNTL_REG_OFFSET), MMU_ENABLE_MASK); */
-}
-

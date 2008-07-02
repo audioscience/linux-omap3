@@ -22,23 +22,12 @@
  *      physical link managed by a 'Bridge mini-driver.
  *
  *  Public Functions:
- *      CHNL_AddIOReq
- *      CHNL_AllocBuffer
- *      CHNL_CancelIO
  *      CHNL_Close
  *      CHNL_CloseOrphans
  *      CHNL_Create
  *      CHNL_Destroy
  *      CHNL_Exit
- *      CHNL_FlushIO
- *      CHNL_FreeBuffer
- *      CHNL_GetEventHandle
  *      CHNL_GetHandle
- *      CHNL_GetIOCompletion
- *      CHNL_GetId
- *      CHNL_GetMgr
- *      CHNL_GetMode
- *      CHNL_GetPosition
  *      CHNL_GetProcessHandle
  *      CHNL_Init
  *      CHNL_Open
@@ -82,7 +71,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gt.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
@@ -92,7 +80,6 @@
 #include <isr.h>
 #include <list.h>
 #include <mem.h>
-#include <perf.h>
 #include <sync.h>
 
 /*  ----------------------------------- Platform Manager */
@@ -118,114 +105,6 @@ static DSP_STATUS GetNumOpenChannels(struct CHNL_MGR *hChnlMgr,
 
 static DSP_STATUS GetNumChannels(struct CHNL_MGR *hChnlMgr,
 				 OUT ULONG *pcChannels);
-
-#ifdef DEAD_CODE
-
-/*
- *  ======== CHNL_AddIOReq ========
- *  Purpose:
- *      Enqueue an I/O request for data transfer with the DSP on this channel.
- *      The direction (mode) is specified in the channel object.
- */
-DSP_STATUS CHNL_AddIOReq(struct CHNL_OBJECT *hChnl, PVOID pHostBuf,
-			 ULONG cBytes)
-{
-	DWORD dwArg = 0;
-	DSP_STATUS status;
-	struct CHNL_OBJECT_ *pChnl = (struct CHNL_OBJECT_ *)hChnl;
-	struct WMD_DRV_INTERFACE *pIntfFxns;
-
-	DBC_Require(cRefs > 0);
-
-	GT_3trace(CHNL_DebugMask, GT_ENTER,
-		  "Entered CHNL_AddIOReq: hChnl: 0x%x\t"
-		  "pHostBuf: 0x%x\tcBytes: 0x%x\n", hChnl, pHostBuf, cBytes);
-	if (CHNL_IsValidChnl(pChnl)) {
-		pIntfFxns = pChnl->pChnlMgr->pIntfFxns;
-		status = (*pIntfFxns->pfnChnlAddIOReq)
-		(hChnl, pHostBuf, cBytes, 0, 0L, dwArg);
-	} else {
-		status = DSP_EHANDLE;
-		GT_0trace(CHNL_DebugMask, GT_7CLASS,
-			  "CHNL_AddIOReq:Invalid Handle\n");
-	}
-
-	GT_2trace(CHNL_DebugMask, GT_ENTER,
-		  "Exiting CHNL_AddIOReq: hChnl: 0x%x, "
-		  "status: 0x%x\n", hChnl, status);
-
-	return (status);
-}
-
-/*
- *  ======== CHNL_AllocBuffer ========
- *  Purpose:
- *      Channel buffer allocation may depend on the type of channel driver
- *      we're using.
- */
-DSP_STATUS CHNL_AllocBuffer(OUT PVOID *ppBuf, struct CHNL_MGR *hChnlMgr,
-			    ULONG cBytes)
-{
-	DSP_STATUS status = DSP_SOK;
-/*    CHNL_MGR_       * pChnlMgr = (CHNL_MGR_ *)hChnlMgr;*/
-
-	DBC_Require(cRefs > 0);
-
-	GT_3trace(CHNL_DebugMask, GT_ENTER,
-		  "Entered CHNL_AddIOReq: ppBuf: 0x%x\t"
-		  "hChnlMgr: 0x%x\tcBytes: 0x%x\n", ppBuf, hChnlMgr, cBytes);
-	if (ppBuf != NULL) {
-		if (CHNL_IsValidMgr((struct CHNL_MGR_ *)hChnlMgr)) {
-			if (cBytes <= 0) {
-				status = DSP_EINVALIDARG;
-			}
-		} else {
-			status = DSP_EHANDLE;
-			GT_0trace(CHNL_DebugMask, GT_7CLASS,
-				  "CHNL_AllocBuffer: Invalid "
-				  "Handle\n");
-		}
-	} else {
-		status = DSP_EPOINTER;
-	}
-	return (status);
-}
-
-/*
- *  ======== CHNL_CancelIO ========
- *  Purpose:
- *      Return all I/O requests to the client which have not yet been
- *      transferred.  The channel's I/O completion object is
- *      signalled, and all the I/O requests are queued as IOC's, with the
- *      status field set to CHNL_IOCSTATCANCEL.
- *      This call is typically used in abort situations, and is a prelude to
- *      CHNL_Close();
- */
-DSP_STATUS CHNL_CancelIO(struct CHNL_OBJECT *hChnl)
-{
-	DSP_STATUS status;
-	struct CHNL_OBJECT_ *pChnl = (struct CHNL_OBJECT_ *)hChnl;
-	struct WMD_DRV_INTERFACE *pIntfFxns;
-
-	DBC_Require(cRefs > 0);
-
-	GT_1trace(CHNL_DebugMask, GT_ENTER,
-		  "Entered CHNL_CancelIO: hChnl: 0x%x\n", hChnl);
-	if (CHNL_IsValidChnl(pChnl)) {
-		pIntfFxns = pChnl->pChnlMgr->pIntfFxns;
-		status = (*pIntfFxns->pfnChnlCancelIO) (hChnl);
-	} else {
-		GT_0trace(CHNL_DebugMask, GT_7CLASS,
-			  "CHNL_CancelIO:Invalid Handle\n");
-		status = DSP_EHANDLE;
-	}
-	GT_2trace(CHNL_DebugMask, GT_ENTER,
-		  "Exiting CHNL_CancelIO: hChnl: 0x%x, "
-		  "status: 0x%x\n", hChnl, status);
-	return (status);
-}
-
-#endif
 
 /*
  *  ======== CHNL_Close ========
@@ -441,106 +320,6 @@ void CHNL_Exit()
 	DBC_Ensure(cRefs >= 0);
 }
 
-#ifdef DEAD_CODE
-
-/*
- *  ======== CHNL_FlushIO ========
- */
-DSP_STATUS CHNL_FlushIO(struct CHNL_OBJECT *hChnl, DWORD dwTimeOut)
-{
-	DSP_STATUS status;
-	struct CHNL_OBJECT_ *pChnl = (struct CHNL_OBJECT_ *)hChnl;
-	struct WMD_DRV_INTERFACE *pIntfFxns;
-
-	DBC_Require(cRefs > 0);
-
-	GT_2trace(CHNL_DebugMask, GT_ENTER,
-		  "Entered CHNL_FlushIO: hChnl: 0x%x\t"
-		  "dwTimeOut: 0x%x\n", hChnl, dwTimeOut);
-	if (CHNL_IsValidChnl(pChnl)) {
-		pIntfFxns = pChnl->pChnlMgr->pIntfFxns;
-		status = (*pIntfFxns->pfnChnlFlushIO)(hChnl, dwTimeOut);
-	} else {
-		GT_0trace(CHNL_DebugMask, GT_7CLASS,
-			  "CHNL_FlushIO:Invalid Handle\n");
-		status = DSP_EHANDLE;
-	}
-
-	GT_2trace(CHNL_DebugMask, GT_ENTER,
-		  "Exiting CHNL_FlushIO: hChnl: 0x%x,"
-		  " status: 0x%x\n", hChnl, status);
-	return (status);
-}
-
-/*
- *  ======== CHNL_FreeBuffer ========
- */
-DSP_STATUS CHNL_FreeBuffer(struct CHNL_MGR *hChnlMgr, ULONG cBytes, PVOID pBuf)
-{
-	DSP_STATUS status = DSP_SOK;
-	/*struct CHNL_MGR_       * pChnlMgr = (struct CHNL_MGR_ *)hChnlMgr; */
-
-	DBC_Require(cRefs > 0);
-
-	GT_3trace(CHNL_DebugMask, GT_ENTER,
-		  "Entered CHNL_FreeBuffer: hChnlMgr: 0x"
-		  "%x\tcBytes: 0x%x\t\npBuf: ox%x\n", hChnlMgr, cBytes, pBuf);
-
-	if (CHNL_IsValidMgr((struct CHNL_MGR_ *)hChnlMgr)) {
-		if (pBuf == NULL) {
-			status = DSP_EINVALIDARG;
-		}
-	} else {
-		GT_0trace(CHNL_DebugMask, GT_7CLASS,
-			  "CHNL_FreeBuffer:Invalid Handle\n");
-		status = DSP_EHANDLE;
-	}
-	GT_1trace(CHNL_DebugMask, GT_ENTER,
-		  "Exit CHNL_Freebuffer: status = 0x%x\n", status);
-	return (status);
-}
-
-/*
- *  ======== CHNL_GetEventHandle ========
- *  Purpose:
- *      Retrieve this channel's I/O completion auto-reset event.
- */
-DSP_STATUS CHNL_GetEventHandle(struct CHNL_OBJECT *hChnl, OUT HANDLE *phEvent)
-{
-	DSP_STATUS status;
-	struct CHNL_OBJECT_ *pChnl = (struct CHNL_OBJECT_ *)hChnl;
-	struct WMD_DRV_INTERFACE *pIntfFxns;
-	struct CHNL_INFO chnlInfo;
-
-	DBC_Require(cRefs > 0);
-	GT_2trace(CHNL_DebugMask, GT_ENTER,
-		  "Entered CHNL_GetEventHandle: hChnl: "
-		  "0x%x\tphEvent: 0x%x\n", hChnl, phEvent);
-
-	if (phEvent) {
-		if (CHNL_IsValidChnl(pChnl)) {
-			pIntfFxns = pChnl->pChnlMgr->pIntfFxns;
-			status = (*pIntfFxns->pfnChnlGetInfo)(hChnl, &chnlInfo);
-			if (DSP_SUCCEEDED(status)) {
-				*phEvent = chnlInfo.hEvent;
-			}
-		} else {
-			GT_0trace(CHNL_DebugMask, GT_7CLASS,
-				  "CHNL_FreeBuffer:Invalid "
-				  "Handle\n");
-			status = DSP_EHANDLE;
-		}
-	} else {
-		status = DSP_EPOINTER;
-	}
-	GT_2trace(CHNL_DebugMask, GT_ENTER,
-		  "Exit CHNL_GetEventHandle: status: "
-		  "0x%x\t\n hEvent: 0x%x\n", status, *phEvent);
-	return (status);
-}
-
-#endif
-
 /*
  *  ======== CHNL_GetHandle ========
  *  Purpose:
@@ -565,9 +344,9 @@ DSP_STATUS CHNL_GetHandle(struct CHNL_MGR *hChnlMgr, ULONG uChnlID,
 			pIntfFxns = pChnlMgr->pIntfFxns;
 			status = (*pIntfFxns->pfnChnlGetMgrInfo)(hChnlMgr,
 				  uChnlID, &chnlMgrInfo);
-			if (DSP_SUCCEEDED(status)) {
+			if (DSP_SUCCEEDED(status))
 				*phChnl = chnlMgrInfo.hChnl;
-			}
+
 		} else {
 			status = DSP_EHANDLE;
 			GT_0trace(CHNL_DebugMask, GT_7CLASS,
@@ -581,202 +360,6 @@ DSP_STATUS CHNL_GetHandle(struct CHNL_MGR *hChnlMgr, ULONG uChnlID,
 		  "hChnl: 0x%x\n", status, *phChnl);
 	return (status);
 }
-
-#ifdef DEAD_CODE
-
-/*
- *  ======== CHNL_GetId ========
- *  Purpose:
- *      Retrieve the channel logical ID of this channel.
- */
-DSP_STATUS CHNL_GetId(struct CHNL_OBJECT *hChnl, OUT ULONG *pdwID)
-{
-	DSP_STATUS status;
-	struct CHNL_OBJECT_ *pChnl = (struct CHNL_OBJECT_ *)hChnl;
-	struct WMD_DRV_INTERFACE *pIntfFxns;
-	struct CHNL_INFO chnlInfo;
-
-	DBC_Require(cRefs > 0);
-	GT_2trace(CHNL_DebugMask, GT_ENTER,
-		  "Enter CHNL_GetId: hChnl: 0x%x\t\npdwID:"
-		  "0x%x\n", hChnl, pdwID);
-	if (pdwID) {
-		*pdwID = 0;
-		if (CHNL_IsValidChnl(pChnl)) {
-			pIntfFxns = pChnl->pChnlMgr->pIntfFxns;
-			status = (*pIntfFxns->pfnChnlGetInfo)(hChnl, &chnlInfo);
-			if (DSP_SUCCEEDED(status)) {
-				*pdwID = chnlInfo.dwID;
-			}
-		} else {
-			GT_0trace(CHNL_DebugMask, GT_7CLASS,
-				  "CHNL_GetId:Invalid Handle\n");
-			status = DSP_EHANDLE;
-		}
-	} else {
-		status = DSP_EPOINTER;
-	}
-	GT_2trace(CHNL_DebugMask, GT_ENTER,
-		  "Exit CHNL_GetID: status:0x%x\t\nChannel"
-		  "ID: 0x%x\n", status, *pdwID);
-	return (status);
-}
-
-/*
- *  ======== CHNL_GetIOCompletion ========
- *  Purpose:
- *      Optionally wait for I/O completion on a channel.  Dequeue an I/O
- *      completion record, which contains information about the completed
- *      I/O request.
- */
-DSP_STATUS CHNL_GetIOCompletion(struct CHNL_OBJECT *hChnl, DWORD dwTimeOut,
-				OUT struct CHNL_IOC *pIOC)
-{
-	DSP_STATUS status;
-	struct CHNL_OBJECT_ *pChnl = (struct CHNL_OBJECT_ *)hChnl;
-	struct WMD_DRV_INTERFACE *pIntfFxns;
-
-	DBC_Require(cRefs > 0);
-
-	GT_3trace(CHNL_DebugMask, GT_ENTER,
-		  "Entering CHNL_GetIOCompletion: hChnl:"
-		  "0x%x\tdwTimeOut: 0x%x\tpIOC: 0x%x\n", hChnl, dwTimeOut,
-		  pIOC);
-	if (CHNL_IsValidChnl(pChnl)) {
-		pIntfFxns = pChnl->pChnlMgr->pIntfFxns;
-		status = (*pIntfFxns->pfnChnlGetIOC) (hChnl, dwTimeOut, pIOC);
-	} else {
-		if (pIOC) {
-			pIOC->pBuf = NULL;
-			pIOC->cBytes = 0;
-		}
-		status = DSP_EHANDLE;
-	}
-	GT_2trace(CHNL_DebugMask, GT_ENTER,
-		  "Exiting CHNL_GetIOCompletion: hChnl: "
-		  "0x%x,status: 0x%x\n", hChnl, status);
-	return (status);
-}
-
-/*
- *  ======== CHNL_GetMgr ========
- *  Purpose:
- *      Retrieve a channel manager handle, required for opening new channels
- *      and closing old ones on a given 'Bridge board.
- */
-DSP_STATUS CHNL_GetMgr(struct CFG_DEVNODE *hDevNode,
-			OUT struct CHNL_MGR **phChnlMgr)
-{
-	struct DEV_OBJECT *hDevObject;
-	DSP_STATUS status;
-
-	DBC_Require(cRefs > 0);
-	DBC_Require(phChnlMgr != NULL);
-
-	GT_2trace(CHNL_DebugMask, GT_ENTER,
-		  "Enter CHNL_GetMgr: hDevNode: 0x%x\t\n "
-		  "phChnlMgr: 0x%x\n", hDevNode, *phChnlMgr);
-	if (CFG_GetDevObject(hDevNode, (DWORD *)&hDevObject) ==
-	   CFG_E_INVALIDHDEVNODE) {
-		status = DSP_EHANDLE;
-	} else {
-		status = DEV_GetChnlMgr(hDevObject, phChnlMgr);
-		if (DSP_SUCCEEDED(status) && *phChnlMgr == NULL) {
-			status = CHNL_E_NOMGR;
-			GT_0trace(CHNL_DebugMask, GT_7CLASS,
-				  "CHNL_GetMgr: Failed");
-		}
-	}
-
-	GT_2trace(CHNL_DebugMask, GT_ENTER,
-		  "Exit CHNL_GetMgr: status: 0x%x\t\n"
-		  "hChnlMgr: 0x%x\n", status, *phChnlMgr);
-	DBC_Ensure((DSP_FAILED(status) && *phChnlMgr == NULL) ||
-		   (DSP_SUCCEEDED(status) &&
-			CHNL_IsValidMgr((struct CHNL_MGR_ *)*phChnlMgr)));
-
-	return (status);
-}
-
-/*
- *  ======== CHNL_GetMode ========
- *  Purpose:
- *      Retrieve the mode flags of this channel.
- */
-DSP_STATUS CHNL_GetMode(struct CHNL_OBJECT *hChnl, OUT CHNL_MODE *pMode)
-{
-	DSP_STATUS status;
-	struct CHNL_OBJECT_ *pChnl = (struct CHNL_OBJECT_ *)hChnl;
-	struct WMD_DRV_INTERFACE *pIntfFxns;
-	struct CHNL_INFO chnlInfo;
-
-	DBC_Require(cRefs > 0);
-
-	GT_2trace(CHNL_DebugMask, GT_ENTER,
-		  "Enter CHNL_GetMode: hChnl: 0x%x\t\n"
-		  "pMode:0x%x\n", hChnl, *pMode);
-	if (pMode) {
-		*pMode = 0x00;
-		if (CHNL_IsValidChnl(pChnl)) {
-			pIntfFxns = pChnl->pChnlMgr->pIntfFxns;
-			status = (*pIntfFxns->pfnChnlGetInfo)(hChnl, &chnlInfo);
-			if (DSP_SUCCEEDED(status)) {
-				*pMode = chnlInfo.dwMode;
-			}
-		} else {
-			GT_0trace(CHNL_DebugMask, GT_7CLASS,
-				  "CHNL_GetMode:Invalid Handle\n");
-			status = DSP_EHANDLE;
-		}
-	} else {
-		status = DSP_EPOINTER;
-	}
-	GT_2trace(CHNL_DebugMask, GT_ENTER,
-		  "Exit CHNL_GetMode: status: 0x%x\t\n"
-		  "Mode:0x%x\n", status, *pMode);
-
-	return (status);
-}
-
-/*
- *  ======== CHNL_GetPosition ========
- *  Purpose:
- *      Retrieve the total number of bytes transferred on this channel.
- */
-DSP_STATUS CHNL_GetPosition(struct CHNL_OBJECT *hChnl, OUT ULONG *pcPosition)
-{
-	DSP_STATUS status;
-	struct CHNL_OBJECT_ *pChnl = (struct CHNL_OBJECT_ *)hChnl;
-	struct WMD_DRV_INTERFACE *pIntfFxns;
-	struct CHNL_INFO chnlInfo;
-
-	DBC_Require(cRefs > 0);
-
-	GT_2trace(CHNL_DebugMask, GT_ENTER, "Enter CHNL_GetPosition: hChnl: "
-		  "0x%x\t\n pcPosition: 0x%x\n", hChnl, pcPosition);
-
-	if (pcPosition) {
-		*pcPosition = 0;
-		if (CHNL_IsValidChnl(pChnl)) {
-			pIntfFxns = pChnl->pChnlMgr->pIntfFxns;
-			status = (*pIntfFxns->pfnChnlGetInfo)(hChnl, &chnlInfo);
-			if (DSP_SUCCEEDED(status)) {
-				*pcPosition = chnlInfo.cPosition;
-			}
-		} else {
-			GT_0trace(CHNL_DebugMask, GT_7CLASS,
-				  "CHNL_GetPosition: Invalid Handle\n");
-			status = DSP_EHANDLE;
-		}
-	} else {
-		status = DSP_EPOINTER;
-	}
-	GT_2trace(CHNL_DebugMask, GT_ENTER, "Exit CHNL_GetPosition: status: "
-		  "0x%x\t\npcPosition: 0x%x\n", status, *pcPosition);
-	return (status);
-}
-
-#endif
 
 /*
  *  ======== CHNL_GetProcessHandle ========
@@ -801,9 +384,9 @@ DSP_STATUS CHNL_GetProcessHandle(struct CHNL_OBJECT *hChnl,
 		if (CHNL_IsValidChnl(pChnl)) {
 			pIntfFxns = pChnl->pChnlMgr->pIntfFxns;
 			status = (*pIntfFxns->pfnChnlGetInfo)(hChnl, &chnlInfo);
-			if (DSP_SUCCEEDED(status)) {
+			if (DSP_SUCCEEDED(status))
 				*phProcess = chnlInfo.hProcess;
-			}
+
 		} else {
 			status = DSP_EHANDLE;
 		}
@@ -844,53 +427,6 @@ BOOL CHNL_Init()
 	return (fRetval);
 }
 
-#ifdef DEAD_CODE
-/*
- *  ======== CHNL_Open ========
- *  Purpose:
- *      Open a new half-duplex channel to the DSP board.
- *
- */
-DSP_STATUS CHNL_Open(OUT struct CHNL_OBJECT **phChnl, struct CHNL_MGR *hChnlMgr,
-		     CHNL_MODE uMode, ULONG uChnlId,
-		     CONST IN struct CHNL_ATTRS *pAttrs)
-{
-	DSP_STATUS status;
-	struct CHNL_MGR_ *pChnlMgr = (struct CHNL_MGR_ *)hChnlMgr;
-	struct WMD_DRV_INTERFACE *pIntfFxns;
-
-	DBC_Require(cRefs > 0);
-	DBC_Require(phChnl != NULL);
-	DBC_Require(pAttrs != NULL);
-	DBC_Require(pAttrs->hEvent != NULL);
-
-	GT_5trace(CHNL_DebugMask, GT_ENTER,
-		  "Entering CHNL_Open: phChnl: 0x%x\t"
-		  "hChnlMgr: 0x%x\tuMode: 0x%x\tuChnlId: 0x%x\t pAttrs: 0x%x\n",
-		  phChnl, hChnlMgr, uMode, uChnlId, pAttrs);
-	if (CHNL_IsValidMgr(pChnlMgr)) {
-		pIntfFxns = pChnlMgr->pIntfFxns;
-		/* Let WMD channel module open the channel: */
-		status = (*pIntfFxns->pfnChnlOpen)(phChnl, hChnlMgr, uMode,
-			 uChnlId, pAttrs);
-	} else {
-		status = DSP_EHANDLE;
-		GT_0trace(CHNL_DebugMask, GT_7CLASS,
-			  "CHNL_Open:Invalid Handle\n");
-	}
-
-	GT_2trace(CHNL_DebugMask, GT_ENTER,
-		  "Exiting CHNL_Open: phChnl: 0x%x,status:"
-		  "0x%x\n", phChnl, status);
-
-	DBC_Ensure((DSP_FAILED(status) && *phChnl == NULL) ||
-		   (DSP_SUCCEEDED(status) &&
-			CHNL_IsValidChnl((struct CHNL_OBJECT_ *)*phChnl)));
-
-	return (status);
-}
-#endif
-
 /*
  *  ======== GetNumOpenChannels ========
  *  Purpose:
@@ -922,9 +458,9 @@ static DSP_STATUS GetNumOpenChannels(struct CHNL_MGR *hChnlMgr,
 			pIntfFxns = pChnlMgr->pIntfFxns;
 			status = (*pIntfFxns->pfnChnlGetMgrInfo)(hChnlMgr, 0,
 				 &chnlMgrInfo);
-			if (DSP_SUCCEEDED(status)) {
+			if (DSP_SUCCEEDED(status))
 				*pcOpenChannels = chnlMgrInfo.cOpenChannels;
-			}
+
 		} else {
 			status = DSP_EHANDLE;
 		}
@@ -966,9 +502,9 @@ static DSP_STATUS GetNumChannels(struct CHNL_MGR *hChnlMgr,
 			pIntfFxns = pChnlMgr->pIntfFxns;
 			status = (*pIntfFxns->pfnChnlGetMgrInfo)(hChnlMgr, 0,
 				 &chnlMgrInfo);
-			if (DSP_SUCCEEDED(status)) {
+			if (DSP_SUCCEEDED(status))
 				*pcChannels = chnlMgrInfo.cChannels;
-			}
+
 		} else {
 			status = DSP_EHANDLE;
 		}

@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/_dcd.h
+ * dspbridge/mpu_driver/inc/_dcd.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -58,7 +58,7 @@
 extern "C" {
 #endif
 
-#include <dsptrap.h>
+#include <wcdioctl.h>
 
 /*
  *  ======== WCD_CallDevIOCtl ========

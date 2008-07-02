@@ -1,5 +1,6 @@
 /*------------------------------------------------------------------------
- . smc911x.h - macros for SMSC's LAN911{5,6,7,8} single-chip Ethernet device.
+ . smc911x.h - macros for SMSC's LAN9{115,116,117,118,211} single-chip
+ . Ethernet device.
  .
  . Copyright (C) 2005 Sensoria Corp.
  . Derived from the unified SMC91x driver by Nicolas Pitre
@@ -42,11 +43,11 @@
   #define SMC_USE_16BIT		0
   #define SMC_USE_32BIT		1
   #define SMC_IRQ_SENSE		IRQF_TRIGGER_LOW
-#elif defined(CONFIG_MACH_OMAP_LDP)
+#elif defined(CONFIG_ARCH_OMAP34XX)
   #define SMC_USE_16BIT		0
   #define SMC_USE_32BIT		1
   #define SMC_IRQ_SENSE		IRQF_TRIGGER_LOW
-  #define SMC_MEM_REGION_RESERVED 1
+  #define SMC_MEM_RESERVED	1
 #endif
 
 
@@ -62,8 +63,8 @@
 #define SMC_outw(v, a, r)		 writew(v, (a) + (r))
 #define SMC_outl(v, a, r) 			 \
 	do{					 \
-		 writel((v) & 0xFFFF, (a) + (r));	 \
-		 writel((v) >> 16, (a) + (r) + 2); \
+		 writel(v & 0xFFFF, (a) + (r));	 \
+		 writel(v >> 16, (a) + (r) + 2); \
 	 } while (0)
 #define SMC_insl(a, r, p, l)	 readsw((short*)((a) + (r)), p, l*2)
 #define SMC_outsl(a, r, p, l)	 writesw((short*)((a) + (r)), p, l*2)

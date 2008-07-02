@@ -47,10 +47,10 @@
  *! ================
  *! 28-Apr-2004 vp: Updated IVA MMU entries based on Aptix validation.
  *! 19-Apr-2004 sb: Clear MBX_DEH_RESET from hIOMgr->wIntrVal to prevent
-                    DEH when MPU invokes DPC before next DSP interrupt.
-                    Revert back GP timer mapping endianness to LE
+		    DEH when MPU invokes DPC before next DSP interrupt.
+		    Revert back GP timer mapping endianness to LE
  *! 22-Apr-2004 sb: Fixed SHM & peripherals endianness settings for 2420
-                    Optimized num. of SHM entries for any SHM size.
+		    Optimized num. of SHM entries for any SHM size.
  *! 08-Mar-2004 sb: Updated HAL_MMU page size macros
  *! 09-Feb-2004 vp: Updated for IVA link driver.
  *! 05-Jan-2004 vp: Updated for the 24xx platform.
@@ -59,50 +59,50 @@
  *! 21-Mar-2003 sb: OEM configuration updates
  *! 24-Feb-2003 vp: Code Review Updates.
  *! 18-Oct-2002 sb: Ported to Linux platform
- *! 28-Mar-2002 jeh Assume word addresses for SHM, MSG,... symbol values.
+ *! 28-Mar-2002 jeh Assume word addresses for SHM, MSG, ... symbol values.
  *! 25-Jan-2002 ag  bDspAck incorrectly set in IO_DDZCDispatchChnl()
  *! 05-Jan-2002 ag  Set MBX value to DSP using IO_InterruptDSP2().
- *!                 Check for CHNL_STATECANCEL in ACK processing.
+ *!		 Check for CHNL_STATECANCEL in ACK processing.
  *! 20-Dec-2001 ag  Removed #ifdef CHNL_NOIPCINTR & CHNL_PREOMAP for DSP-DMA.
- *!                 Removed unused fxn GetDDMAChnl().
+ *!		 Removed unused fxn GetDDMAChnl().
  *! 11-Dec-2001 ag  Fix in DDMA_Dispatch for multi-bufs.
  *! 06-Nov-2001 ag  DSP-DMA I/O processing support added.
  *! 05-Nov-2001 kc  Updated to support DEH module.
  *! 18-Sep-2001 ag  Using virtual cached addressing for SM.
  *! 29-Aug-2001 ag  User SM regions registered during prog load.
  *! 10-Aug-2001 ag  Removed dependency on platform\inc\Config.h.
- *!                 MMU setup OnLoaded & per DEV context.
+ *!		 MMU setup OnLoaded & per DEV context.
  *! 08-May-2001 ag  Don't SwapWord if TIHELEN.
  *! 31-May-2001 ag  Fixed bug in pInput calc.
  *! 21-May-2001 ag  Helen SM uses TICFG_BRIDGE_DATA_BASE[SIZE] in Config.h.
  *! 04-May-2001 jeh Replaced CHNL_PREOMAP with CHNL_OMAP, added CHNL_HELEN.
- *!                 Cleaned up WMD_IO_OnLoaded a bit.
+ *!		 Cleaned up WMD_IO_OnLoaded a bit.
  *! 10-Apr-2001 rr: Replaced DBG_ENTER with DBG_LEVEL3.
  *! 28-Mar-2001 ag  Added CHNL_NOIPCINTR. Disables IPC INTR handling.
  *! 16-Feb-2001 jeh Messaging disabled for PREOMAP.
  *! 16-Dec-2000 ag  IO_DispatchMsg() enabled for PreOMAP.
- *!                 SM must be in last 4 Meg region SDRAM for PreOMAP.
+ *!		 SM must be in last 4 Meg region SDRAM for PreOMAP.
  *! 14-Dec-2000 jeh Now reads SM addresses from COFF for PreOMAP.
  *! 04-Dec-2000 jeh Bug fixes for messaging.
  *! 20-Nov-2000 jeh Updated to handle messaging.
  *! 23-Oct-2000 jeh Added notifications of IO complete and end of stream for
- *!                 DSPStream support. Pass arg in SHM structure.
+ *!		 DSPStream support. Pass arg in SHM structure.
  *! 07-Jul-2000 rr: Changed Prefix proc to prcs for Process module.
  *! 03-Feb-2000 rr: DBG statements during fxn entry added.
  *! 21-Jan-2000 ag: Clean-up per code review.
  *! 10-Dev-1999 ag: Added critical section in IO_Dispatch() to protect IOCL/IOR.
- *!                 Removed DBC_Asserts after cancelled/closed channels.
- *!                 Replaced x86 specific __asm int 3 with DBC_Assert(FALSE);
+ *!		 Removed DBC_Asserts after cancelled/closed channels.
+ *!		 Replaced x86 specific __asm int 3 with DBC_Assert(FALSE);
  *! 12-Nov-1999 ag: Removed some warnings when compiling for 16 bit targets.
- *!                 (See #if _CHNL_WORDSIZE).
+ *!		 (See #if _CHNL_WORDSIZE).
  *! 04-Nov-1999 ag: WinCE port.
  *! 25-May-1999 jg: Test that CHNL_IOCLASS boards have a loaded program with
- *!                 a defined shared memory buffer.
+ *!		 a defined shared memory buffer.
  *! 09-Jul-1997 gp: Added some checks for validity of SHM control block values.
  *! 17-Jan-1997 db: Added capability to log shared memory header.
  *! 15-Jan-1997 gp: Code Review mods: moved static dwLastId to CHNL_MGR object.
  *! 03-Jan-1997 gp: Added call to CHNLSM_DPC from IO_DPC. Check for ISR failing
- *!                 to process interrupt on a non-shared IRQ line.
+ *!		 to process interrupt on a non-shared IRQ line.
  *! 10-Dec-1996 gp: Added EOS notification on input channel (CHNL_MODEFROMDSP).
  *! 27-Nov-1996 gp: Fixed bug in IO_Dispatch(), which fixed flushing.
  *! 23-Oct-1996 gp: Ensure client buffer bounds are not overrun on input.
@@ -125,7 +125,6 @@
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
 #include <dbg.h>
-#include <dbg_zones.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
 #include <cfg.h>
@@ -135,28 +134,18 @@
 #include <sync.h>
 #include <reg.h>
 
-#if defined (OMAP_2430) || defined (OMAP_3430)
 /* ------------------------------------ Hardware Abstraction Layer */
 #include <hal_defs.h>
 #include <hal_mmu.h>
-
-#endif
 
 /*  ----------------------------------- Mini Driver */
 #include <wmddeh.h>
 #include <wmdio.h>
 #include <wmdioctl.h>
-#ifdef OMAP_3430
 #include <_tiomap.h>
 #include <tiomap_io.h>
 #include <_tiomap_pwr.h>
-#else
-#include <_tiomap.h>
-#endif
 #include <tiomap_io.h>
-#ifdef OMAP_2430
-#include <_tiomap_pwr.h>
-#endif
 
 /*  ----------------------------------- Platform Manager */
 #include <cod.h>
@@ -184,65 +173,44 @@
 #define SwapWord(x)     (x)
 #define ulPageAlignSize 0x10000   /* Page Align Size */
 
-#ifdef CHNL_DDMA
-/* These macro are used for each channel's buf desc ring buffers */
-
-/* bump(or wrap) ndx into buffer description array */
-#define IO_DDMANextPutNdx(pCh) ((++pCh->dwGppPutNdx < (UINT)pCh->cChirps) ? \
-    pCh->dwGppPutNdx : (pCh->dwGppPutNdx = 0))
-
-/* gpp next wait for completion index */
-#define IO_DDMANextWaitNdx(pCh) ((++pCh->dwGppWaitNdx < (UINT)pCh->cChirps) ? \
-    pCh->dwGppWaitNdx : (pCh->dwGppWaitNdx = 0))
-
-/* get current buf put/wait ndx */
-#define IO_DDMAGetPutNdx(pCh)   (pCh->dwGppPutNdx)
-#define IO_DDMAGetWaitNdx(pCh)  (pCh->dwGppWaitNdx)
-
-#endif
-
-#if defined (OMAP_2430) || defined (OMAP_3430)
 #define MAX_PM_REQS 32
-#endif
 
 /* IO Manager: only one created per board: */
 struct IO_MGR {
 	/* These four fields must be the first fields in a IO_MGR_ struct: */
-	DWORD dwSignature;	/* Used for object validation   */
-	struct WMD_DEV_CONTEXT* hWmdContext;	/* WMD device context           */
-	struct WMD_DRV_INTERFACE *pIntfFxns;	/* Function interface to WMD    */
-	struct DEV_OBJECT* hDevObject;	/* Device this board represents */
+	DWORD dwSignature; 	/* Used for object validation   */
+	struct WMD_DEV_CONTEXT *hWmdContext; 	/* WMD device context  */
+	struct WMD_DRV_INTERFACE *pIntfFxns; 	/* Function interface to WMD */
+	struct DEV_OBJECT *hDevObject; 	/* Device this board represents */
 
 	/* These fields initialized in WMD_IO_Create():    */
-	struct CHNL_MGR* hChnlMgr;
-	struct SHM *pSharedMem;	/* Shared Memory control        */
-	BYTE *pInput;		/* Address of input channel     */
-	BYTE *pOutput;		/* Address of output channel    */
-	struct MSG_MGR* hMsgMgr;	/* Message manager */
-	struct MSG *pMsgInputCtrl;	/* Message control for from DSP messages */
-	struct MSG *pMsgOutputCtrl;	/* Message control for to DSP messages */
-	BYTE *pMsgInput;	/* Address of input messages    */
-	BYTE *pMsgOutput;	/* Address of output messages   */
-	ULONG uSMBufSize;	/* Size of a shared memory I/O channel */
-	struct ISR_IRQ* hIRQ;		/* Virutalized IRQ handle       */
-	BOOL fSharedIRQ;	/* Is this IRQ shared?          */
-	struct DPC_OBJECT* hDPC;	/* DPC object handle            */
-	struct SYNC_CSOBJECT* hCSObj;	/* Critical section object handle */
-	ULONG uWordSize;	/* Size in bytes of DSP word    */
-	WORD wIntrVal;		/* interrupt value              */
+	struct CHNL_MGR *hChnlMgr;
+	struct SHM *pSharedMem; 	/* Shared Memory control	*/
+	BYTE *pInput; 		/* Address of input channel     */
+	BYTE *pOutput; 		/* Address of output channel    */
+	struct MSG_MGR *hMsgMgr; 	/* Message manager */
+	struct MSG *pMsgInputCtrl; 	/* Msg control for from DSP messages */
+	struct MSG *pMsgOutputCtrl; 	/* Msg control for to DSP messages */
+	BYTE *pMsgInput; 	/* Address of input messages    */
+	BYTE *pMsgOutput; 	/* Address of output messages   */
+	ULONG uSMBufSize; 	/* Size of a shared memory I/O channel */
+	struct ISR_IRQ *hIRQ; 		/* Virutalized IRQ handle       */
+	BOOL fSharedIRQ; 	/* Is this IRQ shared?	  */
+	struct DPC_OBJECT *hDPC; 	/* DPC object handle	    */
+	struct SYNC_CSOBJECT *hCSObj; 	/* Critical section object handle */
+	ULONG uWordSize; 	/* Size in bytes of DSP word    */
+	WORD wIntrVal; 		/* interrupt value	      */
 	/* private extnd proc info; mmu setup */
 	struct MGR_PROCESSOREXTINFO extProcInfo;
-	struct CMM_OBJECT* hCmmMgr;	/* Shared Mem Mngr              */
-#if defined (OMAP_2430) || defined (OMAP_3430)
+	struct CMM_OBJECT *hCmmMgr; 	/* Shared Mem Mngr	      */
 	DWORD dQuePowerMbxVal[MAX_PM_REQS];
 	UINT iQuePowerHead;
 	UINT iQuePowerTail;
-#endif
 #ifndef DSP_TRACEBUF_DISABLED
-	ULONG ulTraceBufferBegin;	/* Trace message start address */
-	ULONG ulTraceBufferEnd;	/* Trace message end address */
-	ULONG ulTraceBufferCurrent;	/* Trace message current address */
-	ULONG ulGPPReadPointer;	/* GPP Read pointer to Trace buffer */
+	ULONG ulTraceBufferBegin; 	/* Trace message start address */
+	ULONG ulTraceBufferEnd; 	/* Trace message end address */
+	ULONG ulTraceBufferCurrent; 	/* Trace message current address */
+	ULONG ulGPPReadPointer; 	/* GPP Read pointer to Trace buffer */
 	BYTE *pMsg;
 	ULONG ulGppVa;
 	ULONG ulDspVa;
@@ -251,42 +219,31 @@ struct IO_MGR {
 
 /*  ----------------------------------- Function Prototypes */
 static VOID IO_DispatchChnl(IN struct IO_MGR *pIOMgr,
-								IN OUT struct CHNL_OBJECT *pChnl, UINT iMode);
-static VOID IO_DispatchMsg(IN struct IO_MGR *pIOMgr, struct MSG_MGR* hMsgMgr);
-#if defined (OMAP_2430) || defined (OMAP_3430)
+			   IN OUT struct CHNL_OBJECT *pChnl, UINT iMode);
+static VOID IO_DispatchMsg(IN struct IO_MGR *pIOMgr, struct MSG_MGR *hMsgMgr);
 static VOID IO_DispatchPM(IN struct IO_MGR *pIOMgr);
-#endif
 static VOID NotifyChnlComplete(struct CHNL_OBJECT *pChnl,
-													struct CHNL_IRP *pChirp);
+				struct CHNL_IRP *pChirp);
 static VOID InputChnl(struct IO_MGR *pIOMgr, struct CHNL_OBJECT *pChnl,
-																UINT iMode);
+			UINT iMode);
 static VOID OutputChnl(struct IO_MGR *pIOMgr, struct CHNL_OBJECT *pChnl,
-																UINT iMode);
-static VOID InputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR* hMsgMgr);
-static VOID OutputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR* hMsgMgr);
-static ULONG FindReadyOutput(struct CHNL_MGR * pChnlMgr,
-										struct CHNL_OBJECT *pChnl,DWORD dwMask);
-static ULONG ReadData(struct WMD_DEV_CONTEXT* hDevContext, PVOID pDest,
-													PVOID pSrc, ULONG uSize);
-static ULONG WriteData(struct WMD_DEV_CONTEXT* hDevContext, PVOID pDest,
-													PVOID pSrc, ULONG uSize);
+			UINT iMode);
+static VOID InputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR *hMsgMgr);
+static VOID OutputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR *hMsgMgr);
+static ULONG FindReadyOutput(struct CHNL_MGR *pChnlMgr,
+			     struct CHNL_OBJECT *pChnl, DWORD dwMask);
+static ULONG ReadData(struct WMD_DEV_CONTEXT *hDevContext, PVOID pDest,
+			PVOID pSrc, ULONG uSize);
+static ULONG WriteData(struct WMD_DEV_CONTEXT *hDevContext, PVOID pDest,
+			PVOID pSrc, ULONG uSize);
 #ifndef DSP_TRACEBUF_DISABLED
 void PrintDSPDebugTrace(struct IO_MGR *hIOMgr);
 #endif
-#ifndef LINUX
-static VOID SHMDump(struct IO_MGR *pIOMgr);
-#endif
-#ifdef CHNL_DDMA
-static VOID IO_DDMADispatchChnl(IN struct IO_MGR *pIOMgr,
-								IN struct CHNL_OBJECT *pChnl,OUT WORD *pwMbVal);
-#endif
-#ifdef CHNL_DDZC
-static VOID IO_DDZCDispatchChnl(IN struct IO_MGR *pIOMgr,
-								IN struct CHNL_OBJECT *pChnl,OUT WORD *pwMbVal);
-#endif
+
 /* Bus Addr (cached kernel)*/
-static DSP_STATUS registerSHMSegs(struct IO_MGR* hIOMgr,
-								struct COD_MANAGER* hCodMan,DWORD dwGPPBasePA);
+static DSP_STATUS registerSHMSegs(struct IO_MGR *hIOMgr,
+				  struct COD_MANAGER *hCodMan,
+				  DWORD dwGPPBasePA);
 
 extern DWORD DRV_GetFirstDevExtension();
 
@@ -306,24 +263,21 @@ extern struct constraint_handle *dsp_constraint_handle;
  *      Create an IO manager object.
  */
 DSP_STATUS WMD_IO_Create(OUT struct IO_MGR **phIOMgr,
-								struct DEV_OBJECT* hDevObject,
-											IN CONST struct IO_ATTRS *pMgrAttrs)
+			 struct DEV_OBJECT *hDevObject,
+			 IN CONST struct IO_ATTRS *pMgrAttrs)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct IO_MGR *pIOMgr = NULL;
 	struct SHM *pSharedMem = NULL;
-	/*   ULONG               uSMLength = 0L; */
-	struct WMD_DEV_CONTEXT* hWmdContext = NULL;
+	/*   ULONG	       uSMLength = 0L; */
+	struct WMD_DEV_CONTEXT *hWmdContext = NULL;
 	struct CFG_HOSTRES hostRes;
-	struct CFG_DEVNODE* hDevNode;
-	struct CHNL_MGR* hChnlMgr;
+	struct CFG_DEVNODE *hDevNode;
+	struct CHNL_MGR *hChnlMgr;
 	UINT devType;
 	/* Check DBC requirements:  */
 	DBC_Require(phIOMgr != NULL);
 	DBC_Require(pMgrAttrs != NULL);
-#if ! defined (OMAP_2430) && ! defined (OMAP_3430)
-	DBC_Require(pMgrAttrs->bIRQ <= IO_MAXIRQ);
-#endif
 	DBC_Require(pMgrAttrs->uWordSize != 0);
 	/* This for the purposes of DBC_Require: */
 	status = DEV_GetChnlMgr(hDevObject, &hChnlMgr);
@@ -340,10 +294,10 @@ DSP_STATUS WMD_IO_Create(OUT struct IO_MGR **phIOMgr,
 	 *  a program is loaded. They are unknown until a COFF file is
 	 *  loaded. I chose the value -1 because it was less likely to be
 	 *  a valid address than 0.  */
-	pSharedMem = (struct SHM *) - 1;
-	if ( !DSP_SUCCEEDED(status)) {
+	pSharedMem = (struct SHM *) -1;
+	if (!DSP_SUCCEEDED(status))
 		goto func_cont;
-	}
+
 	/* Allocate IO manager object: */
 	MEM_AllocObject(pIOMgr, struct IO_MGR, IO_MGRSIGNATURE);
 	if (pIOMgr == NULL) {
@@ -357,23 +311,21 @@ DSP_STATUS WMD_IO_Create(OUT struct IO_MGR **phIOMgr,
 	pIOMgr->hChnlMgr = hChnlMgr;
 	pIOMgr->uWordSize = pMgrAttrs->uWordSize;
 	pIOMgr->pSharedMem = pSharedMem;
-	if (DSP_SUCCEEDED(status)) {
+	if (DSP_SUCCEEDED(status))
 		status = SYNC_InitializeCS(&pIOMgr->hCSObj);
-	}
+
 	if (devType == DSP_UNIT) {
 		/* Create a DPC object: */
 		status = DPC_Create(&pIOMgr->hDPC, IO_DPC, (PVOID)pIOMgr);
-		if (DSP_SUCCEEDED(status)) {
+		if (DSP_SUCCEEDED(status))
 			status = DEV_GetDevNode(hDevObject, &hDevNode);
-		}
-#if defined (OMAP_2430) || defined (OMAP_3430)
+
 		pIOMgr->iQuePowerHead = 0;
 		pIOMgr->iQuePowerTail = 0;
-#endif
 	}
 	if (DSP_SUCCEEDED(status)) {
-		status = CFG_GetHostResources((struct CFG_DEVNODE*)
-								DRV_GetFirstDevExtension() , &hostRes);
+		status = CFG_GetHostResources((struct CFG_DEVNODE *)
+				DRV_GetFirstDevExtension() , &hostRes);
 	}
 	if (DSP_SUCCEEDED(status)) {
 		pIOMgr->hWmdContext = hWmdContext;
@@ -382,11 +334,11 @@ DSP_STATUS WMD_IO_Create(OUT struct IO_MGR **phIOMgr,
 		if (devType == DSP_UNIT) {
 			/* Plug the channel ISR:. */
 			status = ISR_Install(&pIOMgr->hIRQ, &hostRes, IO_ISR,
-											ISR_MAILBOX1,(PVOID)pIOMgr);
+				 ISR_MAILBOX1, (PVOID)pIOMgr);
 		}
 		if (DSP_SUCCEEDED(status)) {
 			/* Enable interrupt used for dsp i/o link */
-			/* moved  IO_EnableInterrupt(hWmdContext);*/
+			/* moved  IO_EnableInterrupt(hWmdContext); */
 		} else {
 			status = CHNL_E_ISR;
 		}
@@ -411,16 +363,16 @@ func_cont:
  *  Purpose:
  *      Disable interrupts, destroy the IO manager.
  */
-DSP_STATUS WMD_IO_Destroy(struct IO_MGR* hIOMgr)
+DSP_STATUS WMD_IO_Destroy(struct IO_MGR *hIOMgr)
 {
 	DSP_STATUS status = DSP_SOK;
-	struct WMD_DEV_CONTEXT* hWmdContext;
+	struct WMD_DEV_CONTEXT *hWmdContext;
 	if (MEM_IsValidHandle(hIOMgr, IO_MGRSIGNATURE)) {
 		/* Unplug IRQ:    */
 		if (hIOMgr->hIRQ) {
 			/* Disable interrupts from the board:  */
 			if (DSP_SUCCEEDED(DEV_GetWMDContext(hIOMgr->hDevObject,
-															&hWmdContext))) {
+			   &hWmdContext))) {
 				DBC_Assert(hWmdContext);
 			}
 			(VOID)CHNLSM_DisableInterrupt(hWmdContext);
@@ -433,7 +385,7 @@ DSP_STATUS WMD_IO_Destroy(struct IO_MGR* hIOMgr)
 #endif
 		/* Set hIOMgr to NULL in device object. */
 		/* DEV_SetChnlMgr(pIOMgr->hDevObject, NULL); */
-		SYNC_DeleteCS(hIOMgr->hCSObj);	/*Leak Fix.*/
+		SYNC_DeleteCS(hIOMgr->hCSObj); 	/*Leak Fix.*/
 		/* Free this IO manager object: */
 		MEM_FreeObject(hIOMgr);
 	} else {
@@ -449,11 +401,11 @@ DSP_STATUS WMD_IO_Destroy(struct IO_MGR* hIOMgr)
  *      parameters from COFF file. ulSharedBufferBase and ulSharedBufferLimit
  *      are in DSP address units.
  */
-DSP_STATUS WMD_IO_OnLoaded(struct IO_MGR* hIOMgr)
+DSP_STATUS WMD_IO_OnLoaded(struct IO_MGR *hIOMgr)
 {
-	struct COD_MANAGER* hCodMan;
-	struct CHNL_MGR* hChnlMgr;
-	struct MSG_MGR* hMsgMgr;
+	struct COD_MANAGER *hCodMan;
+	struct CHNL_MGR *hChnlMgr;
+	struct MSG_MGR *hMsgMgr;
 	ULONG ulShmBase;
 	ULONG ulShmBaseOffset;
 	ULONG ulShmLimit;
@@ -476,11 +428,10 @@ DSP_STATUS WMD_IO_OnLoaded(struct IO_MGR* hIOMgr)
 	struct WMDIOCTL_EXTPROC aEProc[WMDIOCTL_NUMOFMMUTLB];
 	struct CFG_HOSTRES hostRes;
 	ULONG mapAttrs;
-#if defined (OMAP_2430) || defined (OMAP_3430)
 	ULONG ulShm0End;
 	ULONG ulDynExtBase;
 	ULONG ulSeg1Size;
-#endif
+
 	status = DEV_GetCodMgr(hIOMgr->hDevObject, &hCodMan);
 	DBC_Assert(DSP_SUCCEEDED(status));
 	hChnlMgr = hIOMgr->hChnlMgr;
@@ -489,17 +440,19 @@ DSP_STATUS WMD_IO_OnLoaded(struct IO_MGR* hIOMgr)
 	hMsgMgr = hIOMgr->hMsgMgr;
 	DBC_Assert(MEM_IsValidHandle(hChnlMgr, CHNL_MGRSIGNATURE));
 	DBC_Assert(MEM_IsValidHandle(hMsgMgr, MSGMGR_SIGNATURE));
-	if (hIOMgr->pSharedMem) {
+	if (hIOMgr->pSharedMem)
 		hIOMgr->pSharedMem = NULL;
-	}
+
 	/* Get start and length of channel part of shared memory */
-	status = COD_GetSymValue(hCodMan, CHNL_SHARED_BUFFER_BASE_SYM, &ulShmBase);
+	status = COD_GetSymValue(hCodMan, CHNL_SHARED_BUFFER_BASE_SYM,
+				 &ulShmBase);
 	if (!DSP_SUCCEEDED(status)) {
 		status = CHNL_E_NOMEMMAP;
 		goto func_cont1;
 	}
-	status = COD_GetSymValue(hCodMan, CHNL_SHARED_BUFFER_LIMIT_SYM,&ulShmLimit);
-	if ( !DSP_SUCCEEDED(status)) {
+	status = COD_GetSymValue(hCodMan, CHNL_SHARED_BUFFER_LIMIT_SYM,
+				&ulShmLimit);
+	if (!DSP_SUCCEEDED(status)) {
 		status = CHNL_E_NOMEMMAP;
 		goto func_cont1;
 	}
@@ -509,67 +462,69 @@ DSP_STATUS WMD_IO_OnLoaded(struct IO_MGR* hIOMgr)
 		/* get total length in bytes */
 		ulShmLength = (ulShmLimit - ulShmBase + 1) * hIOMgr->uWordSize;
 		/* Calculate size of a PROCCOPY shared memory region */
-		DBG_Trace(DBG_LEVEL7,"**(proc)PROCCOPY SHMMEM SIZE: 0x%x bytes\n",
-#if ! defined (OMAP_2430) && ! defined (OMAP_3430)
-			  (ulShmLength - sizeof(struct SHM)) / 2);
-#else
+		DBG_Trace(DBG_LEVEL7,
+			 "**(proc)PROCCOPY SHMMEM SIZE: 0x%x bytes\n",
 			  (ulShmLength - sizeof(struct SHM)));
-#endif
 	}
 func_cont1:
 	if (DSP_SUCCEEDED(status)) {
 		/* Get start and length of message part of shared memory */
-		status = COD_GetSymValue(hCodMan,MSG_SHARED_BUFFER_BASE_SYM,&ulMsgBase);
+		status = COD_GetSymValue(hCodMan, MSG_SHARED_BUFFER_BASE_SYM,
+					&ulMsgBase);
 	}
 	if (DSP_SUCCEEDED(status)) {
 		status = COD_GetSymValue(hCodMan, MSG_SHARED_BUFFER_LIMIT_SYM,
-																&ulMsgLimit);
+					&ulMsgLimit);
 		if (DSP_SUCCEEDED(status)) {
 			if (ulMsgLimit <= ulMsgBase) {
 				status = CHNL_E_INVALIDMEMBASE;
 			} else {
-				/* Length (bytes) of messaging part of shared memory */
-				ulMsgLength = (ulMsgLimit - ulMsgBase + 1) * hIOMgr->uWordSize;
-				/* Total length (bytes) of shared memory: chnl + msg */
+				/* Length (bytes) of messaging part of shared
+				 * memory */
+				ulMsgLength = (ulMsgLimit - ulMsgBase + 1) *
+					      hIOMgr->uWordSize;
+				/* Total length (bytes) of shared memory:
+				 * chnl + msg */
 				ulMemLength = ulShmLength + ulMsgLength;
 			}
 		} else {
 			status = CHNL_E_NOMEMMAP;
 		}
 	}
-#if defined (OMAP_2430) || defined (OMAP_3430)
 	if (DSP_SUCCEEDED(status)) {
 #ifndef DSP_TRACEBUF_DISABLED
 		status = COD_GetSymValue(hCodMan, DSP_TRACESEC_END, &ulShm0End);
-		DBG_Trace(DBG_LEVEL7, "_BRIDGE_TRACE_END value = %x \n", ulShm0End);
+		DBG_Trace(DBG_LEVEL7, "_BRIDGE_TRACE_END value = %x \n",
+			 ulShm0End);
 #else
-		status = COD_GetSymValue(hCodMan, SHM0_SHARED_END_SYM, &ulShm0End);
+		status = COD_GetSymValue(hCodMan, SHM0_SHARED_END_SYM,
+					 &ulShm0End);
 		DBG_Trace(DBG_LEVEL7, "_SHM0_END = %x \n", ulShm0End);
 #endif
-		if (DSP_FAILED(status)) {
+		if (DSP_FAILED(status))
 			status = CHNL_E_NOMEMMAP;
-		}
+
 	}
 	if (DSP_SUCCEEDED(status)) {
 		status = COD_GetSymValue(hCodMan, DYNEXTBASE, &ulDynExtBase);
-		if (DSP_FAILED(status)) {
+		if (DSP_FAILED(status))
 			status = CHNL_E_NOMEMMAP;
-		}
+
 	}
-#endif
 	if (DSP_SUCCEEDED(status)) {
 		status = COD_GetSymValue(hCodMan, EXTEND, &ulExtEnd);
-		if (DSP_FAILED(status)) {
+		if (DSP_FAILED(status))
 			status = CHNL_E_NOMEMMAP;
-		}
+
 	}
 	if (DSP_SUCCEEDED(status)) {
 		/* Get memory reserved in host resources */
 		(VOID)MGR_EnumProcessorInfo(0,
-						(struct DSP_PROCESSORINFO *)&hIOMgr->extProcInfo,
-								sizeof(struct MGR_PROCESSOREXTINFO),&uNumProcs);
+			(struct DSP_PROCESSORINFO *)&hIOMgr->extProcInfo,
+			sizeof(struct MGR_PROCESSOREXTINFO), &uNumProcs);
 		CFG_GetHostResources((
-					struct CFG_DEVNODE*)DRV_GetFirstDevExtension(),&hostRes);
+			struct CFG_DEVNODE *)DRV_GetFirstDevExtension(),
+			&hostRes);
 		/* The first MMU TLB entry(TLB_0) in DCD is ShmBase. */
 		ndx = 0;
 		ulGppPa = hostRes.dwMemPhys[1];
@@ -577,84 +532,77 @@ func_cont1:
 		/* THIS IS THE VIRTUAL UNCACHED IOREMAPPED ADDRESS !!! */
 		/* Why can't we directly take the DSPVA from the symbols? */
 		ulDspVa = hIOMgr->extProcInfo.tyTlb[0].ulDspVirt;
-#if defined (OMAP_2430) || defined (OMAP_3430)
 		ulSegSize = (ulShm0End - ulDspVa) * hIOMgr->uWordSize;
 		ulSeg1Size = (ulExtEnd - ulDynExtBase) * hIOMgr->uWordSize;
 		/* why do we need a 64K alignment? Is 4K alignment sufficient */
-		/* ulSeg1Size = (ulSeg1Size + 0xFFFF) & (~0xFFFFUL);	64K align*/
-		ulSeg1Size = (ulSeg1Size + 0xFFF) & (~0xFFFUL);	/* 4K align*/
-#else
-		ulSegSize = (ulExtEnd - ulDspVa) * hIOMgr->uWordSize;
-#endif
-		ulSegSize = (ulSegSize + 0xFFFF) & (~0xFFFFUL);	/* 64K align*/
-		/*ulSegSize = (ulSegSize + 0xFFF) & (~0xFFFUL);	 4K align*/
-		 ulPadSize = ulPageAlignSize -((ulGppPa +ulSeg1Size) % ulPageAlignSize);
-			if (ulPadSize ==ulPageAlignSize) {
+		/* ulSeg1Size =(ulSeg1Size + 0xFFFF)&(~0xFFFFUL); 64K align*/
+		ulSeg1Size = (ulSeg1Size + 0xFFF) & (~0xFFFUL); /* 4K align*/
+		ulSegSize = (ulSegSize + 0xFFFF) & (~0xFFFFUL); /* 64K align*/
+		/*ulSegSize = (ulSegSize + 0xFFF) & (~0xFFFUL);   4K align*/
+		 ulPadSize = ulPageAlignSize - ((ulGppPa + ulSeg1Size) %
+			     ulPageAlignSize);
+			if (ulPadSize == ulPageAlignSize)
 				ulPadSize = 0x0;
-			}
-		 DBG_Trace(DBG_LEVEL7,"ulGppPa %x, ulGppVa %x, ulDspVa %x, ulShm0End %x"
-				 				", ulDynExtBase %x, ulExtEnd %x, ulSegSize %x "
-								"ulSeg1Size %x \n", ulGppPa, ulGppVa, ulDspVa,
-						ulShm0End, ulDynExtBase, ulExtEnd,ulSegSize,ulSeg1Size);
-#if defined (OMAP_2430) || defined (OMAP_3430)
-		if ((ulSegSize + ulSeg1Size + ulPadSize) > hostRes.dwMemLength[1]) {
-			DBG_Trace(DBG_LEVEL7,"ulGppPa %x, ulGppVa %x, ulDspVa %x, ulShm0End"
-							" %x, ulDynExtBase %x, ulExtEnd %x, ulSegSize %x"
-							", ulSeg1Size %x \n", ulGppPa, ulGppVa, ulDspVa,
-					ulShm0End, ulDynExtBase, ulExtEnd, ulSegSize, ulSeg1Size);
-			DBG_Trace(DBG_LEVEL7,"Insufficient SHM Reserved 0x%x. Required "
-								"0x%x\n",hostRes.dwMemLength[1],ulSegSize +
-														ulSeg1Size + ulPadSize);
+
+		 DBG_Trace(DBG_LEVEL7, "ulGppPa %x, ulGppVa %x, ulDspVa %x, "
+			  "ulShm0End %x, ulDynExtBase %x, ulExtEnd %x, "
+			  "ulSegSize %x ulSeg1Size %x \n", ulGppPa, ulGppVa,
+			  ulDspVa, ulShm0End, ulDynExtBase, ulExtEnd, ulSegSize,
+			  ulSeg1Size);
+
+		if ((ulSegSize + ulSeg1Size + ulPadSize) >
+		   hostRes.dwMemLength[1]) {
+			DBG_Trace(DBG_LEVEL7, "ulGppPa %x, ulGppVa %x, ulDspVa "
+				 "%x, ulShm0End %x, ulDynExtBase %x, ulExtEnd "
+				 "%x, ulSegSize %x, ulSeg1Size %x \n", ulGppPa,
+				 ulGppVa, ulDspVa, ulShm0End, ulDynExtBase,
+				 ulExtEnd, ulSegSize, ulSeg1Size);
+			DBG_Trace(DBG_LEVEL7, "Insufficient SHM Reserved 0x%x. "
+				 "Required 0x%x\n", hostRes.dwMemLength[1],
+				 ulSegSize + ulSeg1Size + ulPadSize);
 			status = DSP_EMEMORY;
 		}
-#else
-		if (ulSegSize > hostRes.dwMemLength[1]) {
-			DBG_Trace(DBG_LEVEL7,"ulGppPa %x, ulGppVa %x, ulDspVa %x, ulExtEnd "
-								"%x, ulSegSize %x\n", ulGppPa, ulGppVa, ulDspVa,
-															ulExtEnd,ulSegSize);
-			DBG_Trace(DBG_LEVEL7,"Insufficient SHM Reserved 0x%x. Required "
-									"0x%x\n",hostRes.dwMemLength[1], ulSegSize);
-			status = DSP_EMEMORY;
-		}
-#endif
 	}
-	if ( !DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_cont;
-	}
+
 	ULONG paCurr = ulGppPa;
 	ULONG vaCurr = ulDynExtBase * hIOMgr->uWordSize;
 	ULONG gppVaCurr = ulGppVa;
 	ULONG numBytes = ulSeg1Size;
 	ULONG allBits;
 	ULONG pgSize[] = { HAL_PAGE_SIZE_16MB, HAL_PAGE_SIZE_1MB,
-										HAL_PAGE_SIZE_64KB, HAL_PAGE_SIZE_4KB };
-	/************************************************************
-	 * * Try to fit into TLB entries. If not possible, push them to page
-        * tables. It is quite possible that if sections are not on
-         * bigger page boundary, we may end up making several small pages..
-         * So, push them onto page tables, if that is the case *
-         * (DVT OMAPSW00078601)
-         * *****************************************************/
+			   HAL_PAGE_SIZE_64KB, HAL_PAGE_SIZE_4KB };
+	/*
+	 * Try to fit into TLB entries. If not possible, push them to page
+	 * tables. It is quite possible that if sections are not on
+	 * bigger page boundary, we may end up making several small pages.
+	 * So, push them onto page tables, if that is the case.
+	 */
 	mapAttrs = 0x00000000;
 	mapAttrs = DSP_MAPLITTLEENDIAN;
 	mapAttrs |= DSP_MAPPHYSICALADDR;
 	mapAttrs |= DSP_MAPELEMSIZE32;
 	while (numBytes && DSP_SUCCEEDED(status)) {
-		/* To find the max. page size with which both PA & VA are aligned*/
+		/* To find the max. page size with which both PA & VA are
+		 * aligned */
 		allBits = paCurr | vaCurr;
-		DBG_Trace(DBG_LEVEL1,"allBits %x, paCurr %x, vaCurr %x, numBytes "
-								"%x\n", allBits, paCurr, vaCurr, numBytes);
-		for (i = 0;i < 4;i++) {
-			if ((numBytes >= pgSize[i]) && ((allBits & (pgSize[i] - 1)) == 0)) {
+		DBG_Trace(DBG_LEVEL1, "allBits %x, paCurr %x, vaCurr %x, "
+			 "numBytes %x\n", allBits, paCurr, vaCurr, numBytes);
+		for (i = 0; i < 4; i++) {
+			if ((numBytes >= pgSize[i]) && ((allBits &
+			   (pgSize[i] - 1)) == 0)) {
 				status = hIOMgr->pIntfFxns->pfnBrdMemMap
-						(hIOMgr->hWmdContext,paCurr,vaCurr,pgSize[i],mapAttrs);
+					(hIOMgr->hWmdContext, paCurr, vaCurr,
+					pgSize[i], mapAttrs);
 				DBC_Assert(DSP_SUCCEEDED(status));
 				paCurr += pgSize[i];
 				vaCurr += pgSize[i];
 				gppVaCurr += pgSize[i];
 				numBytes -= pgSize[i];
-				/* Don't try smaller sizes. Hopefully we have reached
-				 an address aligned to a bigger page size*/
+				/* Don't try smaller sizes. Hopefully we have
+				 * reached an address aligned to a bigger page
+				 * size*/
 				break;
 			}
 		}
@@ -662,42 +610,53 @@ func_cont1:
 	paCurr += ulPadSize;
 	vaCurr += ulPadSize;
 	gppVaCurr += ulPadSize;
-#if defined (OMAP_2430) || defined (OMAP_3430)
+
 	/* configure the TLB entries for the next cacheable segment */
 	numBytes = ulSegSize;
 	vaCurr = ulDspVa * hIOMgr->uWordSize;
 	allBits = 0x0;
 	while (numBytes && DSP_SUCCEEDED(status)) {
-		/* To find the max. page size with which both PA & VA are aligned*/
+		/* To find the max. page size with which both PA & VA are
+		 * aligned*/
 		allBits = paCurr | vaCurr;
-		DBG_Trace(DBG_LEVEL1,"allBits for Seg1 %x, paCurr %x, vaCurr %x, "
-							"numBytes %x\n",allBits,paCurr,vaCurr,numBytes);
-		for (i = 0;i < 4;i++) {
-			if (!(numBytes >= pgSize[i]) || !((allBits & (pgSize[i]-1)) == 0)) {
+		DBG_Trace(DBG_LEVEL1, "allBits for Seg1 %x, paCurr %x, "
+			 "vaCurr %x, numBytes %x\n", allBits, paCurr, vaCurr,
+			 numBytes);
+		for (i = 0; i < 4; i++) {
+			if (!(numBytes >= pgSize[i]) ||
+			   !((allBits & (pgSize[i]-1)) == 0)) {
 				continue;
 			}
 			if (ndx < MAX_LOCK_TLB_ENTRIES) {
-				/* This is the physical address written to DSP MMU */
+				/* This is the physical address written to
+				 * DSP MMU */
 				aEProc[ndx].ulGppPa = paCurr;
-				/* THIS IS THE VIRTUAL UNCACHED IOREMAPPED ADDRESS!!! */
+				/* THIS IS THE VIRTUAL UNCACHED IOREMAPPED
+				 * ADDRESS!!! */
 				aEProc[ndx].ulGppVa = gppVaCurr;
-				aEProc[ndx].ulDspVa = vaCurr / hIOMgr->uWordSize;
+				aEProc[ndx].ulDspVa = vaCurr / hIOMgr->
+						      uWordSize;
 				aEProc[ndx].ulSize = pgSize[i];
 				aEProc[ndx].endianism = HAL_LITTLE_ENDIAN;
 				aEProc[ndx].elemSize = HAL_ELEM_SIZE_16BIT;
 				aEProc[ndx].mixedMode = HAL_MMU_CPUES;
-				DBG_Trace(DBG_LEVEL1,"SHM MMU TLB entry PA %lx VA %lx DSP_VA"
-									" %lx Size %lx\n",aEProc[ndx].ulGppPa,
-									aEProc[ndx].ulGppVa,aEProc[ndx].ulDspVa *
-												hIOMgr->uWordSize,pgSize[i]);
+				DBG_Trace(DBG_LEVEL1, "SHM MMU TLB entry PA %lx"
+					 " VA %lx DSP_VA %lx Size %lx\n",
+					 aEProc[ndx].ulGppPa,
+					 aEProc[ndx].ulGppVa,
+					 aEProc[ndx].ulDspVa *
+					 hIOMgr->uWordSize, pgSize[i]);
 				ndx++;
 			} else {
 				status = hIOMgr->pIntfFxns->pfnBrdMemMap(
-				hIOMgr->hWmdContext,paCurr,vaCurr,pgSize[i],mapAttrs);
-				DBG_Trace(DBG_LEVEL1,"SHM MMU PTE entry PA %lx VA %lx DSP_VA"
-									" %lx Size %lx\n",aEProc[ndx].ulGppPa,
-									aEProc[ndx].ulGppVa,aEProc[ndx].ulDspVa *
-												hIOMgr->uWordSize,pgSize[i]);
+				hIOMgr->hWmdContext, paCurr, vaCurr, pgSize[i],
+					mapAttrs);
+				DBG_Trace(DBG_LEVEL1, "SHM MMU PTE entry PA %lx"
+					 " VA %lx DSP_VA %lx Size %lx\n",
+					 aEProc[ndx].ulGppPa,
+					 aEProc[ndx].ulGppVa,
+					 aEProc[ndx].ulDspVa *
+					 hIOMgr->uWordSize, pgSize[i]);
 				DBC_Assert(DSP_SUCCEEDED(status));
 			}
 			paCurr += pgSize[i];
@@ -709,40 +668,47 @@ func_cont1:
 			break;
 		}
 	}
-#endif
+
 	 /* Copy remaining entries from CDB. All entries are 1 MB and should not
 	 * conflict with SHM entries on MPU or DSP side */
-	for (i = 3;i < 7 && ndx < WMDIOCTL_NUMOFMMUTLB && DSP_SUCCEEDED(status);
-																		i++) {
-		if (hIOMgr->extProcInfo.tyTlb[i].ulGppPhys == 0) {
+	for (i = 3; i < 7 && ndx < WMDIOCTL_NUMOFMMUTLB &&
+	    DSP_SUCCEEDED(status); i++) {
+		if (hIOMgr->extProcInfo.tyTlb[i].ulGppPhys == 0)
 			continue;
-		}
+
 		if ((hIOMgr->extProcInfo.tyTlb[i].ulGppPhys > ulGppPa - 0x100000
-			&& hIOMgr->extProcInfo.tyTlb[i].ulGppPhys <= ulGppPa + ulSegSize)
-			|| (hIOMgr->extProcInfo.tyTlb[i].ulDspVirt > ulDspVa - 0x100000 /
-				hIOMgr->uWordSize && hIOMgr->extProcInfo.tyTlb[i].ulDspVirt
-								<= ulDspVa + ulSegSize / hIOMgr->uWordSize)) {
-			DBG_Trace(DBG_LEVEL7,"CDB MMU entry %d conflicts with SHM.\n\tCDB:"
-					" GppPa %x, DspVa %x.\n\tSHM: GppPa %x, DspVa %x, Bytes "
-						"%x.\n",i,hIOMgr->extProcInfo.tyTlb[i].ulGppPhys,
-						hIOMgr->extProcInfo.tyTlb[i].ulDspVirt,ulGppPa,ulDspVa,
-																	ulSegSize);
+			&& hIOMgr->extProcInfo.tyTlb[i].ulGppPhys <=
+				ulGppPa + ulSegSize)
+			|| (hIOMgr->extProcInfo.tyTlb[i].ulDspVirt > ulDspVa -
+				0x100000 / hIOMgr->uWordSize && hIOMgr->
+				extProcInfo.tyTlb[i].ulDspVirt
+				<= ulDspVa + ulSegSize / hIOMgr->uWordSize)) {
+			DBG_Trace(DBG_LEVEL7, "CDB MMU entry %d conflicts with "
+				 "SHM.\n\tCDB: GppPa %x, DspVa %x.\n\tSHM: "
+				 "GppPa %x, DspVa %x, Bytes %x.\n", i,
+				 hIOMgr->extProcInfo.tyTlb[i].ulGppPhys,
+				 hIOMgr->extProcInfo.tyTlb[i].ulDspVirt,
+				 ulGppPa, ulDspVa, ulSegSize);
 			status = DSP_EFAIL;
 		} else {
 			if (ndx < MAX_LOCK_TLB_ENTRIES) {
-				aEProc[ndx].ulDspVa = hIOMgr->extProcInfo.tyTlb[i].ulDspVirt;
-				aEProc[ndx].ulGppPa = hIOMgr->extProcInfo.tyTlb[i].ulGppPhys;
+				aEProc[ndx].ulDspVa = hIOMgr->extProcInfo.
+					tyTlb[i].ulDspVirt;
+				aEProc[ndx].ulGppPa = hIOMgr->extProcInfo.
+					tyTlb[i].ulGppPhys;
 				aEProc[ndx].ulGppVa = 0;
 				/* Can't convert, so set to zero*/
-				aEProc[ndx].ulSize = 0x100000;	/* 1 MB*/
-				DBG_Trace(DBG_LEVEL1,"SHM MMU entry PA %x DSP_VA 0x%x\n",
-									aEProc[ndx].ulGppPa,aEProc[ndx].ulDspVa);
+				aEProc[ndx].ulSize = 0x100000; 	/* 1 MB*/
+				DBG_Trace(DBG_LEVEL1, "SHM MMU entry PA %x "
+					 "DSP_VA 0x%x\n", aEProc[ndx].ulGppPa,
+					aEProc[ndx].ulDspVa);
 				ndx++;
 			} else {
-				status = hIOMgr->pIntfFxns->pfnBrdMemMap(hIOMgr->hWmdContext,
-										hIOMgr->extProcInfo.tyTlb[i].ulGppPhys,
-								hIOMgr->extProcInfo.tyTlb[i].ulDspVirt,0x100000,
-																	mapAttrs);
+				status = hIOMgr->pIntfFxns->pfnBrdMemMap
+					(hIOMgr->hWmdContext,
+					hIOMgr->extProcInfo.tyTlb[i].ulGppPhys,
+					hIOMgr->extProcInfo.tyTlb[i].ulDspVirt,
+					0x100000, mapAttrs);
 			}
 		}
 	}
@@ -751,40 +717,43 @@ func_cont1:
 		status = DSP_EFAIL;
 	}
 func_cont:
-#if defined (OMAP_2430) || defined (OMAP_3430)
 	mapAttrs = 0x00000000;
 	mapAttrs = DSP_MAPLITTLEENDIAN;
 	mapAttrs |= DSP_MAPPHYSICALADDR;
-    /*mapAttrs |= DSP_MAPMIXEDELEMSIZE;*/
+    /*mapAttrs |= DSP_MAPMIXEDELEMSIZE; */
 	mapAttrs |= DSP_MAPELEMSIZE32;
 	/* Map the L4 peripherals */
 	{
 		int i = 0;
 		while (L4PeripheralTable[i].physAddr && DSP_SUCCEEDED(status)) {
-				status = hIOMgr->pIntfFxns->pfnBrdMemMap(hIOMgr->hWmdContext,
-								L4PeripheralTable[i].physAddr,
-									L4PeripheralTable[i].dspVirtAddr,
-												HAL_PAGE_SIZE_4KB, mapAttrs);
+				status = hIOMgr->pIntfFxns->pfnBrdMemMap
+					(hIOMgr->hWmdContext,
+					L4PeripheralTable[i].physAddr,
+					L4PeripheralTable[i].dspVirtAddr,
+					HAL_PAGE_SIZE_4KB, mapAttrs);
 				DBC_Assert(DSP_SUCCEEDED(status));
 				i++;
 		}
 	}
-#endif
+
 	if (DSP_SUCCEEDED(status)) {
-		for (i = ndx;i < WMDIOCTL_NUMOFMMUTLB;i++) {
+		for (i = ndx; i < WMDIOCTL_NUMOFMMUTLB; i++) {
 			aEProc[i].ulDspVa = 0;
 			aEProc[i].ulGppPa = 0;
 			aEProc[i].ulGppVa = 0;
 			aEProc[i].ulSize = 0;
 		}
-		/* Set the SHM physical address entry (grayed out in CDB file) to the
-		 * virtual uncached ioremapped address of SHM reserved on MPU */
+		/* Set the SHM physical address entry (grayed out in CDB file)
+		 * to the virtual uncached ioremapped address of SHM reserved
+		 * on MPU */
 		hIOMgr->extProcInfo.tyTlb[0].ulGppPhys = (ulGppVa + ulSeg1Size +
-																	ulPadSize);
-		DBG_Trace(DBG_LEVEL1,"*********extProcInfo *********%x \n",
-										hIOMgr->extProcInfo.tyTlb[0].ulGppPhys);
-		/* Need SHM Phys addr. IO supports only one DSP for now: uNumProcs=1 */
-		if ((hIOMgr->extProcInfo.tyTlb[0].ulGppPhys == 0) || (uNumProcs != 1)) {
+							 ulPadSize);
+		DBG_Trace(DBG_LEVEL1, "*********extProcInfo *********%x \n",
+			  hIOMgr->extProcInfo.tyTlb[0].ulGppPhys);
+		/* Need SHM Phys addr. IO supports only one DSP for now:
+		 * uNumProcs=1 */
+		if ((hIOMgr->extProcInfo.tyTlb[0].ulGppPhys == 0) ||
+		   (uNumProcs != 1)) {
 			status = CHNL_E_NOMEMMAP;
 			DBC_Assert(FALSE);
 		} else {
@@ -793,51 +762,66 @@ func_cont:
 			ulShmBaseOffset = (ulShmBase - aEProc[0].ulDspVa) *
 			    hIOMgr->uWordSize;
 			 /* WMD_BRD_Ctrl() will set dev context dsp-mmu info. In
-			 *   _BRD_Start() the MMU will be re-programed with MMU DSPVa-GPPPa
-			 *   pair info while DSP is in a known(reset) state.  */
+			 *   _BRD_Start() the MMU will be re-programed with MMU
+			 *   DSPVa-GPPPa pair info while DSP is in a known
+			 *   (reset) state.  */
 			DBC_Assert(hIOMgr->pIntfFxns != NULL);
 			DBC_Assert(hIOMgr->hWmdContext != NULL);
-			status = hIOMgr->pIntfFxns->pfnDevCntrl(hIOMgr->hWmdContext,
-												WMDIOCTL_SETMMUCONFIG, aEProc);
+			status = hIOMgr->pIntfFxns->pfnDevCntrl(hIOMgr->
+				 hWmdContext, WMDIOCTL_SETMMUCONFIG, aEProc);
 			ulShmBase = hIOMgr->extProcInfo.tyTlb[0].ulGppPhys;
-			DBG_Trace(DBG_LEVEL1, "extProcInfo.tyTlb[0].ulGppPhys %x \n ",
-										hIOMgr->extProcInfo.tyTlb[0].ulGppPhys);
+			DBG_Trace(DBG_LEVEL1, "extProcInfo.tyTlb[0].ulGppPhys "
+				 "%x \n ", hIOMgr->extProcInfo.tyTlb[0].
+				 ulGppPhys);
 			ulShmBase += ulShmBaseOffset;
-			ulShmBase = (ULONG)MEM_LinearAddress((PVOID)ulShmBase,ulMemLength);
+			ulShmBase = (ULONG)MEM_LinearAddress((PVOID)ulShmBase,
+				    ulMemLength);
 			DBC_Assert(ulShmBase != 0);
 			if (DSP_SUCCEEDED(status)) {
-				status = registerSHMSegs(hIOMgr, hCodMan, aEProc[0].ulGppPa);
+				status = registerSHMSegs(hIOMgr, hCodMan,
+					 aEProc[0].ulGppPa);
 				/* Register SM */
 			}
 		}
 	}
 	if (DSP_SUCCEEDED(status)) {
 		hIOMgr->pSharedMem = (struct SHM *)ulShmBase;
-		hIOMgr->pInput = (BYTE *)hIOMgr->pSharedMem + sizeof(struct SHM);
-		hIOMgr->pOutput = hIOMgr->pInput + (ulShmLength - sizeof(struct SHM))/2;
+		hIOMgr->pInput = (BYTE *)hIOMgr->pSharedMem +
+				 sizeof(struct SHM);
+		hIOMgr->pOutput = hIOMgr->pInput + (ulShmLength -
+				  sizeof(struct SHM))/2;
 		hIOMgr->uSMBufSize = hIOMgr->pOutput - hIOMgr->pInput;
-		DBG_Trace(DBG_LEVEL3, "hIOMgr: pInput %p pOutput %p ulShmLength %x\n",
-								hIOMgr->pInput, hIOMgr->pOutput, ulShmLength);
-		DBG_Trace(DBG_LEVEL3, "pSharedMem %p uSMBufSize %x sizeof(SHM) %x\n",
-					hIOMgr->pSharedMem,hIOMgr->uSMBufSize,sizeof(struct SHM));
+		DBG_Trace(DBG_LEVEL3,
+			 "hIOMgr: pInput %p pOutput %p ulShmLength %x\n",
+			 hIOMgr->pInput, hIOMgr->pOutput, ulShmLength);
+		DBG_Trace(DBG_LEVEL3,
+			 "pSharedMem %p uSMBufSize %x sizeof(SHM) %x\n",
+			 hIOMgr->pSharedMem, hIOMgr->uSMBufSize,
+			 sizeof(struct SHM));
 		 /*  Set up Shared memory addresses for messaging. */
-		hIOMgr->pMsgInputCtrl = (struct MSG *)((BYTE *)hIOMgr->pSharedMem +
-																ulShmLength);
-		hIOMgr->pMsgInput = (BYTE *)hIOMgr->pMsgInputCtrl + sizeof(struct MSG);
-		hIOMgr->pMsgOutputCtrl = (struct MSG *)((BYTE *)hIOMgr->pMsgInputCtrl +
-															ulMsgLength / 2);
-		hIOMgr->pMsgOutput = (BYTE *)hIOMgr->pMsgOutputCtrl +sizeof(struct MSG);
+		hIOMgr->pMsgInputCtrl = (struct MSG *)((BYTE *)
+					hIOMgr->pSharedMem +
+					ulShmLength);
+		hIOMgr->pMsgInput = (BYTE *)hIOMgr->pMsgInputCtrl +
+				    sizeof(struct MSG);
+		hIOMgr->pMsgOutputCtrl = (struct MSG *)((BYTE *)hIOMgr->
+					 pMsgInputCtrl + ulMsgLength / 2);
+		hIOMgr->pMsgOutput = (BYTE *)hIOMgr->pMsgOutputCtrl +
+				     sizeof(struct MSG);
 		hMsgMgr->uMaxMsgs = ((BYTE *)hIOMgr->pMsgOutputCtrl -
-								hIOMgr->pMsgInput) / sizeof(struct MSG_DSPMSG);
-		DBG_Trace(DBG_LEVEL7,"IO MGR SHM details : pSharedMem 0x%x, pInput 0x%x"
-					", pOutput 0x%x, pMsgInputCtrl 0x%x, pMsgInput 0x%x,"
-						"pMsgOutputCtrl 0x%x, pMsgOutput 0x%x \n",
-						(BYTE *)hIOMgr->pSharedMem, (BYTE *)hIOMgr->pInput,
-						(BYTE *)hIOMgr->pOutput,(BYTE *)hIOMgr->pMsgInputCtrl,
-						(BYTE *)hIOMgr->pMsgInput,(BYTE *)hIOMgr->pMsgOutputCtrl
-						,(BYTE *)hIOMgr->pMsgOutput);
-		DBG_Trace(DBG_LEVEL7, "** (proc) MAX MSGS IN SHARED MEMORY: 0x%x\n",
-															hMsgMgr->uMaxMsgs);
+				    hIOMgr->pMsgInput) /
+				    sizeof(struct MSG_DSPMSG);
+		DBG_Trace(DBG_LEVEL7, "IO MGR SHM details : pSharedMem 0x%x, "
+			 "pInput 0x%x, pOutput 0x%x, pMsgInputCtrl 0x%x, "
+			 "pMsgInput 0x%x, pMsgOutputCtrl 0x%x, pMsgOutput "
+			 "0x%x \n", (BYTE *)hIOMgr->pSharedMem,
+			 (BYTE *)hIOMgr->pInput, (BYTE *)hIOMgr->pOutput,
+			 (BYTE *)hIOMgr->pMsgInputCtrl,
+			 (BYTE *)hIOMgr->pMsgInput,
+			 (BYTE *)hIOMgr->pMsgOutputCtrl,
+			 (BYTE *)hIOMgr->pMsgOutput);
+		DBG_Trace(DBG_LEVEL7, "** (proc) MAX MSGS IN SHARED MEMORY: "
+			 "0x%x\n", hMsgMgr->uMaxMsgs);
 		memzero((VOID *) hIOMgr->pSharedMem, sizeof(struct SHM));
 	}
 #ifndef DSP_TRACEBUF_DISABLED
@@ -845,42 +829,45 @@ func_cont:
 		/* Get the start address of trace buffer */
 		if (DSP_SUCCEEDED(status)) {
 			status = COD_GetSymValue(hCodMan, SYS_PUTCBEG,
-												&hIOMgr->ulTraceBufferBegin);
-			if (DSP_FAILED(status)) {
+				 &hIOMgr->ulTraceBufferBegin);
+			if (DSP_FAILED(status))
 				status = CHNL_E_NOMEMMAP;
-			}
+
 		}
-		hIOMgr->ulGPPReadPointer = hIOMgr->ulTraceBufferBegin = (ulGppVa +
-				ulSeg1Size + ulPadSize) +(hIOMgr->ulTraceBufferBegin - ulDspVa);
+		hIOMgr->ulGPPReadPointer = hIOMgr->ulTraceBufferBegin =
+			(ulGppVa + ulSeg1Size + ulPadSize) +
+			(hIOMgr->ulTraceBufferBegin - ulDspVa);
 		/* Get the end address of trace buffer */
 		if (DSP_SUCCEEDED(status)) {
-			status = COD_GetSymValue(hCodMan,SYS_PUTCEND,
-													&hIOMgr->ulTraceBufferEnd);
-			if (DSP_FAILED(status)) {
+			status = COD_GetSymValue(hCodMan, SYS_PUTCEND,
+				 &hIOMgr->ulTraceBufferEnd);
+			if (DSP_FAILED(status))
 				status = CHNL_E_NOMEMMAP;
-			}
+
 		}
 		hIOMgr->ulTraceBufferEnd = (ulGppVa + ulSeg1Size + ulPadSize) +
-										(hIOMgr->ulTraceBufferEnd - ulDspVa);
+					   (hIOMgr->ulTraceBufferEnd - ulDspVa);
 		/* Get the current address of DSP write pointer */
 		if (DSP_SUCCEEDED(status)) {
-			status = COD_GetSymValue(hCodMan, BRIDGE_SYS_PUTC_current,
-												&hIOMgr->ulTraceBufferCurrent);
-			if (DSP_FAILED(status)) {
+			status = COD_GetSymValue(hCodMan,
+				 BRIDGE_SYS_PUTC_current,
+				 &hIOMgr->ulTraceBufferCurrent);
+			if (DSP_FAILED(status))
 				status = CHNL_E_NOMEMMAP;
-			}
+
 		}
-		hIOMgr->ulTraceBufferCurrent = (ulGppVa + ulSeg1Size + ulPadSize) +
-									(hIOMgr->ulTraceBufferCurrent - ulDspVa);
+		hIOMgr->ulTraceBufferCurrent = (ulGppVa + ulSeg1Size +
+						ulPadSize) + (hIOMgr->
+						ulTraceBufferCurrent - ulDspVa);
 		/* Calculate the size of trace buffer */
 		if (hIOMgr->pMsg)
 			MEM_Free(hIOMgr->pMsg);
 		hIOMgr->pMsg = MEM_Alloc(((hIOMgr->ulTraceBufferEnd -
-										hIOMgr->ulTraceBufferBegin) *
-										hIOMgr->uWordSize) + 2, MEM_NONPAGED);
-		if (!hIOMgr->pMsg) {
+					hIOMgr->ulTraceBufferBegin) *
+					hIOMgr->uWordSize) + 2, MEM_NONPAGED);
+		if (!hIOMgr->pMsg)
 			status = DSP_EMEMORY;
-		}
+
 		DBG_Trace(DBG_LEVEL1, "** hIOMgr->pMsg: 0x%x\n", hIOMgr->pMsg);
 		hIOMgr->ulDspVa = ulDspVa;
 		hIOMgr->ulGppVa = (ulGppVa + ulSeg1Size + ulPadSize);
@@ -895,7 +882,7 @@ func_cont:
  *  purpose:
  *      Size of shared memory I/O channel.
  */
-ULONG IO_BufSize(struct IO_MGR* hIOMgr)
+ULONG IO_BufSize(struct IO_MGR *hIOMgr)
 {
 	DBC_Require(MEM_IsValidHandle(hIOMgr, IO_MGRSIGNATURE));
 
@@ -907,7 +894,7 @@ ULONG IO_BufSize(struct IO_MGR* hIOMgr)
  *  Purpose:
  *      Cancel IO on a given PCPY channel.
  */
-VOID IO_CancelChnl(struct IO_MGR* hIOMgr, ULONG ulChnl)
+VOID IO_CancelChnl(struct IO_MGR *hIOMgr, ULONG ulChnl)
 {
 	struct IO_MGR *pIOMgr = (struct IO_MGR *)hIOMgr;
 	struct SHM *sm;
@@ -917,7 +904,7 @@ VOID IO_CancelChnl(struct IO_MGR* hIOMgr, ULONG ulChnl)
 
 	/* Inform DSP that we have no more buffers on this channel:  */
 	IO_AndValue(pIOMgr->hWmdContext, struct SHM, sm, hostFreeMask,
-															(~(1 << ulChnl)));
+		   (~(1 << ulChnl)));
 
 	IO_InterruptDSP(pIOMgr->hWmdContext);
 }
@@ -928,7 +915,7 @@ VOID IO_CancelChnl(struct IO_MGR* hIOMgr, ULONG ulChnl)
  *      Proc-copy chanl dispatch.
  */
 static VOID IO_DispatchChnl(IN struct IO_MGR *pIOMgr,
-									IN OUT struct CHNL_OBJECT *pChnl,UINT iMode)
+			   IN OUT struct CHNL_OBJECT *pChnl, UINT iMode)
 {
 	DBC_Require(MEM_IsValidHandle(pIOMgr, IO_MGRSIGNATURE));
 
@@ -947,7 +934,7 @@ static VOID IO_DispatchChnl(IN struct IO_MGR *pIOMgr,
  *  purpose:
  *      Performs I/O dispatch on message queues.
  */
-static VOID IO_DispatchMsg(IN struct IO_MGR *pIOMgr, struct MSG_MGR* hMsgMgr)
+static VOID IO_DispatchMsg(IN struct IO_MGR *pIOMgr, struct MSG_MGR *hMsgMgr)
 {
 	DBC_Require(MEM_IsValidHandle(pIOMgr, IO_MGRSIGNATURE));
 
@@ -958,7 +945,6 @@ static VOID IO_DispatchMsg(IN struct IO_MGR *pIOMgr, struct MSG_MGR* hMsgMgr)
 	OutputMsg(pIOMgr, hMsgMgr);
 }
 
-#if defined (OMAP_2430) || defined (OMAP_3430)
 /*
  *  ======== IO_DispatchPM ========
  *  purpose:
@@ -975,46 +961,51 @@ static VOID IO_DispatchPM(IN struct IO_MGR *pIOMgr)
 
 	/*  Perform Power message processing here  */
 	while (pIOMgr->iQuePowerHead != pIOMgr->iQuePowerTail) {
-		pArg[0] = *(UWORD32 *)&(pIOMgr->dQuePowerMbxVal[pIOMgr->iQuePowerTail]);
-		DBG_Trace(DBG_LEVEL7, "IO_DispatchPM - pArg[0] - 0x%x: \n", pArg[0]);
+		pArg[0] = *(UWORD32 *)&(pIOMgr->dQuePowerMbxVal[pIOMgr->
+			  iQuePowerTail]);
+		DBG_Trace(DBG_LEVEL7, "IO_DispatchPM - pArg[0] - 0x%x: \n",
+			 pArg[0]);
 		/* Send the command to the WMD clk/pwr manager to handle */
 		if (pArg[0] ==  MBX_PM_HIBERNATE_EN) {
-			DBG_Trace(DBG_LEVEL7,"IO_DispatchPM : Hibernate command\n");
-			status = pIOMgr->pIntfFxns->pfnDevCntrl(pIOMgr->hWmdContext,
-						   				WMDIOCTL_PWR_HIBERNATE, pArg);
+			DBG_Trace(DBG_LEVEL7, "IO_DispatchPM : Hibernate "
+				 "command\n");
+			status = pIOMgr->pIntfFxns->pfnDevCntrl(pIOMgr->
+				 hWmdContext, WMDIOCTL_PWR_HIBERNATE, pArg);
 			if (DSP_FAILED(status)) {
-				DBG_Trace(DBG_LEVEL7,"IO_DispatchPM : Hibernation command "
-																"failed\n");
+				DBG_Trace(DBG_LEVEL7, "IO_DispatchPM : "
+					 "Hibernation command failed\n");
 			}
 		} else if (pArg[0] == MBX_PM_OPP_REQ) {
 			pArg[1] = pIOMgr->pSharedMem->oppRequest.rqstOppPt;
-			DBG_Trace(DBG_LEVEL7,"IO_DispatchPM : Value of OPP value =0x%x \n",
-																	pArg[1]);
-			status = pIOMgr->pIntfFxns->pfnDevCntrl(pIOMgr->hWmdContext,
-						   WMDIOCTL_CONSTRAINT_REQUEST, pArg);
+			DBG_Trace(DBG_LEVEL7, "IO_DispatchPM : Value of OPP "
+				 "value =0x%x \n", pArg[1]);
+			status = pIOMgr->pIntfFxns->pfnDevCntrl(pIOMgr->
+				 hWmdContext, WMDIOCTL_CONSTRAINT_REQUEST,
+				 pArg);
 			if (DSP_FAILED(status)) {
-				DBG_Trace(DBG_LEVEL7,"IO_DispatchPM : Failed to set constraint"
-														" = 0x%x \n", pArg[1]);
+				DBG_Trace(DBG_LEVEL7, "IO_DispatchPM : Failed "
+					 "to set constraint = 0x%x \n",
+					 pArg[1]);
 			}
 
 		} else {
-			DBG_Trace(DBG_LEVEL7,"IO_DispatchPM - clock control - value of msg"
-														" = 0x%x: \n",pArg[0]);
-			status =  pIOMgr->pIntfFxns->pfnDevCntrl(pIOMgr->hWmdContext,
-						   WMDIOCTL_CLK_CTRL, pArg);
+			DBG_Trace(DBG_LEVEL7, "IO_DispatchPM - clock control - "
+				 "value of msg = 0x%x: \n", pArg[0]);
+			status = pIOMgr->pIntfFxns->pfnDevCntrl(pIOMgr->
+				 hWmdContext, WMDIOCTL_CLK_CTRL, pArg);
 			if (DSP_FAILED(status)) {
-				DBG_Trace(DBG_LEVEL7,"IO_DispatchPM : Failed to control the "
-													"DSP clk = 0x%x \n",*pArg);
+				DBG_Trace(DBG_LEVEL7, "IO_DispatchPM : Failed "
+					 "to control the DSP clk = 0x%x \n",
+					 *pArg);
 			}
 		}
 		/* increment the tail count here */
 		pIOMgr->iQuePowerTail++;
-		if (pIOMgr->iQuePowerTail >= MAX_PM_REQS) {
+		if (pIOMgr->iQuePowerTail >= MAX_PM_REQS)
 			pIOMgr->iQuePowerTail = 0;
-		}
+
 	}
 }
-#endif
 
 /*
  *  ======== IO_DPC ========
@@ -1028,7 +1019,7 @@ VOID IO_DPC(IN OUT PVOID pRefData)
 	struct IO_MGR *pIOMgr = (struct IO_MGR *)pRefData;
 	struct CHNL_MGR *pChnlMgr;
 	struct MSG_MGR *pMsgMgr;
-	struct DEH_MGR* hDehMgr;
+	struct DEH_MGR *hDehMgr;
 	DSP_STATUS status;
 
 	DBC_Require(MEM_IsValidHandle(pIOMgr, IO_MGRSIGNATURE));
@@ -1040,19 +1031,19 @@ VOID IO_DPC(IN OUT PVOID pRefData)
 	/* Check value of interrupt register to ensure it is a valid error */
 	if ((pIOMgr->wIntrVal > DEH_BASE) && (pIOMgr->wIntrVal < DEH_LIMIT)) {
 		/* notify DSP/BIOS exception */
-		if (hDehMgr) {
+		if (hDehMgr)
 			WMD_DEH_Notify(hDehMgr, DSP_SYSERROR, pIOMgr->wIntrVal);
-		}
+
 	}
 	/* Call WMD's DPC: */
 	IO_CALLDPC(pIOMgr->hWmdContext);
-	/*(VOID)SYNC_EnterCS(pChnlMgr->hCSObj);*/ /* Dispatch I/O: */
+	/*(VOID)SYNC_EnterCS(pChnlMgr->hCSObj); */ /* Dispatch I/O: */
 	IO_DispatchChnl(pIOMgr, NULL, IO_SERVICE);
 	/*(VOID)SYNC_LeaveCS(pChnlMgr->hCSObj); */
 #ifdef CHNL_MESSAGES
 	if (pMsgMgr) {
 		DBC_Require(MEM_IsValidHandle(pMsgMgr, MSGMGR_SIGNATURE));
-		/* Protect Message queues */ /*SYNC_EnterCS(pMsgMgr->hSyncCS); */
+		/* Protect Message queues *//*SYNC_EnterCS(pMsgMgr->hSyncCS); */
 		IO_DispatchMsg(pIOMgr, pMsgMgr);
 		/*SYNC_LeaveCS(pMsgMgr->hSyncCS); */
 	}
@@ -1064,11 +1055,9 @@ VOID IO_DPC(IN OUT PVOID pRefData)
 			PrintDSPDebugTrace(pIOMgr);
 	}
 #endif
-#if defined (OMAP_2430) || defined (OMAP_3430)
 	IO_DispatchPM(pIOMgr);
 #ifndef DSP_TRACEBUF_DISABLED
 	PrintDSPDebugTrace(pIOMgr);
-#endif
 #endif
 }
 
@@ -1082,48 +1071,28 @@ VOID IO_DPC(IN OUT PVOID pRefData)
  */
 BOOL IO_ISR(IN PVOID pRefData)
 {
-	struct IO_MGR* hIOMgr = (struct IO_MGR*)pRefData;
+	struct IO_MGR *hIOMgr = (struct IO_MGR *)pRefData;
 	BOOL fSchedDPC;
 	DBC_Require(MEM_IsValidHandle(hIOMgr, IO_MGRSIGNATURE));
 	DBG_Trace(DBG_LEVEL3, "Entering IO_ISR(0x%x)\n", pRefData);
 	/* Call WMD's CHNLSM_ISR() to see if interrupt is ours, and process. */
 	if (IO_CALLISR(hIOMgr->hWmdContext, &fSchedDPC, &hIOMgr->wIntrVal)) {
-#if defined (CHNL_DDMA) || defined (CHNL_DDZC)
-		if ((hIOMgr->hChnlMgr->cOpenDDMAChannels > 0) && (hIOMgr->wIntrVal &
-															MBX_DDMA_CLASS)) {
-			/* DSP-DMA INTR */
-#ifdef CHNL_DDMA
-			/* Dispatch I/O DDMA channel(s) if ours */
-			IO_DDMADispatchChnl(hIOMgr, NULL, NULL);
-#else
-			DBC_Assert(FALSE);
-#endif
-		} else if (hIOMgr->wIntrVal & MBX_ZCPY_CLASS) {	/* ZCPY INTR */
-#ifdef CHNL_DDZC
-			/* Dispatch zero-copy I/O channel */
-			IO_DDZCDispatchChnl(hIOMgr, NULL, NULL);
-#else
-			DBC_Assert(FALSE);
-#endif
-		} else
-#endif
 		{
 			DBG_Trace(DBG_LEVEL3, "IO_ISR %x\n", hIOMgr->wIntrVal);
-#if defined (OMAP_2430) || defined (OMAP_3430)
 			if (hIOMgr->wIntrVal & MBX_PM_CLASS) {
 				hIOMgr->dQuePowerMbxVal[hIOMgr->iQuePowerHead] =
-															hIOMgr->wIntrVal;
+					hIOMgr->wIntrVal;
 				hIOMgr->iQuePowerHead++;
-				if (hIOMgr->iQuePowerHead >= MAX_PM_REQS) {
+				if (hIOMgr->iQuePowerHead >= MAX_PM_REQS)
 					hIOMgr->iQuePowerHead = 0;
-				}
+
 			}
-#endif
 			if (hIOMgr->wIntrVal == MBX_DEH_RESET) {
 				DBG_Trace(DBG_LEVEL6, "*** DSP RESET ***\n");
 				hIOMgr->wIntrVal = 0;
 			} else if (fSchedDPC) {
-				DPC_Schedule(hIOMgr->hDPC);	/* PROC-COPY defer i/o  */
+				/* PROC-COPY defer i/o  */
+				DPC_Schedule(hIOMgr->hDPC);
 			}
 		}
 		return (TRUE);
@@ -1141,8 +1110,8 @@ BOOL IO_ISR(IN PVOID pRefData)
  *      Request chanenel I/O from the DSP. Sets flags in shared memory, then
  *      interrupts the DSP.
  */
-VOID IO_RequestChnl(struct IO_MGR *pIOMgr, struct CHNL_OBJECT *pChnl,UINT iMode,
-															OUT WORD *pwMbVal)
+VOID IO_RequestChnl(struct IO_MGR *pIOMgr, struct CHNL_OBJECT *pChnl,
+		   UINT iMode, OUT WORD *pwMbVal)
 {
 	struct CHNL_MGR *pChnlMgr;
 	struct SHM *sm;
@@ -1151,23 +1120,25 @@ VOID IO_RequestChnl(struct IO_MGR *pIOMgr, struct CHNL_OBJECT *pChnl,UINT iMode,
 	pChnlMgr = pIOMgr->hChnlMgr;
 	sm = pIOMgr->pSharedMem;
 	if (iMode == IO_INPUT) {
-		 /*  Assertion fires if CHNL_AddIOReq() called on a stream which was
-		 *  cancelled, or attached to a dead board: */
+		 /*  Assertion fires if CHNL_AddIOReq() called on a stream
+		  * which was cancelled, or attached to a dead board: */
 		DBC_Assert((pChnl->dwState == CHNL_STATEREADY) ||
-											(pChnl->dwState == CHNL_STATEEOS));
+			  (pChnl->dwState == CHNL_STATEEOS));
 		/* Indicate to the DSP we have a buffer available for input: */
-		IO_OrValue(pIOMgr->hWmdContext,struct SHM,sm,hostFreeMask,
-															(1 << pChnl->uId));
-		/* Interrupt DSP:  */ /* IO_InterruptDSP(pIOMgr->hWmdContext); */
+		IO_OrValue(pIOMgr->hWmdContext, struct SHM, sm, hostFreeMask,
+			  (1 << pChnl->uId));
+		/* Interrupt DSP:  *//* IO_InterruptDSP(pIOMgr->hWmdContext); */
 		*pwMbVal = MBX_PCPY_CLASS;
 	} else if (iMode == IO_OUTPUT) {
-		 /*  This assertion fails if CHNL_AddIOReq() was called on a stream
-		 *  which was cancelled, or attached to a dead board: */
-		DBC_Assert((pChnl->dwState & ~CHNL_STATEEOS) == CHNL_STATEREADY);
-		/* Record the fact that we have a buffer available for output: */
+		 /*  This assertion fails if CHNL_AddIOReq() was called on a
+		  * stream which was cancelled, or attached to a dead board: */
+		DBC_Assert((pChnl->dwState & ~CHNL_STATEEOS) ==
+			  CHNL_STATEREADY);
+		/* Record the fact that we have a buffer available for
+		 * output: */
 		pChnlMgr->dwOutputMask |= (1 << pChnl->uId);
 	} else {
-		DBC_Assert(iMode);	/* Shouldn't get here. */
+		DBC_Assert(iMode); 	/* Shouldn't get here. */
 	}
 }
 
@@ -1192,7 +1163,7 @@ VOID IO_Schedule(struct IO_MGR *pIOMgr)
  *      IO_Dispatch()), so just start searching from the current channel id.
  */
 static ULONG FindReadyOutput(struct CHNL_MGR *pChnlMgr,
-										struct CHNL_OBJECT *pChnl,DWORD dwMask)
+			     struct CHNL_OBJECT *pChnl, DWORD dwMask)
 {
 	ULONG uRetval = OUTPUTNOTREADY;
 	DWORD id, startId;
@@ -1207,9 +1178,9 @@ static ULONG FindReadyOutput(struct CHNL_MGR *pChnlMgr,
 		do {
 			if (dwMask & shift) {
 				uRetval = id;
-				if (pChnl == NULL) {
+				if (pChnl == NULL)
 					pChnlMgr->dwLastOutput = id;
-				}
+
 				break;
 			}
 			id = id + 1;
@@ -1227,7 +1198,7 @@ static ULONG FindReadyOutput(struct CHNL_MGR *pChnlMgr,
  *      Dispatch a buffer on an input channel.
  */
 static VOID InputChnl(struct IO_MGR *pIOMgr, struct CHNL_OBJECT *pChnl,
-																	UINT iMode)
+		      UINT iMode)
 {
 	struct CHNL_MGR *pChnlMgr;
 	struct SHM *sm;
@@ -1242,14 +1213,14 @@ static VOID InputChnl(struct IO_MGR *pIOMgr, struct CHNL_OBJECT *pChnl,
 	pChnlMgr = pIOMgr->hChnlMgr;
 
 	DBG_Trace(DBG_LEVEL3, "> InputChnl\n");
-	/*  DBC_Require(sm->inputSize || !sm->inputFull);*/
+	/*  DBC_Require(sm->inputSize || !sm->inputFull); */
 
 	/* Attempt to perform input.... */
-	if ( !IO_GetValue(pIOMgr->hWmdContext, struct SHM, sm, inputFull)) {
+	if (!IO_GetValue(pIOMgr->hWmdContext, struct SHM, sm, inputFull))
 		goto func_end;
-	}
+
 	uBytes = IO_GetValue(pIOMgr->hWmdContext, struct SHM, sm, inputSize) *
-															pChnlMgr->uWordSize;
+			    pChnlMgr->uWordSize;
 	chnlId = IO_GetValue(pIOMgr->hWmdContext, struct SHM, sm, inputId);
 	dwArg = IO_GetLong(pIOMgr->hWmdContext, struct SHM, sm, arg);
 	if (!(chnlId >= 0) || !(chnlId < CHNL_MAXCHANNELS)) {
@@ -1261,47 +1232,59 @@ static VOID InputChnl(struct IO_MGR *pIOMgr, struct CHNL_OBJECT *pChnl,
 	if ((pChnl != NULL) && CHNL_IsInput(pChnl->uMode)) {
 		if ((pChnl->dwState & ~CHNL_STATEEOS) == CHNL_STATEREADY) {
 			/* Get the I/O request, and attempt a transfer:  */
-			pChirp = (struct CHNL_IRP *)LST_GetHead(pChnl->pIORequests);
+			pChirp = (struct CHNL_IRP *)LST_GetHead(pChnl->
+				 pIORequests);
 			if (pChirp) {
 				pChnl->cIOReqs--;
 				DBC_Assert(pChnl->cIOReqs >= 0);
-				/* Ensure we don't overflow the client's buffer: */
+				/* Ensure we don't overflow the client's
+				 * buffer: */
 				uBytes = Min(uBytes, pChirp->cBytes);
 				/* Transfer buffer from DSP side: */
 				uBytes = ReadData(pIOMgr->hWmdContext,
-							pChirp->pHostSysBuf,pIOMgr->pInput,uBytes);
+						pChirp->pHostSysBuf,
+						pIOMgr->pInput, uBytes);
 				pChnl->cBytesMoved += uBytes;
 				pChirp->cBytes = uBytes;
 				pChirp->dwArg = dwArg;
 				pChirp->status = CHNL_IOCSTATCOMPLETE;
 #warning "Remove below code in final builds"
 #if 1
-				DBG_Trace(DBG_LEVEL7, "Input Chnl:status= 0x%x \n",
-										*((RMS_WORD*)(pChirp->pHostSysBuf)));
+				DBG_Trace(DBG_LEVEL7, "Input Chnl:status= 0x%x "
+					 "\n", *((RMS_WORD *)(pChirp->
+					 pHostSysBuf)));
 #endif
 				if (uBytes == 0) {
-					 /*  This assertion fails if the DSP sends EOS
-					 *  more than once on this channel: */
-					DBC_Assert(!(pChnl->dwState & CHNL_STATEEOS));
-					 /*  Zero bytes indicates EOS.  Update IOC status
-					 *  for this chirp, and also the channel state: */
+					/* This assertion fails if the DSP
+					 * sends EOS more than once on this
+					 * channel: */
+					DBC_Assert(!(pChnl->dwState &
+						  CHNL_STATEEOS));
+					 /* Zero bytes indicates EOS. Update
+					  * IOC status for this chirp, and also
+					  * the channel state: */
 					pChirp->status |= CHNL_IOCSTATEOS;
 					pChnl->dwState |= CHNL_STATEEOS;
-					/* Notify that end of stream has occurred */
-					NTFY_Notify(pChnl-> hNtfy, DSP_STREAMDONE);
-					DBG_Trace(DBG_LEVEL7,"Input Chnl NTFY chnl = 0x%x\n",pChnl);
+					/* Notify that end of stream has
+					 * occurred */
+					NTFY_Notify(pChnl->hNtfy,
+						   DSP_STREAMDONE);
+					DBG_Trace(DBG_LEVEL7, "Input Chnl NTFY "
+						 "chnl = 0x%x\n", pChnl);
 				}
-				/* Tell DSP if no more I/O buffers available:  */
+				/* Tell DSP if no more I/O buffers available: */
 				if (LST_IsEmpty(pChnl->pIORequests)) {
-					IO_AndValue(pIOMgr->hWmdContext, struct SHM, sm,
-									hostFreeMask, ~(1 << pChnl-> uId));
+					IO_AndValue(pIOMgr->hWmdContext,
+						   struct SHM, sm, hostFreeMask,
+						   ~(1 << pChnl->uId));
 				}
 				fClearChnl = TRUE;
 				fNotifyClient = TRUE;
 			} else {
-				/* Input full for this channel, but we have no buffers
-				 * available.  The channel must be "idling".
-				 * Clear out the physical input channel.  */
+				/* Input full for this channel, but we have no
+				 * buffers available.  The channel must be
+				 * "idling". Clear out the physical input
+				 * channel.  */
 				fClearChnl = TRUE;
 			}
 		} else {
@@ -1330,12 +1313,12 @@ func_end:
  *  purpose:
  *      Copies messages from shared memory to the message queues.
  */
-static VOID InputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR* hMsgMgr)
+static VOID InputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR *hMsgMgr)
 {
 	UINT uMsgs;
 	UINT i;
 	BYTE *pMsgInput;
-	struct MSG_QUEUE* hMsgQueue;
+	struct MSG_QUEUE *hMsgQueue;
 	struct MSG_FRAME *pMsg;
 	struct MSG_DSPMSG msg;
 	struct MSG *pCtrl;
@@ -1344,13 +1327,14 @@ static VOID InputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR* hMsgMgr)
 
 	pCtrl = pIOMgr->pMsgInputCtrl;
 	/* Get the number of input messages to be read. */
-	fInputEmpty = IO_GetValue(pIOMgr->hWmdContext, struct MSG, pCtrl, bufEmpty);
+	fInputEmpty = IO_GetValue(pIOMgr->hWmdContext, struct MSG, pCtrl,
+				 bufEmpty);
 	uMsgs = IO_GetValue(pIOMgr->hWmdContext, struct MSG, pCtrl, size);
-	if (fInputEmpty || uMsgs >= hMsgMgr->uMaxMsgs) {
+	if (fInputEmpty || uMsgs >= hMsgMgr->uMaxMsgs)
 		return;
-	}
+
 	pMsgInput = pIOMgr->pMsgInput;
-	for (i = 0;i < uMsgs;i++) {
+	for (i = 0; i < uMsgs; i++) {
 		/* Read the next message */
 		/*ulBytes = ReadData(pIOMgr->hWmdContext, &msg, pMsgInput,
 		   sizeof(struct MSG_DSPMSG)); */
@@ -1364,52 +1348,61 @@ static VOID InputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR* hMsgMgr)
 		msg.dwId = ReadExt32BitDspData(pIOMgr->hWmdContext, addr);
 		pMsgInput += sizeof(struct MSG_DSPMSG);
 		/* Determine which queue to put the message in */
-		hMsgQueue = (struct MSG_QUEUE*)LST_First(hMsgMgr->queueList);
+		hMsgQueue = (struct MSG_QUEUE *)LST_First(hMsgMgr->queueList);
 		DBG_Trace(DBG_LEVEL7, "InputMsg RECVD: dwCmd=0x%x dwArg1=0x%x "
-								"dwArg2=0x%x dwId=0x%x \n", msg.msg.dwCmd,
-								msg.msg.dwArg1, msg.msg.dwArg2, msg.dwId);
+			 "dwArg2=0x%x dwId=0x%x \n", msg.msg.dwCmd,
+			 msg.msg.dwArg1, msg.msg.dwArg2, msg.dwId);
 		 /*  Interrupt may occur before shared memory and message
 		 *  input locations have been set up. If all nodes were
 		 *  cleaned up, hMsgMgr->uMaxMsgs should be 0.  */
-		if (hMsgQueue) {
+		if (hMsgQueue)
 			DBC_Assert(uMsgs <= hMsgMgr->uMaxMsgs);
-		}
+
 		while (hMsgQueue != NULL) {
 			if (msg.dwId == hMsgQueue->dwId) {
 				/* Found it */
 				if (msg.msg.dwCmd == RMS_EXITACK) {
-					/* The exit message does not get queued */
+					/* The exit message does not get
+					 * queued */
 					/* Call the node exit notification */
 					/* Node handle */ /* status */
-					(*hMsgMgr->onExit)((HANDLE)hMsgQueue->hArg,
-															msg.msg.dwArg1);
+					(*hMsgMgr->onExit)((HANDLE)hMsgQueue->
+						hArg, msg.msg.dwArg1);
 				} else {
-					/* Not an exit acknowledgement, queue the message */
+					/* Not an exit acknowledgement, queue
+					 * the message */
 					pMsg = (struct MSG_FRAME *)LST_GetHead
-												(hMsgQueue->msgFreeList);
+						(hMsgQueue->msgFreeList);
 					if (pMsg) {
 						pMsg->msgData = msg;
-						LST_PutTail(hMsgQueue->msgUsedList,
-														(struct LST_ELEM*)pMsg);
-						NTFY_Notify(hMsgQueue->hNtfy,DSP_NODEMESSAGEREADY);
-						SYNC_SetEvent(hMsgQueue->hSyncEvent);
+						LST_PutTail(hMsgQueue->
+						      msgUsedList,
+						      (struct LST_ELEM *)pMsg);
+						NTFY_Notify(hMsgQueue->hNtfy,
+							DSP_NODEMESSAGEREADY);
+						SYNC_SetEvent(hMsgQueue->
+							hSyncEvent);
 					} else {
-						/* No free frame to copy the message into */
-						DBG_Trace(DBG_LEVEL7, "NO FREE MSG FRAMES, "
-													"DISCARDING MESSAGE\n");
+						/* No free frame to copy the
+						 * message into */
+						DBG_Trace(DBG_LEVEL7, "NO FREE "
+							"MSG FRAMES, DISCARDING"
+							" MESSAGE\n");
 					}
 				}
 				break;
 			}
-			hMsgQueue = (struct MSG_QUEUE*)LST_Next(hMsgMgr->queueList,
-												(struct LST_ELEM*)hMsgQueue);
+			hMsgQueue = (struct MSG_QUEUE *)LST_Next(hMsgMgr->
+				    queueList, (struct LST_ELEM *)hMsgQueue);
 		}
 	}
 	/* Set the post SWI flag */
 	if (uMsgs > 0) {
 		/* Tell the DSP we've read the messages */
-		IO_SetValue(pIOMgr->hWmdContext, struct MSG, pCtrl, bufEmpty, TRUE);
-		IO_SetValue(pIOMgr->hWmdContext, struct MSG, pCtrl, postSWI, TRUE);
+		IO_SetValue(pIOMgr->hWmdContext, struct MSG, pCtrl, bufEmpty,
+			   TRUE);
+		IO_SetValue(pIOMgr->hWmdContext, struct MSG, pCtrl, postSWI,
+			   TRUE);
 		IO_InterruptDSP(pIOMgr->hWmdContext);
 	}
 }
@@ -1420,24 +1413,25 @@ static VOID InputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR* hMsgMgr)
  *      Signal the channel event, notifying the client that I/O has completed.
  */
 static VOID NotifyChnlComplete(struct CHNL_OBJECT *pChnl,
-													struct CHNL_IRP *pChirp)
+			      struct CHNL_IRP *pChirp)
 {
 	BOOL fSignalEvent;
 
 	DBC_Require(MEM_IsValidHandle(pChnl, CHNL_SIGNATURE));
 	DBC_Require(pChnl->hSyncEvent != NULL);
-	 /*  Note: we signal the channel event only if the queue of IO completions
-	 *  is empty.  If it is not empty, the event is sure to be signalled
-	 *  by the only IO completion list consumer: WMD_CHNL_GetIOC().  */
+	 /*  Note: we signal the channel event only if the queue of IO
+	  *  completions is empty.  If it is not empty, the event is sure to be
+	  *  signalled by the only IO completion list consumer:
+	  *  WMD_CHNL_GetIOC().  */
 	fSignalEvent = LST_IsEmpty(pChnl->pIOCompletions);
 	/* Enqueue the IO completion info for the client: */
-	LST_PutTail(pChnl->pIOCompletions, (struct LST_ELEM*) pChirp);
+	LST_PutTail(pChnl->pIOCompletions, (struct LST_ELEM *) pChirp);
 	pChnl->cIOCs++;
 	DBC_Assert(pChnl->cIOCs <= pChnl->cChirps);
 	/* Signal the channel event (if not already set) that IO is complete: */
-	if (fSignalEvent) {
+	if (fSignalEvent)
 		SYNC_SetEvent(pChnl->hSyncEvent);
-	}
+
 	/* Notify that IO is complete */
 	NTFY_Notify(pChnl->hNtfy, DSP_STREAMIOCOMPLETION);
 }
@@ -1448,7 +1442,7 @@ static VOID NotifyChnlComplete(struct CHNL_OBJECT *pChnl,
  *      Dispatch a buffer on an output channel.
  */
 static VOID OutputChnl(struct IO_MGR *pIOMgr, struct CHNL_OBJECT *pChnl,
-																	UINT iMode)
+			UINT iMode)
 {
 	struct CHNL_MGR *pChnlMgr;
 	struct SHM *sm;
@@ -1460,62 +1454,66 @@ static VOID OutputChnl(struct IO_MGR *pIOMgr, struct CHNL_OBJECT *pChnl,
 	sm = pIOMgr->pSharedMem;
 	DBG_Trace(DBG_LEVEL3, "> OutputChnl\n");
 	/* Attempt to perform output: */
-	if (IO_GetValue(pIOMgr->hWmdContext, struct SHM, sm, outputFull)) {
+	if (IO_GetValue(pIOMgr->hWmdContext, struct SHM, sm, outputFull))
 		goto func_end;
-	}
-	if (pChnl && !((pChnl->dwState & ~CHNL_STATEEOS) == CHNL_STATEREADY)) {
+
+	if (pChnl && !((pChnl->dwState & ~CHNL_STATEEOS) == CHNL_STATEREADY))
 		goto func_end;
-	}
+
 	/* Look to see if both a PC and DSP output channel are ready: */
-	dwDspFMask = IO_GetValue(pIOMgr->hWmdContext, struct SHM, sm, dspFreeMask);
-	chnlId = FindReadyOutput(pChnlMgr, pChnl,
-										(pChnlMgr->dwOutputMask & dwDspFMask));
-	if (chnlId == OUTPUTNOTREADY) {
+	dwDspFMask = IO_GetValue(pIOMgr->hWmdContext, struct SHM, sm,
+				 dspFreeMask);
+	chnlId = FindReadyOutput(pChnlMgr, pChnl, (pChnlMgr->dwOutputMask &
+				 dwDspFMask));
+	if (chnlId == OUTPUTNOTREADY)
 		goto func_end;
-	}
+
 	pChnl = pChnlMgr->apChannel[chnlId];
-	if ( !pChnl) {
+	if (!pChnl) {
 		/* Shouldn't get here: */
 		DBC_Assert(pChnl == NULL);
 		goto func_end;
 	}
 	/* Get the I/O request, and attempt a transfer:  */
 	pChirp = (struct CHNL_IRP *)LST_GetHead(pChnl->pIORequests);
-	if (!pChirp) {
+	if (!pChirp)
 		goto func_end;
-	}
+
 	pChnl->cIOReqs--;
 	DBC_Assert(pChnl->cIOReqs >= 0);
 	/* Record fact that no more I/O buffers available:  */
-	if (LST_IsEmpty(pChnl->pIORequests)) {
+	if (LST_IsEmpty(pChnl->pIORequests))
 		pChnlMgr->dwOutputMask &= ~(1 << chnlId);
-	}
+
 	/* Transfer buffer to DSP side: */
 	pChirp->cBytes = WriteData(pIOMgr->hWmdContext, pIOMgr->pOutput,
-			pChirp->pHostSysBuf, Min(pIOMgr->uSMBufSize,pChirp->cBytes));
+			pChirp->pHostSysBuf, Min(pIOMgr->uSMBufSize, pChirp->
+			cBytes));
 	pChnl->cBytesMoved += pChirp->cBytes;
 	/* Write all 32 bits of arg */
 	IO_SetLong(pIOMgr->hWmdContext, struct SHM, sm, arg, pChirp->dwArg);
 #if _CHNL_WORDSIZE == 2
-	IO_SetValue(pIOMgr->hWmdContext, struct SHM, sm, outputId, (WORD)chnlId);
+	IO_SetValue(pIOMgr->hWmdContext, struct SHM, sm, outputId,
+		   (WORD)chnlId);
 	IO_SetValue(pIOMgr->hWmdContext, struct SHM, sm, outputSize,
-						(WORD)(pChirp->cBytes + (pChnlMgr->uWordSize-1)) /
-													(WORD)pChnlMgr->uWordSize);
+		   (WORD)(pChirp->cBytes + (pChnlMgr->uWordSize-1)) /
+		   (WORD)pChnlMgr->uWordSize);
 #else
-	IO_SetValue(pIOMgr->hWmdContext,struct SHM,sm,outputId,chnlId);
-	IO_SetValue(pIOMgr->hWmdContext,struct SHM,sm,outputSize,(pChirp->cBytes +
-							(pChnlMgr->uWordSize - 1)) / pChnlMgr->uWordSize);
+	IO_SetValue(pIOMgr->hWmdContext, struct SHM, sm, outputId, chnlId);
+	IO_SetValue(pIOMgr->hWmdContext, struct SHM, sm, outputSize,
+		   (pChirp->cBytes + (pChnlMgr->uWordSize - 1)) / pChnlMgr->
+		   uWordSize);
 #endif
-	IO_SetValue(pIOMgr->hWmdContext,struct SHM,sm,outputFull,1);
+	IO_SetValue(pIOMgr->hWmdContext, struct SHM, sm, outputFull, 1);
 	/* Indicate to the DSP we have written the output: */
 	IO_InterruptDSP(pIOMgr->hWmdContext);
 	/* Notify client with IO completion record (keep EOS) */
 	pChirp->status &= CHNL_IOCSTATEOS;
 	NotifyChnlComplete(pChnl, pChirp);
 	/* Notify if stream is done. */
-	if (pChirp-> status & CHNL_IOCSTATEOS) {
+	if (pChirp->status & CHNL_IOCSTATEOS)
 		NTFY_Notify(pChnl->hNtfy, DSP_STREAMDONE);
-	}
+
 func_end:
 	DBG_Trace(DBG_LEVEL3, "< OutputChnl\n");
 }
@@ -1524,7 +1522,7 @@ func_end:
  *  purpose:
  *      Copies messages from the message queues to the shared memory.
  */
-static VOID OutputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR* hMsgMgr)
+static VOID OutputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR *hMsgMgr)
 {
 	UINT uMsgs = 0;
 	UINT i;
@@ -1538,42 +1536,54 @@ static VOID OutputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR* hMsgMgr)
 	pCtrl = pIOMgr->pMsgOutputCtrl;
 
 	/* Check if output has been cleared */
-	fOutputEmpty = IO_GetValue(pIOMgr->hWmdContext,struct MSG,pCtrl,bufEmpty);
+	fOutputEmpty = IO_GetValue(pIOMgr->hWmdContext, struct MSG, pCtrl,
+				  bufEmpty);
 	if (fOutputEmpty) {
-		uMsgs = (hMsgMgr->uMsgsPending > hMsgMgr->uMaxMsgs) ? hMsgMgr->uMaxMsgs
-														: hMsgMgr->uMsgsPending;
+		uMsgs = (hMsgMgr->uMsgsPending > hMsgMgr->uMaxMsgs) ?
+			 hMsgMgr->uMaxMsgs : hMsgMgr->uMsgsPending;
 		pMsgOutput = pIOMgr->pMsgOutput;
 		/* Copy uMsgs messages into shared memory */
-		for (i = 0;i < uMsgs;i++) {
-			pMsg = (struct MSG_FRAME *)LST_GetHead(hMsgMgr->msgUsedList);
+		for (i = 0; i < uMsgs; i++) {
+			pMsg = (struct MSG_FRAME *)LST_GetHead(hMsgMgr->
+				msgUsedList);
 			DBC_Assert(pMsg != NULL);
 			/* Swap words before writing out */
-			/*pMsg->msgData.msg.dwCmd = ExtWrite32BitDspData(pIOMgr->hDevObject,
-			 										pMsg->msgData.msg.dwCmd);
-			   pMsg->msgData.msg.dwArg1 = ExtWrite32BitDspData
-			   										(pMsg->msgData.msg.dwArg1);
-			   pMsg->msgData.msg.dwArg2 = ExtWrite32BitDspData
-			   										(pMsg->msgData.msg.dwArg2);
-			   pMsg->msgData.dwId = ExtWrite32BitDspData(pMsg->msgData.dwId);
-			   ulBytes = WriteData(pIOMgr->hWmdContext, pMsgOutput,
-			   &pMsg->msgData, sizeof(struct MSG_DSPMSG)); */
-			if ( pMsg != NULL ) {
+			/*pMsg->msgData.msg.dwCmd = ExtWrite32BitDspData
+			/* (pIOMgr->hDevObject, pMsg->msgData.msg.dwCmd);
+			 * pMsg->msgData.msg.dwArg1 = ExtWrite32BitDspData
+			 *  	(pMsg->msgData.msg.dwArg1);
+			 * pMsg->msgData.msg.dwArg2 = ExtWrite32BitDspData
+			 *	(pMsg->msgData.msg.dwArg2);
+			 * pMsg->msgData.dwId = ExtWrite32BitDspData(pMsg->
+			 *  	msgData.dwId);
+			 * ulBytes = WriteData(pIOMgr->hWmdContext, pMsgOutput,
+			 *&pMsg->msgData, sizeof(struct MSG_DSPMSG)); */
+			if (pMsg != NULL) {
 				val = (pMsg->msgData).dwId;
-				addr = (DWORD)&(((struct MSG_DSPMSG *)pMsgOutput)->dwId);
-				WriteExt32BitDspData(pIOMgr->hWmdContext, addr, val);
+				addr = (DWORD)&(((struct MSG_DSPMSG *)
+					pMsgOutput)->dwId);
+				WriteExt32BitDspData(pIOMgr->hWmdContext, addr,
+						     val);
 				val = (pMsg->msgData).msg.dwCmd;
-				addr = (DWORD)&((((struct MSG_DSPMSG *)pMsgOutput)->msg).dwCmd);
-				WriteExt32BitDspData(pIOMgr->hWmdContext, addr, val);
+				addr = (DWORD)&((((struct MSG_DSPMSG *)
+					pMsgOutput)->msg).dwCmd);
+				WriteExt32BitDspData(pIOMgr->hWmdContext, addr,
+						     val);
 				val = (pMsg->msgData).msg.dwArg1;
 				addr =
-					(DWORD)&((((struct MSG_DSPMSG *)pMsgOutput)->msg).dwArg1);
-				WriteExt32BitDspData(pIOMgr->hWmdContext, addr, val);
+					(DWORD)&((((struct MSG_DSPMSG *)
+					pMsgOutput)->msg).dwArg1);
+				WriteExt32BitDspData(pIOMgr->hWmdContext, addr,
+						    val);
 				val = (pMsg->msgData).msg.dwArg2;
 				addr =
-					(DWORD)&((((struct MSG_DSPMSG *)pMsgOutput)->msg).dwArg2);
-				WriteExt32BitDspData(pIOMgr->hWmdContext, addr, val);
+					(DWORD)&((((struct MSG_DSPMSG *)
+					pMsgOutput)->msg).dwArg2);
+				WriteExt32BitDspData(pIOMgr->hWmdContext, addr,
+						    val);
 				pMsgOutput += sizeof(struct MSG_DSPMSG);
-				LST_PutTail(hMsgMgr->msgFreeList, (struct LST_ELEM*) pMsg);
+				LST_PutTail(hMsgMgr->msgFreeList,
+					   (struct LST_ELEM *) pMsg);
 				SYNC_SetEvent(hMsgMgr->hSyncEvent);
 			} else {
 				DBG_Trace(DBG_LEVEL3, "pMsg is NULL\n");
@@ -1583,13 +1593,17 @@ static VOID OutputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR* hMsgMgr)
 		if (uMsgs > 0) {
 			hMsgMgr->uMsgsPending -= uMsgs;
 #if _CHNL_WORDSIZE == 2
-			IO_SetValue(pIOMgr->hWmdContext,struct MSG,pCtrl,size,(WORD)uMsgs);
+			IO_SetValue(pIOMgr->hWmdContext, struct MSG, pCtrl,
+				   size, (WORD)uMsgs);
 #else
-			IO_SetValue(pIOMgr->hWmdContext,struct MSG,pCtrl,size,uMsgs);
+			IO_SetValue(pIOMgr->hWmdContext, struct MSG, pCtrl,
+				   size, uMsgs);
 #endif
-			IO_SetValue(pIOMgr->hWmdContext,struct MSG,pCtrl,bufEmpty,FALSE);
+			IO_SetValue(pIOMgr->hWmdContext, struct MSG, pCtrl,
+				   bufEmpty, FALSE);
 			/* Set the post SWI flag */
-			IO_SetValue(pIOMgr->hWmdContext,struct MSG,pCtrl,postSWI,TRUE);
+			IO_SetValue(pIOMgr->hWmdContext, struct MSG, pCtrl,
+				   postSWI, TRUE);
 			/* Tell the DSP we have written the output. */
 			IO_InterruptDSP(pIOMgr->hWmdContext);
 		}
@@ -1601,9 +1615,9 @@ static VOID OutputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR* hMsgMgr)
  *  purpose:
  *      Registers GPP SM segment with CMM.
  */
-static DSP_STATUS registerSHMSegs(struct IO_MGR* hIOMgr,
-									struct COD_MANAGER* hCodMan,
-															DWORD dwGPPBasePA)
+static DSP_STATUS registerSHMSegs(struct IO_MGR *hIOMgr,
+				 struct COD_MANAGER *hCodMan,
+				 DWORD dwGPPBasePA)
 {
 	DSP_STATUS status = DSP_SOK;
 	ULONG ulShm0_Base = 0;
@@ -1622,67 +1636,77 @@ static DSP_STATUS registerSHMSegs(struct IO_MGR* hIOMgr,
 	/* Get end of 1st SM Heap region */
 	if (DSP_SUCCEEDED(status)) {
 		/* Get start and length of message part of shared memory */
-		status = COD_GetSymValue(hCodMan, SHM0_SHARED_END_SYM, &ulShm0_End);
+		status = COD_GetSymValue(hCodMan, SHM0_SHARED_END_SYM,
+					 &ulShm0_End);
 		DBC_Assert(ulShm0_End != 0);
 	}
 	/* start of Gpp reserved region */
 	if (DSP_SUCCEEDED(status)) {
 		/* Get start and length of message part of shared memory */
 		status = COD_GetSymValue(hCodMan, SHM0_SHARED_RESERVED_BASE_SYM,
-															&ulShm0_RsrvdStart);
-		DBG_Trace(DBG_LEVEL1,"***ulShm0_RsrvdStart  0x%x \n",ulShm0_RsrvdStart);
+					&ulShm0_RsrvdStart);
+		DBG_Trace(DBG_LEVEL1, "***ulShm0_RsrvdStart  0x%x \n",
+			 ulShm0_RsrvdStart);
 		DBC_Assert(ulShm0_RsrvdStart != 0);
 	}
 	/* Register with CMM */
 	if (DSP_SUCCEEDED(status)) {
 		status = DEV_GetCmmMgr(hIOMgr->hDevObject, &hIOMgr->hCmmMgr);
 		if (DSP_SUCCEEDED(status)) {
-			status = CMM_UnRegisterGPPSMSeg(hIOMgr->hCmmMgr,CMM_ALLSEGMENTS);
+			status = CMM_UnRegisterGPPSMSeg(hIOMgr->hCmmMgr,
+				 CMM_ALLSEGMENTS);
 			if (DSP_FAILED(status)) {
-				DBG_Trace(DBG_LEVEL7,"ERROR - Unable to Un-Register "
-															"SM segments \n");
+				DBG_Trace(DBG_LEVEL7, "ERROR - Unable to "
+					 "Un-Register SM segments \n");
 			}
 		} else {
-			DBG_Trace(DBG_LEVEL7, "ERROR - Unable to get CMM Handle \n");
+			DBG_Trace(DBG_LEVEL7, "ERROR - Unable to get CMM "
+				 "Handle \n");
 		}
 	}
 	/* Register new SM region(s) */
 	if (DSP_SUCCEEDED(status) && (ulShm0_End - ulShm0_Base) > 0) {
 		/* calc size (bytes) of SM the GPP can alloc from */
-		ulRsrvdSize = (ulShm0_End - ulShm0_RsrvdStart + 1) * hIOMgr->uWordSize;
+		ulRsrvdSize = (ulShm0_End - ulShm0_RsrvdStart + 1) * hIOMgr->
+			      uWordSize;
 		DBC_Assert(ulRsrvdSize > 0);
 		/* calc size of SM DSP can alloc from */
-		ulDSPSize = (ulShm0_RsrvdStart - ulShm0_Base) * hIOMgr->uWordSize;
+		ulDSPSize = (ulShm0_RsrvdStart - ulShm0_Base) * hIOMgr->
+			uWordSize;
 		DBC_Assert(ulDSPSize > 0);
 		 /*  First TLB entry reserved for Bridge SM use.*/
 		ulGppPhys = hIOMgr->extProcInfo.tyTlb[0].ulGppPhys;
 		/* get size in bytes */
-		ulDspVirt = hIOMgr->extProcInfo.tyTlb[0].ulDspVirt * hIOMgr->uWordSize;
-		 /* Calc byte offset used to convert GPP phys <-> DSP byte address.*/
-		if (dwGPPBasePA > ulDspVirt) {
+		ulDspVirt = hIOMgr->extProcInfo.tyTlb[0].ulDspVirt * hIOMgr->
+			uWordSize;
+		 /* Calc byte offset used to convert GPP phys <-> DSP byte
+		  * address.*/
+		if (dwGPPBasePA > ulDspVirt)
 			dwOffset = dwGPPBasePA - ulDspVirt;
-		} else {
+		else
 			dwOffset = ulDspVirt - dwGPPBasePA;
-		}
+
 		DBC_Assert(ulShm0_RsrvdStart * hIOMgr->uWordSize >= ulDspVirt);
 		/* calc Gpp phys base of SM region */
 		/* Linux - this is actually uncached kernel virtual address*/
 		dwGPPBaseVA = ulGppPhys + ulShm0_RsrvdStart * hIOMgr->uWordSize
-																	- ulDspVirt;
+				- ulDspVirt;
 		/* calc Gpp phys base of SM region */
 		/* Linux - this is the physical address*/
-		dwGPPBasePA = dwGPPBasePA + ulShm0_RsrvdStart * hIOMgr->uWordSize -
-																	ulDspVirt;
+		dwGPPBasePA = dwGPPBasePA + ulShm0_RsrvdStart * hIOMgr->
+			      uWordSize - ulDspVirt;
 		 /* Register SM Segment 0.*/
-		status = CMM_RegisterGPPSMSeg(hIOMgr->hCmmMgr, dwGPPBasePA, ulRsrvdSize,
-									dwOffset, (dwGPPBasePA > ulDspVirt) ?
-									CMM_ADDTODSPPA : CMM_SUBFROMDSPPA,
-									(DWORD)(ulShm0_Base * hIOMgr->uWordSize),
-									ulDSPSize, &ulShmSegId0, dwGPPBaseVA);
+		status = CMM_RegisterGPPSMSeg(hIOMgr->hCmmMgr, dwGPPBasePA,
+			 ulRsrvdSize, dwOffset, (dwGPPBasePA > ulDspVirt) ?
+			 CMM_ADDTODSPPA : CMM_SUBFROMDSPPA,
+			 (DWORD)(ulShm0_Base * hIOMgr->uWordSize),
+			 ulDSPSize, &ulShmSegId0, dwGPPBaseVA);
 		if (DSP_FAILED(status)) {
-			DBG_Trace(DBG_LEVEL7, "ERROR - Failed to register SM Seg 0 \n");
+			DBG_Trace(DBG_LEVEL7, "ERROR - Failed to register SM "
+				 "Seg 0 \n");
 		}
-		DBC_Assert(ulShmSegId0 == 1);	/* first SM region is segId = 1 */
+		/* first SM region is segId = 1 */
+		DBC_Assert(ulShmSegId0 == 1);
 	}
 	return status;
 }
@@ -1692,8 +1716,8 @@ static DSP_STATUS registerSHMSegs(struct IO_MGR* hIOMgr,
  *  purpose:
  *      Copies buffers from the shared memory to the host buffer.
  */
-static ULONG ReadData(struct WMD_DEV_CONTEXT* hDevContext, PVOID pDest,
-														PVOID pSrc, ULONG uSize)
+static ULONG ReadData(struct WMD_DEV_CONTEXT *hDevContext, PVOID pDest,
+		     PVOID pSrc, ULONG uSize)
 {
 	memcpy(pDest, pSrc, uSize);
 	return (uSize);
@@ -1704,389 +1728,16 @@ static ULONG ReadData(struct WMD_DEV_CONTEXT* hDevContext, PVOID pDest,
  *  purpose:
  *      Copies buffers from the host side buffer to the shared memory.
  */
-static ULONG WriteData(struct WMD_DEV_CONTEXT* hDevContext, PVOID pDest,
-														PVOID pSrc, ULONG uSize)
+static ULONG WriteData(struct WMD_DEV_CONTEXT *hDevContext, PVOID pDest,
+		       PVOID pSrc, ULONG uSize)
 {
 	memcpy(pDest, pSrc, uSize);
 	return (uSize);
 }
 
 /*****************************************************************************
- *
- * DSP DMA IO routines.
- *
- *****************************************************************************/
-
-#ifdef CHNL_DDMA
-
-/*
- *  ======== IO_DDMAInitChnlDesc ========
- *  purpose:
- *      Initializes the DMA channel descriptors.
- */
-VOID IO_DDMAInitChnlDesc(struct IO_MGR* hIOMgr, UINT uDDMAChnlId, UINT uNumDesc,
-																PVOID pDspAddr)
-{
-	struct SHM *sm;
-	struct IO_MGR *pIOMgr = (struct IO_MGR *)hIOMgr;
-	struct DDMA_CHNLDESC *pChnlDesc;
-
-	/* Check DBC requirements */
-	DBC_Require(MEM_IsValidHandle(pIOMgr, IO_MGRSIGNATURE));
-	DBC_Require(uDDMAChnlId < DDMA_MAXDDMACHNLS);
-	DBC_Require(uNumDesc > 0);
-	DBC_Require(pDspAddr != NULL);
-	sm = pIOMgr->pSharedMem;
-	pChnlDesc = (struct DDMA_CHNLDESC *)&sm->chnldesc[uDDMAChnlId];
-	pChnlDesc->numBufDesc = uNumDesc;
-	WriteExt32BitDspData(hIOMgr->hWmdContext, (DWORD)&(pChnlDesc->descPaDsp),
-															(DWORD)pDspAddr);
-}
-
-/*
- *  ======== IO_DDMAClearChnlDesc ========
- *  purpose:
- *      Clears DMA channel descriptors.
- */
-void IO_DDMAClearChnlDesc(struct IO_MGR* hIOMgr, UINT uDDMAChnlId)
-{
-	struct SHM *sm;
-	struct IO_MGR *pIOMgr = (struct IO_MGR *)hIOMgr;
-	struct DDMA_CHNLDESC *pChnlDesc;
-
-	/* Check DBC requirements */
-	DBC_Require(MEM_IsValidHandle(pIOMgr, IO_MGRSIGNATURE));
-	DBC_Require(uDDMAChnlId < DDMA_MAXDDMACHNLS);
-	sm = pIOMgr->pSharedMem;
-	pChnlDesc = (struct DDMA_CHNLDESC *)&sm->chnldesc[uDDMAChnlId];
-	/* zero these settings */
-	pChnlDesc->numBufDesc = 0x0;
-	pChnlDesc->descPaDsp = 0x0;
-}
-
-/*
- *  ======== IO_DDMARequestChnl ========
- *  purpose:
- *      Sends I/O requests on a DMA channel.
- */
-VOID IO_DDMARequestChnl(struct IO_MGR* hIOMgr, struct CHNL_OBJECT *pChnl,
-									struct CHNL_IRP *pChirp, OUT WORD *pwMbVal)
-{
-	struct SHM *sm;
-	struct IO_MGR *pIOMgr = (struct IO_MGR *)hIOMgr;
-	struct DDMA_CHNLDESC *pChnlDesc;	/* Ptr to channel descriptor */
-	/* Ptr to specific buffer descriptor in array */
-	struct DDMA_BUFDESC *pBufDesc;
-	INT iPutNdx;
-	DBC_Require(MEM_IsValidHandle(hIOMgr, IO_MGRSIGNATURE));
-	DBC_Require(pChnl != NULL);
-	DBC_Require(pChnl->cIOReqs > 0);	/* must have queued CHirp on chnl */
-	DBC_Require(pChnl->uChnlType == CHNL_DDMA);	/* must be opened as dsp-dma */
-	DBC_Require(pChirp != NULL);
-	DBC_Require(pwMbVal != NULL);
-	DBG_Trace(DBG_ENTER, "Entering IO_DDMARequestChnl\n");
-	sm = pIOMgr->pSharedMem;
-	pChnlDesc = (struct DDMA_CHNLDESC *)&sm->chnldesc[pChnl->uDDMAId];
-	/* numOfDesc better be the same as when chnl was opened */
-	DBC_Assert(pChnlDesc->numBufDesc == pChnl->cChirps);	/* SM corrupt? */
-	iPutNdx = IO_DDMAGetPutNdx(pChnl);	/* ndx into SM buf descriptrs */
-	pBufDesc = (struct DDMA_BUFDESC *)((BYTE *)pChnl->dwDescVa +
-									(sizeof(struct DDMA_BUFDESC) * iPutNdx));
-	IO_DDMANextPutNdx(pChnl);	/* next buf descriptor ndx */
-	/* Make sure no pending work requests on this buf desc */
-	/* should never happen */
-	DBC_Assert(ReadExt32BitDspData(pIOMgr->hWmdContext, (DWORD) &
-										(pBufDesc->workReq)) != DDMA_WORKREQ);
-	WriteExt32BitDspData(pIOMgr->hWmdContext, (DWORD)&(pBufDesc->bufPaDsp),
-															pChirp->uDspAddr);
-	WriteExt32BitDspData(pIOMgr->hWmdContext, (DWORD)&(pBufDesc->xferSize),
-																pChirp->cBytes);
-	WriteExt32BitDspData(pIOMgr->hWmdContext, (DWORD)&(pBufDesc->bufArg),
-																pChirp->dwArg);
-	/* set buffer descriptor work-bit last */
-	WriteExt32BitDspData(pIOMgr->hWmdContext, (DWORD)&(pBufDesc->workReq),
-														(DWORD)DDMA_WORKREQ);
-	DBC_Assert(pChnl->cDDMAReqCnt >= 0);
-	pChnl->cDDMAReqCnt++;	/* request a Gpp->Dsp INTR */
-	IO_DDMADispatchChnl(pIOMgr, pChnl, pwMbVal);	/* Dispatch i/o request */
-}
-
-/*
- *  ======== IO_DDMADispatchChnl ========
- *  Purpose:
- *      Dispatch DSP-DMA channels for possible transfers.
- */
-VOID IO_DDMADispatchChnl(IN struct IO_MGR *pIOMgr, IN struct CHNL_OBJECT *pChnl,
-															OUT WORD *pwMbVal)
-{
-	struct SHM *sm;
-	struct DDMA_CHNLDESC *pChnlDesc;	/* chnl descriptor */
-	struct DDMA_BUFDESC *pBufDesc;	/* buffer descriptor */
-	struct CHNL_IRP *pChirp;	/* chnl i/o request */
-	WORD wDmaId = NOTENABLED;	/* DSP-DMA channel Id */
-	INT iBufNdx = -1;
-	BOOL bDspAck = FALSE;	/* DDMA INCT ACK from DSP */
-
-	DBC_Require(MEM_IsValidHandle(pIOMgr, IO_MGRSIGNATURE));
-	sm = pIOMgr->pSharedMem;
-	/*(VOID)SYNC_EnterCS(pIOMgr->hChnlMgr->hCSObj); */
-	if (pChnl != NULL) {
-		/* called from IO_DDMARequestChnl() */
-		wDmaId = (SHORT)pChnl->uDDMAId;
-		DBC_Assert(wDmaId < DDMA_MAXDDMACHNLS);
-	} else {
-		/* called from IO_ISR() */
-		wDmaId = ((pIOMgr->wIntrVal & MBX_DDMA_CHNLMSK) >> MBX_DDMA_CHNLSHIFT);
-		DBC_Assert(wDmaId < DDMA_MAXDDMACHNLS);
-		iBufNdx = ((pIOMgr->wIntrVal & MBX_DDMA_BUFMSK) >> MBX_DDMA_BUFSHIFT);
-		bDspAck = TRUE;
-		pChnl = pIOMgr->hChnlMgr->apChannel[wDmaId + CHNL_MAXCHANNELS];
-	}
-	if (!pChnl) {
-		 /* What does it mean if pChnl was NULL? Can we really assert that we'll
-		 * never get here?  Or does it mean we maybe got a random interrupt
-		 * with data for a channel we haven't opened?  */
-		DBC_Assert(FALSE);
-		goto func_end;
-	}
-	/* check for i/o request on active chnl */
-	if ((pChnl->cDDMAReqCnt > 0) && (!(pChnl->dwState & CHNL_STATECANCEL))){
-		 /* Signal DSP to do DSP-DMA work on this chnl id.
-		 * Note: Previous OMAP mailbox interrupt is cleared by DSP
-		 *    before another INTR is generated by GPP.
-		 *    See IO_InterruptDSP() for INTR generation info.  */
-		if (pwMbVal == NULL) {
-			IO_InterruptDSP2(pIOMgr->hWmdContext,
-								(USHORT)MBX_SETDDMAVAL(0, (USHORT)wDmaId));
-		} else {
-			*pwMbVal = (USHORT)MBX_SETDDMAVAL(0, (USHORT)wDmaId);
-		}
-		pChnl->cDDMAReqCnt--;	/* decr i/o request count */
-		DBC_Assert(pChnl->cDDMAReqCnt >= 0);
-	}
-	 /* Process DSP-DMA I/O completions if DSP has ACK'd*/
-	if ((bDspAck) && (!(pChnl->dwState & CHNL_STATECANCEL))) {
-		pChnlDesc = (struct DDMA_CHNLDESC *)&sm->chnldesc[wDmaId];
-		/* Sanity test. SM corrupt? */
-		DBC_Assert(pChnlDesc->numBufDesc == pChnl->cChirps);
-		/* For a given DMA chnl i/o request complete in submission order. */
-		DBC_Assert((UINT)iBufNdx == IO_DDMAGetWaitNdx(pChnl));
-		/* valid buf ndx? */
-		DBC_Assert((iBufNdx < pChnl->cChirps) && (iBufNdx >= 0));
-		/* calc buf desc address */
-		pBufDesc = (struct DDMA_BUFDESC *)((BYTE *)pChnl->dwDescVa +
-									(sizeof(struct DDMA_BUFDESC) * iBufNdx));
-		/* Buf desc must be completed since the DSP told us so */
-		DBC_Assert(ReadExt32BitDspData(pIOMgr->hWmdContext,
-							(DWORD)&(pBufDesc->workReq))==DDMA_DSPDESCDONE);
-		/* deQ IOR, set status & move Chnl irp to IOC */
-		pChirp = (struct CHNL_IRP *)LST_GetHead(pChnl->pIORequests);
-		if (pChirp) {
-			pChnl->cIOReqs--;
-			DBC_Assert(pChnl->cIOReqs >= 0);
-			/* can never transfer more than requested */
-			DBC_Assert(ReadExt32BitDspData(pIOMgr->hWmdContext,
-						(DWORD)&(pBufDesc->xferSize)) <=pChirp->cBytes);
-			 /* Check for DMA cancel or DMA device timeout(bus error).  */
-			if ((ReadExt32BitDspData (pIOMgr->hWmdContext,
-							(DWORD)&(pBufDesc-> status)) & DDMA_SCANCELED)
-								|| (ReadExt32BitDspData(pIOMgr->hWmdContext,
-						(DWORD)&(pBufDesc-> status)) & DDMA_ERRTIMEOUT)) {
-				pChirp->cBytes = 0;
-				pChirp->status |= CHNL_IOCSTATCANCEL;
-				 /* Assert no DMA bus error.
-				 * This would indicate a bad DMA src or dest address.  */
-				DBC_Assert(!(ReadExt32BitDspData(pIOMgr->hWmdContext,
-							(DWORD)&(pBufDesc->status)) & DDMA_ERRTIMEOUT));
-			} else {
-				/* # of bytes transfered */
-				pChirp->cBytes = ReadExt32BitDspData(pIOMgr->hWmdContext,
-											(DWORD)&(pBufDesc->xferSize));
-				pChirp->status = CHNL_IOCSTATCOMPLETE;
-				pChnl->cBytesMoved += pChirp->cBytes;
-			}
-			if (CHNL_IsInput(pChnl->uMode)) {
-				/* return optional arg */
-				pChirp->dwArg = pBufDesc->bufArg;
-			}
-			/* bump buf descriptor wait ndx */
-			IO_DDMANextWaitNdx(pChnl);
-			/* Notify client with IO completion record:  */
-			NotifyChnlComplete(pChnl, pChirp);
-		}	/* if pChirp */
-	}		/* if bDspAck */
-func_end:
-	/*(VOID)SYNC_LeaveCS(pIOMgr->hChnlMgr->hCSObj); */
-}
-
-#endif
-
-/*****************************************************************************
- *
  * ZCPY IO routines.
- *
  *****************************************************************************/
-
-#ifdef CHNL_DDZC
-
-/*
- *  ======== IO_DDZCClearChnlDesc ========
- * Reset the zcpy chnldesc's outbuf pointer to NULL,
- * meaning there is no longer a buffer ready for the DSP.
- *
- * Note that, just like in the DSP-side DDZC_idleChan, there's
- * a race condition here.  The DSP side may have *just* checked
- * the outBuf value, determined it was non-NULL, and begun
- * acting on it.  We then zero it out here and the DSP/GPP
- * are out of sync.
- */
-VOID IO_DDZCClearChnlDesc(struct IO_MGR* hIOMgr, UINT uChnlId)
-{
-	struct SHM *sm;
-	struct IO_MGR *pIOMgr = (struct IO_MGR *)hIOMgr;
-	struct DDMA_ZCPYCHNLDESC *pChnlDesc;
-	/* Check DBC requirements */
-	DBC_Require(MEM_IsValidHandle(pIOMgr, IO_MGRSIGNATURE));
-	DBC_Require(uChnlId < DDMA_MAXZCPYCHNLS);
-	sm = pIOMgr->pSharedMem;
-	pChnlDesc = (struct DDMA_ZCPYCHNLDESC *)&sm->zchnldesc[uChnlId];
-	/* zero the outbuf settings */
-	pChnlDesc->outBuf = 0;
-}
-
-/*
- *  ======== IO_DDZCRequestChnl ========
- *  purpose:
- *      Requests I/O on a zero-copy channel.
- */
-VOID IO_DDZCRequestChnl(struct IO_MGR* hIOMgr, struct CHNL_OBJECT *pChnl,
-									struct CHNL_IRP *pChirp, OUT WORD *pwMbVal)
-{
-	DBC_Require(MEM_IsValidHandle(hIOMgr, IO_MGRSIGNATURE));
-	DBC_Require(pChnl != NULL);
-	DBC_Require(pChnl->cIOReqs > 0);	/* must have queued CHirp on chnl */
-	DBC_Require(pChnl->uChnlType == CHNL_ZCPY);	/* must be opened as zcpy */
-	DBC_Require(pChirp != NULL);
-	DBC_Require(pwMbVal != NULL);
-	/* Dispatch zero-copy i/o request */
-	IO_DDZCDispatchChnl(hIOMgr, pChnl, pwMbVal);
-}
-
-/*
- *  ======== IO_DDZCDispatchChnl ========
- *  Purpose:
- *      Dispatch zero-copy channels.
- */
-VOID IO_DDZCDispatchChnl(IN struct IO_MGR *pIOMgr, IN struct CHNL_OBJECT *pChnl,
-															OUT WORD *pwMbVal)
-{
-	struct DDMA_ZCPYCHNLDESC *pChnlDesc;	/* chnl descriptor */
-	struct SHM *sm;
-	struct CHNL_IRP *pChirp;	/* chnl i/o request */
-	/*  BOOL                bDspAck = FALSE;  */  /* DDMA INTR ACK from DSP */
-	WORD wZId = NOTENABLED;	/* ZCPY channel Id */
-	BOOL genintr = FALSE;	/* send INTR to DSP if TRUE */
-	DBC_Require(MEM_IsValidHandle(pIOMgr, IO_MGRSIGNATURE));
-	sm = pIOMgr->pSharedMem;
-	/*(VOID)SYNC_EnterCS(pIOMgr->hChnlMgr->hCSObj); */
-	if (pChnl != NULL) {	/* called from IO_DDZCRequestChnl() */
-		wZId = (SHORT) pChnl->uZId;
-		DBC_Assert(wZId < DDMA_MAXZCPYCHNLS);
-	} else {
-		/* called from IO_ISR() */
-		wZId = ((pIOMgr->wIntrVal & MBX_ZCPY_CHNLMSK) >> MBX_ZCPY_CHNLSHIFT);
-		DBC_Assert(wZId < DDMA_MAXZCPYCHNLS);
-		 /* get pChnl for this transport.
-		 * Note: pChnl could be NULL if channel is closed.  */
-		pChnl = pIOMgr->hChnlMgr->apChannel[wZId +(CHNL_MAXCHANNELS*CHNL_ZCPY)];
-	}
-	if (pChnl) {
-		if (!(pChnl->dwState & CHNL_STATECANCEL) &&
-										(!LST_IsEmpty(pChnl->pIORequests))) {
-			pChnlDesc = &sm->zchnldesc[wZId];	/* get SM chnl descriptor */
-			pChirp = (struct CHNL_IRP *)LST_First(pChnl->pIORequests);
-			/* This assertion ensures that app does not issue same buffer twice
-			 * in succession.  However, it also fires when
-			   1. host tries to queue more than one buffer before DSP has
-			   requested any
-			   2. host queues one buffer (before DSP requested any) and then
-			   DSP requests it
-			   This assertion is disabled since above cases are legal. However,
-			   queuing ZCPY
-			   buffers is not supported because there is no event to perform
-			   remaining transfers
-			   DBC_Assert (pChnl->dwLoadAddr != pChirp->uDspAddr);*/
-			 /* Load outbuf if not loaded yet ?  */
-			if ((!(ReadExt32BitDspData(pIOMgr->hWmdContext,
-								(DWORD)&(pChnlDesc->outBuf)))) &&
-							(pChnl->dwLoadAddr != pChirp->uDspAddr)) {
-				 /* Load SM descriptor with chirp info. Don't dequeue IOR.*/
-				DBC_Assert(pIOMgr->uWordSize);
-				pChnl->dwLoadAddr = pChirp->uDspAddr;
-				WriteExt32BitDspData(pIOMgr->hWmdContext,
-									(DWORD)&(pChnlDesc->outDataSize),
-								(DWORD)(pChirp->cBytes / pIOMgr->uWordSize));
-				WriteExt32BitDspData(pIOMgr->hWmdContext,
-									(DWORD)&(pChnlDesc->outBufSize),
-								(DWORD)(pChirp->cBufSize / pIOMgr->uWordSize));
-				WriteExt32BitDspData(pIOMgr->hWmdContext,
-										(DWORD)&(pChnlDesc->outUserArg),
-												(DWORD)(pChirp->dwArg));
-				WriteExt32BitDspData(pIOMgr->hWmdContext,
-											(DWORD)&(pChnlDesc->outBuf),
-													(DWORD)(pChirp->uDspAddr));
-				genintr = TRUE;	/* gen intr to DSP below */
-			}
-			if (pChnlDesc->inBuf) {
-				/* Check if SM descriptor from DSP */
-				pChirp = (struct CHNL_IRP *)LST_GetHead(pChnl->pIORequests);
-				DBC_Assert(pChirp);
-				pChnl->cIOReqs--;
-				DBC_Assert(pChnl->cIOReqs >= 0);
-				 /* Set chirp's DSP byte address.  */
-				pChirp->uDspAddr = ReadExt32BitDspData(pIOMgr->hWmdContext,
-								(DWORD)&(pChnlDesc->inBuf)) * pIOMgr->uWordSize;
-				 /* need to convert mau sizes to bytes.*/
-				pChirp->cBytes = ReadExt32BitDspData(pIOMgr->hWmdContext,
-							(DWORD)&(pChnlDesc->inDataSize)) *pIOMgr->uWordSize;
-				pChirp->cBufSize = ReadExt32BitDspData(pIOMgr->hWmdContext,
-							(DWORD)&(pChnlDesc->inBufSize)) * pIOMgr->uWordSize;
-				 /* Note: the optional userArg is always swapped between
-				  * procs.*/
-				pChirp->dwArg = ReadExt32BitDspData(pIOMgr->hWmdContext,
-												(DWORD)&(pChnlDesc->inUserArg));
-				pChnlDesc->inBuf = 0;	/* clear to allow next DSP desc load */
-				pChirp->status = CHNL_IOCSTATCOMPLETE;
-				pChnl->cBytesMoved += pChirp->cBytes;
-				/* FIXME: ZCPY becomes very slow on uncommenting the condition
-				 * below It is slow even if we replace pwMbVal with some tmp
-				 * (init. to NULL)*/
-				/*if (pwMbVal == NULL) {*/
-				IO_InterruptDSP2(pIOMgr->hWmdContext,
-												(USHORT)MBX_SETZCPYVAL(wZId));
-				/*}
-				   else {
-				   *pwMbVal = (USHORT)MBX_SETZCPYVAL(wZId);
-				   } */
-				genintr = FALSE;	/* already generated intr */
-				NotifyChnlComplete(pChnl, pChirp);
-			}
-		}
-		if (genintr) {
-			if (pwMbVal == NULL) {
-				IO_InterruptDSP2(pIOMgr->hWmdContext,
-												(USHORT)MBX_SETZCPYVAL(wZId));
-			} else {
-				*pwMbVal = (USHORT) MBX_SETZCPYVAL(wZId);
-			}
-		}
-	}
-	/* end if pChnl */
-	/*(VOID)SYNC_LeaveCS(pIOMgr->hChnlMgr->hCSObj); */
-}
-
-#endif
-
 VOID IO_IntrDSP2(IN struct IO_MGR *pIOMgr, IN WORD wMbVal)
 {
 	IO_InterruptDSP2(pIOMgr->hWmdContext, wMbVal);
@@ -2098,49 +1749,58 @@ VOID IO_IntrDSP2(IN struct IO_MGR *pIOMgr, IN WORD wMbVal)
  *      Sets the requested SHM setting.
  */
 DSP_STATUS IO_SHMsetting(IN struct IO_MGR *hIOMgr, IN SHM_DESCTYPE desc,
-															IN VOID *pArgs)
+			 IN VOID *pArgs)
 {
 	UWORD32 i;
 
 #ifndef DISABLE_BRIDGE_PM
 #ifndef DISABLE_BRIDGE_DVFS
-	switch(desc) {
+	switch (desc) {
 	case SHM_CURROPP:
 		/* Update the shared memory with requested OPP information */
 		if (pArgs != NULL)
-			hIOMgr->pSharedMem->oppTableStruct.currOppPt = *(Uns *)pArgs;
+			hIOMgr->pSharedMem->oppTableStruct.currOppPt =
+				*(Uns *)pArgs;
 		else
 			return DSP_EFAIL;
 		break;
 	case SHM_OPPINFO:
 		/* Update the shared memory with the voltage, frequency,
-		                   min and max frequency values for an OPP */
-		for (i=0; i<=dsp_max_opps; i++)
-		{
-			hIOMgr->pSharedMem->oppTableStruct.oppPoint[i].voltage=
-												vdd1_dsp_freq[i][0];
-			DBG_Trace(DBG_LEVEL5, "OPP shared memory -voltage: %d\n",
-				hIOMgr->pSharedMem->oppTableStruct.oppPoint[i].voltage);
-			hIOMgr->pSharedMem->oppTableStruct.oppPoint[i].frequency =
-												vdd1_dsp_freq[i][1];
-			DBG_Trace(DBG_LEVEL5, "OPP shared memory -frequency: %d\n",
-				hIOMgr->pSharedMem->oppTableStruct.oppPoint[i].frequency);
+				   min and max frequency values for an OPP */
+		for (i = 0; i <= dsp_max_opps; i++) {
+			hIOMgr->pSharedMem->oppTableStruct.oppPoint[i].voltage =
+				vdd1_dsp_freq[i][0];
+			DBG_Trace(DBG_LEVEL5, "OPP shared memory -voltage: "
+				 "%d\n", hIOMgr->pSharedMem->oppTableStruct.
+				 oppPoint[i].voltage);
+			hIOMgr->pSharedMem->oppTableStruct.oppPoint[i].
+				frequency = vdd1_dsp_freq[i][1];
+			DBG_Trace(DBG_LEVEL5, "OPP shared memory -frequency: "
+				 "%d\n", hIOMgr->pSharedMem->oppTableStruct.
+				 oppPoint[i].frequency);
 			hIOMgr->pSharedMem->oppTableStruct.oppPoint[i].minFreq =
-												vdd1_dsp_freq[i][2];
-			DBG_Trace(DBG_LEVEL5, "OPP shared memory -min value: %d\n",
-				  hIOMgr->pSharedMem->oppTableStruct.oppPoint[i].minFreq);
+				vdd1_dsp_freq[i][2];
+			DBG_Trace(DBG_LEVEL5, "OPP shared memory -min value: "
+				 "%d\n", hIOMgr->pSharedMem->oppTableStruct.
+				  oppPoint[i].minFreq);
 			hIOMgr->pSharedMem->oppTableStruct.oppPoint[i].maxFreq =
-											       vdd1_dsp_freq[i][3];
-			DBG_Trace(DBG_LEVEL5, "OPP shared memory -max value: %d\n",
-				hIOMgr->pSharedMem->oppTableStruct.oppPoint[i].maxFreq);
+				vdd1_dsp_freq[i][3];
+			DBG_Trace(DBG_LEVEL5, "OPP shared memory -max value: "
+				 "%d\n", hIOMgr->pSharedMem->oppTableStruct.
+				 oppPoint[i].maxFreq);
 		}
 		hIOMgr->pSharedMem->oppTableStruct.numOppPts = dsp_max_opps;
-		DBG_Trace(DBG_LEVEL5, "OPP shared memory - max OPP number: %d\n",
-						hIOMgr->pSharedMem->oppTableStruct.numOppPts );
+		DBG_Trace(DBG_LEVEL5, "OPP shared memory - max OPP number: "
+			 "%d\n", hIOMgr->pSharedMem->oppTableStruct.numOppPts);
 		/* Update the current OPP number */
-		i=  constraint_get_level(dsp_constraint_handle);
+		i = constraint_get_level(dsp_constraint_handle);
 		hIOMgr->pSharedMem->oppTableStruct.currOppPt = i;
-		DBG_Trace(DBG_LEVEL7, "OPP value programmed to shared memory: %d\n",i);
+		DBG_Trace(DBG_LEVEL7, "OPP value programmed to shared memory: "
+			 "%d\n", i);
+		break;
+	case SHM_GETOPP:
+		/* Get the OPP that DSP has requested */
+		*(u32 *)pArgs = hIOMgr->pSharedMem->oppRequest.rqstOppPt;
 		break;
 	default:
 		break;
@@ -2157,82 +1817,71 @@ DSP_STATUS IO_SHMsetting(IN struct IO_MGR *hIOMgr, IN SHM_DESCTYPE desc,
  *      Gets the Processor's Load information
  */
 DSP_STATUS WMD_IO_GetProcLoad(IN struct IO_MGR *hIOMgr,
-									  OUT struct DSP_PROCLOADSTAT * pProcStat)
-
+			     OUT struct DSP_PROCLOADSTAT *pProcStat)
 {
 	pProcStat->uCurrLoad = hIOMgr->pSharedMem->loadMonInfo.currDspLoad;
 	pProcStat->uPredictedLoad = hIOMgr->pSharedMem->loadMonInfo.predDspLoad;
 	pProcStat->uCurrDspFreq = hIOMgr->pSharedMem->loadMonInfo.currDspFreq;
 	pProcStat->uPredictedFreq = hIOMgr->pSharedMem->loadMonInfo.predDspFreq;
 
-	DBG_Trace(DBG_LEVEL4, "Curr Load =%d, Pred Load = %d, Curr Freq = %d,"
-		             "Pred Freq = %d\n", pProcStat->uCurrLoad,
-		             pProcStat->uPredictedLoad, pProcStat->uCurrDspFreq,
-		             pProcStat->uPredictedFreq);
+	DBG_Trace(DBG_LEVEL4, "Curr Load =%d, Pred Load = %d, Curr Freq = %d, "
+			     "Pred Freq = %d\n", pProcStat->uCurrLoad,
+			     pProcStat->uPredictedLoad, pProcStat->uCurrDspFreq,
+			     pProcStat->uPredictedFreq);
 
 }
-#ifndef LINUX
-VOID SHMDump(struct IO_MGR *pIOMgr)
-{
-	struct SHM *sm;
-
-	sm = pIOMgr->pSharedMem;
-
-	printk(">SHMDump\n");
-	printk("dspFreeMask 0x%x \n", sm->dspFreeMask);
-	printk("hostFreeMask 0x%x \n", sm->hostFreeMask);
-	printk("inputFull 0x%x \n", sm->inputFull);
-	printk("inputId 0x%x \n", sm->inputId);
-	printk("inputSize 0x%x \n", sm->inputSize);
-	printk("outputFull 0x%x \n", sm->outputFull);
-	printk("outputId 0x%x \n", sm->outputId);
-	printk("outputSize 0x%x \n", sm->outputSize);
-	printk("<SHMDump\n");
-
-}
-#endif
 
 #ifndef DSP_TRACEBUF_DISABLED
 void PrintDSPDebugTrace(struct IO_MGR *hIOMgr)
 {
 	ULONG ulNewMessageLength = 0, ulGPPCurPointer;
 
-	while(TRUE)
-	{
+	while (TRUE) {
 		/* Get the DSP current pointer */
 		ulGPPCurPointer = *(DWORD *) (hIOMgr->ulTraceBufferCurrent);
-		ulGPPCurPointer = hIOMgr->ulGppVa + (ulGPPCurPointer - hIOMgr->ulDspVa);
+		ulGPPCurPointer = hIOMgr->ulGppVa + (ulGPPCurPointer -
+				  hIOMgr->ulDspVa);
 
 		/* No new debug messages available yet */
-		if (ulGPPCurPointer == hIOMgr->ulGPPReadPointer) {
+		if (ulGPPCurPointer == hIOMgr->ulGPPReadPointer)
 			break;
-		}
+
 		/* Continuous data */
 		else if (ulGPPCurPointer > hIOMgr->ulGPPReadPointer) {
-			ulNewMessageLength = ulGPPCurPointer - hIOMgr->ulGPPReadPointer;
+			ulNewMessageLength = ulGPPCurPointer - hIOMgr->
+					     ulGPPReadPointer;
 
-			memcpy(hIOMgr->pMsg, hIOMgr->ulGPPReadPointer,ulNewMessageLength);
+			memcpy(hIOMgr->pMsg, hIOMgr->ulGPPReadPointer,
+			       ulNewMessageLength);
 			hIOMgr->pMsg[ulNewMessageLength] = '\0';
-			/* Advance the GPP trace pointer to DSP current pointer */
+			/* Advance the GPP trace pointer to DSP current
+			 * pointer */
 			hIOMgr->ulGPPReadPointer += ulNewMessageLength;
 			/* Print the trace messages */
-			printk(hIOMgr->pMsg);	/* DBG_Trace(DBG_LEVEL3, hIOMgr->pMsg);*/
+			/* DBG_Trace(DBG_LEVEL3, hIOMgr->pMsg); */
+			printk(hIOMgr->pMsg);
 		}
 		/* Handle trace buffer wraparound */
 		else if (ulGPPCurPointer < hIOMgr->ulGPPReadPointer) {
 			memcpy(hIOMgr->pMsg, hIOMgr->ulGPPReadPointer,
-						hIOMgr->ulTraceBufferEnd - hIOMgr->ulGPPReadPointer);
-			ulNewMessageLength = ulGPPCurPointer - hIOMgr->ulTraceBufferBegin;
+				hIOMgr->ulTraceBufferEnd -
+				hIOMgr->ulGPPReadPointer);
+			ulNewMessageLength = ulGPPCurPointer -
+				hIOMgr->ulTraceBufferBegin;
 			memcpy(&hIOMgr->pMsg[hIOMgr->ulTraceBufferEnd -
-						hIOMgr->ulGPPReadPointer], hIOMgr->ulTraceBufferBegin,
-															ulNewMessageLength);
-			hIOMgr->pMsg[hIOMgr->ulTraceBufferEnd - hIOMgr->ulGPPReadPointer +
-													ulNewMessageLength] = '\0';
-			/* Advance the GPP trace pointer to DSP current pointer */
+				hIOMgr->ulGPPReadPointer],
+				hIOMgr->ulTraceBufferBegin,
+				ulNewMessageLength);
+			hIOMgr->pMsg[hIOMgr->ulTraceBufferEnd -
+				hIOMgr->ulGPPReadPointer +
+				ulNewMessageLength] = '\0';
+			/* Advance the GPP trace pointer to DSP current
+			 * pointer */
 			hIOMgr->ulGPPReadPointer = hIOMgr->ulTraceBufferBegin +
-															ulNewMessageLength;
+						   ulNewMessageLength;
 			/* Print the trace messages */
-			printk(hIOMgr->pMsg);	/* DBG_Trace(DBG_LEVEL3, hIOMgr->pMsg);*/
+			/* DBG_Trace(DBG_LEVEL3, hIOMgr->pMsg); */
+			printk(hIOMgr->pMsg);
 		}
 	}
 }

@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/procpriv.h
+ * dspbridge/mpu_driver/inc/procpriv.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

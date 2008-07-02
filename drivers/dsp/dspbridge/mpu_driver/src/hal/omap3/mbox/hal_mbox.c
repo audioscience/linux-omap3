@@ -25,48 +25,24 @@
  *! 16 Feb 2003 sb: Initial version
  */
 
-/* ============================================================================
-* STANDARD INCLUDE FILES
-* =============================================================================
-*/
-
-/* ============================================================================
-* PROJECT SPECIFIC INCLUDE FILES
-* =============================================================================
-*/
+/*
+ * PROJECT SPECIFIC INCLUDE FILES
+ */
 #include <GlobalTypes.h>
 #include "MLBRegAcM.h"
 #include <hal_defs.h>
 #include <hal_mbox.h>
-/* ============================================================================
-* GLOBAL VARIABLES DECLARATIONS
-* =============================================================================
-*/
 
-/* ============================================================================
-* LOCAL TYPES AND DEFINITIONS
-* =============================================================================
-*/
+/*
+ * LOCAL TYPES AND DEFINITIONS
+ */
 
 /* width in bits of MBOX Id */
 #define HAL_MBOX_ID_WIDTH	   2
 
-/* ============================================================================
-* LOCAL VARIABLES DECLARATIONS
-* =============================================================================
-*/
-
-/* ============================================================================
-* LOCAL FUNCTIONS PROTOTYPES
-* =============================================================================
-*/
-
-/* ============================================================================
-* FUNCTIONS
-* =============================================================================
-*/
-
-
+/*
+ * FUNCTIONS
+ */
 struct MAILBOX_CONTEXT mboxsetting = {0, 0, 0};
 
 /*
@@ -86,7 +62,7 @@ HAL_STATUS HAL_MBOX_saveSettings(UWORD32    baseAddress)
 				 (baseAddress, HAL_MBOX_U1_DSP1);
 	return status;
 }
-/*==================== Function Separator =============================*/
+
 /*
  *  ======== HAL_MBOX_restoreSettings ========
  *  purpose:
@@ -104,7 +80,13 @@ HAL_STATUS HAL_MBOX_restoreSettings(UWORD32    baseAddress)
 	MLBMAILBOX_SYSCONFIGWriteRegister32(baseAddress, mboxsetting.sysconfig);
 	return status;
 }
-/*==================== Function Separator =============================*/
+
+/*
+ *  ======== HAL_MBOX_MsgRead ========
+ *  purpose:
+ *  	Reads a UWORD32 from the sub module message box Specified. if there
+ *  	are no messages in the mailbox then and error is returned.
+ */
 HAL_STATUS HAL_MBOX_MsgRead(
 		      const UWORD32    baseAddress,
 		      const HAL_MBOX_Id_t   mailBoxId,
@@ -130,14 +112,14 @@ HAL_STATUS HAL_MBOX_MsgRead(
     return status;
 }
 
-/*==================== Function Separator =============================*/
-
-HAL_STATUS HAL_MBOX_MsgWrite
-(
-		      const UWORD32   baseAddress,
-		      const HAL_MBOX_Id_t  mailBoxId,
-		      const UWORD32   writeValue
-		      )
+/*
+ *  ======== HAL_MBOX_MsgWrite ========
+ *  purpose:
+ *  	Writes a UWORD32 from the sub module message box Specified.
+ */
+HAL_STATUS HAL_MBOX_MsgWrite(const UWORD32 baseAddress,
+			     const HAL_MBOX_Id_t mailBoxId,
+			     const UWORD32   writeValue)
 {
     HAL_STATUS status = RET_OK;
 
@@ -154,10 +136,13 @@ HAL_STATUS HAL_MBOX_MsgWrite
 					    (UWORD32)writeValue);
 
     return status;
- }
+}
 
-/*==================== Function Separator =============================*/
-
+/*
+ *  ======== HAL_MBOX_IsFull ========
+ *  purpose:
+ *  	Reads the full status register for mailbox.
+ */
 HAL_STATUS HAL_MBOX_IsFull(
 		      const UWORD32    baseAddress,
 		      const HAL_MBOX_Id_t   mailBoxId,
@@ -185,10 +170,13 @@ HAL_STATUS HAL_MBOX_IsFull(
     *pIsFull = (fullStatus & 0xFF);
 
     return status;
- }
+}
 
-/*==================== Function Separator =============================*/
-
+/*
+ *  ======== HAL_MBOX_NumMsgGet ========
+ *  purpose:
+ *  	Gets number of messages in a specified mailbox.
+ */
 HAL_STATUS HAL_MBOX_NumMsgGet(
 		      const   UWORD32   baseAddress,
 		      const   HAL_MBOX_Id_t  mailBoxId,
@@ -213,10 +201,13 @@ HAL_STATUS HAL_MBOX_NumMsgGet(
 							  (UWORD32)mailBoxId);
 
     return status;
- }
+}
 
-/*==================== Function Separator =============================*/
-
+/*
+ *  ======== HAL_MBOX_EventEnable ========
+ *  purpose:
+ *  	Enables the specified IRQ.
+ */
 HAL_STATUS HAL_MBOX_EventEnable(
 		      const UWORD32	     baseAddress,
 		      const HAL_MBOX_Id_t       mailBoxId,
@@ -265,11 +256,13 @@ HAL_STATUS HAL_MBOX_EventEnable(
 	mboxsetting.irqEnable1 = MLBMAILBOX_IRQENABLE___0_3ReadRegister32
 				(baseAddress, HAL_MBOX_U1_DSP1);
     return status;
- }
+}
 
-
-/*==================== Function Separator =============================*/
-
+/*
+ *  ======== HAL_MBOX_EventDisable ========
+ *  purpose:
+ *  	Disables the specified IRQ.
+ */
 HAL_STATUS HAL_MBOX_EventDisable(
 		      const UWORD32	     baseAddress,
 		      const HAL_MBOX_Id_t       mailBoxId,
@@ -312,52 +305,13 @@ HAL_STATUS HAL_MBOX_EventDisable(
 					     (UWORD32)irqDisableReg);
 
     return status;
- }
+}
 
-
-/*==================== Function Separator =============================*/
-
-HAL_STATUS HAL_MBOX_EventStatus(
-		      const UWORD32	      baseAddress,
-		      const HAL_MBOX_Id_t	mailBoxId,
-		  const HAL_MBOX_UserId_t    userId,
-		  UWORD32 *const	     pEventStatus
-		     )
-{
-    HAL_STATUS status = RET_OK;
-    UWORD32      irqStatusReg;
-
-    /* Check input parameters */
-    CHECK_INPUT_PARAM(baseAddress,   0, RET_BAD_NULL_PARAM, RES_MBOX_BASE +
-		      RES_INVALID_INPUT_PARAM);
-    CHECK_INPUT_PARAM(pIrqStatus, NULL, RET_BAD_NULL_PARAM, RES_MBOX_BASE +
-		      RES_INVALID_INPUT_PARAM);
-
-    CHECK_INPUT_RANGE_MIN0(
-		     mailBoxId,
-		     HAL_MBOX_ID_MAX,
-		     RET_INVALID_ID,
-		     RES_MBOX_BASE + RES_INVALID_INPUT_PARAM);
-    CHECK_INPUT_RANGE_MIN0(
-		     userId,
-		     HAL_MBOX_USER_MAX,
-		     RET_INVALID_ID,
-		     RES_MBOX_BASE + RES_INVALID_INPUT_PARAM);
-
-    /* Get Irq Status for specified mailbox/User Id */
-    irqStatusReg = MLBMAILBOX_IRQSTATUS___0_3ReadRegister32(baseAddress,
-		   (UWORD32)userId);
-
-    /* update status value */
-    *pEventStatus = (UWORD32)((((UWORD32)(irqStatusReg)) >>
-		    (((UWORD32)(mailBoxId))*HAL_MBOX_ID_WIDTH)) &
-		   ((UWORD32)(HAL_MBOX_INT_ALL)));
-
-    return status;
- }
-
-/*==================== Function Separator =============================*/
-
+/*
+ *  ======== HAL_MBOX_EventAck ========
+ *  purpose:
+ *  	Sets the status of the specified IRQ.
+ */
 HAL_STATUS HAL_MBOX_EventAck(
 		      const UWORD32	  baseAddress,
 		      const HAL_MBOX_Id_t	mailBoxId,
@@ -398,11 +352,4 @@ HAL_STATUS HAL_MBOX_EventAck(
 					     (UWORD32)irqStatusReg);
 
     return status;
- }
-
-/* ============================================================================
-* LOCAL FUNCTIONS
-* =============================================================================
-*/
-
-/* EOF */
+}

@@ -1,18 +1,17 @@
 /*
- * dspbridge/inc/cmm.h
+ * dspbridge/mpu_driver/inc/cmm.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
- * Copyright (C) 2007 Texas Instruments, Inc.
+ * Copyright (C) 2008 Texas Instruments, Inc.
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation version 2.1 of the License.
+ * This package is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
  *
- * This program is distributed .as is. WITHOUT ANY WARRANTY of any kind,
- * whether express or implied; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * THIS PACKAGE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+ * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
 /*
@@ -101,7 +100,7 @@ extern "C" {
  */
 	extern PVOID CMM_CallocBuf(struct CMM_OBJECT *hCmmMgr,
 				   UINT uSize, struct CMM_ATTRS *pAttrs,
-				   OUT PVOID * ppBufVA);
+				   OUT PVOID *ppBufVA);
 
 /*
  *  ======== CMM_Create ========
@@ -233,29 +232,6 @@ extern "C" {
  *      CMM initialized.
  */
 	extern BOOL CMM_Init();
-
-/*
- *  ======== CMM_KernConvert ========
- *  Purpose:
- *      Convert between Kernel Va & DSP Address.
- *      Used internally by Bridge.
- *  Parameters:
- *      hCmmMgr:    Handle to a Cmm Mgr.
- *      pAddr       Kernel or DSP address to convert.
- *      pAttrs      Attrs contains segment ID.Default if NULL.
- *      xType       Conversion type. CMM_KERNVA2DSP or CMM_DSP2KERNVA.
- *  Returns:
- *      NULL on failure. non-null on success.
- *  Requires:
- *      pAddr != NULL,
- *      ulSegId > 0,
- *      xType CMM_KERNVA2DSP |  CMM_DSP2KERNVA.
- *  Ensures:
- *
- */
-	extern PVOID CMM_KernConvert(struct CMM_OBJECT *hCmmMgr, PVOID pAddr,
-				     struct CMM_ATTRS *pAttrs,
-				     CMM_KERNMAPTYPE xType);
 
 /*
  *  ======== CMM_RegisterGPPSMSeg ========

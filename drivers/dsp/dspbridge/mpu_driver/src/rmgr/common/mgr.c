@@ -47,13 +47,11 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gt.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
 #include <cfg.h>
 #include <mem.h>
-#include <perf.h>
 #include <sync.h>
 
 /*  ----------------------------------- Others */
@@ -362,15 +360,9 @@ DSP_STATUS MGR_EnumProcessorInfo(UINT uProcessor,
 				 pProcessorInfo->uProcessorType);
 			/* See if we got the needed processor */
 			if (devType == DSP_UNIT) {
-#if defined(OMAP_2430) || defined(OMAP_3430)
 				if (pProcessorInfo->uProcessorType ==
 				   DSPPROCTYPE_C64)
 					procDetect = TRUE;
-#else
-				if (pProcessorInfo->uProcessorType ==
-				   DSPPROCTYPE_C55)
-					procDetect = TRUE;
-#endif
 			} else if (devType == IVA_UNIT) {
 				if (pProcessorInfo->uProcessorType ==
 				   IVAPROCTYPE_ARM7)
@@ -396,11 +388,6 @@ DSP_STATUS MGR_EnumProcessorInfo(UINT uProcessor,
 		pProcessorInfo->uProcessorType = chipResources.uChipType;
 	}
 func_end:
-#if 0
-	DBC_Ensure((DSP_SUCCEEDED(status) && *puNumProcs > 0)
-		   || (DSP_FAILED(status) && *puNumProcs == 0));
-#endif
-
 	return (status);
 }
 

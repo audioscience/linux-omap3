@@ -51,7 +51,7 @@ extern "C" {
 #define MSG_SHARED_BUFFER_LIMIT_SYM     "_MSG_END"
 
 #ifndef _CHNL_WORDSIZE
-#define _CHNL_WORDSIZE 2	/* default _CHNL_WORDSIZE is 2 bytes/word */
+#define _CHNL_WORDSIZE 4	/* default _CHNL_WORDSIZE is 2 bytes/word */
 #endif
 
 /*

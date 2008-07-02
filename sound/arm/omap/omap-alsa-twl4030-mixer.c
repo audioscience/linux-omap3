@@ -26,14 +26,13 @@
 #include <linux/errno.h>
 #include <linux/sound.h>
 #include <linux/soundcard.h>
+#include <linux/uaccess.h>
+#include <linux/io.h>
 
-#include <asm/uaccess.h>
 #include <asm/hardware.h>
 #include <asm/arch/dma.h>
-#include <asm/io.h>
 #include <asm/mach-types.h>
 
-#include <sound/driver.h>
 #include <sound/core.h>
 #include <sound/initval.h>
 #include <sound/pcm.h>

@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/strm.h
+ * dspbridge/mpu_driver/inc/strm.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -417,7 +417,7 @@ extern "C" {
  */
 	extern DSP_STATUS STRM_Select(IN struct STRM_OBJECT **aStrmTab,
 				      UINT nStrms,
-				      OUT UINT * pMask, UINT uTimeout);
+				      OUT UINT *pMask, UINT uTimeout);
 
 /*
  *  ======== STRM_UnprepareBuffer ========

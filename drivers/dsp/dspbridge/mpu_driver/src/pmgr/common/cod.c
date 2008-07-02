@@ -66,7 +66,6 @@
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
 #include <gt.h>
-#include <dbg_zones.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
 #include <csl.h>
@@ -184,8 +183,8 @@ DSP_STATUS COD_Create(OUT struct COD_MANAGER **phMgr, PSTR pstrDummyFile,
 	if (attrs != NULL)
 		return (DSP_ENOTIMPL);
 
-	if ((hMgrNew = MEM_Calloc(sizeof(struct COD_MANAGER), MEM_NONPAGED)) ==
-	   NULL) {
+	hMgrNew = MEM_Calloc(sizeof(struct COD_MANAGER), MEM_NONPAGED);
+	if (hMgrNew == NULL) {
 		GT_0trace(COD_debugMask, GT_7CLASS,
 			  "COD_Create: Out Of Memory\n");
 		return (DSP_EMEMORY);
@@ -270,15 +269,6 @@ VOID COD_Exit()
 	DBC_Require(cRefs > 0);
 
 	cRefs--;
-
-#ifndef LINUX
-	if (cRefs == 0) {
-		KFILE_Exit();
-		CSL_Exit();
-		LDR_Exit();
-		MEM_Exit();
-	}
-#endif
 
 	GT_1trace(COD_debugMask, GT_ENTER,
 		  "Entered COD_Exit, ref count:  0x%x\n", cRefs);
@@ -460,42 +450,12 @@ DSP_STATUS COD_GetSymValue(struct COD_MANAGER *hMgr, PSTR pstrSym,
 BOOL COD_Init()
 {
 	BOOL fRetVal = TRUE;
-#ifndef LINUX
-	BOOL fInitMEM;
-	BOOL fInitLDR;
-	BOOL fInitCSL;
-	BOOL fInitKFILE;
-#endif
 
 	DBC_Require(cRefs >= 0);
 
 	if (cRefs == 0) {
 		DBC_Assert(!COD_debugMask.flags);
 		GT_create(&COD_debugMask, "CO");
-
-#ifndef LINUX
-		fInitMEM = MEM_Init();
-		fInitLDR = LDR_Init();
-		fInitCSL = CSL_Init();
-		fInitKFILE = KFILE_Init();
-
-		fRetVal = fInitMEM && fInitLDR && fInitCSL && fInitKFILE;
-
-		if (!fRetVal) {
-			if (fInitKFILE)
-				KFILE_Exit();
-
-			if (fInitCSL)
-				CSL_Exit();
-
-			if (fInitLDR)
-				LDR_Exit();
-
-			if (fInitMEM)
-				MEM_Exit();
-
-		}
-#endif
 	}
 
 	if (fRetVal)
@@ -605,8 +565,8 @@ DSP_STATUS COD_Open(struct COD_MANAGER *hMgr, IN CHAR *pszCoffPath,
 
 	*pLib = NULL;
 
-	if ((lib = MEM_Calloc(sizeof(struct COD_LIBRARYOBJ), MEM_NONPAGED)) ==
-	    NULL){
+	lib = MEM_Calloc(sizeof(struct COD_LIBRARYOBJ), MEM_NONPAGED);
+	if (lib == NULL) {
 		GT_0trace(COD_debugMask, GT_7CLASS,
 			 "COD_Open: Out Of Memory\n");
 		status = DSP_EMEMORY;

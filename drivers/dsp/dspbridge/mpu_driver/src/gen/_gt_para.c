@@ -97,13 +97,14 @@ error(String fmt, ...)
 
 #if (defined DEBUG) || (defined DDSP_DEBUG_PRODUCT)
 	if (in_interrupt()) {
-		printk("Not stopping after error since ISR/DPC are disabled\n");
+		printk(KERN_INFO "Not stopping after error since ISR/DPC "
+			"are disabled\n");
 	} else {
 		set_current_state(TASK_INTERRUPTIBLE);
 		flush_signals(current);
 		schedule();
 		flush_signals(current);
-		printk("Signaled in error function\n");
+		printk(KERN_INFO "Signaled in error function\n");
 	}
 #endif
 }

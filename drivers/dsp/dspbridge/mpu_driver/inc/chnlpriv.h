@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/chnlpriv.h
+ * dspbridge/mpu_driver/inc/chnlpriv.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -59,11 +59,8 @@ extern "C" {
 #define CHNL_SIGNATURE      0x4C4E4843	/* "CHNL" (in reverse). */
 
 /* Channel manager limits: */
-#if _CHNL_WORDSIZE == 4
-#define CHNL_MAXCHANNELS    32
-#else
-#define CHNL_MAXCHANNELS    16	/* Max channels available per transport */
-#endif
+#define CHNL_MAXCHANNELS    32	/* Max channels available per transport */
+
 
 /*
  *  Trans port channel Id definitions:(must match dsp-side).
@@ -76,11 +73,6 @@ extern "C" {
  *      32-47 (ZCPY) - transport 2)
  */
 #define CHNL_PCPY       0	/* Proc-copy transport 0 */
-/* TODO -- FOR now only PCPY is supported */
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-#define CHNL_DDMA       1	/* DSP-DMA             1 */
-#define CHNL_ZCPY       2	/* Zero-copy     "     2 */
-#endif
 
 #define CHNL_MAXIRQ     0xff	/* Arbitrarily large number. */
 

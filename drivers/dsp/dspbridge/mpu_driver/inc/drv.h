@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/drv.h
+ * dspbridge/mpu_driver/inc/drv.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -72,55 +72,7 @@ extern "C" {
 #define DRV_ASSIGN     1
 #define DRV_RELEASE    0
 
-#ifdef OMAP_2430
-
-#if 0
-#warning "For tests only remove !!!"
-/* #define OMAP_DSP_BASE   0x5CE00000 */
-#define OMAP_DSP_BASE   0x5C000000
-/* #define OMAP_DSP_SIZE   0x00810000 */
-#define OMAP_DSP_SIZE   0x00F18000
-/* #define OMAP_DSP_SIZE   0x00008000 */
-#endif
-
-/* currently we support DSP images with internal L2 and L1 using
- * the adress space 0x1000:0000 to 0x10ff:ffff
- * And since the first 8MB is reserved, start mapping from
- * 0x1080:0000
- */
-
-#define OMAP_DSP_BASE   0x5C800000
-#define OMAP_DSP_SIZE   0x00718000
-
-#define OMAP_GEM_BASE   0x10800000
-
-/*#define OMAP_PRCM_BASE 0x47806000
-#define OMAP_PRCM_SIZE 0x1000*/
-
-#define OMAP_PRCM_BASE 0x49006000
-#define OMAP_PRCM_SIZE 0x1000
-
-#define OMAP_MBOX_BASE 0x48094000
-#define OMAP_MBOX_SIZE 0x2000
-
-#define OMAP_WDTIMER_DSP_BASE 0x48026000
-#define OMAP_WDTIMER_DSP_SIZE 0x2000
-
-#define OMAP_DMMU_BASE 0x5D000000
-#define OMAP_DMMU_SIZE 0x4000
-
-/*#define OMAP_SYSC_BASE 0x47802000
-#define OMAP_SYSC_SIZE 0x1000*/
-
-/*#define OMAP_SYSC_BASE 0x01C20000
-#define OMAP_SYSC_SIZE 0x1000*/
-#define OMAP_SYSC_BASE 0x49002000
-#define OMAP_SYSC_SIZE 0x1000
-#endif
-
-
 #ifdef OMAP_3430
-
 
 /* Provide the DSP Internal memory windows that can be accessed from L3 address
  * space

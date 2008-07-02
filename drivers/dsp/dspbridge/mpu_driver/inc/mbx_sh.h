@@ -1,18 +1,17 @@
 /*
- * dspbridge/inc/mbx_sh.h
+ * dspbridge/mpu_driver/inc/mbx_sh.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
- * Copyright (C) 2007 Texas Instruments, Inc.
+ * Copyright (C) 2008 Texas Instruments, Inc.
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation version 2.1 of the License.
+ * This package is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
  *
- * This program is distributed .as is. WITHOUT ANY WARRANTY of any kind,
- * whether express or implied; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * THIS PACKAGE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+ * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
 
@@ -168,15 +167,6 @@ extern "C" {
 #define MBX_ZCPY_CHNLMSK     0x01F	/* bits 0 thru 4 */
 
 /*  Power Management Commands */
-#ifdef OLD
-#define MBX_PM_DSPIDLE                  (MBX_PM_CLASS + 0x0)
-#define MBX_PM_DSPWAKEUP                (MBX_PM_CLASS + 0x1)
-#define MBX_PM_EMERGENCYSLEEP           (MBX_PM_CLASS + 0x2)
-#define MBX_PM_SLEEPUNTILRESTART        (MBX_PM_CLASS + 0x3)
-#define MBX_PM_PWRENABLE	        (MBX_PM_CLASS + 0x4)
-#define MBX_PM_PWRDISABLE	        (MBX_PM_CLASS + 0x5)
-#define MBX_PM_DSPRETN                  (MBX_PM_CLASS + 0x8)
-#else
 #define MBX_PM_DSPIDLE                  (MBX_PM_CLASS + 0x0)
 #define MBX_PM_DSPWAKEUP                (MBX_PM_CLASS + 0x1)
 #define MBX_PM_EMERGENCYSLEEP           (MBX_PM_CLASS + 0x2)
@@ -214,7 +204,6 @@ extern "C" {
 #define MBX_NEWOPP_EXTRACT(OPPMSG) (0x000F & (OPPMSG))
 #define MBX_PREVOPP_EXTRACT(OPPMSG) ((0x00F0 & (OPPMSG)) >> 4)
 #define MBX_CUROPP_EXTRACT(OPPMSG) (0x000F & (OPPMSG))
-#endif /* OLD */
 
 /* Bridge Debug Commands */
 #define MBX_DBG_SYSPRINTF       (MBX_DBG_CLASS + 0x0)

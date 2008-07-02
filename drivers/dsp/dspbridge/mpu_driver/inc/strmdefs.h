@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/strmdefs.h
+ * dspbridge/mpu_driver/inc/strmdefs.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

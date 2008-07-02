@@ -27,6 +27,7 @@
 #include <asm/arch/gpio.h>
 #include <asm/arch/menelaus.h>
 #include <asm/arch/dsp_common.h>
+#include <asm/arch/mcbsp.h>
 
 #if	defined(CONFIG_OMAP_DSP) || defined(CONFIG_OMAP_DSP_MODULE)
 
@@ -150,6 +151,53 @@ static inline void omap_init_kp(void) {}
 #endif
 
 /*-------------------------------------------------------------------------*/
+#if defined(CONFIG_OMAP_MCBSP) || defined(CONFIG_OMAP_MCBSP_MODULE)
+
+static struct platform_device **omap_mcbsp_devices;
+
+void omap_mcbsp_register_board_cfg(struct omap_mcbsp_platform_data *config,
+					int size)
+{
+	int i;
+
+	if (size > OMAP_MAX_MCBSP_COUNT) {
+		printk(KERN_WARNING "Registered too many McBSPs platform_data."
+			" Using maximum (%d) available.\n",
+			OMAP_MAX_MCBSP_COUNT);
+		size = OMAP_MAX_MCBSP_COUNT;
+	}
+
+	omap_mcbsp_devices = kzalloc(size * sizeof(struct platform_device *),
+				     GFP_KERNEL);
+	if (!omap_mcbsp_devices) {
+		printk(KERN_ERR "Could not register McBSP devices\n");
+		return;
+	}
+
+	for (i = 0; i < size; i++) {
+		struct platform_device *new_mcbsp;
+		int ret;
+
+		new_mcbsp = platform_device_alloc("omap-mcbsp", i + 1);
+		if (!new_mcbsp)
+			continue;
+		new_mcbsp->dev.platform_data = &config[i];
+		ret = platform_device_add(new_mcbsp);
+		if (ret) {
+			platform_device_put(new_mcbsp);
+			continue;
+		}
+		omap_mcbsp_devices[i] = new_mcbsp;
+	}
+}
+
+#else
+void omap_mcbsp_register_board_cfg(struct omap_mcbsp_platform_data *config,
+					int size)
+{  }
+#endif
+
+/*-------------------------------------------------------------------------*/
 
 #if	defined(CONFIG_MMC_OMAP) || defined(CONFIG_MMC_OMAP_MODULE) \
 	|| defined(CONFIG_MMC_OMAP_HS) || defined(CONFIG_MMC_OMAP_HS_MODULE)
@@ -202,7 +250,7 @@ static struct platform_device mmc_omap_device1 = {
 	.resource	= mmc1_resources,
 };
 
-#if defined(CONFIG_ARCH_OMAP16XX) || defined(CONFIG_ARCH_OMAP243X) || \
+#if defined(CONFIG_ARCH_OMAP16XX) || defined(CONFIG_ARCH_OMAP2430) || \
 	defined(CONFIG_ARCH_OMAP34XX)
 
 static struct omap_mmc_platform_data mmc2_data;
@@ -251,7 +299,7 @@ static void __init omap_init_mmc(void)
 		if (mmc->enabled)
 			(void) platform_device_register(&mmc_omap_device1);
 
-#if defined(CONFIG_ARCH_OMAP243X) || defined(CONFIG_ARCH_OMAP34XX)
+#if defined(CONFIG_ARCH_OMAP2430) || defined(CONFIG_ARCH_OMAP34XX)
 		mmc = &mmc_conf->mmc[1];
 		if (mmc->enabled)
 			(void) platform_device_register(&mmc_omap_device2);
@@ -349,7 +397,7 @@ void omap_set_mmc_info(int host, const struct omap_mmc_platform_data *info)
 	case 1:
 		mmc1_data = *info;
 		break;
-#if defined(CONFIG_ARCH_OMAP16XX) || defined(CONFIG_ARCH_OMAP243X) || \
+#if defined(CONFIG_ARCH_OMAP16XX) || defined(CONFIG_ARCH_OMAP2430) || \
 	defined(CONFIG_ARCH_OMAP34XX)
 	case 2:
 		mmc2_data = *info;

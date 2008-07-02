@@ -34,6 +34,9 @@
 #include <asm/arch/mux.h>
 #include <asm/arch/irda.h>
 #include <asm/arch/board.h>
+#include <asm/arch/usb-musb.h>
+#include <asm/arch/usb-ehci.h>
+#include <asm/arch/hsmmc.h>
 #include <asm/arch/common.h>
 #include <asm/arch/keypad.h>
 #include <asm/arch/dma.h>
@@ -42,6 +45,8 @@
 #include <media/v4l2-int-device.h>
 #include <../drivers/media/video/mt9p012.h>
 #include <../drivers/media/video/omap34xxcam.h>
+#include <../drivers/media/video/isp/ispreg.h>
+#include "ti-compat.h"
 
 #include <asm/io.h>
 #include <asm/delay.h>
@@ -444,7 +449,7 @@ const static struct mt9p012_reg mt9p012_common[] = {
 
 };
 
-static struct omap34xxcam_hw_config cam_hwc = {
+static struct omap34xxcam_sensor_config cam_hwc = {
 	.sensor_isp = V4L2_IF_CAP_RAW,
 	.xclk = OMAP34XXCAM_XCLK_A,
 };
@@ -480,15 +485,46 @@ static int mt9p012_sensor_set_prv_data(void *priv)
 {
 	struct omap34xxcam_hw_config *hwc = priv;
 
-	hwc->sensor_isp = cam_hwc.sensor_isp;
-	hwc->xclk = cam_hwc.xclk;
+	hwc->u.sensor.xclk = cam_hwc.xclk;
+	hwc->u.sensor.sensor_isp = cam_hwc.sensor_isp;
+	hwc->dev_index = 0;
+	hwc->dev_minor = 0;
+	hwc->dev_type = OMAP34XXCAM_SLAVE_SENSOR;
 	return 0;
 }
 
-static int mt9p012_sensor_power_set(int power)
+static struct isp_interface_config mt9p012_if_config = {
+	.ccdc_par_ser = ISP_PARLL,
+	.dataline_shift = 0x1,
+	.hsvs_syncdetect = ISPCTRL_SYNC_DETECT_VSRISE,	
+	.vdint0_timing = 0x0,
+	.vdint1_timing = 0x0,
+	.strobe = 0x0,
+	.prestrobe = 0x0,
+	.shutter = 0x0,
+	.u.par.par_bridge = 0x0,
+	.u.par.par_clk_pol = 0x0,
+};
+
+static int mt9p012_sensor_power_set(enum v4l2_power power)
 {
-	if (power) {
-	/* Power Up Sequence */
+	switch (power) {
+	case V4L2_POWER_OFF:
+		/* Power Down Sequence */
+#ifdef CONFIG_TWL4030_CORE
+		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+				VAUX_DEV_GRP_NONE, TWL4030_VAUX2_DEV_GRP);
+#else
+#error "no power companion board defined!"
+#endif
+		enable_fpga_vio_1v8(0);
+		omap_free_gpio(MT9P012_RESET_GPIO);
+		iounmap(fpga_map_addr);
+		omap_free_gpio(MT9P012_STANDBY_GPIO);
+		break;
+	case V4L2_POWER_ON:
+		/* Power Up Sequence */
+		isp_configure_interface(&mt9p012_if_config);
 
 		/* Request and configure gpio pins */
 		if (omap_request_gpio(MT9P012_STANDBY_GPIO) != 0) {
@@ -538,22 +574,21 @@ static int mt9p012_sensor_power_set(int power)
 		/* give sensor sometime to get out of the reset. Datasheet says
 		   2400 xclks. At 6 MHz, 400 usec are enough */
 		udelay(300);
-	} else {
-		/* Power Down Sequence */
-#ifdef CONFIG_TWL4030_CORE
-		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
-				VAUX_DEV_GRP_NONE, TWL4030_VAUX2_DEV_GRP);
-#else
-#error "no power companion board defined!"
-#endif
-		enable_fpga_vio_1v8(0);
-
-		omap_free_gpio(MT9P012_RESET_GPIO);
-		iounmap(fpga_map_addr);
-		omap_free_gpio(MT9P012_STANDBY_GPIO);
+		omap_writel(0x01003B1C, CONTROL_PADCONF_CAM_FLD);
+		omap_set_gpio_direction(MT9P012_RESET_GPIO, GPIO_DIR_INPUT);
+		break;
+	case V4L2_POWER_STANDBY:
+		/* stand by */
+		omap_set_gpio_dataout(MT9P012_STANDBY_GPIO, 1);
+		break;
+	case V4L2_POWER_RESUME:
+		/* out of standby */
+		omap_set_gpio_dataout(MT9P012_STANDBY_GPIO, 0);
+		udelay(1000);
+		break;
 	}
 
-    return 0;
+	return 0;
 }
 
 static struct v4l2_ifparm ifparm = {
@@ -698,8 +733,9 @@ static void __init omap_3430sdp_init(void)
 	ads7846_dev_init();
 	sdp3430_flash_init();
 	omap_serial_init();
-	sdp3430_usb_init();
-	sdp_mmc_init();
+	usb_musb_init();
+	usb_ehci_init();
+	hsmmc_init();
 }
 
 static void __init omap_3430sdp_map_io(void)

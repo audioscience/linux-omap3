@@ -23,7 +23,6 @@
 
 #include <gs.h>
 
-#undef _LINT_
 #include <gh.h>
 
 /*typedef struct Elem Elem;*/
@@ -57,13 +56,9 @@ struct GH_THashTab *GH_create(MdUns maxBucket, MdUns valSize,
 {
 	struct GH_THashTab *hashTab;
 	MdUns i;
-
-	if ((hashTab =
-	   (struct GH_THashTab *)GS_alloc(sizeof(struct GH_THashTab))) ==
-	   NULL) {
+	hashTab = (struct GH_THashTab *)GS_alloc(sizeof(struct GH_THashTab));
+	if (hashTab == NULL)
 		return (NULL);
-	}
-
 	hashTab->maxBucket = maxBucket;
 	hashTab->valSize = valSize;
 	hashTab->hash = hash;
@@ -177,35 +172,6 @@ Ptr GH_insert(struct GH_THashTab *hashTab, Ptr key, Ptr value)
 	}
 
 	return (NULL);
-}
-
-/*
- *  ======== GH_remove ========
- */
-
-Void GH_remove(struct GH_THashTab *hashTab, Ptr key)
-{
-	struct Elem *elem, *prev;
-	Int i;
-
-	i = (*hashTab->hash)(key, hashTab->maxBucket);
-	prev = NULL;
-	elem = hashTab->buckets[i];
-
-	for (; elem; elem = elem->next) {
-		if ((*hashTab->match)(key, elem->data)) {
-			if (prev != NULL)
-				prev->next = elem->next;
-			else
-				hashTab->buckets[i] = elem->next;
-
-			(*hashTab->delete)(elem->data);
-			myfree(elem, sizeof(struct Elem) - 1 +
-			      hashTab->valSize);
-			return;
-		}
-		prev = elem;
-	}
 }
 
 /*

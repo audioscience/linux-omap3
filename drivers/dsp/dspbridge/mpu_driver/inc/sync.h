@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/sync.h
+ * dspbridge/mpu_driver/inc/sync.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -340,7 +340,7 @@ extern "C" {
 						    **hSyncEvents,
 						    IN UINT uCount,
 						    IN DWORD dwTimeout,
-						    OUT UINT * puIndex);
+						    OUT UINT *puIndex);
 
 
 #ifdef __cplusplus

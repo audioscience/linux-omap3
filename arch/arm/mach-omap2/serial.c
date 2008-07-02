@@ -3,7 +3,7 @@
  *
  * OMAP2 serial support.
  *
- * Copyright (C) 2005 Nokia Corporation
+ * Copyright (C) 2005-2008 Nokia Corporation
  * Author: Paul Mundt <paul.mundt@nokia.com>
  *
  * Based off of arch/arm/mach-omap/omap1/serial.c
@@ -17,6 +17,7 @@
 #include <linux/serial_8250.h>
 #include <linux/serial_reg.h>
 #include <linux/clk.h>
+
 #include <linux/slab.h>
 #include <linux/serial.h>
 #include <linux/dma-mapping.h>
@@ -27,6 +28,7 @@
 #include <asm/irq.h>
 #include <asm/hardware.h>
 #include <asm/dma.h>
+
 #include <asm/io.h>
 #include <asm/setup.h>
 #include <asm/arch/clock.h>
@@ -43,41 +45,36 @@
 
 /* structure for storing UART DMA info */
 struct omap_hsuart {
-	u8 uart_no;
-	int rx_dma_channel;
-	int tx_dma_channel;
+      u8 uart_no;
+      int rx_dma_channel;
+      int tx_dma_channel;
 
-	u8 dma_tx;	/* DMA receive line */
-	u8 dma_rx;	/* DMA transmit line */
+      u8 dma_tx;      /* DMA receive line */
+      u8 dma_rx;      /* DMA transmit line */
 
-	dma_addr_t rx_buf_dma_phys;	/* Physical adress of RX DMA buffer */
-	dma_addr_t tx_buf_dma_phys;	/* Physical adress of TX DMA buffer */
+      dma_addr_t rx_buf_dma_phys;     /* Physical adress of RX DMA buffer */
+      dma_addr_t tx_buf_dma_phys;     /* Physical adress of TX DMA buffer */
 
-	void *rx_buf_dma_virt;	/* Virtual adress of RX DMA buffer */
-	void *tx_buf_dma_virt;	/* Virtual adress of TX DMA buffer */
+      void *rx_buf_dma_virt;  /* Virtual adress of RX DMA buffer */
+      void *tx_buf_dma_virt;  /* Virtual adress of TX DMA buffer */
 
-	u8 tx_buf_state;
-	u8 rx_buf_state;
+      u8 tx_buf_state;
+      u8 rx_buf_state;
 
-	struct uart_callback cb;
-	u8 mode;
+      struct uart_callback cb;
+      u8 mode;
 
-	spinlock_t uart_lock;
-	int in_use;
+      spinlock_t uart_lock;
+      int in_use;
 };
-
 static struct omap_hsuart ui[MAX_UARTS + 1];
 
-static struct clk * uart1_ick = NULL;
-static struct clk * uart1_fck = NULL;
-static struct clk * uart2_ick = NULL;
-static struct clk * uart2_fck = NULL;
-static struct clk * uart3_ick = NULL;
-static struct clk * uart3_fck = NULL;
+static struct clk *uart_ick[OMAP_MAX_NR_PORTS];
+static struct clk *uart_fck[OMAP_MAX_NR_PORTS];
 
 static struct plat_serial8250_port serial_platform_data[] = {
 	{
-		.membase	= (char *)IO_ADDRESS(OMAP_UART1_BASE),
+		.membase	= (__force void __iomem *)IO_ADDRESS(OMAP_UART1_BASE),
 		.mapbase	= (unsigned long)OMAP_UART1_BASE,
 		.irq		= 72,
 		.flags		= UPF_BOOT_AUTOCONF,
@@ -85,7 +82,7 @@ static struct plat_serial8250_port serial_platform_data[] = {
 		.regshift	= 2,
 		.uartclk	= OMAP24XX_BASE_BAUD * 16,
 	}, {
-		.membase	= (char *)IO_ADDRESS(OMAP_UART2_BASE),
+		.membase	= (__force void __iomem *)IO_ADDRESS(OMAP_UART2_BASE),
 		.mapbase	= (unsigned long)OMAP_UART2_BASE,
 		.irq		= 73,
 		.flags		= UPF_BOOT_AUTOCONF,
@@ -93,7 +90,7 @@ static struct plat_serial8250_port serial_platform_data[] = {
 		.regshift	= 2,
 		.uartclk	= OMAP24XX_BASE_BAUD * 16,
 	}, {
-		.membase	= (char *)IO_ADDRESS(OMAP_UART3_BASE),
+		.membase	= (__force void __iomem *)IO_ADDRESS(OMAP_UART3_BASE),
 		.mapbase	= (unsigned long)OMAP_UART3_BASE,
 		.irq		= 74,
 		.flags		= UPF_BOOT_AUTOCONF,
@@ -116,7 +113,7 @@ static inline void serial_write_reg(struct plat_serial8250_port *p, int offset,
 				    int value)
 {
 	offset <<= p->regshift;
-	__raw_writeb(value, (unsigned long)(p->membase + offset));
+	__raw_writeb(value, p->membase + offset);
 }
 
 /*
@@ -851,11 +848,28 @@ static inline void __init omap_serial_reset(struct plat_serial8250_port *p)
 	serial_write_reg(p, UART_OMAP_SYSC, (0x02 << 3) | (1 << 2) | (1 << 0));
 }
 
+void omap_serial_enable_clocks(int enable)
+{
+	int i;
+	for (i = 0; i < OMAP_MAX_NR_PORTS; i++) {
+		if (uart_ick[i] && uart_fck[i]) {
+			if (enable) {
+				clk_enable(uart_ick[i]);
+				clk_enable(uart_fck[i]);
+			} else {
+				clk_disable(uart_ick[i]);
+				clk_disable(uart_fck[i]);
+			}
+		}
+	}
+}
+
 void __init omap_serial_init(void)
 {
 	int i;
 	char str[7];
 	const struct omap_uart_config *info;
+	char name[16];
 
 	/*
 	 * Make sure the serial ports are muxed on at this point.
@@ -872,52 +886,26 @@ void __init omap_serial_init(void)
 		struct plat_serial8250_port *p = serial_platform_data + i;
 
 		if (!(info->enabled_uarts & (1 << i))) {
-			p->membase = 0;
+			p->membase = NULL;
 			p->mapbase = 0;
 			continue;
 		}
 
-		switch (i) {
-		case 0:
-			uart1_ick = clk_get(NULL, "uart1_ick");
-			if (IS_ERR(uart1_ick))
-				printk(KERN_ERR "Could not get uart1_ick\n");
-			else
-				clk_enable(uart1_ick);
+		sprintf(name, "uart%d_ick", i+1);
+		uart_ick[i] = clk_get(NULL, name);
+		if (IS_ERR(uart_ick[i])) {
+			printk(KERN_ERR "Could not get uart%d_ick\n", i+1);
+			uart_ick[i] = NULL;
+		} else
+			clk_enable(uart_ick[i]);
 
-			uart1_fck = clk_get(NULL, "uart1_fck");
-			if (IS_ERR(uart1_fck))
-				printk(KERN_ERR "Could not get uart1_fck\n");
-			else
-				clk_enable(uart1_fck);
-			break;
-		case 1:
-			uart2_ick = clk_get(NULL, "uart2_ick");
-			if (IS_ERR(uart2_ick))
-				printk(KERN_ERR "Could not get uart2_ick\n");
-			else
-				clk_enable(uart2_ick);
-
-			uart2_fck = clk_get(NULL, "uart2_fck");
-			if (IS_ERR(uart2_fck))
-				printk(KERN_ERR "Could not get uart2_fck\n");
-			else
-				clk_enable(uart2_fck);
-			break;
-		case 2:
-			uart3_ick = clk_get(NULL, "uart3_ick");
-			if (IS_ERR(uart3_ick))
-				printk(KERN_ERR "Could not get uart3_ick\n");
-			else
-				clk_enable(uart3_ick);
-
-			uart3_fck = clk_get(NULL, "uart3_fck");
-			if (IS_ERR(uart3_fck))
-				printk(KERN_ERR "Could not get uart3_fck\n");
-			else
-				clk_enable(uart3_fck);
-			break;
-		}
+		sprintf(name, "uart%d_fck", i+1);
+		uart_fck[i] = clk_get(NULL, name);
+		if (IS_ERR(uart_fck[i])) {
+			printk(KERN_ERR "Could not get uart%d_fck\n", i+1);
+			uart_fck[i] = NULL;
+		} else
+			clk_enable(uart_fck[i]);
 
 		omap_serial_reset(p);
 	}

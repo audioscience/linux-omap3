@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/utildefs.h
+ * dspbridge/mpu_driver/inc/utildefs.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -43,24 +43,6 @@ extern "C" {
 
 /* misc. constants */
 #define UTIL_MAXARGVS       10
-
-	struct UTIL_HOSTCONFIG {
-		/* Memory Space */
-		WORD wNumMemWindows;	/* Num memory windows */
-		DWORD dMemBase[UTIL_MAXMEMREGS];       /* Memory window base */
-		DWORD dMemLength[UTIL_MAXMEMREGS];    /* Memory window length */
-
-		/* IO Ports */
-		WORD wNumIOPorts;	/* Num IO ports */
-
-		/* IRQs */
-		WORD wNumIRQs;	/* Num IRQ info */
-		BYTE bIRQRegisters[UTIL_MAXIRQS];	/* IRQ list */
-
-		/* DMA */
-		WORD wNumDMAs;	/* Num DMA channels */
-		BYTE bDMALst[UTIL_MAXDMACHNLS];	/* DMA list */
-	};
 
 /* Platform specific important info */
 	struct UTIL_SYSINFO {

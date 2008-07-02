@@ -1,21 +1,18 @@
 /*
- * dspbridge/inc/dbdefs.h
+ * dspbridge/mpu_driver/inc/dbdefs.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
- * Copyright (C) 2007 Texas Instruments, Inc.
+ * Copyright (C) 2005-2006 Texas Instruments, Inc.
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation version 2.1 of the License.
+ * This package is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
  *
- * This program is distributed .as is. WITHOUT ANY WARRANTY of any kind,
- * whether express or implied; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * THIS PACKAGE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+ * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
-
-
 
 /*
  *  ======== dbdefs.h ========
@@ -105,6 +102,7 @@ extern "C" {
 /* DSP exception events (DSP/BIOS and DSP MMU fault) */
 #define DSP_MMUFAULT                0x00000010
 #define DSP_SYSERROR                0x00000020
+#define DSP_EXCEPTIONABORT          0x00000300
 
 /* IVA exception events (IVA MMU fault) */
 #define IVA_MMUFAULT                0x00000040
@@ -139,11 +137,7 @@ extern "C" {
 #define DSP_UNIT    0
 #define IVA_UNIT    1
 
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-#define DSPWORD       SHORT
-#else
 #define DSPWORD       BYTE
-#endif
 #define DSPWORDSIZE     sizeof(DSPWORD)
 
 /* Success & Failure macros  */
@@ -159,9 +153,7 @@ extern "C" {
 /* Bridge Code Version */
 #define BRIDGE_VERSION_CODE         333
 
-#if defined(OMAP_2430) || defined(OMAP_3430)
 #define    MAX_PROFILES     16
-#endif
 
 /* Types defined for 'Bridge API */
 	typedef DWORD DSP_STATUS;	/* API return code type         */
@@ -173,9 +165,6 @@ extern "C" {
 	typedef ULONG DSP_PROCFAMILY;	/* Processor family             */
 	typedef ULONG DSP_PROCTYPE;	/* Processor type (w/in family) */
 	typedef ULONG DSP_RTOSTYPE;	/* Type of DSP RTOS             */
-
-	typedef ULONG DSP_RESOURCEMASK;	/* Mask for processor resources */
-	typedef ULONG DSP_ERRORMASK;	/* Mask for various error types */
 
 /* Handy Macros */
 #define IsValidProcEvent(x) (((x) == 0) || (((x) & (DSP_PROCESSORSTATECHANGE | \
@@ -273,16 +262,10 @@ extern "C" {
 /* Stream mode types */
 	typedef enum {
 		STRMMODE_PROCCOPY, /* Processor(s) copy stream data payloads */
-		STRMMODE_ZEROCOPY, /* Stream buffer pointers swapped, no data copied */
+		STRMMODE_ZEROCOPY, /* Strm buffer ptrs swapped no data copied */
 		STRMMODE_LDMA,	/* Local DMA : OMAP's System-DMA device */
 		STRMMODE_RDMA	/* Remote DMA: OMAP's DSP-DMA device */
 	} DSP_STRMMODE;
-
-/* Stream DMA priority. Only Low and High supported */
-	typedef enum {
-		DMAPRI_LOW,
-		DMAPRI_HIGH
-	} DSP_DMAPRIORITY;
 
 /* Resource Types */
 	typedef enum {
@@ -404,11 +387,10 @@ extern "C" {
 		UINT uNumInputStreams;
 		UINT uNumOutputStreams;
 		UINT uTimeout;
-#if defined(OMAP_2430) || defined(OMAP_3430)
 		UINT uCountProfiles;	/* Number of supported profiles */
 		/* Array of profiles */
 		struct DSP_NODEPROFS aProfiles[MAX_PROFILES];
-#endif
+		UINT uStackSegName; /* Stack Segment Name */
 	} ;
 	/*DSP_NDBPROPS, *DSP_HNDBPROPS;*/
 
@@ -417,12 +399,10 @@ extern "C" {
 	    DWORD cbStruct;
 	    INT iPriority;
 	    UINT uTimeout;
-#if defined(OMAP_2430) || defined(OMAP_3430)
 	    UINT    uProfileID;
 	    /* Reserved, for Bridge Internal use only */
 	    UINT    uHeapSize;
 	    PVOID   pGPPVirtAddr; /* Reserved, for Bridge Internal use only */
-#endif
 	} ;
 	/*DSP_NODEATTRIN, *DSP_HNODEATTRIN;*/
 
@@ -596,10 +576,8 @@ bit 6 - MMU element size = 64bit (valid only for non mixed page entries)
 
 #define DSP_MAPVMALLOCADDR         0x00000080
 
-#if defined(OMAP_2430) || defined(OMAP_3430)
 #define GEM_CACHE_LINE_SIZE     128
 #define GEM_L1P_PREFETCH_SIZE   128
-#endif
 
 #ifdef __cplusplus
 }

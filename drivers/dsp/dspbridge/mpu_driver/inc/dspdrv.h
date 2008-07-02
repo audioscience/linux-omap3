@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/dspdrv.h
+ * dspbridge/mpu_driver/inc/dspdrv.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -102,63 +102,5 @@ extern BOOL DSP_Deinit(DWORD dwDeviceContext);
  *      Failed:     device Context = 0
  */
 extern DWORD DSP_Init(OUT DWORD *initStatus);
-
-#ifndef LINUX
-/*
- *  ======== DSP_Open ========
- *  Purpose:
- *      This function opens a device for reading and/or writing.
- *      Called when the Client application loads the DDSP API DLL either
- *      implicitly or explictly via LoadLibrary(). Upon loading DDSP DLL
- *      will call CreateFile.
- *  Parameters:
- *      dwDeviceContext:    Handle returned by XXX_Init.
- *      dwAccessCode:       Set For Multi-Access.
- *      dwShareMode:        Set for sharing.
- *  Returns:
- *      This function returns a handle that identifies the open context
- *      of the device to the calling application. We return the sane
- *      dwDeviceContext.
- *  Requires:
- *      dwDeviceContext!= NULL.
- *  Ensures:
- */
-extern DWORD DSP_Open(DWORD dwDeviceContext, DWORD dwAccessCode,
-		      DWORD dwShareMode);
-
-/*
- *  ======== DSP_PowerUp ========
- *  Purpose:
- *      This function restores power to a device. The operating system might
- *      call this function when leaving power-saving mode.
- *  Parameters:
- *      dwDeviceContext:    Handle returned by XXX_Init
- *  Returns:
- *  Requires:
- *      dwDeviceContext!= NULL.
- *  Ensures:
- *      Will not call any functions that may cause it to block,
- *      and it should return as quickly as possible.
- */
-extern Void DSP_PowerUp(DWORD dwDeviceContext);
-
-/*
- *  ======== DSP_PowerDown ========
- *  Purpose:
- *      This function power down a device. The operating system might call
- *      this function when entering power-saving mode.
- *  Parameters:
- *      dwDeviceContext:    Handle returned by XXX_Init
- *
- *  Returns:
- *  Requires:
- *      dwDeviceContext!= NULL.
- *  Ensures:
- *      Will not call any functions that may cause it to block,
- *      and it should return as quickly as possible.
- */
-extern Void DSP_PowerDown(DWORD dwDeviceContext);
-
-#endif
 
 #endif

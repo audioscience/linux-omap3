@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/proc.h
+ * dspbridge/mpu_driver/inc/proc.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -30,7 +30,6 @@
  *      PROC_Exit
  *      PROC_FlushMemory
  *      PROC_GetDevObject       (OEM-function)
- *      PROC_GetProcessorHandle (OEM-function)
  *      PROC_GetResourceInfo
  *      PROC_GetState
  *      PROC_GetProcessorId
@@ -252,27 +251,6 @@ extern "C" {
  *      When reference count == 0, PROC's private resources are freed.
  */
 	extern VOID CDECL PROC_Exit();
-
-/*
- * ======== PROC_GetProcessorHandle =========
- *  Purpose:
- *      Returns the Processor Hanlde for a given Process handle
- *  Parameters:
- *      hProcess    :   Process Handle
- *      hProcessor  :   Processor Handle
- *  Returns:
- *      TRUE	:   Success; Processor handle belongs to this Process
- *      FALSE       :   Processor handle does not belong to this Process.
- *  Requires:
- *      Valid Process Handle.
- *      hProcessor is a valid Processor Handle.
- *      PROC Initialized.
- *  Ensures:
- *      TRUE and hProcessor is a valid Processor handle for this process.
- *      FALSE and hProcessor is does NOT belong to this process.
- */
-	extern BOOL PROC_GetProcessorHandle(HANDLE hProcess,
-					    DSP_HPROCESSOR hProcessor);
 
 /*
  * ======== PROC_GetDevObject =========

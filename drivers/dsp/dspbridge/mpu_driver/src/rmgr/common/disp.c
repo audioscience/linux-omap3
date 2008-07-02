@@ -27,8 +27,6 @@
  *      DISP_Delete
  *      DISP_Exit
  *      DISP_Init
- *      DISP_MemCopy
- *      DISP_MemWrite
  *      DISP_NodeChangePriority
  *      DISP_NodeCreate
  *      DISP_NodeDelete
@@ -59,7 +57,6 @@
 /*  ----------------------------------- Trace & Debug */
 #include <gt.h>
 #include <dbc.h>
-#include <dbg_zones.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
 #include <dev.h>
@@ -126,10 +123,6 @@ static DSP_STATUS FillStreamDef(RMS_WORD *pdwBuf, UINT *ptotal, UINT offset,
 				UINT uCharsInRMSWord);
 static DSP_STATUS SendMessage(struct DISP_OBJECT *hDisp, DWORD dwTimeout,
 			     ULONG ulBytes, OUT DWORD *pdwArg);
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-static VOID SwapWords(RMS_WORD *pdwBuf, ULONG ulSize);
-static VOID Char2DSPWord16(RMS_WORD *pdwData, BYTE *pChars, UINT uChars);
-#endif
 
 /*
  *  ======== DISP_Create ========
@@ -145,9 +138,6 @@ DSP_STATUS DISP_Create(OUT struct DISP_OBJECT **phDispObject,
 	struct CHNL_ATTRS chnlAttrs;
 	DSP_STATUS status = DSP_SOK;
 	UINT devType;
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-	struct MSG_MGR *hMsgMgr;
-#endif
 
 	DBC_Require(cRefs > 0);
 	DBC_Require(phDispObject != NULL);
@@ -185,9 +175,9 @@ DSP_STATUS DISP_Create(OUT struct DISP_OBJECT **phDispObject,
 
 	/* check device type and decide if streams or messag'ing is used for
 	 * RMS/EDS */
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_cont;
-	}
+
 	status = DEV_GetDevType(hDevObject, &devType);
 	GT_1trace(DISP_DebugMask, GT_6CLASS, "DISP_Create: Creating DISP for "
 		 "device = 0x%x\n", devType);
@@ -234,8 +224,8 @@ DSP_STATUS DISP_Create(OUT struct DISP_OBJECT **phDispObject,
 		/* Allocate buffer for commands, replies */
 		pDisp->ulBufsize = pDispAttrs->ulChnlBufSize;
 		pDisp->ulBufsizeRMS = RMS_COMMANDBUFSIZE;
-		if ((pDisp->pBuf = MEM_Calloc(pDisp->ulBufsize,
-		   MEM_PAGED)) == NULL) {
+		pDisp->pBuf = MEM_Calloc(pDisp->ulBufsize, MEM_PAGED);
+		if (pDisp->pBuf == NULL) {
 			status = DSP_EMEMORY;
 			GT_0trace(DISP_DebugMask, GT_6CLASS,
 				 "DISP_Create: Failed "
@@ -282,6 +272,7 @@ VOID DISP_Exit()
 	cRefs--;
 
 	if (cRefs == 0) {
+		/* Do nothing? */
 	}
 
 	GT_1trace(DISP_DebugMask, GT_5CLASS,
@@ -316,138 +307,6 @@ BOOL DISP_Init()
 }
 
 /*
- *  ======== DISP_MemCopy ========
- *  Copy memory on target memory.
- */
-DSP_STATUS DISP_MemCopy(struct DISP_OBJECT *hDisp, ULONG ulRMSFxn,
-			ULONG ulDestAddr, ULONG ulSrcAddr, ULONG ulSize,
-			USHORT usPage, ULONG ulTimeout)
-{
-	DWORD dwArg;
-	UINT total;
-	RMS_WORD *pdwBuf;
-	struct RMS_Command *pCommand;
-	DSP_STATUS status = DSP_SOK;
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-	UINT devType;
-#endif
-
-	DBC_Require(cRefs > 0);
-	DBC_Require(MEM_IsValidHandle(hDisp, DISP_SIGNATURE));
-
-	GT_6trace(DISP_DebugMask, GT_ENTER,
-	      "DISP_MemCopy: hDisp: 0x%x\tulRMSFxn:"
-	      " 0x%x\tulSrcAddr: 0x%x\tulDestAddr: 0x%x\tulSize: 0x%x\tusPage:"
-	      " 0x%x\n", hDisp, ulRMSFxn, ulSrcAddr, ulDestAddr,
-	      ulSize, usPage);
-
-	pdwBuf = (RMS_WORD *)(hDisp->pBuf);
-
-	/* Send message to RMS to copy memory */
-	pCommand = (struct RMS_Command *)(pdwBuf);
-	pCommand->fxn = (RMS_WORD)(ulRMSFxn);
-	pCommand->arg1 = (RMS_WORD)ulDestAddr;
-	pCommand->arg2 = (RMS_WORD)usPage;
-	pCommand->data = (RMS_WORD)ulSize;
-
-	total = sizeof(struct RMS_Command) / sizeof(RMS_WORD);
-	*(pdwBuf + total) = (RMS_WORD) ulSrcAddr;
-	total++;
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-	SwapWords((RMS_WORD *) pdwBuf, total);
-#endif
-	status = SendMessage(hDisp, ulTimeout, total * sizeof(RMS_WORD),
-		 &dwArg);
-
-	if (DSP_FAILED(status)) {
-		GT_1trace(DISP_DebugMask, GT_6CLASS,
-			 "DISP_MemCopy failed! status = "
-			 "0x%x\n", status);
-	}
-
-	return (status);
-}
-
-/*
- *  ======== DISP_MemWrite ========
- *  Send a buffer to be written to target memory.
- */
-DSP_STATUS DISP_MemWrite(struct DISP_OBJECT *hDisp, ULONG ulRMSFxn,
-			ULONG ulDestAddr, PVOID pBuf, ULONG ulTotalBytes,
-			USHORT usPage, ULONG ulTimeout)
-{
-	DWORD dwArg;
-	UINT total;
-	ULONG maxWords;
-	ULONG maxBytes;
-	ULONG dspAddr;
-	ULONG ulBytesSent = 0;
-	ULONG ulBytes;
-	UINT wordSize;
-	ULONG ulRemainBytes;
-	struct RMS_Command *pCommand;
-	DSP_STATUS status = DSP_SOK;
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-	UINT devType;
-#endif
-	DBC_Require(cRefs > 0);
-	DBC_Require(MEM_IsValidHandle(hDisp, DISP_SIGNATURE));
-	GT_6trace(DISP_DebugMask, GT_ENTER,
-		 "DISP_MemWrite: hDisp: 0x%x\tulRMSFxn:"
-		 " 0x%x\tpBuf: 0x%x\tulDestAddr: 0x%x\tulSize: 0x%x\tusPage:"
-		 " 0x%x\n", hDisp, ulRMSFxn, pBuf, ulDestAddr, ulTotalBytes,
-		 usPage);
-
-	wordSize = hDisp->uDataMauSize;
-
-	/* Set number of bytes to a multiple of DSP word size */
-	ulRemainBytes = ((ulTotalBytes + wordSize - 1) / wordSize) * wordSize;
-
-	/* Max # of bytes, DSP words that can be sent */
-	maxBytes = hDisp->ulBufsize - sizeof(struct RMS_Command);
-	maxWords = maxBytes / wordSize;
-
-	dspAddr = ulDestAddr / wordSize;
-	while (ulRemainBytes > 0) {
-		ulBytes = (ulRemainBytes <= maxBytes) ? ulRemainBytes :
-		    (maxBytes / sizeof(RMS_WORD)) * sizeof(RMS_WORD);
-
-		/* Send message to RMS to write memory */
-		pCommand = (struct RMS_Command *)(hDisp->pBuf);
-		pCommand->fxn = (RMS_WORD)(ulRMSFxn);
-		pCommand->arg1 = (RMS_WORD)dspAddr;
-		pCommand->arg2 = (RMS_WORD)usPage;
-		pCommand->data = (RMS_WORD)ulBytes / wordSize;
-
-		total = sizeof(struct RMS_Command);
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-		SwapWords((RMS_WORD *)(hDisp->pBuf), total / sizeof(RMS_WORD));
-#endif
-		/*
-		 *  Copy data into buffer (zero'ing out last byte in case
-		 *  odd bytes) and send it.
-		 */
-		*((BYTE *)hDisp->pBuf + total + ulBytes - 1) = 0;
-		memcpy((BYTE *)hDisp->pBuf + total, (BYTE *)pBuf +
-			ulBytesSent, ulBytes);
-		total += ulBytes;
-		status = SendMessage(hDisp, ulTimeout, total, &dwArg);
-		if (DSP_FAILED(status)) {
-			GT_1trace(DISP_DebugMask, GT_6CLASS,
-				 "DISP_MemWrite failed! "
-				 "status = 0x%x\n", status);
-			break;
-		} else {
-			dspAddr += ulBytes / wordSize;
-			ulBytesSent += ulBytes;
-			ulRemainBytes -= ulBytes;
-		}
-	}
-
-	return (status);
-}
-
-/*
  *  ======== DISP_NodeChangePriority ========
  *  Change the priority of a node currently running on the target.
  */
@@ -459,9 +318,6 @@ DSP_STATUS DISP_NodeChangePriority(struct DISP_OBJECT *hDisp,
 	DWORD dwArg;
 	struct RMS_Command *pCommand;
 	DSP_STATUS status = DSP_SOK;
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-	UINT devType;
-#endif
 
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(hDisp, DISP_SIGNATURE));
@@ -476,10 +332,6 @@ DSP_STATUS DISP_NodeChangePriority(struct DISP_OBJECT *hDisp,
 	pCommand->fxn = (RMS_WORD)(ulRMSFxn);
 	pCommand->arg1 = (RMS_WORD)nodeEnv;
 	pCommand->arg2 = nPriority;
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-	SwapWords((RMS_WORD *) pCommand, sizeof(struct RMS_Command) /
-		 sizeof(RMS_WORD));
-#endif
 	status = SendMessage(hDisp, NODE_GetTimeout(hNode),
 		 sizeof(struct RMS_Command), &dwArg);
 	if (DSP_FAILED(status)) {
@@ -522,10 +374,6 @@ DSP_STATUS DISP_NodeCreate(struct DISP_OBJECT *hDisp, struct NODE_OBJECT *hNode,
 	DSP_STATUS status = DSP_SOK;
 	struct DSP_NODEINFO nodeInfo;
 	UINT devType;
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-	struct DSP_MSG msg;
-	DSP_STATUS status1 = DSP_SOK;
-#endif
 
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(hDisp, DISP_SIGNATURE));
@@ -633,14 +481,7 @@ DSP_STATUS DISP_NodeCreate(struct DISP_OBJECT *hDisp, struct NODE_OBJECT *hNode,
 		pMsgArgs->notifyType = msgArgs.uNotifyType;
 		pMsgArgs->argLength = msgArgs.uArgLength;
 		total += sizeof(struct RMS_MsgArgs) / sizeof(RMS_WORD) - 1;
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-		SwapWords(pdwBuf, total);
-		/* Copy arg data */
-		Char2DSPWord16(pdwBuf + total, msgArgs.pData,
-			       msgArgs.uArgLength);
-#else
 		memcpy(pdwBuf + total, msgArgs.pData, msgArgs.uArgLength);
-#endif
 		total += dwLength;
 	}
 	if (!DSP_SUCCEEDED(status))
@@ -672,20 +513,16 @@ DSP_STATUS DISP_NodeCreate(struct DISP_OBJECT *hDisp, struct NODE_OBJECT *hNode,
 			pMoreTaskArgs->stackSize = taskArgs.uStackSize;
 			pMoreTaskArgs->sysstackSize = taskArgs.uSysStackSize;
 			pMoreTaskArgs->stackSeg = taskArgs.uStackSeg;
-#if defined(OMAP_2430) || defined(OMAP_3430)
 			pMoreTaskArgs->heapAddr = taskArgs.uDSPHeapAddr;
 			pMoreTaskArgs->heapSize = taskArgs.uHeapSize;
-#endif
 			pMoreTaskArgs->misc = taskArgs.ulDaisArg;
 			pMoreTaskArgs->numInputStreams = taskArgs.uNumInputs;
 			total +=
 			    sizeof(struct RMS_MoreTaskArgs) / sizeof(RMS_WORD);
-#if defined(OMAP_2430) || defined(OMAP_3430)
 			GT_2trace(DISP_DebugMask, GT_7CLASS,
 				 "DISP::::uDSPHeapAddr %x, "
 				 "uHeapSize %x\n", taskArgs.uDSPHeapAddr,
 				 taskArgs.uHeapSize);
-#endif
 			/* Keep track of pSIOInDef[] and pSIOOutDef[]
 			 * positions in the buffer, since this needs to be
 			 * filled in later.  */
@@ -698,9 +535,9 @@ DSP_STATUS DISP_NodeCreate(struct DISP_OBJECT *hDisp, struct NODE_OBJECT *hNode,
 			/* Fill SIO defs and offsets */
 			offset = sioDefsOffset;
 			for (i = 0; i < taskArgs.uNumInputs; i++) {
-				if (DSP_FAILED(status)) {
+				if (DSP_FAILED(status))
 					break;
-				}
+
 				pdwBuf[sioInDefOffset + i] =
 					(offset - argsOffset)
 					* (sizeof(RMS_WORD) / DSPWORDSIZE);
@@ -724,12 +561,6 @@ DSP_STATUS DISP_NodeCreate(struct DISP_OBJECT *hDisp, struct NODE_OBJECT *hNode,
 				      "DISP_NodeCreate: Message"
 				      " args to large\ for buffer! Message args"
 				      " size = %d, \ max = %d\n", total, max);
-			} else {
-				/* Swap the words not swapped so far */
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-				SwapWords(pdwBuf + taskArgsOffset,
-					 sioDefsOffset-taskArgsOffset);
-#endif
 			}
 		} else {
 			/* Args won't fit */
@@ -782,10 +613,6 @@ DSP_STATUS DISP_NodeDelete(struct DISP_OBJECT *hDisp, struct NODE_OBJECT *hNode,
 	struct RMS_Command *pCommand;
 	DSP_STATUS status = DSP_SOK;
 	UINT devType;
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-	struct DSP_MSG msg;
-	DSP_STATUS status1 = DSP_SOK;
-#endif
 
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(hDisp, DISP_SIGNATURE));
@@ -811,10 +638,6 @@ DSP_STATUS DISP_NodeDelete(struct DISP_OBJECT *hDisp, struct NODE_OBJECT *hNode,
 			pCommand->arg2 = (RMS_WORD)(ulDeleteFxn);
 			pCommand->data = NODE_GetType(hNode);
 
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-			SwapWords((RMS_WORD *)pCommand,
-				sizeof(struct RMS_Command) / sizeof(RMS_WORD));
-#endif
 			status = SendMessage(hDisp, NODE_GetTimeout(hNode),
 					    sizeof(struct RMS_Command), &dwArg);
 			if (DSP_FAILED(status)) {
@@ -855,10 +678,6 @@ DSP_STATUS DISP_NodeRun(struct DISP_OBJECT *hDisp, struct NODE_OBJECT *hNode,
 	struct RMS_Command *pCommand;
 	DSP_STATUS status = DSP_SOK;
 	UINT devType;
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-	struct DSP_MSG msg;
-	DSP_STATUS status1 = DSP_SOK;
-#endif
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(hDisp, DISP_SIGNATURE));
 	DBC_Require(hNode != NULL);
@@ -882,10 +701,6 @@ DSP_STATUS DISP_NodeRun(struct DISP_OBJECT *hDisp, struct NODE_OBJECT *hNode,
 			pCommand->arg2 = (RMS_WORD) (ulExecuteFxn);
 			pCommand->data = NODE_GetType(hNode);
 
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-			SwapWords((RMS_WORD *)pCommand,
-				sizeof(struct RMS_Command) / sizeof(RMS_WORD));
-#endif
 			status = SendMessage(hDisp, NODE_GetTimeout(hNode),
 				 sizeof(struct RMS_Command), &dwArg);
 			if (DSP_FAILED(status)) {
@@ -912,23 +727,6 @@ DSP_STATUS DISP_NodeRun(struct DISP_OBJECT *hDisp, struct NODE_OBJECT *hNode,
 
 	return (status);
 }
-
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-/*
- *  ======== Char2DSPWord16 ========
- *  purpose:
- *      Convert character to DSP word.
- */
-static VOID Char2DSPWord16(RMS_WORD *pdwData, BYTE *pChars, UINT uChars)
-{
-	DSPWORD *pData = (DSPWORD *)pdwData;
-	UINT i;
-
-	for (i = 0; i < uChars; i++)
-		pData[i] = pChars[i];
-
-}
-#endif
 
 /*
  *  ======== DeleteDisp ========
@@ -1004,9 +802,6 @@ static DSP_STATUS FillStreamDef(RMS_WORD *pdwBuf, UINT *ptotal, UINT offset,
 		 *  1 from total.
 		 */
 		total += sizeof(struct RMS_StrmDef) / sizeof(RMS_WORD) - 1;
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-		SwapWords(pdwBuf + offset, total - offset);
-#endif
 		dwLength = CSL_Strlen(strmDef.szDevice) + 1;
 
 		/* Number of RMS_WORDS needed to hold device name */
@@ -1020,13 +815,8 @@ static DSP_STATUS FillStreamDef(RMS_WORD *pdwBuf, UINT *ptotal, UINT offset,
 			 *  extend to completely fill this word.
 			 */
 			pdwBuf[total + uNameLen - 1] = 0;
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-			Char2DSPWord16(pdwBuf + total, strmDef.szDevice,
-				      dwLength);
-#else
 	    /** TODO USE OSAL **/
 			memcpy(pdwBuf + total, strmDef.szDevice, dwLength);
-#endif
 			total += uNameLen;
 			*ptotal = total;
 		}
@@ -1113,14 +903,8 @@ func_cont:
 		} else {
 			if (CHNL_IsIOComplete(chnlIOC)) {
 				DBC_Assert(chnlIOC.pBuf == pBuf);
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-				status = SwapWord(*((RMS_WORD *)chnlIOC.pBuf));
-				*pdwArg = SwapWord(((RMS_WORD *)
-					  (chnlIOC.pBuf))[1]);
-#else
 				status = (*((RMS_WORD *)chnlIOC.pBuf));
 				*pdwArg = (((RMS_WORD *)(chnlIOC.pBuf))[1]);
-#endif
 			} else {
 				status = DSP_EFAIL;
 			}
@@ -1134,21 +918,3 @@ func_cont:
 func_end:
 	return (status);
 }
-
-/*
- *  ======== SwapWords ========
- *  purpose:
- *      Swaps words.
- */
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-static VOID
-SwapWords(RMS_WORD *pdwBuf, ULONG ulSize)
-{
-	ULONG i;
-
-	for (i = 0; i < ulSize; i++)
-		pdwBuf[i] = SwapWord(pdwBuf[i]);
-
-}
-#endif
-

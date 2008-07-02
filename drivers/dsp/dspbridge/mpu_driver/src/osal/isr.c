@@ -21,13 +21,9 @@
  *      Interrupt services.
  *
  *  Public Functions:
- *      ISR_Disable
  *      ISR_Exit
- *      ISR_GetStatus
  *      ISR_Init
  *      ISR_Install
- *      ISR_Restore
- *      ISR_SimulateInt
  *      ISR_Uninstall
  *
  *
@@ -69,14 +65,12 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gp.h>
 #include <gt.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
 #include <list.h>
 #include <mem.h>
-#include <perf.h>
 
 /*  ----------------------------------- This */
 #include <isr.h>
@@ -91,11 +85,6 @@ struct ISR_IRQ {
 	ISR_PROC pfnISR;	/* Client's ISR.                 */
 
 	DWORD dwIntrID;		/* hardware intertupt identifier */
-#ifndef LINUX
-	HANDLE hIntEvent;	/* Handle to Interrupt event */
-	HANDLE hISThread;	/* Handle to thread which waits on interrupt */
-	DWORD dwBusType;	/* Bus Type of this IRQ */
-#endif
 };
 
 /*  ----------------------------------- Globals & Defines */
@@ -107,36 +96,7 @@ HANDLE hEvent;
 HANDLE hInterruptThread;
 
 /*  ----------------------------------- Function Prototypes */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
 static INT HardwareIST(int irq, void *hIRQ, struct pt_regs *pt_regs);
-#else
-static VOID HardwareIST(int irq, void *hIRQ, struct pt_regs *pt_regs);
-#endif
-
-#ifndef LINUX
-/*
- *  ======== ISR_Disable ========
- *  Purpose:
- *      In CE, the client should use ISR_Uninstall to disable the interrupt.
- */
-VOID ISR_Disable(OUT UINT *pFlags)
-{
-	DBC_Require(pFlags != NULL);
-
-	GT_1trace(ISR_DebugMask, GT_ENTER,
-		  "Entered ISR_Disable, *pFlags:  0x%x\n", *pFlags);
-	/* Not implemented in CE */
-	/*
-	   Linux implementation requires change in this API.
-	   To disable single ISR:
-	   VOID ISR_Disable(IN ISR_HIRQ pIRQObject)
-	   disable_irq (pIRQObject->dwIntrID) ;
-	   To disable all ISRs:
-	   VOID ISR_Disable(OUT UINT * pFlags, OUT spinlock_t * isr_lock)
-	   spin_lock_irqsave (isr_lock, *pFlags) ;
-	 */
-}
-#endif
 
 /*
  *  ======== ISR_Exit ========
@@ -147,23 +107,6 @@ VOID ISR_Exit()
 {
 	GT_0trace(ISR_DebugMask, GT_ENTER, "Entered ISR_Exit\n");
 }
-
-#ifndef LINUX
-/*
- *  ======== ISR_GetStatus ========
- *  Purpose:
- *      Get ISR status.
- */
-DSP_STATUS ISR_GetStatus(struct ISR_IRQ *hIRQ, OUT DWORD *pdwFlags)
-{
-	DBC_Require(pdwFlags != NULL);
-
-	GT_1trace(ISR_DebugMask, GT_ENTER,
-		  "Entered ISR_GetStatus,hIRQ:0x%x\n", hIRQ);
-
-	return (DSP_ENOTIMPL);
-}
-#endif
 
 /*
  *  ======== ISR_Init ========
@@ -212,18 +155,13 @@ DSP_STATUS ISR_Install(OUT struct ISR_IRQ **phIRQ,
 			/* Fill out the Object: */
 			pIRQObject->pRefData = pRefData;
 			pIRQObject->pfnISR = pfnISR;
-#ifndef LINUX
-			pIRQObject->dwBusType = pHostConfig->dwBusType;
-#endif
+
 			/* Install different HW interrupts based on interrupt
 			 * type. */
 				switch (dwIntrType) {
 				case ISR_MAILBOX1:
-#if defined(OMAP_2430) || defined(OMAP_3430)
 				pIRQObject->dwIntrID = INT_MAIL_MPU_IRQ;
-#else
-				pIRQObject->dwIntrID = INT_DSP_MAILBOX1;
-#endif
+
 				GT_0trace(ISR_DebugMask, GT_1CLASS,
 					  "Setting intr id for "
 					  "ISR_MAILBOX1\n");
@@ -231,7 +169,6 @@ DSP_STATUS ISR_Install(OUT struct ISR_IRQ **phIRQ,
 
 				case ISR_MAILBOX2:
 				pIRQObject->dwIntrID = MAIL_U3_MPU_IRQ;
-
 				GT_0trace(ISR_DebugMask, GT_1CLASS,
 					  "Setting intr id for "
 					  "ISR_MAILBOX2\n");
@@ -239,17 +176,7 @@ DSP_STATUS ISR_Install(OUT struct ISR_IRQ **phIRQ,
 				break;
 
 				case DSP_MMUFAULT:
-#if  defined(OMAP_2430) || defined(OMAP_3430)
 				pIRQObject->dwIntrID = INT_DSP_MMU_IRQ;
-#else
-#ifdef OMAP_1710
-				/* INT Level 1, interrupt 7 */
-				pIRQObject->dwIntrID = INT_DSP_MMU_ABORT;
-#else
-				/* INT Level 2, interrupt 28 */
-				pIRQObject->dwIntrID = INT_DSP_MMU;
-#endif
-#endif
 				GT_0trace(ISR_DebugMask, GT_1CLASS,
 					  "Setting intr id for "
 					  "DSP_MMUFAULT\n");
@@ -283,54 +210,6 @@ DSP_STATUS ISR_Install(OUT struct ISR_IRQ **phIRQ,
 	return (status);
 }
 
-#ifndef LINUX
-/*
- *  ======== ISR_Restore ========
- *  Purpose:
- *      In CE, the client should use ISR_Install to restore the interrupt.
- */
-VOID ISR_Restore(UINT saveFlags)
-{
-	GT_1trace(ISR_DebugMask, GT_ENTER,
-		  "Entered ISR_Restore, saveFlags: 0x%x\n",
-		  saveFlags);
-	/*
-	   Linux implementation requires change in this API.
-	   To restore single ISR
-	   VOID ISR_Restore(IN ISR_HIRQ pIRQObject)
-	   enable_irq (pIRQObject->dwIntrID) ;
-	   To restore all ISRs:
-	   VOID ISR_Restore(UINT saveFlags, spinlock_t * isr_lock)
-	   spin_unlock_irqrestore (isr_lock, saveFlags) ;
-	 */
-}
-
-/*
- *  ======== ISR_SimulateInt ========
- *  Purpose:
- *      Simulate an interrupt.
- */
-DSP_STATUS ISR_SimulateInt(struct ISR_IRQ *hIRQ)
-{
-	DSP_STATUS status = DSP_SOK;
-	struct ISR_IRQ *pIRQObject = (struct ISR_IRQ *) hIRQ;
-
-	DBC_Require(hIRQ > 0);
-	GT_1trace(ISR_DebugMask, GT_ENTER,
-		  "Entered ISR_SimulateInt, hIRQ: 0x%x\n",
-		  hIRQ);
-	if (MEM_IsValidHandle(hIRQ, SIGNATURE)) {
-		/* Simulate the interrupt: */
-		if (!SetEvent(pIRQObject->hIntEvent)) {
-			status = DSP_EFAIL;
-		}
-	} else {
-		status = DSP_EHANDLE;
-	}
-	return (status);
-}
-#endif
-
 /*
  *  ======== ISR_Uninstall ========
  *  Purpose:
@@ -350,7 +229,7 @@ DSP_STATUS ISR_Uninstall(struct ISR_IRQ *hIRQ)
 	if (MEM_IsValidHandle(hIRQ, SIGNATURE)) {
 		/* Linux function to uninstall ISR */
 		free_irq(pIRQObject->dwIntrID, pIRQObject);
-		pIRQObject->dwIntrID = (DWORD) - 1;
+		pIRQObject->dwIntrID = (DWORD) -1;
 	} else {
 		status = DSP_EHANDLE;
 	}
@@ -372,8 +251,6 @@ DSP_STATUS ISR_Uninstall(struct ISR_IRQ *hIRQ)
  *  Purpose:
  *      Linux calls this IRQ handler on interrupt.
  */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
-
 static INT HardwareIST(int irq, void *hIRQ, struct pt_regs *pt_regs)
 {
 	struct ISR_IRQ *pIRQObject = (struct ISR_IRQ *)hIRQ;
@@ -385,18 +262,3 @@ static INT HardwareIST(int irq, void *hIRQ, struct pt_regs *pt_regs)
 
 	return IRQ_HANDLED;
 }
-
-#else
-
-static VOID HardwareIST(int irq, void *hIRQ, struct pt_regs *pt_regs)
-{
-	struct ISR_IRQ *pIRQObject = (struct ISR_IRQ *)hIRQ;
-
-	DBC_Require(irq == pIRQObject->dwIntrID);
-
-	/* Call the function registered in ISR_Install */
-	(*(pIRQObject->pfnISR))(pIRQObject->pRefData);
-}
-
-#endif
-

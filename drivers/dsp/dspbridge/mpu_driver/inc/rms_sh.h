@@ -1,18 +1,17 @@
 /*
- * dspbridge/inc/rms_sh.h
+ * dspbridge/mpu_driver/inc/rms_sh.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
- * Copyright (C) 2007 Texas Instruments, Inc.
+ * Copyright (C) 2008 Texas Instruments, Inc.
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation version 2.1 of the License.
+ * This package is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
  *
- * This program is distributed .as is. WITHOUT ANY WARRANTY of any kind,
- * whether express or implied; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * THIS PACKAGE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+ * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
 
@@ -73,6 +72,7 @@ extern "C" {
 #define RMS_EXIT                0x80000000   /* GPP->Node: shutdown */
 #define RMS_EXITACK             0x40000000   /* Node->GPP: ack shutdown */
 #define RMS_BUFDESC             0x20000000   /* Arg1 SM buf, Arg2 is SM size */
+#define RMS_KILLTASK            0x10000000  /* GPP->Node: Kill Task */
 #define RMS_USER                0x0	/* Start of user-defined msg codes */
 #define RMS_MAXUSERCODES        0xfff	/* Maximum user defined C/R Codes */
 
@@ -113,12 +113,10 @@ extern "C" {
 		RMS_WORD stackSize;	/* Task's stack size */
 		RMS_WORD sysstackSize;	/* Task's system stack size (55x) */
 		RMS_WORD stackSeg;	/* Memory segment for task's stack */
-#if defined(OMAP_2430) || defined(OMAP_3430)
 		RMS_WORD heapAddr;   /* base address of the node memory heap in
 				      * external memory (DSP virtual address) */
 		RMS_WORD heapSize;   /* size in MAUs of the node memory heap in
 				      * external memory */
-#endif
 		RMS_WORD misc;	/* Misc field.  Not used for 'normal'
 				 * task nodes; for xDAIS socket nodes
 				 * specifies the IALG_Fxn pointer.

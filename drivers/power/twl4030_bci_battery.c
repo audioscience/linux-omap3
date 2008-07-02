@@ -23,6 +23,7 @@
 #include <linux/platform_device.h>
 #include <linux/i2c/twl4030.h>
 #include <linux/power_supply.h>
+#include <asm/mach-types.h>
 
 #define T2_BATTERY_VOLT		0x04
 #define T2_BATTERY_TEMP		0x06
@@ -70,9 +71,11 @@
 #define STS_VBUS		0x080
 #define STS_CHG			0x02
 #define REG_BCIMSTATEC		0x02
-#define REG_BCIMFSTS4		0x010
 #define REG_BCIMFSTS2		0x00E
 #define REG_BCIMFSTS3 		0x00F
+#define REG_BCIMFSTS4		0x010
+#define REG_BCIMFKEY		0x011
+#define REG_BCIIREF1		0x027
 #define REG_BCIMFSTS1		0x001
 #define USBFASTMCHG		0x004
 #define BATSTSPCHG		0x004
@@ -229,7 +232,7 @@ static inline int twl4030charger_presence_evt(void)
 		set = CHG_PRES_RISING;
 		clear = CHG_PRES_FALLING;
 	}
-
+#ifndef CONFIG_TWL4030_USB
 	/* If the USB charger have been connected */
 	if (chg_sts & STS_VBUS) {
 		/* configuring falling edge detection for USB_PRES */
@@ -245,7 +248,7 @@ static inline int twl4030charger_presence_evt(void)
 		set |= USB_PRES_RISING;
 		clear |= USB_PRES_FALLING;
 	}
-
+#endif
 	if ((chg_sts & STS_VBUS) == STS_VBUS)
 		usb_charger_flag = 1;
 	else
@@ -482,10 +485,19 @@ static int twl4030battery_hw_presence_en(int enable)
 static int twl4030charger_hw_presence_en(int enable)
 {
 	int ret;
+	u8 pres = 0, edge = 0;
+
+#ifndef CONFIG_TWL4030_USB
+	pres |= USB_PRES;
+	edge |= (USB_PRES_RISING | USB_PRES_FALLING);
+#endif
+
+	pres |= CHG_PRES;
+	edge |= (CHG_PRES_RISING | CHG_PRES_FALLING);
 
 	if (enable) {
 		/* unmask USB_PRES and CHG_PRES interrupt for INT1 */
-		ret = clear_n_set(TWL4030_MODULE_INT, (USB_PRES | CHG_PRES), 0,
+		ret = clear_n_set(TWL4030_MODULE_INT, pres, 0,
 			REG_PWR_IMR1);
 		if (ret)
 			return ret;
@@ -493,15 +505,12 @@ static int twl4030charger_hw_presence_en(int enable)
 		 * configuring interrupt edge detection
 		 * for USB_PRES and CHG_PRES
 		 */
-		ret = clear_n_set(TWL4030_MODULE_INT, 0, (USB_PRES_RISING |
-			USB_PRES_FALLING | CHG_PRES_RISING | CHG_PRES_FALLING),
-			REG_PWR_EDR1);
+		ret = clear_n_set(TWL4030_MODULE_INT, 0, edge, REG_PWR_EDR1);
 		if (ret)
 			return 0;
 	} else {
 		/* mask USB_PRES and CHG_PRES interrupt for INT1 */
-		ret = clear_n_set(TWL4030_MODULE_INT, 0, (USB_PRES | CHG_PRES),
-			REG_PWR_IMR1);
+		ret = clear_n_set(TWL4030_MODULE_INT, 0, pres, REG_PWR_IMR1);
 		if (ret)
 			return ret;
 	}
@@ -552,6 +561,19 @@ int twl4030charger_usb_en(int enable)
 		if (!(ret & USB_PW_CONN))
 			return -ENXIO;
 
+		if (machine_is_omap_ldp()) {
+			/* enable access to BCIIREF1 */
+			ret = twl4030_i2c_write_u8(TWL4030_MODULE_MAIN_CHARGE,
+				0xE7, REG_BCIMFKEY);
+			if (ret)
+				return ret;
+
+			/* set charging current = 852mA */
+			ret = twl4030_i2c_write_u8(TWL4030_MODULE_MAIN_CHARGE,
+				0xFF, REG_BCIIREF1);
+			if (ret)
+				return ret;
+		}
 		/* forcing the field BCIAUTOUSB (BOOT_BCI[1]) to 1 */
 		ret = clear_n_set(TWL4030_MODULE_PM_MASTER, 0,
 			(CONFIG_DONE | BCIAUTOWEN | BCIAUTOUSB),
@@ -1109,10 +1131,13 @@ static int twl4030_bci_battery_probe(struct  platform_device *dev)
 		goto prev_setup_err;
 	}
 
-	/* request Power interruption */
-	ret = request_irq(TWL4030_MODIRQ_PWR, twl4030charger_interrupt,
-		IRQF_DISABLED | IRQF_SHARED, dev->name, di);
-
+	/* request interrupt on charger detection */
+	ret = request_irq(TWL4030_PWRIRQ_CHG_PRES, twl4030charger_interrupt, 0,
+		dev->name, di);
+#ifndef CONFIG_TWL4030_USB
+	ret = request_irq(TWL4030_PWRIRQ_USB_PRES, twl4030charger_interrupt, 0,
+		dev->name, di);
+#endif
 	if (ret) {
 		pr_err("BATTERY DRIVER: (POWER) IRQ%d is not free.\n",
 			TWL4030_MODIRQ_PWR);

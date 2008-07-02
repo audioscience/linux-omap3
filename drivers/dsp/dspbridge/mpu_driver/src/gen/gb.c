@@ -48,21 +48,6 @@ struct GB_TMap {
 };
 
 /*
- *  ======== GB_and ========
- *  purpose:
- *      Performs AND operation on the two bit maps provided.
- */
-
-Void GB_and(struct GB_TMap *dst, struct GB_TMap *src)
-{
-	GB_WordNum i;
-
-	for (i = 0; i < dst->wcnt; i++)
-		dst->words[i] &= src->words[i];
-
-}
-
-/*
  *  ======== GB_clear ========
  *  purpose:
  *      Clears a bit in the bit map.
@@ -86,16 +71,15 @@ struct GB_TMap *GB_create(GB_BitNum len)
 {
 	struct GB_TMap *map;
 	GB_WordNum i;
-
-	if ((map = (struct GB_TMap *)GS_alloc(sizeof(struct GB_TMap))) !=
-	   NULL) {
+	map = (struct GB_TMap *)GS_alloc(sizeof(struct GB_TMap));
+	if (map != NULL) {
 		map->len = len;
 		map->wcnt = len / LGSIZE + 1;
 		map->words = (LgUns *)GS_alloc(map->wcnt * sizeof(LgUns));
 		if (map->words != NULL) {
-			for (i = 0; i < map->wcnt; i++) {
+			for (i = 0; i < map->wcnt; i++)
 				map->words[i] = 0L;
-			}
+
 		} else {
 			GS_frees(map, sizeof(struct GB_TMap));
 			map = NULL;
@@ -118,34 +102,6 @@ Void GB_delete(struct GB_TMap *map)
 }
 
 /*
- *  ======== GB_empty ========
- *  purpose:
- *      Returns TRUE if the bitmap is empty.
- */
-
-Bool GB_empty(struct GB_TMap *map)
-{
-	LgUns mask = 0x0;
-	GB_WordNum i;
-
-	mask = ~mask >> (LGSIZE - (map->len % LGSIZE));
-
-	for (i = 0; i < map->wcnt; i++) {
-		if (i == (map->wcnt - 1)) {
-			if (map->words[i] & mask) {
-				return (FALSE);
-			}
-		} else {
-			if (map->words[i] != 0L) {
-				return (FALSE);
-			}
-		}
-	}
-
-	return (TRUE);
-}
-
-/*
  *  ======== GB_findandset ========
  *  purpose:
  *      Finds a free bit and sets it.
@@ -163,63 +119,6 @@ GB_BitNum GB_findandset(struct GB_TMap *map)
 }
 
 /*
- *  ======== GB_full ========
- *  purpose:
- *      Returns TRUE if the bit map is full.
- */
-
-Bool GB_full(struct GB_TMap *map)
-{
-	LgUns mask = 0x0;
-	GB_WordNum i;
-
-	mask = ~mask >> (LGSIZE - (map->len % LGSIZE));
-
-	for (i = 0; i < map->wcnt; i++) {
-		if (i == (map->wcnt - 1)) {
-			if ((map->words[i] & mask) != mask) {
-				return (FALSE);
-			}
-		} else {
-			if (~map->words[i] != 0L) {
-				return (FALSE);
-			}
-		}
-	}
-
-	return (TRUE);
-}
-
-/*
- *  ======== GB_init ========
- *  purpose:
- *      Initializes the GB module.
- */
-
-Void GB_init(void)
-{
-	static Bool curInit = FALSE;
-
-	if (curInit)
-		return;
-
-	curInit = TRUE;
-
-	GS_init();
-}
-
-/*
- *  ======== GB_len ========
- *  purpose:
- *      Returns the length of the bit map.
- */
-
-GB_BitNum GB_len(struct GB_TMap *map)
-{
-	return (map->len);
-}
-
-/*
  *  ======== GB_minclear ========
  *  purpose:
  *      returns the location of the first unset bit in the bit map.
@@ -234,40 +133,12 @@ GB_BitNum GB_minclear(struct GB_TMap *map)
 	for (word = map->words, i = 0; i < map->wcnt; word++, i++) {
 		if (~*word) {
 			for (bit = 0; bit < LGSIZE; bit++, bitAcc++) {
-				if (bitAcc == map->len) {
-					return (GB_NOBITS);
-				}
-				if (~*word & (1L << bit)) {
-					return (i * LGSIZE + bit);
-				}
-			}
-		} else {
-			bitAcc += LGSIZE;
-		}
-	}
-
-	return (GB_NOBITS);
-}
-
-/*
- *  ======== GB_minset ========
- *  purpose:
- *      Returns the first set bit location in the bit map.
- */
-GB_BitNum GB_minset(struct GB_TMap *map)
-{
-	GB_BitNum bitAcc = 0;
-	GB_WordNum i;
-	GB_BitNum bit;
-	LgUns *word;
-
-	for (word = map->words, i = 0; i < map->wcnt; word++, i++) {
-		if (*word) {
-			for (bit = 0; bit < LGSIZE; bit++, bitAcc++) {
 				if (bitAcc == map->len)
 					return (GB_NOBITS);
-				else if (*word & (1L << bit))
-					return ((GB_BitNum) (i * LGSIZE + bit));
+
+				if (~*word & (1L << bit))
+					return (i * LGSIZE + bit);
+
 			}
 		} else {
 			bitAcc += LGSIZE;
@@ -275,35 +146,6 @@ GB_BitNum GB_minset(struct GB_TMap *map)
 	}
 
 	return (GB_NOBITS);
-}
-
-/*
- *  ======== GB_not ========
- *  purpose:
- *      Performs NOT operation on the bit map provided.
- */
-
-Void GB_not(struct GB_TMap *dst)
-{
-	GB_WordNum i;
-
-	for (i = 0; i < dst->wcnt; i++)
-		dst->words[i] ^= ~0L;
-
-}
-
-/*
- *  ======== GB_or ========
- *  purpose:
- *      Perform OR operation on the two bit maps.
- */
-Void GB_or(struct GB_TMap *dst, struct GB_TMap *src)
-{
-	GB_WordNum i;
-
-	for (i = 0; i < dst->wcnt; i++)
-		dst->words[i] |= src->words[i];
-
 }
 
 /*

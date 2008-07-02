@@ -59,7 +59,6 @@
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
 #include <gt.h>
-#include <dbg_zones.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
 #include <list.h>
@@ -220,13 +219,13 @@ DSP_STATUS RMM_create(struct RMM_TargetObj **pTarget,
 			 "RMM_create: Memory allocation failed\n");
 		status = DSP_EMEMORY;
 	}
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_cont;
-	}
+
 	target->numSegs = numSegs;
-	if (!(numSegs > 0)) {
+	if (!(numSegs > 0))
 		goto func_cont;
-	}
+
 	/* Allocate the memory for freelist from host's memory */
 	target->freeList = MEM_Calloc(numSegs * sizeof(struct RMM_Header *),
 				     MEM_PAGED);
@@ -284,9 +283,9 @@ func_cont:
 		*pTarget = target;
 	} else {
 		*pTarget = NULL;
-		if (target) {
+		if (target)
 			RMM_delete(target);
-		}
+
 	}
 
 	DBC_Ensure((DSP_SUCCEEDED(status) && MEM_IsValidHandle((*pTarget),
@@ -310,9 +309,8 @@ Void RMM_delete(struct RMM_TargetObj *target)
 
 	GT_1trace(RMM_debugMask, GT_ENTER, "RMM_delete(0x%lx)\n", target);
 
-	if (target->segTab != NULL) {
+	if (target->segTab != NULL)
 		MEM_Free(target->segTab);
-	}
 
 	if (target->ovlyList) {
 		while ((pSect = (struct RMM_OvlySect *)LST_GetHead
@@ -351,9 +349,8 @@ Void RMM_exit(Void)
 	GT_1trace(RMM_debugMask, GT_5CLASS, "RMM_exit() ref count: 0x%x\n",
 		 cRefs);
 
-	if (cRefs == 0) {
+	if (cRefs == 0)
 		MEM_Exit();
-	}
 
 	DBC_Ensure(cRefs >= 0);
 }
@@ -382,9 +379,9 @@ Bool RMM_free(struct RMM_TargetObj *target, Uns segid, LgUns addr, LgUns size,
 	 */
 	if (!reserved) {
 		retVal = freeBlock(target, segid, addr, size);
-		if (retVal) {
+		if (retVal)
 			target->segTab[segid].number--;
-		}
+
 	} else {
 		/* Unreserve memory */
 		sect = (struct RMM_OvlySect *)LST_First(target->ovlyList);
@@ -400,9 +397,9 @@ Bool RMM_free(struct RMM_TargetObj *target, Uns segid, LgUns addr, LgUns size,
 			sect = (struct RMM_OvlySect *)LST_Next(target->ovlyList,
 			       (struct LST_ELEM *)sect);
 		}
-		if (sect == NULL) {
+		if (sect == NULL)
 			retVal = FALSE;
-		}
+
 	}
 	return (retVal);
 }
@@ -422,84 +419,19 @@ Bool RMM_init(Void)
 
 		retVal = MEM_Init();
 
-		if (!retVal) {
+		if (!retVal)
 			MEM_Exit();
-		}
+
 	}
 
-	if (retVal) {
+	if (retVal)
 		cRefs++;
-	}
 
 	GT_1trace(RMM_debugMask, GT_5CLASS,
 		 "RMM_init(), ref count:  0x%x\n",
 		 cRefs);
 
 	DBC_Ensure((retVal && (cRefs > 0)) || (!retVal && (cRefs >= 0)));
-
-	return (retVal);
-}
-
-/*
- *  ======== RMM_reserve ========
- */
-Bool RMM_reserve(struct RMM_TargetObj *target, Uns segid, LgUns size,
-		LgUns dspAddr)
-{
-	struct RMM_Header *head;
-	struct RMM_Header *prevhead = NULL;
-	struct RMM_Header *next;
-	LgUns top;
-	Bool retVal = FALSE;
-
-	DBC_Require(cRefs > 0);
-	DBC_Require(MEM_IsValidHandle(target, RMM_TARGSIGNATURE));
-	DBC_Require(segid < target->numSegs);
-	DBC_Require(size > 0);
-
-	GT_4trace(RMM_debugMask, GT_ENTER, "RMM_reserve(0x%lx, 0x%lx, 0x%lx, "
-		 "0x%lx)\n", target, segid, size, dspAddr);
-
-	head = target->freeList[segid];
-
-	do {
-		next = head->next;
-
-		/* compute topmost addr of head */
-		top = head->addr + head->size;
-
-		/* does head cover the block defined by
-		 * [dspAddr, dspAddr + size]? */
-		if (head->addr <= dspAddr && top >= (dspAddr + size)) {
-			LgUns headAddr = head->addr;
-
-			/* allocate the entire spanning block */
-			if (prevhead != NULL) {
-				prevhead->next = next;
-				MEM_Free(head);
-			} else {
-				head->size = 0;
-			}
-
-			/* free leftmost unused part of block */
-			if (headAddr != dspAddr) {
-				freeBlock(target, segid, headAddr, dspAddr -
-					 headAddr);
-			}
-
-			/* free rightmost unused part of block */
-			if (dspAddr + size != top) {
-				freeBlock(target, segid, dspAddr + size, top -
-					 dspAddr - size);
-			}
-
-			retVal = TRUE;
-		}
-
-		prevhead = head;
-		head = next;
-
-	} while (head != NULL);
 
 	return (retVal);
 }
@@ -579,7 +511,8 @@ static Bool allocBlock(struct RMM_TargetObj *target, Uns segid, LgUns size,
 		addr = head->addr;	/* alloc from the bottom */
 
 		/* align allocation */
-		if ((tmpalign = (Uns) addr % alignbytes) != 0) {
+		(tmpalign = (Uns) addr % alignbytes);
+		if (tmpalign != 0) {
 			tmpalign = alignbytes - tmpalign;
 		}
 
@@ -595,9 +528,8 @@ static Bool allocBlock(struct RMM_TargetObj *target, Uns segid, LgUns size,
 			}
 
 			/* free up any hole created by alignment */
-			if (tmpalign) {
+			if (tmpalign)
 				freeBlock(target, segid, addr, tmpalign);
-			}
 
 			*dspAddr = addr + tmpalign;
 			return (TRUE);
@@ -627,17 +559,17 @@ static Bool freeBlock(struct RMM_TargetObj *target, Uns segid, LgUns addr,
 	Bool retVal = TRUE;
 
 	/* Create a memory header to hold the newly free'd block. */
-	if ((rhead = MEM_Calloc(sizeof(struct RMM_Header),
-	   MEM_PAGED)) == NULL) {
+	rhead = MEM_Calloc(sizeof(struct RMM_Header), MEM_PAGED);
+	if (rhead == NULL) {
 		retVal = FALSE;
 	} else {
 		/* search down the free list to find the right place for addr */
 		head = target->freeList[segid];
 
 		if (addr >= head->addr) {
-			while (head->next != NULL && addr > head->next->addr) {
+			while (head->next != NULL && addr > head->next->addr)
 				head = head->next;
-			}
+
 			thead = head->next;
 
 			head->next = rhead;

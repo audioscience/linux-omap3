@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/wmdchnl.h
+ * dspbridge/mpu_driver/inc/wmdchnl.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

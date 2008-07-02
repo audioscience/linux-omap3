@@ -38,13 +38,6 @@
 /* Function prototypes */
 
 /*
- *  ======== WaitForSAM ========
- *  Wait for SAM transition, or timeout.
- */
-extern BOOL WaitForSAM(struct WMD_DEV_CONTEXT *pDevContext,
-			DWORD dwTimeoutLoops);
-
-/*
  *  ======== WaitForStart ========
  *  Wait for the singal from DSP that it has started, or time out.
  *  The argument dwSyncAddr is set to 1 before releasing the DSP.

@@ -22,22 +22,13 @@
  *
  *  Public Functions:
  *      MEM_Alloc
- *      MEM_AllocObject
  *      MEM_AllocPhysMem
  *      MEM_Calloc
  *      MEM_Exit
  *      MEM_FlushCache
  *      MEM_Free
  *      MEM_FreePhysMem
- *      MEM_FreeObject
- *      MEM_GetNumPages
  *      MEM_Init
- *      MEM_IsValidHandle
- *      MEM_LinearAddress
- *      MEM_PageLock
- *      MEM_PageUnlock
- *      MEM_UnMapLinearAddress
- *      MEM_VirtualToPhysical
  *      MEM_ExtPhysPoolInit
  *
  *! Revision History:
@@ -69,7 +60,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gt.h>
 
 /*  ----------------------------------- This */
@@ -311,20 +301,12 @@ PVOID MEM_Alloc(ULONG cBytes, MEM_POOLATTRS type)
 			break;
 		case MEM_LARGEVIRTMEM:
 #ifndef MEM_CHECK
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
 			/* FIXME - Replace with 'vmalloc' after BP fix */
 			pMem = __vmalloc(cBytes, GFP_ATOMIC, PAGE_KERNEL);
 #else
-			pMem = vmalloc(cBytes);
-#endif
-#else
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
 			/* FIXME - Replace with 'vmalloc' after BP fix */
 			pMem = __vmalloc((cBytes + sizeof(struct memInfo)),
 				GFP_ATOMIC, PAGE_KERNEL);
-#else
-			pMem = vmalloc(cBytes + sizeof(struct memInfo));
-#endif
 			if (pMem) {
 				pMem->size = cBytes;
 				pMem->caller = __builtin_return_address(0);
@@ -373,13 +355,8 @@ PVOID MEM_AllocPhysMem(ULONG cBytes, ULONG ulAlign, OUT ULONG *pPhysicalAddress)
 			pVaMem = MEM_ExtPhysMemAlloc(cBytes, ulAlign,
 						    (ULONG *)&paMem);
 		} else
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
 			pVaMem = dma_alloc_coherent(NULL, cBytes, &paMem,
 						   GFP_ATOMIC);
-#else
-			pVaMem = pci_alloc_consistent(NULL, cBytes, &paMem);
-#endif
-
 		if (pVaMem == NULL) {
 			*pPhysicalAddress = 0;
 			GT_1trace(MEM_debugMask, GT_6CLASS,
@@ -435,25 +412,15 @@ PVOID MEM_Calloc(ULONG cBytes, MEM_POOLATTRS type)
 			break;
 		case MEM_LARGEVIRTMEM:
 #ifndef MEM_CHECK
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
 			/* FIXME - Replace with 'vmalloc' after BP fix */
 			pMem = __vmalloc(cBytes, GFP_ATOMIC, PAGE_KERNEL);
-#else
-			/* Need to get fix for vmalloc */
-			pMem = vmalloc(cBytes);
-#endif
 			if (pMem)
 				memset(pMem, 0, cBytes);
 
 #else
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
 			/* FIXME - Replace with 'vmalloc' after BP fix */
 			pMem = __vmalloc(cBytes + sizeof(struct memInfo),
 				GFP_ATOMIC, PAGE_KERNEL);
-#else
-			pMem = vmalloc(cBytes + sizeof(struct memInfo));
-			/* Need to get fix for vmalloc */
-#endif
 			if (pMem) {
 				memset((PVOID)((ULONG)pMem +
 					sizeof(struct memInfo)), 0, cBytes);
@@ -511,56 +478,11 @@ VOID MEM_FlushCache(PVOID pMemBuf, ULONG cBytes, INT FlushType)
 
 INT FlushMemDirection;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,22)
 	struct vm_area_struct *vma;
 	struct mm_struct *mm = current->mm;
-#endif
-#endif
 
 	DBC_Require(cRefs > 0);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,22)
-		switch (FlushType) {
-		case PROC_INVALIDATE_MEM:		/* invalidate only */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
-		FlushMemDirection = 	DMA_FROM_DEVICE;
-#else
-		FlushMemDirection = 	PCI_DMA_FROMDEVICE;
-#endif
-		break;
-		case PROC_WRITEBACK_MEM:		/* writeback only */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
-		FlushMemDirection = DMA_TO_DEVICE;
-#else
-		FlushMemDirection = PCI_DMA_TODEVICE;
-
-#endif
-		break;
-		/* writeback and invalidate */
-		case PROC_WRITEBACK_INVALIDATE_MEM:
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
-		FlushMemDirection = DMA_BIDIRECTIONAL;
-#else
-		FlushMemDirection = PCI_DMA_BIDIRECTIONAL;
-#endif
-		break;
-		default:
-		GT_1trace(MEM_debugMask, GT_6CLASS, "MEM_FlushCache: invalid "
-			  "FlushMemType 0x%x\n", FlushType);
-
-		break;
-	}
-	GT_0trace(MEM_debugMask, GT_ENTER, "MEM_FlushCache: Entered\n");
-
-	/* Call OEM specific cache synchronization function */
-	/* As such conistent_sync is recommeneded onloy for physically
-	 * contiguous memory, but on ARM V6 the cache is virtually indexed, so
-	 * consistent_sync, should work in vitual memory flush as well
-	 */
-
-	consistent_sync(pMemBuf, cBytes, FlushMemDirection);
-#else
 	switch (FlushType) {
 	/* invalidate only */
 	case PROC_INVALIDATE_MEM:
@@ -585,14 +507,7 @@ INT FlushMemDirection;
 			  "FlushMemType 0x%x\n", FlushType);
 	break;
 	}
-#if 0
-	down_read(&mm->mmap_sem);
-	vma = find_vma(mm, pMemBuf);
-	up_read(&mm->mmap_sem);
-	flush_cache_user_range(vma, (ULONG) pMemBuf, (ULONG) pMemBuf +
-			       cBytes - 1);
-#endif
-#endif
+
 }
 
 
@@ -638,49 +553,6 @@ VOID MEM_Free(IN PVOID pMemBuf)
 }
 
 /*
- *  ======== MEM_VFree ========
- *  Purpose:
- *      Free the given block of system memory.
- */
-VOID MEM_VFree(IN PVOID pMemBuf)
-{
-#ifdef MEM_CHECK
-	struct memInfo *pMem = (PVOID)((ULONG)pMemBuf - sizeof(struct memInfo));
-#endif
-
-	DBC_Require(pMemBuf != NULL);
-
-	GT_1trace(MEM_debugMask, GT_ENTER, "MEM_VFree: pMemBufs 0x%x\n",
-		  pMemBuf);
-
-	if (pMemBuf) {
-#ifndef MEM_CHECK
-		vfree(pMemBuf);
-#else
-		if (pMem) {
-			if (pMem->dwSignature == memInfoSign) {
-				spin_lock(&mMan.lock);
-				MLST_RemoveElem(&mMan.lst,
-						(struct LST_ELEM *) pMem);
-				spin_unlock(&mMan.lock);
-
-				pMem->dwSignature = 0;
-				vfree(pMem);
-			} else {
-				GT_1trace(MEM_debugMask, GT_7CLASS,
-					  "Invalid allocation or "
-					  "Buffer underflow at %x\n",
-					  (ULONG) pMem +
-					  sizeof(struct memInfo));
-				/*Do not try to free an invalid address*/
-				/*  kfree(pMemBuf); */
-			}
-		}
-#endif
-	}
-}
-
-/*
  *  ======== MEM_FreePhysMem ========
  *  Purpose:
  *      Free the given block of physically contiguous memory.
@@ -695,12 +567,8 @@ VOID MEM_FreePhysMem(PVOID pVirtualAddress, DWORD pPhysicalAddress,
 		  "0x%x\n", pVirtualAddress);
 
 	if (!extPhysMemPoolEnabled)
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
 		dma_free_coherent(NULL, cBytes, pVirtualAddress,
 				 pPhysicalAddress);
-#else
-		consistent_free(pVirtualAddress, cBytes, pPhysicalAddress);
-#endif
 }
 
 /*
@@ -731,77 +599,3 @@ BOOL MEM_Init()
 
 	return (TRUE);
 }
-
-/*
- *  ======== MEM_VirtualToPhysical ========
- *  Purpose:
- *      Given a user allocated virtual address, return the corresponding
- *      physical address based on the page frame address.
- */
-DWORD MEM_VirtualToPhysical(DWORD dwVirtAddr)
-{
-
-	DWORD dwPhysAddr;
-	DWORD numUsrPgs;
-	struct page *aPFNTab[1];
-	struct task_struct *curr_task = current;
-	struct mm_struct *mm = curr_task->mm;
-
-	DBC_Require(cRefs > 0);
-	DBC_Require((PVOID) dwVirtAddr != NULL);
-
-	GT_1trace(MEM_debugMask, GT_ENTER, "MEM_VirtualToPhysical: dwVirtAddr "
-		  "0x%x\n", dwVirtAddr);
-
-	down_read(&mm->mmap_sem);
-	numUsrPgs = get_user_pages(curr_task, mm, dwVirtAddr, 1, TRUE, 0,
-				   aPFNTab, NULL);
-	up_read(&mm->mmap_sem);
-
-	if (numUsrPgs == 1) {
-		dwPhysAddr = page_to_phys(aPFNTab[0]);
-		/* Release the page lock, else this results in a physical
-		 * memory leak */
-		page_cache_release(aPFNTab[0]);
-	} else {
-		GT_0trace(MEM_debugMask, GT_4CLASS,
-			  "MEM_VirtualToPhysical: attempting "
-			  "page table walk !!!!!!: \n");
-	struct mm_struct *mm = current->mm;
-	pgd_t *pgd;
-	pmd_t *pmd;
-	pte_t *ptep, pte;
-	struct page *page;
-
-	pgd = pgd_offset(mm, dwVirtAddr);
-	if (!(pgd_none(*pgd) || pgd_bad(*pgd))) {
-			pmd = pmd_offset(pgd, dwVirtAddr);
-			if (!(pmd_none(*pmd) || pmd_bad(*pmd))) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
-				ptep = pte_offset_map(pmd, dwVirtAddr);
-#else
-				ptep = pte_offset(pmd, dwVirtAddr);
-#endif
-	       if (ptep) {
-				   pte = *ptep;
-				   if (pte_present(pte)) {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,5,0)
-					   return(pte & PAGE_MASK);
-#else
-					   page = pte_page(pte);
-					   return(page_to_phys(page));
-#endif
-				   }
-			   }
-			}
-		}
-		GT_1trace(MEM_debugMask, GT_6CLASS,
-			  "MEM_VirtualToPhysical: LockPages()"
-			  " failed: 0x%x\n", numUsrPgs);
-
-		dwPhysAddr = 0;
-	}
-
-	return dwPhysAddr;
-}
-

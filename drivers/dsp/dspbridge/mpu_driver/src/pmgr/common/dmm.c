@@ -22,7 +22,6 @@
  *      space that can be directly mapped to any MPU buffer or memory region
  *
  *  Public Functions:
- *      DMM_BlockList
  *      DMM_ChunkAdd
  *      DMM_Create
  *      DMM_Destroy
@@ -64,7 +63,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <errbase.h>
 #include <gt.h>
 
@@ -140,52 +138,6 @@ static struct LST_ELEM *GetRegion(struct LST_LIST *list, ULONG addr,
 				 ULONG size);
 
 /*
- *  ======== DMM_BlockList ========
- *  Purpose:
- *      List the mapped blocks in the current reserved chunk.
- */
-DSP_STATUS DMM_BlockList(struct DMM_OBJECT *hDmmMgr, ULONG rsvAddr,
-			IN OUT ULONG *count, ULONG *mapList)
-{
-	struct DMM_OBJECT *pDmmObj = (struct DMM_OBJECT *)hDmmMgr;
-	struct RsvChunk *chunk;
-	struct MapBlk *block;
-	DSP_STATUS status = DSP_SOK;
-	ULONG i = 0;
-
-	GT_2trace(DMM_debugMask, GT_ENTER,
-		 "Entered DMM_BlockList () hDmmMgr %x, "
-		 "rsvAddr %x\n", hDmmMgr, rsvAddr);
-	if (mapList == NULL)
-		return DSP_EPOINTER;
-
-	SYNC_EnterCS(pDmmObj->hDmmLock);
-	/* Find the chunk containing the reserved address */
-	chunk = (struct RsvChunk *)GetRegion(pDmmObj->usedList, rsvAddr, 0);
-	/* Address must match exactly */
-	if (chunk && (rsvAddr == chunk->addr)) {
-		block = (struct MapBlk *)LST_First(chunk->map);
-		while (block && (i < *count)) {
-			GT_3trace(DMM_debugMask, GT_7CLASS,
-				 "Warning: Unmapped block 0x%x, "
-				 "size 0x%x in reserved chunk 0x%x\n",
-				 block->addr, block->size, rsvAddr);
-			mapList[i] = block->addr;
-			block = (struct MapBlk *)
-				LST_Next(chunk->map, (struct LST_ELEM *)block);
-			i++;
-		}
-	} else {
-		status = DSP_ENOTFOUND;
-	}
-	SYNC_LeaveCS(pDmmObj->hDmmLock);
-	*count = i;
-	GT_1trace(DMM_debugMask, GT_ENTER, "Leaving DMM_BlockList status%x\n",
-		 status);
-	return status;
-}
-
-/*
  *  ======== DMM_ChunkAdd ========
  *  Purpose:
  *      Add a chunk of virtually contiguous DSP/IVA address space to the
@@ -232,7 +184,8 @@ DSP_STATUS DMM_Create(OUT struct DMM_OBJECT **phDmmMgr,
 	if (pDmmObject != NULL) {
 		if (DSP_SUCCEEDED(status)) {
 			/* create the free list */
-			if ((pDmmObject->freeList = LST_Create()) == NULL) {
+			pDmmObject->freeList = LST_Create();
+			if (pDmmObject->freeList == NULL) {
 				GT_0trace(DMM_debugMask, GT_7CLASS,
 					 "DMM_Create: LST_Create() "
 					 "freeList failed\n");
@@ -241,16 +194,17 @@ DSP_STATUS DMM_Create(OUT struct DMM_OBJECT **phDmmMgr,
 		}
 		if (DSP_SUCCEEDED(status)) {
 			/* create the used list */
-			if ((pDmmObject->usedList = LST_Create()) == NULL) {
+			pDmmObject->usedList = LST_Create() ;
+			if (pDmmObject->usedList == NULL) {
 				GT_0trace(DMM_debugMask, GT_7CLASS,
 					 "DMM_Create: LST_Create() "
 					 "usedList failed\n");
 				status = DSP_EMEMORY;
 			}
 		}
-		if (DSP_SUCCEEDED(status)) {
+		if (DSP_SUCCEEDED(status))
 			status = SYNC_InitializeCS(&pDmmObject->hDmmLock);
-		}
+
 		if (DSP_SUCCEEDED(status))
 			*phDmmMgr = pDmmObject;
 		else
@@ -302,12 +256,12 @@ DSP_STATUS DMM_Destroy(struct DMM_OBJECT *hDmmMgr, BOOL bForce)
 			 * operating on lists */
 			status = DMM_Reset(hDmmMgr);
 			SYNC_EnterCS(pDmmObj->hDmmLock);
-			if (pDmmObj->freeList != NULL) {
+			if (pDmmObj->freeList != NULL)
 				LST_Delete(pDmmObj->freeList);
-			}
-			if (pDmmObj->usedList != NULL) {
+
+			if (pDmmObj->usedList != NULL)
 				LST_Delete(pDmmObj->usedList);
-			}
+
 			SYNC_LeaveCS(pDmmObj->hDmmLock);
 		}
 		if (DSP_SUCCEEDED(status)) {
@@ -361,9 +315,9 @@ DSP_STATUS DMM_GetHandle(DSP_HPROCESSOR hProcessor,
 	else
 		hDevObject = DEV_GetFirst();	/* default */
 
-	if (DSP_SUCCEEDED(status)) {
+	if (DSP_SUCCEEDED(status))
 		status = DEV_GetDmmMgr(hDevObject, phDmmMgr);
-	}
+
 	GT_2trace(DMM_debugMask, GT_ENTER, "Leaving DMM_GetHandle status %x, "
 		 "*phDmmMgr %x\n", status, phDmmMgr ? *phDmmMgr : 0);
 	return (status);
@@ -422,9 +376,9 @@ DSP_STATUS DMM_MapMemory(struct DMM_OBJECT *hDmmMgr, ULONG addr, ULONG size)
 	if (chunk != NULL) {
 		if (chunk->map == NULL) {
 			chunk->map = LST_Create();
-			if (chunk->map == NULL) {
+			if (chunk->map == NULL)
 				status = DSP_EMEMORY;
-			}
+
 		}
 		if (DSP_SUCCEEDED(status)) {
 			/* Add the block to be mapped to this chunk. */
@@ -774,9 +728,9 @@ static struct LST_ELEM *GetRegion(struct LST_LIST *list, ULONG addr,
 	if (addr == 0) {
 		/* If addr is NULL, find a node with sufficient size */
 		while (currRegion) {
-			if (size <= currRegion->size) {
+			if (size <= currRegion->size)
 				break;
-			}
+
 			currRegion = (struct MapBlk *)
 				 LST_Next(list, (struct LST_ELEM *)currRegion);
 		}

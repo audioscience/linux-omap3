@@ -29,7 +29,6 @@
 #include <asm/hardware.h>
 #include <asm/mach-types.h>
 
-#include <sound/driver.h>
 #include <sound/core.h>
 #include <sound/initval.h>
 #include <sound/pcm.h>
@@ -59,11 +58,12 @@
 static void twl4030_dump_registers(void);
 #endif
 #ifdef TONE_GEN
-void generate_tone(void);
+static void generate_tone(void);
 #endif
 
 static char twl4030_configured;		/* Configured count */
 static int mixer_dev_id;
+static int gpio_ext_mut_acquired;
 
 /*******************************************************************************
  *
@@ -304,34 +304,44 @@ inline int audio_twl4030_read(u8 address)
 inline int twl4030_ext_mut_conf(void)
 {
 	int ret;
-	u8 data;
 
-	ret = twl4030_i2c_read_u8(TWL4030_MODULE_GPIO, &data, GPIO_DATA_DIR);
-	if (ret)
-		return ret;
-	data |= 0x1 << T2_AUD_EXT_MUT_GPIO;
-	ret = twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, data, GPIO_DATA_DIR);
+	/* External mute gpio already acquired */
+	if (gpio_ext_mut_acquired)
+		return 0;
+
+	ret = twl4030_request_gpio(TWL4030_AUDIO_EXT_MUT);
+        if (ret)
+ 		return ret;
+
+	gpio_ext_mut_acquired = 1;
+	ret = twl4030_set_gpio_direction(TWL4030_AUDIO_EXT_MUT, 0);
 
 	return ret;
 }
 
 /*
+ * Unconfigure GPIO used for external mute
+ */
+static inline int twl4030_ext_mut_unconf(void)
+{
+	int ret;
+
+	ret = twl4030_free_gpio(TWL4030_AUDIO_EXT_MUT);
+	if (!ret)
+		gpio_ext_mut_acquired = 0;
+
+	return ret;
+}
+/*
  * Disable mute also handle time of wait
  */
 inline int twl4030_ext_mut_off(void)
 {
-	int ret;
-	u8 data;
-
-	ret = twl4030_i2c_read_u8(TWL4030_MODULE_GPIO, &data, GPIO_CLR);
-	if (ret)
-		return ret;
 	/* Wait for ramp duration, settling time for signal */
 	udelay(1);
-	data |= 0x1 << T2_AUD_EXT_MUT_GPIO;
+
 	/* Clear mute */
-	ret = twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, data, GPIO_CLR);
-	return ret;
+        return twl4030_set_gpio_dataout(TWL4030_AUDIO_EXT_MUT, 0);
 }
 
 /*
@@ -339,17 +349,7 @@ inline int twl4030_ext_mut_off(void)
  */
 inline int twl4030_ext_mut_on(void)
 {
-	int ret;
-	u8 data;
-
-	ret = twl4030_i2c_read_u8(TWL4030_MODULE_GPIO, &data, GPIO_SET);
-	if (ret)
-		return ret;
-	data |= 0x1 << T2_AUD_EXT_MUT_GPIO;
-	/* Set mute */
-	ret = twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, data, GPIO_SET);
-
-	return ret;
+	return twl4030_set_gpio_dataout(TWL4030_AUDIO_EXT_MUT, 1);
 }
 /*
  * twl4030_codec_on
@@ -1299,6 +1299,7 @@ void twl4030_unconfigure(void)
 		twl4030_codec_off();
 		twl4030_disable_output();
 		twl4030_disable_input();
+                twl4030_ext_mut_unconf();
 	}
 	if (twl4030_configured > 0)
 		twl4030_configured--;
@@ -1747,10 +1748,11 @@ static int omap_twl4030_initialize(void)
 	return 0;
 initialize_exit_path3:
 	twl4030_unconfigure();
-	(void)omap_mcbsp_reset(AUDIO_MCBSP);
+	(void)omap2_mcbsp_reset(AUDIO_MCBSP);
 initialize_exit_path2:
 	/* Don't care about result */
 	(void)omap_mcbsp_free(AUDIO_MCBSP);
+	twl4030_ext_mut_unconf();
 initialize_exit_path1:
 	return ret;
 }
@@ -1760,7 +1762,7 @@ initialize_exit_path1:
  */
 static int omap_twl4030_shutdown(void)
 {
-	(void)omap_mcbsp_reset(AUDIO_MCBSP);
+	(void)omap2_mcbsp_reset(AUDIO_MCBSP);
 	omap_mcbsp_free(AUDIO_MCBSP);
 	twl4030_unconfigure();
 	return 0;
@@ -1797,11 +1799,10 @@ int twl4030_stereomode_set(int mode, int dsp)
 	}
 	dac_ctl = ret;
 	twl4030_local.current_stereomode = mode;
-	if (twl4030_local.current_stereomode == MONO_MODE) {
+	if (twl4030_local.current_stereomode == MONO_MODE)
 		dac_ctl &= ~BIT_AVDAC_CTL_ADACR2_EN_M;
-	} else {
+	else
 		dac_ctl |= BIT_AVDAC_CTL_ADACR2_EN_M;
-	}
 	ret = audio_twl4030_write(REG_AVDAC_CTL, dac_ctl);
 	if (ret < 0) {
 		printk(KERN_ERR "did not set dac ctrl reg\n");
@@ -1820,14 +1821,14 @@ int twl4030_stereomode_set(int mode, int dsp)
 			printk(KERN_ERR "Configure data interface failed\n");
 			goto set_stereo_mode_exit;
 		}
-		ret = omap_mcbsp_dma_recv_params(AUDIO_MCBSP,
+		ret = omap2_mcbsp_dma_recv_params(AUDIO_MCBSP,
 				&(twl4030_mcbsp_settings.
 				audio_mcbsp_rx_transfer_params));
 		if (ret < 0) {
 			printk(KERN_ERR "MONO/STEREO RX params failed");
 			goto set_stereo_mode_exit;
 		}
-		ret = omap_mcbsp_dma_trans_params(AUDIO_MCBSP,
+		ret = omap2_mcbsp_dma_trans_params(AUDIO_MCBSP,
 				&(twl4030_mcbsp_settings.
 				audio_mcbsp_tx_transfer_params));
 		if (ret < 0) {

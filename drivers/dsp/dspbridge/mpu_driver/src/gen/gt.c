@@ -33,9 +33,6 @@
 #include <stdarg.h>
 
 /*  ----------------------------------- This */
-#ifdef _LINT_
-#undef _LINT_
-#endif
 #include <gt.h>
 
 #define GT_WILD	'*'
@@ -138,9 +135,9 @@ Void _GT_set(String str)
 					sep++;
 				}
 			}
-			if (*sep == NULL) {
+			if (*sep == NULL)
 				state = GT_FIRST;
-			}
+
 			break;
 		case (Int) GT_FIRST:
 			if (*str == GT_WILD) {

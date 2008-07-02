@@ -75,7 +75,8 @@ static char *unpack_sec_name(struct dload_state *dlthis,
 		*dst++ = *src++;	/* only 1 character in first word */
 	do {
 		tmp = *src++;
-		if (!(*dst++ = (tmp >> BITS_PER_BYTE)))
+		*dst = (tmp >> BITS_PER_BYTE)
+		if (!(*dst++))
 			break;
 	} while ((*dst++ = tmp & BYTE_MASK));
 
@@ -258,58 +259,6 @@ int DLOAD_GetSectionInfo(DLOAD_module_info minfo, const char *sectionName,
 	return FALSE;
 }
 
-/***************************************************************************
- * Procedure DLOAD_GetSectionNum
- *
- * Parameters:
- *  minfo		Handle from DLOAD_module_open for this module
- *	secn		Section number 0..
- *	sectionInfo	Address of a section info structure pointer to be
- *					initialized
- *
- * Effect:
- *	Finds the specified section in the module information, and initializes
- * the provided struct LDR_SECTION_INFO pointer. If there are less than "secn+1"
- * sections in the module, returns NULL.
- *
- * Returns:
- *	TRUE for success, FALSE for failure
- **************************************************************************/
-int DLOAD_GetSectionNum(DLOAD_module_info minfo, const unsigned secn,
-		    const struct LDR_SECTION_INFO **const sectionInfo)
-{
-	struct dload_state *dlthis;
-
-	dlthis = (struct dload_state *)minfo;
-	if (!dlthis)
-		return FALSE;
-
-	if (secn >= dlthis->dfile_hdr.df_no_scns)
-		return FALSE;
-
-	*sectionInfo = DOFFSEC_IS_LDRSEC(&dlthis->sect_hdrs[secn]);
-
-	return TRUE;
-}
-
-/***************************************************************************
- * Procedure DLOAD_RoundUpSectionSize
- *
- * Parameters:
- *  sectSize	The actual size of the section in target addressable units
- *
- * Effect:
- *	Rounds up the section size to the next multiple of 32 bits.
- *
- * Returns:
- *	The rounded-up section size.
- **************************************************************************/
-size_t DLOAD_RoundUpSectionSize(LDR_ADDR sectSize)
-{
-	return (TADDR_TO_HOST(sectSize + (32 / TARGET_AU_BITS - 1)) &
-		-sizeof(u32));
-}
-
 #define IPH_SIZE (sizeof(struct image_packet_t) - sizeof(u32))
 #define REVERSE_REORDER_MAP(rawmap) ((rawmap) ^ 0x3030303)
 
@@ -344,8 +293,8 @@ int DLOAD_GetSection(DLOAD_module_info minfo,
 	dlthis = (struct dload_state *)minfo;
 	if (!dlthis)
 		return FALSE;
-
-	if ((sptr = LDRSEC_IS_DOFFSEC(sectionInfo)) == NULL)
+	sptr = LDRSEC_IS_DOFFSEC(sectionInfo);
+	if (sptr == NULL)
 		return FALSE;
 
 	/* skip ahead to the start of the first packet */

@@ -101,7 +101,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gt.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
@@ -170,7 +169,7 @@
 
 /* Device IOCtl function pointer */
 struct WCD_Cmd {
-	DWORD(*fxn)(Trapped_Args * args);
+	DWORD(*fxn)(Trapped_Args *args);
 	DWORD dwIndex;
 } ;
 
@@ -260,7 +259,7 @@ struct WCD_Cmd WCD_cmdTable[] = {
  *  Purpose:
  *      Call the (wrapper) function for the corresponding WCD IOCTL.
  */
-__inline DSP_STATUS WCD_CallDevIOCtl(UINT cmd, Trapped_Args *args,
+inline DSP_STATUS WCD_CallDevIOCtl(UINT cmd, Trapped_Args *args,
 				    DWORD *pResult)
 {
 	if ((cmd < (sizeof(WCD_cmdTable) / sizeof(struct WCD_Cmd)))) {
@@ -642,7 +641,6 @@ DWORD PROCWRAP_Attach(Trapped_Args *args)
  */
 DWORD PROCWRAP_Ctrl(Trapped_Args *args)
 {
-#if 1
 	ULONG cbDataSize, *pSize = (ULONG *)args->ARGS_PROC_CTRL.pArgs;
 	BYTE *pArgs = NULL;
 	DSP_STATUS status = DSP_SOK;
@@ -672,14 +670,12 @@ DWORD PROCWRAP_Ctrl(Trapped_Args *args)
 				  args->ARGS_PROC_CTRL.dwCmd,
 				  (struct DSP_CBDATA *)pArgs);
 	}
+
 	/* cp_to_usr(args->ARGS_PROC_CTRL.pArgs, pArgs, status, 1);*/
 	if (pArgs)
 		MEM_Free(pArgs);
 
 	return (status);
-#else
-	return (DSP_ENOTIMPL);
-#endif
 }
 
 /*
@@ -1407,13 +1403,7 @@ DWORD STRMWRAP_FreeBuffer(Trapped_Args *args)
  */
 DWORD STRMWRAP_GetEventHandle(Trapped_Args *args)
 {
-#ifndef LINUX
-	return (STRM_GetEventHandle(args->ARGS_STRM_GETEVENTHANDLE.hStream,
-		WRAP_MAP2CALLER(args->ARGS_STRM_GETEVENTHANDLE.phEvent)));
-#else
 	return (DSP_ENOTIMPL);
-#endif
-
 }
 
 /*
@@ -1653,17 +1643,6 @@ DWORD MEMWRAP_PageUnlock(Trapped_Args *args)
  */
 DWORD UTILWRAP_TestDll(Trapped_Args *args)
 {
-#ifndef LINUX
-	DWORD dwResult = 0;
-
-	GT_0trace(WCD_debugMask, GT_ENTER, "UTILWRAP_TestDll: entered\n");
-
-	/* call UTIL dll test function */
-	dwResult = UTIL_CDTestDll(args->ARGS_UTIL_TESTDLL.cArgc,
-				 args->ARGS_UTIL_TESTDLL.ppArgv);
-	return (dwResult);
-#else
 	return (DSP_ENOTIMPL);
-#endif
 }
 

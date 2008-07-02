@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/io_sm.h
+ * dspbridge/mpu_driver/inc/io_sm.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -70,34 +70,6 @@ extern "C" {
 #define DSPFieldAddr(type, field, base, wordsize) \
     ((((LONG)&(((type *)0)->field)) / wordsize) + (DWORD)base)
 
-#ifdef CHNL_IOCLASS	 /* SHM is on DSP, accessible via port IO functions: */
-
-#define IO_SetValue(pContext, type, base, field, dwValue) \
-    IO_WriteValue(pContext, DSPFieldAddr(type, field, base, \
-    pIOMgr->uWordSize), dwValue)
-
-#define IO_GetValue(pContext, type, base, field) \
-    IO_ReadValue(pContext, DSPFieldAddr(type, field, base, \
-    pIOMgr->uWordSize))
-
-#define IO_SetLong(pContext, type, base, field, dwValue) \
-    IO_WriteValueLong(pContext, DSPFieldAddr(type, field, base, \
-    pIOMgr->uWordSize), dwValue)
-
-#define IO_GetLong(pContext, type, base, field) \
-    IO_ReadValueLong(pContext, DSPFieldAddr(type, field, base, \
-    pIOMgr->uWordSize))
-
-#define IO_OrValue(pContext, type, base, field, dwValue) \
-    IO_OrSetValue(pContext, DSPFieldAddr(type, field, base, \
-    pIOMgr->uWordSize), dwValue)
-
-#define IO_AndValue(pContext, type, base, field, dwValue)  \
-    IO_AndSetValue(pContext, DSPFieldAddr(type, field, base, \
-    pIOMgr->uWordSize), dwValue)
-
-#else		/* CHNL_SMCLASS - SHM is linear page mapped to PC space */
-
 /* Access can be different SM access word size (e.g. 16/32 bit words) */
 #define IO_SetValue(pContext, type, base, field, value) base->field = value
 #define IO_GetValue(pContext, type, base, field)        (base->field)
@@ -106,27 +78,12 @@ extern "C" {
 #define IO_SetLong(pContext, type, base, field, value)  base->field = value
 #define IO_GetLong(pContext, type, base, field)         (base->field)
 
-#endif				/* CHNL_IOCLASS */
-
-#ifdef CHNL_IOCLASS
-
-#define IO_DisableInterrupt(h)  CHNLIO_DisableInterrupt(h)
-#define IO_EnableInterrupt(h)   CHNLIO_EnableInterrupt(h)
-#define IO_InterruptDSP(h)      CHNLIO_InterruptDSP(h)
-#define IO_InterruptDSP2(h, v)  CHNLIO_InterruptDSP(h)	/* v param not used */
-#define IO_CALLDPC(h)           CHNLIO_DPC(h)
-#define IO_CALLISR(h, pFlag)    CHNLIO_ISR(h, pFlag)
-
-#else
-
 #define IO_DisableInterrupt(h)  CHNLSM_DisableInterrupt(h)
 #define IO_EnableInterrupt(h)   CHNLSM_EnableInterrupt(h)
 #define IO_InterruptDSP(h)      CHNLSM_InterruptDSP(h)
 #define IO_InterruptDSP2(h, v)  CHNLSM_InterruptDSP2(h, v)
 #define IO_CALLDPC(h)           CHNLSM_DPC(h)
 #define IO_CALLISR(h, pFlag, pwMBRegVal)   CHNLSM_ISR(h, pFlag, pwMBRegVal)
-
-#endif				/* CHNL_IOCLASS */
 
 /*
  *  ======== IO_CancelChnl ========

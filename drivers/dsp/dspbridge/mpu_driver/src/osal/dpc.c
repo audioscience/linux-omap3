@@ -22,7 +22,6 @@
  *
  *
  *  Public Functions:
- *      DPC_Cancel
  *      DPC_Create
  *      DPC_Destroy
  *      DPC_Exit
@@ -54,7 +53,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gp.h>
 #include <gt.h>
 
@@ -81,17 +79,7 @@ struct DPC_OBJECT {
 	ULONG numRequestedMax;	/* Keep track of max pending DPC's. */
 #endif
 
-#ifndef LINUX
-	BOOL fStopRunning;	/* Stop DPC thread */
-	HANDLE hDpcEvent;	/* Handle to DPC event */
-	HANDLE hThread;		/* Handle to thread  */
-	HANDLE hDpcDoneEvent;	/* Handle to DPC done event */
-
-	CRITICAL_SECTION DpcCritSec;	/* DPC critical section */
-#else
 	spinlock_t dpc_lock;
-#endif
-
 };
 
 /*  ----------------------------------- Globals */
@@ -101,38 +89,6 @@ static struct GT_Mask DPC_DebugMask = { 0, 0 };	/* DPC Debug Mask */
 
 /*  ----------------------------------- Function Prototypes */
 static VOID DPC_DeferredProcedure(IN ULONG pDeferredContext);
-
-#ifndef LINUX
-/*
- *  ======== DPC_Cancel ========
- *  Purpose:
- *      Cancel a DPC previously scheduled by DPC_Schedule.
- */
-DSP_STATUS DPC_Cancel(struct DPC_OBJECT *hDPC)
-{
-	DSP_STATUS status = DSP_SOK;
-	struct DPC_OBJECT *pDPCObject = (struct DPC_OBJECT *)hDPC;
-	ULONG flags;
-
-	if (MEM_IsValidHandle(hDPC, SIGNATURE)) {
-		/* Blocks till Scheduled DPC, if any, is completed */
-		tasklet_disable(&(pDPCObject->dpc_tasklet));
-		spin_lock_irqsave(&hDPC->dpc_lock, flags);
-		if (pDPCObject->numScheduled == pDPCObject->numRequested)
-			status = DSP_SFALSE;	/* Nothing to cancel! */
-		else
-			pDPCObject->numScheduled = pDPCObject->numRequested;
-
-		spin_unlock_irqrestore(&hDPC->dpc_lock, flags);
-		tasklet_enable(&(pDPCObject->dpc_tasklet));
-	} else {
-		GT_0trace(DPC_DebugMask, GT_6CLASS,
-			  "DPC_Cancel: DSP_EHANDLE\n");
-		status = DSP_EHANDLE;
-	}
-	return (status);
-}
-#endif
 
 /*
  *  ======== DPC_Create ========
@@ -195,10 +151,7 @@ DSP_STATUS DPC_Destroy(struct DPC_OBJECT *hDPC)
 	struct DPC_OBJECT *pDPCObject = (struct DPC_OBJECT *)hDPC;
 
 	if (MEM_IsValidHandle(hDPC, SIGNATURE)) {
-#ifndef LINUX			/* tasklet_kill takes care of this*/
-		/* Cancel all DPCs, if any: */
-		status = DPC_Cancel(hDPC);
-#endif
+
 		/* Free our DPC object: */
 		if (DSP_SUCCEEDED(status)) {
 			tasklet_kill(&pDPCObject->dpc_tasklet);

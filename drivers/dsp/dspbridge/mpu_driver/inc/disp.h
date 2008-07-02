@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/disp.h
+ * dspbridge/mpu_driver/inc/disp.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -26,8 +26,6 @@
  *      DISP_Delete
  *      DISP_Exit
  *      DISP_Init
- *      DISP_MemCopy
- *      DISP_MemWrite
  *      DISP_NodeChangePriority
  *      DISP_NodeCreate
  *      DISP_NodeDelete
@@ -124,58 +122,6 @@ extern "C" {
  *  Ensures:
  */
 	extern BOOL DISP_Init();
-
-/*
- *  ======== DISP_MemCopy ========
- *  Copy memory on target memory.
- *
- *  Parameters:
- *      hDispObject:            Node Dispatcher object.
- *      ulRMSFxn:               RMS function to copy target memory.
- *      ulDestAddr:             Destination address.
- *      ulSrcAddr:              Source address.
- *      ulSize:                 Number of DSP words to copy.
- *      usPage:                 Memory page of source.
- *      ulTimeout:              Timeout for copy.
- *  Returns:
- *      DSP_SOK:                Success.
- *      DSP_ETIMEOUT:           A timeout occurred before the DSP responded.
- *  Requires:
- *      DISP_Init() called.
- *      Valid hDispObject.
- *  Ensures:
- */
-	extern DSP_STATUS DISP_MemCopy(struct DISP_OBJECT *hDisp,
-				       ULONG ulRMSFxn,
-				       ULONG ulDestAddr, ULONG ulSrcAddr,
-				       ULONG ulSize, USHORT usPage,
-				       ULONG ulTimeout);
-
-/*
- *  ======== DISP_MemWrite ========
- *  Write a buffer of data to target memory.
- *
- *  Parameters:
- *      hDispObject:            Node Dispatcher object.
- *      ulRMSFxn:               RMS function to copy target memory.
- *      ulDestAddr:             Destination address.
- *      pBuf:                   Buffer containing data to write.
- *      ulTotalBytes:           Number of GPP bytes to write.
- *      usPage:                 Memory page of source.
- *      ulTimeout:              Timeout for copy.
- *  Returns:
- *      DSP_SOK:                Success.
- *      DSP_ETIMEOUT:           A timeout occurred before the DSP responded.
- *  Requires:
- *      DISP_Init() called.
- *      Valid hDispObject.
- *  Ensures:
- */
-	extern DSP_STATUS DISP_MemWrite(struct DISP_OBJECT *hDisp,
-					ULONG ulRMSFxn,
-					ULONG ulDestAddr, PVOID pBuf,
-					ULONG ulTotalBytes, USHORT usPage,
-					ULONG ulTimeout);
 
 /*
  *  ======== DISP_NodeChangePriority ========

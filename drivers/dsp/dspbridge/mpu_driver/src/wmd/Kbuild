@@ -1,0 +1,31 @@
+#libwmd
+
+obj-y := libwmd.o
+
+libwmd-objs := omap/wmdchnl/common/chnl_sm.o omap/wmdchnl/common/msg_sm.o omap/wmdchnl/common/io_sm.o\
+		omap/3430/tiomap.o omap/3430/tiomap_pwr.o omap/common/tiomap_mmu.o\
+		omap/common/tiomap_sm.o omap/common/tiomap_io.o omap/common/tiomap_util.o\
+		omap/common/mmu_fault.o omap/common/ue_deh.o
+
+ccflags-y = -Wno-strict-prototypes -Wno-strict-prototypes -fomit-frame-pointer -DDISABLE_BRIDGE_DVFS
+
+#Machine dependent
+ccflags-y += -DTICFG_PROC_VER -DTICFG_EVM_TYPE -DCHNL_SMCLASS -DCHNL_MESSAGES -DOMAP_3430
+ccflags-y += -DLINUX -D__KERNEL__
+
+#Power management
+ifeq ($(CONFIG_PM),)
+ccflags-y += -DDISABLE_BRIDGE_PM
+endif
+
+#includes
+ccflags-y += -I. -Iinclude -Idrivers/dsp/dspbridge/mpu_driver/inc -Idrivers/dsp/dspbridge/mpu_driver/inc/linux -Iomap/wmdchnl/common -Iomap/common -Iomap/3430 -Idrivers/dsp/dspbridge/mpu_driver/src/hal/common/inc -Idrivers/dsp/dspbridge/mpu_driver/src/hal/common/dspss -Idrivers/dsp/dspbridge/mpu_driver/src/hal/common/mbox -Idrivers/dsp/dspbridge/mpu_driver/src/hal/common/ocp -Idrivers/dsp/dspbridge/mpu_driver/src/hal/omap3/inc -include include/linux/autoconf.h -Idrivers/dsp/dspbridge/mpu_driver/src/wmd/omap/wmdchnl/common/ -Idrivers/dsp/dspbridge/mpu_driver/src/wmd/omap/common/
+
+# Debug
+ifeq ($(CONFIG_DEBUG_KERNEL),y)
+ccflags-y += -DGT_TRACE -DDEBUG
+endif
+
+ifeq ($(CONFIG_MPU_BRIDGE),m)
+ccflags-y += -DMODULE
+endif

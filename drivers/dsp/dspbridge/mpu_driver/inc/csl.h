@@ -1,20 +1,18 @@
 /*
- * dspbridge/inc/csl.h
+ * dspbridge/mpu_driver/inc/csl.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
- * Copyright (C) 2007 Texas Instruments, Inc.
+ * Copyright (C) 2008 Texas Instruments, Inc.
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation version 2.1 of the License.
+ * This package is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
  *
- * This program is distributed .as is. WITHOUT ANY WARRANTY of any kind,
- * whether express or implied; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * THIS PACKAGE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+ * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
-
 
 /*
  *  ======== csl.h ========
@@ -64,28 +62,6 @@ extern "C" {
 
 #include <dspapi.h>
 
-#ifdef UNICODE
-/*
- *  ======== CSL_AnsiToWchar ========
- *  Purpose:
- *      Convert an ansi string to a wide char string.
- *  Parameters:
- *      wpstrDest:  wide char buffer pointer.
- *      pstrSource: ansi string buffer pointer.
- *      uSize:      size of wpstrDest buffer.
- *  Returns:
- *      Number of characters copied into wpstrDest, excluding the NULL char.
- *  Requires:
- *      CSL initialized.
- *  Ensures:
- *  Details:
- *      uSize is the number of CHARACTERS in wpstrDest, NOT the number of BYTES
- *      in wpstrDest.  with a WCHAR, the number of characters is bytes/2.
- */
-	extern ULONG CSL_AnsiToWchar(OUT WCHAR * pwszDest,
-				     IN PSTR pstrSource, ULONG uSize);
-#endif
-
 /*
  *  ======== CSL_Atoi ========
  *  Purpose:
@@ -100,23 +76,6 @@ extern "C" {
  *  Ensures:
  */
 	extern INT CSL_Atoi(IN CONST CHAR * ptstrSrc);
-
-/*
- *  ======== CSL_ByteSwap ========
- *  Purpose:
- *      Convert an ansi string to a wide char string.
- *  Parameters:
- *      pstrSrc:    Data to be copied and swapped.
- *      pstrDest:   Output buffer for swapped data.
- *      ulBytes:    Number of bytes to be swapped (should be even).
- *  Returns:
- *  Requires:
- *      CSL initialized.
- *  Ensures:
- *  Details:
- */
-	extern VOID CSL_ByteSwap(IN PSTR pstrSrc,
-				 OUT PSTR pstrDest, IN ULONG ulBytes);
 
 /*
  *  ======== CSL_Exit ========
@@ -288,8 +247,8 @@ extern "C" {
  *      szSeparators is a valid string pointer.
  *  Ensures:
  */
-	extern CHAR *CSL_Strtok(IN CHAR * ptstrSrc,
-				IN CONST CHAR * szSeparators);
+	extern CHAR *CSL_Strtok(IN CHAR *ptstrSrc,
+				IN CONST CHAR *szSeparators);
 
 /*
  *  ======== CSL_Strtokr ========
@@ -311,43 +270,6 @@ extern "C" {
 	extern CHAR *CSL_Strtokr(IN CHAR *pstrSrc,
 				 IN CONST CHAR * szSeparators,
 				 OUT CHAR **ppstrCur);
-
-#ifdef UNICODE
-/*
- *  ======== CSL_WcharToAnsi ========
- *  Purpose:
- *      Convert a wide char string to an ansi string.
- *  Parameters:
- *     pstrDest:    ansi string buffer pointer.
- *     pwszSource:  wide char buffer pointer.
- *     uSize:       number of chars to convert.
- *  Returns:
- *      Number of characters copied into pstrDest.
- *  Requires:
- *      CSL initialized.
- *  Ensures:
- *  Details:
- *      lNumOfChars is the number of CHARACTERS in wpstrDest, NOT the number of
- *      BYTES
- */
-	extern ULONG CSL_WcharToAnsi(OUT PSTR pstrDest,
-				     IN WCHAR * pwszSource, IN ULONG uSize);
-
-/*
- *  ======== CSL_Wstrlen ========
- *  Purpose:
- *      Determine the length of a null terminated UNICODE string.
- *  Parameters:
- *      ptstrSrc: pointer to string.
- *  Returns:
- *      String length in bytes.
- *  Requires:
- *      CSL initialized.
- *      ptstrSrc is a valid string pointer.
- *  Ensures:
- */
-	extern DWORD CSL_Wstrlen(IN CONST TCHAR * ptstrSrc);
-#endif
 
 #ifdef __cplusplus
 }

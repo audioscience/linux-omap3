@@ -23,15 +23,11 @@
  *  Private Functions:
  *      CFG_Exit
  *      CFG_GetAutoStart
- *      CFG_GetCDVersion
  *      CFG_GetDevObject
  *      CFG_GetDSPResources
  *      CFG_GetExecFile
  *      CFG_GetHostResources
  *      CFG_GetObject
- *      CFG_GetPerfValue
- *      CFG_GetWMDFileName
- *      CFG_GetZLFile
  *      CFG_Init
  *      CFG_SetDevObject
  *      CFG_SetObject
@@ -86,18 +82,12 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gp.h>
 #include <gt.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
 #include <csl.h>
 #include <reg.h>
-
-#ifndef LINUX
-/*  ----------------------------------- Mini Driver */
-#include <wcdver.h>
-#endif
 
 /*  ----------------------------------- Others */
 #include <dbreg.h>
@@ -165,24 +155,6 @@ DSP_STATUS CFG_GetAutoStart(struct CFG_DEVNODE *hDevNode,
 	return (status);
 }
 
-#ifndef LINUX
-/*
- *  ======== CFG_GetCDVersion ========
- *  Purpose:
- *      Retrieves the version of the PM Class Driver.
- */
-DSP_STATUS CFG_GetCDVersion(DWORD *pdwVersion)
-{
-	DSP_STATUS status = DSP_SOK;
-	DBC_Require(pdwVersion != NULL);
-	*pdwVersion = (WCD_MAJORVER << 16) | WCD_MINORVER;
-	GT_1trace(CFG_debugMask, GT_ENTER, "Entered CFG_GetCDVersion, args: "
-		  "\n\tpdwVersion:  0x%x\n", pdwVersion);
-	DBC_Ensure((status == DSP_SOK) && (*pdwVersion > 0));
-	return (DSP_SOK);
-}
-#endif
-
 /*
  *  ======== CFG_GetDevObject ========
  *  Purpose:
@@ -203,10 +175,7 @@ DSP_STATUS CFG_GetDevObject(struct CFG_DEVNODE *hDevNode, OUT DWORD *pdwValue)
 
 	dwBufSize = sizeof(pdwValue);
 	if (DSP_SUCCEEDED(status)) {
-#if 0
-		status = REG_GetValue(NULL, (CHAR *) hDevNode, DEVOBJECT,
-				      (BYTE *) pdwValue, &dwBufSize);
-#else
+
 		/* check the device string and then call the REG_SetValue*/
 		if (!(CSL_Strcmp((CHAR *)((struct DRV_EXT *)hDevNode)->szString,
 							"TIOMAP1510"))) {
@@ -220,7 +189,6 @@ DSP_STATUS CFG_GetDevObject(struct CFG_DEVNODE *hDevNode, OUT DWORD *pdwValue)
 			GT_0trace(CFG_debugMask, GT_6CLASS,
 				  "Failed to Identify the Device to Fetch \n");
 		}
-#endif
 	}
 #ifdef DEBUG
 	if (DSP_SUCCEEDED(status)) {
@@ -404,124 +372,6 @@ DSP_STATUS CFG_GetObject(OUT DWORD *pdwValue, DWORD dwType)
 	return (status);
 }
 
-#ifdef PERF
-/*
- *  ======== CFG_GetPerfValue ========
- *  Purpose:
- *      Retrieve a flag indicating whether PERF should log statistics for the
- *      PM class driver.
- */
-VOID CFG_GetPerfValue(OUT BOOL *pfEnablePerf)
-{
-	DSP_STATUS status = DSP_SOK;	/* return value */
-	CHAR szPerfValue[MAXREGPATHLENGTH];
-	DWORD dwBufSize;
-	GT_1trace(CFG_debugMask, GT_ENTER,
-		 "Entered CFG_GetPerfValue, args: \n\t"
-		 "pfEnablePerf: 0x%x\n", pfEnablePerf);
-	if (!pfEnablePerf)
-		status = CFG_E_INVALIDPOINTER;
-
-	if (DSP_SUCCEEDED(status)) {
-		*pfEnablePerf = 0;
-		dwBufSize = sizeof(szPerfValue);
-		status = REG_GetValue(NULL, CONFIG, PERF, szPerfValue,
-				      &dwBufSize);
-	}
-	if (DSP_SUCCEEDED(status))
-		*pfEnablePerf = (szPerfValue[1] == 'n');    /* "on" | "off" */
-
-}
-#endif
-#ifndef LINUX
-
-/*
- *  ======== CFG_GetWMDFileName ========
- *  Purpose:
- *      Get the mini-driver file name for a given device.
- */
-DSP_STATUS CFG_GetWMDFileName(struct CFG_DEVNODE *hDevNode, ULONG ulBufSize,
-			      OUT PSTR pstrWMDFileName)
-{
-	DSP_STATUS status = DSP_SOK;
-	ULONG cWMDSize = MAXREGPATHLENGTH;
-	GT_3trace(CFG_debugMask, GT_ENTER,
-		"Entered CFG_GetWMDFileName, args: \n\t"
-		"hDevNode: 0x%x\n\tulBufSize: 0x%x\n\tpstrWMDFileName: 0x%x\n",
-		hDevNode, ulBufSize, pstrWMDFileName);
-	if (!hDevNode)
-		status = CFG_E_INVALIDHDEVNODE;
-
-	if (!pstrWMDFileName)
-		status = CFG_E_INVALIDPOINTER;
-
-	if (DSP_SUCCEEDED(status)) {
-		status = REG_GetValue(NULL, (CHAR *)hDevNode, WMDFILENAME,
-				      pstrWMDFileName, &cWMDSize);
-		if (DSP_FAILED(status))
-			status = CFG_E_RESOURCENOTAVAIL;
-
-	}
-#ifdef DEBUG
-	if (DSP_SUCCEEDED(status)) {
-		GT_1trace(CFG_debugMask, GT_1CLASS,
-			 "CFG_GetWMDFileName SUCCESS WMD "
-			 "File Name : %s\n ", pstrWMDFileName);
-	} else {
-		GT_0trace(CFG_debugMask, GT_6CLASS,
-			 "CFG_GetWMDFileName Failed \n");
-	}
-#endif
-	DBC_Ensure(((status == DSP_SOK) &&
-		  (CSL_Strlen(pstrWMDFileName) <= ulBufSize)) ||
-		  (status != DSP_SOK));
-	return (status);
-}
-
-/*
- *  ======== CFG_GetZLFile ========
- *  Purpose:
- *      Retreive the ZLFile, if any, for this board.
- */
-DSP_STATUS CFG_GetZLFile(struct CFG_DEVNODE *hDevNode, ULONG ulBufSize,
-			OUT PSTR pstrZLFileName)
-{
-	DSP_STATUS status = DSP_SOK;	/* return value */
-	ULONG cZLSize = MAXREGPATHLENGTH;
-	GT_3trace(CFG_debugMask, GT_ENTER,
-		  "Entered CFG_GetZLFile:\n\thDevNode: "
-		  "0x%x\n\tulBufSize: 0x%x\n\tpstrZLFileName: 0x%x\n",
-		  hDevNode, ulBufSize, pstrZLFileName);
-	if (!hDevNode)
-		status = CFG_E_INVALIDHDEVNODE;
-
-	if (!pstrZLFileName)
-		status = CFG_E_INVALIDPOINTER;
-
-	if (DSP_SUCCEEDED(status)) {
-		status = REG_GetValue(NULL, (CHAR *)hDevNode, ZLFILENAME,
-				      pstrZLFileName,
-				      &cZLSize);
-		if (DSP_FAILED(status))
-			status = CFG_E_RESOURCENOTAVAIL;
-
-	}
-#ifdef DEBUG
-	if (DSP_SUCCEEDED(status)) {
-		GT_1trace(CFG_debugMask, GT_1CLASS,
-			  "CFG_GetZLFile SUCCESS ZL File Name "
-			  ": %s\n ", pstrZLFileName);
-	} else {
-		GT_0trace(CFG_debugMask, GT_6CLASS, "CFG_GetZLFile Failed \n");
-	}
-#endif
-	DBC_Ensure(((status == DSP_SOK) &&
-		    (CSL_Strlen(pstrZLFileName) <= ulBufSize)) ||
-		    (status != DSP_SOK));
-	return (status);
-}
-#endif
-
 /*
  *  ======== CFG_Init ========
  *  Purpose:
@@ -533,11 +383,8 @@ BOOL CFG_Init()
 	GT_create(&CFG_debugMask, "CF");	/* CF for ConFig */
 	GT_0trace(CFG_debugMask, GT_5CLASS, "Entered CFG_Init\n");
 	GT_0trace(CFG_debugMask, GT_5CLASS, "Intializing DSP Registry Info \n");
-#if defined(OMAP_2430) || defined(OMAP_3430)
+
 	dspResources.uChipType = DSPTYPE_64;
-#else
-	dspResources.uChipType = DSPTYPE_55;
-#endif
 	dspResources.cChips = 1;
 	dspResources.uWordSize = DSPWORDSIZE;
 	dspResources.cMemTypes = 0;
@@ -574,20 +421,7 @@ DSP_STATUS CFG_SetDevObject(struct CFG_DEVNODE *hDevNode, DWORD dwValue)
 	dwBuffSize = sizeof(dwValue);
 	if (DSP_SUCCEEDED(status)) {
 		/* Store the WCD device object in the Registry */
-#if 0
-		status = REG_SetValue(NULL, (CHAR *) hDevNode, DEVOBJECT,
-				      REG_DWORD, (BYTE *) &dwValue,
-				      dwBuffSize);
 
-		/* Store the DevNode String pointer in the Registry */
-		if (DSP_SUCCEEDED(status)) {
-			dwBuffSize = sizeof(hDevNode);
-			status =
-			    REG_SetValue(NULL, (CHAR *) hDevNode, DEVNODESTRING,
-					 REG_DWORD, (BYTE *) &hDevNode,
-					 dwBuffSize);
-		}
-#else
 		if (!(CSL_Strcmp((CHAR *)hDevNode, "TIOMAP1510"))) {
 			GT_0trace(CFG_debugMask, GT_1CLASS,
 				  "Registering the DSP Device \n");
@@ -605,7 +439,6 @@ DSP_STATUS CFG_SetDevObject(struct CFG_DEVNODE *hDevNode, DWORD dwValue)
 			GT_0trace(CFG_debugMask, GT_6CLASS,
 				  "Failed to Register Device \n");
 		}
-#endif
 	}
 #ifdef DEBUG
 	if (DSP_SUCCEEDED(status)) {
@@ -667,24 +500,7 @@ DSP_STATUS CFG_GetC55Procs(OUT DWORD *numProcs)
 	CHAR pstrNumProcs[REG_MAXREGPATHLENGTH];
 	CHAR *temp;
 	*numProcs = 0;
-#if defined(OMAP_2430) || defined(OMAP_3430)
 	*numProcs = 1;
-#else
-	status = REG_GetValue(NULL, CONFIG, NUMPROCS, (BYTE *)pstrNumProcs,
-			      &dwStrLen);
-	if (DSP_SUCCEEDED(status)) {
-		if (temp = CSL_Strstr(pstrNumProcs, "C55=")) {
-			/*                  if (isdigit(*(temp+4)))*/
-			/*{*/
-			*(temp + 5) = '\0';
-			*numProcs = (int) CSL_Atoi((temp + 4));
-			GT_1trace(CFG_debugMask, GT_ENTER,
-				  "Numer of C55 procs = %d \n",
-				  *numProcs);
-			/*}*/
-		}
-	}
-#endif
 	return (status);
 }
 

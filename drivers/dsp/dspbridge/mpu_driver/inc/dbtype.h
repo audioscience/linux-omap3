@@ -1,20 +1,18 @@
 /*
- * dspbridge/inc/dbtype.h
+ * dspbridge/mpu_driver/inc/dbtype.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
- * Copyright (C) 2007 Texas Instruments, Inc.
+ * Copyright (C) 2008 Texas Instruments, Inc.
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation version 2.1 of the License.
+ * This package is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
  *
- * This program is distributed .as is. WITHOUT ANY WARRANTY of any kind,
- * whether express or implied; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * THIS PACKAGE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+ * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
-
 
 /*
  *  ======== dbtype.h ========
@@ -37,17 +35,6 @@
 
 #ifndef DBTYPE_
 #define DBTYPE_
-
-#ifndef DEF_LINUX_
-#define DEF_LINUX_
-#endif
-
-#ifdef DEAD_CODE
-/* Stifle compiler warnings: */
-#ifndef UNUSED_PARAMETER
-#define UNUSED_PARAMETER(P)   (P)
-#endif
-#endif
 
 /*============================================================================*/
 /*  Argument specification syntax                                             */
@@ -109,7 +96,6 @@ typedef unsigned short WORD;	/* w    */
 typedef unsigned long DWORD;	/* dw   */
 
 typedef char CHAR;		/* ch   */
-typedef short SHORT;		/* s    */
 typedef int INT;		/* n    */
 typedef long LONG;		/* l    */
 
@@ -117,16 +103,12 @@ typedef unsigned short USHORT;	/* us   */
 typedef unsigned int UINT;	/* u    */
 typedef unsigned long ULONG;	/* ul   */
 
-typedef double DOUBLE;		/* dbl  */
-
-typedef CHAR SZ[];		/* sz   */
 typedef CHAR *PSTR;		/* pstr */
 
 #ifndef OMAPBRIDGE_TYPES
 #define OMAPBRIDGE_TYPES
 
 typedef unsigned char UCHAR;	/* uch  */
-typedef float FLOAT;		/* flt  */
 typedef int BOOL;		/* f    */
 
 typedef volatile unsigned short REG_UWORD16;
@@ -140,120 +122,15 @@ typedef volatile unsigned short REG_UWORD16;
 typedef VOID *PVOID;		/* p    */
 typedef PVOID HANDLE;		/* h    */
 
-#ifdef DEF_WINCE_
-/*------------------------------ WINCE ---------------------------------------*/
-
 typedef unsigned short WCHAR;	/* wch  */
 
-#if defined(UNICODE)
-typedef WCHAR TCHAR;
-#else
 typedef CHAR TCHAR;
-#endif
 
-typedef WCHAR *PWCHAR;
 typedef TCHAR *PSTRING;		/* Generic character string type */
 typedef TCHAR CHARACTER;
-
-#ifdef ERROR		/* Definition of ERROR in wingdi.h clashes with gt.h  */
-#undef ERROR
-#endif
-
-/*------------------------------ WINCE ---------------------------------------*/
-#endif				/* ifdef DEF_WINCE_ */
-
-#ifdef DEF_EPOC_
-/*------------------------------ EPOC ----------------------------------------*/
-
-/*------------------------------ EPOC ----------------------------------------*/
-#endif				/* ifdef DEF_EPOC_ */
-
-#ifdef DEF_LINUX_
-/*------------------------------ LINUX -------------------------------------*/
-
-typedef unsigned short WCHAR;	/* wch  */
-
-#if defined(UNICODE)
-typedef WCHAR TCHAR;
-#else
-typedef CHAR TCHAR;
-#endif
-
-typedef WCHAR *PWCHAR;
-typedef TCHAR *PSTRING;		/* Generic character string type */
-typedef TCHAR CHARACTER;
-
-typedef BYTE *PBYTE;		/* p    */
-
-typedef DWORD *PDWORD;		/* dw   */
-
-typedef VOID *LPVOID;		/*lp   */
-typedef VOID *LPCVOID;		/*lpcvoid    */
 
 typedef long long LARGE_INTEGER;
 #define TEXT(x) x
-
-#ifdef ERROR		/* Definition of ERROR in wingdi.h clashes with gt.h  */
-#undef ERROR
-#endif
-
-/*------------------------------ LINUX -------------------------------------*/
-#endif				/* ifdef DEF_LINUX_ */
-
-#ifdef DEAD_CODE
-/*============================================================================*/
-/*  Standard calling conventions                                              */
-/*============================================================================*/
-
-#define STATIC          static
-#define EXTERN          extern
-#endif
-
-#ifdef DEF_WINCE_
-/*------------------------------ WINCE ---------------------------------------*/
-
-#ifndef CDECL
-#define CDECL           _cdecl
-#endif
-
-#ifndef WINAPI
-#if (_MSC_VER >= 800) || defined(_STDCALL_SUPPORTED)
-#define WINAPI          __stdcall
-#else
-#define WINAPI
-#endif
-#endif
-
-#define STDCALL         WINAPI
-
-#define DLLIMPORT       __declspec(dllexport)
-#define DLLEXPORT       __declspec(dllexport)
-
-/*------------------------------ WINCE ---------------------------------------*/
-#endif				/* ifdef DEF_WINCE_ */
-
-#ifdef DEF_EPOC_
-/*------------------------------ EPOC ----------------------------------------*/
-
-#define CDECL           __cdecl
-
-#define STDCALL
-
-#ifdef __VC32__
-#define DLLIMPORT       __declspec(dllexport)
-#define DLLEXPORT       __declspec(dllexport)
-#endif
-
-#ifdef __GCC32__
-#define DLLIMPORT
-#define DLLEXPORT       __declspec(dllexport)
-#endif
-
-/*------------------------------ EPOC ----------------------------------------*/
-#endif				/* ifdef DEF_EPOC_ */
-
-#ifdef DEF_LINUX_
-/*------------------------------ LINUX -------------------------------------*/
 
 #define CDECL
 
@@ -266,18 +143,5 @@ typedef long long LARGE_INTEGER;
 
 /* Define DSPAPIDLL correctly in dspapi.h */
 #define _DSPSYSDLL32_
-
-/*------------------------------ LINUX -------------------------------------*/
-#endif				/* ifdef DEF_LINUX_ */
-
-#ifdef DEAD_CODE
-/*============================================================================*/
-/*  Derived calling conventions                                               */
-/*============================================================================*/
-
-#define DSPNORMALAPI    STDCALL
-#define DSPKERNELAPI    CDECL
-#define DSPEXPORTAPI    DLLEXPORT
-#endif
 
 #endif				/* DBTYPE_ */

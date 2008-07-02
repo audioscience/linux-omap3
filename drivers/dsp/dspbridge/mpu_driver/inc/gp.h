@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/gp.h
+ * dspbridge/mpu_driver/inc/gp.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -14,7 +14,6 @@
  * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-
 /*
  *  ======== gp.h ========
  *! Revision History
@@ -27,38 +26,8 @@
 #include <stdarg.h>
 
 /*
- *  ======== GP_exit ========
- */
-#define GP_exit()
-
-/*
- *  ======== GP_init ========
- */
-#define GP_init()
-
-/*
- *  ======== GP_printf ========
- */
-extern void GP_printf(char *fmt, ...);
-
-/*
- *  ======== GP_putchar ========
- */
-extern void GP_putchar(char c);
-
-/*
  *  ======== GP_snprintf ========
  */
 #define GP_snprintf snprintf
-
-/*
- *  ======== GP_vprintf ========
- */
-extern void GP_vprintf(char *fmt, va_list va);
-
-/*
- *  ======== GP_vsprintf ========
- */
-extern void GP_vsprintf(char *buf, char *fmt, va_list va);
 
 #endif

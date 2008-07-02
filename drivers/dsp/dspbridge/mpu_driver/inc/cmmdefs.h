@@ -1,18 +1,17 @@
 /*
- * dspbridge/inc/cmmdefs.h
+ * dspbridge/mpu_driver/inc/cmmdefs.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
- * Copyright (C) 2007 Texas Instruments, Inc.
+ * Copyright (C) 2008 Texas Instruments, Inc.
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation version 2.1 of the License.
+ * This package is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
  *
- * This program is distributed .as is. WITHOUT ANY WARRANTY of any kind,
- * whether express or implied; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * THIS PACKAGE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+ * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
 
@@ -77,21 +76,6 @@ extern "C" {
  *
  *  This info is used by the GPP to xlate DSP allocated PAs.
  */
-	 struct CMM_SMSEG {
-		DWORD dwSMBasePA;	/* Physical SM Base address(GPP). */
-		ULONG ulTotalSizePA;	/* Size of SM segment in GPP bytes. */
-		DWORD dwPAPAConvert;	/* DSP PA to GPP PA Conversion.  */
-		CMM_CNVTTYPE cFactor;	/* CMM_ADDTOPA=1, CMM_SUBFROMPA=-1 */
-	} ;
-
-/* Fixed size memory descriptor */
-	 struct CMM_FDESC {
-		struct LST_ELEM link;	/* must be 1st element */
-		DWORD dwPA;
-		DWORD dwVA;
-		DWORD dwSize;
-		DWORD dwAttrs;	/*  [31-1 reserved ][0 - SM]  */
-	} ;
 
 	struct CMM_SEGINFO {
 		DWORD dwSegBasePa;	/* Start Phys address of SM segment */
@@ -129,13 +113,6 @@ extern "C" {
 		/* dwVmSize must be >= (dwMaxNumBufs * dwMaxSize) */
 		DWORD dwVmSize;
 	} ;
-
-/* Descriptor attributes */
-	typedef enum {
-		CMM_LOCAL = 0,	/* Bit 0 =0 is local memory from default heap */
-		CMM_SHARED = 1,	/* Bit 0 =1 descriptor is SM */
-		/* Bits 1- 31 RESERVED for future use */
-	} CMM_DESCTYPE;
 
 /*
  * Cmm translation types. Use to map SM addresses to process context.

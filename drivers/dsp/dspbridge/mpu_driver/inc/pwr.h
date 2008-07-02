@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/pwr.h
+ * dspbridge/mpu_driver/inc/pwr.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

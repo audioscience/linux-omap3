@@ -30,15 +30,11 @@
 #define _DRV_INTERFACE_H_
 
 /* Prototypes for all functions in this bridge */
-static int bridge_init(void);	/* Initialize bridge */
-static void bridge_exit(void);	/* Opposite of initialize */
+static int __init bridge_init(void);	/* Initialize bridge */
+static void __exit bridge_exit(void);	/* Opposite of initialize */
 static int bridge_open(struct inode *, struct file *);	/* Open */
 static int bridge_release(struct inode *, struct file *);	/* Release */
 static int bridge_ioctl(struct inode *, struct file *, unsigned int,
 			unsigned long);
 static int bridge_mmap(struct file *filp, struct vm_area_struct *vma);
-#ifdef CONFIG_BRIDGE_DPM
-int test_bridge_suspend(void);
-int test_bridge_resume(void);
-#endif
 #endif				/* ifndef _DRV_INTERFACE_H_ */

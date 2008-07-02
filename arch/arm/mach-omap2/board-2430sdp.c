@@ -35,6 +35,8 @@
 #include <asm/arch/gpio.h>
 #include <asm/arch/mux.h>
 #include <asm/arch/board.h>
+#include <asm/arch/usb-musb.h>
+#include <asm/arch/hsmmc.h>
 #include <asm/arch/common.h>
 #include <asm/arch/keypad.h>
 #include <asm/arch/gpmc.h>
@@ -377,8 +379,12 @@ static struct omap_board_config_kernel sdp2430_config[] __initdata = {
 
 static int __init omap2430_i2c_init(void)
 {
-	omap_register_i2c_bus(1, 400, NULL, 0);
+	/*
+	 * Registering bus 2 first to avoid twl4030 misbehaving as 2430SDP
+	 * has twl4030 on bus 2
+	 */
 	omap_register_i2c_bus(2, 2600, NULL, 0);
+	omap_register_i2c_bus(1, 400, NULL, 0);
 	return 0;
 }
 
@@ -390,12 +396,12 @@ static void __init omap_2430sdp_init(void)
 	omap_serial_init();
 
 	sdp2430_flash_init();
-	sdp2430_usb_init();
+	usb_musb_init();
 
 	spi_register_board_info(sdp2430_spi_board_info,
 				ARRAY_SIZE(sdp2430_spi_board_info));
 	ads7846_dev_init();
-	sdp_mmc_init();
+	hsmmc_init();
 
 	/* turn off secondary LCD backlight */
 	omap_set_gpio_direction(SECONDARY_LCD_GPIO, 0);

@@ -1,7 +1,7 @@
 /*
  * linux/arch/arm/mach-omap2/board-ldp-flash.c
  *
- * Copyright (c) 2008 Texas Instruments Inc.
+ * Copyright (C) 2008 Texas Instruments Inc.
  *
  * Modified from mach-omap2/board-2430sdp-flash.c
  * Author: Rohit Choraria <rohitkc@ti.com>
@@ -24,29 +24,32 @@
 #include <asm/arch/gpmc.h>
 #include <asm/arch/nand.h>
 
+#define GPMC_CS0_BASE	0x60
+#define GPMC_CS_SIZE	0x30
+
 static struct mtd_partition ldp_nand_partitions[] = {
 	/* All the partition sizes are listed in terms of NAND block size */
 	{
 		.name		= "X-Loader-NAND",
 		.offset		= 0,
-		.size		= 4*(64 * 2048),
+		.size		= 4 * (64 * 2048),
 		.mask_flags	= MTD_WRITEABLE,	/* force read-only */
 	},
 	{
 		.name		= "U-Boot-NAND",
 		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x80000 */
-		.size		= 4*(64 * 2048),
+		.size		= 4 * (64 * 2048),
 		.mask_flags	= MTD_WRITEABLE,	/* force read-only */
 	},
 	{
 		.name		= "Boot Env-NAND",
 		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x100000 */
-		.size		= 2*(64 * 2048),
+		.size		= 2 * (64 * 2048),
 	},
 	{
 		.name		= "Kernel-NAND",
 		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x140000 */
-		.size		= 32*(64 * 2048),
+		.size		= 32 * (64 * 2048),
 	},
 	{
 		.name		= "File System - NAND",
@@ -78,31 +81,17 @@ static struct platform_device ldp_nand_device = {
 	.resource	= &ldp_nand_resource,
 };
 
-
-/**
- * ldp430_flash_init - Identify devices connected to GPMC and register.
- *
- * @return - void.
- */
 void __init ldp_flash_init(void)
 {
-	u8		cs = 0;
-	u8		nandcs = GPMC_CS_NUM + 1;
-	unsigned long gpmc_base_add;
+	u8 cs = 0;
+	u8 nandcs = GPMC_CS_NUM + 1;
+	u32 gpmc_base_add = OMAP34XX_GPMC_VIRT;
 
-	gpmc_base_add   = OMAP34XX_GPMC_VIRT;
-
+	/* find out the chip-select on which NAND exists */
 	while (cs < GPMC_CS_NUM) {
 		u32 ret = 0;
 		ret = gpmc_cs_read_reg(cs, GPMC_CS_CONFIG1);
 
-		/*
-		 * xloader/Uboot would have programmed the NAND/oneNAND
-		 * base address for us This is a ugly hack. The proper
-		 * way of doing this is to pass the setup of u-boot up
-		 * to kernel using kernel params - something on the
-		 * lines of machineID. Check if NAND/oneNAND is configured
-		 */
 		if ((ret & 0xC00) == 0x800) {
 			if (nandcs > GPMC_CS_NUM)
 				nandcs = cs;
@@ -111,12 +100,11 @@ void __init ldp_flash_init(void)
 	}
 	if (nandcs > GPMC_CS_NUM) {
 		printk(KERN_INFO "NAND: Unable to find configuration "
-				" in GPMC\n ");
+				"in GPMC\n ");
 		return;
 	}
-
 	if (nandcs < GPMC_CS_NUM) {
-		ldp_nand_data.cs 	= nandcs;
+		ldp_nand_data.cs = nandcs;
 		ldp_nand_data.gpmc_cs_baseaddr = (void *)(gpmc_base_add +
 					GPMC_CS0_BASE + nandcs * GPMC_CS_SIZE);
 		ldp_nand_data.gpmc_baseaddr = (void *) (gpmc_base_add);

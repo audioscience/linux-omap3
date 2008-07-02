@@ -1,20 +1,18 @@
 /*
- * dspbridge/inc/std.h
+ * dspbridge/mpu_driver/inc/std.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
- * Copyright (C) 2007 Texas Instruments, Inc.
+ * Copyright (C) 2008 Texas Instruments, Inc.
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation version 2.1 of the License.
+ * This package is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
  *
- * This program is distributed .as is. WITHOUT ANY WARRANTY of any kind,
- * whether express or implied; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * THIS PACKAGE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+ * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
-
 
 /*
  *  ======== std.h ========
@@ -68,58 +66,6 @@
 #ifndef STD_
 #define STD_
 
-#ifdef _TMS320C28X
-#define _28_ 1
-#ifdef LARGE_MODEL
-#define _28l_ 1
-#endif
-#endif
-#ifdef _TMS320C2XX
-#define _29_ 1
-#endif
-#ifdef _TMS320C30
-#define _30_ 1
-#endif
-#ifdef _TMS320C40
-#define _40_ 1
-#endif
-#ifdef _TMS320C50
-#define _50_ 1
-#endif
-#ifdef _TMS320C5XX
-#define _54_ 1
-#endif
-#ifdef __TMS320C55X__
-#define _55_ 1
-#ifdef __LARGE_MODEL__
-#define _55l_ 1
-#endif
-#endif
-#ifdef _TMS320C6200
-#define _62_ 1
-#define _6x_ 1
-#endif
-#ifdef _TMS320C6400
-#define _64_ 1
-#define _6x_ 1
-#endif
-#ifdef _TMS320C6700
-#define _67_ 1
-#define _6x_ 1
-#endif
-#ifdef M_I86
-#define _86_ 1
-#endif
-#ifdef _MVP_MP
-#define _80_ 1
-#endif
-#ifdef _MVP_PP
-#define _80_ 1
-#endif
-#ifdef _WIN32
-#define _W32_ 1
-#endif
-
 /*
  *  ======== _TI_ ========
  *  _TI_ is defined for all TI targets
@@ -168,7 +114,6 @@
  *  *Uns - unsigned type
  *  *Bits - unsigned type (bit-maps)
  */
-typedef char SmInt;		/* SMSIZE-bit signed integer */
 typedef short MdInt;		/* MDSIZE-bit signed integer */
 #if defined(_6x_)
 typedef int LgInt;		/* LGSIZE-bit signed integer */
@@ -185,7 +130,6 @@ typedef unsigned long LgUns;	/* LGSIZE-bit unsigned integer */
 #endif
 
 typedef unsigned char SmBits;	/* SMSIZE-bit bit string */
-typedef unsigned short MdBits;	/* MDSIZE-bit bit string */
 #if defined(_6x_)
 typedef unsigned LgBits;	/* LGSIZE-bit bit string */
 #else
@@ -196,8 +140,6 @@ typedef unsigned long LgBits;	/* LGSIZE-bit bit string */
  *  Aliases for standard C types
  */
 typedef int Int;		/* for those rare occasions */
-typedef long int Long;
-typedef short int Short;
 typedef char Char;
 #define Void void
 
@@ -261,40 +203,6 @@ typedef double Float;
 #else
 #define ArgToInt(A)	((Int)(A))
 #define ArgToPtr(A)	((Ptr)(A))
-#endif
-
-/*
- *  ======== __inline ========
- *  The following definitions define the macro __inline for those
- *  C compilers that do not use __inline to indicate inline
- *  expansion of functions.
- *
- *  The TI C compilers support the "inline" keyword (ala C++).  Both
- *  Microsoft and GNU C compilers support the "__inline" keyword.  The
- *  native SUN OS 4.x C compiler doesn't understand either.
- */
-#ifdef _TI_
-#ifdef _LINT_
-#define __inline
-#else
-#define __inline inline
-#endif
-#endif
-
-#ifdef _SUN4_
-#define __inline
-#endif
-
-/*
- *  ======== inline ========
- *  Define "inline" so that all C code can optionally use the "inline"
- *  keyword. don't define if we are compiling with GNU C compiler version
- *  greater than 3.x
- */
-#if !defined(inline) && !defined(__cplusplus) && !defined(_TI_)
-#if !((__GNUC__ > 3) || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1))
-#define inline	__inline
-#endif
 #endif
 
 #endif				/* STD_ */

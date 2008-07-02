@@ -49,7 +49,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gt.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
@@ -118,7 +117,8 @@ DSP_STATUS NTFY_Create(struct NTFY_OBJECT* *phNtfy)
 
 		status = SYNC_InitializeDPCCS(&pNtfy->hSync);
 		if (DSP_SUCCEEDED(status)) {
-			if ((pNtfy->notifyList = LST_Create()) == NULL) {
+			pNtfy->notifyList = LST_Create();
+			if (pNtfy->notifyList == NULL) {
 				(VOID) SYNC_DeleteCS(pNtfy->hSync);
 				MEM_FreeObject(pNtfy);
 				status = DSP_EMEMORY;
@@ -235,30 +235,15 @@ DSP_STATUS NTFY_Register(struct NTFY_OBJECT *hNtfy,
 			 UINT uEventMask, UINT uNotifyType)
 {
 	struct NOTIFICATION *pNotify;
-#ifndef LINUX
-	ULONG ulNameLen;
-	CHAR szTmpName[SYNC_MAXNAMELENGTH];
-#endif
 	struct SYNC_ATTRS syncAttrs;
 	DSP_STATUS status = DSP_SOK;
 
 	DBC_Require(MEM_IsValidHandle(hNtfy, NTFY_SIGNATURE));
 
 	if (hNotification != NULL) {
-#ifndef LINUX
-		if (hNotification->psName != NULL) {
-			ulNameLen = CSL_Wstrlen(hNotification->psName);
-
-			if (ulNameLen > SYNC_MAXNAMELENGTH) {
-				status = DSP_EHANDLE;
-			}
-		} else {
-			status = DSP_EHANDLE;
-		}
-#endif
-	} else {
+		/* Do nothing */
+	} else
 		status = DSP_EHANDLE;
-	}
 
 	/* Return DSP_ENOTIMPL if uNotifyType is not supported */
 	if (DSP_SUCCEEDED(status)) {
@@ -271,19 +256,13 @@ DSP_STATUS NTFY_Register(struct NTFY_OBJECT *hNtfy,
 		return(status);
 
 	(VOID)SYNC_EnterCS(hNtfy->hSync);
-#ifndef LINUX
-	/* See if this notification has already been registered. */
-	CSL_WcharToAnsi(szTmpName, hNotification->psName, ulNameLen);
-#endif
+
 	pNotify = (struct NOTIFICATION *)LST_First(hNtfy->notifyList);
 	while (pNotify != NULL) {
 		 /* If there is more than one notification type, each
 		 * type may require its own handler code.  */
-#ifndef LINUX
-		if (CSL_Strcmp(pNotify->pstrName, szTmpName) == 0) {
-#else
+
 		if (hNotification->handle == pNotify->hSync) {
-#endif
 			/* found */
 			break;
 		}
@@ -298,34 +277,17 @@ DSP_STATUS NTFY_Register(struct NTFY_OBJECT *hNtfy,
 			/* Allocate NOTIFICATION object, add to list */
 			pNotify = MEM_Calloc(sizeof(struct NOTIFICATION),
 					     MEM_PAGED);
-			if (pNotify == NULL) {
+			if (pNotify == NULL)
 				status = DSP_EMEMORY;
-			}
+
 		}
 		if (DSP_SUCCEEDED(status)) {
 			LST_InitElem((struct LST_ELEM *) pNotify);
 			 /* If there is more than one notification type, each
 			 * type may require its own handler code. */
-#ifndef LINUX
-			pNotify->pstrName = MEM_Calloc(ulNameLen + 1,
-						       MEM_PAGED);
-			if (pNotify->pstrName != NULL) {
-				CSL_Strcpyn(pNotify->pstrName, szTmpName,
-					    ulNameLen);
-				/* Create named event */
-				syncAttrs.hKernelEvent = NULL;
-				syncAttrs.hUserEvent = NULL;
-				syncAttrs.dwReserved1 = (DWORD)pNotify->
-							pstrName;
-				status = SYNC_OpenEvent(&pNotify->hSync,
-							&syncAttrs);
-			} else {
-				status = DSP_EMEMORY;
-			}
-#else
 			status = SYNC_OpenEvent(&pNotify->hSync, &syncAttrs);
 			hNotification->handle = pNotify->hSync;
-#endif
+
 			if (DSP_SUCCEEDED(status)) {
 				pNotify->uEventMask = uEventMask;
 				pNotify->uNotifyType = uNotifyType;
@@ -341,9 +303,6 @@ DSP_STATUS NTFY_Register(struct NTFY_OBJECT *hNtfy,
 			/* Remove from list and free */
 			LST_RemoveElem(hNtfy->notifyList,
 				      (struct LST_ELEM *)pNotify);
-#ifdef LINUX
-			hNotification->handle = NULL;
-#endif
 			DeleteNotify(pNotify);
 		} else {
 			/* Update notification mask (type shouldn't change) */

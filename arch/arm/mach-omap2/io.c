@@ -18,21 +18,25 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
+#include <linux/io.h>
 
 #include <asm/tlb.h>
-#include <asm/io.h>
 
 #include <asm/mach/map.h>
-
 #include <asm/arch/mux.h>
 #include <asm/arch/omapfb.h>
+#include <asm/arch/sram.h>
 
-extern void omap_sram_init(void);
-extern int omap2_clk_init(void);
-extern void omap2_check_revision(void);
-extern void omap2_init_memory(void);
-extern void gpmc_init(void);
-extern void omapfb_reserve_sdram(void);
+#include "memory.h"
+
+#include "clock.h"
+
+#include <asm/arch/powerdomain.h>
+
+#include "powerdomains.h"
+
+#include <asm/arch/clockdomain.h>
+#include "clockdomains.h"
 
 /*
  * The machine specific code may provide the extra mapping besides the
@@ -167,12 +171,17 @@ void __init omap2_map_common_io(void)
 #if defined(CONFIG_ARCH_OMAP2420)
 	iotable_init(omap24xx_io_desc, ARRAY_SIZE(omap24xx_io_desc));
 	iotable_init(omap242x_io_desc, ARRAY_SIZE(omap242x_io_desc));
-#elif defined(CONFIG_ARCH_OMAP2430)
+#endif
+
+#if defined(CONFIG_ARCH_OMAP2430)
 	iotable_init(omap24xx_io_desc, ARRAY_SIZE(omap24xx_io_desc));
 	iotable_init(omap243x_io_desc, ARRAY_SIZE(omap243x_io_desc));
-#elif defined(CONFIG_ARCH_OMAP34XX)
+#endif
+
+#if defined(CONFIG_ARCH_OMAP34XX)
 	iotable_init(omap34xx_io_desc, ARRAY_SIZE(omap34xx_io_desc));
 #endif
+
 	/* Normally devicemaps_init() would flush caches and tlb after
 	 * mdesc->map_io(), but we must also do it here because of the CPU
 	 * revision check below.
@@ -188,6 +197,8 @@ void __init omap2_map_common_io(void)
 void __init omap2_init_common_hw(void)
 {
 	omap2_mux_init();
+	pwrdm_init(powerdomains_omap);
+	clkdm_init(clockdomains_omap, clkdm_pwrdm_autodeps);
 	omap2_clk_init();
 	omap2_init_memory();
 	gpmc_init();

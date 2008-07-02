@@ -782,6 +782,15 @@ static int __init omap_mmc_probe(struct platform_device *pdev)
 		else
 			host->dbclk_enabled = 1;
 
+#ifdef CONFIG_MMC_BLOCK_BOUNCE
+	mmc->max_phys_segs = 1;
+	mmc->max_hw_segs = 1;
+#endif
+	mmc->max_blk_size = 512;       /* Block Length at max can be 1024 */
+	mmc->max_blk_count = 0xFFFF;    /* No. of Blocks is 16 bits */
+	mmc->max_req_size = mmc->max_blk_size * mmc->max_blk_count;
+	mmc->max_seg_size = mmc->max_req_size;
+
 	mmc->ocr_avail = mmc_slot(host).ocr_mask;
 	mmc->caps |= MMC_CAP_MULTIWRITE | MMC_CAP_MMC_HIGHSPEED |
 				MMC_CAP_SD_HIGHSPEED;
@@ -1000,6 +1009,7 @@ static struct platform_driver omap_mmc_driver = {
 	.resume		= omap_mmc_resume,
 	.driver		= {
 		.name = DRIVER_NAME,
+		.owner = THIS_MODULE,
 	},
 };
 
@@ -1020,5 +1030,5 @@ module_exit(omap_mmc_cleanup);
 
 MODULE_DESCRIPTION("OMAP High Speed Multimedia Card driver");
 MODULE_LICENSE("GPL");
-MODULE_ALIAS(DRIVER_NAME);
+MODULE_ALIAS("platform:" DRIVER_NAME);
 MODULE_AUTHOR("Texas Instruments Inc");

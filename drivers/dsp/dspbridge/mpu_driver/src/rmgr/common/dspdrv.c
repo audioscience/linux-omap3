@@ -101,7 +101,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gp.h>
 #include <gt.h>
 
@@ -125,21 +124,8 @@
 /*  ----------------------------------- This */
 #include <dspdrv.h>
 
-#ifndef LINUX
-/*  ----------------------------------- Defines, Data Structures, Typedefs */
-/* DBG_INSTANTIATE_ZONES(0xc2, "Class", "unused1", "unused2")*/
-#endif
-
 /*  ----------------------------------- Globals */
 struct GT_Mask curTrace;
-#ifndef LINUX
-/* DBGPARAM    dpCurSettings;*/
-#endif
-
-#ifndef LINUX
-/*  ----------------------------------- Function Prototypes */
-static DSP_STATUS GetDriverKey(DWORD context, CHAR *pDrvKey);
-#endif
 
 /*
  *  ======== DSP_Init ========
@@ -258,13 +244,7 @@ BOOL DSP_Deinit(DWORD deviceContext)
 
 	GT_0trace(curTrace, GT_ENTER, "Entering DSP_Deinit \r\n");
 
-#if 1
-	while ((deviceNode = DRV_GetFirstDevExtension()) != 0)
-#else
-	for (deviceNode = DRV_GetFirstDevExtension(); deviceNode != 0;
-	     deviceNode = DRV_GetNextDevExtension(deviceNode))
-#endif
-	{
+	while ((deviceNode = DRV_GetFirstDevExtension()) != 0) {
 		(Void)DEV_RemoveDevice((struct CFG_DEVNODE *)deviceNode);
 
 		(Void)DRV_ReleaseResources((DWORD)deviceNode,
@@ -310,69 +290,3 @@ BOOL DSP_Close(DWORD dwOpenContext)
 
 	return (retVal);
 }
-
-#ifndef LINUX
-/*
- *  ======== DSP_PowerUp ========
- */
-Void DSP_PowerUp(DWORD deviceContext)
-{
-	GT_0trace(curTrace, GT_ENTER, "Entering DSP_PowerUP  \n");
-	return;
-}
-
-/*
- *  ======== DSP_PowerDown ========
- */
-Void DSP_PowerDown(DWORD deviceContext)
-{
-	GT_0trace(curTrace, GT_ENTER, "Entering DSP_PowerDown  \n");
-	return;
-}
-#endif
-
-#ifndef LINUX
-/*
- *  ======== GetDriverKey ========
- *  Purpose:
- *      Given the Drivers active key in the registry as a DWORD
- *      Get the Actual Driver key in the Registry.
- */
-DSP_STATUS GetDriverKey(DWORD context, CHAR *pDrvKey)
-{
-	DSP_STATUS status = DSP_SOK;
-	DWORD bufferSize;
-	CHAR driverActiveString[MAXREGPATHLENGTH];
-	CHAR tempBuf[MAXREGPATHLENGTH];
-	ULONG ulLen;
-
-	bufferSize = MAXREGPATHLENGTH;
-
-	(Void) CSL_WcharToAnsi(driverActiveString, (WCHAR *)context,
-			       bufferSize);
-
-	if (DSP_SUCCEEDED(status)) {
-		/* Reg Get Value for Key */
-		status = REG_GetValue(NULL, driverActiveString, KEYVAL,
-			 (BYTE *)tempBuf, &bufferSize);
-		if (DSP_SUCCEEDED(status)) {
-
-			/* Set length of driver string. */
-			bufferSize = CSL_Strlen(tempBuf) + 1;
-
-			/* Store the Driver String under Root */
-			status = REG_SetValue(NULL, CONFIG, ROOT, REG_SZ,
-					     (BYTE *)tempBuf, bufferSize);
-			GP_sprintf(pDrvKey, "%s\\%s", tempBuf, CLASS);
-		}
-	}
-
-	ulLen = CSL_Strlen(pDrvKey);
-
-	DBC_Ensure(((ulLen > bufferSize) && DSP_SUCCEEDED(status)) ||
-		  DSP_FAILED(status));
-
-	return (status);
-}
-#endif
-

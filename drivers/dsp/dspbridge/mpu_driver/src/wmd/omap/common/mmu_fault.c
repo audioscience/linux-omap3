@@ -38,10 +38,9 @@
 #include <errbase.h>
 
 /*  ----------------------------------- Trace & Debug */
-#include <linux/host_os.h>
+#include <host_os.h>
 #include <dbc.h>
 #include <dbg.h>
-#include <dbg_zones.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
 #include <dpc.h>
@@ -51,30 +50,20 @@
 /*  ----------------------------------- Link Driver */
 #include <wmddeh.h>
 
-#if defined(OMAP_2430) || defined(OMAP_3430)
 /* ------------------------------------ Hardware Abstraction Layer */
 #include <hal_defs.h>
 #include <hal_mmu.h>
-#endif
 
 /*  ----------------------------------- This */
 #include "_deh.h"
-#ifdef OMAP_3430
 #include "_tiomap_mmu.h"
 #include "_tiomap.h"
-#else
-#include "_tiomap_mmu.h"
-#include "_tiomap.h"
-#endif
-#include "_hal_mmu.h"
 #include "mmu_fault.h"
 
 DWORD dmmuEventMask;
 DWORD faultAddr;
 
-#if defined(OMAP_2430) || defined(OMAP_3430)
 static BOOL MMU_CheckIfFault(struct WMD_DEV_CONTEXT *pDevContext);
-#endif
 
 /*
  *  ======== MMU_FaultDpc ========
@@ -88,14 +77,11 @@ VOID MMU_FaultDpc(IN PVOID pRefData)
 
 	DBG_Trace(DBG_LEVEL1, "MMU_FaultDpc Enter: 0x%x\n", pRefData);
 
-	if (pDehMgr) {
+	if (pDehMgr)
 		WMD_DEH_Notify(hDehMgr, DSP_MMUFAULT, 0L);
-	}
 
 	DBG_Trace(DBG_LEVEL1, "MMU_FaultDpc Exit: 0x%x\n", pRefData);
 }
-
-#if defined(OMAP_2430) || defined(OMAP_3430)
 
 /*
  *  ======== MMU_FaultIsr ========
@@ -125,10 +111,10 @@ VOID MMU_FaultIsr(IN PVOID pRefData)
 		DBG_Trace(DBG_LEVEL7,
 			 "**Failed to get Host Resources in MMU ISR **\n");
 		if (MMU_CheckIfFault(pDevContext)) {
-			printk("***** DSPMMU FAULT ***** IRQStatus 0x%x\n",
-				dmmuEventMask);
-			printk("***** DSPMMU FAULT ***** faultAddr 0x%x\n",
-				faultAddr);
+			printk(KERN_INFO "***** DSPMMU FAULT ***** IRQStatus "
+				"0x%x\n", dmmuEventMask);
+			printk(KERN_INFO "***** DSPMMU FAULT ***** faultAddr "
+				"0x%x\n", faultAddr);
 			/* Disable the MMU events, else once we clear it will
 			 * start to raise INTs again */
 			/*
@@ -188,5 +174,3 @@ static BOOL MMU_CheckIfFault(struct WMD_DEV_CONTEXT *pDevContext)
 	}
 	return retVal;
 }
-#endif				/* OMAP_2430 ||3430 */
-

@@ -22,12 +22,10 @@
  *
  *  Public Functions:
  *      REG_DeleteValue
- *      REG_EnumKey
  *      REG_EnumValue
  *      REG_Exit
  *      REG_GetValue
  *      REG_Init
- *      REG_QueryInfoKey
  *      REG_SetValue
  *
  *! Revision History:
@@ -45,7 +43,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gt.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
@@ -87,25 +84,6 @@ DSP_STATUS REG_DeleteValue(OPTIONAL IN HANDLE *phKey, IN CONST PSTR pstrSubkey,
 
 	return (status);
 }
-
-#ifndef LINUX
-/*
- *  ======== REG_EnumKey ========
- *  Enumerates subkeys of a specified registry key.
- */
-DSP_STATUS REG_EnumKey(OPTIONAL IN HANDLE *phKey, IN DWORD dwIndex,
-		       IN CONST PSTR pstrKey, IN OUT PSTR pstrSubkey,
-		       IN OUT DWORD *pdwValueSize)
-{
-	DBC_Require(pstrKey && pstrSubkey && pdwValueSize);
-	DBC_Require(phKey == NULL);
-	DBC_Require(CSL_Strlen(pstrKey) < REG_MAXREGPATHLENGTH);
-
-	GT_0trace(REG_debugMask, GT_ENTER, "REG_EnumKey: entered\n");
-
-	return (DSP_ENOTIMPL);
-}
-#endif
 
 /*
  *  ======== REG_EnumValue ========

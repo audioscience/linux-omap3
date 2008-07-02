@@ -23,7 +23,6 @@
  *  Public Functions:
  *      PRCS_Exit
  *      PRCS_GetCurrentHandle
- *      PRCS_GetCurThreadHandle
  *      PRCS_Init
  *
  *! Revision History:
@@ -48,7 +47,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gt.h>
 
 /*  ----------------------------------- This */

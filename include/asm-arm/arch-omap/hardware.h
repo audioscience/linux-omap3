@@ -41,7 +41,6 @@
 #include <asm/types.h>
 #include <asm/arch/cpu.h>
 #endif
-#include <asm/arch/io.h>
 #include <asm/arch/serial.h>
 
 /*
@@ -327,8 +326,8 @@
 #include "board-2430sdp.h"
 #endif
 
-#ifdef CONFIG_MACH_OMAP_2430OSK
-#include "board-2430osk.h"
+#ifdef CONFIG_MACH_OMAP2EVM
+#include "board-omap2evm.h"
 #endif
 
 #ifdef CONFIG_MACH_OMAP_3430SDP

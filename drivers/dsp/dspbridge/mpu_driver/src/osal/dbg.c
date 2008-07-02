@@ -23,7 +23,6 @@
  *  Public Functions:
  *      DBG_Exit
  *      DBG_Init
- *      DBG_Printf
  *      DBG_Trace
  *
  *  Notes:
@@ -52,7 +51,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gp.h>
 #include <gt.h>
 
@@ -79,36 +77,6 @@ BOOL DBG_Init()
 
 	return (TRUE);
 }
-
-#ifndef LINUX
-/*
- *  ======== DBG_Printf ========
- *  Purpose:
- *      Output a formatted string to the debugger.
- */
-DSP_STATUS DBG_Printf(PSTR pstrFormat, ...)
-{
-	INT arg1, arg2, arg3, arg4, arg5, arg6;
-	va_list va;
-
-	GT_0trace(DBG_debugMask, GT_ENTER, "DBG_Printf: entered\n");
-
-	va_start(va, pstrFormat);
-
-	arg1 = va_arg(va, INT);
-	arg2 = va_arg(va, INT);
-	arg3 = va_arg(va, INT);
-	arg4 = va_arg(va, INT);
-	arg5 = va_arg(va, INT);
-	arg6 = va_arg(va, INT);
-
-	va_end(va);
-
-	(*GT->PRINTFXN)(pstrFormat, arg1, arg2, arg3, arg4, arg5, arg6);
-
-	return (DSP_SOK);
-}
-#endif
 
 /*
  *  ======== DBG_Trace ========

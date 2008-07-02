@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/brddefs.h
+ * dspbridge/mpu_driver/inc/brddefs.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -56,13 +56,11 @@ extern "C" {
 #define BRD_ACCEXCLUSIVE 0x80	/* exclusive ownership of board */
 #define BRD_ACCMASK    (~0x83)
 
-	typedef unsigned long BRD_ACCESS;
 	typedef unsigned long BRD_STATUS;
 
 /* BRD Object */
 	/*typedef struct BRD_OBJECT *BRD_HOBJECT;*/
 	struct BRD_OBJECT;
-	typedef void (*BRD_CALLBACK) (struct BRD_OBJECT*, BRD_STATUS, DWORD);
 
 #ifdef __cplusplus
 }

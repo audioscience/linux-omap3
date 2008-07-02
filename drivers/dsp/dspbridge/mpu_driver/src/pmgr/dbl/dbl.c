@@ -45,7 +45,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gt.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
@@ -288,17 +287,17 @@ DSP_STATUS DBL_create(struct DBL_TargetObj **pTarget, struct DBL_Attrs *pAttrs)
 		pdblTarget->dblAttrs = *pAttrs;
 		/* Allocate buffer for loading target */
 		pdblTarget->pBuf = MEM_Calloc(LOADBUFSIZE, MEM_PAGED);
-		if (pdblTarget->pBuf == NULL) {
+		if (pdblTarget->pBuf == NULL)
 			status = DSP_EMEMORY;
-		}
+
 	}
 	if (DSP_SUCCEEDED(status)) {
 		*pTarget = pdblTarget;
 	} else {
 		*pTarget = NULL;
-		if (pdblTarget) {
+		if (pdblTarget)
 			DBL_delete(pdblTarget);
-		}
+
 	}
 	DBC_Ensure(DSP_SUCCEEDED(status) &&
 		  ((MEM_IsValidHandle((*pTarget), DBL_TARGSIGNATURE)) ||
@@ -336,13 +335,6 @@ Void DBL_exit()
 	cRefs--;
 	GT_1trace(DBL_debugMask, GT_5CLASS,
 		 "DBL_exit() ref count: 0x%x\n", cRefs);
-#ifndef LINUX
-	if (cRefs == 0) {
-		MEM_Exit();
-		CSL_Exit();
-		DBL_debugMask.flags = 0;
-	}
-#endif
 	DBC_Ensure(cRefs >= 0);
 }
 
@@ -511,10 +503,6 @@ DSP_STATUS DBL_getSect(struct DBL_LibraryObj *lib, String name, LgUns *pAddr,
  */
 Bool DBL_init(Void)
 {
-#ifndef LINUX
-	Bool fInitMEM;
-	Bool fInitCSL;
-#endif
 	Bool retVal = TRUE;
 
 	DBC_Require(cRefs >= 0);
@@ -523,20 +511,6 @@ Bool DBL_init(Void)
 		DBC_Assert(!DBL_debugMask.flags);
 		GT_create(&DBL_debugMask, "BL"); 	/* "BL" for dBL */
 
-#ifndef LINUX
-		fInitMEM = MEM_Init();
-		fInitCSL = CSL_Init();
-		retVal = fInitMEM && fInitCSL;
-
-		if (!retVal) {
-			if (fInitMEM)
-				MEM_Exit();
-
-			if (fInitCSL)
-				CSL_Exit();
-
-		}
-#endif
 	}
 
 	if (retVal)
@@ -787,7 +761,8 @@ DSP_STATUS DBL_open(struct DBL_TargetObj *target, String file, DBL_Flags flags,
 	}
 	/* Read file header */
 	if (DSP_SUCCEEDED(status)) {
-		if (DSP_FAILED(status = readHeader(target, pdblLib))) {
+		status = readHeader(target, pdblLib);
+		if (DSP_FAILED(status)) {
 			GT_0trace(DBL_debugMask, GT_6CLASS,
 				 "DBL_open(): Failed to read file header\n");
 		}
@@ -803,7 +778,8 @@ DSP_STATUS DBL_open(struct DBL_TargetObj *target, String file, DBL_Flags flags,
 	}
 	/* Read all the symbols */
 	if (DSP_SUCCEEDED(status)) {
-		if (DSP_FAILED(status = readSymbols(target, pdblLib))) {
+		status = readSymbols(target, pdblLib);
+		if (DSP_FAILED(status)) {
 			GT_0trace(DBL_debugMask, GT_6CLASS,
 				 "DBL_open(): Failed to read symbols\n");
 		}
@@ -819,7 +795,8 @@ DSP_STATUS DBL_open(struct DBL_TargetObj *target, String file, DBL_Flags flags,
 	}
 	/* Read DCD sections */
 	if (DSP_SUCCEEDED(status)) {
-		if (DSP_FAILED(status = readDCDSects(target, pdblLib))) {
+		status = readDCDSects(target, pdblLib);
+		if (DSP_FAILED(status)) {
 			GT_0trace(DBL_debugMask, GT_6CLASS,
 				 "DBL_open(): Failed to read DCD sections\n");
 		}
@@ -835,9 +812,9 @@ DSP_STATUS DBL_open(struct DBL_TargetObj *target, String file, DBL_Flags flags,
 	}
 	if (DSP_FAILED(status)) {
 		*pLib = NULL;
-		if (pdblLib != NULL) {
+		if (pdblLib != NULL)
 			DBL_close((struct DBL_LibraryObj *) pdblLib);
-		}
+
 	} else {
 		*pLib = pdblLib;
 	}

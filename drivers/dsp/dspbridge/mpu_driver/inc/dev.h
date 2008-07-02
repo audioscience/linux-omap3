@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/dev.h
+ * dspbridge/mpu_driver/inc/dev.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -22,7 +22,6 @@
  *
  *  Public Functions:
  *      DEV_BrdWriteFxn
- *      DEV_CleanupProcessState
  *      DEV_CreateDevice
  *      DEV_Create2
  *      DEV_Destroy2
@@ -125,22 +124,6 @@ extern "C" {
 					   ULONG ulDspAddr,
 					   PVOID pHostBuf,
 					   ULONG ulNumBytes, UINT nMemSpace);
-
-/*
- *  ======== DEV_CleanupProcessState ========
- *  Purpose:
- *      Attempt to free any resources claimed by the process which is
- *      currently closing.
- *  Parameters:
- *      hProcess:       Kernel mode handle to the current process.
- *  Returns:
- *      DSP_SOK:        The attempt to free resources has been made.
- *      DSP_EHANDLE:    Invalid process handle.
- *  Requires:
- *      DEV Initialized.
- *  Ensures:
- */
-	extern DSP_STATUS CDECL DEV_CleanupProcessState(HANDLE hProcess);
 
 /*
  *  ======== DEV_CreateDevice ========
@@ -446,30 +429,6 @@ extern "C" {
 	extern DSP_STATUS CDECL DEV_GetDevType(struct DEV_OBJECT *hdevObject,
 					       UINT *devType);
 
-#ifndef LINUX
-/*
- *  ======== DEV_GetDSPWordSize ========
- *  Purpose:
- *      Retrieve the DSP word size in bytes for this device.
- *  Parameters:
- *      hDevObject:     Handle to device object created with
- *                      DEV_CreateDevice().
- *      puWordSize:     Ptr to location to store the word size in bytes.
- *  Returns:
- *      DSP_SOK:        Returns DSP word size in bytes in *puWordSize.
- *      DSP_EHANDLE:    Invalid hDevObject.
- *  Requires:
- *      puWordSize != NULL.
- *      DEV Initialized.
- *  Ensures:
- *      DSP_SOK:        *puWordSize contains word size in bytes;
- *      else:           *puWordSize is NULL.
- */
-	extern DSP_STATUS CDECL DEV_GetDSPWordSize(struct DEV_OBJECT
-						   *hDevObject,
-						   OUT ULONG *puWordSize);
-#endif
-
 /*
  *  ======== DEV_GetFirst ========
  *  Purpose:
@@ -480,9 +439,9 @@ extern "C" {
  *      NULL if there are no device objects stored; else
  *      a valid DEV_HOBJECT.
  *  Requires:
- *      No calls to DEV_CreateDevice, DEV_CleanupProcessState or
- *      DEV_DestroyDevice (which my modify the internal device object list)
- *      may occur between calls to DEV_GetFirst and DEV_GetNext.
+ *      No calls to DEV_CreateDevice or DEV_DestroyDevice (which my modify the
+ *      internal device object list) may occur between calls to DEV_GetFirst
+ *      and DEV_GetNext.
  *  Ensures:
  *      The DEV_HOBJECT returned is valid.
  *      A subsequent call to DEV_GetNext will return the next device object in
@@ -547,9 +506,9 @@ extern "C" {
  *      was invalid;
  *      else the next valid DEV_HOBJECT in the list.
  *  Requires:
- *      No calls to DEV_CreateDevice, DEV_CleanupProcessState or
- *      DEV_DestroyDevice (which my modify the internal device object list)
- *      may occur between calls to DEV_GetFirst and DEV_GetNext.
+ *      No calls to DEV_CreateDevice or DEV_DestroyDevice (which my modify the
+ *      internal device object list) may occur between calls to DEV_GetFirst
+ *      and DEV_GetNext.
  *  Ensures:
  *      The DEV_HOBJECT returned is valid.
  *      A subsequent call to DEV_GetNext will return the next device object in

@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/gs.h
+ * dspbridge/mpu_driver/inc/gs.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -13,7 +13,6 @@
  * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
  * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
-
 
 /*
  *  ======== gs.h ========
@@ -34,26 +33,6 @@
  *  allocated, otherwise NULL.
  */
 extern Ptr GS_alloc(Uns size);
-
-/*
- *  ======== GS_calloc ========
- *  Alloc size bytes of space and initialize the space to 0.
- *  Returns pointer to space allocated, otherwise NULL.
- */
-#define GS_calloc(s)    GS_alloc(s)
-
-/*
- *  ======== GS_clearerr ========
- *  Clear error latches in GS module
- */
-extern Void GS_clearerr();
-
-/*
- *  ======== GS_err ========
- *  Return TRUE if an error occured; i.e., is any allocation failed
- *  or GS_frees() mismatch occured.
- */
-extern Bool GS_err();
 
 /*
  *  ======== GS_exit ========
@@ -81,30 +60,5 @@ extern Void GS_frees(Ptr ptr, Uns size);
  *  some environments this operation must actually do some work!
  */
 extern Void GS_init(Void);
-
-/*
- *  ======== GS_mark ========
- */
-extern Ptr GS_mark(Void);
-
-/*
- *  ======== GS_realloc ========
- *  Resize a currently allocated buffer and preserve the
- *  current buffers contents.  Returns NULL of reallocation is not
- *  possible, otherwise a pointer to the new buffer is returned.
- */
-extern Ptr GS_realloc(Ptr ptr, Uns size);
-
-/*
- *  ======== GS_release ========
- */
-extern Void GS_release(Ptr mark);
-
-/*
- *  ======== GS_size ========
- *  Return the total size (in bytes) of all outstanding
- *  allocations.
- */
-extern Uns GS_size(Void);
 
 #endif				/*GS_ */

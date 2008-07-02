@@ -183,7 +183,8 @@ void dload_relocate(struct dload_state *dlthis, TgtAU_t *data,
 
 	rx = HASH_FUNC(rp->r_type);
 	while (rop_map1[rx] != rp->r_type) {
-		if ((rx = HASH_L(rop_map2[rx])) < 0) {
+		rx = HASH_L(rop_map2[rx]);
+		if (rx < 0) {
 #if TMS32060
 		switch (rp->r_type) {
 		case R_C60ALIGN:
@@ -203,7 +204,7 @@ void dload_relocate(struct dload_state *dlthis, TgtAU_t *data,
 	}
 	rx = HASH_I(rop_map2[rx]);
 	if ((rx < (sizeof(rop_action)/sizeof(uint_least16_t)))
-		&& (rx < (sizeof(rop_info)/sizeof(uint_least16_t)))) {
+	   && (rx < (sizeof(rop_info)/sizeof(uint_least16_t))) && (rx > 0)) {
 		reloc_action = rop_action[rx]; reloc_info = rop_info[rx];
 	} else {
 	    dload_error(dlthis, "Buffer Overflow - Array Index Out of Bounds");
@@ -379,9 +380,10 @@ void dload_relocate(struct dload_state *dlthis, TgtAU_t *data,
 	case RACT_C6BASE:
 		if (dlthis->bss_run_base == 0) {
 			struct dynload_symbol *symp;
+			symp = dlthis->mysym->Find_Matching_Symbol
+				(dlthis->mysym, BSSSYMBOL);
 			/* lookup value of global BSS base */
-			if ((symp = dlthis->mysym->Find_Matching_Symbol
-			    (dlthis->mysym, BSSSYMBOL)))
+			if (symp)
 				dlthis->bss_run_base = symp->value;
 			else
 				dload_error(dlthis,

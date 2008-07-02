@@ -45,8 +45,6 @@
 /*  ----------------------------------- Trace & Debug */
 #include <gt.h>
 #include <dbc.h>
-#include <dbg_zones.h>
-
 #include <gh.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
@@ -167,6 +165,7 @@ struct Symbol {
 	struct DBLL_Symbol value;
 	String name;
 } ;
+extern BOOL bSymbolsReloaded;
 
 static Void dofClose(struct DBLL_LibraryObj *zlLib);
 static DSP_STATUS dofOpen(struct DBLL_LibraryObj *zlLib);
@@ -453,9 +452,9 @@ DSP_STATUS DBLL_getSect(struct DBLL_LibraryObj *lib, String name, LgUns *pAddr,
 	if (zlLib != NULL) {
 		if (zlLib->fp == NULL) {
 			status = dofOpen(zlLib);
-			if (DSP_SUCCEEDED(status)) {
+			if (DSP_SUCCEEDED(status))
 				fOpenedDoff = TRUE;
-			}
+
 		} else {
 			(*(zlLib->pTarget->attrs.fseek))(zlLib->fp,
 			 zlLib->ulPos, SEEK_SET);
@@ -467,9 +466,9 @@ DSP_STATUS DBLL_getSect(struct DBLL_LibraryObj *lib, String name, LgUns *pAddr,
 			*pAddr = sect->load_addr;
 			*pSize = sect->size * uByteSize;
 			/* Make sure size is even for good swap */
-			if (*pSize % 2) {
+			if (*pSize % 2)
 				(*pSize)++;
-			}
+
 			/* Align size */
 			*pSize = DOFF_ALIGN(*pSize);
 		} else {
@@ -528,7 +527,6 @@ DSP_STATUS DBLL_load(struct DBLL_LibraryObj *lib, DBLL_Flags flags,
 	Int err;
 	DSP_STATUS status = DSP_SOK;
 	BOOL fOpenedDoff = FALSE;
-
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(zlLib, DBLL_LIBSIGNATURE));
 	DBC_Require(pEntry != NULL);
@@ -600,6 +598,7 @@ DSP_STATUS DBLL_load(struct DBLL_LibraryObj *lib, DBLL_Flags flags,
 			/* Reset file cursor */
 			(*(zlLib->pTarget->attrs.fseek))(zlLib->fp, (long)0,
 				 SEEK_SET);
+			bSymbolsReloaded = TRUE;
 			/* The 5th argument, DLOAD_INITBSS, tells the DLL
 			 * module to zero-init all BSS sections.  In general,
 			 * this is not necessary and also increases load time.
@@ -625,9 +624,9 @@ DSP_STATUS DBLL_load(struct DBLL_LibraryObj *lib, DBLL_Flags flags,
 			}
 		}
 	}
-	if (DSP_SUCCEEDED(status)) {
+	if (DSP_SUCCEEDED(status))
 		zlLib->loadRef++;
-	}
+
 	/* Clean up DOFF resources */
 	if (fOpenedDoff)
 		dofClose(zlLib);
@@ -692,8 +691,9 @@ DSP_STATUS DBLL_open(struct DBLL_TarObj *target, String file, DBLL_Flags flags,
 			zlLib->openRef++;
 			zlLib->pTarget = zlTarget;
 			/* Keep a copy of the file name */
-			if ((zlLib->fileName = MEM_Calloc(CSL_Strlen(file) + 1,
-			    MEM_PAGED))	== NULL) {
+			zlLib->fileName = MEM_Calloc(CSL_Strlen(file) + 1,
+							MEM_PAGED);
+			if (zlLib->fileName == NULL) {
 				GT_0trace(DBLL_debugMask, GT_6CLASS,
 					 "DBLL_open: Memory "
 					 "allocation failed\n");
@@ -751,11 +751,19 @@ DSP_STATUS DBLL_open(struct DBLL_TarObj *target, String file, DBLL_Flags flags,
 	} else {
 		/* Do a fake load to get symbols - set write function to NoOp */
 		zlLib->init.dlInit.writemem = NoOp;
+#ifdef OPT_ELIMINATE_EXTRA_DLOAD
+		err = Dynamic_Open_Module(&zlLib->stream.dlStream,
+					&zlLib->symbol.dlSymbol,
+					&zlLib->allocate.dlAlloc,
+					&zlLib->init.dlInit, 0,
+					&zlLib->mHandle);
+#else
 		err = Dynamic_Load_Module(&zlLib->stream.dlStream,
 					 &zlLib->symbol.dlSymbol,
 					 &zlLib->allocate.dlAlloc,
 					 &zlLib->init.dlInit, 0,
 					 &zlLib->mHandle);
+#endif
 		if (err != 0) {
 			GT_1trace(DBLL_debugMask, GT_6CLASS, "DBLL_open: "
 				 "Dynamic_Load_Module failed: 0x%lx\n", err);
@@ -780,9 +788,9 @@ func_cont:
 	if (DSP_SUCCEEDED(status)) {
 		if (zlLib->openRef == 1) {
 			/* First time opened - insert in list */
-			if (zlTarget->head) {
+			if (zlTarget->head)
 				(zlTarget->head)->prev = zlLib;
-			}
+
 			zlLib->prev = NULL;
 			zlLib->next = zlTarget->head;
 			zlTarget->head = zlLib;
@@ -790,14 +798,13 @@ func_cont:
 		*pLib = (struct DBLL_LibraryObj *)zlLib;
 	} else {
 		*pLib = NULL;
-		if (zlLib != NULL) {
+		if (zlLib != NULL)
 			DBLL_close((struct DBLL_LibraryObj *)zlLib);
-		}
+
 	}
 	DBC_Ensure((DSP_SUCCEEDED(status) && (zlLib->openRef > 0) &&
 		  MEM_IsValidHandle(((struct DBLL_LibraryObj *)(*pLib)),
 		  DBLL_LIBSIGNATURE)) || (DSP_FAILED(status) && *pLib == NULL));
-
 	return (status);
 }
 
@@ -828,18 +835,18 @@ DSP_STATUS DBLL_readSect(struct DBLL_LibraryObj *lib, String name,
 	if (zlLib != NULL) {
 		if (zlLib->fp == NULL) {
 			status = dofOpen(zlLib);
-			if (DSP_SUCCEEDED(status)) {
+			if (DSP_SUCCEEDED(status))
 				fOpenedDoff = TRUE;
-			}
+
 		} else {
 			(*(zlLib->pTarget->attrs.fseek))(zlLib->fp,
 				zlLib->ulPos, SEEK_SET);
 		}
 	}
 
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_cont;
-	}
+
 	uByteSize = 1;
 	if (!DLOAD_GetSectionInfo(zlLib->desc, name, &sect)) {
 		status = DSP_ENOSECT;
@@ -859,9 +866,9 @@ DSP_STATUS DBLL_readSect(struct DBLL_LibraryObj *lib, String name,
 	if (ulSectSize > size) {
 		status = DSP_EFAIL;
 	} else {
-		if (!DLOAD_GetSection(zlLib->desc, sect, pContent)) {
+		if (!DLOAD_GetSection(zlLib->desc, sect, pContent))
 			status = DSP_EFREAD;
-		}
+
 	}
 func_cont:
 	if (fOpenedDoff) {
@@ -979,8 +986,9 @@ static DSP_STATUS dofOpen(struct DBLL_LibraryObj *zlLib)
 	/* Open DOFF module */
 	if (zlLib->fp && zlLib->desc == NULL) {
 		(*(zlLib->pTarget->attrs.fseek))(zlLib->fp, (long)0, SEEK_SET);
-		if ((zlLib->desc = DLOAD_module_open(&zlLib->stream.dlStream,
-		    &zlLib->symbol.dlSymbol)) == NULL) {
+		zlLib->desc = DLOAD_module_open(&zlLib->stream.dlStream,
+						&zlLib->symbol.dlSymbol);
+		if (zlLib->desc == NULL) {
 			(zlLib->pTarget->attrs.fclose)(zlLib->fp);
 			zlLib->fp = NULL;
 			status = DSP_EFOPEN;
@@ -1193,8 +1201,9 @@ static struct dynload_symbol *addToSymbolTable(struct Dynamic_Loader_Sym *this,
 		}
 	}
 	/* Allocate string to copy symbol name */
-	if ((symbol.name = (String)MEM_Calloc(CSL_Strlen((char *const)name) + 1,
-			   MEM_PAGED)) == NULL) {
+	symbol.name = (String)MEM_Calloc(CSL_Strlen((char *const)name) + 1,
+							MEM_PAGED);
+	if (symbol.name == NULL) {
 		return NULL;
 	}
 	if (symbol.name != NULL) {
@@ -1371,16 +1380,12 @@ static int rmmAlloc(struct Dynamic_Loader_Allocate *this,
 	MEM_Free(szSecLastToken);
 	szSecLastToken = NULL;
 func_cont:
-#if defined(OMAP_2430) || defined(OMAP_3430)
 	if (memType == DBLL_CODE)
 		allocSize = info->size + GEM_L1P_PREFETCH_SIZE;
 	else
 		allocSize = info->size;
 	/* TODO - ideally, we can pass the alignment requirement also
 	 * from here */
-#else
-	allocSize = info->size;
-#endif
 	if (lib != NULL) {
 		status = (lib->pTarget->attrs.alloc)(lib->pTarget->
 			 attrs.rmmHandle, memType, allocSize, align,
@@ -1389,16 +1394,6 @@ func_cont:
 	if (DSP_FAILED(status)) {
 		retVal = FALSE;
 	} else {
-		/*Removed below to optimize the load time */
-#if 0
-		/* Fill the allocated memory with NOPs */
-		if (memType == DBLL_CODE) {
-			/* TODO -- seems fillMem is broken, fix it */
-			/* fillMem(this, rmmAddr.addr, info, allocSize, 0); */
-			fillMem(&(lib->init.dlInit), rmmAddr.addr, info,
-				allocSize, 0);
-		}
-#endif
 		/* RMM gives word address. Need to convert to byte address */
 		info->load_addr = rmmAddr.addr * DSPWORDSIZE;
 		info->run_addr = info->load_addr;
@@ -1432,14 +1427,10 @@ static void rmmDealloc(struct Dynamic_Loader_Allocate *this,
 	DBC_Require(MEM_IsValidHandle(lib, DBLL_LIBSIGNATURE));
 	/* segid was set by alloc function */
 	segid = (Uns)info->context;
-#if defined(OMAP_2430) || defined(OMAP_3430)
 	if (memType == DBLL_CODE)
 		freeSize = info->size + GEM_L1P_PREFETCH_SIZE;
 	else
 		freeSize = info->size;
-#else
-	freeSize = info->size;
-#endif
 	if (lib != NULL) {
 		status = (lib->pTarget->attrs.free)(lib->pTarget->
 			 attrs.symHandle, segid, info->load_addr / DSPWORDSIZE,
@@ -1532,11 +1523,25 @@ static int fillMem(struct Dynamic_Loader_Initialize *this, LDR_ADDR addr,
 	CHAR tempBuf[MAXEXPR];
 	ULONG ulRemainBytes = 0;
 	ULONG ulBytes = 0;
+#ifdef OPT_USE_MEMSET
+	CHAR *pBuf;
+	struct DBLL_LibraryObj *lib;
+	struct DBLLInit *pInit = (struct DBLLInit *)this;
 
 	DBC_Require(this != NULL);
-
+	lib = pInit->lib;
+	pBuf = NULL;
+	/* Pass the NULL pointer to writeMem to get the start address of Shared
+	    memory. This is a trick to just get the start address, there is no
+	    writing taking place with this Writemem
+	*/
+	if ((lib->pTarget->attrs.write) != NoOp)
+		writeMem(this, &pBuf, addr, info, 0);
+	if (pBuf)
+		memset(pBuf, val, nBytes);
+#else
+	DBC_Require(this != NULL);
 	ulRemainBytes = nBytes;
-
 	/* Zero out buffer */
 	memset(tempBuf, val, MAXEXPR);
 
@@ -1550,6 +1555,7 @@ static int fillMem(struct Dynamic_Loader_Initialize *this, LDR_ADDR addr,
 		/* (BYTE *) addr += ulBytes; */
 		addr = (LDR_ADDR)((BYTE *)addr + ulBytes);
 	}
+#endif
 	return (retVal);
 }
 

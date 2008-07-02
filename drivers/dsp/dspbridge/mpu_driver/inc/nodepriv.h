@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/nodepriv.h
+ * dspbridge/mpu_driver/inc/nodepriv.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -13,7 +13,6 @@
  * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
  * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
-
 
 /*
  *  ======== nodepriv.h ========
@@ -79,13 +78,11 @@ extern "C" {
 		UINT uStackSize;
 		UINT uSysStackSize;
 		UINT uStackSeg;
-#if defined(OMAP_2430) || defined(OMAP_3430)
 		UINT uDSPHeapResAddr;	/* DSP virtual heap address */
 		UINT uDSPHeapAddr;	/* DSP virtual heap address */
 		UINT uHeapSize;	/* Heap size */
 		UINT uGPPHeapAddr;	/* GPP virtual heap address */
 		UINT uProfileID;	/* Profile ID */
-#endif
 		UINT uNumInputs;
 		UINT uNumOutputs;
 		ULONG ulDaisArg;	/* Address of iAlg object */

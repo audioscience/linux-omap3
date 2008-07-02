@@ -19,7 +19,7 @@
  *	Misael Lopez Cruz
  */
 
-#include <asm/io.h>
+#include <linux/io.h>
 #include <asm/arch/dma.h>
 #include <asm/arch/mcbsp.h>
 
@@ -66,7 +66,7 @@ int twl4030_conf_data_interface(void)
 	/* Reset the McBSP registers so that we can
 	 * configure it
 	 */
-	ret = omap_mcbsp_reset(AUDIO_MCBSP);
+	ret = omap2_mcbsp_reset(AUDIO_MCBSP);
 	if (unlikely(ret)) {
 		printk(KERN_ERR "conf_data Reset for MCBSP Failed[%d]\n", ret);
 		/* Don't care about result */
@@ -112,7 +112,7 @@ int twl4030_conf_data_interface(void)
 	twl4030_mcbsp_settings.audio_mcbsp_srg_fsg_cfg.bits_per_sample =
 				twl4030_local.current_bitspersample;
 
-	ret = omap_mcbsp_params_cfg(AUDIO_MCBSP,
+	ret = omap2_mcbsp_params_cfg(AUDIO_MCBSP,
 #ifdef TWL_MASTER
 			OMAP_MCBSP_SLAVE,
 #else
@@ -125,13 +125,13 @@ int twl4030_conf_data_interface(void)
 		line = __LINE__;
 		goto mcbsp_config_exit;
 	}
-	ret = omap_mcbsp_dma_recv_params(AUDIO_MCBSP,
+	ret = omap2_mcbsp_dma_recv_params(AUDIO_MCBSP,
 		&(twl4030_mcbsp_settings.audio_mcbsp_rx_transfer_params));
 	if (unlikely(ret != 0)) {
 		line = __LINE__;
 		goto mcbsp_config_exit;
 	}
-	ret = omap_mcbsp_dma_recv_params(AUDIO_MCBSP,
+	ret = omap2_mcbsp_dma_recv_params(AUDIO_MCBSP,
 		&(twl4030_mcbsp_settings.audio_mcbsp_tx_transfer_params));
 	if (unlikely(ret != 0)) {
 		line = __LINE__;
@@ -176,7 +176,7 @@ int omap_init_alsa_sound_dma(int mode)
 
 	if (mode == SNDRV_PCM_STREAM_CAPTURE) {
 		ret =
-		    omap_mcbsp_dma_recv_params(AUDIO_MCBSP,
+		    omap2_mcbsp_dma_recv_params(AUDIO_MCBSP,
 				&(twl4030_mcbsp_settings.
 				audio_mcbsp_rx_transfer_params));
 		if (ret < 0) {
@@ -185,7 +185,7 @@ int omap_init_alsa_sound_dma(int mode)
 		}
 	} else {
 		ret =
-		    omap_mcbsp_dma_trans_params(AUDIO_MCBSP,
+		    omap2_mcbsp_dma_trans_params(AUDIO_MCBSP,
 				&(twl4030_mcbsp_settings.
 				audio_mcbsp_tx_transfer_params));
 		if (ret < 0) {
@@ -214,10 +214,10 @@ int omap_start_alsa_sound_dma(struct audio_stream *s,
 #endif
 	if (mode == SNDRV_PCM_STREAM_CAPTURE) {
 		/* Capture Path to be implemented */
-		ret = omap_mcbsp_receive_data(AUDIO_MCBSP, (void *)s,
+		ret = omap2_mcbsp_receive_data(AUDIO_MCBSP, (void *)s,
 					dma_ptr, dma_size);
 	} else {
-		ret = omap_mcbsp_send_data(AUDIO_MCBSP, (void *)s,
+		ret = omap2_mcbsp_send_data(AUDIO_MCBSP, (void *)s,
 					dma_ptr, dma_size);
 	}
 
@@ -231,9 +231,9 @@ int omap_stop_alsa_sound_dma(struct audio_stream *s)
 	int ret = 0;
 
 	if (mode == SNDRV_PCM_STREAM_CAPTURE)
-		ret = omap_mcbsp_stop_datarx(AUDIO_MCBSP);
+		ret = omap2_mcbsp_stop_datarx(AUDIO_MCBSP);
 	else
-		ret = omap_mcbsp_stop_datatx(AUDIO_MCBSP);
+		ret = omap2_mcbsp_stop_datatx(AUDIO_MCBSP);
 
 	return ret;
 }
@@ -259,12 +259,12 @@ int omap_transfer_posn_alsa_sound_dma(struct audio_stream *s)
 	 * variant is the element num
 	 */
 	if (mode == SNDRV_PCM_STREAM_CAPTURE) {
-		ret = omap_mcbsp_receiver_index(AUDIO_MCBSP,
+		ret = omap2_mcbsp_receiver_index(AUDIO_MCBSP,
 						&ei, &fi);
 		ret = ei * element_size(twl4030_mcbsp_settings.
 			audio_mcbsp_rx_transfer_params.word_length1);
 	} else {
-		ret = omap_mcbsp_transmitter_index(AUDIO_MCBSP,
+		ret = omap2_mcbsp_transmitter_index(AUDIO_MCBSP,
 						&ei, &fi);
 		ret = ei * element_size(twl4030_mcbsp_settings.
 			audio_mcbsp_tx_transfer_params.word_length1);

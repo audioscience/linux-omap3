@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/reg.h
+ * dspbridge/mpu_driver/inc/reg.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

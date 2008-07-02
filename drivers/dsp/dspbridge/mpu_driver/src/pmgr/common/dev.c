@@ -22,7 +22,6 @@
  *
  *  Public Functions:
  *      DEV_BrdWriteFxn
- *      DEV_CleanupProcessState
  *      DEV_CreateDevice
  *      DEV_Create2
  *      DEV_Destroy2
@@ -123,7 +122,6 @@
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
 #include <dbg.h>
-#include <dbg_zones.h>
 #include <gp.h>
 #include <gt.h>
 
@@ -157,9 +155,6 @@
 #include <dev.h>
 
 /*  ----------------------------------- Defines, Data Structures, Typedefs */
-#ifndef LINUX
-#define WMDENTRYPOINT       "WMD_DRV_Entry"
-#endif
 
 #define SIGNATURE           0x5f564544	/* "DEV_" (in reverse) */
 #define MAKEVERSION(major, minor)   (major * 10 + minor)
@@ -230,6 +225,9 @@ ULONG DEV_BrdWriteFxn(PVOID pArb, ULONG ulDspAddr, PVOID pHostBuf,
 		status = (*pDevObject->intfFxns.pfnBrdWrite)(pDevObject->
 			 hWmdContext, pHostBuf, ulDspAddr, ulNumBytes,
 			 nMemSpace);
+		 /* Special case of getting the address only */
+		if (ulNumBytes == 0)
+			ulNumBytes = 1;
 		if (DSP_SUCCEEDED(status))
 			ulWritten = ulNumBytes;
 
@@ -239,58 +237,6 @@ ULONG DEV_BrdWriteFxn(PVOID pArb, ULONG ulDspAddr, PVOID pHostBuf,
 	return (ulWritten);
 }
 
-/*
- *  ======== DEV_CleanupProcessState ========
- *  Purpose:
- *      Attempt to free any resources claimed by the process which is currently
- *      closing.  This is currently limited to closing open channels.
- */
-DSP_STATUS DEV_CleanupProcessState(HANDLE hProcess)
-{
-	DSP_STATUS status = DSP_SOK;
-	struct DEV_OBJECT *pDevObject;
-	DSP_HPROCESSOR hProcObject;
-
-	GT_1trace(debugMask, GT_ENTER,
-		  "Entered DEV_CleanupProcessState, hProcess:"
-		  " 0x%x\n", hProcess);
-	if (!hProcess) {
-		GT_0trace(debugMask, GT_7CLASS,
-			  "DEV_CleanupProcessState:Invlaid Dev Handle");
-		status = DSP_EHANDLE;
-		goto func_end;
-	}
-	for (pDevObject = DEV_GetFirst(); pDevObject != NULL;
-	     pDevObject = DEV_GetNext(pDevObject)) {
-		/* Close all open channels tagged with this process handle: */
-		if (!IsValidHandle((struct DEV_OBJECT *) pDevObject))
-			continue;
-
-		CHNL_CloseOrphans(pDevObject->hChnlMgr, hProcess);
-#ifdef RES_CLEANUP_DISABLE
-		/* Walk down the Processor list and if it is a matching
-		 * Process call DSP_Detach which will clear the orphaned
-		 * events and the processor object in case of
-		 * abnormal termination */
-		for (hProcObject = (DSP_HPROCESSOR)LST_First(pDevObject->
-		    procList); hProcObject != NULL;
-		    hProcObject = (DSP_HPROCESSOR)LST_Next(pDevObject->procList,
-		    (struct LST_ELEM *)hProcObject)) {
-			if (PROC_GetProcessorHandle(hProcess, hProcObject)) {
-				/* Found the Processor handle for this
-				 * process */
-				/* Call PROC_Detach */
-				(Void)PROC_Detach(hProcObject);
-			}
-		}
-#endif
-		/* Even if we fail, continue to visit all dev objects. */
-	}
-func_end:
-	GT_1trace(debugMask, GT_ENTER,
-		  "Exit DEV_CleanupProcessState, status: 0x%x\n", status);
-	return (status);
-}
 /*
  *  ======== DEV_CreateDevice ========
  *  Purpose:
@@ -304,9 +250,6 @@ DSP_STATUS DEV_CreateDevice(OUT struct DEV_OBJECT **phDevObject,
 			    struct CFG_DEVNODE *hDevNode)
 {
 	struct LDR_MODULE *hModule = NULL;
-#ifndef LINUX
-	WMD_DRV_ENTRY pfnDrvEntry = NULL;
-#endif
 	struct WMD_DRV_INTERFACE *pDrvFxns = NULL;
 	struct DEV_OBJECT *pDevObject = NULL;
 	struct CHNL_MGRATTRS mgrAttrs;
@@ -325,28 +268,6 @@ DSP_STATUS DEV_CreateDevice(OUT struct DEV_OBJECT **phDevObject,
 		  "\t\tpstrWMDFileName:  0x%x\n\t\tpHostConfig:0x%x\n\t\t"
 		  "pDspConfig:  0x%x\n\t\tnhDevNode:  0x%x\n", phDevObject,
 		  pstrWMDFileName, pHostConfig, pDspConfig, hDevNode);
-#ifndef LINUX
-	status = LDR_LoadModule(&hModule, pstrWMDFileName);
-	if (DSP_SUCCEEDED(status)) {
-		status = LDR_GetProcAddress(hModule, WMDENTRYPOINT,
-					   (PVOID *)&pfnDrvEntry);
-		if (DSP_SUCCEEDED(status)) {
-			(*pfnDrvEntry)(&pDrvFxns);
-			if (!pDrvFxns) {
-				GT_0trace(debugMask, GT_7CLASS,
-					  "DEV_Create: Invlaid Dev Handle");
-				status = DEV_E_NULLWMDINTF;
-			} else {
-				/* Check to see if WMD expects a NEWER WCD.
-				 * If so, fail. */
-				if (MAKEVERSION(pDrvFxns->dwWCDMajorVersion,
-				   pDrvFxns->dwWCDMinorVersion) > WCDVERSION) {
-					status = DEV_E_NEWWMD;
-				}
-			}
-		}
-	}
-#endif
 	/*  Get the WMD interface functions*/
 	WMD_DRV_Entry(&pDrvFxns, pstrWMDFileName);
 	if (DSP_FAILED(CFG_GetObject((DWORD *) &hDrvObject, REG_DRV_OBJECT))) {
@@ -389,9 +310,9 @@ DSP_STATUS DEV_CreateDevice(OUT struct DEV_OBJECT **phDevObject,
 		}
 	}
 	/* Attempt to create the COD manager for this device: */
-	if (DSP_SUCCEEDED(status)) {
+	if (DSP_SUCCEEDED(status))
 		status = InitCodMgr(pDevObject);
-	}
+
 	/* Attempt to create the channel manager for this device: */
 	if (DSP_SUCCEEDED(status)) {
 		mgrAttrs.cChannels = CHNL_MAXCHANNELS;
@@ -455,7 +376,8 @@ DSP_STATUS DEV_CreateDevice(OUT struct DEV_OBJECT **phDevObject,
 	}
 	/* Create the Processor List */
 	if (DSP_SUCCEEDED(status)) {
-		if (!(pDevObject->procList = LST_Create())) {
+		pDevObject->procList = LST_Create();
+		if (!(pDevObject->procList)) {
 			status = DSP_EFAIL;
 			GT_0trace(debugMask, GT_7CLASS, "DEV_Create: "
 				 "Failed to Create Proc List");
@@ -469,23 +391,18 @@ DSP_STATUS DEV_CreateDevice(OUT struct DEV_OBJECT **phDevObject,
 			 "DEV_CreateDevice Succeeded \nDevObject "
 			 "0x%x\n", pDevObject);
 	} else {
-		if (pDevObject->procList) {
+		if (pDevObject->procList)
 			LST_Delete(pDevObject->procList);
-		}
-		if (pDevObject && pDevObject->hCodMgr) {
+
+		if (pDevObject && pDevObject->hCodMgr)
 			COD_Delete(pDevObject->hCodMgr);
-		}
-		if (pDevObject && pDevObject->hDmmMgr) {
+
+		if (pDevObject && pDevObject->hDmmMgr)
 			DMM_Destroy(pDevObject->hDmmMgr, TRUE);
-		}
-#ifndef LINUX
-		if (hModule) {
-			LDR_FreeModule(hModule);
-		}
-#endif
-		if (pDevObject) {
+
+		if (pDevObject)
 			MEM_FreeObject(pDevObject);
-		}
+
 		*phDevObject = NULL;
 		GT_0trace(debugMask, GT_7CLASS, "DEV_CreateDevice Failed\n");
 	}
@@ -554,9 +471,9 @@ DSP_STATUS CDECL DEV_Destroy2(struct DEV_OBJECT *hDevObject)
 			pDevObject->hNodeMgr = NULL;
 
 	}
-	if (DSP_FAILED(status)) {
+	if (DSP_FAILED(status))
 		GT_0trace(debugMask, GT_7CLASS, "DEV_Destroy2 failed!!\n");
-	}
+
 	DBC_Ensure((DSP_SUCCEEDED(status) && pDevObject->hNodeMgr == NULL) ||
 		  DSP_FAILED(status));
 	GT_2trace(debugMask, GT_ENTER,
@@ -581,12 +498,12 @@ DSP_STATUS DEV_DestroyDevice(struct DEV_OBJECT *hDevObject)
 	GT_1trace(debugMask, GT_ENTER, "Entered DEV_DestroyDevice, hDevObject: "
 		 "0x%x\n", hDevObject);
 	if (IsValidHandle(hDevObject)) {
-		if (pDevObject->hCodMgr) {
+		if (pDevObject->hCodMgr)
 			COD_Delete(pDevObject->hCodMgr);
-		}
-		if (pDevObject->hNodeMgr) {
+
+		if (pDevObject->hNodeMgr)
 			NODE_DeleteMgr(pDevObject->hNodeMgr);
-		}
+
 		/* Free the io, channel, and message managers for this board: */
 		if (pDevObject->hIOMgr) {
 			IO_Destroy(pDevObject->hIOMgr);
@@ -596,34 +513,29 @@ DSP_STATUS DEV_DestroyDevice(struct DEV_OBJECT *hDevObject)
 			CHNL_Destroy(pDevObject->hChnlMgr);
 			pDevObject->hChnlMgr = NULL;
 		}
-		if (pDevObject->hMsgMgr) {
+		if (pDevObject->hMsgMgr)
 			MSG_Delete(pDevObject->hMsgMgr);
-		}
+
 		if (pDevObject->hDehMgr) {
 			/* Uninitialize DEH module. */
 			(*pDevObject->intfFxns.pfnDehDestroy)
 			(pDevObject->hDehMgr);
 		}
-		if (pDevObject->hCmmMgr) {
+		if (pDevObject->hCmmMgr)
 			CMM_Destroy(pDevObject->hCmmMgr, TRUE);
-		}
-		if (pDevObject->hDmmMgr) {
+
+		if (pDevObject->hDmmMgr)
 			DMM_Destroy(pDevObject->hDmmMgr, TRUE);
-		}
+
 		/* Call the driver's WMD_DEV_Destroy() function: */
 		/* Require of DevDestroy */
 		DBC_Assert(pDevObject->hWmdContext != NULL);
 		status = (*pDevObject->intfFxns.pfnDevDestroy)
 			 (pDevObject->hWmdContext);
 		if (DSP_SUCCEEDED(status)) {
-#ifndef LINUX
-			if (pDevObject->hModule) {
-				LDR_FreeModule(pDevObject->hModule);
-			}
-#endif
-			if (pDevObject->procList) {
+			if (pDevObject->procList)
 				LST_Delete(pDevObject->procList);
-			}
+
 			/* Remove this DEV_Object from the global list: */
 			DRV_RemoveDevObject(pDevObject->hDrvObject, pDevObject);
 			/* Free The library * LDR_FreeModule
@@ -829,47 +741,13 @@ DSP_STATUS DEV_GetDevNode(struct DEV_OBJECT *hDevObject,
 	return (status);
 }
 
-#ifndef LINUX
-/*
- *  ======== DEV_GetDSPWordSize ========
- *  Purpose:
- *      Retrieve the DSP word size in bytes for this device.
- */
-DSP_STATUS DEV_GetDSPWordSize(struct DEV_OBJECT *hDevObject,
-			     OUT ULONG *puWordSize)
-{
-	DSP_STATUS status = DSP_SOK;
-	struct DEV_OBJECT *pDevObject = hDevObject;
-
-	DBC_Require(cRefs > 0);
-	DBC_Require(puWordSize != NULL);
-	GT_2trace(debugMask, GT_ENTER,
-		 "Entered DEV_GetDSPWordSize, hDevObject: 0x%x"
-		 "\n\t\tpuWordSize: 0x%x\n", hDevObject, puWordSize);
-	if (IsValidHandle(hDevObject)) {
-		*puWordSize = pDevObject->uWordSize;
-	} else {
-		*puWordSize = 0;
-		status = DSP_EHANDLE;
-		GT_0trace(debugMask, GT_7CLASS,
-			  "DEV_GetDSPWordSize: Invalid handle");
-	}
-	GT_2trace(debugMask, GT_ENTER,
-		  "Exit DEV_GetDSPWordSize: status 0x%x\t\n "
-		  "WordSize:  0x%x\n", status, *puWordSize);
-	DBC_Ensure(DSP_SUCCEEDED(status) || ((puWordSize != NULL) &&
-		  (*puWordSize == 0)));
-	return (status);
-}
-#endif
-
 /*
  *  ======== DEV_GetFirst ========
  *  Purpose:
  *      Retrieve the first Device Object handle from an internal linked list
  *      DEV_OBJECTs maintained by DEV.
  */
-struct DEV_OBJECT *DEV_GetFirst()
+struct DEV_OBJECT *DEV_GetFirst(void)
 {
 	struct DEV_OBJECT *pDevObject = NULL;
 
@@ -1073,7 +951,7 @@ DSP_STATUS DEV_GetWMDContext(struct DEV_OBJECT *hDevObject,
  *      Decrement reference count, and free resources when reference count is
  *      0.
  */
-void CDECL DEV_Exit()
+void CDECL DEV_Exit(void)
 {
 	DBC_Require(cRefs > 0);
 
@@ -1095,7 +973,7 @@ void CDECL DEV_Exit()
  *  Purpose:
  *      Initialize DEV's private state, keeping a reference count on each call.
  */
-BOOL CDECL DEV_Init()
+BOOL CDECL DEV_Init(void)
 {
 	BOOL fCmm, fDmm, fRetval = TRUE;
 
@@ -1133,35 +1011,6 @@ BOOL CDECL DEV_Init()
 	return (fRetval);
 }
 
-#ifdef DEAD_CODE
-
-/*
- *  ======== DEV_IsLocked ========
- *  Purpose:
- *      Predicate function to determine if the device has been
- *      locked by a client for exclusive access.
- */
-DSP_STATUS DEV_IsLocked(struct DEV_OBJECT *hDevObject)
-{
-	DSP_STATUS status;
-	struct DEV_OBJECT *pDevObject = hDevObject;
-
-	GT_1trace(debugMask, GT_ENTER,
-		 "Entered DEV_IsLocked, hDevObject: 0x%x\n", hDevObject);
-	DBC_Require(cRefs > 0);
-	if (IsValidHandle(hDevObject)) {
-		status = (pDevObject->lockOwner ? DSP_SOK : DSP_SFALSE);
-	} else {
-		status = DSP_EHANDLE;
-		GT_0trace(debugMask, GT_7CLASS, "DEV_IsLocked: Invalid handle");
-	}
-	GT_1trace(debugMask, GT_ENTER, "DEV_IsLocked, returning 0x%x\n",
-		 status);
-	return (status);
-}
-
-#endif
-
 /*
  *  ======== DEV_NotifyClients ========
  *  Purpose:
@@ -1186,26 +1035,6 @@ DSP_STATUS DEV_NotifyClients(struct DEV_OBJECT *hDevObject, ULONG ulStatus)
 	return (status);
 }
 
-#ifdef DEAD_CODE
-
-/*
- *  ======== DEV_RegisterNotify ========
- *  Purpose:
- *      Register a callback function and callback argument for DEV to call
- *      when a change in device status occurs.
- */
-DSP_STATUS DEV_RegisterNotify(struct DEV_OBJECT *hDevObject, PVOID pArb,
-			     DEV_CALLBACK lpCallback)
-{
-	GT_3trace(debugMask, GT_ENTER,
-		 "Entered DEV_RegisterNotify, hDevObject: 0x%x"
-		 "\n\t\tpArb: 0x%x\n\t\tlpCallback: 0x%x\n",
-		 hDevObject, pArb, lpCallback);
-	return (DSP_ENOTIMPL);
-}
-
-#endif
-
 /*
  *  ======== DEV_RemoveDevice ========
  */
@@ -1223,18 +1052,9 @@ DSP_STATUS CDECL DEV_RemoveDevice(struct CFG_DEVNODE *hDevNode)
 	if (DSP_SUCCEEDED(status)) {
 		/* Remove the Processor List */
 		pDevObject = (struct DEV_OBJECT *)hDevObject;
-#ifndef LINUX
-		/* By this time all the processes should have been killed */
-		DBC_Assert(!LST_IsEmpty(pDevObject->procList));
-		 /* But there may be times; like the PCMCIA card pulled out
-		 * when their apps are not closed; so to be on the safer side */
-		if (pDevObject->procList) {
-			LST_Delete(pDevObject->procList);
-			pDevObject->procList = NULL;
-		}
-#endif
 		/* Destroy the device object. */
-		if (DSP_SUCCEEDED(status = DEV_DestroyDevice(hDevObject))) {
+		status = DEV_DestroyDevice(hDevObject);
+		if (DSP_SUCCEEDED(status)) {
 			/* Null out the handle stored with the DevNode. */
 			GT_0trace(debugMask, GT_1CLASS,
 				 "DEV_RemoveDevice, success");
@@ -1286,39 +1106,6 @@ VOID DEV_SetMsgMgr(struct DEV_OBJECT *hDevObject, struct MSG_MGR *hMgr)
 	hDevObject->hMsgMgr = hMgr;
 }
 
-#ifdef DEAD_CODE
-
-/*
- *  ======== DEV_SetLockOwner ========
- *  Purpose:
- *      Sets the lock owner to a particular board interface.
- */
-DSP_STATUS DEV_SetLockOwner(struct DEV_OBJECT *hDevObject,
-			    struct BRD_OBJECT *hBrdObject)
-{
-	DSP_STATUS status = DSP_SOK;
-	struct DEV_OBJECT *pDevObject = hDevObject;
-
-	DBC_Require(cRefs > 0);
-
-	GT_2trace(debugMask, GT_ENTER,
-		 "Entered DEV_SetLockOwner, hDevObject: 0x%x\n"
-		 "\t\thBrdObject: 0x%x\n", hDevObject, hBrdObject);
-	if (IsValidHandle(hDevObject)) {
-		pDevObject->lockOwner = hBrdObject;
-	} else {
-		status = DSP_EHANDLE;
-		GT_0trace(debugMask, GT_7CLASS,
-			 "DEV_SetLockOwner, Invalid handle ");
-	}
-
-	DBC_Ensure(DSP_FAILED(status) || (pDevObject->lockOwner == hBrdObject));
-
-	return (status);
-}
-
-#endif
-
 /*
  *  ======== DEV_StartDevice ========
  *  Purpose:
@@ -1337,13 +1124,6 @@ DSP_STATUS CDECL DEV_StartDevice(struct CFG_DEVNODE *hDevNode)
 
 	GT_1trace(debugMask, GT_ENTER,
 		 "Entered DEV_StartDevice, hDevObject: 0x%x\n", hDevNode);
-#ifndef LINUX
-	/* Get the WMD File Name from the DevNode */
-	status = CFG_GetWMDFileName(hDevNode, CFG_MAXSEARCHPATHLEN,
-		 szWMDFileName);
-	/* Get host resources for device from CMCONFIG structure: */
-	if (DSP_SUCCEEDED(status)) {
-#endif
 		status = CFG_GetHostResources(hDevNode, &hostRes);
 		if (DSP_SUCCEEDED(status)) {
 			/* Get DSP resources of device from Registry: */
@@ -1358,13 +1138,6 @@ DSP_STATUS CDECL DEV_StartDevice(struct CFG_DEVNODE *hDevNode)
 				 "Failed to get WMD Host resources "
 				 "from registry: 0x%x ", status);
 		}
-#ifndef LINUX
-	} else {
-		GT_1trace(debugMask, GT_7CLASS,
-			 "Failed to get WMD File Name from "
-			 "registry: 0x%x", status);
-	}
-#endif
 	if (DSP_SUCCEEDED(status)) {
 		/* Given all resources, create a device object. */
 		status = DEV_CreateDevice(&hDevObject, szWMDFileName, &hostRes,
@@ -1644,6 +1417,7 @@ static void StoreInterfaceFxns(struct WMD_DRV_INTERFACE *pDrvFxns,
 		StoreFxn(WMD_CHNL_REGISTERNOTIFY, pfnChnlRegisterNotify);
 		StoreFxn(WMD_DEH_CREATE, pfnDehCreate);
 		StoreFxn(WMD_DEH_DESTROY, pfnDehDestroy);
+		StoreFxn(WMD_DEH_NOTIFY, pfnDehNotify);
 		StoreFxn(WMD_DEH_REGISTERNOTIFY, pfnDehRegisterNotify);
 		StoreFxn(WMD_DEH_GETINFO, pfnDehGetInfo);
 		StoreFxn(WMD_IO_CREATE, pfnIOCreate);
@@ -1684,6 +1458,7 @@ static void StoreInterfaceFxns(struct WMD_DRV_INTERFACE *pDrvFxns,
 	DBC_Ensure(pIntfFxns->pfnChnlRegisterNotify != NULL);
 	DBC_Ensure(pIntfFxns->pfnDehCreate != NULL);
 	DBC_Ensure(pIntfFxns->pfnDehDestroy != NULL);
+	DBC_Ensure(pIntfFxns->pfnDehNotify != NULL);
 	DBC_Ensure(pIntfFxns->pfnDehRegisterNotify != NULL);
 	DBC_Ensure(pIntfFxns->pfnDehGetInfo != NULL);
 	DBC_Ensure(pIntfFxns->pfnIOCreate != NULL);

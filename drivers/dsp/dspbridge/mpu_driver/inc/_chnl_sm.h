@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/_chnl_sm.h
+ * dspbridge/mpu_driver/inc/_chnl_sm.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -60,10 +60,6 @@
 #include <isr.h>
 #include <dpc.h>
 
-#if defined(CHNL_DDMA) || defined(CHNL_ZCPY)
-#include <ddma_sh.h>
-#endif
-
 #include <list.h>
 #include <ntfy.h>
 
@@ -82,11 +78,7 @@ extern "C" {
 #define BRIDGEINIT_LOADMON_GPTIMER "_BRIDGEINIT_LOADMON_GPTIMER"
 
 #ifndef _CHNL_WORDSIZE
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-#define _CHNL_WORDSIZE 2	/* default _CHNL_WORDSIZE is 2 bytes/word */
-#else
 #define _CHNL_WORDSIZE 4	/* default _CHNL_WORDSIZE is 2 bytes/word */
-#endif
 #endif
 
 #ifdef OMAP_3430
@@ -133,22 +125,11 @@ struct loadMonStruct {
 	typedef enum {
 		SHM_CURROPP = 0,
 		SHM_OPPINFO = 1,
+		SHM_GETOPP = 2,		/* Get DSP requested OPP info */
 	} SHM_DESCTYPE;
 
 /* Structure in shared between DSP and PC for communication.*/
 	struct SHM {
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-		SMWORD dspFreeMask;	/* Written by DSP, read by PC. */
-		SMWORD hostFreeMask;	/* Written by PC, read by DSP */
-
-		SMWORD inputFull;	/* Input channel has unread data. */
-		SMWORD inputId;	/* Channel for which input is available. */
-		SMWORD inputSize;	/* Size of data block (in DSP words). */
-
-		SMWORD outputFull;	/* Output channel has unread data. */
-		SMWORD outputId;  /* Channel for which output is available. */
-		SMWORD outputSize;	/* Size of data block (in DSP words). */
-#else
 		DWORD dspFreeMask;	/* Written by DSP, read by PC. */
 		DWORD hostFreeMask;	/* Written by PC, read by DSP */
 
@@ -159,18 +140,9 @@ struct loadMonStruct {
 		DWORD outputFull;	/* Output channel has unread data. */
 		DWORD outputId;	/* Channel for which output is available. */
 		DWORD outputSize;	/* Size of data block (in DSP words). */
-#endif
 
 		DWORD arg;	/* Arg for Issue/Reclaim (23 bits for 55x). */
 		DWORD resvd;	/* Keep structure size even for 32-bit DSPs */
-
-#ifdef CHNL_DDMA
-		struct DDMA_CHNLDESC chnldesc[DDMA_MAXDDMACHNLS];
-#endif
-
-#ifdef CHNL_DDZC
-		struct DDMA_ZCPYCHNLDESC zchnldesc[DDMA_MAXZCPYCHNLS];
-#endif
 
 #ifdef OMAP_3430
 		/* Operating Point structure */
@@ -184,7 +156,7 @@ struct loadMonStruct {
 #endif
 	} ;
 
-  /* Channel Manager: only one created per board: */
+	/* Channel Manager: only one created per board: */
 	struct CHNL_MGR {
 		DWORD dwSignature;	/* Used for object validation */
 		/* Function interface to WMD */
@@ -205,12 +177,6 @@ struct loadMonStruct {
 		DWORD dwType;	/* Type of channel class library */
 		/* If no SHM syms, return for CHNL_Open */
 		DSP_STATUS chnlOpenStatus;
-#ifdef CHNL_DDMA
-		DWORD cOpenDDMAChannels;	/* # of ddma chans open */
-		/* mask of DDMA channels enabled */
-		DWORD dwDDMAChnlEnableMask;
-		DWORD dwDDMALastChnl;	/* Last DDMA chnl id serviced */
-#endif
 	} ;
 
 /*
@@ -246,22 +212,6 @@ struct loadMonStruct {
 
 		/* Type of chnl transport:CHNL_[PCPY][DDMA] */
 		ULONG uChnlType;
-#ifdef CHNL_DDMA
-		ULONG uDDMAId;	/* uDDMAId = uId - CHNL_MAXCHANNELS */
-		LONG cDDMAReqCnt;	/* Cnt of chnl requests */
-		LONG cDmaTimeout;	/* Default timeout in msec */
-		DWORD dwDescPa;	/* Gpp System/Phys address of base SM descr */
-		DWORD dwDescVa;	/* Gpp Virtual address(device.exe context) */
-		DWORD dwGppPutNdx;	/* Gpp queues to this desc slot */
-		/* Gpp waits for completion on this slot */
-		DWORD dwGppWaitNdx;
-#endif
-#ifdef CHNL_DDZC
-		ULONG uZId;	/* uZId= uId - CHNL_MAXCHANNELS * CHNL_ZCPY */
-		/* SM address loaded into SM to be exchange */
-		DWORD dwLoadAddr;
-#endif
-
 	} ;
 
 /* I/O Request/completion packet: */

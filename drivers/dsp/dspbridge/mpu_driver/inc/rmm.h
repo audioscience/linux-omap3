@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/rmm.h
+ * dspbridge/mpu_driver/inc/rmm.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -94,16 +94,6 @@ struct RMM_TargetObj;
  */
 extern DSP_STATUS RMM_alloc(struct RMM_TargetObj *target, Uns segid, LgUns size,
 			    Uns align, LgUns *dspAdr, Bool reserve);
-
-#if 0
-/*
- *  ======== RMM_check ========
- *
- *  RMM_check checks (via asserts) the "sanity" of the free list for
- *  all valid memory segments. (NOT IMPLEMENTED YET).
- */
-extern Void RMM_check(Void);
-#endif
 
 /*
  *  ======== RMM_create ========

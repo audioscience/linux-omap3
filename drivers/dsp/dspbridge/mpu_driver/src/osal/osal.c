@@ -39,7 +39,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gt.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
@@ -49,15 +48,9 @@
 #include <dpc.h>
 #include <isr.h>
 #include <kfile.h>
-#ifndef LINUX
-#include <ldr.h>
-#endif
 #include <list.h>
 #include <mem.h>
 #include <ntfy.h>
-#ifdef PERF
-#include <perf.h>
-#endif
 #include <prcs.h>
 #include <reg.h>
 #include <sync.h>
@@ -95,13 +88,7 @@ VOID OSAL_Exit()
 		CLK_Exit();
 		REG_Exit();
 		PRCS_Exit();
-#ifdef PERF
-		PERF_Exit();
-#endif
 		LST_Exit();
-#ifndef LINUX
-		LDR_Exit();
-#endif
 		KFILE_Exit();
 		ISR_Exit();
 		DPC_Exit();
@@ -126,13 +113,8 @@ BOOL OSAL_Init()
 	BOOL fInit = TRUE;
 	BOOL fCFG, fCSL, fDBG, fDPC, fISR, fKFILE, fLST, fMEM;
 	BOOL fPRCS, fREG, fSYNC, fCLK, fUTIL, fNTFY;
-#ifndef LINUX
-	BOOL fLDR;
-#endif
-#ifdef PERF
-	BOOL fPERF
-#endif
-	 DBC_Require(cRefs >= 0);
+
+	DBC_Require(cRefs >= 0);
 
 	if (cRefs == 0) {
 
@@ -150,13 +132,7 @@ BOOL OSAL_Init()
 		fDPC = DPC_Init();
 		fISR = ISR_Init();
 		fKFILE = KFILE_Init();
-#ifndef LINUX
-		fLDR = LDR_Init();
-#endif
 		fLST = LST_Init();
-#ifdef PERF
-		fPERF = PERF_Init();
-#endif
 		fPRCS = PRCS_Init();
 		/* fREG = REG_Init(); */
 		fSYNC = SYNC_Init();
@@ -166,12 +142,6 @@ BOOL OSAL_Init()
 
 		fInit = fCFG && fCSL && fDBG && fDPC && fISR && fKFILE &&
 			fLST && fMEM && fPRCS && fREG && fSYNC && fCLK && fUTIL;
-#ifndef LINUX
-		fInit = fInit && fLDR;
-#endif
-#ifdef PERF
-		fInit = fInit && fPERF;
-#endif
 
 		if (!fInit) {
 			if (fNTFY)
@@ -192,19 +162,9 @@ BOOL OSAL_Init()
 			if (fPRCS)
 				PRCS_Exit();
 
-#ifdef PERF
-			if (fPERF)
-				PERF_Exit();
-
-#endif
 			if (fLST)
 				LST_Exit();
 
-#ifndef LINUX
-			if (fLDR)
-				LDR_Exit();
-
-#endif
 			if (fKFILE)
 				KFILE_Exit();
 

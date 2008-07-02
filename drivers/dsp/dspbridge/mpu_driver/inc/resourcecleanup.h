@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/resourcecleanup.h
+ * dspbridge/mpu_driver/inc/resourcecleanup.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

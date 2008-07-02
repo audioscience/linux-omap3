@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/sync.h
+ * dspbridge/mpu_driver/inc/clk.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -15,24 +15,8 @@
  */
 
 /*
- *  ======== sync.h ========
- *  Purpose:
- *      Provide synchronization services.
- *
- *  Public Functions:
- *      SYNC_CloseEvent
- *      SYNC_DeleteCS
- *      SYNC_EnterCS
- *      SYNC_Exit
- *      SYNC_Init
- *      SYNC_InitializeCS
- *      SYNC_LeaveCS
- *      SYNC_OpenEvent
- *      SYNC_PostMessage
- *      SYNC_ResetEvent
- *      SYNC_SetEvent
- *      SYNC_WaitOnEvent
- *      SYNC_WaitOnMultipleEvents
+ *  ======== clk.h ========
+ *  Purpose: Provides Clock functions.
  *
  *! Revision History:
  *! ================
@@ -47,7 +31,7 @@ extern "C" {
 #endif
 
 #include <dspapi.h>
-#if defined(OMAP_2430) || defined(OMAP_3430)
+
 	/* Generic TIMER object: */
 	/*typedef struct TIMER_OBJECT *TIMER_HOBJECT;*/
 	struct TIMER_OBJECT;
@@ -80,7 +64,6 @@ extern "C" {
 		OSALCLK_sys_ck,
 		OSALCLK_NOT_DEFINED
 	} OSAL_ClkId;
-#endif
 
 /*
  *  ======== CLK_Exit ========
@@ -94,7 +77,6 @@ extern "C" {
  *  Ensures:
  *      Resources used by module are freed when cRef reaches zero.
  */
-
 	extern VOID CLK_Exit();
 
 /*
@@ -111,44 +93,6 @@ extern "C" {
 	extern BOOL CLK_Init();
 
 
-
-
-#if defined(OMAP_2430) || defined(OMAP_3430)
-/*
- *  ======== TIMER_OpenTimer ========
- *  Purpose:
- *      Create/open and initialize an event object for thread synchronization,
- *      which is initially in the non-signalled state.
- *  Parameters:
- *      phEvent:    Pointer to location to receive the event object handle.
- *      pAttrs:     Pointer to SYNC_ATTRS object containing initial SYNC
- *                  SYNC_OBJECT attributes.  If this pointer is NULL, then
- *                  SYNC_OpenEvent will create and manage an OS specific
- *                  syncronization object.
- *          pAttrs->hUserEvent:  Platform's User Mode synchronization object.
- *
- *      The behaviour of the SYNC methods depend on the value of
- *      the hUserEvent attr:
- *
- *      1. (hUserEvent == NULL):
- *          A user mode event is created.
- *      2. (hUserEvent != NULL):
- *          A user mode event is supplied by the caller of SYNC_OpenEvent().
- *  Returns:
- *      DSP_SOK:        Success.
- *      DSP_EFAIL:      Unable to create user mode event.
- *      DSP_EMEMORY:    Insufficient memory.
- *      DSP_EINVALIDARG SYNC_ATTRS values are invalid.
- *  Requires:
- *      - SYNC initialized.
- *      - phEvent != NULL.
- *  Ensures:
- *      If function succeeded, pEvent->hEvent must be a valid event handle.
- */
-	extern DSP_STATUS TIMER_OpenTimer(OUT struct TIMER_OBJECT **phTimer);
-
-	extern DSP_STATUS TIMER_CloseTimer(IN struct TIMER_OBJECT *hTimer);
-
 /*
  *  ======== CLK_Enable ========
  *  Purpose:
@@ -160,7 +104,6 @@ extern "C" {
  *  Requires:
  *  Ensures:
  */
-
 	extern DSP_STATUS CLK_Enable(IN OSAL_ClkId clk_id);
 
 /*
@@ -174,7 +117,6 @@ extern "C" {
  *  Requires:
  *  Ensures:
  */
-
 	extern DSP_STATUS CLK_Disable(IN OSAL_ClkId clk_id);
 
 /*
@@ -188,7 +130,6 @@ extern "C" {
  *  Requires:
  *  Ensures:
  */
-
 	extern DSP_STATUS CLK_GetRate(IN OSAL_ClkId clk_id, ULONG *speedMhz);
 /*
  *  ======== CLK_Set_32KHz ========
@@ -201,35 +142,9 @@ extern "C" {
  *  Requires:
  *  Ensures:
  */
-
 	extern DSP_STATUS CLK_Set_32KHz(IN OSAL_ClkId clk_id);
-/*
- *  ======== CLK_Set_SysClk ========
- *  Purpose:
- *      Set the requested clock to 32KHz.
- *  Parameters:
- *  Returns:
- *    DSP_SOK:     Success.
- *    DSP_EFAIL:   Error occured while setting the clock parent to System clock.
- *  Requires:
- *  Ensures:
- */
-
-
-	extern DSP_STATUS CLK_Set_SysClk(IN OSAL_ClkId clk_id);
-	extern void MAILBOX_Clk_Prepare(void);
-	extern void GPT5_Clk_Prepare(BOOL FLAG);
-	extern void GPT6_Clk_Prepare(BOOL FLAG);
-	extern void GPT7_Clk_Prepare(BOOL FLAG);
-	extern void GPT8_Clk_Prepare(BOOL FLAG);
-	extern void WDT3_Clk_Prepare(BOOL FLAG);
-	extern void McBSP1_Clk_Prepare(BOOL FLAG);
-	extern void McBSP2_Clk_Prepare(BOOL FLAG);
-	extern void McBSP3_Clk_Prepare(BOOL FLAG);
-	extern void McBSP4_Clk_Prepare(BOOL FLAG);
-	extern void McBSP5_Clk_Prepare(BOOL FLAG);
 	extern void SSI_Clk_Prepare(BOOL FLAG);
-	extern void IVA_SYS_Prepare(void);
+
 /*
  *  ======== CLK_Get_RefCnt ========
  *  Purpose:
@@ -241,17 +156,8 @@ extern "C" {
  *  Requires:
  *  Ensures:
  */
-
-
 	extern INT CLK_Get_UseCnt(IN OSAL_ClkId clk_id);
-
-#endif
-
 /*	extern DSP_STATUS CLK_AutoIdleCtrl(IN OSAL_ClkId clk_id,INT cmd); */
-
-
-
-
 
 #ifdef __cplusplus
 }

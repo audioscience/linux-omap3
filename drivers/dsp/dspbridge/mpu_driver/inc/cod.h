@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/cod.h
+ * dspbridge/mpu_driver/inc/cod.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

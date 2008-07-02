@@ -2,6 +2,7 @@
  * linux/arch/arm/mach-omap2/board-ldp.c
  *
  * Copyright (C) 2008 Texas Instruments Inc.
+ * Nishant Kamat <nskamat@ti.com>
  *
  * Modified from mach-omap2/board-3430sdp.c
  *
@@ -34,6 +35,8 @@
 #include <asm/arch/common.h>
 #include <asm/arch/keypad.h>
 #include <asm/arch/gpmc.h>
+#include <asm/arch/hsmmc.h>
+#include <asm/arch/usb-musb.h>
 
 #include <asm/io.h>
 #include <asm/delay.h>
@@ -249,9 +252,17 @@ static int ads7846_vaux_control(int vaux_cntrl)
 }
 
 static struct ads7846_platform_data tsc2046_config __initdata = {
-	.get_pendown_state	= ads7846_get_pendown_state,
-	.keep_vref_on		= 1,
-	.vaux_control		= ads7846_vaux_control,
+	.x_max			= 0x0fff,
+	.y_max			= 0x0fff,
+	.x_plate_ohms		= 180,
+	.pressure_max		= 255,
+	.debounce_max		= 10,
+	.debounce_tol		= 10,
+	.debounce_rep		= 1,
+ 	.get_pendown_state	= ads7846_get_pendown_state,
+ 	.keep_vref_on		= 1,
+ 	.vaux_control		= ads7846_vaux_control,
+	.settle_delay_usecs	= 100,
 };
 
 
@@ -339,7 +350,7 @@ static struct omap_board_config_kernel ldp_config[] __initdata = {
 
 static int __init omap_i2c_init(void)
 {
-	omap_register_i2c_bus(1, 2600, NULL, 0);
+	omap_register_i2c_bus(1, 100, NULL, 0);
 	omap_register_i2c_bus(2, 400, NULL, 0);
 	omap_register_i2c_bus(3, 400, NULL, 0);
 	return 0;
@@ -357,7 +368,8 @@ static void __init omap_ldp_init(void)
 	ads7846_dev_init();
 	ldp_flash_init();
 	omap_serial_init();
-	sdp_mmc_init();
+	usb_musb_init();
+	hsmmc_init();
 }
 
 static void __init omap_ldp_map_io(void)

@@ -110,19 +110,19 @@ DSP_STATUS WMD_MSG_Create(OUT struct MSG_MGR **phMsgMgr,
 		    pMsgMgr->msgUsedList == NULL) {
 			status = DSP_EMEMORY;
 		}
-		if (DSP_SUCCEEDED(status)) {
+		if (DSP_SUCCEEDED(status))
 			status = SYNC_InitializeDPCCS(&pMsgMgr->hSyncCS);
-		}
+
 		 /*  Create an event to be used by WMD_MSG_Put() in waiting
 		 *  for an available free frame from the message manager.  */
-		if (DSP_SUCCEEDED(status)) {
+		if (DSP_SUCCEEDED(status))
 			status = SYNC_OpenEvent(&pMsgMgr->hSyncEvent, NULL);
-		}
-		if (DSP_SUCCEEDED(status)) {
+
+		if (DSP_SUCCEEDED(status))
 			*phMsgMgr = pMsgMgr;
-		} else {
+		else
 			DeleteMsgMgr(pMsgMgr);
-		}
+
 	} else {
 		status = DSP_EMEMORY;
 	}
@@ -162,29 +162,29 @@ DSP_STATUS WMD_MSG_CreateQueue(struct MSG_MGR *hMsgMgr,
 	/* Queues of Message frames for messages from the DSP */
 	pMsgQ->msgFreeList = LST_Create();
 	pMsgQ->msgUsedList = LST_Create();
-	if (pMsgQ->msgFreeList == NULL || pMsgQ->msgUsedList == NULL) {
+	if (pMsgQ->msgFreeList == NULL || pMsgQ->msgUsedList == NULL)
 		status = DSP_EMEMORY;
-	}
+
 	 /*  Create event that will be signalled when a message from
 	 *  the DSP is available.  */
-	if (DSP_SUCCEEDED(status)) {
+	if (DSP_SUCCEEDED(status))
 		status = SYNC_OpenEvent(&pMsgQ->hSyncEvent, NULL);
-	}
+
 	/* Create a notification list for message ready notification. */
-	if (DSP_SUCCEEDED(status)) {
+	if (DSP_SUCCEEDED(status))
 		status = NTFY_Create(&pMsgQ->hNtfy);
-	}
+
 	 /*  Create events that will be used to synchronize cleanup
 	 *  when the object is deleted. hSyncDone will be set to
 	 *  unblock threads in MSG_Put() or MSG_Get(). hSyncDoneAck
 	 *  will be set by the unblocked thread to signal that it
 	 *  is unblocked and will no longer reference the object.  */
-	if (DSP_SUCCEEDED(status)) {
+	if (DSP_SUCCEEDED(status))
 		status = SYNC_OpenEvent(&pMsgQ->hSyncDone, NULL);
-	}
-	if (DSP_SUCCEEDED(status)) {
+
+	if (DSP_SUCCEEDED(status))
 		status = SYNC_OpenEvent(&pMsgQ->hSyncDoneAck, NULL);
-	}
+
 	if (DSP_SUCCEEDED(status)) {
 		/* Enter critical section */
 		(VOID)SYNC_EnterCS(hMsgMgr->hSyncCS);
@@ -205,9 +205,9 @@ DSP_STATUS WMD_MSG_CreateQueue(struct MSG_MGR *hMsgMgr,
 				   (struct LST_ELEM *)pMsgQ);
 			*phMsgQueue = pMsgQ;
 			/* Signal that free frames are now available */
-			if (!LST_IsEmpty(hMsgMgr->msgFreeList)) {
+			if (!LST_IsEmpty(hMsgMgr->msgFreeList))
 				SYNC_SetEvent(hMsgMgr->hSyncEvent);
-			}
+
 		}
 		/* Exit critical section */
 		(VOID)SYNC_LeaveCS(hMsgMgr->hSyncCS);
@@ -256,9 +256,9 @@ VOID WMD_MSG_DeleteQueue(struct MSG_QUEUE *hMsgQueue)
 	LST_RemoveElem(hMsgMgr->queueList, (struct LST_ELEM *)hMsgQueue);
 	/* Free the message queue object */
 	DeleteMsgQueue(hMsgQueue, hMsgQueue->uMaxMsgs);
-	if (LST_IsEmpty(hMsgMgr->msgFreeList)) {
+	if (LST_IsEmpty(hMsgMgr->msgFreeList))
 		SYNC_ResetEvent(hMsgMgr->hSyncEvent);
-	}
+
 	(VOID)SYNC_LeaveCS(hMsgMgr->hSyncCS);
 }
 
@@ -291,17 +291,17 @@ DSP_STATUS WMD_MSG_Get(struct MSG_QUEUE *hMsgQueue,
 			*pMsg = pMsgFrame->msgData.msg;
 			LST_PutTail(hMsgQueue->msgFreeList,
 				   (struct LST_ELEM *)pMsgFrame);
-			if (LST_IsEmpty(hMsgQueue->msgUsedList)) {
+			if (LST_IsEmpty(hMsgQueue->msgUsedList))
 				SYNC_ResetEvent(hMsgQueue->hSyncEvent);
-			}
+
 			fGotMsg = TRUE;
 		}
 	} else {
-		if (hMsgQueue->fDone) {
+		if (hMsgQueue->fDone)
 			status = DSP_EFAIL;
-		} else {
+		else
 			hMsgQueue->refCount++;
-		}
+
 	}
 	/* Exit critical section */
 	(VOID)SYNC_LeaveCS(hMsgMgr->hSyncCS);
@@ -340,9 +340,9 @@ DSP_STATUS WMD_MSG_Get(struct MSG_QUEUE *hMsgQueue,
 			}
 			hMsgQueue->refCount--;
 			/* Reset the event if there are still queued messages */
-			if (!LST_IsEmpty(hMsgQueue->msgUsedList)) {
+			if (!LST_IsEmpty(hMsgQueue->msgUsedList))
 				SYNC_SetEvent(hMsgQueue->hSyncEvent);
-			}
+
 			/* Exit critical section */
 			(VOID)SYNC_LeaveCS(hMsgMgr->hSyncCS);
 		}
@@ -384,19 +384,19 @@ DSP_STATUS WMD_MSG_Put(struct MSG_QUEUE *hMsgQueue,
 			hMsgMgr->uMsgsPending++;
 			fPutMsg = TRUE;
 		}
-		if (LST_IsEmpty(hMsgMgr->msgFreeList)) {
+		if (LST_IsEmpty(hMsgMgr->msgFreeList))
 			SYNC_ResetEvent(hMsgMgr->hSyncEvent);
-		}
+
 		/* Release critical section before scheduling DPC */
 		(VOID)SYNC_LeaveCS(hMsgMgr->hSyncCS);
 		/* Schedule a DPC, to do the actual data transfer: */
 		IO_Schedule(hMsgMgr->hIOMgr);
 	} else {
-		if (hMsgQueue->fDone) {
+		if (hMsgQueue->fDone)
 			status = DSP_EFAIL;
-		} else {
+		else
 			hMsgQueue->refCount++;
-		}
+
 		(VOID)SYNC_LeaveCS(hMsgMgr->hSyncCS);
 	}
 	if (DSP_SUCCEEDED(status) && !fPutMsg) {
@@ -439,9 +439,9 @@ DSP_STATUS WMD_MSG_Put(struct MSG_QUEUE *hMsgQueue,
 			}
 			hMsgQueue->refCount--;
 			/* Reset event if there are still frames available */
-			if (!LST_IsEmpty(hMsgMgr->msgFreeList)) {
+			if (!LST_IsEmpty(hMsgMgr->msgFreeList))
 				SYNC_SetEvent(hMsgMgr->hSyncEvent);
-			}
+
 			/* Exit critical section */
 			(VOID) SYNC_LeaveCS(hMsgMgr->hSyncCS);
 		}
@@ -528,21 +528,17 @@ static VOID DeleteMsgMgr(struct MSG_MGR *hMsgMgr)
 		LST_Delete(hMsgMgr->queueList);
 	}
 
-	if (hMsgMgr->msgFreeList) {
+	if (hMsgMgr->msgFreeList)
 		FreeMsgList(hMsgMgr->msgFreeList);
-	}
 
-	if (hMsgMgr->msgUsedList) {
+	if (hMsgMgr->msgUsedList)
 		FreeMsgList(hMsgMgr->msgUsedList);
-	}
 
-	if (hMsgMgr->hSyncEvent) {
+	if (hMsgMgr->hSyncEvent)
 		SYNC_CloseEvent(hMsgMgr->hSyncEvent);
-	}
 
-	if (hMsgMgr->hSyncCS) {
+	if (hMsgMgr->hSyncCS)
 		SYNC_DeleteCS(hMsgMgr->hSyncCS);
-	}
 
 	MEM_FreeObject(hMsgMgr);
 }
@@ -571,29 +567,23 @@ static VOID DeleteMsgQueue(struct MSG_QUEUE *hMsgQueue, UINT uNumToDSP)
 		}
 	}
 
-	if (hMsgQueue->msgFreeList) {
+	if (hMsgQueue->msgFreeList)
 		FreeMsgList(hMsgQueue->msgFreeList);
-	}
 
-	if (hMsgQueue->msgUsedList) {
+	if (hMsgQueue->msgUsedList)
 		FreeMsgList(hMsgQueue->msgUsedList);
-	}
 
-	if (hMsgQueue->hNtfy) {
+	if (hMsgQueue->hNtfy)
 		NTFY_Delete(hMsgQueue->hNtfy);
-	}
 
-	if (hMsgQueue->hSyncEvent) {
+	if (hMsgQueue->hSyncEvent)
 		SYNC_CloseEvent(hMsgQueue->hSyncEvent);
-	}
 
-	if (hMsgQueue->hSyncDone) {
+	if (hMsgQueue->hSyncDone)
 		SYNC_CloseEvent(hMsgQueue->hSyncDone);
-	}
 
-	if (hMsgQueue->hSyncDoneAck) {
+	if (hMsgQueue->hSyncDoneAck)
 		SYNC_CloseEvent(hMsgQueue->hSyncDoneAck);
-	}
 
 	MEM_FreeObject(hMsgQueue);
 }
@@ -607,9 +597,8 @@ static VOID FreeMsgList(struct LST_LIST *msgList)
 
 	DBC_Require(msgList != NULL);
 
-	while ((pMsg = (struct MSG_FRAME *)LST_GetHead(msgList)) != NULL) {
+	while ((pMsg = (struct MSG_FRAME *)LST_GetHead(msgList)) != NULL)
 		MEM_Free(pMsg);
-	}
 
 	DBC_Assert(LST_IsEmpty(msgList));
 

@@ -32,7 +32,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbg.h>
-#include <dbg_zones.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
 #include <mem.h>
@@ -44,41 +43,6 @@
 #include "_tiomap_util.h"
 
 /*
- *  ======== WaitForSAM ========
- *  purpose:
- *      Wait for SAM transition, or timeout.
- */
-BOOL WaitForSAM(struct WMD_DEV_CONTEXT *pDevContext, DWORD dwTimeoutLoops)
-{
-	BOOL fRetVal;
-#if GT_TRACE
-	DWORD originalLoops = dwTimeoutLoops;
-#endif
-	/*  Wait for mode bits to clear */
-#if defined(OMAP_1510) || defined(OMAP_16xx) || defined(OMAP_1710)
-	while ((((~(*((volatile DWORD *)(pDevContext->dwAPIRegBase +
-	      API_DSP_STATUS_OFFSET)))) & API_DSP_STATUS_HOM_MODE)
-	      != API_DSP_STATUS_HOM_MODE) && --dwTimeoutLoops) {
-#endif
-		UTIL_Wait(TIHELEN_WRITE_DELAY);
-#if defined(OMAP_1510) || defined(OMAP_16xx) || defined(OMAP_1710)
-	}
-#endif
-
-	/*  If timed out, return FALSE */
-	if (dwTimeoutLoops) {
-		DBG_Trace(DBG_LEVEL4, "WaitForSAM Looped 0x%x times\n",
-			originalLoops - dwTimeoutLoops);
-		fRetVal = TRUE;
-	} else {
-		DBG_Trace(DBG_LEVEL7, "Timed out Waiting for SAM transition\n");
-		fRetVal = FALSE;
-	}
-
-	return (fRetVal);
-}
-
-/*
  *  ======== WaitForStart ========
  *  purpose:
  *      Wait for the singal from DSP that it has started, or time out.
@@ -88,9 +52,9 @@ BOOL WaitForStart(struct WMD_DEV_CONTEXT *pDevContext, DWORD dwSyncAddr)
 	USHORT usCount = TIHELEN_ACKTIMEOUT;
 
 	/*  Wait for response from board */
-	while (*((volatile WORD *)dwSyncAddr) && --usCount) {
+	while (*((volatile WORD *)dwSyncAddr) && --usCount)
 		UTIL_Wait(TIHELEN_WRITE_DELAY);
-	}
+
 	/*  If timed out: return FALSE */
 	if (!usCount) {
 		DBG_Trace(DBG_LEVEL7, "Timed out Waiting for DSP to Start\n");

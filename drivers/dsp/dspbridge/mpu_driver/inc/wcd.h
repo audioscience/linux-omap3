@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/wcd.h
+ * dspbridge/mpu_driver/inc/wcd.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

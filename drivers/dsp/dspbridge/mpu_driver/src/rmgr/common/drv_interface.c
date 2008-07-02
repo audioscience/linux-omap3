@@ -46,14 +46,6 @@
 
 /*  ----------------------------------- Host OS */
 
-#if 0
-#if defined(CONFIG_MODVERSIONS)
-#define MODVERSIONS
-#include <linux/modversions.h>
-#endif
-#endif
-
-
 #include <host_os.h>
 #include <linux/platform_device.h>
 #include <linux/pm.h>
@@ -65,18 +57,12 @@
 
 #include <linux/device.h>
 #include <linux/init.h>
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0)
 #include <linux/moduleparam.h>
 #include <linux/cdev.h>
 #ifndef DISABLE_BRIDGE_PM
 #ifndef DISABLE_BRIDGE_DVFS
 #include <asm/arch/resource.h>
-#endif
-#endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
 #include <asm/arch/prcm_34xx.h>
-#else
-#include <asm/arch/prcm.h>
 #endif
 #endif
 
@@ -108,10 +94,6 @@
 /*  ----------------------------------- This */
 #include <drv_interface.h>
 
-#ifdef LTT_SOC
-#include <soc.h>
-#endif
-
 #ifndef RES_CLEANUP_DISABLE
 #include <cfg.h>
 #include <resourcecleanup.h>
@@ -132,9 +114,9 @@
 #define DRIVER_MINOR 0		/* Linux assigns our Major device number */
 INT dsp_debug = 0;
 INT dsp_inact_time = 5000;
+
 /* This is a test variable used by Bridge to test different sleep states */
 INT dsp_test_sleepstate = 0;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0)
 struct bridge_dev {
 	struct cdev cdev;
 };
@@ -142,24 +124,32 @@ struct bridge_dev {
 struct bridge_dev *bridge_device = NULL;
 
 static struct class *bridge_class = NULL;
-#endif
 
 DWORD driverContext;
+#ifndef MODULE
 CHAR *GT_str = NULL;
+#else
+CHAR *GT_str = NULL;
+#endif
 INT driver_major = DRIVER_MAJOR;
 INT driver_minor = DRIVER_MINOR;
 CHAR *base_img = NULL;
 CHAR *iva_img = NULL;
 CHAR *num_procs = "C55=1";
+#ifndef MODULE
+INT shm_size = 0x400000;	/* 1 MB */
+#else
 INT shm_size = 0x150000;	/* 1 MB */
+#endif
 INT iva_extmem_size = 0x0;	/* 0 KB */
 
-#ifdef LTT_SOC
-ULONG GSC, GSI, GSR, GMW, GMR, GNP, GNG, GNC;
+#ifndef MODULE
+UINT phys_mempool_base = 0x87000000;
+UINT phys_mempool_size = 0x600000;
+#else
+UINT phys_mempool_base = 0;
+UINT phys_mempool_size = 0;
 #endif
-
-UINT phys_mempool_base = 0x0;
-UINT phys_mempool_size = 0x0;
 #if !defined(OMAP_2430) && !defined(OMAP_3430)
 BOOL tc_wordswapon = TRUE;	/* Default value is always TRUE */
 #else
@@ -188,51 +178,10 @@ int omap24xxbridge_suspend_lockout(struct omap24xx_bridge_suspend_data *s,
 }
 
 #endif
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-#ifdef GT_TRACE
-MODULE_PARM(GT_str, "s");
-MODULE_PARM_DESC(GT_str, "GT string, default = NULL");
 
-MODULE_PARM(dsp_debug, "i");
-MODULE_PARM_DESC(dsp_debug, "Wait after loading DSP image. default = FALSE");
-#else
 #ifndef DDSP_DEBUG_PRODUCT
 EXPORT_NO_SYMBOLS;
 #endif
-#endif
-
-MODULE_PARM(driver_major, "i");	/* Driver's major number */
-MODULE_PARM_DESC(driver_major, "Major device number, default = 0 (auto)");
-
-MODULE_PARM(driver_minor, "i");	/* Driver's major number */
-MODULE_PARM_DESC(driver_minor, "Minor device number, default = 0 (auto)");
-
-MODULE_PARM(dsp_inact_time, "i");
-MODULE_PARM_DESC(dsp_inact_time, "DSP Inactivity time value = 5000");
-
-MODULE_PARM(base_img, "s");
-MODULE_PARM_DESC(base_img, "DSP base image, default = NULL");
-MODULE_PARM(iva_img, "s");
-MODULE_PARM_DESC(iva_img, "IVA base image, default = NULL");
-MODULE_PARM(num_procs, "s");
-MODULE_PARM_DESC(num_procs,
-		"Number of DSP processors , default = IVA=1, C55=1");
-
-MODULE_PARM(shm_size, "i");
-MODULE_PARM_DESC(shm_size, "SHM size, default = 512 KB, minimum = 64 KB");
-MODULE_PARM(iva_extmem_size, "i");
-MODULE_PARM_DESC(iva_extmem_size, "IVAEXTMEM size, default = 0 KB");
-MODULE_PARM(phys_mempool_base, "i");
-MODULE_PARM_DESC(phys_mempool_base,
-		 "Physical memory pool base passed to driver");
-
-MODULE_PARM(phys_mempool_size, "i");
-MODULE_PARM_DESC(phys_mempool_size,
-		 "Physical memory pool size passed to driver");
-MODULE_PARM(tc_wordswapon, "i");
-MODULE_PARM_DESC(tc_wordswapon, "TC Word Swap Option. default = TRUE");
-
-#else				/* Kernel 2.6.x */
 
 #ifdef DEBUG
 module_param(GT_str, charp, 0);
@@ -279,7 +228,6 @@ MODULE_PARM_DESC(phys_mempool_size,
 		"Physical memory pool size passed to driver");
 module_param(tc_wordswapon, bool, 0);
 MODULE_PARM_DESC(tc_wordswapon, "TC Word Swap Option. default = TRUE");
-#endif
 
 MODULE_AUTHOR("Texas Instruments");
 MODULE_LICENSE("GPL");
@@ -297,18 +245,8 @@ struct file_operations bridge_fops = {
 #ifndef DISABLE_BRIDGE_PM
 DWORD timeOut = 1000;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0)
-static int bridge_suspend(struct device *dev, u32 state, u32 level);
-static int bridge_resume(struct device *dev, u32 level);
-#else
-#if  LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-static int bridge_suspend(struct device *dev, u32 state);
-static int bridge_resume(struct device *dev);
-#else
 static int bridge_suspend(struct platform_device *pdev, pm_message_t state);
 static int bridge_resume(struct platform_device *pdev);
-#endif
-#endif
 #endif
 
 static void bridge_free(struct device *dev);
@@ -320,23 +258,7 @@ omap24xx_bridge_probe(struct omap_dev *dev)
 	return 0;
 }
 
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-
-struct omap_dev bridge_dsp_ldm = {
-	.name = BRIDGE_NAME,
-	.devid = OMAP24xx_DSP_DEVID,
-	.busid = OMAP_BUS_L3,
-	.dev = {
-		.release = bridge_free,
-		},
-	.irq =  {
-		INT_MAIL_MPU_IRQ,
-		INT_DSP_MMU_IRQ,
-		},
-};
-#else
- struct platform_device omap_dspbridge_dev = {
+struct platform_device omap_dspbridge_dev = {
 		.name = BRIDGE_NAME,
 		.id = -1,
 		.num_resources = 0,
@@ -346,20 +268,9 @@ struct omap_dev bridge_dsp_ldm = {
 		.resource = NULL,
 };
 
-#if 0
-struct device_driver dsp_driver = {
-	.name = "DspBridge",
-};
 
-struct device dsp_device = {
-	.driver = &dsp_driver,
-};
-#endif
-#endif
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0)
- #ifndef DISABLE_BRIDGE_PM
- #ifndef DISABLE_BRIDGE_DVFS
+#ifndef DISABLE_BRIDGE_PM
+#ifndef DISABLE_BRIDGE_DVFS
 /* The number of OPPs supported in the system */
 INT dsp_max_opps = CO_VDD1_OPP5;
 UINT vdd1_dsp_freq[6][4] = {
@@ -379,18 +290,27 @@ UINT vdd1_dsp_freq[6][4] = {
 
 /* The handle for setting constraints */
 struct constraint_handle *dsp_constraint_handle = NULL;
+struct constraint_handle *mpu_constraint_handle = NULL;
 
 static int dspbridge_pre_scale(struct notifier_block *op, unsigned long level,
 				void *ptr)
 {
+#ifndef DISABLE_BRIDGE_PM
+#ifndef DISABLE_BRIDGE_DVFS
 	PWR_PM_PreScale(PRCM_VDD1, level);
+#endif
+#endif
 	return 0;
 }
 
 static int dspbridge_post_scale(struct notifier_block *op, unsigned long level,
 				void *ptr)
 {
+#ifndef DISABLE_BRIDGE_PM
+#ifndef DISABLE_BRIDGE_DVFS
 	PWR_PM_PostScale(PRCM_VDD1, level);
+#endif
+#endif
 	return 0;
 }
 
@@ -410,49 +330,14 @@ static struct constraint_id cnstr_id_vdd1 = {
 };
 #endif
 #endif
-#endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0)
-
-static struct omap_driver bridge_driver_ldm = {
-      drv:{
-	      name:"DspBridge",
-	 },
-      devid:OMAP24xx_DSP_DEVID, /*check if this device ID is valid in 2420 BP*/
-      busid:OMAP_BUS_L3,
-      clocks:0,
-      probe:omap24xx_bridge_probe,
- #ifndef DISABLE_BRIDGE_PM
-      suspend:bridge_suspend,
-      resume:bridge_resume,
- #endif
-      remove:NULL,
-};
-#else
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-static struct omap_driver bridge_driver_ldm = {
-      .drv = {
-	      .name = "DspBridge",
-	 },
-      .devid = OMAP24xx_DSP_DEVID, /*check if this device ID is valid in 2420
-									BP*/
-      .busid = OMAP_BUS_L3,
-      .clocks = 0,
-      .probe = omap24xx_bridge_probe,
- #ifndef DISABLE_BRIDGE_PM
-      .suspend = bridge_suspend,
-      .resume = bridge_resume,
-#endif
-      .remove = NULL,
-};
-#else
 static struct platform_driver bridge_driver_ldm = {
       .driver = {
 	      .owner	= THIS_MODULE,
 	      .name     = BRIDGE_NAME,
 	 },
       .probe = omap24xx_bridge_probe,
- #ifndef DISABLE_BRIDGE_PM
+#ifndef DISABLE_BRIDGE_PM
       .suspend = bridge_suspend,
       .resume = bridge_resume,
 #endif
@@ -466,60 +351,29 @@ struct device dspbridge_device = {
 	.driver = &bridge_driver_ldm.driver,
 };
 
-#endif
-
-#endif
-
-
-
-
 #if defined(OMAP_2430) || defined(OMAP_3430)
 static int bridge_driver_register(void)
 {
 	int retVal;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-
-	extern int omap_driver_register(struct omap_driver *driver);
-	retVal = omap_driver_register(&bridge_driver_ldm);
-	GT_1trace(driverTrace, GT_1CLASS,
-		"omap_driver_register returned with Value 0x%x \n", retVal);
-	if (retVal)
-		GT_0trace(driverTrace, GT_7CLASS,
-			"Failed to register the driver to DPM !!");
-#endif
 	return retVal;
 }
 
 static int bridge_device_register(void)
 {
 	int retVal;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-	extern int omap_device_register(struct omap_dev *device);
-	retVal = omap_device_register(&bridge_dsp_ldm);
-	GT_1trace(driverTrace, GT_1CLASS,
-		"omap_device_register returned with Value 0x%x \n", retVal);
-	if (retVal)
-		GT_0trace(driverTrace, GT_7CLASS,
-			"Failed to register the device to DPM !!");
-#endif
+
 	return retVal;
 }
 
 static void bridge_driver_unregister(void)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-	extern void omap_driver_unregister(struct omap_driver *driver);
-	omap_driver_unregister(&bridge_driver_ldm);
-#endif
+	/* Do nothing */
 }
 
 static void bridge_device_unregister(void)
 {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-	extern void omap_device_unregister(struct omap_dev *device);
-	omap_device_unregister(&bridge_dsp_ldm);
-#endif
+	/* Do nothing */
 }
 
 #else				/* OMAP_2430 */
@@ -563,12 +417,11 @@ static void bridge_device_unregister(void)
  *     module),
  *     or when the system is booted (when included as part of the kernel image).
  */
-int bridge_init()
+int __init bridge_init()
 {
 	int status;
 	DWORD initStatus;
 	DWORD temp;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 0)
 	dev_t   dev = 0 ;
 	int     result;
 
@@ -583,7 +436,7 @@ int bridge_init()
 	}
 
 	if (result < 0) {
-		printk("bridge_init: Can't get Major %d \n", driver_major);
+		printk(KERN_ERR "bridge_init: Can't get Major %d \n", driver_major);
 		return result;
 	}
 
@@ -601,51 +454,21 @@ int bridge_init()
 	status = cdev_add(&bridge_device->cdev, dev, 1);
 
 	if (status) {
-		printk("Failed to add the bridge device \n");
+		printk(KERN_ERR "Failed to add the bridge device \n");
 		return status;
 	}
 
 	/* udev support */
-#ifdef OMAP_3430
 	bridge_class = class_create(THIS_MODULE, "ti_bridge");
-#else
-	bridge_class = class_simple_create(THIS_MODULE, "ti_bridge");
-#endif
+
 	if (IS_ERR(bridge_class))
 		printk(KERN_ERR "Error creating bridge class \n");
 
-#ifdef OMAP_3430
-	class_device_create(bridge_class, NULL, MKDEV(driver_major,
-			   driver_minor), NULL, "DspBridge");
-#else
-	class_simple_device_add(bridge_class, MKDEV(driver_major, driver_minor),
-				NULL, "DspBridge", driver_minor);
-#endif
+	device_create(bridge_class, NULL, MKDEV(driver_major,
+			   driver_minor), "DspBridge");
+
        /*printk("Registered driver major = %d , minor = %d \n", driver_major,
 					driver_minor);*/
-#else
-	status = register_chrdev(driver_major, driver_name, &bridge_fops);
-	if (status >= 0) {
-		driver_major = status;
-		status = 0;
-	} else {
-		printk(KERN_ERR "Failed to register Bridge driver "
-			"status = 0x%x \n", status);
-		return status;
-	}
-#endif
-
-#ifdef LTT_SOC
-	GSC = SOC_Create("GSC\t0x%x\t0x%x\t0x%x\t0x%x\t0x%x\n");
-	GSI = SOC_Create("GSI\t0x%x\t0x%x\t0x%x\n");
-	GSR = SOC_Create("GSR\t0x%x\t0x%x\t0x%x\t0x%x\n");
-	GNG = SOC_Create("GNG\t0x%x\t0x%x\t0x%x\t0x%x\n");
-	GNP = SOC_Create("GNP\t0x%x\t0x%x\t0x%x\t0x%x\n");
-	GMW = SOC_Create("GMW\t0x%x\n");
-	GMR = SOC_Create("GMR\t0x%x\n");
-	GNC = SOC_Create("GNC\t0x%x\t0x%x\n");
-#endif
-
 
 	GT_init();
 	GT_create(&driverTrace, "LD");
@@ -662,17 +485,9 @@ int bridge_init()
 
 
 	GT_0trace(driverTrace, GT_ENTER, "-> driver_init\n");
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-	status = bridge_driver_register();
-	if (!status)
-		status = bridge_device_register();
-
-#else
 	status = platform_driver_register(&bridge_driver_ldm);
 	if (!status)
 		status = platform_device_register(&omap_dspbridge_dev);
-
-#endif
 
 #ifndef DISABLE_BRIDGE_PM
 	/* Initialize the wait queue */
@@ -747,6 +562,8 @@ int bridge_init()
 			status = -1;
 			GT_0trace(driverTrace, GT_7CLASS,
 				 "DSP/BIOS Bridge initialization Failed\n");
+		} else {
+			printk(KERN_INFO "DSP/BIOS Bridge driver loaded\n");
 		}
  #ifndef DISABLE_BRIDGE_PM
  #ifndef DISABLE_BRIDGE_DVFS
@@ -756,11 +573,14 @@ int bridge_init()
 		constraint_register_post_notification(dsp_constraint_handle,
 						 &omap34xxbridge_post_scale,
 						 CO_VDD1_OPP5 + 1);
+		mpu_constraint_handle = constraint_get("mpubridge",
+						      &cnstr_id_vdd1);
+		constraint_register_post_notification(mpu_constraint_handle,
+						 &omap34xxbridge_post_scale,
+						 CO_VDD1_OPP5 + 1);
 #endif
 #endif
 	}
-	if (status != 0)
-		bridge_exit();
 
 	DBC_Assert(status == 0);
 	DBC_Assert(DSP_SUCCEEDED(initStatus));
@@ -773,28 +593,12 @@ int bridge_init()
  *  This function is invoked during unlinking of the bridge module from the
  *  kernel.  *  Bridge resources are freed in this function.
  */
-static void bridge_exit()
+static void __exit bridge_exit()
 {
 	dev_t   devno;
 	BOOL ret;
 	GT_0trace(driverTrace, GT_ENTER, "-> driver_exit\n");
-#ifdef LTT_SOC
-	SOC_Delete(GSC);
-	SOC_Delete(GSI);
-	SOC_Delete(GSR);
-	SOC_Delete(GMW);
-	SOC_Delete(GNG);
-	SOC_Delete(GNP);
-	SOC_Delete(GMR);
-	SOC_Delete(GNC);
-#endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-	GT_0trace(driverTrace, GT_1CLASS,
-		  "Unregister the driver and device from the DPM \n");
-	bridge_device_unregister();
-	bridge_driver_unregister();
-#else
 #ifndef DISABLE_BRIDGE_PM
 #ifndef DISABLE_BRIDGE_DVFS
 	/* remove the constraints */
@@ -812,13 +616,26 @@ static void bridge_exit()
 			 "dsp_constraint_handle is NULL\n");
 
 	}
+	if (mpu_constraint_handle != NULL) {
+		GT_0trace(driverTrace, GT_7CLASS,
+			 "bridge_exit: remove constraints\n");
+		constraint_remove(mpu_constraint_handle);
+		constraint_unregister_post_notification(mpu_constraint_handle,
+						&omap34xxbridge_post_scale,
+						CO_VDD1_OPP5 + 1);
+		constraint_put(mpu_constraint_handle);
+		mpu_constraint_handle = NULL;
+	} else {
+		GT_0trace(driverTrace, GT_7CLASS,
+			 "mpu_constraint_handle is NULL\n");
+
+	}
 #endif /*#ifndef DISABLE_BRIDGE_DVFS*/
 #endif /*#ifndef DISABLE_BRIDGE_PM*/
 	/* unregister bridge driver */
 	platform_device_unregister(&omap_dspbridge_dev);
 	platform_driver_unregister(&bridge_driver_ldm);
 
-#endif
 	if (driverContext) {
 		ret = DSP_Deinit(driverContext);
 		driverContext = 0;
@@ -827,9 +644,7 @@ static void bridge_exit()
 	}
 	OSAL_Exit();
 	GT_exit();
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0)
-	unregister_chrdev(driver_major, driver_name);
-#else
+
 	devno = MKDEV(driver_major, driver_minor);
 	if (bridge_device) {
 		cdev_del(&bridge_device->cdev);
@@ -838,16 +653,10 @@ static void bridge_exit()
 	unregister_chrdev_region(devno, 1);
 	if (bridge_class) {
 		/* remove the device from sysfs */
-#ifdef OMAP_3430
-		class_device_destroy(bridge_class, MKDEV(driver_major,
-				    driver_minor));
+		device_destroy(bridge_class, MKDEV(driver_major, driver_minor));
 		class_destroy(bridge_class);
-#else
-		class_simple_device_remove(MKDEV(driver_major, driver_minor));
-		class_simple_destroy(bridge_class);
-#endif
+
 	}
-#endif
 }
 
 /*
@@ -936,9 +745,6 @@ func_cont:
 	}
 #endif
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-	MOD_INC_USE_COUNT;
-#endif
 	GT_0trace(driverTrace, GT_ENTER, " <- driver_open\n");
 	return status;
 }
@@ -962,10 +768,6 @@ int bridge_release(struct inode *ip, struct file *filp)
 
 
 	(status == TRUE) ? (status = 0) : (status = -1);
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-	MOD_DEC_USE_COUNT;
-#endif
 
 	GT_0trace(driverTrace, GT_ENTER, " <- driver_release\n");
 
@@ -1042,13 +844,8 @@ int bridge_mmap(struct file *filp, struct vm_area_struct *vma)
 		 " page_prot %lx flags %lx\n", filp, offset, vma->vm_start,
 		 vma->vm_end, vma->vm_page_prot, vma->vm_flags);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 5, 0)
 	status = remap_pfn_range(vma, vma->vm_start, vma->vm_pgoff,
 				vma->vm_end - vma->vm_start, vma->vm_page_prot);
-#else
-	status = remap_page_range(vma->vm_start, offset,
-				vma->vm_end - vma->vm_start, vma->vm_page_prot);
-#endif
 	if (status != 0)
 		status = -EAGAIN;
 
@@ -1073,28 +870,12 @@ DSP_STATUS DRV_RemoveAllResources(HANDLE hPCtxt)
 
 #ifndef DISABLE_BRIDGE_PM
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-static int bridge_suspend(struct device *dev, u32 state, u32 level)
-#else
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-static int bridge_suspend(struct device *dev, u32 state)
-#else
 bridge_suspend(struct platform_device *pdev, pm_message_t state)
-#endif
-#endif
 {
 	DWORD status = DSP_EFAIL;
 	DWORD command = PWR_EMERGENCYDEEPSLEEP;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-	switch (level) {
-	case SUSPEND_POWER_DOWN:
-		status = PWR_SleepDSP(command, timeOut);
-		break;
-	}
-#else
 	status = PWR_SleepDSP(command, timeOut);
-#endif
 	if (DSP_SUCCEEDED(status)) {
 		bridge_suspend_data.suspended = 1;
 		return 0;
@@ -1103,27 +884,12 @@ bridge_suspend(struct platform_device *pdev, pm_message_t state)
 	}
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-static int bridge_resume(struct device *dev, u32 level)
-#else
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-static int bridge_resume(struct device *dev)
-#else
 bridge_resume(struct platform_device *pdev)
-#endif
-#endif
 {
 	DWORD status = DSP_EFAIL;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-	switch (level) {
-	case RESUME_POWER_ON:
-		status = PWR_WakeDSP(timeOut);
-		break;
-	}
-#else
 	status = PWR_WakeDSP(timeOut);
-#endif
+
 	if (DSP_SUCCEEDED(status)) {
 		bridge_suspend_data.suspended = 0;
 		wake_up(&bridge_suspend_data.suspend_wq);
@@ -1138,17 +904,11 @@ bridge_resume(struct platform_device *pdev)
 int test_bridge_suspend(void)
 {
 	DWORD status;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-	status = bridge_suspend(NULL, 0, SUSPEND_POWER_DOWN);
-#else
-#if  LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 20)
-	status = bridge_suspend(NULL, 0);
-#else
+
 	pm_message_t state;
 	state.event = 0;
 	status = bridge_suspend(NULL, state);
-#endif
-#endif
+
 	if (status == 0)
 		return DSP_SOK;
 	else
@@ -1160,11 +920,8 @@ int test_bridge_resume(void)
 {
 	DWORD status;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
-	status = bridge_resume(NULL, RESUME_POWER_ON);
-#else
 	status = bridge_resume(NULL);
-#endif
+
 	if (status == 0)
 		return DSP_SOK;
 	else

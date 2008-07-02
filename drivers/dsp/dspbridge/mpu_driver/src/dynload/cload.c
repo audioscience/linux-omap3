@@ -21,11 +21,6 @@
 #include "module_list.h"
 #define LINKER_MODULES_HEADER ("_" MODULES_HEADER)
 
-#ifdef NEGATIVE_TESTING
-extern int test_permit_error;
-/* if true, API call made which may be ignored */
-#endif
-
 /*
  * we use the fact that DOFF section records are shaped just like
  * LDR_SECTION_INFO to reduce our section storage usage.  This macro marks
@@ -222,6 +217,114 @@ extern int Dynamic_Load_Module(struct Dynamic_Loader_Stream *module,
 	return dl_state.dload_errcount;
 }				/* DLOAD_File */
 
+#ifdef OPT_ELIMINATE_EXTRA_DLOAD
+/*************************************************************************
+ * Procedure Dynamic_Open_Module
+ *
+ * Parameters:
+ *      module  The input stream that supplies the module image
+ *      syms    Host-side symbol table and malloc/free functions
+ *      alloc   Target-side memory allocation
+ *      init    Target-side memory initialization
+ *      options Option flags DLOAD_*
+ *      mhandle A module handle for use with Dynamic_Unload
+ *
+ * Effect:
+ *      The module image is read using *module.  Target storage for the new
+ *      image is
+ * 	obtained from *alloc.  Symbols defined and referenced by the module are
+ * 	managed using *syms.  The image is then relocated and references
+ *      resolved as necessary, and the resulting executable bits are placed
+ *      into target memory using *init.
+ *
+ * Returns:
+ *      On a successful load, a module handle is placed in *mhandle,
+ *      and zero is returned.  On error, the number of errors detected is
+ *      returned.  Individual errors are reported during the load process
+ *      using syms->Error_Report().
+ ***********************************************************************/
+extern int
+Dynamic_Open_Module(struct Dynamic_Loader_Stream *module,
+		    struct Dynamic_Loader_Sym *syms,
+		    struct Dynamic_Loader_Allocate *alloc,
+		    struct Dynamic_Loader_Initialize *init,
+		    unsigned options, DLOAD_mhandle *mhandle)
+{
+	register unsigned *dp, sz;
+	struct dload_state dl_state;   /* internal state for this call */
+
+	/* blast our internal state */
+	dp = (unsigned *)&dl_state;
+	for (sz = sizeof(dl_state) / sizeof(unsigned); sz > 0; sz -= 1)
+		*dp++ = 0;
+
+	/* Enable _only_ BSS initialization if enabled by user */
+	if ((options & DLOAD_INITBSS) == DLOAD_INITBSS)
+		dl_state.myoptions = DLOAD_INITBSS;
+
+	/* Check that mandatory arguments are present */
+	if (!module || !syms) {
+		dload_error(&dl_state, "Required parameter is NULL");
+	} else {
+		dl_state.strm = module;
+		dl_state.mysym = syms;
+		dload_headers(&dl_state);
+		if (!dl_state.dload_errcount)
+			dload_strings(&dl_state, FALSE);
+		if (!dl_state.dload_errcount)
+			dload_sections(&dl_state);
+
+		if (init && !dl_state.dload_errcount) {
+			if (init->connect(init)) {
+				dl_state.myio = init;
+				dl_state.myalloc = alloc;
+				/* do now, before reducing symbols */
+				allocate_sections(&dl_state);
+			} else
+				dload_error(&dl_state, E_ICONNECT);
+		}
+
+		if (!dl_state.dload_errcount) {
+			/* fix up entry point address */
+			unsigned sref = dl_state.dfile_hdr.df_entry_secn - 1;
+			if (sref < dl_state.allocated_secn_count)
+				dl_state.dfile_hdr.df_entrypt +=
+				    dl_state.ldr_sections[sref].run_addr;
+
+			dload_symbols(&dl_state);
+		}
+
+		init_module_handle(&dl_state);
+
+		if (dl_state.myio) {
+			if ((!dl_state.dload_errcount)
+			    && (dl_state.dfile_hdr.df_entry_secn != DN_UNDEF))
+				if (!init->execute(init,
+				    dl_state.dfile_hdr.df_entrypt))
+				    dload_error(&dl_state,
+				    "Init->Execute Failed");
+			init->release(init);
+		}
+
+		symbol_table_free(&dl_state);
+		section_table_free(&dl_state);
+		string_table_free(&dl_state);
+
+		if (dl_state.dload_errcount) {
+			Dynamic_Unload_Module(dl_state.myhandle, syms, alloc,
+					      init);
+			dl_state.myhandle = NULL;
+		}
+	}
+
+	if (mhandle)
+		*mhandle = dl_state.myhandle;   /* give back the handle */
+
+	return dl_state.dload_errcount;
+}			       /* DLOAD_File */
+#endif
+
+
 /*************************************************************************
  * Procedure dload_headers
  *
@@ -346,9 +449,6 @@ static const char SECN_ERRID[] = { "section" };
  * Effect:
  *	Loads the section records into an internal table.
  ************************************************************************/
-#ifdef PERFORMANCE_DATA
-unsigned count_sections;
-#endif
 void
 dload_sections(struct dload_state *dlthis)
 {
@@ -356,9 +456,6 @@ dload_sections(struct dload_state *dlthis)
 	struct doff_scnhdr_t *shp;
 	unsigned nsecs = dlthis->dfile_hdr.df_no_scns;
 
-#ifdef PERFORMANCE_DATA
-	count_sections = nsecs;
-#endif
 	/* allocate space for the DOFF section records */
 	siz = nsecs * sizeof(struct doff_scnhdr_t);
 	shp = (struct doff_scnhdr_t *)dlthis->mysym->Allocate(dlthis->mysym,
@@ -617,22 +714,16 @@ static const char SYM_ERRID[] = { "symbol" };
 #define MY_SYM_BUF_SIZ (BYTE_TO_HOST(IMAGE_PACKET_SIZE)/\
 			sizeof(struct doff_syment_t))
 
-#ifdef PERFORMANCE_DATA
-unsigned count_symbols;
-#endif
-
-
 static void dload_symbols(struct dload_state *dlthis)
 {
 	u32 s_count, siz, dsiz, symbols_left;
 	u32 checks;
 	struct Local_Symbol *sp;
 
-	if ((s_count = dlthis->dfile_hdr.df_no_syms) == 0)
+	s_count = dlthis->dfile_hdr.df_no_syms;
+	if (s_count == 0)
 		return;
-#ifdef PERFORMANCE_DATA
-	count_symbols = s_count;
-#endif
+
 	/* We keep a local symbol table for all of the symbols in the input.
 	 * This table contains only section & value info, as we do not have
 	 * to do any name processing for locals.  We reuse this storage
@@ -860,12 +951,8 @@ static void symbol_table_free(struct dload_state *dlthis)
  */
 
 /* The following are only for use by reloc.c and things it calls */
-static const struct LDR_SECTION_INFO CINIT_INFO_INIT =
-		{ CINITNAME, 0, 0, (LDR_ADDR) - 1, 0, DLOAD_BSS, 0 };
-
-#ifdef PERFORMANCE_DATA
-unsigned count_cinits;
-#endif
+static const struct LDR_SECTION_INFO CINIT_INFO_INIT = { CINITNAME, 0, 0,
+					(LDR_ADDR) -1, 0, DLOAD_BSS, 0 };
 
 /*************************************************************************
  * Procedure cload_cinit
@@ -905,15 +992,8 @@ static void cload_cinit(struct dload_state *dlthis,
 			pktp += TDATA_TO_HOST(CINIT_COUNT);
 			/* negative signifies BSS table, zero means done */
 			if (temp <= 0) {
-#ifdef CINIT_BSSREF_BYTES
-				dlthis->cinit_state =
-						temp ? CI_addbss : CI_done;
-				dlthis->cinit_count = 0 - temp;
-				break;
-#else
 				dlthis->cinit_state = CI_done;
 				break;
-#endif
 			}
 			dlthis->cinit_count = temp;
 			dlthis->cinit_state = CI_address;
@@ -953,9 +1033,6 @@ static void cload_cinit(struct dload_state *dlthis,
 			dlthis->cinit_state = CI_copy;
 			break;
 		case CI_copy:	/* copy bits to the target */
-#ifdef PERFORMANCE_DATA
-			count_cinits += 1;
-#endif
 			init_count = HOST_TO_TDATA(left);
 			if (init_count > dlthis->cinit_count)
 				init_count = dlthis->cinit_count;
@@ -970,7 +1047,8 @@ static void cload_cinit(struct dload_state *dlthis,
 				dload_error(dlthis, E_INITFAIL, "write",
 					    dlthis->cinit_addr);
 			}
-			if ((dlthis->cinit_count -= init_count) <= 0) {
+			dlthis->cinit_count -= init_count;
+			if (dlthis->cinit_count  <= 0) {
 				dlthis->cinit_state = CI_count;
 				init_count = (init_count + CINIT_ALIGN - 1) &
 					     -CINIT_ALIGN;
@@ -1010,9 +1088,6 @@ loopexit:
  *	Performs the required relocations on the packet.  Returns a checksum
  * of the relocation operations.
  ************************************************************************/
-#ifdef PERFORMANCE_DATA
-unsigned count_relocs;
-#endif
 #define MY_RELOC_BUF_SIZ 8
 /* careful! exists at the same time as the image buffer*/
 static int relocate_packet(struct dload_state *dlthis,
@@ -1021,9 +1096,6 @@ static int relocate_packet(struct dload_state *dlthis,
 	u32 rnum;
 
 	rnum = ipacket->i_num_relocs;
-#ifdef PERFORMANCE_DATA
-	count_relocs += rnum;
-#endif
 	do {			/* all relocs */
 		unsigned rinbuf;
 		int siz;
@@ -1065,14 +1137,16 @@ static const char IMAGEPAK[] = { "image packet" };
  *	Read image data from input file, relocate it, and download it to the
  *	target.
  ************************************************************************/
-#ifdef PERFORMANCE_DATA
-unsigned count_image;
-#endif
 static void dload_data(struct dload_state *dlthis)
 {
 	u16 curr_sect;
 	struct doff_scnhdr_t *sptr = dlthis->sect_hdrs;
 	struct LDR_SECTION_INFO *lptr = dlthis->ldr_sections;
+#ifdef OPT_ZERO_COPY_LOADER
+	boolean bZeroCopy = FALSE;
+#endif
+	u8 *pDest;
+
 	struct {
 		struct image_packet_t ipacket;
 		u8 bufr[BYTE_TO_HOST(IMAGE_PACKET_SIZE)];
@@ -1121,9 +1195,6 @@ static void dload_data(struct dload_state *dlthis)
 					dload_reorder(&ibuf.ipacket, IPH_SIZE,
 						      dlthis->reorder_map);
 				}
-#ifdef PERFORMANCE_DATA
-				count_image += ibuf.ipacket.i_packet_size;
-#endif
 				/* now read the rest of the packet */
 				ipsize =
 				    BYTE_TO_HOST(DOFF_ALIGN
@@ -1133,35 +1204,47 @@ static void dload_data(struct dload_state *dlthis)
 						ipsize);
 					return;
 				}
+				pDest = ibuf.bufr;
+#ifdef OPT_ZERO_COPY_LOADER
+				bZeroCopy = FALSE;
+				if (DLOAD_SECT_TYPE(sptr) != DLOAD_CINIT) {
+				dlthis->myio->writemem(dlthis->myio, &pDest,
+						lptr->load_addr + image_offset,
+						lptr, 0);
+				bZeroCopy = (pDest != ibuf.bufr);
+				}
+#endif
+		/* End of determination */
+
 				if (dlthis->strm->read_buffer(dlthis->strm,
 				    ibuf.bufr, ipsize) != ipsize) {
 					DL_ERROR(E_READSTRM, IMAGEPAK);
 					return;
 				}
-				ibuf.ipacket.i_bits = ibuf.bufr;
+				ibuf.ipacket.i_bits = pDest;
 
 				/* reorder the bytes if need be */
 #if !defined(_BIG_ENDIAN) || (TARGET_AU_BITS > 16)
 				if (dlthis->reorder_map) {
-					dload_reorder(ibuf.bufr, ipsize,
+					dload_reorder(pDest, ipsize,
 						     dlthis->reorder_map);
 				}
-				checks = dload_checksum(ibuf.bufr, ipsize);
+				checks = dload_checksum(pDest, ipsize);
 #else
 				if (dlthis->dfile_hdr.df_byte_reshuffle !=
 				    TARGET_ORDER(REORDER_MAP
 				    (BYTE_RESHUFFLE_VALUE))) {
 					/* put image bytes in big-endian order,
 					 * not PC order */
-					dload_reorder(ibuf.bufr, ipsize,
+					dload_reorder(pDest, ipsize,
 					TARGET_ORDER
 					(dlthis->dfile_hdr.df_byte_reshuffle));
 				}
 #if TARGET_AU_BITS > 8
-				checks = dload_reverse_checksum_16(ibuf.bufr,
+				checks = dload_reverse_checksum_16(pDest,
 								   ipsize);
 #else
-				checks = dload_reverse_checksum(ibuf.bufr,
+				checks = dload_reverse_checksum(pDest,
 								ipsize);
 #endif
 #endif
@@ -1182,6 +1265,10 @@ static void dload_data(struct dload_state *dlthis)
 					cload_cinit(dlthis, &ibuf.ipacket);
 					cinit_processed = TRUE;
 				} else {
+#ifdef OPT_ZERO_COPY_LOADER
+				    if (!bZeroCopy) {
+#endif
+
 					if (!dlthis->myio->writemem
 					   (dlthis->myio, ibuf.bufr,
 					   lptr->load_addr + image_offset, lptr,
@@ -1191,6 +1278,10 @@ static void dload_data(struct dload_state *dlthis)
 						"Write to " FMT_UI32 " failed",
 						lptr->load_addr + image_offset);
 					}
+#ifdef OPT_ZERO_COPY_LOADER
+				}
+#endif
+
 				}
 				image_offset +=
 				      BYTE_TO_TADDR(ibuf.ipacket.i_packet_size);
@@ -1472,11 +1563,11 @@ static char *copy_tgt_strings(void *dstp, void *srcp, unsigned charcount)
  *
  ************************************************************************/
 #ifndef _BIG_ENDIAN
-static const struct LDR_SECTION_INFO DLLVIEW_INFO_INIT =
-    { ".dllview", 0, 0, (LDR_ADDR) -1, DBG_LIST_PAGE, DLOAD_DATA, 0 };
+static const struct LDR_SECTION_INFO DLLVIEW_INFO_INIT = { ".dllview", 0, 0,
+				(LDR_ADDR) -1, DBG_LIST_PAGE, DLOAD_DATA, 0 };
 #else
-static const struct LDR_SECTION_INFO DLLVIEW_INFO_INIT =
-    { ".dllview", 0, 0, (LDR_ADDR) -1, DLOAD_DATA, DBG_LIST_PAGE, 0 };
+static const struct LDR_SECTION_INFO DLLVIEW_INFO_INIT = { ".dllview", 0, 0,
+				(LDR_ADDR) -1, DLOAD_DATA, DBG_LIST_PAGE, 0 };
 #endif
 static void init_module_handle(struct dload_state *dlthis)
 {
@@ -1511,9 +1602,7 @@ static void init_module_handle(struct dload_state *dlthis)
 	if (!debug_mirror_sym) {
 		struct dynload_symbol *dlmodsym;
 		struct dbg_mirror_root *mlst;
-#ifdef NEGATIVE_TESTING
-		test_permit_error = 1;
-#endif
+
 		/* our root symbol is not yet present;
 		   check if we have DLModules defined */
 		dlmodsym = dlthis->mysym->Find_Matching_Symbol(dlthis->mysym,
@@ -1607,9 +1696,6 @@ static void init_module_handle(struct dload_state *dlthis)
 		return;
 	if (!dlthis->myalloc->Allocate(dlthis->myalloc, &dllview_info,
 		     HOST_TO_TADDR(sizeof(u32)))) {
-#ifdef NEGATIVE_TESTING
-		test_permit_error = 1;
-#endif
 		return;
 	}
 	/* Store load address of .dllview section */
@@ -1627,9 +1713,6 @@ static void init_module_handle(struct dload_state *dlthis)
 	if (!dlthis->myio->writemem(dlthis->myio, dbmod,
 		dllview_info.load_addr, &dllview_info,
 		TADDR_TO_HOST(dllview_info.size))) {
-#ifdef NEGATIVE_TESTING
-		test_permit_error = 1;
-#endif
 		return;
 	}
 	/* write new header */
@@ -1644,9 +1727,6 @@ static void init_module_handle(struct dload_state *dlthis)
 	if (!dlthis->myio->writemem(dlthis->myio, &mhdr, mlist->dbthis,
 			&dllview_info, sizeof(struct modules_header) -
 				       sizeof(u16))) {
-#ifdef NEGATIVE_TESTING
-		test_permit_error = 1;
-#endif
 		return;
 	}
 	 /* Add the module handle to this processor's list
@@ -1822,7 +1902,8 @@ static char *unpack_name(struct dload_state *dlthis, u32 soffset)
 		*dst++ = *src++;	/* only 1 character in first word */
 	do {
 		tmp = *src++;
-		if (!(*dst++ = (tmp >> BITS_PER_BYTE)))
+		*dst = (tmp >> BITS_PER_BYTE);
+		if (!(*dst++))
 			break;
 	} while ((*dst++ = tmp & BYTE_MASK));
 	dlthis->temp_len = dst - dlthis->str_temp;

@@ -70,7 +70,6 @@
 #include <errbase.h>
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gt.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
@@ -578,12 +577,7 @@ DSP_STATUS DCD_GetObjectDef(IN struct DCD_MANAGER *hDcdMgr,
 	/*if (CSL_Strncmp("./iva", szRegData, 5) != 0)        */
 	if (CSL_Strstr(szRegData, "iva") == NULL) {
 		/* Locate section by objectID and read its content. */
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-		status = COD_ReadSection(lib, szSectName, pTempCoffBuf, ulLen);
-		CSL_ByteSwap(pTempCoffBuf, pszCoffBuf, ulLen);
-#else
 		status = COD_ReadSection(lib, szSectName, pszCoffBuf, ulLen);
-#endif
 	} else {
 		status = COD_ReadSection(lib, szSectName, pszCoffBuf, ulLen);
 		GT_0trace(curTrace, GT_4CLASS,
@@ -681,14 +675,8 @@ DSP_STATUS DCD_GetObjects(IN struct DCD_MANAGER *hDcdMgr, IN CHAR *pszCoffPath,
 	/*if (CSL_Strncmp("./iva", pszCoffPath, 5) != 0)        */
 	if (strstr(pszCoffPath, "iva") == NULL) {
 		/* Locate section by objectID and read its content. */
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-		status = COD_ReadSection(lib, DCD_REGISTER_SECTION,
-					pTempCoffBuf, ulLen);
-		CSL_ByteSwap(pTempCoffBuf, pszCoffBuf, ulLen);
-#else
 		status = COD_ReadSection(lib, DCD_REGISTER_SECTION,
 					pszCoffBuf, ulLen);
-#endif
 	} else {
 		GT_0trace(curTrace, GT_4CLASS, "Skipped Byte swap for IVA!!\n");
 		status = COD_ReadSection(lib, DCD_REGISTER_SECTION,
@@ -1096,17 +1084,20 @@ static INT Atoi(CHAR *pszBuf)
 	while (isspace(*pch))
 		pch++;
 
-	if ((first = *pch) == '-' || first == '+') {
+	first = *pch;
+	if (first == '-' || first == '+') {
 		pch++;
 	} else {
 		/* Determine if base 10 or base 16 */
-		if ((len = strlen(pch)) > 1) {
-			if ((*pch == '0' && ((c = pch[1]) == 'x' ||
-			   c == 'X'))) {
+		len = strlen(pch);
+		if (len  > 1) {
+			c = pch[1];
+			if ((*pch == '0' && (c == 'x' || c == 'X'))) {
 				base = 16;
 				pch += 2;
 			}
-			if (((c = pch[len - 1])) == 'h' || c == 'H') {
+			c = pch[len - 1];
+			if (c == 'h' || c == 'H') {
 				base = 16;
 			}
 		}
@@ -1181,15 +1172,9 @@ static DSP_STATUS GetAttrsFromBuf(CHAR *pszBuf, ULONG ulBufSize,
 			cLen = DSP_MAXNAMELEN - 1;
 			/* status = DSP_EFAIL? */
 		}
-#ifdef UNICODE
-		CSL_AnsiToWchar((WCHAR *)pGenObj->
-				objData.nodeObj.ndbProps.acName,
-				token, cLen + 1);
-#else
 		CSL_Strcpyn(pGenObj->objData.nodeObj.ndbProps.acName,
 			   token, cLen);
 		pGenObj->objData.nodeObj.ndbProps.acName[cLen] = '\0';
-#endif
 		token = CSL_Strtokr(NULL, seps, &pszCur);
 		/* UINT uNodeType */
 		pGenObj->objData.nodeObj.ndbProps.uNodeType = Atoi(token);
@@ -1326,7 +1311,6 @@ static DSP_STATUS GetAttrsFromBuf(CHAR *pszBuf, ULONG ulBufSize,
 		/* Dynamic load code requirements */
 		if (token) {
 			pGenObj->objData.nodeObj.ulCodeMemSegMask = Atoi(token);
-#if defined(OMAP_2430) || defined(OMAP_3430)
 			token = CSL_Strtokr(NULL, seps, &pszCur);
 		}
 
@@ -1345,8 +1329,13 @@ static DSP_STATUS GetAttrsFromBuf(CHAR *pszBuf, ULONG ulBufSize,
 						Atoi(token);
 				}
 			}
-#endif
 		}
+		token = CSL_Strtokr(NULL, seps, &pszCur);
+		if (token) {
+			pGenObj->objData.nodeObj.ndbProps.uStackSegName =
+				(token);
+		}
+
 		break;
 
 	case DSP_DCDPROCESSORTYPE:
@@ -1422,7 +1411,8 @@ static VOID CompressBuf(CHAR *pszBuf, ULONG ulBufSize, INT cCharSize)
 	CHAR ch;
 	CHAR *q;
 
-	if ((p = pszBuf) == NULL)
+	p = pszBuf;
+	if (p == NULL)
 		return;
 
 	for (q = pszBuf; q < (pszBuf + ulBufSize);) {
@@ -1455,19 +1445,7 @@ static VOID CompressBuf(CHAR *pszBuf, ULONG ulBufSize, INT cCharSize)
 		} else {
 			*p = ch;
 		}
-#ifndef LINUX
-		if (*q == 0) {
-			/* reset p to base of next string (+ clear junk
-			 * between strings) */
-			while (p < q + cCharSize) {
-				*p++ = '\0';
-			}
-		} else {
-			p++;
-		}
-#else
 		p++;
-#endif
 		q += cCharSize;
 	}
 
@@ -1512,9 +1490,6 @@ static DSP_STATUS GetDepLibInfo(IN struct DCD_MANAGER *hDcdMgr,
 	struct COD_LIBRARYOBJ *lib = NULL;
 #ifdef _DB_TIOMAP
 	CHAR *pTempCoffBuf;
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-	CHAR *pTempBuf;
-#endif
 #endif
 	ULONG ulAddr = 0;	/* Used by COD_GetSection */
 	ULONG ulLen = 0;	/* Used by COD_GetSection */
@@ -1587,15 +1562,6 @@ static DSP_STATUS GetDepLibInfo(IN struct DCD_MANAGER *hDcdMgr,
 	if (!DSP_SUCCEEDED(status))
 		goto func_cont;
 
-#ifdef _DB_TIOMAP
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-	CSL_ByteSwap(pszCoffBuf, pTempCoffBuf, ulLen);
-	/* Switch pszCoffBuf to the swapped buffer */
-	pTempBuf = pszCoffBuf;
-	pszCoffBuf = pTempCoffBuf;
-	MEM_Free(pTempBuf);
-#endif
-#endif
 	/* Compress and format DSP buffer to conform to PC format. */
 	CompressBuf(pszCoffBuf, ulLen, DSPWORDSIZE);
 	/* Read from buffer */
@@ -1617,9 +1583,9 @@ static DSP_STATUS GetDepLibInfo(IN struct DCD_MANAGER *hDcdMgr,
 		} else {
 			/* Advanc to next token */
 			pToken = CSL_Strtokr(NULL, seps, &pszCur);
-			if (Atoi(pToken)) {
+			if (Atoi(pToken))
 				(*pNumPersLibs)++;
-			}
+
 			/* Just counting number of dependent libraries */
 			(*pNumLibs)++;
 		}

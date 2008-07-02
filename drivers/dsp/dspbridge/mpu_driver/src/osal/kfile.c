@@ -50,7 +50,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gp.h>
 #include <gt.h>
 
@@ -103,19 +102,9 @@ INT KFILE_Close(struct KFILE_FileObj *hFile)
 	/* Check for valid handle */
 	if (MEM_IsValidHandle(hFile, SIGNATURE)) {
 		/* Close file only if opened by the same process (id). Otherwise
-		 Linux closes all open file handles when process exits.*/
+		 * Linux closes all open file handles when process exits.*/
 		PRCS_GetCurrentHandle((VOID **)&curr_pid);
- #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18)
-		if (hFile->owner_pid == curr_pid) {
-			fResult = sys_close(hFile->hInternal);
-			if (fResult < 0) {
-				cRetVal = E_KFILE_ERROR;
-				GT_1trace(KFILE_debugMask, GT_6CLASS,
-					  "KFILE_Close: sys_close "
-					  "returned %d\n", fResult);
-			}
-		}
-#else
+
 		fRetVal = filp_close(hFile->fileDesc, NULL) ;
 		if (fRetVal) {
 			cRetVal = E_KFILE_ERROR;
@@ -123,7 +112,6 @@ INT KFILE_Close(struct KFILE_FileObj *hFile)
 				  "KFILE_Close: sys_close "
 				  "returned %d\n", fRetVal);
 		}
-#endif
 		MEM_FreeObject(hFile);
 	} else {
 		cRetVal = E_KFILE_INVALIDHANDLE;
@@ -169,13 +157,7 @@ struct KFILE_FileObj *KFILE_Open(CONST CHAR *pszFileName, CONST CHAR *pszMode)
 	mm_segment_t fs;
 	UINT	length = 0;
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18)
-	long fileDesc;
-#else
 	struct file*fileDesc = NULL;
-
-#endif
-
 	DBC_Require(pszMode != NULL);
 	DBC_Require(pszFileName != NULL);
 
@@ -190,20 +172,12 @@ struct KFILE_FileObj *KFILE_Open(CONST CHAR *pszFileName, CONST CHAR *pszMode)
 		fs = get_fs();
 		set_fs(get_ds());
 	/* Third argument is mode (permissions). Ignored unless creating file */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18)
-		hTempFile = sys_open(pszFileName, O_RDONLY, 0);
-		if (hTempFile < 0) {
-#else
 		fileDesc = filp_open(pszFileName, O_RDONLY, 0);
 		if ((IS_ERR(fileDesc)) || (fileDesc == NULL) ||
 		     (fileDesc->f_op == NULL) || (fileDesc->f_op->read == NULL)
 		     || (fileDesc->f_op->llseek == NULL)) {
-#endif
 			status = DSP_EFILE;
 		} else {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18)
-			hFile->hInternal = hTempFile;
-#else
 			hFile->fileDesc = fileDesc;
 			hFile->fileName = pszFileName;
 			hFile->isOpen	   = TRUE;
@@ -211,7 +185,6 @@ struct KFILE_FileObj *KFILE_Open(CONST CHAR *pszFileName, CONST CHAR *pszMode)
 			hFile->size = fileDesc->f_op->llseek(fileDesc, 0,
 							    SEEK_END);
 			fileDesc->f_op->llseek(fileDesc, 0, SEEK_SET);
-#endif
 			PRCS_GetCurrentHandle((VOID **) &hFile->owner_pid);
 			status = DSP_SOK;
 		}
@@ -253,14 +226,9 @@ KFILE_Read(VOID *pBuffer, INT cSize, INT cCount, struct KFILE_FileObj *hFile)
 			/* read from file */
 			fs = get_fs();
 			set_fs(get_ds());
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18)
-			dwBytesRead =  sys_read(hFile->hInternal, pBuffer,
-				       cSize * cCount);
-#else
 			dwBytesRead = hFile->fileDesc->f_op->read(hFile->
 				      fileDesc, pBuffer, cSize *cCount,
 				      &(hFile->fileDesc->f_pos));
-#endif
 			set_fs(fs);
 			if (dwBytesRead) {
 				cRetVal = dwBytesRead / cSize;
@@ -297,10 +265,8 @@ INT KFILE_Seek(struct KFILE_FileObj *hFile, LONG lOffset, INT cOrigin)
 	INT cRetVal = 0;	/* 0 for success */
 	DWORD dwCurPos = 0;
 	DSP_STATUS status = DSP_SOK;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,18)
-	struct file *fileDesc = NULL;
-#endif
 
+	struct file *fileDesc = NULL;
 
 	GT_3trace(KFILE_debugMask, GT_ENTER, "KFILE_Seek: hFile 0x%x, "
 		  "lOffset 0x%x, cOrigin 0x%x\n",
@@ -309,39 +275,23 @@ INT KFILE_Seek(struct KFILE_FileObj *hFile, LONG lOffset, INT cOrigin)
 	/* check for valid file handle */
 	if (MEM_IsValidHandle(hFile, SIGNATURE)) {
 		/* based on the origin flag, move the internal pointer */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,18)
+
 	fileDesc = hFile->fileDesc;
-#endif
 		switch (cOrigin) {
 		case KFILE_SEEK_SET:
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18)
-			dwCurPos = sys_lseek(hFile->hInternal, lOffset,
-					     SEEK_SET);
-#else
 			dwCurPos = hFile->fileDesc->f_op->llseek(hFile->
 				   fileDesc, lOffset, SEEK_SET);
-#endif
 			cRetVal = ((dwCurPos >= 0) ? 0 : E_KFILE_ERROR);
 			break;
 
 		case KFILE_SEEK_CUR:
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18)
-			dwCurPos = sys_lseek(hFile->hInternal, lOffset,
-					     SEEK_CUR);
-#else
 			dwCurPos = hFile->fileDesc->f_op->llseek(hFile->
 				   fileDesc, lOffset, SEEK_CUR);
-#endif
 			cRetVal = ((dwCurPos >= 0) ? 0 : E_KFILE_ERROR);
 			break;
 		case KFILE_SEEK_END:
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18)
-			dwCurPos = sys_lseek(hFile->hInternal, lOffset,
-					     SEEK_END);
-#else
 			dwCurPos = hFile->fileDesc->f_op->llseek(hFile->
 				   fileDesc, lOffset, SEEK_END);
-#endif
 			cRetVal = ((dwCurPos >= 0) ? 0 : E_KFILE_ERROR);
 			break;
 		default:
@@ -375,15 +325,11 @@ LONG KFILE_Tell(struct KFILE_FileObj *hFile)
 	if (MEM_IsValidHandle(hFile, SIGNATURE)) {
 
 		/* Get current position. */
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18)
-		dwCurPos = sys_lseek(hFile->hInternal, 0, SEEK_CUR);
-#else
 		dwCurPos = hFile->fileDesc->f_op->llseek(hFile->fileDesc, 0,
 			   SEEK_CUR);
-#endif
-		if (dwCurPos >= 0) {
+		if (dwCurPos >= 0)
 			lRetVal = dwCurPos;
-		}
+
 	} else {
 		lRetVal = E_KFILE_INVALIDHANDLE;
 		GT_0trace(KFILE_debugMask, GT_6CLASS,

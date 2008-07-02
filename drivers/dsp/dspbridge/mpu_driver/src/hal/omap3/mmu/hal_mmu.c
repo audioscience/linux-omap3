@@ -14,7 +14,6 @@
  * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-
 /*
  *  ======== hal_mmu.c ========
  *  Description:
@@ -30,29 +29,17 @@
  *! 16 Feb 2003 sb: Initial version
  */
 
-/* ========================================================================
-* STANDARD INCLUDE FILES
-* =========================================================================
-*/
-
-/* ========================================================================
-* PROJECT SPECIFIC INCLUDE FILES
-* =========================================================================
-*/
+/*
+ * PROJECT SPECIFIC INCLUDE FILES
+ */
 #include <GlobalTypes.h>
 #include "MMURegAcM.h"
 #include <hal_defs.h>
 #include <hal_mmu.h>
 
-/* ========================================================================
-* GLOBAL VARIABLES DECLARATIONS
-* =========================================================================
-*/
-
-/* ========================================================================
-* LOCAL TYPES AND DEFINITIONS
-* =========================================================================
-*/
+/*
+ * LOCAL TYPES AND DEFINITIONS
+ */
 #define MMU_BASE_VAL_MASK	0xFC00
 #define MMU_PAGE_MAX	     3
 #define MMU_ELEMENTSIZE_MAX      3
@@ -66,32 +53,18 @@
 
 #define MMU_LOAD_TLB	0x00000001
 
-/* ------------------------------------------------------------------------
-* TYPE:	 HAL_MMUPageSize_t
-*
-* DESCRIPTION:  Enumerated Type used to specify the MMU Page Size(SLSS)
-*
-* -------------------------------------------------------------------------
-*/
+/*
+ * TYPE:	 HAL_MMUPageSize_t
+ * DESCRIPTION:  Enumerated Type used to specify the MMU Page Size(SLSS)
+ */
 typedef enum HAL_MMUPageSize {
     HAL_MMU_SECTION,
     HAL_MMU_LARGE_PAGE,
     HAL_MMU_SMALL_PAGE,
     HAL_MMU_SUPERSECTION
-
 } HAL_MMUPageSize_t;
 
-/* ========================================================================
-* LOCAL VARIABLES DECLARATIONS
-* ==========================================================================
-*/
-
-/* =========================================================================
-* LOCAL FUNCTIONS PROTOTYPES
-* ==========================================================================
-*/
 /*
--------------------------------------------------------------------------
 * FUNCTION	      : MMU_FlushEntry
 *
 * INPUTS:
@@ -108,18 +81,15 @@ typedef enum HAL_MMUPageSize {
 *						Paramater was set to NULL
 *
 * PURPOSE:	      : Flush the TLB entry pointed by the
-			lock counter register
+*			lock counter register
 *			even if this entry is set protected
 *
 * METHOD:	       : Check the Input parameter and Flush a
-			 single entry in the TLB.
--------------------------------------------------------------------------
+*			 single entry in the TLB.
 */
-
 static HAL_STATUS MMU_FlushEntry(const UWORD32 baseAddress);
 
- /*
--------------------------------------------------------------------------
+/*
 * FUNCTION	      : MMU_SetCAMEntry
 *
 * INPUTS:
@@ -158,9 +128,7 @@ static HAL_STATUS MMU_FlushEntry(const UWORD32 baseAddress);
 * PURPOSE:	      	: Set MMU_CAM reg
 *
 * METHOD:	       	: Check the Input parameters and set the CAM entry.
--------------------------------------------------------------------------
 */
-
 static HAL_STATUS MMU_SetCAMEntry(const UWORD32    baseAddress,
 				   const UWORD32    pageSize,
 				   const UWORD32    preservedBit,
@@ -168,7 +136,6 @@ static HAL_STATUS MMU_SetCAMEntry(const UWORD32    baseAddress,
 				   const UWORD32    virtualAddrTag);
 
 /*
--------------------------------------------------------------------------
 * FUNCTION	      : MMU_SetRAMEntry
 *
 * INPUTS:
@@ -199,22 +166,19 @@ static HAL_STATUS MMU_SetCAMEntry(const UWORD32    baseAddress,
 *       Type	    	: HAL_STATUS
 *       Description     : RET_OK		 -- No errors occured
 *			 RET_BAD_NULL_PARAM     -- A Pointer Paramater
-							was set to NULL
+*							was set to NULL
 *			 RET_PARAM_OUT_OF_RANGE -- Input Parameter
-							out of Range
+*							out of Range
 *
 * PURPOSE:	      : Set MMU_CAM reg
 *
 * METHOD:	       : Check the Input parameters and set the RAM entry.
--------------------------------------------------------------------------
 */
 static HAL_STATUS MMU_SetRAMEntry(const UWORD32	baseAddress,
 				   const UWORD32	physicalAddr,
 				   HAL_Endianism_t      endianism,
 				   HAL_ElementSize_t    elementSize,
 				   HAL_MMUMixedSize_t   mixedSize);
-
-
 
 /* =========================================================================
 * HAL FUNCTIONS
@@ -239,32 +203,12 @@ HAL_STATUS HAL_MMU_Disable(const UWORD32 baseAddress)
     return status;
 }
 
-HAL_STATUS HAL_MMU_NumLockedGet(const UWORD32 baseAddress,
-				UWORD32 *numLockedEntries)
-{
-    HAL_STATUS status = RET_OK;
-
-    *numLockedEntries = MMUMMU_LOCKBaseValueRead32(baseAddress);
-
-    return status;
-}
-
 HAL_STATUS HAL_MMU_NumLockedSet(const UWORD32 baseAddress,
 				UWORD32 numLockedEntries)
 {
     HAL_STATUS status = RET_OK;
 
     MMUMMU_LOCKBaseValueWrite32(baseAddress, numLockedEntries);
-
-    return status;
-}
-
-HAL_STATUS HAL_MMU_VictimNumGet(const UWORD32 baseAddress,
-				UWORD32 *victimEntryNum)
-{
-    HAL_STATUS status = RET_OK;
-
-    *victimEntryNum = MMUMMU_LOCKCurrentVictimRead32(baseAddress);
 
     return status;
 }
@@ -379,32 +323,6 @@ HAL_STATUS HAL_MMU_TWLDisable(const UWORD32 baseAddress)
     MMUMMU_CNTLTWLEnableWrite32(baseAddress, HAL_CLEAR);
 
     return status;
-}
-
-HAL_STATUS HAL_MMU_TWLIsEnabled(const UWORD32 baseAddress,
-				 UWORD32 *twlIsEnabled)
-{
-    HAL_STATUS status = RET_OK;
-
-    *twlIsEnabled = MMUMMU_CNTLTWLEnableRead32(baseAddress);
-
-    return status;
-}
-
-HAL_STATUS HAL_MMU_TWLIsRunning(const UWORD32   baseAddress,
-				UWORD32 *const  twlIsRunning)
-{
-   HAL_STATUS status = RET_OK;
-
-   /*Check the input Parameters*/
-   CHECK_INPUT_PARAM(baseAddress, 0, RET_BAD_NULL_PARAM,
-		    RES_MMU_BASE + RES_INVALID_INPUT_PARAM);
-
-   /* read values from register */
-   *twlIsRunning = MMUMMU_WALKING_STTWLRunningRead32(baseAddress);
-
-   return status;
-
 }
 
 HAL_STATUS HAL_MMU_TLBFlush(const UWORD32 baseAddress, UWORD32 virtualAddr,
@@ -630,17 +548,7 @@ HAL_STATUS HAL_MMU_PteClear(const UWORD32  pgTblVa,
     return status;
 }
 
-
-/* =========================================================================
-*  LOCAL FUNCTIONS
-* ==========================================================================
-*/
-
-  /*
------------------------------------------------------------------------------
- NAME	: MMU_FlushEntry						  -
------------------------------------------------------------------------------
-*/
+/* MMU_FlushEntry */
 static HAL_STATUS MMU_FlushEntry(const UWORD32 baseAddress)
 {
    HAL_STATUS status = RET_OK;
@@ -656,11 +564,7 @@ static HAL_STATUS MMU_FlushEntry(const UWORD32 baseAddress)
    return status;
 }
 
- /*
--------------------------------------------------------------------------
- NAME	: MMU_SetCAMEntry
- - -----------------------------------------------------
-*/
+/* MMU_SetCAMEntry */
 static HAL_STATUS MMU_SetCAMEntry(const UWORD32    baseAddress,
 				   const UWORD32    pageSize,
 				   const UWORD32    preservedBit,
@@ -684,11 +588,7 @@ static HAL_STATUS MMU_SetCAMEntry(const UWORD32    baseAddress,
    return status;
 }
 
- /*
-----------------------------------------------------------------------------
- NAME	: MMU_SetRAMEntry
------------------------------------------------------
-*/
+/* MMU_SetRAMEntry */
 static HAL_STATUS MMU_SetRAMEntry(const UWORD32       baseAddress,
 				   const UWORD32       physicalAddr,
 				   HAL_Endianism_t     endianism,
@@ -716,71 +616,3 @@ static HAL_STATUS MMU_SetRAMEntry(const UWORD32       baseAddress,
    return status;
 
 }
-
-/*
-----------------------------------------------------------------------------
- NAME	: MMU_IdleModeSet
------------------------------------------------------
-*/
-HAL_STATUS HAL_MMU_IdleModeSet(const UWORD32 baseAddress,
-			       HAL_IdleMode_t mode)
-{
-	HAL_STATUS status = RET_OK;
-
-	switch (mode) {
-	case HAL_FORCE_IDLE:
-	case HAL_NO_IDLE:
-	case HAL_SMART_IDLE:
-		MMUMMU_SYSCONFIGIdleModeWrite32(baseAddress, mode);
-		break;
-	default:
-		status = RET_FAIL;
-		break;
-
-	}
-	return status;
-}
-
- /*
-----------------------------------------------------------------------------
- NAME	: MMU_AutoIdleEnable
------------------------------------------------------
-*/
-HAL_STATUS HAL_MMU_AutoIdleEnable(const UWORD32 baseAddress)
-{
-	HAL_STATUS status = RET_OK;
-
-	MMUMMU_SYSCONFIGAutoIdleWrite32(baseAddress, HAL_SET);
-
-	return status;
-}
-
- /*
-----------------------------------------------------------------------------
- NAME	: MMU_AutoIdleDisable
------------------------------------------------------
-*/
-HAL_STATUS HAL_MMU_AutoIdleDisable(const UWORD32 baseAddress)
-{
-	HAL_STATUS status = RET_OK;
-
-	MMUMMU_SYSCONFIGAutoIdleWrite32(baseAddress, HAL_CLEAR);
-
-	return status;
-}
-
- /*
-----------------------------------------------------------------------------
- NAME	: MMU_SysConfigGet
------------------------------------------------------
-*/
-HAL_STATUS HAL_MMU_SysConfigGet(const UWORD32 baseAddress, UWORD32 *value)
-{
-	HAL_STATUS status = RET_OK;
-
-	*value = MMUMMU_SYSCONFIGReadRegister32(baseAddress);
-
-	return status;
-}
-
-

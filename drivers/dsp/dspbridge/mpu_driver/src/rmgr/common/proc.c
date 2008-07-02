@@ -28,7 +28,6 @@
  *      PROC_GetResourceInfo
  *      PROC_Exit
  *      PROC_FlushMemory
- *      PROC_GetProcessorHandle
  *      PROC_GetState
  *      PROC_GetProcessorId
  *      PROC_GetTrace
@@ -111,7 +110,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gp.h>
 #include <gt.h>
 
@@ -122,7 +120,6 @@
 #include <mem.h>
 #include <ntfy.h>
 #include <prcs.h>
-#include <perf.h>
 
 /*  ----------------------------------- Mini Driver */
 #include <wmd.h>
@@ -201,9 +198,6 @@ extern struct constraint_handle *dsp_constraint_handle;
 
 /*  ----------------------------------- Function Prototypes */
 static DSP_STATUS PROC_Monitor(struct PROC_OBJECT *hProcessor);
-#ifndef LINUX
-static DSP_STATUS PackTraceBuffer(PSTR lpBuf, ULONG nBytes, ULONG ulNumWords);
-#endif
 static INT GetEnvpCount(CHAR **envp);
 static CHAR **PrependEnvp(CHAR **newEnvp, CHAR **envp, INT cEnvp, INT cNewEnvp,
 			 PSTR szVar);
@@ -277,9 +271,9 @@ PROC_Attach(UINT uProcessor, OPTIONAL CONST struct DSP_PROCESSORATTRIN *pAttrIn,
 				 " DevType, 0x%x!\n", status);
 		}
 	}
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_end;
-	}
+
 	/* If we made it this far, create the Proceesor object: */
 	MEM_AllocObject(pProcObject, struct PROC_OBJECT, PROC_SIGNATURE);
 	/* Fill out the Processor Object: */
@@ -294,11 +288,11 @@ PROC_Attach(UINT uProcessor, OPTIONAL CONST struct DSP_PROCESSORATTRIN *pAttrIn,
 	pProcObject->uProcessor = devType;
 	/* Get Caller Process and store it */
 	(Void)PRCS_GetCurrentHandle(&pProcObject->hProcess);
-	if (pAttrIn) {
+	if (pAttrIn)
 		pProcObject->uTimeout = pAttrIn->uTimeout;
-	} else {
+	else
 		pProcObject->uTimeout = PROC_DFLT_TIMEOUT;
-	}
+
 	status = DEV_GetIntfFxns(hDevObject, &pProcObject->pIntfFxns);
 	if (DSP_SUCCEEDED(status)) {
 		status = DEV_GetWMDContext(hDevObject,
@@ -315,9 +309,9 @@ PROC_Attach(UINT uProcessor, OPTIONAL CONST struct DSP_PROCESSORATTRIN *pAttrIn,
 			 " the DEV_ Interface fxns.\n", status);
 		MEM_FreeObject(pProcObject);
 	}
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_end;
-	}
+
 	/* Create the Notification Object */
 	/* This is created with no event mask, no notify mask
 	 * and no valid handle to the notification. They all get
@@ -340,9 +334,9 @@ PROC_Attach(UINT uProcessor, OPTIONAL CONST struct DSP_PROCESSORATTRIN *pAttrIn,
 					 "Already Attached!\n");
 			}
 		} else {
-			if (pProcObject->hNtfy) {
+			if (pProcObject->hNtfy)
 				NTFY_Delete(pProcObject->hNtfy);
-			}
+
 			MEM_FreeObject(pProcObject);
 			GT_1trace(PROC_DebugMask, GT_7CLASS,
 				 "PROC_Attach: failed to insert "
@@ -380,14 +374,14 @@ PROC_Attach(UINT uProcessor, OPTIONAL CONST struct DSP_PROCESSORATTRIN *pAttrIn,
 		  *phProcessor); 					*/
 func_end:
 #ifndef RES_CLEANUP_DISABLE
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_cont;
-	}
+
 	PRCS_GetCurrentHandle(&hProcess);
 	res_status = CFG_GetObject((DWORD *)&hDRVObject, REG_DRV_OBJECT);
-	if (!DSP_SUCCEEDED(res_status)) {
+	if (!DSP_SUCCEEDED(res_status))
 		goto func_cont;
-	}
+
 	DRV_GetProcContext(hProcess, hDRVObject, &pPctxt, NULL, NULL);
 	if (pPctxt == NULL) {
 		DRV_InsertProcContext(hDRVObject, &pPctxt);
@@ -401,9 +395,9 @@ func_cont:
 	res_status = CFG_GetObject((DWORD *)&hDRVObject, REG_DRV_OBJECT);
 	if (DSP_SUCCEEDED(res_status)) {
 		DRV_GetProcContext(hProcess, hDRVObject, &pPctxt, NULL, NULL);
-		if (pPctxt != NULL) {
+		if (pPctxt != NULL)
 			pPctxt->hProcessor = (DSP_HPROCESSOR)*phProcessor;
-		}
+
 	}
 #endif
 	DBC_Ensure((status == DSP_EFAIL && *phProcessor == NULL) ||
@@ -506,9 +500,9 @@ DSP_STATUS PROC_AutoStart(struct CFG_DEVNODE *hDevNode,
 			 "PROC_AutoStart: Failed to "
 			 "get IntFxns \n");
 	}
-	if (!DSP_SUCCEEDED(status)) {
+	if (!DSP_SUCCEEDED(status))
 		goto func_end;
-	}
+
 	/* Stop the Device, put it into standby mode */
 	status = PROC_Stop(hProcObject);
 	if (!DSP_SUCCEEDED(CFG_GetAutoStart(hDevNode, &dwAutoStart)) ||
@@ -646,9 +640,9 @@ DSP_STATUS PROC_Detach(DSP_HPROCESSOR hProcessor)
 		/* Notify the Client */
 		NTFY_Notify(pProcObject->hNtfy, DSP_PROCESSORDETACH);
 		/* Remove the notification memory */
-		if (pProcObject->hNtfy) {
+		if (pProcObject->hNtfy)
 			NTFY_Delete(pProcObject->hNtfy);
-		}
+
 		/* Remove the Proc from the DEV List */
 		(Void)DEV_RemoveProcObject(pProcObject->hDevObject,
 			(DWORD)pProcObject);
@@ -660,9 +654,9 @@ DSP_STATUS PROC_Detach(DSP_HPROCESSOR hProcessor)
 	/* res_status = CFG_GetObject(REG_DRV_OBJECT, (DWORD*)&hDRVObject); */
 	if (DSP_SUCCEEDED(res_status)) {
 	    DRV_GetProcContext(hProcess, hDRVObject, &pPctxt, NULL, NULL);
-	    if (pPctxt != NULL) {
+	    if (pPctxt != NULL)
 		pPctxt->hProcessor = NULL;
-	    }
+
 	}
 #endif
 	} else {
@@ -787,55 +781,57 @@ DSP_STATUS PROC_GetResourceInfo(DSP_HPROCESSOR hProcessor, UINT uResourceType,
 	struct NODE_MGR *hNodeMgr = NULL;
 	struct NLDR_OBJECT *hNldr = NULL;
 	struct RMM_TargetObj *rmm = NULL;
-	struct IO_MGR* hIOMgr = NULL;		/* IO manager handle */
+	struct IO_MGR *hIOMgr = NULL;		/* IO manager handle */
 
 	DBC_Require(cRefs > 0);
 	DBC_Require(pResourceInfo != NULL);
 	DBC_Require(uResourceInfoSize >= sizeof(struct DSP_RESOURCEINFO));
 
-	GT_4trace(PROC_DebugMask,GT_ENTER,"Entered PROC_GetResourceInfo,\n\t"
-				"hProcessor:  0x%x\n\tuResourceType:  0x%x\n\tpResourceInfo:"
-							" 0x%x\n\t uResourceInfoSize 0x%x\n", hProcessor,
-							   uResourceType, pResourceInfo, uResourceInfoSize);
-	if ( !MEM_IsValidHandle(pProcObject, PROC_SIGNATURE)) {
+	GT_4trace(PROC_DebugMask, GT_ENTER, "Entered PROC_GetResourceInfo,\n\t"
+		 "hProcessor:  0x%x\n\tuResourceType:  0x%x\n\tpResourceInfo:"
+		 " 0x%x\n\t uResourceInfoSize 0x%x\n", hProcessor,
+		 uResourceType, pResourceInfo, uResourceInfoSize);
+	if (!MEM_IsValidHandle(pProcObject, PROC_SIGNATURE)) {
 		status = DSP_EHANDLE;
-		GT_0trace(PROC_DebugMask,GT_7CLASS,"PROC_GetResourceInfo: InValid "
-														"Processor Handle \n");
+		GT_0trace(PROC_DebugMask, GT_7CLASS,
+			 "PROC_GetResourceInfo: InValid "
+			 "Processor Handle \n");
 		goto func_end;
 	}
-	switch(uResourceType) {
-		case DSP_RESOURCE_DYNDARAM:
-		case DSP_RESOURCE_DYNSARAM:
-		case DSP_RESOURCE_DYNEXTERNAL:
-		case DSP_RESOURCE_DYNSRAM:
-		if ( !DSP_SUCCEEDED(DEV_GetNodeManager(pProcObject->hDevObject,
-																	&hNodeMgr))) {
+	switch (uResourceType) {
+	case DSP_RESOURCE_DYNDARAM:
+	case DSP_RESOURCE_DYNSARAM:
+	case DSP_RESOURCE_DYNEXTERNAL:
+	case DSP_RESOURCE_DYNSRAM:
+		if (!DSP_SUCCEEDED(DEV_GetNodeManager(pProcObject->hDevObject,
+		   &hNodeMgr))) {
 			goto func_end;
 		}
 		if (DSP_SUCCEEDED(NODE_GetNldrObj(hNodeMgr, &hNldr))) {
-			if (DSP_SUCCEEDED (NLDR_GetRmmManager(hNldr, &rmm))) {
+			if (DSP_SUCCEEDED(NLDR_GetRmmManager(hNldr, &rmm))) {
 				DBC_Assert(rmm != NULL);
 				status = DSP_EVALUE;
 				if (RMM_stat(rmm, (DSP_MEMTYPE) uResourceType,
-						(struct DSP_MEMSTAT *)&(pResourceInfo->result.memStat))) {
+				   (struct DSP_MEMSTAT *)&(pResourceInfo->
+				   result.memStat))) {
 					status = DSP_SOK;
 				}
 			}
 		}
-			break;
-		case DSP_RESOURCE_PROCLOAD:
-		status = DEV_GetIOMgr(pProcObject-> hDevObject, &hIOMgr);
+		break;
+	case DSP_RESOURCE_PROCLOAD:
+		status = DEV_GetIOMgr(pProcObject->hDevObject, &hIOMgr);
 		status = pProcObject->pIntfFxns->pfnIOGetProcLoad(hIOMgr,
-				(struct DSP_PROCLOADSTAT *)&(pResourceInfo->result.procLoadStat));
-		if (DSP_FAILED(status))
-        	{
-        		GT_1trace(PROC_DebugMask,GT_7CLASS,"Error in procLoadStat function "
-															"0x%x\n", status);
+			 (struct DSP_PROCLOADSTAT *)&(pResourceInfo->
+			 result.procLoadStat));
+		if (DSP_FAILED(status)) {
+			GT_1trace(PROC_DebugMask, GT_7CLASS,
+			"Error in procLoadStat function 0x%x\n", status);
 		}
-			break;
-		default:
-			status = DSP_EFAIL;
-			break;
+		break;
+	default:
+		status = DSP_EFAIL;
+		break;
 	}
 func_end:
 	GT_1trace(PROC_DebugMask, GT_ENTER, "Exiting PROC_GetResourceInfo, "
@@ -855,41 +851,9 @@ void CDECL PROC_Exit()
 
 	cRefs--;
 
-	if (cRefs == 0) {
-#if 0				/* Can't free here - but will cause leak!! */
-		/* Free memory allocated for g_pszLastCoff */
-		if (pProcObject->g_pszLastCoff) {
-			MEM_Free(pProcObject->g_pszLastCoff);
-			pProcObject->g_pszLastCoff = NULL;
-		}
-#endif
-	}
-
 	GT_1trace(PROC_DebugMask, GT_5CLASS,
 		 "Entered PROC_Exit, ref count:0x%x\n",	cRefs);
 	DBC_Ensure(cRefs >= 0);
-}
-
-/*
- *  ======== PROC_GetProcessorHandle ========
- *  Purpose:
- *      Find out if the Processor belongs to this Process
- *
- */
-BOOL PROC_GetProcessorHandle(HANDLE hProcess, DSP_HPROCESSOR hProcessor)
-{
-	BOOL retVal = FALSE;
-	struct PROC_OBJECT *pProcObject = (struct PROC_OBJECT *)hProcessor;
-
-	DBC_Require(MEM_IsValidHandle(pProcObject, PROC_SIGNATURE));
-	DBC_Require(hProcess != NULL);
-	DBC_Require(cRefs > 0);
-
-	if (pProcObject->hProcess == hProcess) {
-		retVal = TRUE;
-	}
-
-	return (retVal);
 }
 
 /*
@@ -1007,127 +971,6 @@ DSP_STATUS PROC_GetState(DSP_HPROCESSOR hProcessor,
 DSP_STATUS PROC_GetTrace(DSP_HPROCESSOR hProcessor, BYTE *pBuf, UINT uMaxSize)
 {
 	DSP_STATUS status;
-#ifndef LINUX
-	struct PROC_OBJECT *pProcObject = (struct PROC_OBJECT *)hProcessor;
-	struct COD_MANAGER *hCodMgr;
-	ULONG ulTraceEnd;
-	ULONG ulTraceBegin;
-	ULONG ulNumBytes = NULL;
-	ULONG ulNumWords = NULL;
-	ULONG ulWordSize;
-	CHAR *pszBuf = (CHAR *)pBuf;
-	struct CFG_DSPRES DSPResTable;
-	struct CFG_DEVNODE *hDevNode;
-
-	DBC_Require(cRefs > 0);
-	DBC_Require(pBuf != NULL);
-	DBC_Require(uMaxSize > 0);
-
-	GT_3trace(PROC_DebugMask, GT_ENTER, "Entered PROC_GetTrace, args:\n\t"
-		 "hProcessor:  0x%x\n\tpBuf:  0x%x\n\tuMaxSize:  0x%x\n",
-		 hProcessor, pBuf, uMaxSize);
-	if (MEM_IsValidHandle(pProcObject, PROC_SIGNATURE)) {
-		status = DEV_GetDSPWordSize(pProcObject->hDevObject,
-					   &ulWordSize);
-		if (DSP_FAILED(status)) {
-			GT_0trace(PROC_DebugMask, GT_7CLASS,
-				 "PROC_GetTrace: Failed on "
-				 " DEV_GetDSPWordSize.\n");
-		}
-		if (DSP_SUCCEEDED(status)) {
-			status = DEV_GetCodMgr(pProcObject->hDevObject,
-					      &hCodMgr);
-			if (DSP_FAILED(status)) {
-				GT_0trace(PROC_DebugMask, GT_7CLASS,
-					 "PROC_GetTrace: Failed on "
-					 "DEV_GetCodMgr.\n");
-			}
-		}
-		if (DSP_SUCCEEDED(status)) {
-			DBC_Assert(hCodMgr != NULL);
-			/* Look for SYS_PUTCBEG/SYS_PUTCEND: */
-			status = COD_GetSymValue(hCodMgr, COD_TRACEBEG,
-						 &ulTraceBegin);
-			if (DSP_FAILED(status)) {
-				GT_0trace(PROC_DebugMask, GT_7CLASS,
-					 "PROC_GetTrace: Failed on "
-					 "COD_GetSymValue.\n");
-			}
-		}
-		if (DSP_SUCCEEDED(status)) {
-			status = COD_GetSymValue(hCodMgr, COD_TRACEEND,
-						&ulTraceEnd);
-			if (DSP_FAILED(status)) {
-				GT_0trace(PROC_DebugMask, GT_7CLASS,
-					 "PROC_GetTrace: Failed on "
-					 "COD_GetSymValue.\n");
-			}
-		}
-		if (DSP_SUCCEEDED(status)) {
-			ulNumBytes = (ulTraceEnd - ulTraceBegin) * ulWordSize;
-		}
-		if (DSP_SUCCEEDED(status)) {
-			/*
-			 *  If the chip type is 55 then the addresses will be
-			 *  byte addresses; convert them to word addresses.
-			 */
-			status = DEV_GetDevNode(pProcObject->hDevObject,
-						&hDevNode);
-			if (DSP_FAILED(status)) {
-				GT_0trace(PROC_DebugMask, GT_7CLASS,
-					 "PROC_GetTrace: Failed on "
-					 "DEV_GetDevNode.\n");
-			}
-		}
-		if (DSP_SUCCEEDED(status)) {
-			status = CFG_GetDSPResources(hDevNode, &DSPResTable);
-			if (DSP_SUCCEEDED(status)) {
-				/* COF_C55 chip type is defined as 6 in cof.h.
-				 * This is a temporary fix. Ideally we should
-				 * have some MAU size defined in the registry.
-				 */
-				if (DSPResTable.uChipType == DSPTYPE_55) {
-					ulTraceBegin *= ulWordSize;
-				}
-			} else {
-				GT_0trace(PROC_DebugMask, GT_7CLASS,
-					 "PROC_GetTrace: Failed on "
-					 "CFG_GetDSPResources.\n");
-			}
-		}
-		if (DSP_SUCCEEDED(status)) {
-			if (ulNumBytes > uMaxSize) {
-				ulNumBytes = uMaxSize;
-			}
-			/* make sure the data we request fits evenly */
-			ulNumBytes = (ulNumBytes / ulWordSize) * ulWordSize;
-			ulNumWords = ulNumBytes * ulWordSize;
-			/* Place the board into the monitor state */
-			status = PROC_Monitor(pProcObject);
-		}
-		if (DSP_SUCCEEDED(status)) {
-			/* Read bytes from the DSP trace buffer... */
-			status = (*pProcObject->pIntfFxns->pfnBrdRead)
-				(pProcObject->hWmdContext, pszBuf, ulTraceBegin,
-				ulNumBytes, 0);
-			if (DSP_FAILED(status)) {
-				GT_0trace(PROC_DebugMask, GT_7CLASS,
-					 " PROC_GetTrace: Failed to "
-					 "Read Trace Buffer.\n");
-			}
-		}
-
-	} else {
-		status = DSP_EHANDLE;
-	}
-	if (DSP_SUCCEEDED(status)) {
-		/* Pack and do newline conversion */
-		PackTraceBuffer(pszBuf, ulNumBytes, ulNumWords);
-	}
-	GT_2trace(PROC_DebugMask, GT_ENTER,
-		 "Exiting PROC_GetTrace, results:\n\t"
-		 "status: 0x%x\n\tuMaxSize: 0x%x\n", status, uMaxSize);
-#endif
 	status = DSP_ENOTIMPL;
 	return (status);
 }
@@ -1152,9 +995,8 @@ BOOL CDECL PROC_Init()
 		/*g_pszLastCoff = NULL; */
 	}
 
-	if (fRetval) {
+	if (fRetval)
 		cRefs++;
-	}
 
 	GT_1trace(PROC_DebugMask, GT_5CLASS,
 		 "Entered PROC_Init, ref count:0x%x\n",	cRefs);
@@ -1189,17 +1031,19 @@ DSP_STATUS PROC_Load(DSP_HPROCESSOR hProcessor, IN CONST INT iArgc,
 	DWORD dwExtEnd;
 	UINT uProcId;
 	ULONG opplevel;
-	struct timeval tv1;
-	struct timeval tv2;
-
 #ifdef DEBUG
 	BRD_STATUS uBrdState;
 #endif
-
+#ifdef OPT_LOAD_TIME_INSTRUMENTATION
+	struct timeval tv1;
+	struct timeval tv2;
+#endif
 	DBC_Require(cRefs > 0);
 	DBC_Require(iArgc > 0);
 	DBC_Require(aArgv != NULL);
-
+#ifdef OPT_LOAD_TIME_INSTRUMENTATION
+	do_gettimeofday(&tv1);
+#endif
 	GT_2trace(PROC_DebugMask, GT_ENTER, "Entered PROC_Load, args:\n\t"
 		 "hProcessor:  0x%x\taArgv: 0x%x\n", hProcessor, aArgv[0]);
 	/* Call the WMD_BRD_Load Fxn */
@@ -1222,7 +1066,6 @@ DSP_STATUS PROC_Load(DSP_HPROCESSOR hProcessor, IN CONST INT iArgc,
 			 "DEV_GetCodMgr status 0x%x \n", status);
 		goto func_end;
 	}
-#if defined(OMAP_2430) || defined(OMAP_3430)
 	status = PROC_Stop(hProcessor);
 	if (!DSP_SUCCEEDED(status)) {
 		GT_1trace(PROC_DebugMask, GT_7CLASS,
@@ -1231,7 +1074,6 @@ DSP_STATUS PROC_Load(DSP_HPROCESSOR hProcessor, IN CONST INT iArgc,
 			 status);
 		goto func_end;
 	}
-#endif
 	/* Place the board in the monitor state. */
 	status = PROC_Monitor(hProcessor);
 	if (!DSP_SUCCEEDED(status)) {
@@ -1372,18 +1214,16 @@ DSP_STATUS PROC_Load(DSP_HPROCESSOR hProcessor, IN CONST INT iArgc,
 	if (DSP_SUCCEEDED(status)) {
 		/* Now, attempt to load an exec: */
 
-do_gettimeofday(&tv1);
-
 #ifndef DISABLE_BRIDGE_PM
 #ifndef DISABLE_BRIDGE_DVFS
-	opplevel=  constraint_get_level(dsp_constraint_handle);
+	opplevel = constraint_get_level(dsp_constraint_handle);
 	/* Boost the OPP level to one level less than the maximum */
-	if ( constraint_set(dsp_constraint_handle, ((CO_VDD1_OPP5-1)) ) != 0 ) {
-		GT_1trace(PROC_DebugMask,GT_4CLASS,"PROC_Load:"
-			                   "Constraint set of %d failed\n", (CO_VDD1_OPP5-1));
+	if (constraint_set(dsp_constraint_handle, ((CO_VDD1_OPP5-1))) != 0) {
+		GT_1trace(PROC_DebugMask, GT_4CLASS, "PROC_Load:"
+			  "Constraint set of %d failed\n", (CO_VDD1_OPP5-1));
 	} else
-		GT_1trace(PROC_DebugMask,GT_4CLASS,"PROC_Load:"
-			                   "Constraint set of %d passed\n", (CO_VDD1_OPP5-1));
+		GT_1trace(PROC_DebugMask, GT_4CLASS, "PROC_Load:"
+			 "Constraint set of %d passed\n", (CO_VDD1_OPP5-1));
 #endif
 #endif
 		status = COD_LoadBase(hCodMgr, iArgc, (CHAR **)aArgv,
@@ -1405,12 +1245,12 @@ do_gettimeofday(&tv1);
 		}
 #ifndef DISABLE_BRIDGE_PM
 #ifndef DISABLE_BRIDGE_DVFS
-		if ( constraint_set(dsp_constraint_handle, (opplevel) ) != 0 ) {
-			GT_1trace(PROC_DebugMask,GT_4CLASS,"PROC_Load:"
-				                   "Constraint restore of %d failed\n", opplevel);
+		if (constraint_set(dsp_constraint_handle, (opplevel)) != 0) {
+			GT_1trace(PROC_DebugMask, GT_4CLASS, "PROC_Load:"
+				 "Constraint restore of %d failed\n", opplevel);
 		} else
-			GT_1trace(PROC_DebugMask,GT_4CLASS,"PROC_Load:"
-					                   "Constraint restore of %d passed\n", opplevel);
+			GT_1trace(PROC_DebugMask, GT_4CLASS, "PROC_Load:"
+				 "Constraint restore of %d passed\n", opplevel);
 #endif
 #endif
 
@@ -1457,15 +1297,11 @@ do_gettimeofday(&tv1);
 				  *  peripheral mapping, which starts at
 				  *  0xfb0000, We need to find a betetr way to
 				  *  get this * value here */
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
-				status = DMM_ChunkAdd(hDmmMgr, dwExtEnd,
-						     (0xfb0000) - dwExtEnd);
-#else
+
 				/* TODO -- This map is good for GEM only */
 				/* 32 Meg*/
 				status = DMM_ChunkAdd(hDmmMgr, dwExtEnd,
 						     DMMPOOLSIZE);
-#endif
 			}
 		}
 	}
@@ -1494,6 +1330,15 @@ func_end:
 		 "Exiting PROC_Load, status:  0x%x\n", status);
 	DBC_Ensure((DSP_SUCCEEDED(status) && pProcObject->sState == PROC_LOADED)
 		   || DSP_FAILED(status));
+#ifdef OPT_LOAD_TIME_INSTRUMENTATION
+	do_gettimeofday(&tv2);
+	if (tv2.tv_usec < tv1.tv_usec) {
+		tv2.tv_usec += 1000000;
+		tv2.tv_sec--;
+	}
+	printk(KERN_INFO "Proc_Load: time to load %d sec and %d usec \n",
+		    tv2.tv_sec - tv1.tv_sec, tv2.tv_usec - tv1.tv_usec);
+#endif
 	return (status);
 }
 
@@ -1533,7 +1378,8 @@ DSP_STATUS PROC_Map(DSP_HPROCESSOR hProcessor, PVOID pMpuAddr, ULONG ulSize,
 	GT_3trace(PROC_DebugMask, GT_ENTER, "PROC_Map: vaAlign %x, paAlign %x, "
 		 "sizeAlign %x\n", vaAlign, paAlign, sizeAlign);
 
-	if (DSP_FAILED(status = DMM_GetHandle(pProcObject, &hDmmMgr))) {
+	status = DMM_GetHandle(pProcObject, &hDmmMgr);
+	if (DSP_FAILED(status)) {
 		GT_1trace(PROC_DebugMask, GT_7CLASS,
 			 "PROC_Map: Failed to get DMM Mgr "
 			 "handle: 0x%x\n", status);
@@ -1612,9 +1458,9 @@ DSP_STATUS PROC_RegisterNotify(DSP_HPROCESSOR hProcessor, UINT uEventMask,
 		status = DSP_EVALUE;
 	}
 	/* Check if notify type is valid */
-	if (uNotifyType != DSP_SIGNALEVENT) {
+	if (uNotifyType != DSP_SIGNALEVENT)
 		status = DSP_EVALUE;
-	}
+
 	if (DSP_SUCCEEDED(status)) {
 		/* * If event mask is not DSP_SYSERROR or DSP_MMUFAULT,
 		 * then register event immediately.  */
@@ -1648,9 +1494,9 @@ DSP_STATUS PROC_RegisterNotify(DSP_HPROCESSOR hProcessor, UINT uEventMask,
 			status = (*pProcObject->pIntfFxns->pfnDehRegisterNotify)
 				 (hDehMgr, uEventMask, uNotifyType,
 				 hNotification);
-			if (!DSP_SUCCEEDED(status)) {
+			if (!DSP_SUCCEEDED(status))
 				status = DSP_EFAIL;
-			}
+
 		}
 	}
 func_end:
@@ -1673,7 +1519,8 @@ DSP_STATUS PROC_ReserveMemory(DSP_HPROCESSOR hProcessor, ULONG ulSize,
 		 "Entered PROC_ReserveMemory, args:\n\t"
 		 "hProcessor: 0x%x ulSize: 0x%x ppRsvAddr: 0x%x\n", hProcessor,
 		 ulSize, ppRsvAddr);
-	if (DSP_FAILED(status = DMM_GetHandle(pProcObject, &hDmmMgr))) {
+	status = DMM_GetHandle(pProcObject, &hDmmMgr);
+	if (DSP_FAILED(status)) {
 		GT_1trace(PROC_DebugMask, GT_7CLASS, "PROC_ReserveMemory: "
 			 "Failed to get DMM Mgr handle: 0x%x\n", status);
 	} else {
@@ -1745,18 +1592,7 @@ DSP_STATUS PROC_Start(DSP_HPROCESSOR hProcessor)
 		/* Deep sleep switces off the peripheral clocks.
 		 * we just put the DSP CPU in idle in the idle loop.
 		 * so there is no need to send a command to DSP */
-#ifndef LINUX
-		/* proc now running, take a nap till first node */
-		cbData.cbData = PWR_TIMEOUT;
-		PROC_Ctrl(hProcessor, WMDIOCTL_DEEPSLEEP, &cbData);
-		if (DSP_FAILED(status1)) {
-			GT_0trace(PROC_DebugMask, GT_1CLASS,
-				  "PROC_Start: DSP Sleep failure\n");
-		} else {
-			GT_0trace(PROC_DebugMask, GT_1CLASS,
-				 "PROC_Start: DSP started, sleeping\n");
-		}
-#endif
+
 		if (pProcObject->hNtfy) {
 			PROC_NotifyClients(pProcObject,
 					  DSP_PROCESSORSTATECHANGE);
@@ -1780,7 +1616,7 @@ func_cont:
 		   (pProcObject->hWmdContext, &uBrdState))) {
 			GT_0trace(PROC_DebugMask, GT_1CLASS,
 				 "PROC_Start: Processor State is RUNNING \n");
-			DBC_Assert(uBrdState == BRD_RUNNING);
+			DBC_Assert(uBrdState != BRD_HIBERNATION);
 		}
 	}
 #endif
@@ -1900,7 +1736,8 @@ DSP_STATUS PROC_UnMap(DSP_HPROCESSOR hProcessor, PVOID pMapAddr)
 
 	vaAlign = PG_ALIGN_LOW((ULONG) pMapAddr, PG_SIZE_4K);
 
-	if (DSP_FAILED(status = DMM_GetHandle(hProcessor, &hDmmMgr))) {
+	status = DMM_GetHandle(hProcessor, &hDmmMgr);
+	if (DSP_FAILED(status)) {
 		GT_1trace(PROC_DebugMask, GT_7CLASS, "PROC_UnMap: "
 			 "Failed to get DMM Mgr handle: 0x%x\n", status);
 	} else {
@@ -1918,15 +1755,15 @@ DSP_STATUS PROC_UnMap(DSP_HPROCESSOR hProcessor, PVOID pMapAddr)
 	 GT_1trace(PROC_DebugMask, GT_ENTER,
 		   "PROC_UnMap DRV_GetDMMResElement "
 		   "pMapAddr:[0x%x]", pMapAddr);
-	 if (!DSP_SUCCEEDED(status)) {
+	 if (!DSP_SUCCEEDED(status))
 		 goto func_end;
-	 }
+
 	 /* Update the node and stream resource status */
 	 PRCS_GetCurrentHandle(&hProcess);
 	 res_status = CFG_GetObject((DWORD *)&hDrvObject, REG_DRV_OBJECT);
-	 if (!DSP_SUCCEEDED(res_status)) {
+	 if (!DSP_SUCCEEDED(res_status))
 		 goto func_end;
-	 }
+
 	 DRV_GetProcContext(hProcess, hDrvObject, &pCtxt, NULL, pMapAddr);
 	 if (pCtxt != NULL) {
 		 if (DRV_GetDMMResElement(pMapAddr, &dmmRes, pCtxt) !=
@@ -1956,7 +1793,8 @@ DSP_STATUS PROC_UnReserveMemory(DSP_HPROCESSOR hProcessor, PVOID pRsvAddr)
 		 "Entered PROC_UnReserveMemory, args:\n\t"
 		 "hProcessor: 0x%x pRsvAddr: 0x%x\n", hProcessor, pRsvAddr);
 
-	if (DSP_FAILED(status = DMM_GetHandle(pProcObject, &hDmmMgr))) {
+	status = DMM_GetHandle(pProcObject, &hDmmMgr);
+	if (DSP_FAILED(status)) {
 		GT_1trace(PROC_DebugMask, GT_7CLASS,
 			 "PROC_Map: Failed to get DMM Mgr "
 			 "handle: 0x%x\n", status);
@@ -2091,73 +1929,6 @@ static DSP_STATUS PROC_Monitor(struct PROC_OBJECT *hProcObject)
 	return (status);
 }
 
-#ifndef LINUX
-/*
- *  ======== PackTraceBuffer ========
- *  Purpose:
- *      Removes extra nulls from the trace buffer returned from the DSP.
- *      Works even on buffers that already are packed (null removed); but has
- *      one bug in that case -- loses the last character (replaces with '\0').
- *      Continues through conversion for full set of nBytes input characters.
- *  Parameters:
- *    lpBuf:	    Pointer to input/output buffer
- *    nBytes:	   Number of characters in the buffer
- *    ulNumWords:       Number of DSP words in the buffer.  Indicates potential
- *		      number of extra carriage returns to generate.
- *  Returns:
- *      S_OK:	   Success.
- *      E_OUTOFMEMORY:  Unable to allocate memory.
- *  Requires:
- *      lpBuf must be a fully allocated writable block of at least nBytes.
- *      There are no more than ulNumWords extra characters needed (the number of
- *      linefeeds minus the number of NULLS in the input buffer).
- */
-static DSP_STATUS PackTraceBuffer(PSTR lpBuf, ULONG nBytes, ULONG ulNumWords)
-{
-	PSTR lpTmpBuf;
-	PSTR lpBufStart;
-	PSTR lpTmpStart;
-	ULONG nCnt;
-	CHAR thisChar;
-	DSP_STATUS status = DSP_SOK;
-
-	/* tmp workspace, 1 KB longer than input buf */
-	if ((lpTmpBuf = MEM_Calloc((nBytes + ulNumWords), MEM_PAGED)) == NULL) {
-		GT_0trace(PROC_DebugMask, GT_7CLASS,
-			 "PackTrace buffer:OutofMemory \n");
-		status = DSP_EMEMORY;
-	}
-
-	if (DSP_SUCCEEDED(status)) {
-		lpBufStart = lpBuf;
-		lpTmpStart = lpTmpBuf;
-		for (nCnt = nBytes; nCnt > 0; nCnt--) {
-			thisChar = *lpBuf++;
-			switch (thisChar) {
-			case '\0':	/* Skip null bytes */
-				break;
-			case '\n':	/* Convert \n to \r\n */
-				/* NOTE: do not reverse order; Some OS
-				 * editors control doesn't understand "\n\r" */
-				*lpTmpBuf++ = '\r';
-				*lpTmpBuf++ = '\n';
-				break;
-			default:	/* Copy in the actual ascii byte */
-				*lpTmpBuf++ = thisChar;
-				break;
-			}
-		}
-		*lpTmpBuf = '\0';   /* Make sure tmp buf is null terminated */
-		/* Cut output down to input buf size */
-		CSL_Strcpyn(lpBufStart, lpTmpStart, nBytes);
-		/*Make sure output is null terminated */
-		lpBufStart[nBytes - 1] = '\0';
-		MEM_Free(lpTmpStart);
-	}
-	return (status);
-}
-#endif
-
 /*
  *  ======== GetEnvpCount ========
  *  Purpose:
@@ -2168,9 +1939,9 @@ static INT GetEnvpCount(CHAR **envp)
 {
 	INT cRetval = 0;
 	if (envp) {
-		while (*envp++) {
+		while (*envp++)
 			cRetval++;
-		}
+
 		cRetval += 1;	/* Include the terminating NULL in the count. */
 	}
 
@@ -2194,14 +1965,12 @@ static CHAR **PrependEnvp(CHAR **newEnvp, CHAR **envp, INT cEnvp, INT cNewEnvp,
 	*newEnvp++ = szVar;
 
 	/* Copy user's environment into our own. */
-	while (cEnvp--) {
+	while (cEnvp--)
 		*newEnvp++ = *envp++;
-	}
 
 	/* Ensure NULL terminates the new environment strings array. */
-	if (cEnvp == 0) {
+	if (cEnvp == 0)
 		*newEnvp = NULL;
-	}
 
 	return (ppEnvp);
 }

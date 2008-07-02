@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/dbl.h
+ * dspbridge/mpu_driver/inc/dbl.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

@@ -194,14 +194,8 @@ struct doff_filehdr_t {
 #define LEAD3_ID    0x9c
 
 /* Primary processor for loading */
-#if TMS470
-#define TARGET_ID   TMS470_ID
-#elif LEAD
-#define TARGET_ID   LEAD_ID
-#elif TMS32060
+#if TMS32060
 #define TARGET_ID   TMS32060_ID
-#elif LEAD3
-#define TARGET_ID   LEAD3_ID
 #endif
 
 /* Verification record containing values used to test integrity of the bits */

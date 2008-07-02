@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/dmm.h
+ * dspbridge/mpu_driver/inc/dmm.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -46,9 +46,7 @@ extern "C" {
 		ULONG reserved;
 	} ;
 
-#if defined(OMAP_2430) || defined(OMAP_3430)
 #define DMMPOOLSIZE      0x3000000
-#endif
 
 /*
  *  ======== DMM_GetHandle ========
@@ -88,10 +86,6 @@ extern "C" {
 				       ULONG size);
 
 	extern DSP_STATUS DMM_Reset(struct DMM_OBJECT *hDmmMgr);
-
-	extern DSP_STATUS DMM_BlockList(struct DMM_OBJECT *hDmmMgr,
-					ULONG rsvAddr,
-					IN OUT ULONG *count, ULONG *mapList);
 
 #ifdef __cplusplus
 }

@@ -37,15 +37,7 @@
 #include <mem.h>
 
 /*  ----------------------------------- This */
-#undef _LINT_
 #include <gs.h>
-
-/*  ----------------------------------- Defines, Data Structures, Typedefs */
-#if !defined _SIZE_T_DEFINED && !defined _SIZE_T
-typedef unsigned int size_t;
-#define _SIZE_T_DEFINED
-#define _SIZE_T
-#endif
 
 /*  ----------------------------------- Globals */
 static LgUns cumsize = 0;
@@ -59,11 +51,10 @@ Ptr GS_alloc(Uns size)
 {
 	Ptr p;
 
-	if ((p = MEM_Calloc(size, MEM_PAGED)) == NULL)
+	p = MEM_Calloc(size, MEM_PAGED);
+	if (p == NULL)
 		return (NULL);
-
 	cumsize += size;
-
 	return (p);
 }
 
@@ -114,18 +105,4 @@ Void GS_init(Void)
 
 		MEM_Init();
 	}
-}
-
-/*
- *  ======== GS_size ========
- *  purpose:
- *      Returns the total size of memory allocated so far.
- */
-LgUns GS_size(Void)
-{
-#if defined(_SUN_)
-	malloc_verify();	/* check heap */
-#endif
-
-	return (cumsize);
 }

@@ -45,7 +45,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gt.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
@@ -159,9 +158,6 @@ BOOL MSG_Init()
 
 	if (cRefs == 0) {
 		DBC_Assert(!MSG_debugMask.flags);
-#ifndef LINUX
-		GT_init();
-#endif
 		GT_create(&MSG_debugMask, "MG");	/* "MG" for MsG */
 	}
 

@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/chnldefs.h
+ * dspbridge/mpu_driver/inc/chnldefs.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -77,7 +77,6 @@ extern "C" {
 
 /* CHNL types: */
 	typedef ULONG CHNL_MODE;	/* Channel transfer mode.         */
-	typedef ULONG CHNL_ID;	/* Channel logical ID.                    */
 
 /* Channel attributes: */
 	struct CHNL_ATTRS {

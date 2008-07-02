@@ -101,14 +101,4 @@ extern VOID configureDspMmu(struct WMD_DEV_CONTEXT *pDevContext,
 			    HAL_ElementSize_t elemSize,
 			    HAL_MMUMixedSize_t mixedSize);
 
-/*
- *  ========  dspMmuDisableWtl ========
- */
-extern VOID dspMmuDisableWtl(struct WMD_DEV_CONTEXT *pDevContext);
-
-/*
- *  ========  dspMmuInit ========
- */
-extern VOID dspMmuInit(struct WMD_DEV_CONTEXT *pDevContext);
-
 #endif				/* _TIOMAP_MMU_ */

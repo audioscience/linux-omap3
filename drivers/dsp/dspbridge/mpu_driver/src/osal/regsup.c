@@ -39,7 +39,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gt.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
@@ -73,13 +72,13 @@ extern struct GT_Mask REG_debugMask;	/* GT trace var. */
  *  Purpose:
  *      Displays printable characters in pBuf, if any.
  */
-inline static void printS(void *pBuf)
+static inline void printS(void *pBuf)
 {
 	int pos = 0;
 	if (*(REG_debugMask).flags & (GT_2CLASS)) {
 		while (*(BYTE *)((pBuf)+pos) >= ' ' &&
 		       *(BYTE *)((pBuf)+pos) <= '~') {
-			printk("%c", *(BYTE *)((pBuf) + pos++));
+			printk(KERN_INFO "%c", *(BYTE *)((pBuf) + pos++));
 		}
 
 		printk("\n");

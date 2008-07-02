@@ -1,0 +1,15 @@
+ifneq ($(KERNELRELEASE),) 
+obj-m	+= bridgedriver.o
+bridgedriver-objs    := gen/libgen.o osal/libosal.o wmd/libwmd.o pmgr/libpmgr.o rmgr/librmgr.o dynload/libdload.o hal/omap3/libhal_omap3.o
+
+ccflags-y := -DMODULE
+endif
+
+
+obj-y += gen/
+obj-y += osal/
+obj-y += wmd/
+obj-y += pmgr/
+obj-y += rmgr/
+obj-y += dynload/
+obj-y += hal/omap3/

@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/uuidutil.h
+ * dspbridge/mpu_driver/inc/uuidutil.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

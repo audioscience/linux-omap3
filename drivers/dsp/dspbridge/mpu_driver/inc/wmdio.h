@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/wmdio.h
+ * dspbridge/mpu_driver/inc/wmdio.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -52,7 +52,7 @@ extern "C" {
 
 	extern DSP_STATUS IVA_IO_OnLoaded(struct IO_MGR *hIOMgr);
 	extern DSP_STATUS WMD_IO_GetProcLoad(IN struct IO_MGR *hIOMgr,
-									  OUT struct DSP_PROCLOADSTAT * pProcStat);
+				OUT struct DSP_PROCLOADSTAT *pProcStat);
 
 
 #ifdef __cplusplus

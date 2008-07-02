@@ -1,0 +1,30 @@
+#libosal
+
+obj-y :=	libosal.o
+
+libosal-objs :=	csl.o mem.o list.o dpc.o isr.o kfile.o sync.o clk.o cfg.o reg.o \
+		regsup.o prcs.o ntfy.o dbg.o osal.o
+
+
+ccflags-y = -Wno-strict-prototypes -fomit-frame-pointer -DDISABLE_BRIDGE_DVFS
+
+#Machine dependent
+ccflags-y += -DOMAP_3430
+ccflags-y += -DLINUX -D__KERNEL__
+
+#Power management
+ifeq ($(CONFIG_PM),)
+ccflags-y += -DDISABLE_BRIDGE_PM
+endif
+
+#includes
+ccflags-y += -I. -Iinclude -Idrivers/dsp/dspbridge/mpu_driver/inc -Idrivers/dsp/dspbridge/mpu_driver/inc/linux -include include/linux/autoconf.h -I/usr/include/ -Idrivers/dsp/dspbridge/mpu_driver/src/osal
+
+# Debug
+ifeq ($(CONFIG_DEBUG_KERNEL),y)
+ccflags-y += -DGT_TRACE -DDEBUG
+endif
+
+ifeq ($(CONFIG_MPU_BRIDGE),m)
+ccflags-y += -DMODULE
+endif

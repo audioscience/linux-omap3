@@ -1,17 +1,17 @@
 /*
- * dspbridge/inc/mem.h
-* DSP-BIOS Bridge driver support functions for TI OMAP processors.
+ * dspbridge/mpu_driver/inc/mem.h
  *
- * Copyright (C) 2007 Texas Instruments, Inc.
+ * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation version 2.1 of the License.
+ * Copyright (C) 2008 Texas Instruments, Inc.
  *
- * This program is distributed .as is. WITHOUT ANY WARRANTY of any kind,
- * whether express or implied; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * This package is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * THIS PACKAGE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+ * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
 
@@ -144,7 +144,7 @@ extern "C" {
  */
 	extern PVOID MEM_AllocPhysMem(IN ULONG cBytes,
 				      IN ULONG ulAlign,
-				      OUT ULONG * pPhysicalAddress);
+				      OUT ULONG *pPhysicalAddress);
 
 /*
  *  ======== MEM_Calloc ========
@@ -213,23 +213,6 @@ extern "C" {
 	extern VOID MEM_Free(IN PVOID pMemBuf);
 #else
 #define MEM_Free(ptr) free(ptr)
-#endif
-
-/*
- *  ======== MEM_VFree ========
- *  Purpose:
- *      Free the given block of system memory.
- *  Parameters:
- *      pMemBuf:    Pointer to memory allocated by MEM_Calloc/Alloc().
- *  Returns:
- *  Requires:
- *      MEM initialized.
- *      pMemBuf is a valid memory address returned by MEM_Calloc/Alloc().
- *  Ensures:
- *      pMemBuf is no longer a valid pointer to memory.
- */
-#ifdef __KERNEL__
-	extern VOID MEM_VFree(IN PVOID pMemBuf);
 #endif
 
 /*
@@ -316,12 +299,6 @@ extern "C" {
 #define MEM_IsValidHandle(hObj, Sig)                \
      ((hObj != NULL) && (hObj->dwSignature == Sig))
 
-/* Structure reflecting a physical address and size of memory referenced. */
-	struct MEM_PHYSICAL {
-		DWORD dwPhysAddr;
-		DWORD nBytes;
-	} ;
-
 /*
  *  ======== MEM_LinearAddress ========
  *  Purpose:
@@ -338,55 +315,7 @@ extern "C" {
  *      If valid linear address is returned, be sure to call
  *      MEM_UnmapLinearAddress().
  */
-#ifndef LINUX
-	extern PVOID MEM_LinearAddress(IN PVOID pPhyAddr, IN ULONG cBytes);
-#else
 #define MEM_LinearAddress(pPhyAddr, cBytes) pPhyAddr
-#endif
-
-#ifndef LINUX
-/*
- *  ======== MEM_PageLock ========
- *  Purpose:
- *      Calls kernel services to map the set of pages identified by a private
- *      process pointer and a byte count into the calling process's globally
- *      shared address space.
- *  Parameters
- *      pBuffer:    Pointer to a process-private data buffer.
- *      cSize:      Size in bytes of the data buffer.
- *  Returns:
- *      A pointer to linear page locked memory;
- *      NULL if a failure occured locking memory.
- *  Requires:
- *      - MEM initialized.
- *      - The size (cSize) must accurately reflect the size of the buffer to
- *        be locked, since the page count is derived from this number.
- *      - Valid pBuffer.
- *  Ensures:
- *      Memory locked by this service can be accessed at interrupt time, or
- *      from other memory contexts.
- */
-	extern PVOID MEM_PageLock(IN PVOID pBuffer, IN ULONG cSize);
-
-/*
- *  ======== MEM_PageUnlock ========
- *  Purpose:
- *      Unlocks a buffer previously locked using MEM_PageLock().
- *  Parameters:
- *      pBuffer:    Pointer to locked memory (as returned by MEM_PageLock()).
- *      cSize:      Size in bytes of the buffer.
- *  Returns:
- *      Returns DSP_SOK if unlock successful; else, returns DSP_EFAIL;
- *  Requires:
- *      - MEM initialized.
- *      - Valid pBuffer.
- *  Ensures:
- *      Will unlock the pages of memory when the lock count drops to zero.
- *      (MEM_PageLock() increments the lock count, and MEM_PageUnlock
- *      decrements the count).
- */
-	extern DSP_STATUS MEM_PageUnlock(IN PVOID pBuffer, IN ULONG cSize);
-#endif
 
 /*
  *  ======== MEM_UnmapLinearAddress ========
@@ -401,26 +330,7 @@ extern "C" {
  *  Ensures:
  *      - pBaseAddr no longer points to a valid linear address.
  */
-#ifndef LINUX
-	extern VOID MEM_UnmapLinearAddress(IN PVOID pBaseAddr);
-#else
 #define MEM_UnmapLinearAddress(pBaseAddr)
-#endif
-
-/*
- *  ======== MEM_VirtualToPhysical ========
- *  Purpose:
- *      Given a user allocated virtual address, return the corresponding
- *      physical address based on the page frame address.
- *  Parameters:
- *      dwVirtAddr: Linear address of user allocated (and mapped) buffer.
- *  Returns:
- *      Returns corresponding physical address or NULL if unsuccessful
- *  Requires:
- *      - MEM initialized.
- *      - dwVirtAddr is a valid linear address.
- */
-	extern DWORD MEM_VirtualToPhysical(IN DWORD dwVirtAddr);
 
 /*
  *  ======== MEM_ExtPhysPoolInit ========

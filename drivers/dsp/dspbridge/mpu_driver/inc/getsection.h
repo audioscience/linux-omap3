@@ -1,18 +1,17 @@
 /*
- * dspbridge/inc/getsection.h
+ * dspbridge/mpu_driver/inc/getsection.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
- * Copyright (C) 2007 Texas Instruments, Inc.
+ * Copyright (C) 2008 Texas Instruments, Inc.
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation version 2.1 of the License.
+ * This package is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
  *
- * This program is distributed .as is. WITHOUT ANY WARRANTY of any kind,
- * whether express or implied; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * THIS PACKAGE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+ * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
 
@@ -86,41 +85,6 @@ extern "C" {			/* C-only version */
 					const char *sectionName,
 					const struct LDR_SECTION_INFO **
 					const sectionInfo);
-
-/*
- * Procedure DLOAD_GetSectionNum
- *
- * Parameters:
- *  minfo       Handle from DLOAD_module_open for this module
- *  secn        Section number 0..
- *  sectionInfo Address of a section info structure pointer to be initialized
- *
- * Effect:
- *  Finds the secn'th section in the specified module, and fills in
- * the provided LDR_SECTION_INFO structure.  If there are less than "secn+1"
- * sections in the module, returns NULL.
- *
- * Returns:
- *  TRUE for success, FALSE for failure
- */
-	extern int DLOAD_GetSectionNum(DLOAD_module_info minfo,
-				       const unsigned secn,
-				       const struct LDR_SECTION_INFO **
-				       const sectionInfo);
-
-/*
- * Procedure DLOAD_RoundUpSectionSize
- *
- * Parameters:
- *  sectSize    The actual size of the section in target addressable units
- *
- * Effect:
- *  Rounds up the section size to the next multiple of 32 bits.
- *
- * Returns:
- *  The rounded-up section size.
- */
-	extern size_t DLOAD_RoundUpSectionSize(LDR_ADDR sectSize);
 
 /*
  * Procedure DLOAD_GetSection

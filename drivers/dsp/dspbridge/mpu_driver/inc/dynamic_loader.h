@@ -1,18 +1,17 @@
 /*
- * dspbridge/inc/dynamic_loader.h
+ * dspbridge/mpu_driver/inc/dynamic_loader.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
- * Copyright (C) 2007 Texas Instruments, Inc.
+ * Copyright (C) 2008 Texas Instruments, Inc.
  *
- * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation version 2.1 of the License.
+ * This package is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
  *
- * This program is distributed .as is. WITHOUT ANY WARRANTY of any kind,
- * whether express or implied; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * THIS PACKAGE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+ * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
 
@@ -104,6 +103,44 @@ extern "C" {			/* C-only version */
 				       /* the returned module handle*/
 				       DLOAD_mhandle *mhandle
 	    );
+#ifdef OPT_ELIMINATE_EXTRA_DLOAD
+/*****************************************************************************
+ * Procedure Dynamic_Open_Module
+ *
+ * Parameters:
+ *  module  The input stream that supplies the module image
+ *  syms    Host-side symbol table and malloc/free functions
+ *  alloc   Target-side memory allocation
+ *  init    Target-side memory initialization, or NULL for symbol read only
+ *  options Option flags DLOAD_*
+ *  mhandle A module handle for use with Dynamic_Unload
+ *
+ * Effect:
+ *  The module image is read using *module.  Target storage for the new image is
+ * obtained from *alloc.  Symbols defined and referenced by the module are
+ * managed using *syms.  The image is then relocated and references resolved
+ * as necessary, and the resulting executable bits are placed into target memory
+ * using *init.
+ *
+ * Returns:
+ *  On a successful load, a module handle is placed in *mhandle, and zero is
+ * returned.  On error, the number of errors detected is returned.  Individual
+ * errors are reported during the load process using syms->Error_Report().
+ *****************************************************************************/
+	extern int Dynamic_Open_Module(
+				      /* the source for the module image */
+				      struct Dynamic_Loader_Stream *module,
+				      /* host support for symbols and storage */
+				      struct Dynamic_Loader_Sym *syms,
+				      /* the target memory allocator */
+				      struct Dynamic_Loader_Allocate *alloc,
+				      /* the target memory initializer */
+				      struct Dynamic_Loader_Initialize *init,
+				      unsigned options, /* option flags */
+				      /* the returned module handle */
+				      DLOAD_mhandle *mhandle
+	);
+#endif
 
 /*****************************************************************************
  * Procedure Dynamic_Unload_Module

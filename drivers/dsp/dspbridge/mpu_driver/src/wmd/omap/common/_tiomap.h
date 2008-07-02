@@ -77,140 +77,22 @@ struct MAP_L4PERIPHERAL {
 #define API_CLKM_DPLL_DMA               0xfffec000
 #define ARM_INTERRUPT_OFFSET            0xb00
 
-#if defined (OMAP_2430) || defined (OMAP_3430)
 #define BIOS_24XX
 
 #define L4_PERIPHERAL_NULL          0x0
 #define DSPVA_PERIPHERAL_NULL       0x0
 
-#endif
-
-#if defined (OMAP_2430)
 #define MAX_LOCK_TLB_ENTRIES 15
 
-#define L4_PERIPHERAL_MBOX          0x48094000
-#define DSPVA_PERIPHERAL_MBOX       0x11808000
-
-#define L4_PERIPHERAL_GPTIMER5      0x4807c000
-#define DSPVA_PERIPHERAL_GPTIMER5   0x11800000
-#define L4_PERIPHERAL_GPTIMER6      0x4807e000
-#define DSPVA_PERIPHERAL_GPTIMER6   0x11801000
-#define L4_PERIPHERAL_GPTIMER7      0x48080000
-#define DSPVA_PERIPHERAL_GPTIMER7   0x11802000
-#define L4_PERIPHERAL_GPTIMER8      0x48082000
-#define DSPVA_PERIPHERAL_GPTIMER8   0x11803000
-
-#define L4_PERIPHERAL_GPIO1         0x4900c000
-#define DSPVA_PERIPHERAL_GPIO1      0x11809000
-#define L4_PERIPHERAL_GPIO2         0x4900e000
-#define DSPVA_PERIPHERAL_GPIO2      0x1180a000
-#define L4_PERIPHERAL_GPIO3         0x49010000
-#define DSPVA_PERIPHERAL_GPIO3      0x1180b000
-#define L4_PERIPHERAL_GPIO4         0x49012000
-#define DSPVA_PERIPHERAL_GPIO4      0x1180c000
-#define L4_PERIPHERAL_GPIO5         0x480b6000
-#define DSPVA_PERIPHERAL_GPIO5      0x1180d000
-
-#define L4_PERIPHERAL_IVA2WDT       0x48026000
-#define DSPVA_PERIPHERAL_IVA2WDT    0x1180e000
-
-#define L4_PERIPHERAL_DISPLAY       0x48050000
-#define DSPVA_PERIPHERAL_DISPLAY    0x1180f000
-
-#define L4_PERIPHERAL_SSI           0x48058000
-#define DSPVA_PERIPHERAL_SSI        0x11804000
-#define L4_PERIPHERAL_GDD           0x48059000
-#define DSPVA_PERIPHERAL_GDD        0x11805000
-#define L4_PERIPHERAL_SS1           0x4805a000
-#define DSPVA_PERIPHERAL_SS1        0x11806000
-#define L4_PERIPHERAL_SS2           0x4805b000
-#define DSPVA_PERIPHERAL_SS2        0x11807000
-
-#define L4_PERIPHERAL_XTI           0x48068000
-#define DSPVA_PERIPHERAL_XTI        0x11810000
-
-#define L4_PERIPHERAL_UART1         0x4806a000
-#define DSPVA_PERIPHERAL_UART1      0x11811000
-#define L4_PERIPHERAL_UART2         0x4806c000
-#define DSPVA_PERIPHERAL_UART2      0x11812000
-#define L4_PERIPHERAL_UART3         0x4806e000
-#define DSPVA_PERIPHERAL_UART3      0x11813000
-
-#define L4_PERIPHERAL_MCBSP1        0x48074000
-#define DSPVA_PERIPHERAL_MCBSP1     0x11814000
-#define L4_PERIPHERAL_MCBSP2        0x48076000
-#define DSPVA_PERIPHERAL_MCBSP2     0x11815000
-#define L4_PERIPHERAL_MCBSP3        0x4808c000
-#define DSPVA_PERIPHERAL_MCBSP3     0x11816000
-#define L4_PERIPHERAL_MCBSP4        0x4808e000
-#define DSPVA_PERIPHERAL_MCBSP4     0x11817000
-#define L4_PERIPHERAL_MCBSP5        0x48096000
-#define DSPVA_PERIPHERAL_MCBSP5     0x11818000
-
-#define L4_PERIPHERAL_CAMERA        0x48052000
-#define DSPVA_PERIPHERAL_CAMERA     0x11819000
-
-#define L4_PERIPHERAL_SPI1          0x48098000
-#define DSPVA_PERIPHERAL_SPI1	    0x1181a000
-
-#define L4_PERIPHERAL_SPI2          0x4809a000
-#define DSPVA_PERIPHERAL_SPI2       0x1181b000
-
-#define L4_PERIPHERAL_PRCM 			0x49006000
-#define DSPVA_PERIPHERAL_PRCM 		0x1181c000
-
-#define L4_PERIPHERAL_SDMA          0x48056000
-#define DSPVA_PERIPHERAL_SDMA       0x1181d000
-
-/* define a static array with L4 mappings */
-static const struct MAP_L4PERIPHERAL L4PeripheralTable[] = {
-	{L4_PERIPHERAL_MBOX, DSPVA_PERIPHERAL_MBOX},
-	{L4_PERIPHERAL_GPTIMER5, DSPVA_PERIPHERAL_GPTIMER5},
-	{L4_PERIPHERAL_GPTIMER6, DSPVA_PERIPHERAL_GPTIMER6},
-	{L4_PERIPHERAL_GPTIMER7, DSPVA_PERIPHERAL_GPTIMER7},
-	{L4_PERIPHERAL_GPTIMER8, DSPVA_PERIPHERAL_GPTIMER8},
-	{L4_PERIPHERAL_GPIO1, DSPVA_PERIPHERAL_GPIO1},
-	{L4_PERIPHERAL_GPIO2, DSPVA_PERIPHERAL_GPIO2},
-	{L4_PERIPHERAL_GPIO3, DSPVA_PERIPHERAL_GPIO3},
-	{L4_PERIPHERAL_GPIO4, DSPVA_PERIPHERAL_GPIO4},
-	{L4_PERIPHERAL_GPIO5, DSPVA_PERIPHERAL_GPIO5},
-	{L4_PERIPHERAL_IVA2WDT, DSPVA_PERIPHERAL_IVA2WDT},
-	{L4_PERIPHERAL_DISPLAY, DSPVA_PERIPHERAL_DISPLAY},
-	{L4_PERIPHERAL_SSI, DSPVA_PERIPHERAL_SSI},
-	{L4_PERIPHERAL_GDD, DSPVA_PERIPHERAL_GDD},
-	{L4_PERIPHERAL_SS1, DSPVA_PERIPHERAL_SS1},
-	{L4_PERIPHERAL_SS2, DSPVA_PERIPHERAL_SS2},
-	{L4_PERIPHERAL_XTI, DSPVA_PERIPHERAL_XTI},
-	{L4_PERIPHERAL_UART1, DSPVA_PERIPHERAL_UART1},
-	{L4_PERIPHERAL_UART2, DSPVA_PERIPHERAL_UART2},
-	{L4_PERIPHERAL_UART3, DSPVA_PERIPHERAL_UART3},
-	{L4_PERIPHERAL_MCBSP1, DSPVA_PERIPHERAL_MCBSP1},
-	{L4_PERIPHERAL_MCBSP2, DSPVA_PERIPHERAL_MCBSP2},
-	{L4_PERIPHERAL_MCBSP3, DSPVA_PERIPHERAL_MCBSP3},
-	{L4_PERIPHERAL_MCBSP4, DSPVA_PERIPHERAL_MCBSP4},
-	{L4_PERIPHERAL_MCBSP5, DSPVA_PERIPHERAL_MCBSP5},
-	{L4_PERIPHERAL_CAMERA, DSPVA_PERIPHERAL_CAMERA},
-	{L4_PERIPHERAL_SPI1, DSPVA_PERIPHERAL_SPI1},
-	{L4_PERIPHERAL_SPI2, DSPVA_PERIPHERAL_SPI2},
-	{L4_PERIPHERAL_PRCM, DSPVA_PERIPHERAL_PRCM},
-	{L4_PERIPHERAL_SDMA, DSPVA_PERIPHERAL_SDMA},
-	{L4_PERIPHERAL_NULL, DSPVA_PERIPHERAL_NULL}
-};
-
-#endif
-
-#if defined (OMAP_3430)
-#define MAX_LOCK_TLB_ENTRIES 15
-
-#define L4_PERIPHERAL_PRM        0x48306000  //PRM L4 Peripheral
+#define L4_PERIPHERAL_PRM        0x48306000  /*PRM L4 Peripheral */
 #define DSPVA_PERIPHERAL_PRM     0x1181e000
-#define L4_PERIPHERAL_SCM        0x48002000  //SCM L4 Peripheral
+#define L4_PERIPHERAL_SCM        0x48002000  /*SCM L4 Peripheral */
 #define DSPVA_PERIPHERAL_SCM     0x1181f000
-#define L4_PERIPHERAL_MMU        0x5D000000  //MMU L4 Peripheral
+#define L4_PERIPHERAL_MMU        0x5D000000  /*MMU L4 Peripheral */
 #define DSPVA_PERIPHERAL_MMU     0x11820000
-#define L4_PERIPHERAL_CM        0x48004000       // Core L4, Clock Management
+#define L4_PERIPHERAL_CM        0x48004000       /* Core L4, Clock Management */
 #define DSPVA_PERIPHERAL_CM     0x1181c000
-#define L4_PERIPHERAL_PER        0x48005000       //  PER
+#define L4_PERIPHERAL_PER        0x48005000       /*  PER */
 #define DSPVA_PERIPHERAL_PER     0x1181d000
 
 #define L4_PERIPHERAL_GPIO1       0x48310000
@@ -243,7 +125,7 @@ static const struct MAP_L4PERIPHERAL L4PeripheralTable[] = {
 #define DSPVA_PERIPHERAL_CAMERA   0x11819000
 
 #define L4_PERIPHERAL_SDMA        0x48056000
-#define DSPVA_PERIPHERAL_SDMA     0x11810000 //0x1181d000 conflicts with PER
+#define DSPVA_PERIPHERAL_SDMA     0x11810000 /*0x1181d000 conflicts with PER */
 
 #define L4_PERIPHERAL_UART1             0x4806a000
 #define DSPVA_PERIPHERAL_UART1          0x11811000
@@ -321,11 +203,6 @@ static const struct MAP_L4PERIPHERAL L4PeripheralTable[] = {
 	{PM_GRPSEL_BASE, DSPVA_GRPSEL_BASE},
 	{L4_PERIPHERAL_NULL, DSPVA_PERIPHERAL_NULL}
 };
-
-#endif
-
-
-#if defined (OMAP_2430) || defined (OMAP_3430)
 
 /* ============================================================================
 
@@ -439,8 +316,6 @@ static const struct BPWR_Clk_t BPWR_Clks[] = {
 	{(DWORD) BPWR_SSI, OSALCLK_ssi_fck, OSALCLK_ssi_ick}
 };
 
-#endif
-
 /* Interrupt Register Offsets */
 #define INTH_IT_REG_OFFSET              0x00	/* Interrupt register offset  */
 #define INTH_MASK_IT_REG_OFFSET         0x04	/* Mask Interrupt reg offset  */
@@ -478,28 +353,10 @@ typedef enum {
 
 #define MB_ARM2DSP_FLAG                 0x0001
 
-#ifdef OMAP_2430
 #define MBOX_ARM2DSP HAL_MBOX_ID_0
 #define MBOX_DSP2ARM HAL_MBOX_ID_1
 #define MBOX_ARM HAL_MBOX_U0_ARM
 #define MBOX_DSP HAL_MBOX_U1_DSP1
-#endif
-
-#ifdef OMAP_3430
-#define MBOX_ARM2DSP HAL_MBOX_ID_0
-#define MBOX_DSP2ARM HAL_MBOX_ID_1
-#define MBOX_ARM HAL_MBOX_U0_ARM
-#define MBOX_DSP HAL_MBOX_U1_DSP1
-#endif
-
-#if defined (OMAP_1510) || defined (OMAP_16xx) || defined (OMAP_1710)
-typedef enum {
-	ARM2DSP1 = 0,
-	DSP2ARM1 = 1,
-	DSP2ARM2 = 2,
-	ARM2DSP2 = 3
-} Mailbox_Enum_t;
-#endif
 
 /* Moved to dbtypes.h */
 /*typedef volatile unsigned short REG_UWORD16 ;*/
@@ -528,7 +385,7 @@ typedef enum {
 
 /* This mini driver's device context: */
 struct WMD_DEV_CONTEXT {
-	struct DEV_OBJECT* hDevObject;	/* Handle to WCD device object. */
+	struct DEV_OBJECT *hDevObject;	/* Handle to WCD device object. */
 	DWORD dwDspBaseAddr;	/* Arm's API to DSP virtual base addr */
 	/*
 	 * DSP External memory prog address as seen virtually by the OS on
@@ -563,15 +420,7 @@ struct WMD_DEV_CONTEXT {
 
 	/* TC Settings */
 	BOOL tcWordSwapOn;	/* Traffic Controller Word Swap */
-#ifdef  PERF
-	/* Used during WMD development: */
-	ULONG ulIntsRecvd;	/* interrupt count (into GPP)   */
-	ULONG ulIntsSent;	/* interrupts sent (to DSP)     */
-#endif
 	struct PgTableAttrs *pPtAttrs;
-#ifndef POWER_MANAGEMENT_DISABLE
-	struct TIMER_OBJECT* hInactTimer;
-#endif
 	UWORD32 uDspPerClks;
 } ;
 
@@ -582,7 +431,9 @@ struct WMD_DEV_CONTEXT {
 	 *     a corresponding MPU physical address and size.
 	 */
 extern DSP_STATUS WMD_TLB_DspVAToMpuPA(struct WMD_DEV_CONTEXT *pDevContext,
-				IN ULONG ulVirtAddr, OUT ULONG *ulPhysAddr, OUT ULONG *sizeTlb);
+				       IN ULONG ulVirtAddr,
+				       OUT ULONG *ulPhysAddr,
+				       OUT ULONG *sizeTlb);
 
 #ifdef __cplusplus
 }

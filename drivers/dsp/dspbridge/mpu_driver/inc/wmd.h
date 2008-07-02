@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/wmd.h
+ * dspbridge/mpu_driver/inc/wmd.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
@@ -74,17 +74,6 @@ extern "C" {
 #include <iodefs.h>
 #include <msgdefs.h>
 
-#ifndef LINUX
-#if (_MSC_VER >= 800)
-
-/* Code segment pragmas:  Marks WMD functions for INIT or PAGE segments: */
-#define WMD_INIT_FUNCTION(_F)   alloc_text(INIT, _F)
-#define WMD_PAGE_FUNCTION(_F)   alloc_text(PAGE, _F)
-#else
-#error  Microsoft compiler Version 8.0+ required to build WMD.
-#endif
-
-#endif
 /*
  *  Any IOCTLS at or above this value are reserved for standard WMD
  *  interfaces.
@@ -209,12 +198,11 @@ typedef DSP_STATUS(CDECL *WMD_BRD_START) (struct WMD_DEV_CONTEXT *hDevContext,
  *      pHostBuf != NULL.
  *  Ensures:
  */
-	typedef DSP_STATUS(CDECL *
-			   WMD_BRD_MEMWRITE) (struct WMD_DEV_CONTEXT
-					      *hDevContext,
-					      IN BYTE * pHostBuf,
-					      DWORD dwDSPAddr, ULONG ulNumBytes,
-					      ULONG ulMemType);
+	typedef DSP_STATUS(CDECL *WMD_BRD_MEMWRITE) (struct WMD_DEV_CONTEXT
+			   *hDevContext,
+			   IN BYTE *pHostBuf,
+			   DWORD dwDSPAddr, ULONG ulNumBytes,
+			   ULONG ulMemType);
 
 /*
  *  ======== WMD_BRD_MemMap ========
@@ -319,7 +307,7 @@ typedef DSP_STATUS(CDECL * WMD_BRD_STOP) (struct WMD_DEV_CONTEXT *hDevContext);
  *  Will not write more than ulNumBytes bytes into pHostBuf.
  */
 typedef DSP_STATUS(CDECL * WMD_BRD_READ) (struct WMD_DEV_CONTEXT *hDevContext,
-						  OUT BYTE * pHostBuf,
+						  OUT BYTE *pHostBuf,
 						  DWORD dwDSPAddr,
 						  ULONG ulNumBytes,
 						  ULONG ulMemType);
@@ -345,7 +333,7 @@ typedef DSP_STATUS(CDECL * WMD_BRD_READ) (struct WMD_DEV_CONTEXT *hDevContext,
  *  Ensures:
  */
 typedef DSP_STATUS(CDECL * WMD_BRD_WRITE)(struct WMD_DEV_CONTEXT *hDevContext,
-						   IN BYTE * pHostBuf,
+						   IN BYTE *pHostBuf,
 						   DWORD dwDSPAddr,
 						   ULONG ulNumBytes,
 						   ULONG ulMemType);
@@ -404,6 +392,24 @@ typedef DSP_STATUS(CDECL * WMD_BRD_WRITE)(struct WMD_DEV_CONTEXT *hDevContext,
  */
 	typedef DSP_STATUS(CDECL * WMD_CHNL_DESTROY) (struct CHNL_MGR
 						      *hChnlMgr);
+/*
+ *  ======== WMD_DEH_Notify ========
+ *  Purpose:
+ *      When notified of DSP error, take appropriate action.
+ *  Parameters:
+ *      hDehMgr:        Handle to DEH manager object.
+ *      ulEventMask:  Indicate the type of exception
+ *      dwErrInfo:     Error information
+ *  Returns:
+ *
+ *  Requires:
+ *      hDehMgr != NULL;
+ *     ulEventMask with a valid exception
+ *  Ensures:
+ */
+	typedef VOID (CDECL * WMD_DEH_NOTIFY)(struct DEH_MGR *hDehMgr,
+					ULONG ulEventMask, DWORD dwErrInfo);
+
 
 /*
  *  ======== WMD_CHNL_Open ========
@@ -934,7 +940,7 @@ typedef DSP_STATUS(CDECL * WMD_DEV_CTRL)(struct WMD_DEV_CONTEXT *hDevContext,
  *  Ensures:
  */
 	typedef DSP_STATUS(CDECL * WMD_IO_GETPROCLOAD)(struct IO_MGR *hIOMgr,
-									     struct DSP_PROCLOADSTAT * pProcLoadStat);
+			   struct DSP_PROCLOADSTAT *pProcLoadStat);
 
 /*
  *  ======== WMD_MSG_Create ========
@@ -1159,13 +1165,15 @@ typedef DSP_STATUS(CDECL * WMD_DEV_CTRL)(struct WMD_DEV_CONTEXT *hDevContext,
 		WMD_CHNL_REGISTERNOTIFY pfnChnlRegisterNotify;
 		WMD_DEH_CREATE pfnDehCreate;	/* Create DEH manager */
 		WMD_DEH_DESTROY pfnDehDestroy;	/* Destroy DEH manager */
+		WMD_DEH_NOTIFY pfnDehNotify;    /* Notify of DSP error */
 		/* register for deh notif. */
 		WMD_DEH_REGISTERNOTIFY pfnDehRegisterNotify;
 		WMD_DEH_GETINFO pfnDehGetInfo;	/* register for deh notif. */
 		WMD_IO_CREATE pfnIOCreate;	/* Create IO manager */
 		WMD_IO_DESTROY pfnIODestroy;	/* Destroy IO manager */
 		WMD_IO_ONLOADED pfnIOOnLoaded;	/* Notify of program loaded */
-		WMD_IO_GETPROCLOAD pfnIOGetProcLoad; /* Get Processor's current and predicted load */
+		/* Get Processor's current and predicted load */
+		WMD_IO_GETPROCLOAD pfnIOGetProcLoad;
 		WMD_MSG_CREATE pfnMsgCreate;	/* Create message manager */
 		/* Create message queue */
 		WMD_MSG_CREATEQUEUE pfnMsgCreateQueue;
@@ -1179,10 +1187,6 @@ typedef DSP_STATUS(CDECL * WMD_DEV_CTRL)(struct WMD_DEV_CONTEXT *hDevContext,
 		/* Set message queue id */
 		WMD_MSG_SETQUEUEID pfnMsgSetQueueId;
 	} ;
-	/*WMD_DRV_INTERFACE, *WMD_DRV_PINTERFACE;*/
-
-	typedef VOID(CDECL * WMD_DRV_ENTRY) (OUT struct WMD_DRV_INTERFACE* *
-					     ppDrvInterface);
 
 /*
  *  ======== WMD_DRV_Entry ========

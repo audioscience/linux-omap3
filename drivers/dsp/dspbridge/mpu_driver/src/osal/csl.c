@@ -21,9 +21,7 @@
  *      Provides platform independent C Standard library functions.
  *
  *  Public Functions:
- *      CSL_AnsiToWchar
  *      CSL_Atoi
- *      CSL_ByteSwap
  *      CSL_Exit
  *      CSL_Init
  *      CSL_NumToAscii
@@ -33,10 +31,7 @@
  *      CSL_Strlen
  *      CSL_Strncat
  *      CSL_Strncmp
- *      CSL_Strtok
  *      CSL_Strtokr
- *      CSL_WcharToAnsi
- *      CSL_Wstrlen
  *
  *! Revision History:
  *! ================
@@ -69,7 +64,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gt.h>
 
 /*  ----------------------------------- This */
@@ -84,31 +78,6 @@
 static struct GT_Mask CSL_DebugMask = { 0, 0 };	/* GT trace var. */
 #endif
 
-#ifdef UNICODE
-/*
- *  ======== CSL_AnsiToWchar ========
- *  Purpose:
- *  Convert an ansi string to a wide CHAR string.
- */
-ULONG CSL_AnsiToWchar(OUT WCHAR *pwszDest, IN PSTR pstrSource, IN ULONG uSize)
-{
-	DWORD dwLength;
-	DWORD i;
-
-	if (!pstrSource)
-		return (0);
-
-
-	dwLength = CSL_Strlen(pstrSource);
-	for (i = 0; (i < dwLength) && (i < (uSize - 1)); i++)
-		pwszDest[i] = pstrSource[i];
-
-	pwszDest[i] = '\0';
-
-	return (i);
-}
-#endif
-
 /*
  *  ======= CSL_Atoi =======
  *  Purpose:
@@ -121,26 +90,6 @@ INT CSL_Atoi(IN CONST CHAR *ptstrSrc)
 	DBC_Require(ptstrSrc);
 
 	return simple_strtol(ptstrSrc, &end_position, 10);
-}
-
-/*
- *  ======== CSL_ByteSwap ========
- *  Purpose:
- *      Swap bytes in buffer.
- */
-VOID CSL_ByteSwap(IN PSTR pstrSrc, OUT PSTR pstrDest, IN ULONG ulBytes)
-{
-	int i, tmp;
-
-	DBC_Require((ulBytes % 2) == 0);
-	DBC_Require(pstrSrc && pstrDest);
-
-	/* swap bytes. */
-	for (i = 0; i < ulBytes / 2; i++) {
-		tmp = 2 * i + 1;
-		pstrDest[2 * i] = pstrSrc[tmp];
-		pstrDest[tmp] = pstrSrc[2 * i];
-	}
 }
 
 /*
@@ -202,26 +151,7 @@ VOID CSL_NumToAscii(OUT PSTR pstrNumber, DWORD dwNum)
  */
 LONG CSL_Strcmp(IN CONST PSTR pstrStr1, IN CONST PSTR pstrStr2)
 {
-#ifdef LINUX
 	return strcmp(pstrStr1, pstrStr2);
-#else
-	INT ret = 0;
-	CONST CHAR *src = pstrStr1;
-	CONST CHAR *dst = pstrStr2;
-
-	DBC_Require(pstrStr1 != NULL);
-	DBC_Require(pstrStr2 != NULL);
-
-	while (!(ret = *(UCHAR *)src - *(UCHAR *)dst) && *dst)
-		++src, ++dst;
-
-	if (ret < 0)
-		ret = -1;
-	else if (ret > 0)
-		ret = 1;
-
-	return (ret);
-#endif
 }
 
 /*
@@ -242,11 +172,7 @@ LONG CSL_Strcmp(IN CONST PSTR pstrStr1, IN CONST PSTR pstrStr2)
 
 PSTR CSL_Strstr(IN CONST PSTR haystack, IN CONST PSTR needle)
 {
-#ifdef LINUX
 	return (strstr(haystack, needle));
-#else
-	return NULL;
-#endif
 }
 
 /*
@@ -256,28 +182,7 @@ PSTR CSL_Strstr(IN CONST PSTR haystack, IN CONST PSTR needle)
  */
 PSTR CSL_Strcpyn(OUT PSTR pstrDest, IN CONST PSTR pstrSrc, DWORD cMax)
 {
-#ifdef LINUX
 	return strncpy(pstrDest, pstrSrc, cMax);
-#else
-	CHAR *dest = pstrDest;
-	CONST CHAR *source = pstrSrc;
-	CHAR *start = dest;
-
-	DBC_Require(pstrDest != NULL);
-	DBC_Require(pstrSrc != NULL);
-
-	while (cMax && (*dest++ = *source++)) {	/* copy string */
-		cMax--;
-	}
-
-	if (cMax) {
-		/* pad out with zeroes */
-		while (--cMax)
-			*dest++ = '\0';
-
-	}
-	return (start);
-#endif
 }
 
 /*
@@ -317,49 +222,8 @@ PSTR CSL_Strncat(IN PSTR pszDest, IN PSTR pszSrc, IN DWORD dwSize)
  */
 LONG CSL_Strncmp(IN CONST PSTR pstrStr1, IN CONST PSTR pstrStr2, DWORD n)
 {
-#ifdef LINUX
 	return strncmp(pstrStr1, pstrStr2, n);
-#else
-	INT ret = 0;
-	CONST CHAR *src = pstrStr1;
-	CONST CHAR *dst = pstrStr2;
-	ULONG i = 0;
-
-	DBC_Require(pstrStr1 != NULL);
-	DBC_Require(pstrStr2 != NULL);
-
-	while (i < n && !(ret = *(UCHAR *) src - *(UCHAR *) dst)
-	       && *src && *dst) {
-		++src, ++dst;
-		++i;
-	}
-
-	if (ret < 0)
-		ret = -1;
-	else if (ret > 0)
-		ret = 1;
-
-	return (ret);
-#endif
 }
-
-#ifndef LINUX
-/*
- *  ======= CSL_Strtok =======
- *  Purpose:
- *      Tokenize an input string based on the separators
- */
-CHAR *CSL_Strtok(IN CHAR *ptstrSrc, IN CONST CHAR *szSeparators)
-{
-
-	/*
-	 * Not implemented in Linux because strsep requires first argument to be
-	 * CHAR **. This function is not called from Bridge.
-	 */
-	return (NULL);
-	/*  return (strtok(ptstrSrc, szSeparators));  */
-}
-#endif
 
 /*
  *  ======= CSL_Strtokr =======
@@ -404,45 +268,3 @@ CHAR *CSL_Strtokr(IN CHAR *pstrSrc, IN CONST CHAR *szSeparators,
 
 	return (pstrToken);
 }
-
-#ifdef UNICODE
-/*
- *  ======== CSL_WcharToAnsi ========
- *  Purpose:
- *      UniCode to Ansi conversion.
- *  Note:
- *      uSize is # of chars in destination buffer.
- */
-ULONG CSL_WcharToAnsi(OUT PSTR pstrDest, IN WCHAR *pwszSource, ULONG uSize)
-{
-	PSTR pstrTemp = pstrDest;
-	ULONG uNumOfChars = 0;
-
-	if (!pwszSource)
-		return (0);
-
-	while ((*pwszSource != TEXT('\0')) && (uSize-- > 0)) {
-		*pstrTemp++ = (CHAR) * pwszSource++;
-		uNumOfChars++;
-	}
-	*pstrTemp = '\0';
-
-	return (uNumOfChars);
-}
-
-/*
- *  ======== CSL_Wstrlen ========
- *  Purpose:
- *      Determine the length of a null terminated UNICODE string.
- */
-DWORD CSL_Wstrlen(IN CONST TCHAR *ptstrSrc)
-{
-	CONST TCHAR *ptstr = ptstrSrc;
-
-	DBC_Require(ptstrSrc);
-
-	while (*ptstr++) ;
-
-	return ((DWORD) (ptstr - ptstrSrc - 1));
-}
-#endif

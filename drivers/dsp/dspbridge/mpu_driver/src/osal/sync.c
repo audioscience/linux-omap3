@@ -28,7 +28,6 @@
  *      SYNC_InitializeCS
  *      SYNC_LeaveCS
  *      SYNC_OpenEvent
- *      SYNC_PostMessage
  *      SYNC_ResetEvent
  *      SYNC_SetEvent
  *      SYNC_WaitOnEvent
@@ -57,7 +56,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <dbg_zones.h>
 #include <gt.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
@@ -71,7 +69,6 @@
 #define SIGNATURE       0x434e5953	/* "SYNC" (in reverse) */
 #define SIGNATURECS     0x53435953	/* "SYCS" (in reverse) */
 #define SIGNATUREDPCCS  0x53445953	/* "SYDS" (in reverse) */
-#define WAIT_ALLOC
 
 typedef enum {
 	wo_waiting,
@@ -275,10 +272,7 @@ DSP_STATUS SYNC_SetEvent(struct SYNC_OBJECT *hEvent)
 		if (pEvent->pWaitObj != NULL &&
 		   test_and_set(&pEvent->pWaitObj->state,
 		   wo_signalled) == wo_waiting) {
-#if 0
-			if (pEvent->pWaitObj != NULL) {
-			pEvent->pWaitObj->state = wo_signalled;
-#endif
+
 			pEvent->state = so_reset;
 			pEvent->pWaitObj->signalling_event = pEvent;
 			up(&pEvent->pWaitObj->sem);
@@ -337,9 +331,8 @@ DSP_STATUS SYNC_WaitOnMultipleEvents(struct SYNC_OBJECT **hSyncEvents,
 	UINT i;
 	DSP_STATUS status = DSP_SOK;
 	UINT curr;
-#ifdef WAIT_ALLOC
 	struct WAIT_OBJECT *Wp;
-#endif
+
 	DBC_Require(uCount > 0);
 	DBC_Require(hSyncEvents != NULL);
 	DBC_Require(puIndex != NULL);
@@ -351,7 +344,7 @@ DSP_STATUS SYNC_WaitOnMultipleEvents(struct SYNC_OBJECT **hSyncEvents,
 		  "SYNC_WaitOnMultipleEvents: hSyncEvents:"
 		  "0x%x\tuCount: 0x%x" "\tdwTimeout: 0x%x\tpuIndex: 0x%x\n",
 		  hSyncEvents, uCount, dwTimeout, puIndex);
-#ifdef WAIT_ALLOC
+
 	Wp = MEM_Calloc(sizeof(struct WAIT_OBJECT), MEM_NONPAGED);
 	if (Wp == NULL)
 	    return DSP_EMEMORY;
@@ -359,38 +352,18 @@ DSP_STATUS SYNC_WaitOnMultipleEvents(struct SYNC_OBJECT **hSyncEvents,
 	Wp->state = wo_waiting;
 	Wp->signalling_event = NULL;
 	init_MUTEX_LOCKED(&(Wp->sem));
-#else
-	W.state = wo_waiting;
-	W.signalling_event = NULL;
-	init_MUTEX_LOCKED(&W.sem);
-#endif
+
 	for (curr = 0; curr < uCount; curr++) {
-#ifdef WAIT_ALLOC
 		hSyncEvents[curr]->pWaitObj = Wp;
-#else
-		hSyncEvents[curr]->pWaitObj = &W;
-#endif
 		if (hSyncEvents[curr]->state == so_signalled) {
 		GT_0trace(SYNC_debugMask, GT_6CLASS,
 			  "Detected signaled Event !!!\n");
-#ifdef WAIT_ALLOC
 			if (test_and_set(&(Wp->state), wo_signalled) ==
 			    wo_waiting) {
-#else
-			if (test_and_set(&W.state, wo_signalled) ==
-			    wo_waiting) {
-#if 0
-					W.state = wo_signalled;
-#endif
-#endif
 				GT_0trace(SYNC_debugMask, GT_6CLASS,
 					  "Setting Signal Event!!!\n");
 				hSyncEvents[curr]->state = so_reset;
-#ifdef WAIT_ALLOC
 				Wp->signalling_event = hSyncEvents[curr];
-#else
-				W.signalling_event = hSyncEvents[curr];
-#endif
 			}
 		curr++;	/* Will try optimizing later */
 		break;
@@ -398,28 +371,16 @@ DSP_STATUS SYNC_WaitOnMultipleEvents(struct SYNC_OBJECT **hSyncEvents,
 	}
 
 	curr--;			/* Will try optimizing later */
-#ifdef WAIT_ALLOC
 	if (Wp->state != wo_signalled && dwTimeout > 0) {
-#else
-	if (W.state != wo_signalled && dwTimeout > 0) {
-#endif
 		struct timer_list timeout;
 		if (dwTimeout != SYNC_INFINITE) {
 			init_timer(&timeout);
 			timeout.function = timeout_callback;
-#ifdef WAIT_ALLOC
 			timeout.data = (unsigned long)Wp;
-#else
-			timeout.data = (unsigned long)&W;
-#endif
 			timeout.expires = jiffies + dwTimeout * HZ / 1000;
 			add_timer(&timeout);
 		}
-#ifdef WAIT_ALLOC
 		if (down_interruptible(&(Wp->sem))) {
-#else
-		if (down_interruptible(&W.sem)) {
-#endif
 			GT_0trace(SYNC_debugMask, GT_7CLASS, "SYNC: "
 				"WaitOnMultipleEvents Interrupted by signal\n");
 			status = DSP_EFAIL;
@@ -444,27 +405,17 @@ DSP_STATUS SYNC_WaitOnMultipleEvents(struct SYNC_OBJECT **hSyncEvents,
 			 *  freed before following statememt. */
 			hSyncEvents[i]->pWaitObj = NULL;
 		}
-#ifdef WAIT_ALLOC
-		if (hSyncEvents[i] == Wp->signalling_event) {
-#else
-		if (hSyncEvents[i] == W.signalling_event) {
-#endif
+		if (hSyncEvents[i] == Wp->signalling_event)
 			*puIndex = i;
-		}
+
 	}
-#ifdef WAIT_ALLOC
 	if (Wp->signalling_event == NULL && DSP_SUCCEEDED(status)) {
-#else
-	if (W.signalling_event == NULL && DSP_SUCCEEDED(status)) {
-#endif
 		GT_0trace(SYNC_debugMask, GT_7CLASS,
 			  "SYNC:Signaling Event NULL!!!(:-\n");
 		status = DSP_ETIMEOUT;
 	}
-#ifdef WAIT_ALLOC
 	if (Wp)
 		MEM_Free(Wp);
-#endif
 	return (status);
 }
 
@@ -661,39 +612,3 @@ DSP_STATUS SYNC_LeaveCS(struct SYNC_CSOBJECT *hCSObj)
 
 	return (status);
 }
-
-#ifndef LINUX
-/*
- *  ======== SYNC_PostMessage ========
- *  Purpose:
- *      Post Windows Message
- */
-extern DSP_STATUS SYNC_PostMessage(HANDLE hWindow, UINT uMsg)
-{
-	DSP_STATUS status;
-
-	GT_1trace(SYNC_debugMask, GT_ENTER, "SYNC_PostMessage:Window 0x%x\n",
-		  hWindow);
-
-	if (IsWindow(hWindow)) {
-
-		/* lParam and wParam ignored */
-		if (PostMessage(hWindow, uMsg, 0, 0)) {
-			status = DSP_SOK;
-		} else {
-			status = DSP_EFAIL;
-			GT_0trace(SYNC_debugMask, GT_6CLASS,
-				 "SYNC_PostMessage: "
-				 "Post Message failed\n");
-		}
-	} else {
-		status = DSP_EHANDLE;
-		GT_1trace(SYNC_debugMask, GT_6CLASS,
-			  "SYNC_PostMessage: invalid Window"
-			  " handle 0x%x\n", hWindow);
-	}
-
-	return (status);
-}
-#endif
-

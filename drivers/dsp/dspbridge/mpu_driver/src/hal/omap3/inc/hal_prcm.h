@@ -27,21 +27,15 @@
 #ifndef __HAL_PRCM_H
 #define __HAL_PRCM_H
 
-/* ============================================================================
-* INCLUDE FILES (only if necessary)
-* =============================================================================
-*/
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-/* ----------------------------------------------------------------------------
+/*
 * TYPE:	 HAL_ClkModule
 *
 * DESCRIPTION:  Enumerated Type used to specify the clock domain
-*
-* -----------------------------------------------------------------------------
 */
 
 typedef enum HAL_ClkModule {
@@ -74,12 +68,10 @@ typedef enum HAL_ClkSubsys {
     HAL_CLK_IVASS
 } HAL_ClkSubsys_t;
 
-/* ----------------------------------------------------------------------------
+/*
 * TYPE:	 HAL_GPtimers
 *
 * DESCRIPTION:  General purpose timers
-*
-* -----------------------------------------------------------------------------
 */
 typedef enum HAL_GPtimers {
     HAL_GPT5 = 5,
@@ -89,12 +81,10 @@ typedef enum HAL_GPtimers {
 } HAL_GPtimer_t;
 
 
-/* ----------------------------------------------------------------------------
+/*
 * TYPE:	 GP timers Input clock type
 *
 * DESCRIPTION:  General purpose timers
-*
-* -----------------------------------------------------------------------------
 */
 typedef enum HAL_GPtimers_Input_clock {
     HAL_CLK_32KHz = 0,
@@ -102,14 +92,11 @@ typedef enum HAL_GPtimers_Input_clock {
     HAL_CLK_EXT   = 2
 } HAL_Clocktype_t;
 
-/* ----------------------------------------------------------------------------
+/*
 * TYPE:	 HAL_ClkDiv
 *
 * DESCRIPTION:  Clock divisors
-*
-* -----------------------------------------------------------------------------
 */
-
 typedef enum HAL_ClkDiv {
     HAL_CLK_DIV_1 = 0x1,
     HAL_CLK_DIV_2 = 0x2,
@@ -120,12 +107,10 @@ typedef enum HAL_ClkDiv {
     HAL_CLK_DIV_12 = 0xC
 } HAL_ClkDiv_t;
 
-/* ----------------------------------------------------------------------------
+/*
 * TYPE:	 HAL_RstModule
 *
 * DESCRIPTION:  Enumerated Type used to specify the module to be reset
-*
-* -----------------------------------------------------------------------------
 */
 typedef enum HAL_RstModule {
     HAL_RST1_IVA2,  /* Reset the DSP */
@@ -133,12 +118,10 @@ typedef enum HAL_RstModule {
     HAL_RST3_IVA2   /* Reset LEON sequencer */
 } HAL_RstModule_t;
 
-/* ----------------------------------------------------------------------------
+/*
 * TYPE:	 HAL_RstCause
 *
 * DESCRIPTION:  Enumerated Type used to specify the cause of the reset
-*
-* -----------------------------------------------------------------------------
 */
 /* TBD */
 typedef enum RstCause {
@@ -151,12 +134,10 @@ typedef enum RstCause {
     HAL_RSTCAUSE_GLOBALWARM
 } RstCause;
 
-/* ----------------------------------------------------------------------------
+/*
 * TYPE:	 HAL_PwrModule
 *
 * DESCRIPTION:  Enumerated Type used to specify the power domain
-*
-* -----------------------------------------------------------------------------
 */
 
 typedef enum HAL_PwrModule {
@@ -197,123 +178,24 @@ typedef enum HAL_PWR_TransState {
 } HAL_TransitionState_t;
 
 
-extern HAL_STATUS HAL_CLK_Enable(const UWORD32 baseAddress,
-				  HAL_ClkModule_t c);
-
-extern HAL_STATUS HAL_CLK_Disable(const UWORD32 baseAddress,
-				   HAL_ClkModule_t c);
-
-extern HAL_STATUS HAL_CLK_AutoIdleEnable(const UWORD32 baseAddress,
-					  HAL_ClkModule_t c);
-
-extern HAL_STATUS HAL_CLK_AutoIdleDisable(const UWORD32 baseAddress,
-					   HAL_ClkModule_t c);
-
-extern HAL_STATUS HAL_CLK_IdleStatus(const UWORD32 baseAddress,
-				      HAL_ClkModule_t c,
-				      HAL_IdleState_t *idleState);
-
-extern HAL_STATUS HAL_CLK_DivisorSet(const UWORD32 baseAddress,
-				      HAL_ClkModule_t c,
-				      HAL_ClkDiv_t divisor);
-
-extern HAL_STATUS HAL_CLK_SyncEnable(const UWORD32 baseAddress,
-				      HAL_ClkModule_t c);
-
-extern HAL_STATUS HAL_CLK_SyncDisable(const UWORD32 baseAddress,
-				       HAL_ClkModule_t c);
-
-extern HAL_STATUS HAL_CLK_DSPPerClks(const UWORD32 baseAddress,
-				       HAL_SetClear_t *idleState);
-
 extern HAL_STATUS HAL_RST_Reset(const UWORD32 baseAddress,
 				 HAL_RstModule_t r);
 
 extern HAL_STATUS HAL_RST_UnReset(const UWORD32 baseAddress,
 				   HAL_RstModule_t r);
 
-extern HAL_STATUS HAL_RST_GetCause(const UWORD32 baseAddress,
-				    HAL_RstModule_t r);
-
-
-
-extern HAL_STATUS HAL_PWR_EnableWkupEvent(const UWORD32 baseAddress,
-					   HAL_PwrModule_t p);
-
-extern HAL_STATUS HAL_PWR_DisableWkupEvent(const UWORD32 baseAddress,
-					    HAL_PwrModule_t p);
-
-extern HAL_STATUS HAL_PWR_EnableWkupDependency(const UWORD32 baseAddress,
-						HAL_PwrModule_t p,
-						HAL_PwrModule_t src);
-
-extern HAL_STATUS HAL_PWR_DisableWkupDependency(const UWORD32 baseAddress,
-						 HAL_PwrModule_t p,
-						 HAL_PwrModule_t src);
-
-extern HAL_STATUS HAL_PWR_EnableAutoState(const UWORD32 baseAddress,
-					   HAL_PwrModule_t p);
-
-extern HAL_STATUS HAL_PWR_DisableAutoState(const UWORD32 baseAddress,
-					    HAL_PwrModule_t p);
-
-/*
-extern HAL_STATUS HAL_PWR_SetState (const UWORD32 baseAddress,
-				    HAL_PwrModule_t p,
-				    HAL_PwrState_t s);
-*/
-
-extern HAL_STATUS HAL_PWR_ForceState(const UWORD32 baseAddress,
-				      HAL_PwrModule_t p);
-
-extern HAL_STATUS HAL_PWR_GetState(const UWORD32 baseAddress,
-				    HAL_PwrModule_t p);
-
-extern HAL_STATUS HAL_PWR_IsInTransition(const UWORD32 baseAddress,
-					  HAL_PwrModule_t p);
-
-extern HAL_STATUS HAL_PWR_IsClkActive(const UWORD32 baseAddress,
-				       HAL_PwrModule_t p);
-
-extern HAL_STATUS HAL_CLK_AutoStateGet(const UWORD32 baseAddress,
-					       HAL_ClkSubsys_t p,
-					       UWORD32 *value);
-
-extern HAL_STATUS HAL_CLK_AutoStateSet(const UWORD32 baseAddress,
-					       HAL_ClkSubsys_t p,
-					       HAL_SetClear_t *value);
-
-extern HAL_STATUS HAL_CLK_IdleStateGet(const UWORD32 baseAddress,
-					       UWORD32 *value);
-
-extern HAL_STATUS HAL_PWR_StateGet(const UWORD32 baseAddress,
-					   HAL_PwrModule_t p,
-					   HAL_PwrState_t *value);
-
-extern HAL_STATUS HAL_PWRST_RegGet(const UWORD32 baseAddress,
-					   UWORD32 *value);
-
 extern HAL_STATUS HAL_RSTCTRL_RegGet(const UWORD32 baseAddress,
 					     HAL_RstModule_t p,
 					     UWORD32 *value);
 extern HAL_STATUS HAL_RSTST_RegGet(const UWORD32 baseAddress,
 					   HAL_RstModule_t p, UWORD32 *value);
-extern HAL_STATUS HAL_RSTST_RegClear(const UWORD32 baseAddress,
-					     HAL_RstModule_t p);
-extern HAL_STATUS HAL_PWR_ForceStateSet(const UWORD32 baseAddress,
-						HAL_PwrModule_t p,
-						HAL_ForceState_t value);
+
 extern HAL_STATUS HAL_PWR_PowerStateSet(const UWORD32 baseAddress,
 						HAL_PwrModule_t p,
 						HAL_PwrState_t value);
 
-extern HAL_STATUS HAL_PLLAPLLs_ClkinRead(const UWORD32 baseAddress,
-					UWORD32 *apllClkin) ;
-
 extern HAL_STATUS HAL_CLK_SetInputClock(const UWORD32 baseAddress,
 					HAL_GPtimer_t gpt, HAL_Clocktype_t c) ;
-
-extern HAL_STATUS HAL_CLK_ConfControl_Validate(const UWORD32 baseAddress);
 
 extern HAL_STATUS HAL_PWR_IVA2StateGet(const UWORD32 baseAddress,
 					HAL_PwrModule_t p,
@@ -333,4 +215,3 @@ extern HAL_STATUS HAL_PWR_CLKCTRL_IVA2RegSet(const UWORD32 baseAddress,
 }
 #endif
 #endif  /* __HAL_PRCM_H */
-
