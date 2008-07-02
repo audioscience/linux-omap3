@@ -1586,10 +1586,10 @@ int isp_handle_private(int cmd, void *arg)
 
 	switch (cmd) {
 	case VIDIOC_PRIVATE_ISP_CCDC_CFG:
-		omap34xx_isp_ccdc_config(arg);
+		rval = omap34xx_isp_ccdc_config(arg);
 		break;
 	case VIDIOC_PRIVATE_ISP_PRV_CFG:
-		omap34xx_isp_preview_config(arg);
+		rval = omap34xx_isp_preview_config(arg);
 		break;
 	case VIDIOC_PRIVATE_ISP_AEWB_CFG:
 		if (!arg)
