@@ -933,7 +933,7 @@ static int rsz_open(struct inode *inode, struct file *filp)
 	fh->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	fh->device = device;
 
-	videobuf_queue_pci_init(&fh->vbq, &device->vbq_ops, NULL,
+	videobuf_queue_sg_init(&fh->vbq, &device->vbq_ops, NULL,
 					&device->vbq_lock, fh->type,
 					V4L2_FIELD_NONE,
 					sizeof(struct videobuf_buffer), fh);
