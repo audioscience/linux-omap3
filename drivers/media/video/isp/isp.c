@@ -1473,7 +1473,6 @@ void isp_vbq_release(struct videobuf_queue *vbq, struct videobuf_buffer *vb)
 {
 	ispmmu_unmap(ispsg.isp_addr_capture[vb->i]);
 	ispsg.isp_addr_capture[vb->i] = (dma_addr_t) NULL;
-	vb->state = VIDEOBUF_NEEDS_INIT;
 	return;
 }
 

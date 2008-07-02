@@ -176,13 +176,12 @@ static int omap34xxcam_vbq_setup(struct videobuf_queue *vbq, unsigned int *cnt,
 static void omap34xxcam_vbq_release(struct videobuf_queue *vbq,
 				    struct videobuf_buffer *vb)
 {
-	isp_vbq_release(vbq, vb);
-
-	if (vb->memory != V4L2_MEMORY_MMAP) {
+	if (!vbq->streaming) {
+		isp_vbq_release(vbq, vb);
 		videobuf_dma_unmap(vbq, videobuf_to_dma(vb));
 		videobuf_dma_free(videobuf_to_dma(vb));
+		vb->state = VIDEOBUF_NEEDS_INIT;
 	}
-	vb->state = VIDEOBUF_NEEDS_INIT;
 	return;
 }
 
@@ -598,21 +597,9 @@ static int vidioc_streamoff(struct file *file, void *fh, enum v4l2_buf_type i)
 	struct omap34xxcam_fh *ofh = fh;
 	struct omap34xxcam_videodev *vdev = ofh->vdev;
 	struct videobuf_queue *q = &ofh->vbq;
-	int bufcount;
 	int rval;
 
-	for (bufcount = 0; bufcount < VIDEO_MAX_FRAME; bufcount++) {
-		if (NULL == q->bufs[bufcount])
-			continue;
-		if (q->bufs[bufcount]->state == VIDEOBUF_QUEUED) {
-			rval = videobuf_waiton(q->bufs[bufcount], 0, 0);
-			if (rval)
-				return rval;
-		}
-	}
-
 	isp_stop();
-
 	rval = videobuf_streamoff(q);
 	if (!rval) {
 		mutex_lock(&vdev->mutex);
@@ -1093,6 +1080,7 @@ static int omap34xxcam_release(struct inode *inode, struct file *file)
 
 	mutex_lock(&vdev->mutex);
 	if (vdev->streaming == file) {
+		isp_stop();
 		videobuf_streamoff(&fh->vbq);
 		omap34xxcam_slave_power_set(vdev, V4L2_POWER_STANDBY);
 		vdev->streaming = NULL;
