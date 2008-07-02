@@ -1,6 +1,6 @@
 /*
  * smc911x.c
- * This is a driver for SMSC's LAN911{5,6,7,8} single-chip Ethernet devices.
+ * Driver for SMSC's LAN9{115,116,117,118, 211} single-chip Ethernet devices.
  *
  * Copyright (C) 2005 Sensoria Corp
  *	   Derived from the unified SMC91x driver by Nicolas Pitre
@@ -1889,7 +1889,7 @@ static int __init smc911x_probe(struct net_device *dev, unsigned long ioaddr)
 	 * recognize.	These might need to be added to later,
 	 * as future revisions could be added.
 	 */
-	chip_id = SMC_GET_PN();
+	chip_id = 0xffff & SMC_GET_PN();
 	DBG(SMC_DEBUG_MISC, "%s: id probe returned 0x%04x\n", CARDNAME, chip_id);
 	for(i=0;chip_ids[i].id != 0; i++) {
 		if (chip_ids[i].id == chip_id) break;
