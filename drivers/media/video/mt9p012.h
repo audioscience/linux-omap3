@@ -189,6 +189,9 @@
 #define DEF_EXPOSURE	    0x43
 #define EXPOSURE_STEP       1
 
+#define SENSOR_DETECTED		1
+#define SENSOR_NOT_DETECTED	0
+
 /**
  * struct mt9p012_reg - mt9p012 register format
  * @length: length of the register

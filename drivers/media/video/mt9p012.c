@@ -18,6 +18,7 @@
 #include <media/v4l2-int-device.h>
 
 #include "mt9p012.h"
+#include "isp/isp.h"
 
 #define DRIVER_NAME  "mt9p012"
 #define MOD_NAME "MT9P012: "
@@ -42,10 +43,12 @@ struct mt9p012_sensor {
 	int scaler;
 	int ver;
 	int fps;
+	int state;
 };
 
 static struct mt9p012_sensor mt9p012;
 static struct i2c_driver mt9p012sensor_i2c_driver;
+static unsigned long xclk_current = MT9P012_XCLK_NOM_1;
 
 /* list of image formats supported by mt9p012 sensor */
 const static struct v4l2_fmtdesc mt9p012_formats[] = {
@@ -569,7 +572,6 @@ mt9p012_read_reg(struct i2c_client *client, u16 data_length, u16 reg, u32 *val)
 	data[1] = (u8) (reg & 0xff);
 	err = i2c_transfer(client->adapter, msg, 1);
 	if (err >= 0) {
-		mdelay(MT9P012_I2C_DELAY);
 		msg->len = data_length;
 		msg->flags = I2C_M_RD;
 		err = i2c_transfer(client->adapter, msg, 1);
@@ -642,7 +644,7 @@ again:
 
 	printk(KERN_ERR "wrote 0x%x to offset 0x%x error %d", val, reg, err);
 	if (retry <= I2C_RETRY_COUNT) {
-		printk("retry ... %d", retry);
+		printk(KERN_ERR "retry ... %d", retry);
 		retry++;
 		set_current_state(TASK_UNINTERRUPTIBLE);
 		schedule_timeout(msecs_to_jiffies(20));
@@ -677,7 +679,6 @@ mt9p012_write_regs(struct i2c_client *client,
 						next->reg, next->val);
 		if (err)
 			return err;
-		mdelay(MT9P012_I2C_DELAY);
 	}
 	return 0;
 }
@@ -904,7 +905,6 @@ static unsigned long mt9p012sensor_calc_xclk(struct i2c_client *c)
 	struct mt9p012_sensor *sensor = i2c_get_clientdata(c);
 	struct v4l2_fract *timeperframe = &sensor->timeperframe;
 	struct v4l2_pix_format *pix = &sensor->pix;
-	unsigned long xclk_current;
 
 	if ((timeperframe->numerator == 0)
 	|| (timeperframe->denominator == 0)) {
@@ -928,7 +928,6 @@ static unsigned long mt9p012sensor_calc_xclk(struct i2c_client *c)
 		xclk_current = MT9P012_XCLK_NOM_1;
 
 	return xclk_current;
-
 }
 
 /**
@@ -947,22 +946,13 @@ static int mt9p012_configure(struct v4l2_int_device *s)
 	struct v4l2_pix_format *pix = &sensor->pix;
 	struct i2c_client *client = sensor->i2c_client;
 	enum image_size isize;
-	unsigned long xclk;
 	unsigned int fps_index;
 	int err;
-	enum pixel_format pfmt = RAWBAYER10;
 
-	switch (pix->pixelformat) {
-	case V4L2_PIX_FMT_SGRBG10:
-		pfmt = RAWBAYER10;
-		break;
-	}
-	xclk = mt9p012sensor_calc_xclk(client);
 	isize = mt9p012_find_isize(pix->width);
 
 	/* common register initialization */
 	err = mt9p012_write_regs(client, sensor->pdata->default_regs);
-
 	if (err)
 		return err;
 
@@ -970,18 +960,15 @@ static int mt9p012_configure(struct v4l2_int_device *s)
 
 	/* configure image size and pixel format */
 	err = mt9p012_write_regs(client, mt9p012_reg_init[fps_index][isize]);
-
 	if (err)
 		return err;
 
 	/* configure frame rate */
-	err = mt9p012_calc_pll(isize, xclk, sensor);
-
+	err = mt9p012_calc_pll(isize, xclk_current, sensor);
 	if (err)
 		return err;
 
 	/* configure streaming ON */
-	mdelay(20);
 	err = mt9p012_write_regs(client, stream_on_list);
 
 	return err;
@@ -1229,8 +1216,6 @@ static int ioctl_s_fmt_cap(struct v4l2_int_device *s,
 	else
 		sensor->pix = *pix;
 
-	rval = mt9p012_configure(s);
-
 	return rval;
 }
 
@@ -1289,21 +1274,14 @@ static int ioctl_s_parm(struct v4l2_int_device *s,
 			     struct v4l2_streamparm *a)
 {
 	struct mt9p012_sensor *sensor = s->priv;
+	struct i2c_client *client = sensor->i2c_client;
 	struct v4l2_fract *timeperframe = &a->parm.capture.timeperframe;
-	struct v4l2_fract timeperframe_old;
-	int rval;
 
-	timeperframe_old = sensor->timeperframe;
 	sensor->timeperframe = *timeperframe;
+	mt9p012sensor_calc_xclk(client);
+	*timeperframe = sensor->timeperframe;
 
-	rval = mt9p012_configure(s);
-
-	if (rval)
-		sensor->timeperframe = timeperframe_old;
-	else
-		*timeperframe = sensor->timeperframe;
-
-	return rval;
+	return 0;
 }
 
 /**
@@ -1319,17 +1297,13 @@ static int ioctl_s_parm(struct v4l2_int_device *s,
 static int ioctl_g_ifparm(struct v4l2_int_device *s, struct v4l2_ifparm *p)
 {
 	struct mt9p012_sensor *sensor = s->priv;
-	struct i2c_client *client = sensor->i2c_client;
-	u32 xclk;	/* target xclk */
 	int rval;
 
 	rval = sensor->pdata->ifparm(p);
 	if (rval)
 		return rval;
 
-	xclk = mt9p012sensor_calc_xclk(client);
-
-	p->u.bt656.clock_curr = xclk;
+	p->u.bt656.clock_curr = xclk_current;
 
 	return 0;
 }
@@ -1359,8 +1333,44 @@ static int ioctl_g_priv(struct v4l2_int_device *s, void *p)
 static int ioctl_s_power(struct v4l2_int_device *s, enum v4l2_power on)
 {
 	struct mt9p012_sensor *sensor = s->priv;
+	struct i2c_client *c = sensor->i2c_client;
+	struct v4l2_ifparm p;
+	int rval;
 
-	return sensor->pdata->power_set(on);
+	rval = ioctl_g_ifparm(s, &p);
+	if (rval) {
+		dev_err(&c->dev, "Unable to get if params\n");
+		return rval;	
+	}
+
+	if (on != V4L2_POWER_OFF)
+		isp_set_xclk(p.u.bt656.clock_curr, MT9P012_USE_XCLKA);
+	else
+		isp_set_xclk(0, MT9P012_USE_XCLKA);
+
+	rval = sensor->pdata->power_set(on);
+	if (rval < 0) {
+		dev_err(&c->dev, "Unable to set the power state: " DRIVER_NAME 
+								" sensor\n");
+		isp_set_xclk(0, MT9P012_USE_XCLKA);
+		return rval;
+	}
+		
+	if ((on == V4L2_POWER_ON) && (sensor->state == SENSOR_NOT_DETECTED)) {
+		rval = mt9p012_detect(c);
+		if (rval < 0) {
+			dev_err(&c->dev, "Unable to detect " DRIVER_NAME 
+								" sensor\n");
+			sensor->state = SENSOR_NOT_DETECTED;
+			return rval;
+		}
+		sensor->state = SENSOR_DETECTED;
+		sensor->ver = rval;
+		pr_info(DRIVER_NAME " chip version 0x%02x detected\n",
+								sensor->ver);
+	}
+
+	return 0;
 }
 
 /**
@@ -1628,6 +1638,7 @@ static struct mt9p012_sensor mt9p012 = {
 		.numerator = 1,
 		.denominator = 15,
 	},
+	.state = SENSOR_NOT_DETECTED,
 };
 
 /**
@@ -1648,7 +1659,7 @@ static int __init mt9p012sensor_init(void)
 
 	return 0;
 }
-module_init(mt9p012sensor_init);
+late_initcall(mt9p012sensor_init);
 
 /**
  * mt9p012sensor_cleanup - sensor driver module_exit handler
