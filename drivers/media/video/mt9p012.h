@@ -158,6 +158,7 @@
 #define VIDEO_HEIGHT_4X_BINN	486
 /* To improve image quality in VGA */
 #define CIF_PIXELS		(352 * 288)
+#define QQVGA_PIXELS		(160 * 120)
 
 /* Video mode, for QCIF, SQCIF */
 #define VIDEO_WIDTH_4X_BINN_SCALED      216

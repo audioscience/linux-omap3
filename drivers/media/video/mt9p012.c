@@ -812,7 +812,7 @@ mt9p012_calc_pll(enum image_size isize,
 }
 
 /**
- * mt9p012_find_size - Find the best match for a requested image capture size
+ * mt9p012_calc_size - Find the best match for a requested image capture size
  * @width: requested image width in pixels
  * @height: requested image height in pixels
  *
@@ -821,8 +821,8 @@ mt9p012_calc_pll(enum image_size isize,
  * as the requested size, or the smallest image size if the requested size
  * has fewer pixels than the smallest image.
  */
-static enum image_size
-mt9p012_find_size(unsigned int width, unsigned int height)
+static enum image_size mt9p012_calc_size(unsigned int width,
+							unsigned int height)
 {
 	enum image_size isize;
 	unsigned long pixels = width * height;
@@ -831,9 +831,12 @@ mt9p012_find_size(unsigned int width, unsigned int height)
 		if (mt9p012_sizes[isize].height *
 					mt9p012_sizes[isize].width >= pixels) {
 			/* To improve image quality in VGA */
-			if ((pixels > CIF_PIXELS) && (isize == BIN4X))
+			if ((pixels > CIF_PIXELS) && (isize == BIN4X)) {
 				isize = BIN2X;
-
+			} else if ((pixels > QQVGA_PIXELS) &&
+							(isize == BIN4XSCALE)) {
+				isize = BIN4X;
+			}
 			return isize;
 		}
 	}
@@ -841,6 +844,27 @@ mt9p012_find_size(unsigned int width, unsigned int height)
 	return FIVE_MP;
 }
 
+/**
+ * mt9p012_find_isize - Find the best match for a requested image capture size
+ * @width: requested image width in pixels
+ * @height: requested image height in pixels
+ *
+ * Find the best match for a requested image capture size.  The best match
+ * is chosen as the nearest match that has the same number or fewer pixels
+ * as the requested size, or the smallest image size if the requested size
+ * has fewer pixels than the smallest image.
+ */
+static enum image_size mt9p012_find_isize(unsigned int width)
+{
+	enum image_size isize;
+
+	for (isize = BIN4XSCALE; isize <= FIVE_MP; isize++) {
+		if (mt9p012_sizes[isize].width >= width)
+			break;
+	}
+
+	return isize;
+}
 /**
  * mt9p012_find_fps_index - Find the best fps range match for a
  *  requested frame rate
@@ -934,7 +958,7 @@ static int mt9p012_configure(struct v4l2_int_device *s)
 		break;
 	}
 	xclk = mt9p012sensor_calc_xclk(client);
-	isize = mt9p012_find_size(pix->width, pix->height);
+	isize = mt9p012_find_isize(pix->width);
 
 	/* common register initialization */
 	err = mt9p012_write_regs(client, sensor->pdata->default_regs);
@@ -1147,8 +1171,10 @@ static int ioctl_try_fmt_cap(struct v4l2_int_device *s,
 	enum image_size isize;
 	int ifmt;
 	struct v4l2_pix_format *pix = &f->fmt.pix;
+	struct mt9p012_sensor *sensor = s->priv;
+	struct v4l2_pix_format *pix2 = &sensor->pix;
 
-	isize = mt9p012_find_size(pix->width, pix->height);
+	isize = mt9p012_calc_size(pix->width, pix->height);
 
 	pix->width = mt9p012_sizes[isize].width;
 	pix->height = mt9p012_sizes[isize].height;
@@ -1160,13 +1186,12 @@ static int ioctl_try_fmt_cap(struct v4l2_int_device *s,
 		ifmt = 0;
 	pix->pixelformat = mt9p012_formats[ifmt].pixelformat;
 	pix->field = V4L2_FIELD_NONE;
-	pix->bytesperline = pix->width*2;
-	pix->sizeimage = pix->bytesperline*pix->height;
+	pix->bytesperline = pix->width * 2;
+	pix->sizeimage = pix->bytesperline * pix->height;
 	pix->priv = 0;
 	switch (pix->pixelformat) {
 	case V4L2_PIX_FMT_YUYV:
 	case V4L2_PIX_FMT_UYVY:
-	default:
 		pix->colorspace = V4L2_COLORSPACE_JPEG;
 		break;
 	case V4L2_PIX_FMT_RGB565:
@@ -1174,9 +1199,11 @@ static int ioctl_try_fmt_cap(struct v4l2_int_device *s,
 	case V4L2_PIX_FMT_RGB555:
 	case V4L2_PIX_FMT_SGRBG10:
 	case V4L2_PIX_FMT_RGB555X:
+	default:
 		pix->colorspace = V4L2_COLORSPACE_SRGB;
 		break;
 	}
+	*pix2 = *pix;
 	return 0;
 }
 
