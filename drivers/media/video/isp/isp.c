@@ -101,66 +101,6 @@ static struct vcontrol {
 			.default_value = PREV_DEFAULT_COLOR,
 		},
 		.current_value = PREV_DEFAULT_COLOR,
-	},
-	{
-		{
-			.id = V4L2_CID_PRIVATE_ISP_CCDC_CFG,
-			.type = V4L2_CTRL_TYPE_INTEGER,
-			.name = "CCDC",
-			.minimum = 0,
-			.maximum = 1,
-			.step = 1,
-			.default_value = 0,
-		},
-		.current_value = 0,
-	},
-	{
-		{
-			.id = V4L2_CID_PRIVATE_ISP_PRV_CFG,
-			.type = V4L2_CTRL_TYPE_INTEGER,
-			.name = "Previewer",
-			.minimum = 0,
-			.maximum = 1,
-			.step = 1,
-			.default_value = 0,
-		},
-		.current_value = 0,
-	},
-	{
-		{
-			.id = V4L2_CID_PRIVATE_ISP_LSC_UPDATE,
-			.type = V4L2_CTRL_TYPE_INTEGER,
-			.name = "Tables",
-			.minimum = 0,
-			.maximum = 1,
-			.step = 1,
-			.default_value = 0,
-		},
-		.current_value = 0,
-	},
-	{
-		{
-			.id = V4L2_CID_PRIVATE_ISP_AEWB_CFG,
-			.type = V4L2_CTRL_TYPE_INTEGER,
-			.name = "Auto Exposure, Auto WB Config",
-			.minimum = 0,
-			.maximum = 1,
-			.step = 1,
-			.default_value = 0,
-		},
-		.current_value = 0,
-	},
-	{
-		{
-			.id = V4L2_CID_PRIVATE_ISP_AEWB_REQ,
-			.type = V4L2_CTRL_TYPE_INTEGER,
-			.name = "AEWB Request Statistics",
-			.minimum = 0,
-			.maximum = 1,
-			.step = 1,
-			.default_value = 0,
-		},
-		.current_value = 0,
 	}
 };
 
@@ -1448,21 +1388,6 @@ int isp_g_ctrl(struct v4l2_control *a)
 		isppreview_get_color(&current_value);
 		a->value = current_value;
 		break;
-	case V4L2_CID_PRIVATE_ISP_CCDC_CFG:
-		a->value = 0;
-		break;
-	case V4L2_CID_PRIVATE_ISP_PRV_CFG:
-		a->value = 0;
-		break;
-	case V4L2_CID_PRIVATE_ISP_LSC_UPDATE:
-		a->value = 0;
-		break;
-	case V4L2_CID_PRIVATE_ISP_AEWB_CFG:
-		a->value = 0;
-		break;
-	case V4L2_CID_PRIVATE_ISP_AEWB_REQ:
-		a->value = 0;
-		break;
 	default:
 		rval = -EINVAL;
 		break;
@@ -1504,48 +1429,71 @@ int isp_s_ctrl(struct v4l2_control *a)
 		else
 			isppreview_set_color(&new_value);
 		break;
-	case V4L2_CID_PRIVATE_ISP_CCDC_CFG:
-		omap34xx_isp_ccdc_config((void *)a->value);
+	default:
+		rval = -EINVAL;
 		break;
-	case V4L2_CID_PRIVATE_ISP_PRV_CFG:
-		omap34xx_isp_preview_config((void *)a->value);
+	}
+
+	return rval;
+}
+
+/**
+ * isp_handle_private - Handle all private ioctls for isp module.
+ * @cmd: ioctl cmd value
+ * @arg: ioctl arg value
+ *
+ * Return 0 if successful, -EINVAL if chosen cmd value is not handled or value
+ * is out of bounds, -EFAULT if ioctl arg value is not valid.
+ * Function simply routes the input ioctl cmd id to the appropriate handler in
+ * the isp module.
+ **/
+int isp_handle_private(int cmd, void *arg)
+{
+	int rval = 0;
+
+	switch (cmd) {
+	case VIDIOC_PRIVATE_ISP_CCDC_CFG:
+		omap34xx_isp_ccdc_config(arg);
 		break;
-	case V4L2_CID_PRIVATE_ISP_LSC_UPDATE:
-		omap34xx_isp_tables_update((void *)a->value);
-		omap34xx_isp_lsc_update((void *)a->value);
+	case VIDIOC_PRIVATE_ISP_PRV_CFG:
+		omap34xx_isp_preview_config(arg);
 		break;
-	case V4L2_CID_PRIVATE_ISP_AEWB_CFG:
-		if (!a->value)
+	case VIDIOC_PRIVATE_ISP_AEWB_CFG:
+		if (!arg)
 			rval = -EFAULT;
 		else {
-			struct isph3a_aewb_config params;
-			if (copy_from_user(&params, (void *)a->value,
-							sizeof(params))) {
-				rval = -EFAULT;
-				printk(KERN_ERR "Failed copy_from_user\n");
-			} else
-				rval = isph3a_aewb_configure(&params);
+			struct isph3a_aewb_config *params;
+			params = (struct isph3a_aewb_config *) arg;
+			rval = isph3a_aewb_configure(params);
 		}
 		break;
-	case V4L2_CID_PRIVATE_ISP_AEWB_REQ:
-		if (!a->value)
+	case VIDIOC_PRIVATE_ISP_AEWB_REQ:
+		if (!arg)
 			rval = -EFAULT;
 		else {
-			struct isph3a_aewb_data data;
-			if (copy_from_user(&data, (void *)a->value,
-							sizeof(data))) {
-				rval = -EFAULT;
-				printk(KERN_ERR "Failed copy_from_user\n");
-				break;
-			}
-			rval = isph3a_aewb_request_statistics(&data);
-			if (!rval)
-				if (copy_to_user((void *)a->value, &data,
-							sizeof(data))) {
-					rval = -EFAULT;
-					printk(KERN_ERR
-						"Failed copy_to_user\n");
-				}
+			struct isph3a_aewb_data *data;
+			data = (struct isph3a_aewb_data *) arg;
+			rval = isph3a_aewb_request_statistics(data);
+		}
+		break;
+	case VIDIOC_PRIVATE_ISP_HIST_CFG:
+	if (!arg)
+			rval = -EFAULT;
+		else {
+			struct isp_hist_config *params;
+
+			params = (struct isp_hist_config *) arg;
+			rval = isp_hist_configure(params);
+		}
+		break;
+	case VIDIOC_PRIVATE_ISP_HIST_REQ:
+	if (!arg)
+			rval = -EFAULT;
+		else {
+			struct isp_hist_data *data;
+
+			data = (struct isp_hist_data *) arg;
+			rval = isp_hist_request_statistics(data);
 		}
 		break;
 	default:

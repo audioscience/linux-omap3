@@ -1012,12 +1012,9 @@ static int vidioc_g_ctrl(struct file *file, void *fh, struct v4l2_control *a)
  * @a: standard V4L2 control structure
  *
  * If the sensor being used is a "smart sensor", this request is passed to
- * the sensor driver.  Otherwise if the control id is the private
- * V4L2_CID_PRIVATE_ISP_AEWB_REQ from the ISP for analog gain or exposure,
- * then this request is forwared directly to the sensor driver.  Otherwise,
- * the ISP is queried and if it does not support the requested control,
- * the request is forwarded to the "raw" sensor driver to see if it supports
- * it.
+ * the sensor driver.  Otherwise, the ISP is queried and if it does not
+ * support the requested control, the request is forwarded to the "raw"
+ * sensor driver to see if it supports it.
  * If one of these supports the control, the current value of the control
  * is returned in the v4l2_control structure.  Otherwise, -EINVAL is
  * returned if the control is not supported.
@@ -1033,37 +1030,11 @@ static int vidioc_s_ctrl(struct file *file, void *fh, struct v4l2_control *a)
 	if (sens->sensor_isp) {
 		rval = vidioc_int_s_ctrl(cam->sdev, a);
 	} else {
-		if (a->id == V4L2_CID_PRIVATE_ISP_AEWB_REQ) {
-			/* Need to update sensor first */
-			struct isph3a_aewb_data data;
-			struct v4l2_control vc;
-			if (copy_from_user(&data, (void *)a->value,
-					   sizeof(data))) {
-				rval = -EFAULT;
-				printk(KERN_ERR "Failed copy_from_user\n");
-				goto out;
-			}
-			if (data.update & SET_EXPOSURE) {
-				vc.id = V4L2_CID_EXPOSURE;
-				vc.value = data.shutter;
-				rval = vidioc_int_s_ctrl(cam->sdev, &vc);
-				if (rval)
-					goto out;
-			}
-			if (data.update & SET_ANALOG_GAIN) {
-				vc.id = V4L2_CID_GAIN;
-				vc.value = data.gain;
-				rval = vidioc_int_s_ctrl(cam->sdev, &vc);
-				if (rval)
-					goto out;
-			}
-		}
 		rval = isp_s_ctrl(a);
 		/* If control not supported on ISP, try sensor */
 		if (rval)
 			rval = vidioc_int_s_ctrl(cam->sdev, a);
 	}
-out:
 	mutex_unlock(&cam->mutex);
 
 	return rval;
@@ -1410,6 +1381,77 @@ static int omap34xxcam_release(struct inode *inode, struct file *file)
 	return 0;
 }
 
+/**
+ * omap34xxcam_handle_private - private IOCTL handler
+ * @inode: ptr. to system inode structure
+ * @file: ptr. to system file structure
+ * @fh: ptr to hold address of omap34xxcam_fh struct (per-filehandle data)
+ * @cmd: ioctl cmd value
+ * @arg: ioctl arg value
+ *
+ * If the sensor being used is a "smart sensor", this request is returned to
+ * caller with -EINVAL err code.  Otherwise if the control id is the private
+ * VIDIOC_PRIVATE_ISP_AEWB_REQ to update the analog gain or exposure,
+ * then this request is forwared directly to the sensor to incorporate the
+ * feedback. The request is then passed on to the ISP private IOCTL handler,
+ * isp_handle_private()
+ */
+static int omap34xxcam_handle_private(struct file *file, void *fh,
+							int cmd, void *arg)
+{
+	struct omap34xxcam_fh *ofh = file->private_data;
+	struct omap34xxcam_device *cam = ofh->cam;
+	struct omap34xxcam_sensor *sens = &cam->sens;
+	int rval;
+
+	mutex_lock(&cam->mutex);
+
+	if (sens->sensor_isp) {
+		rval = -EINVAL;
+	} else {
+		switch (cmd) {
+		case VIDIOC_PRIVATE_ISP_AEWB_REQ:
+		{
+			/* Need to update sensor first */
+			struct isph3a_aewb_data *data;
+			struct v4l2_control vc;
+
+			data = (struct isph3a_aewb_data *) arg;
+			if (data->update & SET_EXPOSURE) {
+				vc.id = V4L2_CID_EXPOSURE;
+				vc.value = data->shutter;
+				rval = vidioc_int_s_ctrl(cam->sdev, &vc);
+				if (rval)
+					goto out;
+			}
+			if (data->update & SET_ANALOG_GAIN) {
+				vc.id = V4L2_CID_GAIN;
+				vc.value = data->gain;
+				rval = vidioc_int_s_ctrl(cam->sdev, &vc);
+				if (rval)
+					goto out;
+			}
+		}
+		default:
+			rval = isp_handle_private(cmd, arg);
+		}
+	}
+out:
+	mutex_unlock(&cam->mutex);
+	return rval;
+}
+
+/**
+ * omap34xxcam_unlocked_ioctl - unlocked (unserialized) IOCTL handler
+ * @file: ptr. to system file structure
+ * @cmd: ioctl cmd value
+ * @arg: ioctl arg value
+ *
+ * Unlocked (unserialized) ioctl handler for the camera driver.
+ * Checks if the IOCTL is in the private ioctl range, and if so
+ * calls the local private ioctl handler omap34xxcam_handle_private(),
+ * otherwise it calls the V4L2 provided ioctl handler (video_ioctl2).
+ */
 static long omap34xxcam_unlocked_ioctl(struct file *file, unsigned int cmd,
 							unsigned long arg)
 {
@@ -1523,6 +1565,7 @@ static int omap34xxcam_device_register(struct v4l2_int_device *s)
 	vfd->vidioc_cropcap = vidioc_cropcap;
 	vfd->vidioc_g_crop = vidioc_g_crop;
 	vfd->vidioc_s_crop = vidioc_s_crop;
+	vfd->vidioc_default = omap34xxcam_handle_private;
 
 	rval = omap34xxcam_sensor_init(cam);
 	if (rval)
