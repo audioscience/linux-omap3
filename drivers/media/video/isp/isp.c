@@ -858,7 +858,7 @@ static irqreturn_t omap34xx_isp_isr(int irq, void *ispirq_disp)
 	}
 
 	if (irqstatus & LSC_PRE_ERR) {
-		DPRINTK_ISPCTRL("isp_sr: LSC_PRE_ERR \n");
+		printk(KERN_ERR "isp_sr: LSC_PRE_ERR \n");
 		omap_writel(irqstatus, ISP_IRQ0STATUS);
 		ispccdc_enable_lsc(0);
 		ispccdc_enable_lsc(1);
@@ -972,6 +972,7 @@ void isp_stop()
 	}
 
 	if (ispmodule_obj.isp_pipeline & OMAP_ISP_CCDC) {
+		ispccdc_enable_lsc(0);
 		ispccdc_enable(0);
 		timeout = 0;
 		while (ispccdc_busy() && (timeout < 20)) {
