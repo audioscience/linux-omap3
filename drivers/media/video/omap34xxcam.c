@@ -544,18 +544,12 @@ static int vidioc_g_fmt_cap(struct file *file, void *fh, struct v4l2_format *f)
 {
 	struct omap34xxcam_fh *ofh = fh;
 	struct omap34xxcam_videodev *vdev = ofh->vdev;
-	int rval;
 
 	mutex_lock(&vdev->mutex);
-	if (vdev->vdev_sensor_config.sensor_isp) {
-		rval = vidioc_int_g_fmt_cap(vdev->vdev_sensor, f);
-	} else {
-		isp_g_fmt_cap(f);
-		rval = 0;
-	}
+	f->fmt.pix = ofh->pix;
 	mutex_unlock(&vdev->mutex);
 
-	return rval;
+	return 0;
 }
 
 /**
@@ -572,6 +566,7 @@ static int vidioc_s_fmt_cap(struct file *file, void *fh, struct v4l2_format *f)
 	struct omap34xxcam_fh *ofh = fh;
 	struct omap34xxcam_videodev *vdev = ofh->vdev;
 	struct v4l2_pix_format *pix = &f->fmt.pix;
+	struct v4l2_pix_format pix_tmp;
 	int rval;
 
 	mutex_lock(&vdev->mutex);
@@ -580,27 +575,25 @@ static int vidioc_s_fmt_cap(struct file *file, void *fh, struct v4l2_format *f)
 		goto out;
 	}
 
-	ofh->pix.width = f->fmt.pix.width;
-	ofh->pix.height = f->fmt.pix.height;
-	ofh->pix.pixelformat = f->fmt.pix.pixelformat;
+	pix_tmp.width = f->fmt.pix.width;
+	pix_tmp.height = f->fmt.pix.height;
+	pix_tmp.pixelformat = f->fmt.pix.pixelformat;
 	/* Always negotiate with the sensor first */
 	rval = vidioc_int_s_fmt_cap(vdev->vdev_sensor, f);
 	if (rval)
 		goto out;
 
 	/* Negotiate with OMAP3 ISP */
-	rval = isp_s_fmt_cap(pix, &ofh->pix);
+	rval = isp_s_fmt_cap(pix, &pix_tmp);
 out:
 	mutex_unlock(&vdev->mutex);
 
 	if (!rval) {
 		mutex_lock(&ofh->vbq.vb_lock);
-		ofh->pix = f->fmt.pix;
+		*pix = ofh->pix = pix_tmp;
 		mutex_unlock(&ofh->vbq.vb_lock);
 	}
 
-	memset(f, 0, sizeof(*f));
-	rval = vidioc_g_fmt_cap(file, fh, f);
 	return rval;
 }
 
@@ -619,18 +612,19 @@ static int vidioc_try_fmt_cap(struct file *file, void *fh,
 	struct omap34xxcam_fh *ofh = fh;
 	struct omap34xxcam_videodev *vdev = ofh->vdev;
 	struct v4l2_pix_format *pix = &f->fmt.pix;
-	struct v4l2_pix_format pix_out;
+	struct v4l2_pix_format pix_tmp;
 	int rval;
 
 	mutex_lock(&vdev->mutex);
-	pix_out.width = f->fmt.pix.width;
-	pix_out.height = f->fmt.pix.height;
-	pix_out.pixelformat = f->fmt.pix.pixelformat;
+	pix_tmp.width = f->fmt.pix.width;
+	pix_tmp.height = f->fmt.pix.height;
+	pix_tmp.pixelformat = f->fmt.pix.pixelformat;
 	rval = vidioc_int_try_fmt_cap(vdev->vdev_sensor, f);
 	if (rval)
 		goto out;
 
-	rval = isp_try_fmt_cap(pix, &pix_out);
+	rval = isp_try_fmt_cap(pix, &pix_tmp);
+	*pix = pix_tmp;
 
 out:
 	mutex_unlock(&vdev->mutex);
