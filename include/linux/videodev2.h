@@ -1309,6 +1309,13 @@ struct v4l2_sliced_vbi_data
 	__u8    data[48];
 };
 
+/* VIDIOC_G_PRIV_MEM */
+struct v4l2_priv_mem {
+	__u32 offset;   /* offset to data */
+	__u32 length;   /* memory allocated to ptr or read length */
+	void *ptr;      /* pointer to allocated memory */
+};
+
 /*
  *	A G G R E G A T E   S T R U C T U R E S
  */
@@ -1440,6 +1447,7 @@ struct v4l2_chip_ident {
 #define	VIDIOC_DBG_G_REGISTER 	_IOWR ('V', 80, struct v4l2_register)
 
 #define VIDIOC_G_CHIP_IDENT     _IOWR ('V', 81, struct v4l2_chip_ident)
+#define VIDIOC_G_PRIV_MEM      _IOWR ('V', 82, struct v4l2_priv_mem)
 #endif
 
 #ifdef __OLD_VIDIOC_
