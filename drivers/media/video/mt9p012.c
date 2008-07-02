@@ -1302,7 +1302,7 @@ static int ioctl_g_priv(struct v4l2_int_device *s, void *p)
  *
  * Sets devices power state to requrested state, if possible.
  */
-static int ioctl_s_power(struct v4l2_int_device *s, int on)
+static int ioctl_s_power(struct v4l2_int_device *s, enum v4l2_power on)
 {
 	struct mt9p012_sensor *sensor = s->priv;
 
