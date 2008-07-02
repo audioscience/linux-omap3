@@ -488,10 +488,24 @@ static int mt9p012_sensor_set_prv_data(void *priv)
 	return 0;
 }
 
-static int mt9p012_sensor_power_set(int power)
+static int mt9p012_sensor_power_set(enum v4l2_power power)
 {
-	if (power) {
-	/* Power Up Sequence */
+	switch (power) {
+	case V4L2_POWER_OFF:
+		/* Power Down Sequence */
+#ifdef CONFIG_TWL4030_CORE
+		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+				VAUX_DEV_GRP_NONE, TWL4030_VAUX2_DEV_GRP);
+#else
+#error "no power companion board defined!"
+#endif
+		enable_fpga_vio_1v8(0);
+		omap_free_gpio(MT9P012_RESET_GPIO);
+		iounmap(fpga_map_addr);
+		omap_free_gpio(MT9P012_STANDBY_GPIO);
+		break;
+	case V4L2_POWER_ON:
+		/* Power Up Sequence */
 
 		/* Request and configure gpio pins */
 		if (omap_request_gpio(MT9P012_STANDBY_GPIO) != 0) {
@@ -541,19 +555,18 @@ static int mt9p012_sensor_power_set(int power)
 		/* give sensor sometime to get out of the reset. Datasheet says
 		   2400 xclks. At 6 MHz, 400 usec are enough */
 		udelay(300);
-	} else {
-		/* Power Down Sequence */
-#ifdef CONFIG_TWL4030_CORE
-		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
-				VAUX_DEV_GRP_NONE, TWL4030_VAUX2_DEV_GRP);
-#else
-#error "no power companion board defined!"
-#endif
-		enable_fpga_vio_1v8(0);
-
-		omap_free_gpio(MT9P012_RESET_GPIO);
-		iounmap(fpga_map_addr);
-		omap_free_gpio(MT9P012_STANDBY_GPIO);
+		CONTROL_PADCONF_CAM_FLD = 0x01003B1C;
+		omap_set_gpio_direction(MT9P012_RESET_GPIO, GPIO_DIR_INPUT);
+		break;
+	case V4L2_POWER_STANDBY:
+		/* stand by */
+		omap_set_gpio_dataout(MT9P012_STANDBY_GPIO, 1);
+		break;
+	case V4L2_POWER_RESUME:
+		/* out of standby */
+		omap_set_gpio_dataout(MT9P012_STANDBY_GPIO, 0);
+		udelay(1000);
+		break;
 	}
 
     return 0;
