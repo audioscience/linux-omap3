@@ -149,7 +149,7 @@ static struct isp {
 	u8 interfacetype;
 	int ref_count;
 	struct clk *cam_ick;
-	struct clk *cam_fck;
+	struct clk *cam_mclk;
 } isp_obj;
 
 struct isp_sgdma ispsg;
@@ -1982,33 +1982,27 @@ int isp_get(void)
 	DPRINTK_ISPCTRL("isp_get: old %d\n", isp_obj.ref_count);
 	mutex_lock(&(isp_obj.isp_mutex));
 	if (isp_obj.ref_count == 0) {
-		isp_obj.cam_ick = clk_get(&camera_dev, "cam_l3_ick");
+		isp_obj.cam_ick = clk_get(&camera_dev, "cam_ick");
 		if (IS_ERR(isp_obj.cam_ick)) {
-			mutex_unlock(&(isp_obj.isp_mutex));
-			DPRINTK_ISPCTRL("ISP_ERR: clk_get for ick failed\n");
-			return PTR_ERR(isp_obj.cam_ick);
+			DPRINTK_ISPCTRL("ISP_ERR: clk_get for cam_ick failed\n");
+			ret_err = PTR_ERR(isp_obj.cam_ick);
+			goto out_clk_get_ick;
 		}
-		isp_obj.cam_fck = clk_get(&camera_dev, "cam_mclk");
-		if (IS_ERR(isp_obj.cam_fck)) {
-			mutex_unlock(&(isp_obj.isp_mutex));
-			DPRINTK_ISPCTRL("ISP_ERR: clk_get for fck failed\n");
-			return PTR_ERR(isp_obj.cam_fck);
+		isp_obj.cam_mclk = clk_get(&camera_dev, "cam_mclk");
+		if (IS_ERR(isp_obj.cam_mclk)) {
+			DPRINTK_ISPCTRL("ISP_ERR: clk_get for cam_mclk failed\n");
+			ret_err = PTR_ERR(isp_obj.cam_mclk);
+			goto out_clk_get_mclk;
 		}
 		ret_err = clk_enable(isp_obj.cam_ick);
 		if (ret_err) {
-			mutex_unlock(&(isp_obj.isp_mutex));
-			clk_put(isp_obj.cam_ick);
-			clk_put(isp_obj.cam_fck);
 			DPRINTK_ISPCTRL("ISP_ERR: clk_en for ick failed\n");
-			return ret_err;
+			goto out_clk_enable_ick;
 		}
-		ret_err = clk_enable(isp_obj.cam_fck);
+		ret_err = clk_enable(isp_obj.cam_mclk);
 		if (ret_err) {
-			mutex_unlock(&(isp_obj.isp_mutex));
-			clk_put(isp_obj.cam_ick);
-			clk_put(isp_obj.cam_fck);
-			DPRINTK_ISPCTRL("ISP_ERR: clk_en for fck failed\n");
-			return ret_err;
+			DPRINTK_ISPCTRL("ISP_ERR: clk_en for mclk failed\n");
+			goto out_clk_enable_mclk;
 		}
 		if (off_mode == 1)
 			isp_restore_ctx();
@@ -2019,6 +2013,18 @@ int isp_get(void)
 
 	DPRINTK_ISPCTRL("isp_get: new %d\n", isp_obj.ref_count);
 	return isp_obj.ref_count;
+
+out_clk_enable_mclk:
+	clk_disable(isp_obj.cam_ick);
+out_clk_enable_ick:
+	clk_put(isp_obj.cam_mclk);
+out_clk_get_mclk:
+	clk_put(isp_obj.cam_ick);
+out_clk_get_ick:
+
+	mutex_unlock(&(isp_obj.isp_mutex));
+
+	return ret_err;
 }
 EXPORT_SYMBOL(isp_get);
 
@@ -2037,9 +2043,9 @@ int isp_put(void)
 			off_mode = 1;
 
 			clk_disable(isp_obj.cam_ick);
-			clk_disable(isp_obj.cam_fck);
+			clk_disable(isp_obj.cam_mclk);
 			clk_put(isp_obj.cam_ick);
-			clk_put(isp_obj.cam_fck);
+			clk_put(isp_obj.cam_mclk);
 		}
 	mutex_unlock(&(isp_obj.isp_mutex));
 	DPRINTK_ISPCTRL("isp_put: new %d\n", isp_obj.ref_count);
