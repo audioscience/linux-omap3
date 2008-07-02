@@ -32,16 +32,24 @@
 #define OMAP34XXCAM_XCLK_A	0
 #define OMAP34XXCAM_XCLK_B	1
 
-struct omap34xxcam_device;
+#define OMAP34XXCAM_SLAVE_SENSOR	0
+#define OMAP34XXCAM_SLAVE_LENS		1
+#define OMAP34XXCAM_SLAVE_FLASH		2 /* This is the last slave! */
 
-/**
- * struct omap34xxcam_sensor - sensor information structure
- * @xclk: OMAP34XXCAM_XCLK_A or OMAP34XXCAM_XCLK_B
- * @sensor_isp: Is sensor smart/SOC or raw
- */
-struct omap34xxcam_sensor {
+#define OMAP34XXCAM_VIDEODEVS		4
+
+struct omap34xxcam_device;
+struct omap34xxcam_videodev;
+
+struct omap34xxcam_sensor_config {
 	int xclk;
 	int sensor_isp;
+};
+
+struct omap34xxcam_lens_config {
+};
+
+struct omap34xxcam_flash_config {
 };
 
 /**
@@ -52,51 +60,96 @@ struct omap34xxcam_sensor {
  * Pix will override sparm
  */
 struct omap34xxcam_hw_config {
-	int xclk;
-	int sensor_isp;
-	int (*s_pix_sparm) (struct omap34xxcam_device *cam,
-			    struct v4l2_pix_format *pix,
-			    struct v4l2_streamparm *parm);
+	int dev_index; /* Index in omap34xxcam_sensors */
+	int dev_minor; /* Video device minor number */
+	int dev_type; /* OMAP34XXCAM_SLAVE_* */
+	union {
+		struct omap34xxcam_sensor_config sensor;
+		struct omap34xxcam_lens_config lens;
+		struct omap34xxcam_flash_config flash;
+	} u;
+};
+
+/**
+ * struct omap34xxcam_videodev - per /dev/video* structure
+ * @mutex: serialises access to this structure
+ * @cam: pointer to cam hw structure
+ * @master: we are v4l2_int_device master
+ * @sensor: sensor device
+ * @lens: lens device
+ * @flash: flash device
+ * @slaves: how many slaves we have at the moment
+ * @vfd: our video device
+ * @capture_mem: maximum kernel-allocated capture memory
+ * @if_u: sensor interface stuff
+ * @index: index of this structure in cam->vdevs
+ * @users: how many users we have
+ * @sensor_config: ISP-speicific sensor configuration
+ * @lens_config: ISP-speicific lens configuration
+ * @flash_config: ISP-speicific flash configuration
+ * @streaming: streaming file handle, if streaming is enabled
+ */
+struct omap34xxcam_videodev {
+	struct mutex mutex;
+
+	struct omap34xxcam_device *cam;
+	struct v4l2_int_device master;
+
+#define vdev_sensor slave[OMAP34XXCAM_SLAVE_SENSOR]
+#define vdev_lens slave[OMAP34XXCAM_SLAVE_LENS]
+#define vdev_flash slave[OMAP34XXCAM_SLAVE_FLASH]
+	struct v4l2_int_device *slave[OMAP34XXCAM_SLAVE_FLASH + 1];
+
+	/* number of slaves attached */
+	int slaves;
+
+	/*** video device parameters ***/
+	struct video_device *vfd;
+	int capture_mem;
+
+	/*** general driver state information ***/
+	/*
+	 * Sensor interface parameters: interface type, CC_CTRL
+	 * register value and interface specific data.
+	 */
+	union {
+		struct parallel {
+			u32 xclk;
+		} bt656;
+	} if_u;
+	/* index to omap34xxcam_videodevs of this structure */
+	int index;
+	atomic_t users;
+
+#define vdev_sensor_config slave_config[OMAP34XXCAM_SLAVE_SENSOR].u.sensor
+#define vdev_lens_config slave_config[OMAP34XXCAM_SLAVE_LENS].u.lens
+#define vdev_flash_config slave_config[OMAP34XXCAM_SLAVE_FLASH].u.flash
+	struct omap34xxcam_hw_config slave_config[OMAP34XXCAM_SLAVE_FLASH + 1];
+
+	/*** capture data ***/
+	/* file handle, if streaming is on */
+	struct file *streaming;
 };
 
 /**
  * struct omap34xxcam_device - per-device data structure
- * @mutex: mutex serialises access to this structure. Also camera
- * opening and releasing is synchronised by this.
- * @users: user (open file handle) count.
+ * @mutex: mutex serialises access to this structure
  * @sgdma_in_queue: Number or sgdma requests in scatter-gather queue,
  * protected by the lock above.
- * @sens: Sensor interface parameters
- * @if_u: interface type
- * @cc_ctrl: CC_CTRL register value
  * @sgdma: ISP sgdma subsystem information structure
  * @dma_notify: DMA notify flag
  * @irq: irq number platform HW resource
  * @mmio_base: register map memory base (platform HW resource)
  * @mmio_base_phys: register map memory base physical address
  * @mmio_size: register map memory size
- * @sdev: V4L2 device structure
  * @dev: device structure
- * @vfd: video device file handle
- * this is non-zero! This exists to help decisionmaking in a case
- * where videobuf_qbuf is called while we are in the middle of
- * a reset.
- * @capture_mem: memory reserved for capturing image data.
+ * @vdevs: /dev/video specific structures
  * @fck: camera module fck clock information
  * @ick: camera module ick clock information
- * @streaming: file handle, if streaming is on.
  */
 struct omap34xxcam_device {
 	struct mutex mutex;
-	atomic_t users;
 	int sgdma_in_queue;
-	struct omap34xxcam_sensor sens;
-	union {
-		struct parallel {
-			u32 xclk;
-		} bt656;
-	} if_u;
-	u32 cc_ctrl;
 	struct isp_sgdma sgdma;
 	int dma_notify;
 
@@ -107,19 +160,13 @@ struct omap34xxcam_device {
 	unsigned long mmio_size;
 
 	/*** interfaces and device ***/
-	struct v4l2_int_device *sdev;
 	struct device *dev;
-	struct video_device *vfd;
-
-	/*** video device parameters ***/
-	int capture_mem;
+	struct omap34xxcam_videodev vdevs[OMAP34XXCAM_VIDEODEVS];
 
 	/*** camera module clocks ***/
 	struct clk *fck;
 	struct clk *ick;
-
-	/*** capture data ***/
-	struct file *streaming;
+	bool sensor_if_enabled;
 };
 
 /**
@@ -128,7 +175,7 @@ struct omap34xxcam_device {
  * @vbq: V4L2 video buffer queue structure
  * @pix: V4L2 pixel format structure (serialise pix by vbq->lock)
  * @field_count: field counter for videobuf_buffer
- * @cam: camera device information structure
+ * @vdev: our /dev/video specific structure
  */
 struct omap34xxcam_fh {
 	spinlock_t vbq_lock;
@@ -136,7 +183,11 @@ struct omap34xxcam_fh {
 	struct v4l2_pix_format pix;
 	atomic_t field_count;
 	/* accessing cam here doesn't need serialisation: it's constant */
-	struct omap34xxcam_device *cam;
+	struct omap34xxcam_videodev *vdev;
 };
+
+int omap34xxcam_sensor_if_enable(struct omap34xxcam_videodev *vdev);
+void omap34xxcam_sensor_if_disable(const struct omap34xxcam_videodev *vdev);
+
 
 #endif /* ifndef OMAP34XXCAM_H */
