@@ -23,6 +23,7 @@
 #include <linux/platform_device.h>
 #include <linux/i2c/twl4030.h>
 #include <linux/power_supply.h>
+#include <asm/mach-types.h>
 
 #define T2_BATTERY_VOLT		0x04
 #define T2_BATTERY_TEMP		0x06
@@ -70,9 +71,11 @@
 #define STS_VBUS		0x080
 #define STS_CHG			0x02
 #define REG_BCIMSTATEC		0x02
-#define REG_BCIMFSTS4		0x010
 #define REG_BCIMFSTS2		0x00E
 #define REG_BCIMFSTS3 		0x00F
+#define REG_BCIMFSTS4		0x010
+#define REG_BCIMFKEY		0x011
+#define REG_BCIIREF1		0x027
 #define REG_BCIMFSTS1		0x001
 #define USBFASTMCHG		0x004
 #define BATSTSPCHG		0x004
@@ -552,6 +555,19 @@ int twl4030charger_usb_en(int enable)
 		if (!(ret & USB_PW_CONN))
 			return -ENXIO;
 
+		if (machine_is_omap_ldp()) {
+			/* enable access to BCIIREF1 */
+			ret = twl4030_i2c_write_u8(TWL4030_MODULE_MAIN_CHARGE,
+				0xE7, REG_BCIMFKEY);
+			if (ret)
+				return ret;
+
+			/* set charging current = 852mA */
+			ret = twl4030_i2c_write_u8(TWL4030_MODULE_MAIN_CHARGE,
+				0xFF, REG_BCIIREF1);
+			if (ret)
+				return ret;
+		}
 		/* forcing the field BCIAUTOUSB (BOOT_BCI[1]) to 1 */
 		ret = clear_n_set(TWL4030_MODULE_PM_MASTER, 0,
 			(CONFIG_DONE | BCIAUTOWEN | BCIAUTOUSB),
