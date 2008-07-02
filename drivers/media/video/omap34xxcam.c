@@ -1398,10 +1398,16 @@ static int omap34xxcam_release(struct inode *inode, struct file *file)
 	return 0;
 }
 
+static long omap34xxcam_unlocked_ioctl(struct file *file, unsigned int cmd,
+							unsigned long arg)
+{
+	return (long)video_ioctl2(file->f_dentry->d_inode, file, cmd, arg);
+}
+
 static struct file_operations omap34xxcam_fops = {
 	.owner = THIS_MODULE,
 	.llseek = no_llseek,
-	.ioctl = video_ioctl2,
+	.unlocked_ioctl = omap34xxcam_unlocked_ioctl,
 	.poll = omap34xxcam_poll,
 	.mmap = omap34xxcam_mmap,
 	.open = omap34xxcam_open,
