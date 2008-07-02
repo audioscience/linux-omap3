@@ -156,6 +156,8 @@
 /* Sensor Video mode size for VGA, CIF, QVGA in 4x binning mode */
 #define VIDEO_WIDTH_4X_BINN		648
 #define VIDEO_HEIGHT_4X_BINN	486
+/* To improve image quality in VGA */
+#define CIF_PIXELS		(352 * 288)
 
 /* Video mode, for QCIF, SQCIF */
 #define VIDEO_WIDTH_4X_BINN_SCALED      216
@@ -214,7 +216,9 @@ enum pixel_format {
 
 #define NUM_IMAGE_SIZES		5
 #define NUM_PIXEL_FORMATS	1
-#define NUM_FPS			3          /* 10/25/30 */
+#define NUM_FPS			2	/* 2 ranges */
+#define FPS_LOW_RANGE		0
+#define FPS_HIGH_RANGE		1
 
 /**
  * struct capture_size - image capture size information
