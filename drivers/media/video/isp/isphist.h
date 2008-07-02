@@ -17,11 +17,7 @@
 #ifndef OMAP_ISP_HIST_H
 #define OMAP_ISP_HIST_H
 
-/* Flags for number of bins */
-#define BINS_32                 0x0
-#define BINS_64                 0x1
-#define BINS_128                0x2
-#define BINS_256                0x3
+#include <asm/arm/isp_user.h>
 
 #define MAX_REGIONS             0x4
 #define MAX_WB_GAIN             255
@@ -85,38 +81,6 @@
     (reg = ((reg & ~ISPHIST_REGVERT_MASK) \
     | (reg_n_vert & ISPHIST_REGVERT_MASK)))
 
-struct isp_hist_config {
-	u8 hist_source;		/* CCDC or Memory */
-	u8 input_bit_width;	/* Needed o know the size per pixel */
-	u8 hist_frames;		/* Num of frames to be processed and
-				 * accumulated
-				 */
-	u8 hist_h_v_info;	/* frame-input width and height if source is
-				 * memory
-				 */
-	u16 hist_radd;		/* frame-input address in memory */
-	u16 hist_radd_off;	/* line-offset for frame-input */
-	u16 hist_bins;		/* number of bins: 32, 64, 128, or 256 */
-	u16 wb_gain_R;		/* White Balance Field-to-Pattern Assignments */
-	u16 wb_gain_RG;		/* White Balance Field-to-Pattern Assignments */
-	u16 wb_gain_B;		/* White Balance Field-to-Pattern Assignments */
-	u16 wb_gain_BG;		/* White Balance Field-to-Pattern Assignments */
-	u8 num_regions;		/* number of regions to be configured */
-	u16 reg0_hor;		/* Region 0 size and position */
-	u16 reg0_ver;		/* Region 0 size and position */
-	u16 reg1_hor;		/* Region 1 size and position */
-	u16 reg1_ver;		/* Region 1 size and position */
-	u16 reg2_hor;		/* Region 2 size and position */
-	u16 reg2_ver;		/* Region 2 size and position */
-	u16 reg3_hor;		/* Region 3 size and position */
-	u16 reg3_ver;		/* Region 3 size and position */
-};
-
-struct isp_hist_data {
-
-	u32 *hist_statistics_buf;	/* Pointer to pass to user */
-
-};
 
 int isp_hist_configure(struct isp_hist_config *histcfg);
 
