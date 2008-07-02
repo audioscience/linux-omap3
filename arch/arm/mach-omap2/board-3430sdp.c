@@ -556,7 +556,7 @@ static int mt9p012_sensor_power_set(enum v4l2_power power)
 		/* give sensor sometime to get out of the reset. Datasheet says
 		   2400 xclks. At 6 MHz, 400 usec are enough */
 		udelay(300);
-		CONTROL_PADCONF_CAM_FLD = 0x01003B1C;
+		omap_writel(0x01003B1C, CONTROL_PADCONF_CAM_FLD);
 		omap_set_gpio_direction(MT9P012_RESET_GPIO, GPIO_DIR_INPUT);
 		break;
 	case V4L2_POWER_STANDBY:
