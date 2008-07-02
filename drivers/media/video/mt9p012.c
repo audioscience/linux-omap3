@@ -1554,7 +1554,7 @@ static struct v4l2_int_device mt9p012_int_device = {
  * device.
  */
 static int
-mt9p012_probe(struct i2c_client *client)
+mt9p012_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	struct mt9p012_sensor *sensor = &mt9p012;
 	int err;
@@ -1583,7 +1583,7 @@ mt9p012_probe(struct i2c_client *client)
 	if (err)
 		i2c_set_clientdata(client, NULL);
 
-	return 0;
+	return err;
 }
 
 /**
@@ -1607,12 +1607,20 @@ mt9p012_remove(struct i2c_client *client)
 	return 0;
 }
 
+static const struct i2c_device_id mt9p012_id[] = {
+	{ DRIVER_NAME, 0 },
+	{ },
+};
+MODULE_DEVICE_TABLE(i2c, mt9p012_id);
+
 static struct i2c_driver mt9p012sensor_i2c_driver = {
 	.driver = {
 		.name = DRIVER_NAME,
+		.owner = THIS_MODULE,
 	},
 	.probe = mt9p012_probe,
 	.remove = __exit_p(mt9p012_remove),
+	.id_table = mt9p012_id,
 };
 
 static struct mt9p012_sensor mt9p012 = {
@@ -1637,6 +1645,7 @@ static int __init mt9p012sensor_init(void)
 		printk(KERN_ERR "Failed to register" DRIVER_NAME ".\n");
 		return err;
 	}
+
 	return 0;
 }
 module_init(mt9p012sensor_init);

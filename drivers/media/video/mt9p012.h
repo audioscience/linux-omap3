@@ -239,7 +239,7 @@ struct capture_size {
  * @priv_data_set: device private data (pointer) access function
  */
 struct mt9p012_platform_data {
-	int (*power_set)(int power);
+	int (*power_set)(enum v4l2_power power);
 	const struct mt9p012_reg *default_regs;
 	int (*ifparm)(struct v4l2_ifparm *p);
 	int (*priv_data_set)(void *);
