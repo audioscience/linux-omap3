@@ -1570,27 +1570,28 @@ int isp_enum_fmt_cap(struct v4l2_fmtdesc *f)
 {
 	int index = f->index;
 	enum v4l2_buf_type type = f->type;
-	int rval;
+	int rval = -EINVAL;
 
 	if (index >= NUM_ISP_CAPTURE_FORMATS)
-		return -EINVAL;
+		goto err;
+
 	memset(f, 0, sizeof(*f));
 	f->index = index;
 	f->type = type;
 
 	switch (f->type) {
 	case V4L2_BUF_TYPE_VIDEO_CAPTURE:
-	if (index >= NUM_ISP_CAPTURE_FORMATS)
-		rval = -EINVAL;
-	break;
+		rval = 0;
+		break;
 	default:
-		rval = -EINVAL;
+		goto err;
 	}
 
 	f->flags = isp_formats[index].flags;
 	strncpy(f->description, isp_formats[index].description,
 						sizeof(f->description));
 	f->pixelformat = isp_formats[index].pixelformat;
+err:
 	return rval;
 }
 EXPORT_SYMBOL(isp_enum_fmt_cap);
