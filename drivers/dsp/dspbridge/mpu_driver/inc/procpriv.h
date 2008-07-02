@@ -1,0 +1,43 @@
+/*
+ * dspbridge/mpu_driver/inc/procpriv.h
+ *
+ * DSP-BIOS Bridge driver support functions for TI OMAP processors.
+ *
+ * Copyright (C) 2005-2006 Texas Instruments, Inc.
+ *
+ * This package is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * THIS PACKAGE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+ * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+ */
+
+
+/*
+ *  ======== procpriv.h ========
+ *  Description:
+ *      Global PROC constants and types, shared by PROC, MGR, and WCD.
+ *
+ *! Revision History:
+ *! ================
+ *! 05-July-2000 rr: Created
+ */
+
+#ifndef PROCPRIV_
+#define PROCPRIV_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* RM PROC Object */
+	struct PROC_OBJECT;
+	/*typedef struct PROC_OBJECT *PROC_HOBJECT;*/
+
+#ifdef __cplusplus
+}
+#endif
+#endif				/* PROCPRIV_ */
+

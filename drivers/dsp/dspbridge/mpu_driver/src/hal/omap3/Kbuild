@@ -1,0 +1,28 @@
+#libhal_omap3
+
+obj-y = libhal_omap3.o
+
+libhal_omap3-objs = prcm/hal_prcm.o dspss/hal_dspssC64P.o mmu/hal_mmu.o mbox/hal_mbox.o
+
+ccflags-y = -Wno-strict-prototypes -fomit-frame-pointer -DDISABLE_BRIDGE_DVFS
+
+#Machine dependent
+ccflags-y += -DUSE_LEVEL_1_MACROS -D__MPU__ -DOMAP_3430
+ccflags-y += -DLINUX -D__KERNEL__
+
+#Power management
+ifeq ($(CONFIG_PM),)
+ccflags-y += -DDISABLE_BRIDGE_PM
+endif
+
+#includes
+ccflags-y += -I. -Iinclude -Idrivers/dsp/dspbridge/mpu_driver/src/hal/common/inc -Idrivers/dsp/dspbridge/mpu_driver/src/hal/omap3/mmu -Idrivers/dsp/dspbridge/mpu_driver/src/hal/omap3/prcm -Idrivers/dsp/dspbridge/mpu_driver/src/hal/omap3/ocp -include include/linux/autoconf.h -Idrivers/dsp/dspbridge/mpu_driver/src/hal/omap3/inc -Idrivers/dsp/dspbridge/mpu_driver/src/hal/omap3/dspss -Idrivers/dsp/dspbridge/mpu_driver/src/hal/omap3/mbox
+
+# Debug
+ifeq ($(CONFIG_DEBUG_KERNEL),y)
+ccflags-y += -DGT_TRACE -DDEBUG
+endif
+
+ifeq ($(CONFIG_MPU_BRIDGE),m)
+ccflags-y += -DMODULE
+endif

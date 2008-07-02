@@ -1,0 +1,147 @@
+/*
+ * dspbridge/mpu_driver/inc/dbtype.h
+ *
+ * DSP-BIOS Bridge driver support functions for TI OMAP processors.
+ *
+ * Copyright (C) 2008 Texas Instruments, Inc.
+ *
+ * This package is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * THIS PACKAGE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+ * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+ */
+
+/*
+ *  ======== dbtype.h ========
+ *  Description:
+ *      This header defines data types for DSP/BIOS Bridge APIs and device
+ *      driver modules. It also defines the Hungarian
+ *      prefix to use for each base type.
+ *
+ *
+ *! Revision History:
+ *! =================
+ *! 23-Nov-2002 gp: Purpose -> Description in file header.
+ *! 13-Feb-2001 kc: Name changed from ddsptype.h dbtype.h.
+ *! 09-Oct-2000 jeh Added CHARACTER.
+ *! 14-Sep-2000 jeh Moved PSTRING from dspdefs.h to dbtype.h. Define
+ *!                 DEF_WINCE_ so PSTRING gets defined.
+ *! 11-Aug-2000 ag: Added 'typedef void VOID'.
+ *! 08-Apr-2000 ww: Cloned.
+ */
+
+#ifndef DBTYPE_
+#define DBTYPE_
+
+/*============================================================================*/
+/*  Argument specification syntax                                             */
+/*============================================================================*/
+
+#ifndef IN
+#define IN			/* Following parameter is for input. */
+#endif
+
+#ifndef OUT
+#define OUT			/* Following parameter is for output. */
+#endif
+
+#ifndef OPTIONAL
+#define OPTIONAL	  /* Function may optionally use previous parameter. */
+#endif
+
+#ifndef CONST
+#define CONST   const
+#endif
+
+/*============================================================================*/
+/*  Boolean constants                                                         */
+/*============================================================================*/
+
+#ifndef FALSE
+#define FALSE   0
+#endif
+#ifndef TRUE
+#define TRUE    1
+#endif
+
+/*============================================================================*/
+/*  NULL    (Definition is language specific)                                 */
+/*============================================================================*/
+
+#ifndef NULL
+#ifdef __cplusplus
+#define NULL    0
+#else
+#define NULL    ((void *)0)	/* Null pointer. */
+#endif
+#endif
+
+/*============================================================================*/
+/*  NULL character   (normally used for string termination)                   */
+/*============================================================================*/
+
+#ifndef NULL_CHAR
+#define NULL_CHAR    '\0'	/* Null character. */
+#endif
+
+/*============================================================================*/
+/*  Basic Type definitions (with Prefixes for Hungarian notation)             */
+/*============================================================================*/
+typedef unsigned char BYTE;	/* b    */
+
+typedef unsigned short WORD;	/* w    */
+typedef unsigned long DWORD;	/* dw   */
+
+typedef char CHAR;		/* ch   */
+typedef int INT;		/* n    */
+typedef long LONG;		/* l    */
+
+typedef unsigned short USHORT;	/* us   */
+typedef unsigned int UINT;	/* u    */
+typedef unsigned long ULONG;	/* ul   */
+
+typedef CHAR *PSTR;		/* pstr */
+
+#ifndef OMAPBRIDGE_TYPES
+#define OMAPBRIDGE_TYPES
+
+typedef unsigned char UCHAR;	/* uch  */
+typedef int BOOL;		/* f    */
+
+typedef volatile unsigned short REG_UWORD16;
+
+#endif
+
+#ifndef VOID
+#define VOID void
+#endif
+
+typedef VOID *PVOID;		/* p    */
+typedef PVOID HANDLE;		/* h    */
+
+typedef unsigned short WCHAR;	/* wch  */
+
+typedef CHAR TCHAR;
+
+typedef TCHAR *PSTRING;		/* Generic character string type */
+typedef TCHAR CHARACTER;
+
+typedef long long LARGE_INTEGER;
+#define TEXT(x) x
+
+#define CDECL
+
+#define WINAPI
+
+#define STDCALL
+
+#define DLLIMPORT
+#define DLLEXPORT
+
+/* Define DSPAPIDLL correctly in dspapi.h */
+#define _DSPSYSDLL32_
+
+#endif				/* DBTYPE_ */

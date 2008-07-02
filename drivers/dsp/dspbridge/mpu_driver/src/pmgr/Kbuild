@@ -1,0 +1,29 @@
+#libpmgr
+
+obj-y := libpmgr.o
+
+libpmgr-objs := common/chnl.o common/io.o common/msg.o common/cod.o common/dev.o \
+		common/wcd.o common/dmm.o common/cmm.o dbll/dbll.o
+
+ccflags-y = -Wno-strict-prototypes -fomit-frame-pointer -DDISABLE_BRIDGE_DVFS
+
+#Machine dependent
+ccflags-y += -D_TI_ -DOMAP_3430
+ccflags-y += -DLINUX -D__KERNEL__
+
+#Power management
+ifeq ($(CONFIG_PM),)
+ccflags-y += -DDISABLE_BRIDGE_PM
+endif
+
+#includes
+ccflags-y += -I. -Iinclude -Idrivers/dsp/dspbridge/mpu_driver/inc -Idrivers/dsp/dspbridge/mpu_driver/inc/linux -Idrivers/dsp/dspbridge/mpu_driver/src/pmgr/common -include include/linux/autoconf.h
+
+# Debug
+ifeq ($(CONFIG_DEBUG_KERNEL),y)
+ccflags-y += -DGT_TRACE -DDEBUG
+endif
+
+ifeq ($(CONFIG_MPU_BRIDGE),m)
+ccflags-y += -DMODULE
+endif

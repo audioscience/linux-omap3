@@ -1,0 +1,28 @@
+#libgen
+
+obj-y	:=	libgen.o
+
+libgen-objs	:=	gb.o gt.o gs.o gh.o _gt_para.o uuidutil.o
+
+ccflags-y = -Wno-strict-prototypes -fno-common -DDISABLE_BRIDGE_DVFS
+
+#Machine dependent
+ccflags-y += -DOMAP_3430
+ccflags-y += -D__KERNEL__
+
+#Power management
+ifeq ($(CONFIG_PM),)
+ccflags-y += -DDISABLE_BRIDGE_PM
+endif
+
+#includes
+ccflags-y += -I. -Iinclude -Idrivers/dsp/dspbridge/mpu_driver/inc -Idrivers/dsp/dspbridge/mpu_driver/inc/linux -include include/linux/autoconf.h
+
+# Debug
+ifeq ($(CONFIG_DEBUG_KERNEL),y)
+ccflags-y += -DGT_TRACE -DDEBUG
+endif
+
+ifeq ($(CONFIG_MPU_BRIDGE),m)
+ccflags-y += -DMODULE
+endif

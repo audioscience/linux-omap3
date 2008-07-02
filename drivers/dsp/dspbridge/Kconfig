@@ -1,0 +1,8 @@
+#
+# DSP Bridge Driver Support
+#
+
+menuconfig MPU_BRIDGE
+	tristate "DSP Bridge driver"
+	default n
+
