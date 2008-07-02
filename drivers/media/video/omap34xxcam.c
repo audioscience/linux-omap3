@@ -566,11 +566,18 @@ static int vidioc_streamon(struct file *file, void *fh, enum v4l2_buf_type i)
 
 	rval = omap34xxcam_slave_power_set(vdev, V4L2_POWER_RESUME);
 	if (rval) {
-		dev_dbg(vdev->cam->dev, "vidioc_int_g_ifparm failed\n");
+		dev_dbg(vdev->cam->dev, "omap34xxcam_slave_power_set failed\n");
+		goto out;
+	}
+
+	rval = vidioc_int_init(vdev->vdev_sensor);
+	if (rval) {
+		dev_dbg(vdev->cam->dev, "vidioc_int_init failed\n");
 		goto out;
 	}
 
 	cam->dma_notify = 1;
+	isp_sgdma_init();
 	rval = videobuf_streamon(&ofh->vbq);
 	if (!rval)
 		vdev->streaming = file;
@@ -1013,6 +1020,7 @@ static int omap34xxcam_open(struct inode *inode, struct file *file)
 	}
 
 	if (atomic_inc_return(&vdev->users) == 1) {
+		isp_get();
 		isp_open();
 		if (omap34xxcam_slave_power_set(vdev, V4L2_POWER_ON)) {
 			mutex_unlock(&vdev->mutex);
@@ -1054,6 +1062,8 @@ out_try_module_get:
 		if (vdev->slave[i])
 			module_put(vdev->slave[i]->module);
 
+	isp_close();
+	isp_put();
 	kfree(fh);
 
 	return -ENODEV;
@@ -1089,6 +1099,7 @@ static int omap34xxcam_release(struct inode *inode, struct file *file)
 	if (atomic_dec_return(&vdev->users) == 0) {
 		omap34xxcam_slave_power_set(vdev, V4L2_POWER_OFF);
 		isp_close();
+		isp_put();
 	}
 	mutex_unlock(&vdev->mutex);
 
@@ -1156,7 +1167,7 @@ static int omap34xxcam_handle_private(struct file *file, void *fh,
 			}
 		}
 		default:
-			rval = isp_handle_private(cmd, (unsigned long)arg);
+			rval = isp_handle_private(cmd, arg);
 		}
 	}
 out:
@@ -1334,8 +1345,10 @@ static int omap34xxcam_device_register(struct v4l2_int_device *s)
 	dev_info(cam->dev, "registering device %s (%d) to video%d\n",
 		 s->name, hwc.dev_type, vfd->minor);
 
+	isp_get();
 	rval = omap34xxcam_slave_power_set(vdev, V4L2_POWER_ON);
 	omap34xxcam_slave_power_set(vdev, V4L2_POWER_OFF);
+	isp_put();
 
 	if (rval)
 		goto err;
@@ -1442,7 +1455,6 @@ static int omap34xxcam_resume(struct platform_device *pdev)
  */
 static int omap34xxcam_probe(struct platform_device *pdev)
 {
-
 	struct omap34xxcam_device *cam;
 	struct resource *mem;
 	struct isp_sysc isp_sysconfig;
@@ -1497,8 +1509,6 @@ static int omap34xxcam_probe(struct platform_device *pdev)
 		goto err;
 	}
 
-	isp_sgdma_init();
-
 	isp_get();
 	isp_sysconfig.reset = 0;
 	isp_sysconfig.idle_mode = 1;
@@ -1524,11 +1534,13 @@ static int omap34xxcam_probe(struct platform_device *pdev)
 	}
 
 	omap34xxcam = cam;
+	isp_put();
 
 	return 0;
 
 err:
 	omap34xxcam_remove(pdev);
+	isp_put();
 	return -ENODEV;
 }
 
