@@ -619,37 +619,34 @@ u32 isp_set_xclk(u32 xclk, u8 xclksel)
 	u32 divisor;
 	u32 currentxclk;
 
-	if (xclk == CM_CAM_MCLK_HZ) {
-		divisor = (xclksel == 0) ? ISPTCTRL_CTRL_DIVA_Bypass :
-					ISPTCTRL_CTRL_DIVB_Bypass;
+	if (xclk >= CM_CAM_MCLK_HZ) {
+		divisor = ISPTCTRL_CTRL_DIV_Bypass;
 		currentxclk = CM_CAM_MCLK_HZ;
+	} else if (xclk >= 2) {
+		divisor = CM_CAM_MCLK_HZ / xclk;
+		if (divisor >= ISPTCTRL_CTRL_DIV_Bypass)
+			divisor = ISPTCTRL_CTRL_DIV_Bypass - 1;
+		currentxclk = CM_CAM_MCLK_HZ / divisor;
 	} else {
-		if (xclk >= 2) {
-			divisor = CM_CAM_MCLK_HZ / xclk;
-			divisor &= (xclksel == 0) ? ISPTCTRL_CTRL_DIVA_Bypass :
-					ISPTCTRL_CTRL_DIVB_Bypass;
-			currentxclk = CM_CAM_MCLK_HZ / divisor;
-		} else {
-			divisor = xclk;
-			currentxclk = 0;
-		}
+		divisor = xclk;
+		currentxclk = 0;
 	}
 
 	switch (xclksel) {
 	case 0:
 		omap_writel((omap_readl(ISP_TCTRL_CTRL) &
-				~ISPTCTRL_CTRL_DIVA_Bypass) |
+				~ISPTCTRL_CTRL_DIVA_MASK) |
 				(divisor << ISPTCTRL_CTRL_DIVA_SHIFT),
 				ISP_TCTRL_CTRL);
-		DPRINTK_ISPCTRL("isp_set_xclk(): cam_xclka set to %x Hz\n",
+		DPRINTK_ISPCTRL("isp_set_xclk(): cam_xclka set to %d Hz\n",
 								currentxclk);
 		break;
 	case 1:
 		omap_writel((omap_readl(ISP_TCTRL_CTRL) &
-				~ISPTCTRL_CTRL_DIVB_Bypass) |
+				~ISPTCTRL_CTRL_DIVB_MASK) |
 				(divisor << ISPTCTRL_CTRL_DIVB_SHIFT),
 				ISP_TCTRL_CTRL);
-		DPRINTK_ISPCTRL("isp_set_xclk(): cam_xclkb set to %x Hz\n",
+		DPRINTK_ISPCTRL("isp_set_xclk(): cam_xclkb set to %d Hz\n",
 								currentxclk);
 		break;
 	default:
