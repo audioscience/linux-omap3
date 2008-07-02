@@ -271,7 +271,7 @@ static int omap34xxcam_sensor_init(struct omap34xxcam_device *cam)
 	}
 
 	/* power up sensor during sensor initialization */
-	vidioc_int_s_power(sdev, 1);
+	vidioc_int_s_power(sdev, V4L2_POWER_ON);
 
 	err = vidioc_int_dev_init(sdev);
 	if (err) {
@@ -286,7 +286,10 @@ static int omap34xxcam_sensor_init(struct omap34xxcam_device *cam)
 out:
 	omap34xxcam_sensor_if_disable(cam);
 
-	vidioc_int_s_power(sdev, 0);
+	if (err)
+		vidioc_int_s_power(sdev, V4L2_POWER_OFF);
+	else
+		vidioc_int_s_power(sdev, V4L2_POWER_STANDBY);
 
 	return err;
 }
@@ -301,8 +304,10 @@ out:
  */
 static void omap34xxcam_sensor_exit(struct omap34xxcam_device *cam)
 {
-	if (cam->sdev)
+	if (cam->sdev) {
 		vidioc_int_dev_exit(cam->sdev);
+		vidioc_int_s_power(cam->sdev, V4L2_POWER_OFF);
+	}
 }
 
 /**
@@ -314,7 +319,7 @@ static void omap34xxcam_sensor_exit(struct omap34xxcam_device *cam)
 static void omap34xxcam_sensor_disable(struct omap34xxcam_device *cam)
 {
 	omap34xxcam_sensor_if_disable(cam);
-	vidioc_int_s_power(cam->sdev, 0);
+	vidioc_int_s_power(cam->sdev, V4L2_POWER_STANDBY);
 }
 
 
@@ -331,7 +336,7 @@ static int omap34xxcam_sensor_enable(struct omap34xxcam_device *cam)
 
 	omap34xxcam_sensor_if_enable(cam);
 
-	rval = vidioc_int_s_power(cam->sdev, 1);
+	rval = vidioc_int_s_power(cam->sdev, V4L2_POWER_RESUME);
 	if (rval)
 		goto out;
 
