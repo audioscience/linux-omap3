@@ -428,6 +428,12 @@ static irqreturn_t twl4030_rtc_interrupt(int irq, void *rtc)
 	int res;
 	u8 rd_reg;
 
+	/* clear the RTC interrupt in TWL4030 power module */
+	res = twl4030_i2c_write_u8(TWL4030_MODULE_INT,
+				   PWR_RTC_INT_CLR, REG_PWR_ISR1);
+	if (res)
+		goto out;
+
 	res = twl4030_rtc_read_u8(&rd_reg, REG_RTC_STATUS_REG);
 	if (res)
 		goto out;

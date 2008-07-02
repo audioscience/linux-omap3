@@ -600,6 +600,9 @@ static irqreturn_t twl4030_usb_irq(int irq, void *_twl)
 	int ret = IRQ_NONE;
 	u8 val;
 
+	/* clear the interrupt */
+	twl4030_i2c_write_u8(TWL4030_MODULE_INT, USB_PRES, REG_PWR_ISR1);
+
 	/* action based on cable attach or detach */
 	if (twl4030_i2c_read_u8(TWL4030_MODULE_INT, &val, REG_PWR_EDR1) < 0) {
 		printk(KERN_ERR "twl4030_usb: i2c read failed,"
