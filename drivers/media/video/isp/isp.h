@@ -175,7 +175,7 @@ struct isp_interface_config {
 	u8 par_bridge;
 	u8 para_clk_pol;
 	u8 dataline_shift;
-	u8 hsvs_syncdetect;
+	u32 hsvs_syncdetect;
 	u16 vdint0_timing;
 	u16 vdint1_timing;
 	int strobe;
