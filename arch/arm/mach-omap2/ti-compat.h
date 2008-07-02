@@ -27,7 +27,7 @@
 #define OMAP_TIMER32K_BASE      IO_ADDRESS(OMAP2_32KSYNCT_BASE)
 
 /* MPU INTC registers */
-#define IC_REG32_34XX(offset)	__REG32(IC_BASE + (offset))
+#define IC_REG32_34XX(offset)	(IC_BASE + (offset))
 #define INTC_MIR_0		IC_REG32_34XX(0x084)
 #define INTC_MIR_1		IC_REG32_34XX(0x0A4)
 #define INTC_MIR_2		IC_REG32_34XX(0x0C4)
@@ -46,7 +46,7 @@
 #define INTCPS_PENDING_IRQ2	IC_REG32_34XX(0x0D8)
 
 /* SDRC Register access */
-#define SDRC_REG32_34XX(offset)	__REG32(SDRC_BASE + (offset))
+#define SDRC_REG32_34XX(offset)	(SDRC_BASE + (offset))
 #define SDRC_PWR		SDRC_REG32_34XX(0x70)
 #define SDRC_CS_CFG		SDRC_REG32_34XX(0x40)
 #define SDRC_SYS_CONFIG		SDRC_REG32_34XX(0x10)
@@ -65,7 +65,7 @@
 #define SDRC_RFR_CTRL_1		SDRC_REG32_34XX(0xD4)
 
 /* IO CONFIG */
-#define CONTROL_REG32_34XX(offset)	__REG32(OMAP_CTRL_BASE + (offset))
+#define CONTROL_REG32_34XX(offset)	(OMAP_CTRL_BASE + (offset))
 #define SCRATCHPAD_BASE			CONTROL_REG32_34XX(0x910)
 #define SCRATCHPAD_ROM_BASE		CONTROL_REG32_34XX(0x860)
 #define OMAP2_CONTROL_STATUS		(OMAP_CTRL_BASE + 0x2f0)
@@ -142,7 +142,7 @@
 
 /* GPMC registers */
 #define GPMC_BASE		OMAP34XX_GPMC_BASE
-#define GPMC_REG32_34XX(offset) __REG32(GPMC_BASE + (offset))
+#define GPMC_REG32_34XX(offset) (GPMC_BASE + (offset))
 #define GPMC_SYS_CONFIG		GPMC_REG32_34XX(0x10)
 #define GPMC_IRQ_ENABLE		GPMC_REG32_34XX(0x1C)
 #define GPMC_TIMEOUT_CONTROL	GPMC_REG32_34XX(0x40)
