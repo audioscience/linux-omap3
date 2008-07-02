@@ -1,5 +1,6 @@
 /*------------------------------------------------------------------------
- . smc911x.h - macros for SMSC's LAN911{5,6,7,8} single-chip Ethernet device.
+ . smc911x.h - macros for SMSC's LAN9{115,116,117,118,211} single-chip
+ . Ethernet device.
  .
  . Copyright (C) 2005 Sensoria Corp.
  . Derived from the unified SMC91x driver by Nicolas Pitre
@@ -618,6 +619,7 @@ smc_pxa_dma_outsw(struct device *dev, u_long ioaddr, u_long physaddr,
 #define CHIP_9116	0x116
 #define CHIP_9117	0x117
 #define CHIP_9118	0x118
+#define CHIP_9211	0x9211
 
 struct chip_id {
 	u16 id;
@@ -629,6 +631,7 @@ static const struct chip_id chip_ids[] =  {
 	{ CHIP_9116, "LAN9116" },
 	{ CHIP_9117, "LAN9117" },
 	{ CHIP_9118, "LAN9118" },
+	{ CHIP_9211, "LAN9211" },
 	{ 0, NULL },
 };
 
