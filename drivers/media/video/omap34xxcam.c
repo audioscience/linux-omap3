@@ -1558,6 +1558,9 @@ static int omap34xxcam_suspend(struct platform_device *pdev, pm_message_t state)
 	if (atomic_read(&cam->users) == 0)
 		return 0;
 
+	if (cam->streaming)
+		isp_stop();
+
 	omap34xxcam_sensor_disable(cam);
 
 	return 0;
@@ -1579,6 +1582,9 @@ static int omap34xxcam_resume(struct platform_device *pdev)
 		return 0;
 
 	omap34xxcam_sensor_enable(cam);
+
+	if (cam->streaming)
+		isp_start();
 
 	return 0;
 }
