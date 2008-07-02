@@ -17,7 +17,7 @@
 #ifndef OMAP_ISP_HIST_H
 #define OMAP_ISP_HIST_H
 
-#include <asm/arm/isp_user.h>
+#include <asm/arch/isp_user.h>
 
 #define MAX_REGIONS             0x4
 #define MAX_WB_GAIN             255

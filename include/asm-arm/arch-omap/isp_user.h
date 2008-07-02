@@ -1,4 +1,3 @@
-
 /*
  * include/asm-arm/arch-omap/isp_user.h
  *
@@ -497,6 +496,26 @@ struct ispprv_update_config {
 	struct ispprev_yclimit *yclimit;
 	struct ispprev_dcor *prev_dcor;
 	struct ispprev_nf *prev_nf;
+	u32 *red_gamma;
+	u32 *green_gamma;
+	u32 *blue_gamma;
+};
+
+/**
+ * struct isptables_update - Structure for Table Configuration.
+ * @update: Specifies which tables should be updated.
+ * @flag: Specifies which tables should be enabled.
+ * @prev_nf: Pointer to structure for Noise Filter
+ * @lsc: Pointer to LSC gain table. (currently not used)
+ * @red_gamma: Pointer to red gamma correction table.
+ * @green_gamma: Pointer to green gamma correction table.
+ * @blue_gamma: Pointer to blue gamma correction table.
+ */
+struct isptables_update {
+	u16 update;
+	u16 flag;
+	struct ispprev_nf *prev_nf;
+	u32 *lsc;
 	u32 *red_gamma;
 	u32 *green_gamma;
 	u32 *blue_gamma;
