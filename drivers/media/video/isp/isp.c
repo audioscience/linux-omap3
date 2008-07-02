@@ -787,7 +787,7 @@ int isp_configure_interface(struct isp_interface_config *config)
 	ispctrl_val &= ~ISPCTRL_PAR_BRIDGE_BENDIAN;
 	ispctrl_val |= (config->par_bridge << ISPCTRL_PAR_BRIDGE_SHIFT);
 	ispctrl_val &= ~(ISPCTRL_SYNC_DETECT_VSRISE);
-	ispctrl_val |= (config->hsvs_syncdetect << ISPCTRL_SYNC_DETECT_SHIFT);
+	ispctrl_val |= (config->hsvs_syncdetect);
 
 	omap_writel(ispctrl_val, ISP_CTRL);
 
