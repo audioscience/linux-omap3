@@ -909,10 +909,7 @@ struct codec_mcbsp_settings {
 #define TIMEOUT_WAIT_FOR_ACTIVE       20
 
 /* T2 GPIO for External Mute control - required for pop noise */
-#define T2_AUD_EXT_MUT_GPIO 6
-#define GPIO_DATA_DIR  0x03
-#define GPIO_CLR  0x09
-#define GPIO_SET  0x0C
+#define TWL4030_AUDIO_EXT_MUT 6
 
 extern struct codec_local_info twl4030_local;
 extern struct codec_mcbsp_settings twl4030_mcbsp_settings;

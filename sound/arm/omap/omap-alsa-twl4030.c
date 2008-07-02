@@ -63,6 +63,7 @@ static void generate_tone(void);
 
 static char twl4030_configured;		/* Configured count */
 static int mixer_dev_id;
+static int gpio_ext_mut_acquired;
 
 /*******************************************************************************
  *
@@ -303,34 +304,44 @@ inline int audio_twl4030_read(u8 address)
 inline int twl4030_ext_mut_conf(void)
 {
 	int ret;
-	u8 data;
 
-	ret = twl4030_i2c_read_u8(TWL4030_MODULE_GPIO, &data, GPIO_DATA_DIR);
-	if (ret)
-		return ret;
-	data |= 0x1 << T2_AUD_EXT_MUT_GPIO;
-	ret = twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, data, GPIO_DATA_DIR);
+	/* External mute gpio already acquired */
+	if (gpio_ext_mut_acquired)
+		return 0;
+
+	ret = twl4030_request_gpio(TWL4030_AUDIO_EXT_MUT);
+        if (ret)
+ 		return ret;
+
+	gpio_ext_mut_acquired = 1;
+	ret = twl4030_set_gpio_direction(TWL4030_AUDIO_EXT_MUT, 0);
 
 	return ret;
 }
 
 /*
+ * Unconfigure GPIO used for external mute
+ */
+static inline int twl4030_ext_mut_unconf(void)
+{
+	int ret;
+
+	ret = twl4030_free_gpio(TWL4030_AUDIO_EXT_MUT);
+	if (!ret)
+		gpio_ext_mut_acquired = 0;
+
+	return ret;
+}
+/*
  * Disable mute also handle time of wait
  */
 inline int twl4030_ext_mut_off(void)
 {
-	int ret;
-	u8 data;
-
-	ret = twl4030_i2c_read_u8(TWL4030_MODULE_GPIO, &data, GPIO_CLR);
-	if (ret)
-		return ret;
 	/* Wait for ramp duration, settling time for signal */
 	udelay(1);
-	data |= 0x1 << T2_AUD_EXT_MUT_GPIO;
+
 	/* Clear mute */
-	ret = twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, data, GPIO_CLR);
-	return ret;
+        return twl4030_set_gpio_dataout(TWL4030_AUDIO_EXT_MUT, 0);
 }
 
 /*
@@ -338,17 +349,7 @@ inline int twl4030_ext_mut_off(void)
  */
 inline int twl4030_ext_mut_on(void)
 {
-	int ret;
-	u8 data;
-
-	ret = twl4030_i2c_read_u8(TWL4030_MODULE_GPIO, &data, GPIO_SET);
-	if (ret)
-		return ret;
-	data |= 0x1 << T2_AUD_EXT_MUT_GPIO;
-	/* Set mute */
-	ret = twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, data, GPIO_SET);
-
-	return ret;
+	return twl4030_set_gpio_dataout(TWL4030_AUDIO_EXT_MUT, 1);
 }
 /*
  * twl4030_codec_on
@@ -1298,6 +1299,7 @@ void twl4030_unconfigure(void)
 		twl4030_codec_off();
 		twl4030_disable_output();
 		twl4030_disable_input();
+                twl4030_ext_mut_unconf();
 	}
 	if (twl4030_configured > 0)
 		twl4030_configured--;
@@ -1750,6 +1752,7 @@ initialize_exit_path3:
 initialize_exit_path2:
 	/* Don't care about result */
 	(void)omap_mcbsp_free(AUDIO_MCBSP);
+	twl4030_ext_mut_unconf();
 initialize_exit_path1:
 	return ret;
 }

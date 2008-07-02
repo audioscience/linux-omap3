@@ -122,7 +122,9 @@ int twl4030_i2c_read(u8 mod_no, u8 *value, u8 reg, u8 num_bytes);
  * Exported TWL4030 GPIO APIs
  */
 int twl4030_get_gpio_datain(int gpio);
+int twl4030_set_gpio_dataout(int gpio, int enable);
 int twl4030_request_gpio(int gpio);
+int twl4030_set_gpio_direction(int gpio, int is_input);
 int twl4030_set_gpio_edge_ctrl(int gpio, int edge);
 int twl4030_set_gpio_debounce(int gpio, int enable);
 int twl4030_free_gpio(int gpio);
