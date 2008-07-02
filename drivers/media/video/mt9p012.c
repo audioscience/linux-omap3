@@ -454,21 +454,20 @@ static enum mt9p012_pll_type current_pll_video;
 const static struct mt9p012_reg *
 	mt9p012_reg_init[NUM_FPS][NUM_IMAGE_SIZES] =
 {
- {	enter_image_mode_3MP_10fps,
-	enter_image_mode_3MP_10fps,
-	enter_image_mode_3MP_10fps,
-	enter_image_mode_3MP_10fps,
-	enter_image_mode_5MP_10fps },
- {	enter_video_216_15fps,
-	enter_video_648_15fps,
-	enter_video_1296_15fps,
-	enter_video_1296_15fps,
-	enter_video_1296_15fps },
- {	enter_video_216_30fps,
-	enter_video_648_30fps,
-	enter_video_1296_30fps,
-	enter_video_1296_30fps,
-	enter_video_1296_30fps },
+	{
+		enter_video_216_15fps,
+		enter_video_648_15fps,
+		enter_video_1296_15fps,
+		enter_image_mode_3MP_10fps,
+		enter_image_mode_5MP_10fps
+	},
+	{
+		enter_video_216_30fps,
+		enter_video_648_30fps,
+		enter_video_1296_30fps,
+		enter_image_mode_3MP_10fps,
+		enter_image_mode_5MP_10fps
+	},
 };
 
 /**
@@ -826,15 +825,47 @@ static enum image_size
 mt9p012_find_size(unsigned int width, unsigned int height)
 {
 	enum image_size isize;
-	unsigned long pixels = width*height;
+	unsigned long pixels = width * height;
 
 	for (isize = BIN4XSCALE; isize <= FIVE_MP; isize++) {
 		if (mt9p012_sizes[isize].height *
-			mt9p012_sizes[isize].width >= pixels)
+					mt9p012_sizes[isize].width >= pixels) {
+			/* To improve image quality in VGA */
+			if ((pixels > CIF_PIXELS) && (isize == BIN4X))
+				isize = BIN2X;
+
 			return isize;
+		}
 	}
 
 	return FIVE_MP;
+}
+
+/**
+ * mt9p012_find_fps_index - Find the best fps range match for a
+ *  requested frame rate
+ * @fps: desired frame rate
+ * @isize: enum value corresponding to image size
+ *
+ * Find the best match for a requested frame rate.  The best match
+ * is chosen between two fps ranges (11 - 15 and 16 - 30 fps) depending on
+ * the image size. For image sizes larger than BIN2X, frame rate is fixed
+ * at 10 fps.
+ */
+static unsigned int mt9p012_find_fps_index(unsigned int fps,
+							enum image_size isize)
+{
+	unsigned int index = FPS_LOW_RANGE;
+
+	if (isize > BIN4X) {
+		if (fps > 21)
+			index = FPS_HIGH_RANGE;
+	} else {
+		if (fps > 15)
+			index = FPS_HIGH_RANGE;
+	}
+
+	return index;
 }
 
 /**
@@ -844,8 +875,7 @@ mt9p012_find_size(unsigned int width, unsigned int height)
  * Given the image capture format in pix, the nominal frame period in
  * timeperframe, calculate and return the required xclk frequency
  */
-static unsigned long
-mt9p012sensor_calc_xclk(struct i2c_client *c)
+static unsigned long mt9p012sensor_calc_xclk(struct i2c_client *c)
 {
 	struct mt9p012_sensor *sensor = i2c_get_clientdata(c);
 	struct v4l2_fract *timeperframe = &sensor->timeperframe;
@@ -894,7 +924,7 @@ static int mt9p012_configure(struct v4l2_int_device *s)
 	struct i2c_client *client = sensor->i2c_client;
 	enum image_size isize;
 	unsigned long xclk;
-	unsigned int fps_index = 0;
+	unsigned int fps_index;
 	int err;
 	enum pixel_format pfmt = RAWBAYER10;
 
@@ -912,7 +942,7 @@ static int mt9p012_configure(struct v4l2_int_device *s)
 	if (err)
 		return err;
 
-	fps_index = sensor->fps/MT9P012_DEF_FPS;
+	fps_index = mt9p012_find_fps_index(sensor->fps, isize);
 
 	/* configure image size and pixel format */
 	err = mt9p012_write_regs(client, mt9p012_reg_init[fps_index][isize]);
@@ -930,10 +960,7 @@ static int mt9p012_configure(struct v4l2_int_device *s)
 	mdelay(20);
 	err = mt9p012_write_regs(client, stream_on_list);
 
-	if (err)
-		return err;
-
-	return 0;
+	return err;
 }
 
 /**
@@ -1158,7 +1185,7 @@ static int ioctl_try_fmt_cap(struct v4l2_int_device *s,
  * @s: pointer to standard V4L2 device structure
  * @f: pointer to standard V4L2 VIDIOC_S_FMT ioctl structure
  *
- * If the requested format is supported, cofigures the HW to use that
+ * If the requested format is supported, configures the HW to use that
  * format, returns error code if format not supported or HW can't be
  * correctly configured.
  */
@@ -1173,7 +1200,7 @@ static int ioctl_s_fmt_cap(struct v4l2_int_device *s,
 	if (rval)
 		return rval;
 	else
-	  sensor->pix = *pix;
+		sensor->pix = *pix;
 
 	rval = mt9p012_configure(s);
 
