@@ -56,22 +56,22 @@
 #define PREV_DEFECT_COR			(1 << 11)
 
 /*Abstraction layer preview configurations*/
-#define ISP_ABS_PREV_LUMAENH		(1 << 1)
-#define ISP_ABS_PREV_INVALAW		(1 << 2)
-#define ISP_ABS_PREV_HRZ_MED		(1 << 5)
-#define ISP_ABS_PREV_CFA		(1 << 6)
-#define ISP_ABS_PREV_CHROMA_SUPP	(1 << 7)
-#define ISP_ABS_PREV_WB			(1 << 8)
-#define ISP_ABS_PREV_BLKADJ		(1 << 9)
-#define ISP_ABS_PREV_RGB2RGB		(1 << 10)
-#define ISP_ABS_PREV_COLOR_CONV		(1 << 11)
-#define ISP_ABS_PREV_YC_LIMIT		(1 << 12)
-#define ISP_ABS_PREV_DEFECT_COR		(1 << 13)
-#define ISP_ABS_PREV_GAMMABYPASS	(1 << 14)
-#define ISP_ABS_TBL_NF 			(1 << 1)
-#define ISP_ABS_TBL_REDGAMMA		(1 << 2)
-#define ISP_ABS_TBL_GREENGAMMA		(1 << 3)
-#define ISP_ABS_TBL_BLUEGAMMA		(1 << 4)
+#define ISP_ABS_PREV_LUMAENH		(1 << 0)
+#define ISP_ABS_PREV_INVALAW		(1 << 1)
+#define ISP_ABS_PREV_HRZ_MED		(1 << 2)
+#define ISP_ABS_PREV_CFA		(1 << 3)
+#define ISP_ABS_PREV_CHROMA_SUPP	(1 << 4)
+#define ISP_ABS_PREV_WB			(1 << 5)
+#define ISP_ABS_PREV_BLKADJ		(1 << 6)
+#define ISP_ABS_PREV_RGB2RGB		(1 << 7)
+#define ISP_ABS_PREV_COLOR_CONV		(1 << 8)
+#define ISP_ABS_PREV_YC_LIMIT		(1 << 9)
+#define ISP_ABS_PREV_DEFECT_COR		(1 << 10)
+#define ISP_ABS_PREV_GAMMABYPASS	(1 << 11)
+#define ISP_ABS_TBL_NF 			(1 << 12)
+#define ISP_ABS_TBL_REDGAMMA		(1 << 13)
+#define ISP_ABS_TBL_GREENGAMMA		(1 << 14)
+#define ISP_ABS_TBL_BLUEGAMMA		(1 << 15)
 
 #define ISP_NF_TABLE_SIZE 		(1 << 10)
 
@@ -136,7 +136,7 @@ struct ispprev_hmed {
  */
 struct ispprev_nf {
 	u8 spread;
-	u32 *table;
+	u32 table[64];
 };
 
 /**
@@ -371,6 +371,10 @@ struct prev_params {
  * @prev_csc: Pointer to structure for Color Space Conversion from RGB-YCbYCr.
  * @yclimit: Pointer to structure for Y, C Value Limit.
  * @prev_dcor: Pointer to structure for defect correction.
+ * @prev_nf: Pointer to structure for Noise Filter
+ * @red_gamma: Pointer to red gamma correction table.
+ * @green_gamma: Pointer to green gamma correction table.
+ * @blue_gamma: Pointer to blue gamma correction table.
  */
 struct ispprv_update_config {
 	u16 update;
@@ -386,6 +390,10 @@ struct ispprv_update_config {
 	struct ispprev_csc *prev_csc;
 	struct ispprev_yclimit *yclimit;
 	struct ispprev_dcor *prev_dcor;
+	struct ispprev_nf *prev_nf;
+	u32 *red_gamma;
+	u32 *green_gamma;
+	u32 *blue_gamma;
 };
 
 /**
@@ -393,7 +401,6 @@ struct ispprv_update_config {
  * @update: Specifies which tables should be updated.
  * @flag: Specifies which tables should be enabled.
  * @prev_nf: Pointer to structure for Noise Filter
- * @lsc: Pointer to LSC gain table. (currently not used)
  * @red_gamma: Pointer to red gamma correction table.
  * @green_gamma: Pointer to green gamma correction table.
  * @blue_gamma: Pointer to blue gamma correction table.
@@ -402,7 +409,6 @@ struct isptables_update {
 	u16 update;
 	u16 flag;
 	struct ispprev_nf *prev_nf;
-	u32 *lsc;
 	u32 *red_gamma;
 	u32 *green_gamma;
 	u32 *blue_gamma;
@@ -528,6 +534,6 @@ static inline void isppreview_restore_context(void) {}
 
 int omap34xx_isp_preview_config(void *userspace_add);
 
-int omap34xx_isp_tables_update(void *userspace_add);
+int omap34xx_isp_tables_update(struct isptables_update *isptables_struct);
 
 #endif/* OMAP_ISP_PREVIEW_H */

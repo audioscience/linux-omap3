@@ -26,8 +26,7 @@
 #define ISP_ABS_CCDC_CULL		(1 << 5)
 #define ISP_ABS_CCDC_COLPTN		(1 << 6)
 #define ISP_ABS_CCDC_CONFIG_LSC		(1 << 7)
-
-#define ISP_ABS_TBL_LSC			(1 << 0)
+#define ISP_ABS_TBL_LSC			(1 << 8)
 
 #ifndef CONFIG_ARCH_OMAP3410
 # define cpu_is_omap3410()		0
@@ -277,6 +276,7 @@ struct ispccdc_culling {
  * @fpc: Number of faulty pixels corrected in the frame, address of FPC table.
  * @cull: Cull control register.
  * @colptn: Color pattern of the sensor.
+ * @lsc: Pointer to LSC gain table.
  */
 struct ispccdc_update_config {
 	u16 update;
@@ -288,6 +288,7 @@ struct ispccdc_update_config {
 	struct ispccdc_lsc_config *lsc_cfg;
 	struct ispccdc_culling *cull;
 	u32 colptn;
+	u8 *lsc;
 };
 
 int ispccdc_request(void);
@@ -355,7 +356,5 @@ void ispccdc_restore_context(void);
 void ispccdc_print_status(void);
 
 int omap34xx_isp_ccdc_config(void *userspace_add);
-
-int omap34xx_isp_lsc_update(void *userspace_add);
 
 #endif		/* OMAP_ISP_CCDC_H */

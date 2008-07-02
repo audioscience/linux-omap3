@@ -249,32 +249,30 @@ int omap34xx_isp_preview_config(void *userspace_add)
 	struct ispprev_csc prev_csc_t;
 	struct ispprev_yclimit yclimit_t;
 	struct ispprev_dcor prev_dcor_t;
-	struct ispprv_update_config preview_struct;
+	struct ispprv_update_config *preview_struct;
+	struct isptables_update isp_table_update;
 	int yen_t[128];
 
-	if (userspace_add != NULL)
+	if (userspace_add == NULL)
 		return -EINVAL;
 
-	if (copy_from_user(&preview_struct, (struct ispprv_update_config *)
-					(userspace_add),
-					sizeof(struct ispprv_update_config)))
-		goto err_copy_from_user;
+	preview_struct = (struct ispprv_update_config *) userspace_add;
 
-	if ((ISP_ABS_PREV_LUMAENH & preview_struct.flag) ==
+	if ((ISP_ABS_PREV_LUMAENH & preview_struct->flag) ==
 							ISP_ABS_PREV_LUMAENH) {
-		if ((ISP_ABS_PREV_LUMAENH & preview_struct.update) ==
+		if ((ISP_ABS_PREV_LUMAENH & preview_struct->update) ==
 							ISP_ABS_PREV_LUMAENH) {
-			if (copy_from_user(yen_t, preview_struct.yen,
+			if (copy_from_user(yen_t, preview_struct->yen,
 								sizeof(yen_t)))
 				goto err_copy_from_user;
 			isppreview_config_luma_enhancement(yen_t);
 		}
 		params->features |= PREV_LUMA_ENHANCE;
-	} else if ((ISP_ABS_PREV_LUMAENH & preview_struct.update) ==
+	} else if ((ISP_ABS_PREV_LUMAENH & preview_struct->update) ==
 							ISP_ABS_PREV_LUMAENH)
 			params->features &= ~PREV_LUMA_ENHANCE;
 
-	if ((ISP_ABS_PREV_INVALAW & preview_struct.flag) ==
+	if ((ISP_ABS_PREV_INVALAW & preview_struct->flag) ==
 							ISP_ABS_PREV_INVALAW) {
 		isppreview_enable_invalaw(1);
 		params->features |= PREV_INVERSE_ALAW;
@@ -283,30 +281,30 @@ int omap34xx_isp_preview_config(void *userspace_add)
 		params->features &= ~PREV_INVERSE_ALAW;
 	}
 
-	if ((ISP_ABS_PREV_HRZ_MED & preview_struct.flag) ==
+	if ((ISP_ABS_PREV_HRZ_MED & preview_struct->flag) ==
 							ISP_ABS_PREV_HRZ_MED) {
-		if ((ISP_ABS_PREV_HRZ_MED & preview_struct.update) ==
+		if ((ISP_ABS_PREV_HRZ_MED & preview_struct->update) ==
 							ISP_ABS_PREV_HRZ_MED) {
 			if (copy_from_user(&prev_hmed_t,
 						(struct ispprev_hmed *)
-						(preview_struct.prev_hmed),
+						(preview_struct->prev_hmed),
 						sizeof(struct ispprev_hmed)))
 				goto err_copy_from_user;
 			isppreview_config_hmed(prev_hmed_t);
 		}
 		isppreview_enable_hmed(1);
 		params->features |= PREV_HORZ_MEDIAN_FILTER;
-	} else if ((ISP_ABS_PREV_HRZ_MED & preview_struct.update) ==
+	} else if ((ISP_ABS_PREV_HRZ_MED & preview_struct->update) ==
 							ISP_ABS_PREV_HRZ_MED) {
 		isppreview_enable_hmed(0);
 		params->features &= ~PREV_HORZ_MEDIAN_FILTER;
 	}
-	if ((ISP_ABS_PREV_CFA & preview_struct.flag) == ISP_ABS_PREV_CFA) {
-		if ((ISP_ABS_PREV_CFA & preview_struct.update) ==
+	if ((ISP_ABS_PREV_CFA & preview_struct->flag) == ISP_ABS_PREV_CFA) {
+		if ((ISP_ABS_PREV_CFA & preview_struct->update) ==
 							ISP_ABS_PREV_CFA) {
 			if (copy_from_user(&prev_cfa_t,
 						(struct ispprev_cfa *)
-						(preview_struct.prev_cfa),
+						(preview_struct->prev_cfa),
 						sizeof(struct ispprev_cfa)))
 				goto err_copy_from_user;
 
@@ -314,95 +312,95 @@ int omap34xx_isp_preview_config(void *userspace_add)
 		}
 		isppreview_enable_cfa(1);
 		params->features |= PREV_CFA;
-	} else if ((ISP_ABS_PREV_CFA & preview_struct.update) ==
+	} else if ((ISP_ABS_PREV_CFA & preview_struct->update) ==
 							ISP_ABS_PREV_CFA) {
 		isppreview_enable_cfa(0);
 		params->features &= ~PREV_CFA;
 	}
 
-	if ((ISP_ABS_PREV_CHROMA_SUPP & preview_struct.flag) ==
+	if ((ISP_ABS_PREV_CHROMA_SUPP & preview_struct->flag) ==
 						ISP_ABS_PREV_CHROMA_SUPP) {
-		if ((ISP_ABS_PREV_CHROMA_SUPP & preview_struct.update) ==
+		if ((ISP_ABS_PREV_CHROMA_SUPP & preview_struct->update) ==
 						ISP_ABS_PREV_CHROMA_SUPP) {
 			if (copy_from_user(&csup_t,
 						(struct ispprev_csup *)
-						(preview_struct.csup),
+						(preview_struct->csup),
 						sizeof(struct ispprev_csup)))
 				goto err_copy_from_user;
 			isppreview_config_chroma_suppression(csup_t);
 		}
 		isppreview_enable_chroma_suppression(1);
 		params->features |= PREV_CHROMA_SUPPRESS;
-	} else if ((ISP_ABS_PREV_CHROMA_SUPP & preview_struct.update) ==
+	} else if ((ISP_ABS_PREV_CHROMA_SUPP & preview_struct->update) ==
 						ISP_ABS_PREV_CHROMA_SUPP) {
 		isppreview_enable_chroma_suppression(0);
 		params->features &= ~PREV_CHROMA_SUPPRESS;
 	}
 
-	if ((ISP_ABS_PREV_WB & preview_struct.update) == ISP_ABS_PREV_WB) {
+	if ((ISP_ABS_PREV_WB & preview_struct->update) == ISP_ABS_PREV_WB) {
 		if (copy_from_user(&prev_wbal_t, (struct ispprev_wbal *)
-						(preview_struct.prev_wbal),
+						(preview_struct->prev_wbal),
 						sizeof(struct ispprev_wbal)))
 			goto err_copy_from_user;
 		isppreview_config_whitebalance(prev_wbal_t);
 	}
 
-	if ((ISP_ABS_PREV_BLKADJ & preview_struct.update) ==
+	if ((ISP_ABS_PREV_BLKADJ & preview_struct->update) ==
 							ISP_ABS_PREV_BLKADJ) {
 		if (copy_from_user(&prev_blkadj_t, (struct ispprev_blkadjl *)
-					(preview_struct.prev_blkadj),
+					(preview_struct->prev_blkadj),
 					sizeof(struct ispprev_blkadj)))
 			goto err_copy_from_user;
 		isppreview_config_blkadj(prev_blkadj_t);
 	}
 
-	if ((ISP_ABS_PREV_RGB2RGB & preview_struct.update) ==
+	if ((ISP_ABS_PREV_RGB2RGB & preview_struct->update) ==
 							ISP_ABS_PREV_RGB2RGB) {
 		if (copy_from_user(&rgb2rgb_t, (struct ispprev_rgbtorgb *)
-					(preview_struct.rgb2rgb),
+					(preview_struct->rgb2rgb),
 					sizeof(struct ispprev_rgbtorgb)))
 			goto err_copy_from_user;
 		isppreview_config_rgb_blending(rgb2rgb_t);
 	}
 
-	if ((ISP_ABS_PREV_COLOR_CONV & preview_struct.update) ==
+	if ((ISP_ABS_PREV_COLOR_CONV & preview_struct->update) ==
 						ISP_ABS_PREV_COLOR_CONV) {
 		if (copy_from_user(&prev_csc_t, (struct ispprev_csc *)
-						(preview_struct.prev_csc),
+						(preview_struct->prev_csc),
 						sizeof(struct ispprev_csc)))
 			goto err_copy_from_user;
 		isppreview_config_rgb_to_ycbcr(prev_csc_t);
 	}
 
-	if ((ISP_ABS_PREV_YC_LIMIT & preview_struct.update) ==
+	if ((ISP_ABS_PREV_YC_LIMIT & preview_struct->update) ==
 		ISP_ABS_PREV_YC_LIMIT) {
 		if (copy_from_user(&yclimit_t, (struct ispprev_yclimit *)
-					(preview_struct.yclimit),
+					(preview_struct->yclimit),
 					sizeof(struct ispprev_yclimit)))
 			goto err_copy_from_user;
 		isppreview_config_yc_range(yclimit_t);
 	}
 
-	if ((ISP_ABS_PREV_DEFECT_COR & preview_struct.flag) ==
+	if ((ISP_ABS_PREV_DEFECT_COR & preview_struct->flag) ==
 						ISP_ABS_PREV_DEFECT_COR) {
-		if ((ISP_ABS_PREV_DEFECT_COR & preview_struct.update) ==
+		if ((ISP_ABS_PREV_DEFECT_COR & preview_struct->update) ==
 						ISP_ABS_PREV_DEFECT_COR) {
 			if (copy_from_user(&prev_dcor_t,
 						(struct ispprev_dcor *)
-						(preview_struct.prev_dcor),
+						(preview_struct->prev_dcor),
 						sizeof(struct ispprev_dcor)))
 				goto err_copy_from_user;
 			isppreview_config_dcor(prev_dcor_t);
 		}
 		isppreview_enable_dcor(1);
 		params->features |= PREV_DEFECT_COR;
-	} else if ((ISP_ABS_PREV_DEFECT_COR & preview_struct.update) ==
+	} else if ((ISP_ABS_PREV_DEFECT_COR & preview_struct->update) ==
 						ISP_ABS_PREV_DEFECT_COR) {
 		isppreview_enable_dcor(0);
 		params->features &= ~PREV_DEFECT_COR;
 	}
 
-	if ((ISP_ABS_PREV_GAMMABYPASS & preview_struct.flag) ==
+	if ((ISP_ABS_PREV_GAMMABYPASS & preview_struct->flag) ==
 						ISP_ABS_PREV_GAMMABYPASS) {
 		isppreview_enable_gammabypass(1);
 		params->features |= PREV_GAMMA_BYPASS;
@@ -410,6 +408,17 @@ int omap34xx_isp_preview_config(void *userspace_add)
 		isppreview_enable_gammabypass(0);
 		params->features &= ~PREV_GAMMA_BYPASS;
 	}
+
+	isp_table_update.update = preview_struct->update;
+	isp_table_update.flag = preview_struct->flag;
+	isp_table_update.prev_nf = preview_struct->prev_nf;
+	isp_table_update.red_gamma = preview_struct->red_gamma;
+	isp_table_update.green_gamma = preview_struct->green_gamma;
+	isp_table_update.blue_gamma = preview_struct->blue_gamma;
+
+	if (omap34xx_isp_tables_update(&isp_table_update))
+		goto err_copy_from_user;
+
 	return 0;
 
 err_copy_from_user:
@@ -419,50 +428,38 @@ err_copy_from_user:
 
 /**
  * omap34xx_isp_tables_update - Abstraction layer Tables update.
- * @userspace_add: Pointer from Userspace to structure with flags and table
+ * @isp_table_update: Pointer from Userspace to structure with flags and table
  *                 data to update.
  **/
-int omap34xx_isp_tables_update(void *userspace_add)
+int omap34xx_isp_tables_update(struct isptables_update *isptables_struct)
 {
-	struct isptables_update isptables_struct;
 
-	if (userspace_add == NULL)
-		return -EINVAL;
-
-	if (copy_from_user(&isptables_struct, (struct isptables_update *)
-					(userspace_add),
-					sizeof(struct isptables_update)))
-		goto err_copy_from_user;
-
-	if ((ISP_ABS_TBL_NF & isptables_struct.flag) == ISP_ABS_TBL_NF) {
+	if ((ISP_ABS_TBL_NF & isptables_struct->flag) == ISP_ABS_TBL_NF) {
 		NF_enable = 1;
 		params->features |= (PREV_NOISE_FILTER);
-		if ((ISP_ABS_TBL_NF & isptables_struct.update) ==
+		if ((ISP_ABS_TBL_NF & isptables_struct->update) ==
 							ISP_ABS_TBL_NF) {
 			if (copy_from_user(&prev_nf_t, (struct ispprev_nf *)
-						(isptables_struct.prev_nf),
+						(isptables_struct->prev_nf),
 						sizeof(struct ispprev_nf)))
 				goto err_copy_from_user;
 
-			if (copy_from_user(noise_filter_table, prev_nf_t.table,
-						sizeof(noise_filter_table)))
-				goto err_copy_from_user;
 			NF_update = 1;
 		} else
 			NF_update = 0;
 	} else {
 		NF_enable = 0;
 		params->features &= ~(PREV_NOISE_FILTER);
-		if ((ISP_ABS_TBL_NF & isptables_struct.update) ==
+		if ((ISP_ABS_TBL_NF & isptables_struct->update) ==
 								ISP_ABS_TBL_NF)
 			NF_update = 1;
 		else
 			NF_update = 0;
 	}
 
-	if ((ISP_ABS_TBL_REDGAMMA & isptables_struct.update) ==
+	if ((ISP_ABS_TBL_REDGAMMA & isptables_struct->update) ==
 							ISP_ABS_TBL_REDGAMMA) {
-		if (copy_from_user(redgamma_table, isptables_struct.red_gamma,
+		if (copy_from_user(redgamma_table, isptables_struct->red_gamma,
 						sizeof(redgamma_table))) {
 			goto err_copy_from_user;
 		}
@@ -470,19 +467,19 @@ int omap34xx_isp_tables_update(void *userspace_add)
 	} else
 		RG_update = 0;
 
-	if ((ISP_ABS_TBL_GREENGAMMA & isptables_struct.update) ==
+	if ((ISP_ABS_TBL_GREENGAMMA & isptables_struct->update) ==
 						ISP_ABS_TBL_GREENGAMMA) {
 		if (copy_from_user(greengamma_table,
-						isptables_struct.green_gamma,
+						isptables_struct->green_gamma,
 						sizeof(greengamma_table)))
 			goto err_copy_from_user;
 		GG_update = 1;
 	} else
 		GG_update = 0;
 
-	if ((ISP_ABS_TBL_BLUEGAMMA & isptables_struct.update) ==
+	if ((ISP_ABS_TBL_BLUEGAMMA & isptables_struct->update) ==
 					ISP_ABS_TBL_BLUEGAMMA) {
-		if (copy_from_user(bluegamma_table, (isptables_struct.
+		if (copy_from_user(bluegamma_table, (isptables_struct->
 						blue_gamma),
 						sizeof(bluegamma_table))) {
 			goto err_copy_from_user;
@@ -565,7 +562,7 @@ void isppreview_config_shadow_registers()
 		omap_writel(0xC00, ISPPRV_SET_TBL_ADDR);
 		omap_writel(prev_nf_t.spread, ISPPRV_NF);
 		for (ctr = 0; ctr < 64; ctr++)
-			omap_writel(noise_filter_table[ctr],
+			omap_writel(prev_nf_t.table[ctr],
 							ISPPRV_SET_TBL_DATA);
 		isppreview_enable_noisefilter(1);
 		NF_update = 0;
@@ -1823,7 +1820,7 @@ static int __init isp_preview_init(void)
 	params->csup.hypf_en = 0;
 	params->ytable = luma_enhance_table;
 	params->nf.spread = flr_nf_strgth;
-	params->nf.table = noise_filter_table;
+	memcpy(params->nf.table, noise_filter_table, sizeof(params->nf.table));
 	params->dcor.couplet_mode_en = 1;
 	for (i = 0; i < 4; i++)
 		params->dcor.detect_correct[i] = 0xE;
