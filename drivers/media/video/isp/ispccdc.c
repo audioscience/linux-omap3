@@ -615,8 +615,6 @@ int ispccdc_config_datapath(enum ccdc_input input, enum ccdc_output output)
 			lsc_config.offset = 0x60;
 			ispccdc_config_lsc(&lsc_config);
 			ispccdc_load_lsc((u32)sizeof(ispccdc_lsc_tbl));
-			mdelay(100);
-			ispccdc_enable_lsc(1);
 		}
 	}
 
