@@ -193,27 +193,3 @@ config APM_EMULATION
 	  random kernel OOPSes or reboots that don't seem to be related to
 	  anything, try disabling/enabling this option (or disabling/enabling
 	  APM in your BIOS).
-
-menu "OMAP power management options"
-        depends on OMAP3_PM
-
-config MPU_OFF
-        bool "Enable MPU off"
-        depends on OMAP3_PM
-        default n
-        ---help---
-        This option is for enabling MPU domain to go to OFF state in cpuidle and suspend/resume.
-
-config HW_SUP_TRANS
-        bool "OMAP3430 enable H/W supervised transition for clock domains"
-        depends on OMAP3_PM
-        default n
-
-config DISABLE_EMUDOMAIN_CONTROL
-        bool "Disable h/w supervised control of EMU clock domain"
-        depends on OMAP3_PM
-        default y
-        ---help---
-        This option is for disabling h/w supervised control of EMU clock domain. Required for debugging using JTAG
-
-endmenu

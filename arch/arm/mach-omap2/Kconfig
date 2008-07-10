@@ -123,6 +123,31 @@ config OMAP3_PM
 	depends on ARCH_OMAP3
 	default n
 
+config MPU_OFF
+        bool "Enable MPU off in suspend/resume and cpuidle"
+        depends on ARCH_OMAP34XX  && OMAP3_PM
+        default y
+        ---help---
+        This option is for enabling MPU domain to go to OFF state in cpuidle and suspend/resume.
+
+config OMAP34XX_OFFMODE
+        bool "Enable OFF Mode for 3430"
+        depends on ARCH_OMAP34XX && OMAP3_PM
+        default y
+        ---help---
+        This option enables all off modes frameworks and allows power domains to go to off with context save/restore
+
+config CORE_OFF
+        bool "Enable CORE off"
+        depends on MPU_OFF && OMAP34XX_OFFMODE && OMAP3_PM
+        ---help---
+        This option is for enabling CORE domain to go to OFF state in suspend/resume
+
+config HW_SUP_TRANS
+        bool "OMAP3430 enable H/W supervised transition for clock domains"
+        depends on ARCH_OMAP3 && ARCH_OMAP34XX && OMAP3_PM
+        default y
+
 config TRACK_RESOURCES
         bool "Enable resource tracking"
         depends on ARCH_OMAP34XX && OMAP3_PM
@@ -137,4 +162,9 @@ config  AUTO_POWER_DOMAIN_CTRL
         ---help---
         This option enables automatic control of power domains through the clock framework.
 
-
+config DISABLE_EMUDOMAIN_CONTROL
+        bool "Disable h/w supervised control of EMU clock domain"
+        depends on ARCH_OMAP34XX && OMAP3_PM
+        default y
+        ---help---
+        This option is for disabling h/w supervised control of EMU clock domain. Required for debugging using JTAG
