@@ -38,6 +38,10 @@
 #include <asm/arch/clockdomain.h>
 #include "clockdomains.h"
 
+#ifdef CONFIG_OMAP3_PM
+extern int omap2_resource_init(void);
+#endif
+
 /*
  * The machine specific code may provide the extra mapping besides the
  * default mapping provided here.
@@ -200,6 +204,8 @@ void __init omap2_init_common_hw(void)
 #ifndef CONFIG_OMAP3_PM
 	pwrdm_init(powerdomains_omap);
 	clkdm_init(clockdomains_omap, clkdm_pwrdm_autodeps);
+#else
+	omap2_resource_init();
 #endif
 	omap2_clk_init();
 	omap2_init_memory();

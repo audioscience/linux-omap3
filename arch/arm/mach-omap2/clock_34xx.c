@@ -37,6 +37,7 @@
 
 #include <asm/arch/clock.h>
 #include <asm/arch/sram.h>
+#include <asm/arch/resource.h>
 
 #include "prcm-regs.h"
 #include "memory.h"
@@ -180,6 +181,14 @@ static void perdomain_timer_func(unsigned long data)
 }
 #endif /* #ifdef CONFIG_OMAP34XX_OFFMODE */
 
+#ifdef CONFIG_AUTO_POWER_DOMAIN_CTRL
+int enable_power_domain(struct clk *clk);
+void disable_power_domain(struct clk *clk);
+
+static char *id_to_name[] = {"iva2", "mpu", "core", "core", "sgx", NULL, "dss",
+				"cam", "per", NULL, "neon", "core", "usb"};
+#endif /* CONFIG_AUTO_POWER_DOMAIN_CTRL */
+
 static struct vdd_prcm_config *curr_vdd1_prcm_set;
 static struct vdd_prcm_config *curr_vdd2_prcm_set;
 
@@ -237,10 +246,20 @@ static int _omap3_clk_enable(struct clk *clk)
 		ret = prcm_control_external_output_clock2(PRCM_ENABLE);
 
 	if (clk->flags & F_CLK)
+#ifdef CONFIG_AUTO_POWER_DOMAIN_CTRL
+		ret = enable_power_domain(clk);
+		if (ret)
+			return ret;
+#endif
 		ret =
 		    prcm_clock_control(clk->prcmid, FCLK, PRCM_ENABLE,
 				       PRCM_ACCESS_CHK);
 	if (clk->flags & I_CLK)
+#ifdef CONFIG_AUTO_POWER_DOMAIN_CTRL
+		ret = enable_power_domain(clk);
+		if (ret)
+			return ret;
+#endif
 		ret =
 		    prcm_clock_control(clk->prcmid, ICLK, PRCM_ENABLE,
 				       PRCM_ACCESS_CHK);
@@ -269,13 +288,21 @@ static void _omap3_clk_disable(struct clk *clk)
 	if (clk == &sys_clkout2)
 		prcm_control_external_output_clock2(PRCM_DISABLE);
 
-	if (clk->flags & F_CLK)
+	if (clk->flags & F_CLK) {
 		prcm_clock_control(clk->prcmid, FCLK, PRCM_DISABLE,
 				   PRCM_NO_ACCESS_CHK);
+#ifdef CONFIG_AUTO_POWER_DOMAIN_CTRL
+		disable_power_domain(clk);
+#endif
+	}
 
-	if (clk->flags & I_CLK)
+	if (clk->flags & I_CLK) {
 		prcm_clock_control(clk->prcmid, ICLK, PRCM_DISABLE,
 				   PRCM_NO_ACCESS_CHK);
+#ifdef CONFIG_AUTO_POWER_DOMAIN_CTRL
+		disable_power_domain(clk);
+#endif
+	}
 
 	pr_debug("Done Clk: %s\n", clk->name);
 #endif
@@ -925,3 +952,85 @@ int __init omap2_clk_init(void)
 {
 	return omap3_clk_init();
 }
+
+#ifdef CONFIG_AUTO_POWER_DOMAIN_CTRL
+/*
+ * This function will enable the power for the domain in the which the
+ * devices falls. It is called from clk_enable function.
+ * If the device is in PER domain then the power state for PER
+ * becomes ON as soon as the first device in PER calls clk_enable.
+*/
+int enable_power_domain(struct clk *clk)
+{
+	char *resource_name;
+	u32 domainid;
+	u32 ret = 0;
+	unsigned short level;
+
+	domainid = DOMAIN_ID(clk->prcmid);
+	resource_name = id_to_name[domainid - 1];
+	pr_debug("%s: pwr_domain_name %s name %s\n", __FUNCTION__,
+		resource_name, clk->name);
+
+	/* Request for logical resource. Only CORE domain is modelled
+	 * as a logical resource.
+	 */
+	if (resource_name == NULL)
+		return ret;
+
+	if (clk->flags & POWER_ON_REQUIRED) {
+		if (clk->res == NULL) {
+			clk->res = resource_get(clk->name, resource_name);
+			if (clk->res == NULL) {
+				printk(KERN_ERR"Could not get resource handle"
+						"for %s\n", resource_name);
+				return -EINVAL;
+			}
+		}
+
+		level = (!strcmp(resource_name, "core")) ? LOGICAL_USED :
+			 POWER_DOMAIN_ON;
+		ret = resource_request(clk->res, level);
+		if (ret) {
+			printk(KERN_ERR"Could not request ON for resource %s\n",
+							 resource_name);
+			return ret;
+		}
+	}
+	return ret;
+}
+
+/*
+ * This function will disable the power for the domain in the which the
+ * devices falls. It is called from clk_disable function.
+ * If the device is in PER domain then the power state for PER
+ * becomes OFF as soon as the last device in PER calls clk_disable.
+*/
+void disable_power_domain(struct clk *clk)
+{
+	char *resource_name;
+	u32 ret = 0;
+	u32 domainid;
+
+	domainid = DOMAIN_ID(clk->prcmid);
+	resource_name = id_to_name[domainid - 1];
+
+	if (clk->flags & POWER_ON_REQUIRED) {
+		if (clk->res != NULL) {
+#ifdef CONFIG_OMAP34XX_OFFMODE
+			if ((domainid == DOM_CORE1) || (domainid == DOM_PER))
+				modify_inatimer(clk);
+#endif /* #ifdef CONFIG_OMAP34XX_OFFMODE */
+
+			ret = resource_release(clk->res);
+			if (ret)
+				pr_debug("Could not release resource handle for"
+						"%s\n", resource_name);
+
+			resource_put(clk->res);
+		}
+		clk->res = NULL;
+	}
+	return;
+}
+#endif /* CONFIG_AUTO_POWER_DOMAIN_CTRL */
