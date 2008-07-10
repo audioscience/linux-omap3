@@ -72,6 +72,18 @@ static struct omap_hsuart ui[MAX_UARTS + 1];
 static struct clk *uart_ick[OMAP_MAX_NR_PORTS];
 static struct clk *uart_fck[OMAP_MAX_NR_PORTS];
 
+#ifdef CONFIG_OMAP3_PM
+struct omap_uart_regs {
+	u16 dll;
+	u16 dlh;
+	u16 ier;
+	u16 sysc;
+	u16 scr;
+	u16 wer;
+};
+static struct omap_uart_regs uart_ctx[OMAP_MAX_NR_PORTS];
+#endif /* #ifdef CONFIG_OMAP3_PM */
+
 static struct plat_serial8250_port serial_platform_data[] = {
 	{
 		.membase	= (__force void __iomem *)IO_ADDRESS(OMAP_UART1_BASE),
@@ -863,6 +875,54 @@ void omap_serial_enable_clocks(int enable)
 		}
 	}
 }
+
+#ifdef CONFIG_OMAP3_PM
+void omap_uart_save_ctx(int unum)
+{
+	u16 lcr = 0;
+
+	struct plat_serial8250_port *p = serial_platform_data + unum;
+
+	lcr = serial_read_reg(p, UART_LCR);
+	serial_write_reg(p, UART_LCR, 0xBF);
+	uart_ctx[unum].dll = serial_read_reg(p, UART_DLL);
+	uart_ctx[unum].dlh = serial_read_reg(p, UART_DLM);
+	serial_write_reg(p, UART_LCR, lcr);
+	uart_ctx[unum].ier = serial_read_reg(p, UART_IER);
+	uart_ctx[unum].sysc = serial_read_reg(p, UART_OMAP_SYSC);
+	uart_ctx[unum].scr = serial_read_reg(p, UART_OMAP_SCR);
+	uart_ctx[unum].wer = serial_read_reg(p, UART_OMAP_WER);
+}
+EXPORT_SYMBOL(omap_uart_save_ctx);
+
+void omap_uart_restore_ctx(int unum)
+{
+	u16 efr = 0;
+
+	struct plat_serial8250_port *p = serial_platform_data + unum;
+
+	serial_write_reg(p, UART_OMAP_MDR1, 0x7);
+	serial_write_reg(p, UART_LCR, 0xBF); /* Config B mode */
+	efr = serial_read_reg(p, UART_EFR);
+	serial_write_reg(p, UART_EFR, UART_EFR_ECB);
+	serial_write_reg(p, UART_LCR, 0x0); /* Operational mode */
+	serial_write_reg(p, UART_IER, 0x0);
+	serial_write_reg(p, UART_LCR, 0xBF); /* Config B mode */
+	serial_write_reg(p, UART_DLL, uart_ctx[unum].dll);
+	serial_write_reg(p, UART_DLM, uart_ctx[unum].dlh);
+	serial_write_reg(p, UART_LCR, 0x0); /* Operational mode */
+	serial_write_reg(p, UART_IER, uart_ctx[unum].ier);
+	serial_write_reg(p, UART_FCR, 0xA1);
+	serial_write_reg(p, UART_LCR, 0xBF); /* Config B mode */
+	serial_write_reg(p, UART_EFR, efr);
+	serial_write_reg(p, UART_LCR, UART_LCR_WLEN8);
+	serial_write_reg(p, UART_OMAP_SCR, uart_ctx[unum].scr);
+	serial_write_reg(p, UART_OMAP_WER, uart_ctx[unum].wer);
+	serial_write_reg(p, UART_OMAP_SYSC, uart_ctx[unum].sysc);
+	serial_write_reg(p, UART_OMAP_MDR1, 0x00); /* UART 16x mode */
+}
+EXPORT_SYMBOL(omap_uart_restore_ctx);
+#endif
 
 void __init omap_serial_init(void)
 {

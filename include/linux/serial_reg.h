@@ -323,6 +323,7 @@
 #define UART_OMAP_MVER		0x14	/* Module version register */
 #define UART_OMAP_SYSC		0x15	/* System configuration register */
 #define UART_OMAP_SYSS		0x16	/* System status register */
+#define UART_OMAP_WER           0x17    /* Wake-up enable register */
 
 #define UART_OMAP_RESUME	0x0B	/* Read resumes halted operation */
 #define UART_OMAP_RXFLL		0x0C	/* Received frame length reg low */
