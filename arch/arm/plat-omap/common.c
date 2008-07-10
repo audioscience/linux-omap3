@@ -271,7 +271,9 @@ static void __init __omap2_set_globals(void)
 	omap2_set_globals_tap(omap2_globals);
 	omap2_set_globals_memory(omap2_globals);
 	omap2_set_globals_control(omap2_globals);
+#ifndef CONFIG_OMAP3_PM
 	omap2_set_globals_prcm(omap2_globals);
+#endif
 	omap2_set_globals_clock24xx(omap2_globals);
 }
 

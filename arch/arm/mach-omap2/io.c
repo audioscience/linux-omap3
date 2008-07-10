@@ -197,8 +197,10 @@ void __init omap2_map_common_io(void)
 void __init omap2_init_common_hw(void)
 {
 	omap2_mux_init();
+#ifndef CONFIG_OMAP3_PM
 	pwrdm_init(powerdomains_omap);
 	clkdm_init(clockdomains_omap, clkdm_pwrdm_autodeps);
+#endif
 	omap2_clk_init();
 	omap2_init_memory();
 	gpmc_init();
