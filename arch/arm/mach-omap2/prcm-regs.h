@@ -63,6 +63,18 @@ typedef struct { volatile u32 offset[4096]; } __regbase32;
 #define PWSTST_INTRANS_MASK	0x00100000
 /* Power Domain state MASK */
 #define PWSTST_PWST_MASK	0x00000003
+
+/* MASK values for core  memory and logic resource   */
+#define PRCM_CORE_MEM1ONBITS            (0x3 << 16)
+#define PRCM_CORE_MEM2ONBITS            (0x3 << 18)
+#define PRCM_CORE_MEMBIT1               (0x1 << 8)
+#define PRCM_CORE_MEMBIT2               (0x1 << 9)
+#define PRCM_CORE_MEMBIT                (0x3 << 8)
+#define PRCM_CORE_PWRSTATEBIT1           0x1
+#define PRCM_CORE_PWRSTATEBIT2           0x2
+#define PRCM_CORE_LOGICBIT              (0x1 << 2)
+#define PRCM_CORE_PWRSTATEOFF            0x0
+
 /* Bit fields in RSTST registers */
 #define DOM_WKUP_RST		0x4
 #define COREDOM_WKUP_RST	0x8

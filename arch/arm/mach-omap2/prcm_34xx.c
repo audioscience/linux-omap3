@@ -2060,3 +2060,817 @@ int prcm_do_frequency_scaling(u32 target_opp_id, u32 current_opp_id)
 	}
 	return PRCM_PASS;
 }
+
+/*============================================================================*/
+/*======================== GET DOMAIN INTERFACE CLKS  ========================*/
+/*============================================================================*/
+/*= This function returns the CM_ICLKEN_<domain> register value in result for=*/
+/*= the specified domain. The function returns PRCM_FAIL if the ICLKEN       =*/
+/*= register is not available for the specified domain, else returns         =*/
+/*= PRCM_PASS.                                                               =*/
+/*============================================================================*/
+int prcm_get_domain_interface_clocks(u32 domainid, u32 *result)
+{
+	u32 valid;
+	u32 *addr;
+
+	*result = 0x0;
+
+	if (domainid > PRCM_NUM_DOMAINS)
+		return PRCM_FAIL;
+
+	addr = get_addr(domainid, REG_ICLKEN);
+	valid = get_val_bits(domainid, REG_ICLKEN);
+
+	if (!addr)
+		return PRCM_FAIL;
+
+	*result = *addr & valid;
+	return PRCM_PASS;
+}
+
+
+/*============================================================================*/
+/*======================== GET DOMAIN FUNCTIONAL CLKS  =======================*/
+/*============================================================================*/
+/*= This function returns the CM_FCLKEN_<domain> register in the result for  =*/
+/*= the specified domain. The function returns PRCM_FAIL if the FCLKEN       =*/
+/* register is not available for the specified domain, else returns          =*/
+/*= PRCM_PASS.                                                               =*/
+/*============================================================================*/
+int prcm_get_domain_functional_clocks(u32 domainid, u32 *result)
+{
+	u32 valid;
+	u32 *addr;
+
+	*result = 0x0;
+
+	if (domainid > PRCM_NUM_DOMAINS)
+		return PRCM_FAIL;
+
+	addr = get_addr(domainid, REG_FCLKEN);
+	valid = get_val_bits(domainid, REG_FCLKEN);
+
+	if (!addr)
+		return PRCM_FAIL;
+
+	*result = *addr & valid;
+	return PRCM_PASS;
+}
+
+/*============================================================================*/
+/*======================== SET DOMAIN INTERFACE CLKS  ========================*/
+/*============================================================================*/
+/*= This function sets CM_ICLKEN_<domain> register for the specified domain  =*/
+/*= with the mask specified in setmask. The function returns PRCM_FAIL if the=*/
+/*= ICLKEN register is not available for the specified domain, else returns  =*/
+/*= PRCM_PASS.                                                               =*/
+/*============================================================================*/
+int prcm_set_domain_interface_clocks(u32 domainid, u32 setmask)
+{
+	u32 valid;
+	u32 *addr;
+
+	if (domainid > PRCM_NUM_DOMAINS)
+		return PRCM_FAIL;
+
+	addr = get_addr(domainid, REG_ICLKEN);
+	valid = get_val_bits(domainid, REG_ICLKEN);
+
+	if (!addr)
+		return PRCM_FAIL;
+
+	*addr = setmask & valid;
+	return PRCM_PASS;
+}
+
+/*============================================================================*/
+/*======================== SET DOMAIN FUNCTIONAL CLKS  =======================*/
+/*============================================================================*/
+/*= This function sets CM_FCLKEN_<domain> register for the specified domain  =*/
+/*= with the mask specified in setmask. The function returns PRCM_FAIL if the=*/
+/*=  FCLKEN register is not available for the specified domain, else returns =*/
+/*= PRCM_PASS.                                                               =*/
+/*============================================================================*/
+int prcm_set_domain_functional_clocks(u32 domainid, u32 setmask)
+{
+	u32 valid;
+	u32 *addr;
+
+	if (domainid > PRCM_NUM_DOMAINS)
+		return PRCM_FAIL;
+
+	addr = get_addr(domainid, REG_FCLKEN);
+	valid = get_val_bits(domainid, REG_FCLKEN);
+
+	if (!addr)
+		return PRCM_FAIL;
+
+	*addr = setmask & valid;
+	return PRCM_PASS;
+}
+
+/*============================================================================*/
+/*======================== CLOCK DOMAIN STATE  ===============================*/
+/*============================================================================*/
+/*= This function returns the state of the clock domain. It reads the        =*/
+/*= CM_CLKSTST_<DOMAIN> register and returns the result as PRCM_ENABLE if    =*/
+/*= the clock domain is active, else returns PRCM_DISABLE  		     =*/
+/*= a wake up event.  If disabled, it masks the wake up event from the       =*/
+/*= specified module.  This register will modify the PM_WKEN_<DOMAIN>        =*/
+/*= register.  This function will return PRCM_FAIL if the parameters passed  =*/
+/*= are invalid, otherwise it will return PRCM_PASS.  Valid parameters for   =*/
+/*= control are PRCM_ENABLE and PRCM_DISABLE.                                =*/
+/*============================================================================*/
+int prcm_is_clock_domain_active(u32 domainid, u8 *result)
+{
+	u32 valid;
+	u32 *addr;
+
+	/* Core domain check is not supported */
+	if ((domainid == DOM_CORE1) || (domainid == DOM_CORE2)) {
+		printk(KERN_INFO "Currently prcm_is_clock_domain_active for "
+			"the following domains (DOM_CORE1/DOM_CORE2) "
+			"is not supported\n");
+		return PRCM_FAIL;
+	}
+
+	addr = get_addr(domainid, REG_CLKSTST);
+	valid = get_val_bits(domainid, REG_CLKSTST);
+
+	if (!addr)
+		return PRCM_FAIL;
+
+	if (*addr & valid) {
+		*result = PRCM_ENABLE;
+		return PRCM_PASS;
+	} else {
+		*result = PRCM_DISABLE;
+		return PRCM_PASS;
+	}
+}
+
+/*============================================================================*/
+/*======================== CLOCK DOMAIN STATUS ===============================*/
+/*============================================================================*/
+/* This function waits for the clock domain to transition to the desired state*/
+/* It polls on the clock domain state and times out after a wait of ~500 micro*/
+/* secs. It returns PRCM_PASS id the clock domain transitions to the desired  */
+/* state within the timeout period, else return PRCM_FAIL		      */
+/*============================================================================*/
+static int prcm_check_clock_domain_status(u32 domainid, u8 desired_state)
+{
+	u8 curr_state;
+	u32 loop_cnt = 0, retries_cnt = 0;
+	int ret;
+
+	/* Core domain check is not supported */
+	if ((domainid == DOM_CORE1) || (domainid == DOM_CORE2) ||
+						(domainid == DOM_MPU)) {
+		printk(KERN_INFO "Prcm_check_clock_domain_status is not"
+					"supported for the following domains"
+					"(DOM_CORE1/DOM_CORE2/DOM_MPU)\n");
+		return PRCM_FAIL;
+	}
+
+	if (domainid > PRCM_NUM_DOMAINS)
+		return PRCM_FAIL;
+
+	ret = prcm_is_clock_domain_active(domainid, &curr_state);
+	if (ret != PRCM_PASS)
+		return ret;
+
+	while (curr_state != desired_state) {
+		ret = prcm_is_clock_domain_active(domainid, &curr_state);
+		if (ret != PRCM_PASS)
+			return ret;
+		ret = loop_wait(&loop_cnt, &retries_cnt, 100);
+		if (ret != PRCM_PASS) {
+			printk(KERN_INFO "Loop count exceeded in "
+				"check_clock_domain_statusfor domain:%u\n",
+								domainid);
+			return ret;
+		}
+	}
+	return PRCM_PASS;
+}
+
+/*============================================================================*/
+/*======================== SET CLOCK DOMAIN STATE ============================*/
+/*============================================================================*/
+/* This function sets the clock domain state to the 'new_state' specified. In */
+/* software supervised mode it checks if all the pre-conditions for clock     */
+/* domain transition are met. If check_accessibility is set to PRCM_TRUE the  */
+/* function also waits fo the clock domain transition to complete             */
+/*============================================================================*/
+int prcm_set_clock_domain_state(u32 domainid, u8 new_state,
+				u8 check_state)
+{
+	u32 *addr;
+	u32 fclk_mask = 0, iclk_mask = 0, init_mask, dev_mask;
+	u32 new_val, valid;
+
+	if ((domainid == DOM_CORE1) || (domainid == DOM_CORE2)) {
+		printk(KERN_INFO "Currently prcm_set_clock_domain_state "
+			"for the following domains "
+			"(DOM_CORE1/DOM_CORE2)is not supported\n");
+		return PRCM_FAIL;
+	}
+
+	addr = get_addr(domainid, REG_CLKSTCTRL);
+	valid = get_val_bits(domainid, REG_CLKSTCTRL);
+	if (!addr) {
+		printk(KERN_INFO "No ClkStCtrl for domain %d\n", domainid);
+		return PRCM_FAIL;
+	}
+
+	/* It is not appropriate to pass check_state = TRUE for states
+	 * PRCM_NO_AUTO and PRCM_HWSUP_AUTO.
+	 * In case of PRCM_NO_AUTO, hardware control of clock domain is disabled
+	 * In case of PRCM_HWSUP_AUTO, the clock domain will transition
+	 * automatically when conditions are satisfied
+	 */
+	if (check_state == PRCM_TRUE) {
+		if ((new_state == PRCM_NO_AUTO) || (new_state ==
+							PRCM_HWSUP_AUTO)) {
+			printk(KERN_INFO "Cannot wait till clock domain goes"
+			"to specified state when target state is: %d\n",
+								new_state);
+			return PRCM_FAIL;
+		}
+	}
+	/* Check preconditions for SWSUP sleep if check_state = TRUE */
+	if (new_state == PRCM_SWSUP_SLEEP) {
+		if (domainid == DOM_MPU)
+			/* There is no SWSUPERVISED sleep for MPU*/
+			return PRCM_FAIL;
+		if (check_state == PRCM_TRUE) {
+			/* Check if the pre-conditions for the clock domain*/
+			/* transition are met */
+			/* Check for fclk/iclk to be disabled */
+			prcm_get_domain_functional_clocks(domainid, &fclk_mask);
+			prcm_get_domain_interface_clocks(domainid, &iclk_mask);
+			if (fclk_mask || iclk_mask) {
+				printk(KERN_INFO "Pre condition for clock "
+					"domain transition not met: Clocks"
+					" enabled in the domain Fclk_mask:"
+					" %d, Iclk_mask: %d,Domain: %d\n",
+					fclk_mask, iclk_mask, domainid);
+				return PRCM_FAIL;
+			}
+			if (domainid != DOM_NEON) {
+			/* This check not needed for NEON Check if all*/
+			/* Initiators are in standby, and all devices idle */
+				prcm_get_initiators_not_standby(domainid,
+								&init_mask);
+				prcm_get_devices_not_idle(domainid, &dev_mask);
+				if (init_mask || dev_mask) {
+					printk(KERN_INFO "Pre condition for"
+						"clock domain transition not"
+						" met:init_mask:%x dev_mask:%x"
+						"Domain: %d\n",
+						init_mask, dev_mask, domainid);
+					return PRCM_FAIL;
+				}
+			}
+		}
+	}
+	/* Program Clkstctrl register */
+	new_val = *addr & ~valid;
+	new_val = new_val | new_state;
+	*addr = new_val;
+
+	/* NEON has no CLKSTST register */
+	if ((check_state == PRCM_TRUE) && (domainid != DOM_NEON)) {
+		/* Wait for the Clock domain to transition to the new state */
+		if (new_state == PRCM_SWSUP_WKUP)
+			return prcm_check_clock_domain_status(domainid,
+							      PRCM_ENABLE);
+
+		if (new_state == PRCM_SWSUP_SLEEP)
+			return prcm_check_clock_domain_status(domainid,
+							      PRCM_DISABLE);
+
+	}
+	return PRCM_PASS;
+}
+
+/*========================================================================*/
+/*===================GET POWER DOMAIN STATE===============================*/
+/*= This function returns the current state of a power domain. If the    =*/
+/*= power domain is in the middle of a state transition, it waits for the=*/
+/*= transition to complete.                                              =*/
+/*========================================================================*/
+int prcm_get_power_domain_state(u32 domainid, u8 *result)
+{
+	u32 *addr;
+	u32 valid, loop_cnt = 0, retries_cnt = 0;
+	int ret;
+
+	/* Core domain check is not supported */
+	if ((domainid == DOM_CORE1) || (domainid == DOM_CORE2)) {
+		printk(KERN_INFO "Currently prcm_is_clock_domain_active for "
+			"the following domains (DOM_CORE1/DOM_CORE2) "
+			"is not supported\n");
+		return PRCM_FAIL;
+	}
+
+	if (domainid > PRCM_NUM_DOMAINS)
+		return PRCM_FAIL;
+
+	addr = get_addr(domainid, REG_PWSTST);
+	valid = get_val_bits(domainid, REG_PWSTST);
+
+	if (!addr)
+		return PRCM_FAIL;
+
+	while (*addr & PWSTST_INTRANS_MASK) {
+		ret = loop_wait(&loop_cnt, &retries_cnt, 100);
+		if (ret != PRCM_PASS) {
+			printk(KERN_INFO "Loop count exceeded in "
+			"get_power_domain_state for domain:%u\n", domainid);
+			return ret;
+		}
+	}
+
+	*result = (u8) *addr & PWSTST_PWST_MASK;
+	return PRCM_PASS;
+}
+
+/*========================================================================*/
+/*===============GET PREVIOUS POWER DOMAIN STATE==========================*/
+/*= This function returns the previous state of a power domain.          =*/
+/*========================================================================*/
+int prcm_get_pre_power_domain_state(u32 domainid, u8 *result)
+{
+	u32 *addr;
+	u32 valid;
+
+	if (domainid > PRCM_NUM_DOMAINS)
+	return PRCM_FAIL;
+
+	addr = get_addr(domainid, REG_PREPWSTST);
+	valid = get_val_bits(domainid, REG_PREPWSTST);
+
+	if (!addr)
+	return PRCM_FAIL;
+
+	*result = (u8) *addr & PWSTST_PWST_MASK;
+	return PRCM_PASS;
+}
+
+
+/*============================================================================*/
+/*======================== POWER DOMAIN STATUS ===============================*/
+/*============================================================================*/
+/* This function waits for the power domain to transition to the desired state*/
+/* It polls on the power domain state and times out after a wait of ~500 micro*/
+/* secs. It returns PRCM_PASS id the power domain transitions to the desired  */
+/* state within the timeout period, else return PRCM_FAIL                     */
+/*============================================================================*/
+static int prcm_check_power_domain_status(u32 domainid, u8 desired_state)
+{
+	u8 curr_state;
+	u32 loop_cnt = 0, retries_cnt = 0;
+	int ret;
+
+	if ((domainid == DOM_CORE1) || (domainid == DOM_CORE2)\
+		|| (domainid == DOM_MPU)) {
+		printk
+		    (KERN_INFO "prcm_check_power_domain_status is not "
+				"supported for the following domains"
+				"(DOM_CORE1/DOM_CORE2/DOM_MPU\n");
+		return PRCM_FAIL;
+	}
+
+	if (domainid > PRCM_NUM_DOMAINS)
+		return PRCM_FAIL;
+
+	if (prcm_get_power_domain_state(domainid, &curr_state))
+		return PRCM_FAIL;
+
+	while (curr_state != desired_state) {
+		ret = prcm_get_power_domain_state(domainid, &curr_state);
+		if (ret != PRCM_PASS)
+			return ret;
+		ret = loop_wait(&loop_cnt, &retries_cnt, 100);
+		if (ret != PRCM_PASS) {
+			printk(KERN_INFO "Loop count exceeded in "
+			"check_power_domain_status for domain:%u\n", domainid);
+			return ret;
+		}
+	}
+	return PRCM_PASS;
+}
+
+/*============================================================================*/
+/*======================== SET POWER DOMAIN STATE ============================*/
+/*============================================================================*/
+/* This function sets the power domain state to the 'new_state' specified. If */
+/* mode is 'PRCM_AUTO', the clock domain is programmed in Hardware supervised */
+/* mode and the function waits for the power domain to transition to the      */
+/* desired state. If mode is 'PRCM_FORCE' the clock domain is programmed in   */
+/* sofware supervised mode and the function does not wait for the power       */
+/* domain transition to happen.                                               */
+/*============================================================================*/
+int prcm_set_power_domain_state(u32 domainid, u8 new_state, u8 mode)
+{
+	u32 *addr;
+	u32 *rstst_addr;
+	u32 new_val;
+	int ret = PRCM_PASS;
+
+	if ((domainid == DOM_CORE1) || (domainid == DOM_CORE2)) {
+		printk
+		    (KERN_INFO "Currently prcm_set_power_domain_state "
+			"for the following domains (DOM_CORE1/DOM_CORE2) "
+			"is not supported\n");
+		return PRCM_FAIL;
+	}
+
+	addr = get_addr(domainid, REG_PWSTCTRL);
+	if (!addr)
+		return PRCM_FAIL;
+
+	rstst_addr = get_addr(domainid, REG_RSTST);
+	if (new_state == PRCM_ON) {
+		if (rstst_addr != 0)
+			*rstst_addr |= DOM_WKUP_RST;
+	}
+	if (mode == PRCM_AUTO) {
+		/* Set the power domain state to new_state */
+		new_val = *addr & ~PWSTST_PWST_MASK;
+		new_val = new_val | new_state;
+		*addr = new_val;
+		ret =
+		    prcm_set_clock_domain_state(domainid, PRCM_HWSUP_AUTO,
+						PRCM_FALSE);
+	} else if (mode == PRCM_FORCE) {
+		if (domainid == DOM_MPU)
+			return PRCM_FAIL; /*No force mode for MPU */
+
+		new_val = *addr & ~PWSTST_PWST_MASK;
+		new_val = new_val | new_state;
+		*addr = new_val;
+		if ((new_state == PRCM_OFF) || (new_state == PRCM_RET)) {
+			ret =
+			    prcm_set_clock_domain_state(domainid,
+							PRCM_SWSUP_SLEEP,
+							PRCM_TRUE);
+			if (ret != PRCM_PASS)
+				return ret;
+		} else {
+			ret =
+			    prcm_set_clock_domain_state(domainid,
+							PRCM_SWSUP_WKUP,
+							PRCM_FALSE);
+			if (ret != PRCM_PASS)
+				return ret;
+		}
+		/* Wait for the power domain transition to complete */
+		ret = prcm_check_power_domain_status(domainid, new_state);
+	}
+	return ret;
+}
+
+/*============================================================================*/
+/*======================== DEVICES NOT IDLE  =================================*/
+/*============================================================================*/
+/*= This function returns a mask of devices that are not idle in the         =*/
+/*= specified domain. It reads the CM_IDLEST_<DOMAIN> register to generate   =*/
+/*= the mask. Each Bit in the mask which is set to 1, specifies the          =*/
+/*= corresponding device is not idle. The function returns PRCM_FAIL if the  =*/
+/*= specified device does not have a corresponding IDLEST register.          =*/
+/*============================================================================*/
+int prcm_get_devices_not_idle(u32 domainid, u32 *result)
+{
+	u32 valid;
+	u32 *addr;
+
+	*result = 0x0;
+
+	if (domainid > PRCM_NUM_DOMAINS)
+		return PRCM_FAIL;
+
+	addr = get_addr(domainid, REG_IDLEST);
+	valid = get_val_bits(domainid, REG_IDLEST);
+
+	if (!addr)
+		return PRCM_FAIL;
+
+	*result = (~(*addr & valid) & valid);
+	return PRCM_PASS;
+}
+
+/*============================================================================*/
+/*======================== INITIATORS NOT STANDBY  ===========================*/
+/*============================================================================*/
+/*= This function returns a mask of initiators that are not in standby mode. =*/
+/*= Each bit in the mask which is set to 1, specifies that the Standby is not=*/
+/*= asserted for the corresponding initiator. The function returns PRCM_FAIL =*/
+/*= if the specified device does not have a corresponding IDLEST register.   =*/
+/*============================================================================*/
+int prcm_get_initiators_not_standby(u32 domainid, u32 *result)
+{
+	u32 valid;
+	u32 *addr;
+
+	*result = 0x0;
+
+	if (domainid > PRCM_NUM_DOMAINS)
+		return PRCM_FAIL;
+
+	addr = get_addr(domainid, REG_IDLEST);
+	valid = get_val_bits(domainid, REG_IDLEST);
+
+	if (!addr)
+		return PRCM_FAIL;
+
+	if (prcm_get_devices_not_idle(domainid, result) != PRCM_PASS)
+		return PRCM_FAIL;
+
+	switch (domainid) {
+	case DOM_IVA2:
+		*result &= IVA2_IMASK;
+		break;
+	case DOM_MPU:
+		*result &= MPU_IMASK;
+		break;
+	case DOM_CORE1:
+		*result &= CORE1_IMASK;
+		break;
+	case DOM_CORE2:
+		*result &= CORE2_IMASK;
+		break;
+	case DOM_SGX:
+		*result &= SGX_IMASK;
+		break;
+	case DOM_USBHOST:
+		*result &= USBHOST_IMASK;
+		break;
+	case DOM_WKUP:
+		*result &= WKUP_IMASK;
+		break;
+	case DOM_DSS:
+		*result &= DSS_IMASK;
+		break;
+	case DOM_CAM:
+		*result &= CAM_IMASK;
+		break;
+	case DOM_PER:
+		*result &= PER_IMASK;
+		break;
+	case DOM_NEON:
+		*result &= NEON_IMASK;
+		break;
+	default:
+		break;
+	}
+	return PRCM_PASS;
+}
+
+/*============================================================================*/
+/*======================== SET WAKE UP DEPENDENCY  ===========================*/
+/*============================================================================*/
+/*= This function sets the wake up dependency for a specified power          =*/
+/*= domain by accessing the wake up dependendcy register.                    =*/
+/*============================================================================*/
+int prcm_set_wkup_dependency(u32 domainid, u32 wkup_dep)
+{
+	u32 *addr;
+
+	switch (domainid) {
+	case DOM_IVA2:
+		addr = (u32 *)&PM_WKDEP_IVA2;
+		*addr |= wkup_dep;
+		break;
+	case DOM_MPU:
+		addr = (u32 *)&PM_WKDEP_MPU;
+		*addr |= wkup_dep;
+		break;
+	case DOM_SGX:
+		addr = (u32 *)&PM_WKDEP_SGX;
+		*addr |= wkup_dep;
+		break;
+	case DOM_USBHOST:
+		addr = (u32 *)&PM_WKDEP_USBHOST;
+		*addr |= wkup_dep;
+		break;
+	case DOM_DSS:
+		addr = (u32 *)&PM_WKDEP_DSS;
+		*addr |= wkup_dep;
+		break;
+	case DOM_CAM:
+		addr = (u32 *)&PM_WKDEP_CAM;
+		*addr |= wkup_dep;
+		break;
+	case DOM_PER:
+		addr = (u32 *)&PM_WKDEP_PER;
+		*addr |= wkup_dep;
+		break;
+	case DOM_NEON:
+		addr = (u32 *)&PM_WKDEP_NEON;
+		*addr |= wkup_dep;
+		break;
+	default:
+		printk(KERN_INFO "Wake up dependency does not exist for "
+			 "the domain %d\n", domainid);
+		return PRCM_FAIL;
+}
+	return PRCM_PASS;
+}
+EXPORT_SYMBOL(prcm_set_wkup_dependency);
+
+/*============================================================================*/
+/*======================== CLEAR WAKE UP DEPENDENCY  =========================*/
+/*============================================================================*/
+/*= This function clears the wake up dependency for a specified power        =*/
+/*= domain by accessing the wake up dependendcy register.                    =*/
+/*============================================================================*/
+int prcm_clear_wkup_dependency(u32 domainid, u32 wkup_dep)
+{
+	u32 *addr;
+
+	switch (domainid) {
+	case DOM_IVA2:
+		addr = (u32 *)&PM_WKDEP_IVA2;
+		*addr &= ~wkup_dep;
+		break;
+	case DOM_MPU:
+		addr = (u32 *)&PM_WKDEP_MPU;
+		*addr &= ~wkup_dep;
+		break;
+	case DOM_SGX:
+		addr = (u32 *)&PM_WKDEP_SGX;
+		*addr &= ~wkup_dep;
+		break;
+	case DOM_USBHOST:
+		addr = (u32 *)&PM_WKDEP_USBHOST;
+		*addr &= ~wkup_dep;
+		break;
+	case DOM_DSS:
+		addr = (u32 *)&PM_WKDEP_DSS;
+		*addr &= ~wkup_dep;
+		break;
+	case DOM_CAM:
+		addr = (u32 *)&PM_WKDEP_CAM;
+		*addr &= ~wkup_dep;
+		break;
+	case DOM_PER:
+		addr = (u32 *)&PM_WKDEP_PER;
+		*addr &= ~wkup_dep;
+		break;
+	case DOM_NEON:
+		addr = (u32 *)&PM_WKDEP_NEON;
+		*addr &= ~wkup_dep;
+		break;
+	default:
+		printk(KERN_INFO "Cannot clear Wake up dependency,"
+			"does not exist for the domain %d\n", domainid);
+		return PRCM_FAIL;
+}
+	return PRCM_PASS;
+}
+EXPORT_SYMBOL(prcm_clear_wkup_dependency);
+
+/*============================================================================*/
+/*======================== SET SLEEP DEPENDENCY  =============================*/
+/*============================================================================*/
+/*= This function sets the sleep dependency for a specified power            =*/
+/*= domain by accessing the sleep dependency register.                       =*/
+/*============================================================================*/
+int prcm_set_sleep_dependency(u32 domainid, u32 sleep_dep)
+{
+	u32 *addr;
+
+	switch (domainid) {
+	case DOM_SGX:
+		addr = (u32 *)&CM_SLEEPDEP_SGX;
+		*addr |= sleep_dep;
+		break;
+	case DOM_USBHOST:
+		addr = (u32 *)&CM_SLEEPDEP_USBHOST;
+		*addr |= sleep_dep;
+		break;
+	case DOM_DSS:
+		addr = (u32 *)&CM_SLEEPDEP_DSS;
+		*addr |= sleep_dep;
+		break;
+	case DOM_CAM:
+		addr = (u32 *)&CM_SLEEPDEP_CAM;
+		*addr |= sleep_dep;
+		break;
+	case DOM_PER:
+		addr = (u32 *)&CM_SLEEPDEP_PER;
+		*addr |= sleep_dep;
+		break;
+	default:
+		printk(KERN_INFO "Sleep dependency does not exist for"
+			 "the domain %d\n", domainid);
+		return PRCM_FAIL;
+	}
+	return PRCM_PASS;
+}
+EXPORT_SYMBOL(prcm_set_sleep_dependency);
+
+/*============================================================================*/
+/*======================== CLEAR SLEEP DEPENDENCY  ===========================*/
+/*============================================================================*/
+/*= This function clears the sleep dependency for a specified power          =*/
+/*= domain by accessing the sleep dependency register.                       =*/
+/*============================================================================*/
+int prcm_clear_sleep_dependency(u32 domainid, u32 sleep_dep)
+{
+	u32 *addr;
+
+	switch (domainid) {
+	case DOM_SGX:
+		addr = (u32 *)&CM_SLEEPDEP_SGX;
+		*addr &= ~sleep_dep;
+		break;
+	case DOM_USBHOST:
+		addr = (u32 *)&CM_SLEEPDEP_USBHOST;
+		*addr &= ~sleep_dep;
+		break;
+	case DOM_DSS:
+		addr = (u32 *)&CM_SLEEPDEP_DSS;
+		*addr &= ~sleep_dep;
+		break;
+	case DOM_CAM:
+		addr = (u32 *)&CM_SLEEPDEP_CAM;
+		*addr &= ~sleep_dep;
+		break;
+	case DOM_PER:
+		addr = (u32 *)&CM_SLEEPDEP_PER;
+		*addr &= ~sleep_dep;
+		break;
+	default:
+		printk(KERN_INFO "Cannot clear Sleep dependency, does"
+			 " not exist for this domain %d\n", domainid);
+		return PRCM_FAIL;
+	}
+	return PRCM_PASS;
+}
+EXPORT_SYMBOL(prcm_clear_sleep_dependency);
+
+int prcm_set_memory_resource_on_state(unsigned short state)
+{
+	u32 value;
+	value = PM_PWSTCTRL_CORE;
+	switch (state) {
+	case MEMORY_ON:
+		value |= PRCM_CORE_PWRSTATEBIT1 | PRCM_CORE_PWRSTATEBIT2;
+		value |= PRCM_CORE_MEM1ONBITS | PRCM_CORE_MEM2ONBITS;
+		break;
+	case MEMORY_OFF:
+		value |= PRCM_CORE_PWRSTATEBIT1 | PRCM_CORE_PWRSTATEBIT2;
+		value &= ~(PRCM_CORE_MEM1ONBITS | PRCM_CORE_MEM2ONBITS);
+		break;
+	default:
+		pr_debug("Resource State Not Supported");
+		return -1;
+	}
+	PM_PWSTCTRL_CORE = value;
+	return 0;
+}
+
+int prcm_force_power_domain_state(u32 domain, u8 state)
+{
+	int ret;
+
+	if ((domain == DOM_CORE1) || (domain == DOM_CORE2) ||
+					(domain == DOM_MPU)) {
+		printk
+		(KERN_INFO "Currently prcm_force_power_domain_state is not "
+			"supported for CORE and MPU domains\n");
+			return PRCM_FAIL;
+	}
+
+	if (state == PRCM_ON) {
+		ret = prcm_set_power_domain_state(domain, PRCM_ON, PRCM_FORCE);
+		if (ret != PRCM_PASS)
+			return ret;
+	}
+
+	if ((state == PRCM_RET) || (state == PRCM_OFF)) {
+		/* Force all clocks in the power domain to be off */
+		prcm_set_domain_interface_clocks(domain, 0x0);
+		prcm_set_domain_functional_clocks(domain, 0x0);
+
+		ret = prcm_set_power_domain_state(domain, state, PRCM_FORCE);
+		if (ret != PRCM_PASS)
+			return ret;
+	}
+
+	if (state == PRCM_INACTIVE) {
+		/* Force all clocks in the power domain to be off */
+		prcm_set_domain_interface_clocks(domain, 0x0);
+		prcm_set_domain_functional_clocks(domain, 0x0);
+		ret = prcm_set_clock_domain_state(domain, PRCM_HWSUP_AUTO,
+								PRCM_FALSE);
+		if (ret != PRCM_PASS)
+			return ret;
+	}
+	return PRCM_PASS;
+}
+

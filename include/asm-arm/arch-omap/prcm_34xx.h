@@ -52,6 +52,22 @@
 #define PRCM_INACTIVE	0x2
 #define PRCM_ON		0x3
 
+/* Dpll resources */
+#define DPLL_NO_AUTOIDLE                0x0
+#define DPLL_AUTOIDLE                   0x1
+#define DPLL_AUTOIDLE_BYPASS            0x5
+
+/* memory and logic states */
+#define MEMORY_OFF                      0x0
+#define MEMORY_RET                      0x1
+#define MEMORY_ON                       0x3
+#define MEMORY_MAXLEVEL_DOMAINRET       0x2
+#define MEMORY_MAXLEVEL_DOMAINON        0x4
+
+#define LOGIC_OFF                       0x0
+#define LOGIC_RET                       0x1
+#define LOGIC_MAXLEVEL                  0x2
+
 /* CLOCK STATE TRANSITIONS */
 #define PRCM_NO_AUTO		0x0
 #define PRCM_SWSUP_SLEEP	0x1
@@ -678,6 +694,64 @@
 					| ID_OPP_NO(0x3))
 #define PRCM_NO_VDD2_OPPS	3
 
+/* OPP and Frequency Constraints */
+#define PRCM_VDD1_CONSTRAINT    (ID_OMAP(AT_3430) | \
+				OTHER_ID_TYPE(ID_CONSTRAINT_OPP) | 0x1)
+#define PRCM_VDD2_CONSTRAINT    (ID_OMAP(AT_3430) | \
+				OTHER_ID_TYPE(ID_CONSTRAINT_OPP) | 0x2)
+#define PRCM_ARMFREQ_CONSTRAINT (ID_OMAP(AT_3430) | \
+				OTHER_ID_TYPE(ID_CONSTRAINT_FREQ) | 0x3)
+#define PRCM_DSPFREQ_CONSTRAINT (ID_OMAP(AT_3430) | \
+				OTHER_ID_TYPE(ID_CONSTRAINT_FREQ) | 0x4)
+
+/* Mpu power domain states */
+#define PRCM_MPU_ACTIVE         (OTHER_ID_TYPE(ID_MPU_DOM_STATE) | 0x0)
+#define PRCM_MPU_INACTIVE       (OTHER_ID_TYPE(ID_MPU_DOM_STATE) | 0x1)
+#define PRCM_MPU_CSWR_L2RET     (OTHER_ID_TYPE(ID_MPU_DOM_STATE) | 0x3)
+#define PRCM_MPU_CSWR_L2OFF     (OTHER_ID_TYPE(ID_MPU_DOM_STATE) | 0x7)
+#define PRCM_MPU_OSWR_L2RET     (OTHER_ID_TYPE(ID_MPU_DOM_STATE) | 0xF)
+#define PRCM_MPU_OSWR_L2OFF     (OTHER_ID_TYPE(ID_MPU_DOM_STATE) | 0x1F)
+#define PRCM_MPU_OFF            (OTHER_ID_TYPE(ID_MPU_DOM_STATE) | 0x3F)
+
+/* Core power domain states */
+#define PRCM_CORE_ACTIVE        (OTHER_ID_TYPE(ID_CORE_DOM_STATE) | 0x0)
+#define PRCM_CORE_INACTIVE      (OTHER_ID_TYPE(ID_CORE_DOM_STATE) | 0x1)
+#define PRCM_CORE_CSWR_MEMRET   (OTHER_ID_TYPE(ID_CORE_DOM_STATE) | 0x3)
+#define PRCM_CORE_CSWR_MEM1OFF  (OTHER_ID_TYPE(ID_CORE_DOM_STATE) | 0x7)
+#define PRCM_CORE_CSWR_MEM2OFF  (OTHER_ID_TYPE(ID_CORE_DOM_STATE) | 0xF)
+#define PRCM_CORE_CSWR_MEMOFF   (OTHER_ID_TYPE(ID_CORE_DOM_STATE) | 0x1F)
+#define PRCM_CORE_OSWR_MEMRET   (OTHER_ID_TYPE(ID_CORE_DOM_STATE) | 0x3F)
+#define PRCM_CORE_OSWR_MEM1OFF  (OTHER_ID_TYPE(ID_CORE_DOM_STATE) | 0x7F)
+#define PRCM_CORE_OSWR_MEM2OFF  (OTHER_ID_TYPE(ID_CORE_DOM_STATE) | 0xFF)
+#define PRCM_CORE_OSWR_MEMOFF   (OTHER_ID_TYPE(ID_CORE_DOM_STATE) | 0x1FF)
+#define PRCM_CORE_OFF           (OTHER_ID_TYPE(ID_CORE_DOM_STATE) | 0x3FF)
+
+/* Memory and Logic resources */
+#define PRCM_MPU_L2CACHEON      (OTHER_ID_TYPE(ID_MEMORY_RES) | \
+						ID_DOMAIN(DOM_MPU) | 0x1)
+#define PRCM_MPU_L2CACHERET     (OTHER_ID_TYPE(ID_MEMORY_RES) | \
+						ID_DOMAIN(DOM_MPU) | 0x2)
+#define PRCM_MPU_LOGICL1CACHERET        (OTHER_ID_TYPE(ID_LOGIC_RES) | \
+						ID_DOMAIN(DOM_MPU) | 0x3)
+
+#define PRCM_CORE_MEM2ON        (OTHER_ID_TYPE(ID_MEMORY_RES) | \
+						ID_DOMAIN(DOM_CORE1) | 0x1)
+#define PRCM_CORE_MEM1ON        (OTHER_ID_TYPE(ID_MEMORY_RES) | \
+						ID_DOMAIN(DOM_CORE1) | 0x2)
+#define PRCM_CORE_MEM2RET       (OTHER_ID_TYPE(ID_MEMORY_RES) | \
+						ID_DOMAIN(DOM_CORE1) | 0x3)
+#define PRCM_CORE_MEM1RET       (OTHER_ID_TYPE(ID_MEMORY_RES) | \
+						ID_DOMAIN(DOM_CORE1) | 0x4)
+#define PRCM_CORE_LOGICRET      (OTHER_ID_TYPE(ID_LOGIC_RES) | \
+						ID_DOMAIN(DOM_CORE1) | 0x5)
+#define  PRCM_CORE_MEMORYCHANGE (OTHER_ID_TYPE(ID_LOGIC_RES) | \
+						ID_DOMAIN(DOM_CORE1) | 0x6)
+#define  PRCM_CORE_POWERSTATE   (OTHER_ID_TYPE(ID_LOGIC_RES) | \
+						ID_DOMAIN(DOM_CORE1) | 0x7)
+
+#define PRCM_PER_LOGICRET       (OTHER_ID_TYPE(ID_LOGIC_RES) | \
+						ID_DOMAIN(DOM_PER) | 0x1)
+
 /* VDD1 and VDD2 sleep states */
 #define PRCM_VDD_ACTIVE		1
 #define PRCM_VDD_RET		2
@@ -759,6 +833,25 @@ extern int prcm_put_dpll_in_bypass(u32 dpll, u32 bypass_mode);
 extern int prcm_get_dpll_mn_output(u32 dpll, u32 *mn_output);
 extern int prcm_get_dpll_rate(u32 dpll, u32 *rate);
 extern int prcm_configure_dpll_divider(u32 dpll, u32 setting);
+
+/* Power/Clock domain API's */
+extern int prcm_get_power_domain_state(u32 domainid, u8 *result);
+extern int prcm_get_pre_power_domain_state(u32 domainid, u8 *result);
+extern int prcm_is_clock_domain_active(u32 domainid, u8 *result);
+extern int prcm_set_clock_domain_state(u32 domainid, u8 new_state,
+						u8 check_state);
+extern int prcm_set_power_domain_state(u32 domainid, u8 new_state, u8 mode);
+extern int prcm_get_devices_not_idle(u32 domainid, u32 *result);
+extern int prcm_get_initiators_not_standby(u32 domainid, u32 *result);
+extern int prcm_set_wkup_dependency(u32 domainid, u32 wkup_dep);
+extern int prcm_set_sleep_dependency(u32 domainid, u32 sleep_dep);
+extern int prcm_clear_wkup_dependency(u32 domainid, u32 wkup_dep);
+extern int prcm_clear_sleep_dependency(u32 domainid, u32 sleep_dep);
+extern int prcm_get_domain_interface_clocks(u32 domainid, u32 *result);
+extern int prcm_get_domain_functional_clocks(u32 domainid, u32 *result);
+extern int prcm_set_domain_interface_clocks(u32 domainid, u32 setmask);
+extern int prcm_set_domain_functional_clocks(u32 domainid, u32 setmask);
+extern int prcm_force_power_domain_state(u32 domain, u8 state);
 
 /* Other APIs*/
 extern int prcm_get_crystal_rate(void);
