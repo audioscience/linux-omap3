@@ -350,20 +350,22 @@ typedef struct { volatile u32 offset[4096]; } __regbase32;
 #define PM_PREPWSTST_USBHOST 	PRM_REG32(0x14E8)
 
 
-#else
-
-#define __REG8(paddr)           io_p2v(paddr)
-#define __REG16(paddr)          io_p2v(paddr)
-#define __REG32(paddr)          io_p2v(paddr)
-
 #define PRCM_GPIO1_BASE 	0x48310000
 
+#define PRCM_GPIO1_SYSCONFIG    DEFINE_REG(PRCM_GPIO1_BASE, 0x10)
 #define GPIO1_IRQSTATUS1        DEFINE_REG(PRCM_GPIO1_BASE, 0x18)
 #define GPIO1_IRQSTATUS2        DEFINE_REG(PRCM_GPIO1_BASE, 0x28)
 #define GPIO1_IRQENABLE1        DEFINE_REG(PRCM_GPIO1_BASE, 0x1C)
 #define GPIO1_WAKEUPENABLE      DEFINE_REG(PRCM_GPIO1_BASE, 0x20)
 #define GPIO1_SETIRQENABLE1     DEFINE_REG(PRCM_GPIO1_BASE, 0x64)
 #define GPIO1_FALLINGDETECT     DEFINE_REG(PRCM_GPIO1_BASE, 0x4C)
+#define GPIO1_SETWKUENA		DEFINE_REG(PRCM_GPIO1_BASE, 0x84)
+
+#else
+
+#define __REG8(paddr)           io_p2v(paddr)
+#define __REG16(paddr)          io_p2v(paddr)
+#define __REG32(paddr)          io_p2v(paddr)
 
 
 #endif

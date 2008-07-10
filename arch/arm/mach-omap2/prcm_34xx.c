@@ -26,6 +26,7 @@
 #include <linux/init.h>
 #include <asm/arch/prcm_34xx.h>
 #include <asm/io.h>
+#include <asm/arch/gpmc.h>
 
 #include "prcm-regs.h"
 #include "ti-compat.h"
@@ -38,6 +39,9 @@ static int padconf_saved;
 static unsigned int prcm_sleep_save[PRCM_SLEEP_SAVE_SIZE];
 static struct int_controller_context intc_context;
 static struct control_module_context control_ctx;
+void init_wakeupconfig(void);
+void uart_padconf_control(void);
+void setup_board_wakeup_source(u32);
 
 #define IOPAD_WKUP 1
 
@@ -2919,6 +2923,189 @@ int prcm_clear_sleep_dependency(u32 domainid, u32 sleep_dep)
 	return PRCM_PASS;
 }
 EXPORT_SYMBOL(prcm_clear_sleep_dependency);
+
+static void control_save_context(void)
+{
+	control_ctx.sysconfig = CONTROL_SYSCONFIG;
+	control_ctx.devconf0 = OMAP2_CONTROL_DEVCONF0;
+	control_ctx.mem_dftrw0 = CONTROL_MEM_DFTRW0;
+	control_ctx.mem_dftrw1 = CONTROL_MEM_DFTRW1;
+	control_ctx.msuspendmux_0 = CONTROL_MSUSPENDMUX_0;
+	control_ctx.msuspendmux_1 = CONTROL_MSUSPENDMUX_1;
+	control_ctx.msuspendmux_2 = CONTROL_MSUSPENDMUX_2;
+	control_ctx.msuspendmux_3 = CONTROL_MSUSPENDMUX_3;
+	control_ctx.msuspendmux_4 = CONTROL_MSUSPENDMUX_4;
+	control_ctx.msuspendmux_5 = CONTROL_MSUSPENDMUX_5;
+	control_ctx.sec_ctrl = CONTROL_SEC_CTRL;
+	control_ctx.devconf1 = OMAP2_CONTROL_DEVCONF1;
+	control_ctx.csirxfe = CONTROL_CSIRXFE;
+	control_ctx.iva2_bootaddr = CONTROL_IVA2_BOOTADDR;
+	control_ctx.iva2_bootmod = CONTROL_IVA2_BOOTMOD;
+	control_ctx.debobs_0 = CONTROL_DEBOBS_0;
+	control_ctx.debobs_1 = CONTROL_DEBOBS_1;
+	control_ctx.debobs_2 = CONTROL_DEBOBS_2;
+	control_ctx.debobs_3 = CONTROL_DEBOBS_3;
+	control_ctx.debobs_4 = CONTROL_DEBOBS_4;
+	control_ctx.debobs_5 = CONTROL_DEBOBS_5;
+	control_ctx.debobs_6 = CONTROL_DEBOBS_6;
+	control_ctx.debobs_7 = CONTROL_DEBOBS_7;
+	control_ctx.debobs_8 = CONTROL_DEBOBS_8;
+	control_ctx.prog_io0 = CONTROL_PROG_IO0;
+	control_ctx.prog_io1 = CONTROL_PROG_IO1;
+	control_ctx.dss_dpll_spreading = CONTROL_DSS_DPLL_SPREADING;
+	control_ctx.core_dpll_spreading = CONTROL_CORE_DPLL_SPREADING;
+	control_ctx.per_dpll_spreading = CONTROL_PER_DPLL_SPREADING;
+	control_ctx.usbhost_dpll_spreading = CONTROL_USBHOST_DPLL_SPREADING;
+	control_ctx.pbias_lite = OMAP2_CONTROL_PBIAS_1;
+	control_ctx.temp_sensor = CONTROL_TEMP_SENSOR;
+	control_ctx.sramldo4 = CONTROL_SRAMLDO4;
+	control_ctx.sramldo5 = CONTROL_SRAMLDO5;
+	control_ctx.csi = CONTROL_CSI;
+}
+
+static void control_restore_context(void)
+{
+	CONTROL_SYSCONFIG = control_ctx.sysconfig;
+	OMAP2_CONTROL_DEVCONF0 = control_ctx.devconf0;
+	CONTROL_MEM_DFTRW0 = control_ctx.mem_dftrw0;
+	CONTROL_MEM_DFTRW1 = control_ctx.mem_dftrw1;
+	CONTROL_MSUSPENDMUX_0 = control_ctx.msuspendmux_0;
+	CONTROL_MSUSPENDMUX_1 = control_ctx.msuspendmux_1;
+	CONTROL_MSUSPENDMUX_2 = control_ctx.msuspendmux_2;
+	CONTROL_MSUSPENDMUX_3 = control_ctx.msuspendmux_3;
+	CONTROL_MSUSPENDMUX_4 = control_ctx.msuspendmux_4;
+	CONTROL_MSUSPENDMUX_5 = control_ctx.msuspendmux_5;
+	CONTROL_SEC_CTRL = control_ctx.sec_ctrl;
+	OMAP2_CONTROL_DEVCONF1 = control_ctx.devconf1;
+	CONTROL_CSIRXFE = control_ctx.csirxfe;
+	CONTROL_IVA2_BOOTADDR = control_ctx.iva2_bootaddr;
+	CONTROL_IVA2_BOOTMOD = control_ctx.iva2_bootmod;
+	CONTROL_DEBOBS_0 = control_ctx.debobs_0;
+	CONTROL_DEBOBS_1 = control_ctx.debobs_1;
+	CONTROL_DEBOBS_2 = control_ctx.debobs_2;
+	CONTROL_DEBOBS_3 = control_ctx.debobs_3;
+	CONTROL_DEBOBS_4 = control_ctx.debobs_4;
+	CONTROL_DEBOBS_5 = control_ctx.debobs_5;
+	CONTROL_DEBOBS_6 = control_ctx.debobs_6;
+	CONTROL_DEBOBS_7 = control_ctx.debobs_7;
+	CONTROL_DEBOBS_8 = control_ctx.debobs_8;
+	CONTROL_PROG_IO0 = control_ctx.prog_io0;
+	CONTROL_PROG_IO1 = control_ctx.prog_io1;
+	CONTROL_DSS_DPLL_SPREADING = control_ctx.dss_dpll_spreading;
+	CONTROL_CORE_DPLL_SPREADING = control_ctx.core_dpll_spreading;
+	CONTROL_PER_DPLL_SPREADING = control_ctx.per_dpll_spreading;
+	CONTROL_USBHOST_DPLL_SPREADING = control_ctx.usbhost_dpll_spreading;
+	OMAP2_CONTROL_PBIAS_1 = control_ctx.pbias_lite;
+	CONTROL_TEMP_SENSOR = control_ctx.temp_sensor;
+	CONTROL_SRAMLDO4 = control_ctx.sramldo4;
+	CONTROL_SRAMLDO5 = control_ctx.sramldo5;
+	CONTROL_CSI = control_ctx.csi;
+}
+
+static void save_intc_context(void)
+{
+	int i = 0;
+	intc_context.sysconfig = INTCPS_SYSCONFIG;
+	intc_context.protection = INTCPS_PROTECTION;
+	intc_context.idle = INTCPS_IDLE;
+	intc_context.threshold = INTCPS_THRESHOLD;
+	for (i = 0; i < 96; i++)
+		intc_context.ilr[i] = IC_REG32_34XX(0x100 + 0x4*i);
+	/* MIRs are saved and restore with other PRCM registers */
+}
+
+static void restore_intc_context(void)
+{
+	int i = 0;
+	INTCPS_SYSCONFIG = intc_context.sysconfig;
+	INTCPS_PROTECTION = intc_context.protection;
+	INTCPS_IDLE = intc_context.idle;
+	INTCPS_THRESHOLD = intc_context.threshold;
+	for (i = 0; i < 96; i++)
+		IC_REG32_34XX(0x100 + 0x4*i) = intc_context.ilr[i];
+	/* MIRs are saved and restore with other PRCM registers */
+}
+
+void prcm_save_core_context(u32 target_core_state)
+{
+	if (target_core_state == PRCM_CORE_OFF) {
+		if (!padconf_saved) {
+			/* Start save of PADCONF registers */
+			CONTROL_PADCONF_OFF |= 0x2;
+			/* Wait till save is done */
+			while (CONTROL_GENERAL_PURPOSE_STATUS & 0x1);
+			padconf_saved = 1;
+		}
+
+		/* Save interrupt controller context */
+		save_intc_context();
+		/* Save gpmc context */
+		gpmc_save_context();
+		/* Save control module context */
+		control_save_context();
+	}
+
+	if ((target_core_state  >= PRCM_CORE_OSWR_MEMRET) &&
+				(target_core_state != PRCM_CORE_OFF)) {
+		/* Save interrupt controller context */
+		save_intc_context();
+		/* Save gpmc context */
+		gpmc_save_context();
+	}
+	/* Whenever we need to call rom code API to save secure ram,
+	* save dma context also */
+	if ((target_core_state  > PRCM_CORE_CSWR_MEMRET) &&
+		(target_core_state != PRCM_CORE_OSWR_MEMRET)) {
+		/* Save dma context */
+		omap_dma_global_context_save();
+	}
+}
+
+void prcm_restore_core_context(u32 target_core_state)
+{
+	u8 state;
+	if (target_core_state == PRCM_CORE_OFF) {
+		prcm_get_pre_power_domain_state(DOM_CORE1, &state);
+		if (state == PRCM_OFF) {
+			restore_intc_context();
+			gpmc_restore_context();
+			control_restore_context();
+			padconf_saved = 0;
+			uart_padconf_control();
+			/* TODO prcm_set_domain_power_configuration(DOM_CORE1,
+				PRCM_SIDLEMODE_DONTCARE,
+				PRCM_MIDLEMODE_DONTCARE, PRCM_TRUE);*/
+			/* Since PER is also handled along with CORE
+			* enable autoidle for PER also
+			*/
+			/* TODO prcm_set_domain_power_configuration(DOM_PER,
+				PRCM_SIDLEMODE_DONTCARE,
+				PRCM_MIDLEMODE_DONTCARE, PRCM_TRUE);*/
+			/* Lock DPLL5 */
+			prcm_configure_dpll(DPLL5_PER2, -1, -1, -1);
+			prcm_enable_dpll(DPLL5_PER2);
+		}
+	}
+
+	 if ((target_core_state >= PRCM_CORE_OSWR_MEMRET) &&
+		(target_core_state != PRCM_CORE_OFF)) {
+			restore_intc_context();
+			gpmc_restore_context();
+		}
+	/* Whenever we called rom code API, restore dma context also */
+	if ((target_core_state  > PRCM_CORE_CSWR_MEMRET) &&
+		(target_core_state != PRCM_CORE_OSWR_MEMRET)) {
+		if (!is_device_type_gp()) {
+			/* Clear irq status for DMA channels 0 and 1 */
+			/* This needs to be done after calling after
+			*saving/restoring secure ram context
+			*/
+			omap_clear_dma(0);
+			omap_clear_dma(1);
+		}
+		omap_dma_global_context_restore();
+	}
+}
 
 /* Save registers */
 int prcm_save_registers(struct system_power_state *target_state)

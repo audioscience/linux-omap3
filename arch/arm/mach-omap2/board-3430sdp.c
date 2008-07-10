@@ -47,6 +47,10 @@
 #include <../drivers/media/video/omap34xxcam.h>
 #include <../drivers/media/video/isp/ispreg.h>
 #include "ti-compat.h"
+#ifdef CONFIG_OMAP3_PM
+#include "prcm-regs.h"
+#include <asm/arch/prcm_34xx.h>
+#endif
 
 #include <asm/io.h>
 #include <asm/delay.h>
@@ -62,6 +66,20 @@
 
 
 #define TWL4030_MSECURE_GPIO	22
+
+#ifdef CONFIG_OMAP3_PM
+#define CONTROL_SYSC_SMARTIDLE  (0x2 << 3)
+#define CONTROL_SYSC_AUTOIDLE   (0x1)
+
+#define SDP3430_SMC91X_CS       3
+#define PRCM_INTERRUPT_MASK     (1 << 11)
+#define UART1_INTERRUPT_MASK    (1 << 8)
+#define UART2_INTERRUPT_MASK    (1 << 9)
+#define UART3_INTERRUPT_MASK    (1 << 10)
+#define TWL4030_MSECURE_GPIO    22
+int console_detect(char *str);
+unsigned int uart_interrupt_mask_value;
+#endif
 
 static struct resource sdp3430_smc91x_resources[] = {
 	[0] = {
@@ -222,6 +240,92 @@ static struct platform_device irda_device = {
 	.num_resources	= 1,
 	.resource	= irda_resources,
 };
+
+#ifdef CONFIG_OMAP3_PM
+static u32 *uart_detect(void)
+{
+	char str[7];
+	u32 *temp_ptr = 0;
+	if (console_detect(str))
+		printk(KERN_INFO"Invalid console paramter....\n");
+
+	if (!strcmp(str, "ttyS0")) {
+		temp_ptr = (u32 *)(&CONTROL_PADCONF_UART1_CTS);
+		uart_interrupt_mask_value = UART1_INTERRUPT_MASK;
+		}
+	else if (!strcmp(str, "ttyS1")) {
+		temp_ptr = (u32 *)(&CONTROL_PADCONF_UART2_TX);
+		uart_interrupt_mask_value = UART2_INTERRUPT_MASK;
+		}
+	else if (!strcmp(str, "ttyS2")) {
+		temp_ptr = (u32 *)(&CONTROL_PADCONF_UART3_RTS_SD);
+		uart_interrupt_mask_value = UART3_INTERRUPT_MASK;
+		}
+	else
+		printk(KERN_INFO
+		"!!!!!!!!! Unable to recongnize Console UART........\n");
+	return (u32 *)(temp_ptr);
+}
+
+void  init_wakeupconfig(void)
+{
+	u32 *ptr;
+	ptr = (u32 *)uart_detect();
+	*ptr |= (u32)((IO_PAD_WAKEUPENABLE | IO_PAD_OFFPULLUDENABLE |
+			IO_PAD_OFFOUTENABLE | IO_PAD_OFFENABLE |
+			IO_PAD_INPUTENABLE | IO_PAD_PULLUDENABLE)
+				<<  IO_PAD_HIGH_SHIFT);
+
+}
+
+void uart_padconf_control(void)
+{
+	u32 *ptr;
+	ptr = (u32 *)uart_detect();
+		*ptr |= (u32)((IO_PAD_WAKEUPENABLE)
+			<< IO_PAD_HIGH_SHIFT);
+}
+
+void setup_board_wakeup_source(u32 wakeup_source)
+{
+	if ((wakeup_source & PRCM_WAKEUP_T2_KEYPAD) ||
+		(wakeup_source & PRCM_WAKEUP_TOUCHSCREEN)) {
+		PRCM_GPIO1_SYSCONFIG = 0x15;
+		PM_WKEN_WKUP |= 0x8;
+		PM_MPUGRPSEL_WKUP = 0x8;
+		/* Unmask GPIO interrupt*/
+		INTC_MIR_0 = ~((1<<29));
+	}
+	if (wakeup_source & PRCM_WAKEUP_T2_KEYPAD) {
+		CONTROL_PADCONF_SYS_NIRQ &= 0xFFFFFFF8;
+		CONTROL_PADCONF_SYS_NIRQ |= 0x4;
+		GPIO1_SETIRQENABLE1 |= 0x1;
+		GPIO1_SETWKUENA |= 0x1;
+		GPIO1_FALLINGDETECT |= 0x1;
+	}
+	/* Unmasking the PRCM interrupts */
+	INTC_MIR_0 &= ~PRCM_INTERRUPT_MASK;
+	if (wakeup_source & PRCM_WAKEUP_UART) {
+		/* Unmasking the UART interrupts */
+		INTC_MIR_2 = ~uart_interrupt_mask_value;
+	}
+}
+
+static void scm_clk_init(void)
+{
+	struct clk *p_omap_ctrl_clk = NULL;
+
+	p_omap_ctrl_clk = clk_get(NULL, "omapctrl_ick");
+	if (p_omap_ctrl_clk != NULL) {
+		if (clk_enable(p_omap_ctrl_clk) != 0) {
+			printk(KERN_ERR "failed to enable scm clks\n");
+			clk_put(p_omap_ctrl_clk);
+		}
+	}
+	/* Sysconfig set to SMARTIDLE and AUTOIDLE */
+	CONTROL_SYSCONFIG = (CONTROL_SYSC_SMARTIDLE | CONTROL_SYSC_AUTOIDLE);
+}
+#endif /* CONFIG_OMAP3_PM */
 
 static int sdp3430_keymap[] = {
 	KEY(0, 0, KEY_LEFT),

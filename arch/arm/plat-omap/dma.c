@@ -51,6 +51,14 @@ enum { DMA_CHAIN_STARTED, DMA_CHAIN_NOTSTARTED };
 
 static int enable_1510_mode;
 
+#ifdef CONFIG_OMAP3_PM
+static struct omap_dma_global_context_registers {
+	u32 dma_irqenable_l0;
+	u32 dma_ocp_sysconfig;
+	u32 dma_gcr;
+} omap_dma_global_context;
+#endif
+
 struct omap_dma_lch {
 	int next_lch;
 	int dev_id;
@@ -2289,6 +2297,30 @@ void omap_stop_lcd_dma(void)
 	omap_writew(w, OMAP1610_DMA_LCD_CTRL);
 }
 EXPORT_SYMBOL(omap_stop_lcd_dma);
+
+#ifdef CONFIG_OMAP3_PM
+void omap_dma_global_context_save(void)
+{
+	omap_dma_global_context.dma_irqenable_l0 =
+		omap_readl(OMAP34XX_DMA4_BASE + OMAP_DMA4_IRQENABLE_L0);
+	omap_dma_global_context.dma_ocp_sysconfig =
+		omap_readl(OMAP34XX_DMA4_BASE + OMAP_DMA4_OCP_SYSCONFIG);
+	omap_dma_global_context.dma_gcr =
+		omap_readl(OMAP34XX_DMA4_BASE + OMAP_DMA4_GCR);
+}
+EXPORT_SYMBOL(omap_dma_global_context_save);
+
+void omap_dma_global_context_restore(void)
+{
+	omap_writel(omap_dma_global_context.dma_gcr,
+		OMAP34XX_DMA4_BASE + OMAP_DMA4_GCR);
+	omap_writel(omap_dma_global_context.dma_ocp_sysconfig,
+		OMAP34XX_DMA4_BASE + OMAP_DMA4_OCP_SYSCONFIG);
+	omap_writel(omap_dma_global_context.dma_irqenable_l0,
+		OMAP34XX_DMA4_BASE + OMAP_DMA4_IRQENABLE_L0);
+}
+EXPORT_SYMBOL(omap_dma_global_context_restore);
+#endif /* CONFIG_OMAP3_PM */
 
 /*----------------------------------------------------------------------------*/
 
