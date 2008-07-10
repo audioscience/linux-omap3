@@ -36,7 +36,7 @@ ifeq ($(CONFIG_OMAP3_PM),)
        # Power Management
        obj-$(CONFIG_PM) += pm.o 
 else
-       obj-y += prcm_34xx.o clock_34xx.o sram-fn_34xx.o resource_34xx.o constraint_34xx.o
+       obj-y += prcm_34xx.o pm_34xx.o clock_34xx.o sram-fn_34xx.o resource_34xx.o constraint_34xx.o
        # Power Management
 endif
 

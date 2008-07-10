@@ -48,6 +48,7 @@ int activate_power_res(struct shared_resource *resp,
 	switch (target_level) {
 	case POWER_DOMAIN_RET:
 	case POWER_DOMAIN_OFF:
+#ifdef CONFIG_HW_SUP_TRANS
 		ret = prcm_set_clock_domain_state(prcm_id, PRCM_NO_AUTO,
 								PRCM_FALSE);
 		if (ret != PRCM_PASS) {
@@ -67,6 +68,7 @@ int activate_power_res(struct shared_resource *resp,
 			prcm_clear_wkup_dependency(prcm_id, PRCM_WKDEP_EN_MPU);
 			break;
 		}
+#endif /* CONFIG_HW_SUP_TRANS */
 		if (current_level != POWER_DOMAIN_ON) {
 			ret = prcm_set_power_domain_state(prcm_id,
 						POWER_DOMAIN_ON, PRCM_FORCE);
@@ -80,6 +82,7 @@ int activate_power_res(struct shared_resource *resp,
 
 			ret = prcm_set_power_domain_state(prcm_id,
 						POWER_DOMAIN_ON, PRCM_FORCE);
+#ifdef CONFIG_HW_SUP_TRANS
 		switch (prcm_id) {
 		case DOM_DSS:
 		case DOM_CAM:
@@ -105,8 +108,8 @@ int activate_power_res(struct shared_resource *resp,
 						POWER_DOMAIN_ON, PRCM_AUTO);
 			break;
 		}
+#endif /* #ifdef CONFIG_HW_SUP_TRANS */
 			break;
-
 	case POWER_DOMAIN_RET:
 	case POWER_DOMAIN_OFF:
 		ret =  prcm_set_power_domain_state(prcm_id,
