@@ -757,13 +757,264 @@
 #define PRCM_VDD_RET		2
 #define PRCM_VDD_OFF		3
 
+#define PRCM_WAKEUP_T2_KEYPAD	0x1
+#define PRCM_WAKEUP_TOUCHSCREEN	0x2
+#define PRCM_WAKEUP_UART	0x4
+
+/* PRM_VC_SMPS_SA */
+#define PRM_VC_SMPS_SA1_SHIFT	16
+#define PRM_VC_SMPS_SA1_MASK	(0x7F << 16)
+#define PRM_VC_SMPS_SA0_SHIFT	0
+#define PRM_VC_SMPS_SA0_MASK	(0x7F << 16)
+
+/* PRM_VC_SMPS_VOL_RA */
+#define PRM_VC_SMPS_VOLRA1_SHIFT	16
+#define PRM_VC_SMPS_VOLRA1_MASK		(0xFF << 16)
+#define PRM_VC_SMPS_VOLRA0_SHIFT	0
+#define PRM_VC_SMPS_VOLRA0_MASK		(0xFF << 0)
+
+/* PRM_VC_SMPS_CMD_RA */
+#define PRM_VC_SMPS_CMDRA1_SHIFT	16
+#define PRM_VC_SMPS_CMDRA1_MASK		(0xFF << 16)
+#define PRM_VC_SMPS_CMDRA0_SHIFT	0
+#define PRM_VC_SMPS_CMDRA0_MASK		(0xFF << 0)
+
+/* PRM_VC_CMD_VAL_0 specific bits */
+#define PRM_VC_CMD_VAL0_ON		0x30
+#define PRM_VC_CMD_VAL0_ONLP		0x18
+#define PRM_VC_CMD_VAL0_RET		0x18
+#define PRM_VC_CMD_VAL0_OFF		0x18
+
+/* PRM_VC_CMD_VAL_1 specific bits */
+#define PRM_VC_CMD_VAL1_ON		0x2C
+#define PRM_VC_CMD_VAL1_ONLP		0x18
+#define PRM_VC_CMD_VAL1_RET		0x18
+#define PRM_VC_CMD_VAL1_OFF		0x18
+
+#define PRM_VC_CMD_ON_SHIFT		24
+#define PRM_VC_CMD_ON_MASK		(0xFF << 24)
+#define PRM_VC_CMD_ONLP_SHIFT		16
+#define PRM_VC_CMD_ONLP_MASK		(0xFF << 16)
+#define PRM_VC_CMD_RET_SHIFT		8
+#define PRM_VC_CMD_RET_MASK		(0xFF << 8)
+#define PRM_VC_CMD_OFF_SHIFT		0
+#define PRM_VC_CMD_OFF_MASK		(0xFF << 0)
+
+/* PRM_VC_BYPASS_VAL */
+#define PRM_VC_BYPASS_VALID		(0x1 << 24)
+#define PRM_VC_BYPASS_DATA_SHIFT	16
+#define PRM_VC_BYPASS_DATA_MASK		(0xFF << 16)
+#define PRM_VC_BYPASS_REGADDR_SHIFT	8
+#define PRM_VC_BYPASS_REGADDR_MASK	(0xFF << 8)
+#define PRM_VC_BYPASS_SLAVEADDR_SHIFT	0
+#define PRM_VC_BYPASS_SLAVEADDR_MASK	(0x7F << 0)
+
+/* PRM_VC_CH_CONF */
+#define PRM_VC_CH_CONF_CMD1		(0x1 << 20)
+#define PRM_VC_CH_CONF_RAV1		(0x1 << 17)
+
+/* PRM_VC_I2C_CFG */
+#define PRM_VC_I2C_CFG_MCODE		0x0
+#define PRM_VC_I2C_CFG_HSEN		(0x1 << 3)
+#define PRM_VC_I2C_CFG_SREN		(0x1 << 4)
+#define PRM_VC_I2C_CFG_HSMASTER		(0x1 << 5)
+
+/* PRM_VOLTCTRL */
+#define PRM_VOLTCTRL_AUTO_SLEEP		0x1
+#define PRM_VOLTCTRL_AUTO_RET		0x2
+#define PRM_VOLTCTRL_AUTO_OFF		0x4
+#define PRM_VOLTCTRL_SEL_OFF		0x8
+#define PRM_VOLTCTRL_SEL_VMODE		0x10
+
+/* Constants to define setup durations */
+#define PRM_CLKSETUP_DURATION		0xFF
+#define PRM_VOLTSETUP_TIME2		0xFFF
+#define PRM_VOLTSETUP_TIME1		0xFFF
+#define PRM_VOLTOFFSET_DURATION		0xFF
+#define PRM_VOLTSETUP2_DURATION		0xFF
+
+/* PRM_VOLTSETUP1 */
+#define PRM_VOLTSETUP_TIME2_OFFSET	16
+#define PRM_VOLTSETUP_TIME1_OFFSET	0
+
+/* PRM_POLCTRL */
+#define PRM_POL_SYSOFFMODE		0x8
+
+/* PRM_IRQENABLE_MPU */
+#define PRM_VC_TIMEOUTERR_EN		(0x1 << 24)
+#define PRM_VC_RAERR_EN			(0x1 << 23)
+#define PRM_VC_SAERR_EN			(0x1 << 22)
+
+/* PRM_IRQSTATUS_MPU */
+#define PRM_VC_TIMEOUTERR_ST		(0x1 << 24)
+#define PRM_VC_RAERR_ST			(0x1 << 23)
+#define PRM_VC_SAERR_ST			(0x1 << 22)
+
+/* T2 SMART REFLEX */
+#define R_SRI2C_SLAVE_ADDR		0x12
+#define R_VDD1_SR_CONTROL		0x00
+#define R_VDD2_SR_CONTROL		0x01
+#define T2_SMPS_UPDATE_DELAY		360	/* In uSec */
+
 /* GPTimer wait delay */
 #define GPTIMER_WAIT_DELAY		50	/* In usec */
 
+#define PRCM_SAVE(x) prcm_sleep_save[PRCM_SLEEP_SAVE_##x] = x
+#define PRCM_RESTORE(x) x = prcm_sleep_save[PRCM_SLEEP_SAVE_##x]
+#define PRCM_SHOW(x) prcm_sleep_save[PRCM_SLEEP_SAVE_##x]
+
+enum prcm_save_state {
+	PRCM_SLEEP_SAVE_START = 0,
+	PRCM_SLEEP_SAVE_INTC_MIR_0,
+	PRCM_SLEEP_SAVE_INTC_MIR_1,
+	PRCM_SLEEP_SAVE_INTC_MIR_2,
+	PRCM_SLEEP_SAVE_CONTROL_PADCONF_SYS_NIRQ,
+	PRCM_SLEEP_SAVE_GPIO1_IRQENABLE1,
+	PRCM_SLEEP_SAVE_GPIO1_WAKEUPENABLE,
+	PRCM_SLEEP_SAVE_GPIO1_FALLINGDETECT,
+
+	PRCM_SLEEP_SAVE_CM_CLKSEL2_PLL_IVA2,
+	PRCM_SLEEP_SAVE_CM_SYSCONFIG,
+	PRCM_SLEEP_SAVE_CM_CLKSEL_SGX,
+	PRCM_SLEEP_SAVE_CM_CLKSEL_WKUP,
+
+	PRCM_SLEEP_SAVE_CM_CLKSEL_DSS,
+
+	PRCM_SLEEP_SAVE_CM_CLKSEL_CAM,
+	PRCM_SLEEP_SAVE_CM_CLKSEL_PER,
+
+	PRCM_SLEEP_SAVE_CM_CLKSEL1_EMU,
+	PRCM_SLEEP_SAVE_CM_CLKSTCTRL_EMU,
+	PRCM_SLEEP_SAVE_CM_AUTOIDLE2_PLL,
+	PRCM_SLEEP_SAVE_CM_CLKSEL5_PLL,
+	PRCM_SLEEP_SAVE_CM_POLCTRL,
+
+	PRCM_SLEEP_SAVE_CM_FCLKEN_IVA2,
+	PRCM_SLEEP_SAVE_CM_FCLKEN1_CORE,
+	PRCM_SLEEP_SAVE_CM_FCLKEN3_CORE,
+	PRCM_SLEEP_SAVE_CM_FCLKEN_SGX,
+	PRCM_SLEEP_SAVE_CM_FCLKEN_WKUP,
+	PRCM_SLEEP_SAVE_CM_FCLKEN_DSS,
+	PRCM_SLEEP_SAVE_CM_FCLKEN_CAM,
+	PRCM_SLEEP_SAVE_CM_FCLKEN_PER,
+	PRCM_SLEEP_SAVE_CM_FCLKEN_USBHOST,
+	PRCM_SLEEP_SAVE_CM_ICLKEN1_CORE,
+	PRCM_SLEEP_SAVE_CM_ICLKEN2_CORE,
+	PRCM_SLEEP_SAVE_CM_ICLKEN3_CORE,
+	PRCM_SLEEP_SAVE_CM_ICLKEN_SGX,
+	PRCM_SLEEP_SAVE_CM_ICLKEN_WKUP,
+	PRCM_SLEEP_SAVE_CM_ICLKEN_DSS,
+	PRCM_SLEEP_SAVE_CM_ICLKEN_CAM,
+	PRCM_SLEEP_SAVE_CM_ICLKEN_PER,
+	PRCM_SLEEP_SAVE_CM_ICLKEN_USBHOST,
+	PRCM_SLEEP_SAVE_CM_AUTOIDLE_PLL_IVA2,
+	PRCM_SLEEP_SAVE_CM_AUTOIDLE_PLL_MPU,
+	PRCM_SLEEP_SAVE_CM_AUTOIDLE_PLL,
+
+	PRCM_SLEEP_SAVE_CM_CLKSTCTRL_IVA2,
+	PRCM_SLEEP_SAVE_CM_CLKSTCTRL_MPU,
+	PRCM_SLEEP_SAVE_CM_CLKSTCTRL_CORE,
+	PRCM_SLEEP_SAVE_CM_CLKSTCTRL_SGX,
+	PRCM_SLEEP_SAVE_CM_CLKSTCTRL_DSS,
+	PRCM_SLEEP_SAVE_CM_CLKSTCTRL_CAM,
+	PRCM_SLEEP_SAVE_CM_CLKSTCTRL_PER,
+	PRCM_SLEEP_SAVE_CM_CLKSTCTRL_NEON,
+	PRCM_SLEEP_SAVE_CM_CLKSTCTRL_USBHOST,
+	PRCM_SLEEP_SAVE_CM_AUTOIDLE1_CORE,
+	PRCM_SLEEP_SAVE_CM_AUTOIDLE2_CORE,
+	PRCM_SLEEP_SAVE_CM_AUTOIDLE3_CORE,
+	PRCM_SLEEP_SAVE_CM_AUTOIDLE_WKUP,
+	PRCM_SLEEP_SAVE_CM_AUTOIDLE_DSS,
+	PRCM_SLEEP_SAVE_CM_AUTOIDLE_CAM,
+	PRCM_SLEEP_SAVE_CM_AUTOIDLE_PER,
+	PRCM_SLEEP_SAVE_CM_AUTOIDLE_USBHOST,
+	PRCM_SLEEP_SAVE_CM_SLEEPDEP_SGX,
+	PRCM_SLEEP_SAVE_CM_SLEEPDEP_DSS,
+	PRCM_SLEEP_SAVE_CM_SLEEPDEP_CAM,
+	PRCM_SLEEP_SAVE_CM_SLEEPDEP_PER,
+	PRCM_SLEEP_SAVE_CM_SLEEPDEP_USBHOST,
+	PRCM_SLEEP_SAVE_CM_CLKOUT_CTRL,
+	PRCM_SLEEP_SAVE_PRM_CLKOUT_CTRL,
+
+	PRCM_SLEEP_SAVE_PM_WKDEP_IVA2,
+	PRCM_SLEEP_SAVE_PM_WKDEP_MPU,
+	PRCM_SLEEP_SAVE_PM_WKDEP_SGX,
+	PRCM_SLEEP_SAVE_PM_WKDEP_DSS,
+	PRCM_SLEEP_SAVE_PM_WKDEP_CAM,
+	PRCM_SLEEP_SAVE_PM_WKDEP_PER,
+	PRCM_SLEEP_SAVE_PM_WKDEP_NEON,
+	PRCM_SLEEP_SAVE_PM_WKDEP_USBHOST,
+	PRCM_SLEEP_SAVE_PM_MPUGRPSEL1_CORE,
+	PRCM_SLEEP_SAVE_PM_IVA2GRPSEL1_CORE,
+	PRCM_SLEEP_SAVE_PM_IVA2GRPSEL3_CORE,
+	PRCM_SLEEP_SAVE_PM_MPUGRPSEL3_CORE,
+	PRCM_SLEEP_SAVE_PM_MPUGRPSEL_WKUP,
+	PRCM_SLEEP_SAVE_PM_IVA2GRPSEL_WKUP,
+	PRCM_SLEEP_SAVE_PM_MPUGRPSEL_PER,
+	PRCM_SLEEP_SAVE_PM_IVA2GRPSEL_PER,
+	PRCM_SLEEP_SAVE_PM_MPUGRPSEL_USBHOST,
+	PRCM_SLEEP_SAVE_PM_IVA2GRPSEL_USBHOST,
+	PRCM_SLEEP_SAVE_PM_WKEN_WKUP,
+
+	PRCM_SLEEP_SAVE_SIZE
+};
+
+
+extern void omap_sram_idle(void);
 extern void omap3_configure_core_dpll(u32 tar_m, u32 tar_n, u32 tar_freqsel,
 				u32 tar_m2);
 extern void omap3_clk_prepare_for_reboot(void);
 
+/* Structure to save interrupt controller context */
+struct int_controller_context {
+	u32 sysconfig;
+	u32 protection;
+	u32 idle;
+	u32 threshold;
+	u32 ilr[96];
+	u32 mir_0;
+	u32 mir_1;
+	u32 mir_2;
+};
+
+/* Structure to save control module context */
+struct control_module_context {
+	u32 sysconfig;
+	u32 devconf0;
+	u32 mem_dftrw0;
+	u32 mem_dftrw1;
+	u32 msuspendmux_0;
+	u32 msuspendmux_1;
+	u32 msuspendmux_2;
+	u32 msuspendmux_3;
+	u32 msuspendmux_4;
+	u32 msuspendmux_5;
+	u32 sec_ctrl;
+	u32 devconf1;
+	u32 csirxfe;
+	u32 iva2_bootaddr;
+	u32 iva2_bootmod;
+	u32 debobs_0;
+	u32 debobs_1;
+	u32 debobs_2;
+	u32 debobs_3;
+	u32 debobs_4;
+	u32 debobs_5;
+	u32 debobs_6;
+	u32 debobs_7;
+	u32 debobs_8;
+	u32 prog_io0;
+	u32 prog_io1;
+	u32 dss_dpll_spreading;
+	u32 core_dpll_spreading;
+	u32 per_dpll_spreading;
+	u32 usbhost_dpll_spreading;
+	u32 pbias_lite;
+	u32 temp_sensor;
+	u32 sramldo4;
+	u32 sramldo5;
+	u32 csi;
+};
 /* Register Types */
 enum regtype {
 	REG_FCLKEN,
@@ -803,6 +1054,18 @@ struct dpll_param {
 	u32 dpll_m2;
 };
 
+struct system_power_state {
+	u32 iva2_state;
+	u32 gfx_state;
+	u32 dss_state;
+	u32 cam_state;
+	u32 per_state;
+	u32 neon_state;
+	u32 usbhost_state;
+	u32 mpu_state;
+	u32 core_state;
+};
+
 /* Offset of MX registers in the pll_register array*/
 #define MX_ARRAY_OFFSET REG_M2_DIV_PLL
 
@@ -812,6 +1075,10 @@ struct reg_def {
 	u32 *reg_addr;
 };
 
+struct sysconf_reg {
+	u32 device_id;
+	u32 *reg_addr;
+	};
 /* Structure to store attributes of registers in a domain */
 struct domain_registers {
 	struct reg_def regdef[PRCM_REG_TYPES];
@@ -822,14 +1089,39 @@ struct dpll_registers {
 	struct reg_def regdef[PRCM_DPLL_REG_TYPES];
 };
 
+/* Structure for mpu, core and VDD states */
+/* This structure will be used in OS Idle code */
+struct mpu_core_vdd_state {
+	u32 mpu_state;
+	u32 core_state;
+	u32 vdd_state;
+};
+
+/* SDRC/GPMC params for DVFS */
+
+struct sdrc_config {
+	u32 sdrc_rfr_ctrl;
+	u32 sdrc_actim_ctrla;
+	u32 sdrc_actim_ctrlb;
+};
+
+#define no_sdrc_cs 2
+
+struct dvfs_config {
+	struct sdrc_config sdrc_cfg[no_sdrc_cs];
+};
+
 extern int prcm_clock_control(u32 deviceid, u8 clk_type, u8 control,
 			      u8 checkaccessibility);
 extern int prcm_is_device_accessible(u32 deviceid, u8 *result);
+extern int prcm_interface_clock_autoidle(u32 deviceid, u8 control);
+extern int prcm_wakeup_event_control(u32 deviceid, u8 control);
 
 /* DPLL control APIs */
 extern int prcm_enable_dpll(u32 dpll);
 extern int prcm_configure_dpll(u32 dpll, u32 mult, u8 div, u8 freq_sel);
 extern int prcm_put_dpll_in_bypass(u32 dpll, u32 bypass_mode);
+extern int prcm_dpll_clock_auto_control(u32 dpll, u32 setting);
 extern int prcm_get_dpll_mn_output(u32 dpll, u32 *mn_output);
 extern int prcm_get_dpll_rate(u32 dpll, u32 *rate);
 extern int prcm_configure_dpll_divider(u32 dpll, u32 setting);
@@ -843,17 +1135,10 @@ extern int prcm_set_clock_domain_state(u32 domainid, u8 new_state,
 extern int prcm_set_power_domain_state(u32 domainid, u8 new_state, u8 mode);
 extern int prcm_get_devices_not_idle(u32 domainid, u32 *result);
 extern int prcm_get_initiators_not_standby(u32 domainid, u32 *result);
-extern int prcm_set_wkup_dependency(u32 domainid, u32 wkup_dep);
-extern int prcm_set_sleep_dependency(u32 domainid, u32 sleep_dep);
-extern int prcm_clear_wkup_dependency(u32 domainid, u32 wkup_dep);
-extern int prcm_clear_sleep_dependency(u32 domainid, u32 sleep_dep);
 extern int prcm_get_domain_interface_clocks(u32 domainid, u32 *result);
 extern int prcm_get_domain_functional_clocks(u32 domainid, u32 *result);
 extern int prcm_set_domain_interface_clocks(u32 domainid, u32 setmask);
 extern int prcm_set_domain_functional_clocks(u32 domainid, u32 setmask);
-extern int prcm_force_power_domain_state(u32 domain, u8 state);
-
-/* Other APIs*/
 extern int prcm_get_crystal_rate(void);
 extern int prcm_get_system_clock_speed(void);
 extern int prcm_select_system_clock_divider(u32 setting);
@@ -868,11 +1153,41 @@ extern int prcm_clksel_round_rate(u32 clk, u32 parent_rate, u32 target_rate,
 				  u32 *newdiv);
 extern int prcm_clk_set_source(u32 clk_id, u32 parent_id);
 extern int prcm_clk_get_source(u32 clk_id, u32 *parent_id);
+extern int prcm_set_power_configuration(u32 domainid, u8 idlemode,
+					u8 standbymode, u8 autoidleenable);
+extern int prcm_set_wkup_dependency(u32 domainid, u32 wkup_dep);
+extern int prcm_set_sleep_dependency(u32 domainid, u32 sleep_dep);
+extern int prcm_clear_wkup_dependency(u32 domainid, u32 wkup_dep);
+extern int prcm_clear_sleep_dependency(u32 domainid, u32 sleep_dep);
+extern int prcm_set_mpu_domain_state(u32 mpu_dom_state);
+extern int prcm_set_core_domain_state(u32 core_dom_state);
+
+extern int prcm_init(void);
+extern int prcm_set_domain_power_configuration(u32 domainid, u8 idlemode,
+					u8 standbymode, u8 autoidleenable);
+extern int prcm_set_device_power_configuration(u32 deviceid, u8 idlemode,
+					u8 standbymode, u8 autoidleenable);
 extern int get_dpll_m_n(u32 dpll_id, u32 *mult, u32 *div);
 /* Level 2 PRCM APIs */
 extern int prcm_do_frequency_scaling(u32 target_opp, u32 current_opp);
+extern int prcm_do_voltage_scaling(u32 target_opp, u32 current_opp);
+extern int prcm_force_power_domain_state(u32 domain, u8 state);
+extern int prcm_set_chip_power_mode(struct system_power_state *target_state,
+							u32 wakeup_source);
+extern void omap_dma_global_context_restore(void);
+extern void omap_dma_global_context_save(void);
+extern int prcm_lock_iva_dpll(u32 target_opp);
 extern void omap_udelay(u32 delay);
 void clear_domain_reset_status(void);
 u32 omap_prcm_get_reset_sources(void);
+extern void prcm_save_core_context(u32 target_core_state);
+extern void prcm_restore_core_context(u32 target_core_state);
+extern int prcm_save_registers(struct system_power_state *target_state);
+extern int prcm_restore_registers(struct system_power_state *target_state);
+
+extern int sr_voltagescale_vcbypass(u32 target_opp, u8 vsel);
+extern void prcm_printreg(u32 domainid);
+extern void omap_clear_dma(int lch);
+extern void omap3_save_secure_ram_context(u32 target_state);
 
 #endif
