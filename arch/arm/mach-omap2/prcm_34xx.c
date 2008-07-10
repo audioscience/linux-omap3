@@ -2568,6 +2568,8 @@ static int prcm_check_power_domain_status(u32 domainid, u8 desired_state)
 		if (ret != PRCM_PASS) {
 			printk(KERN_INFO "Loop count exceeded in "
 			"check_power_domain_status for domain:%u\n", domainid);
+			printk("curr_state = %x, desired_state = %x\n",
+						curr_state, desired_state);
 			return ret;
 		}
 	}
@@ -2787,7 +2789,7 @@ int prcm_set_wkup_dependency(u32 domainid, u32 wkup_dep)
 		printk(KERN_INFO "Wake up dependency does not exist for "
 			 "the domain %d\n", domainid);
 		return PRCM_FAIL;
-}
+	}
 	return PRCM_PASS;
 }
 EXPORT_SYMBOL(prcm_set_wkup_dependency);
@@ -2923,6 +2925,173 @@ int prcm_clear_sleep_dependency(u32 domainid, u32 sleep_dep)
 	return PRCM_PASS;
 }
 EXPORT_SYMBOL(prcm_clear_sleep_dependency);
+
+/* This API is called by pm_init during bootup */
+int prcm_init(void)
+{
+	u32 valid_bits;
+
+	/* Clear sleep and wakeup dependencies for all domains */
+	CM_SLEEPDEP_DSS = 0;
+	PM_WKDEP_IVA2 = 0;
+	PM_WKDEP_MPU = 0;
+	PM_WKDEP_DSS = 0;
+	PM_WKDEP_NEON = 0;
+	CM_SLEEPDEP_CAM = 0;
+	PM_WKDEP_CAM = 0;
+
+#ifdef CONFIG_HW_SUP_TRANS
+	PM_WKDEP_PER = 0x1;
+	CM_SLEEPDEP_PER = 0x0;
+	if (prcm_set_wkup_dependency(DOM_PER,
+			PRCM_WKDEP_EN_MPU) != PRCM_PASS) {
+		printk(KERN_INFO "Domain %d : wakeup dependency"
+			" could not be set\n", DOM_PER);
+		return -1;
+	}
+	if (prcm_set_sleep_dependency(DOM_PER,
+			PRCM_SLEEPDEP_EN_MPU) != PRCM_PASS) {
+		printk(KERN_INFO "Domain %d : sleep dependency"
+			" could not be set\n", DOM_PER);
+		return -1;
+	}
+#endif /* #ifdef CONFIG_HW_SUP_TRANS */
+#ifndef CONFIG_HW_SUP_TRANS
+	CM_SLEEPDEP_PER = 0;
+	PM_WKDEP_PER = 0;
+#endif /* #ifndef CONFIG_HW_SUP_TRANS */
+	CM_SLEEPDEP_SGX = 0;
+	CM_SLEEPDEP_USBHOST = 0;
+	PM_WKDEP_SGX = 0;
+	PM_WKDEP_USBHOST = 0;
+
+	/* Enable interface clock autoidle for all modules */
+	valid_bits = get_val_bits(DOM_CORE1, REG_AUTOIDLE);
+	/* Disable Autoidle for HDQ, as it is not OCP compliant */
+	CM_AUTOIDLE1_CORE = valid_bits & ~(1 << 22);
+	valid_bits = get_val_bits(DOM_CORE2, REG_AUTOIDLE);
+	CM_AUTOIDLE2_CORE = valid_bits;
+	valid_bits = get_val_bits(DOM_WKUP, REG_AUTOIDLE);
+	/* Disable Autoidle for GPT1 - errata 1.4 */
+	CM_AUTOIDLE_WKUP = valid_bits & ~(0x1);
+	valid_bits = get_val_bits(DOM_DSS, REG_AUTOIDLE);
+	CM_AUTOIDLE_DSS = valid_bits;
+	valid_bits = get_val_bits(DOM_CAM, REG_AUTOIDLE);
+	CM_AUTOIDLE_CAM = valid_bits;
+	valid_bits = get_val_bits(DOM_PER, REG_AUTOIDLE);
+	CM_AUTOIDLE_PER = valid_bits;
+	valid_bits = get_val_bits(DOM_CORE3, REG_AUTOIDLE);
+	CM_AUTOIDLE3_CORE = valid_bits;
+	valid_bits = get_val_bits(DOM_USBHOST, REG_AUTOIDLE);
+	CM_AUTOIDLE_USBHOST = valid_bits;
+
+	PM_MPUGRPSEL1_CORE = 0xC33FFE18;
+	PM_IVA2GRPSEL1_CORE = 0x80000008;
+	PM_MPUGRPSEL3_CORE = 0x4;
+	PM_IVA2GRPSEL3_CORE = 0x0;
+	PM_MPUGRPSEL_WKUP = 0x3CB;
+	PM_IVA2GRPSEL_WKUP = 0x0;
+	PM_MPUGRPSEL_PER = 0x3EFFF;
+	PM_IVA2GRPSEL_PER = 0x0;
+	PM_WKEN_WKUP = 0x3CB;
+	PM_WKEN_DSS = 0x1;
+	PM_WKEN_PER = 0x3EFFF;
+	PM_WKEN1_CORE = 0xC33FFE18;
+
+	CM_AUTOIDLE_PLL_MPU = 0x1;
+	CM_AUTOIDLE_PLL_IVA2 = 0x1;
+	CM_AUTOIDLE_PLL = 0x9;   /* always autoidle*/
+	CM_AUTOIDLE2_PLL = 0x1;  /* always autoidle*/
+	#if 0
+	CONTROL_PADCONF_SYS_NIRQ &= 0xFFFFFFF8;
+	CONTROL_PADCONF_SYS_NIRQ |= 0x4;
+	GPIO1_SETIRQENABLE1 |= 0x1;
+	GPIO1_SETWKUENA |= 0x1;
+	GPIO1_FALLINGDETECT |= 0x1;
+	#endif
+	/* Enable OFF mode settings for SYS_NIRQ */
+	CONTROL_PADCONF_SYS_NIRQ |= (IO_PAD_WAKEUPENABLE |
+				IO_PAD_OFFPULLUDENABLE | IO_PAD_OFFOUTENABLE
+				| IO_PAD_OFFENABLE | IO_PAD_INPUTENABLE |
+				IO_PAD_PULLUDENABLE);
+
+	/* Enable OFF mode settings for GPIO_2 */
+	CONTROL_PADCONF_SYS_NRESWARM |= ((IO_PAD_WAKEUPENABLE |
+				IO_PAD_OFFPULLUDENABLE | IO_PAD_OFFOUTENABLE
+				| IO_PAD_OFFENABLE | IO_PAD_INPUTENABLE |
+				IO_PAD_PULLUDENABLE) << IO_PAD_HIGH_SHIFT);
+
+	/* Disable input for SYS_OFFMODE */
+	CONTROL_PADCONF_SYS_OFF_MODE &= ~(IO_PAD_INPUTENABLE);
+	/* Set the wakeup proc to 0, some issues seen in DVFS with this set */
+	SDRC_PWR &= ~(1<<26);
+	SDRC_PWR = 0x111210;
+	SDRC_DLL_A_CTRL |= 0x26000000;
+	CM_ICLKEN2_CORE |= 4;
+	omap_writel(0, 0x480a0048);
+	CM_ICLKEN2_CORE &= ~4;
+#ifndef CONFIG_DISABLE_EMUDOMAIN_CONTROL
+	CM_CLKSTCTRL_EMU = 0x3;
+#endif
+	/* To be enabled later when device drivers are tested with the
+	 * configuration */
+
+	/* TODO
+	prcm_set_domain_power_configuration(DOM_CORE1, PRCM_SIDLEMODE_DONTCARE,
+					PRCM_MIDLEMODE_DONTCARE, PRCM_TRUE);
+	prcm_set_domain_power_configuration(DOM_WKUP, PRCM_SIDLEMODE_DONTCARE,
+					PRCM_MIDLEMODE_DONTCARE, PRCM_TRUE);
+	#if 0
+	prcm_set_domain_power_configuration(DOM_DSS, PRCM_SIDLEMODE_DONTCARE,
+					PRCM_MIDLEMODE_DONTCARE, PRCM_TRUE);
+	#endif
+	prcm_set_domain_power_configuration(DOM_CAM, PRCM_SIDLEMODE_DONTCARE,
+					PRCM_MIDLEMODE_DONTCARE, PRCM_TRUE);
+	prcm_set_domain_power_configuration(DOM_PER, PRCM_SIDLEMODE_DONTCARE,
+					PRCM_MIDLEMODE_DONTCARE, PRCM_TRUE);
+	*/
+
+	if (is_sil_rev_equal_to(OMAP3430_REV_ES1_0) ||
+			is_sil_rev_equal_to(OMAP3430_REV_ES2_0)) {
+		/* Due to Errata 1.27, IVA2 will not go to ret/off*/
+		/* during bootup.We need to manually boot it to  */
+		/* idle mode This is only required during bootup and not for*/
+		/* subsequent transitions */
+		/* Configure IVA to boot in idle mode */
+		/* Clear reset of IVA2*/
+		/* Disable all IVA clocks */
+		CM_FCLKEN_IVA2 = 0x0;
+		/* Reset IVA2 */
+		RM_RSTCTRL_IVA2 = 0xFFFF;
+		/* Enable IVA clocks */
+		CM_FCLKEN_IVA2 = 0x1;
+		/* Set boot mode to idle */
+		CONTROL_IVA2_BOOTMOD = 0x1;
+		/* unreset the DSP */
+		RM_RSTCTRL_IVA2 = 0x0;
+		/* Disable IVA clock */
+		CM_FCLKEN_IVA2 = 0x0;
+		/* Reset IVA2 */
+		RM_RSTCTRL_IVA2 = 0xFFFF;
+	}
+#ifdef CONFIG_HW_SUP_TRANS
+	/* MPU DPLL low power stop mode */
+	CM_AUTOIDLE_PLL_MPU = LOW_POWER_STOP;
+	/* MPU DPLL low power stop mode */
+	CM_AUTOIDLE_PLL_MPU = LOW_POWER_STOP;
+
+	/* L3, L4 ans D2D clock autogating */
+	CM_CLKSTCTRL_CORE = (CLK_D2D_HW_SUP_ENABLE | CLK_L4_HW_SUP_ENABLE |
+							CLK_L3_HW_SUP_ENABLE);
+#endif /*#ifdef CONFIG_HW_SUP_TRANS */
+
+#ifdef IOPAD_WKUP
+	init_wakeupconfig();
+#endif /* #ifdef IOPAD_WKUP */
+	clear_domain_reset_status();
+	return PRCM_PASS;
+}
+
 
 int prcm_set_mpu_domain_state(u32 mpu_dom_state)
 {
@@ -3460,6 +3629,48 @@ int prcm_set_memory_resource_on_state(unsigned short state)
 	return 0;
 }
 
+/* API called to lock iva dpll after wakeup from core off */
+int prcm_lock_iva_dpll(u32 target_opp_id)
+{
+	u32 tar_m, tar_n, tar_freqsel, sys_clkspeed;
+	int index, target_opp_no;
+	target_opp_no = target_opp_id & OPP_NO_MASK;
+	sys_clkspeed = prcm_get_system_clock_speed();
+	switch (sys_clkspeed) {
+	case (int)(12000):
+		index = 0;
+		break;
+	case (int)(13000):
+		index = 1;
+		break;
+	case (int)(19200):
+		index = 2;
+		break;
+	case (int)(26000):
+		index = 3;
+		break;
+	case (int)(38400):
+		index = 4;
+		break;
+	default:
+		return PRCM_FAIL;
+	}
+	tar_m = (iva_dpll_param[index][target_opp_no - 1].dpll_m);
+	tar_n = (iva_dpll_param[index][target_opp_no - 1].dpll_n);
+	/* M/N need to be changed - so put DPLL in bypass */
+	prcm_put_dpll_in_bypass(DPLL2_IVA2, LOW_POWER_BYPASS);
+	/* Reset M2 divider */
+	prcm_configure_dpll_divider(PRCM_DPLL2_M2X2_CLK, 0x1);
+	/* Set M,N,Freqsel values */
+	tar_freqsel = (iva_dpll_param[index]
+		[target_opp_no - 1].dpll_freqsel);
+	prcm_configure_dpll
+		(DPLL2_IVA2, tar_m, tar_n, tar_freqsel);
+	/* Lock the DPLL */
+	prcm_enable_dpll(DPLL2_IVA2);
+	return PRCM_PASS;
+}
+
 int prcm_force_power_domain_state(u32 domain, u8 state)
 {
 	int ret;
@@ -3500,3 +3711,409 @@ int prcm_force_power_domain_state(u32 domain, u8 state)
 	return PRCM_PASS;
 }
 
+/* Check parameters for prcm_set_chip_power_mode() */
+static int check_power_mode_parameters(struct system_power_state *state,
+						u32 wakeup_source)
+{
+	u32 id_type, core_inactive_allowed = 1;
+	id_type = get_other_id_type(state->mpu_state);
+	if (!(id_type & ID_MPU_DOM_STATE)) {
+		printk(KERN_INFO "Invalid parameter for mpu state\n");
+		return PRCM_FAIL;
+	}
+
+	id_type = get_other_id_type(state->core_state);
+	if (!(id_type & ID_CORE_DOM_STATE)) {
+		printk(KERN_INFO "Invalid parameter for core state\n");
+		return PRCM_FAIL;
+	}
+
+	if (state->mpu_state > PRCM_MPU_OFF) {
+		printk(KERN_INFO "Unsupported state for mpu:%d\n",
+							 state->mpu_state);
+		return PRCM_FAIL;
+	}
+
+	if ((state->iva2_state > PRCM_RET) || (state->gfx_state > PRCM_RET) ||
+		(state->dss_state > PRCM_RET) || (state->cam_state > PRCM_RET)
+		|| (state->per_state > PRCM_RET) || (state->neon_state >
+		PRCM_RET))
+		core_inactive_allowed = 0;
+
+	if ((!core_inactive_allowed) && (state->core_state >
+							PRCM_CORE_ACTIVE)) {
+		printk(KERN_INFO "Invalid combination of states: Core has to"
+								"be active\n");
+		return PRCM_FAIL;
+	}
+
+	if ((!(wakeup_source &  PRCM_WAKEUP_T2_KEYPAD)) && (!(wakeup_source &
+						PRCM_WAKEUP_TOUCHSCREEN))) {
+		printk(KERN_INFO "Invalid wakeup source\n");
+		return PRCM_FAIL;
+	}
+	return PRCM_PASS;
+}
+
+/* Clear out any status which may gate sleep */
+void clear_domain_reset_status(void)
+{
+	u32 tmp;
+
+	RM_RSTST_IVA2  = RM_RSTST_IVA2;
+	RM_RSTST_MPU  = RM_RSTST_MPU;
+	RM_RSTST_CORE = RM_RSTST_CORE;
+	RM_RSTST_SGX = RM_RSTST_SGX;
+	RM_RSTST_DSS = RM_RSTST_DSS;
+	RM_RSTST_CAM = RM_RSTST_CAM;
+	RM_RSTST_PER = RM_RSTST_PER;
+	RM_RSTST_EMU = RM_RSTST_EMU;
+	PRM_RSTST  = PRM_RSTST;
+	RM_RSTST_NEON = RM_RSTST_NEON;
+	RM_RSTST_USBHOST = RM_RSTST_USBHOST;
+	PRM_IRQSTATUS_IVA2 = PRM_IRQSTATUS_IVA2;
+	PRM_IRQSTATUS_MPU = PRM_IRQSTATUS_MPU;
+	PM_WKST1_CORE  = PM_WKST1_CORE;
+	PM_WKST3_CORE = PM_WKST3_CORE;
+	PM_WKST_WKUP = PM_WKST_WKUP;
+	PM_WKST_PER  = PM_WKST_PER;
+	PM_WKST_USBHOST = PM_WKST_USBHOST;
+}
+
+static int prcm_prepare_mpu_core_domains(struct system_power_state *state,
+						u32 wakeup_source)
+{
+	int initiators = 0;
+	if (state->mpu_state > PRCM_MPU_ACTIVE) {
+		/*TODO omap3_save_secure_ram_context(state->core_state);*/
+		prcm_set_mpu_domain_state(state->mpu_state);
+		CM_AUTOIDLE_PLL_MPU = 0x1;
+	}
+	if (state->core_state > PRCM_CORE_ACTIVE) {
+		/* Mask interrupts in MIR registers */
+		/* Interrupts that are required to wakeup will be enabled in
+		 * setup_board_wakeup_source function
+		 */
+		INTC_MIR_SET_0 = 0xffffffff;
+		INTC_MIR_SET_1 = 0xffffffff;
+		INTC_MIR_SET_2 = 0xffffffff;
+		GPIO1_IRQSTATUS1 = 0xffffffff;
+		GPIO1_IRQSTATUS2 = 0xffffffff;
+		/* Make grpsel registers 0 */
+		/* Required ones will be set in setup_board_wakeup_source() */
+		PM_MPUGRPSEL1_CORE = 0xC33FFE18;
+		PM_IVA2GRPSEL1_CORE = 0x80000008;
+		PM_MPUGRPSEL_PER = 0x3EFFF;
+		PM_MPUGRPSEL_WKUP = 0x0;
+		PM_IVA2GRPSEL_WKUP = 0x0;
+		PM_MPUGRPSEL_PER = 0x0;
+		PM_IVA2GRPSEL_PER = 0x0;
+		PM_MPUGRPSEL_USBHOST = 0x0;             /* es2 */
+		PM_IVA2GRPSEL_USBHOST = 0x0;            /* es2 */
+		setup_board_wakeup_source(wakeup_source);
+		/* Disable functional clocks in core and wakeup domains*/
+		/* Enable interface clock autoidle */
+		CM_FCLKEN1_CORE = 0x0;
+		CM_AUTOIDLE1_CORE = 0x7FFFFED1;
+		CM_AUTOIDLE2_CORE = 0x1f;
+		CM_FCLKEN_WKUP &= 0x9;
+		CM_AUTOIDLE_WKUP = 0x23f;
+		/* Enable SRonIdleReq in SDRC_PWR register */
+		SDRC_PWR |= 0x40;
+		/* Set DPLLs to go to low power mode automatically */
+		CM_AUTOIDLE_PLL_IVA2 = 0x1;
+		CM_AUTOIDLE_PLL = 0x9;
+		PRM_CLKSRC_CTRL &= ~0x18;
+		PRM_CLKSRC_CTRL |= 0x8; /* set sysclk to stop */
+		/* Disable HSUSB ICLK explicitly */
+		CM_ICLKEN1_CORE &= ~0x10;
+		CM_FCLKEN3_CORE = 0x0;
+		CM_AUTOIDLE3_CORE = 0x4;
+		CM_AUTOIDLE2_PLL = 0x1;
+		prcm_set_core_domain_state(state->core_state);
+		prcm_get_initiators_not_standby(DOM_CORE1, &initiators);
+		if (initiators) {
+			printk(KERN_INFO "Initiators still active in core"
+						"domain : %x\n", initiators);
+			return PRCM_FAIL;
+		}
+		clear_domain_reset_status();
+	}
+	return PRCM_PASS;
+}
+
+static void prcm_restore_mpu_core_domains(struct system_power_state *state,
+						u32 wakeup_source)
+{
+	if (state->mpu_state > PRCM_MPU_ACTIVE)
+		prcm_set_mpu_domain_state(PRCM_MPU_ACTIVE);
+
+	if (state->core_state > PRCM_CORE_ACTIVE) {
+		prcm_set_core_domain_state(PRCM_CORE_ACTIVE);
+		PRM_CLKSRC_CTRL &= ~0x18;
+		/* Errata 1.4
+		* if the timer device gets idled which is when we
+		* are cutting the timer ICLK which is when we try
+		* to put Core to RET.
+		* Wait Period = 2 timer interface clock cycles +
+		* 1 timer functional clock cycle
+		* Interface clock = L4 clock. For the computation L4
+		* clock is assumed at 50MHz (worst case).
+		* Functional clock = 32KHz
+		* Wait Period = 2*10^-6/50 + 1/32768 = 0.000030557 = 30.557uSec
+		* Rounding off the delay value to a safer 50uSec
+		*/
+		/* Enabling 32ksync clock in case we are back from off */
+		CM_ICLKEN_WKUP |= (1 << 2);
+		omap_udelay(GPTIMER_WAIT_DELAY);
+		CM_AUTOIDLE_WKUP &= ~(0x1);
+	}
+	/* Rest of registers are restored later in prcm_register_restore*/
+}
+
+int prcm_set_chip_power_mode(struct system_power_state *target_state,
+						u32 wakeup_source)
+{
+	int ret;
+	struct system_power_state current_state;
+	u8 state;
+	u32 prcm_id;
+
+	/* Check that parameters are valid */
+	ret = check_power_mode_parameters(target_state, wakeup_source);
+	if (ret != PRCM_PASS)
+		return ret;
+
+	prcm_get_power_domain_state(DOM_IVA2, &state);
+	current_state.iva2_state = state;
+	prcm_get_power_domain_state(DOM_DSS, &state);
+	current_state.dss_state = state;
+	prcm_get_power_domain_state(DOM_CAM, &state);
+	current_state.cam_state = state;
+	prcm_get_power_domain_state(DOM_PER, &state);
+	current_state.per_state = state;
+	prcm_get_power_domain_state(DOM_NEON, &state);
+	current_state.neon_state = state;
+	prcm_get_power_domain_state(DOM_SGX, &state);
+	current_state.gfx_state = state;
+	prcm_get_power_domain_state(DOM_USBHOST, &state);
+	current_state.usbhost_state = state;
+
+	/* Reset previous power state registers for mpu and core*/
+	PM_PREPWSTST_MPU = 0xFF;
+	PM_PREPWSTST_CORE = 0xFF;
+
+
+	prcm_save_registers(target_state);
+
+	/* Force power domains to target state */
+	/* IVA2 could be turned off by bridge code. Check that it is on*/
+	if ((current_state.iva2_state != PRCM_OFF) &&
+			(current_state.iva2_state != PRCM_RET)) {
+		ret = prcm_force_power_domain_state(DOM_IVA2,
+						target_state->iva2_state);
+		if (ret != PRCM_PASS)
+			goto restore;
+
+	}
+	if (current_state.gfx_state == PRCM_ON) {
+		prcm_id = DOM_SGX;
+
+#ifdef CONFIG_HW_SUP_TRANS
+		/* Facilitating SWSUP RET, from HWSUP mode */
+		prcm_set_clock_domain_state(prcm_id, PRCM_NO_AUTO, PRCM_FALSE);
+		prcm_clear_sleep_dependency(prcm_id, PRCM_SLEEPDEP_EN_MPU);
+		prcm_clear_wkup_dependency(prcm_id, PRCM_WKDEP_EN_MPU);
+
+		prcm_set_power_domain_state(prcm_id, PRCM_ON, PRCM_FORCE);
+#endif /* #ifdef CONFIG_HW_SUP_TRANS */
+
+		ret = prcm_force_power_domain_state(prcm_id,
+						target_state->gfx_state);
+		if (ret != PRCM_PASS)
+			goto restore;
+	}
+	if (current_state.dss_state == PRCM_ON) {
+#ifdef CONFIG_HW_SUP_TRANS
+		/* Facilitating SWSUP RET, from HWSUP mode */
+		prcm_set_clock_domain_state(DOM_DSS, PRCM_NO_AUTO, PRCM_FALSE);
+		prcm_clear_sleep_dependency(DOM_DSS, PRCM_SLEEPDEP_EN_MPU);
+		prcm_clear_wkup_dependency(DOM_DSS, PRCM_WKDEP_EN_MPU);
+
+		prcm_set_power_domain_state(DOM_DSS, PRCM_ON, PRCM_FORCE);
+#endif /* #ifdef CONFIG_HW_SUP_TRANS */
+
+		ret = prcm_force_power_domain_state(DOM_DSS,
+						target_state->dss_state);
+		if (ret != PRCM_PASS)
+			goto restore;
+	}
+
+	if (current_state.cam_state == PRCM_ON) {
+#ifdef CONFIG_HW_SUP_TRANS
+		/* Facilitating SWSUP RET, from HWSUP mode */
+		prcm_set_clock_domain_state(DOM_CAM, PRCM_NO_AUTO, PRCM_FALSE);
+		prcm_clear_sleep_dependency(DOM_CAM, PRCM_SLEEPDEP_EN_MPU);
+		prcm_clear_wkup_dependency(DOM_CAM, PRCM_WKDEP_EN_MPU);
+
+		prcm_set_power_domain_state(DOM_CAM, PRCM_ON, PRCM_FORCE);
+#endif /* #ifdef CONFIG_HW_SUP_TRANS */
+
+		ret = prcm_force_power_domain_state(DOM_CAM,
+						target_state->cam_state);
+		if (ret != PRCM_PASS)
+			goto restore;
+	}
+
+	if (current_state.per_state == PRCM_ON) {
+#ifdef CONFIG_HW_SUP_TRANS
+		/* Facilitating RET in SWSUP, from HWSUP mode */
+		prcm_set_clock_domain_state(DOM_PER, PRCM_NO_AUTO, PRCM_FALSE);
+		prcm_clear_sleep_dependency(DOM_PER, PRCM_SLEEPDEP_EN_MPU);
+		prcm_clear_wkup_dependency(DOM_PER, PRCM_WKDEP_EN_MPU);
+
+		prcm_set_power_domain_state(DOM_PER, PRCM_ON, PRCM_FORCE);
+#endif /* #ifdef CONFIG_HW_SUP_TRANS */
+		ret = prcm_force_power_domain_state(DOM_PER,
+						target_state->per_state);
+		if (ret != PRCM_PASS)
+			goto restore;
+	}
+
+	if (current_state.neon_state == PRCM_ON) {
+#ifdef CONFIG_HW_SUP_TRANS
+		/* Facilitating SWSUP RET, from HWSUP mode */
+		prcm_set_clock_domain_state(DOM_NEON, PRCM_NO_AUTO, PRCM_FALSE);
+		prcm_set_power_domain_state(DOM_NEON, PRCM_ON, PRCM_FORCE);
+#endif /* #ifdef CONFIG_HW_SUP_TRANS */
+
+		ret = prcm_force_power_domain_state(DOM_NEON,
+						target_state->neon_state);
+		if (ret != PRCM_PASS)
+			goto restore;
+	}
+
+	if (current_state.usbhost_state == PRCM_ON) {
+#ifdef CONFIG_HW_SUP_TRANS
+		/* Facilitating RET in SWSUP, from HWSUP mode */
+		prcm_set_clock_domain_state(DOM_USBHOST, PRCM_NO_AUTO,
+								PRCM_FALSE);
+		prcm_clear_sleep_dependency(DOM_USBHOST, PRCM_SLEEPDEP_EN_MPU);
+		prcm_clear_wkup_dependency(DOM_USBHOST, PRCM_WKDEP_EN_MPU);
+
+		prcm_set_power_domain_state(DOM_USBHOST, PRCM_ON, PRCM_FORCE);
+#endif /* #ifdef CONFIG_HW_SUP_TRANS */
+
+		ret = prcm_force_power_domain_state(DOM_USBHOST,
+						target_state->usbhost_state);
+		if (ret != PRCM_PASS)
+			goto restore;
+	}
+	ret = prcm_prepare_mpu_core_domains(target_state, wakeup_source);
+#ifdef IOPAD_WKUP
+	/* Enabling IO_PAD capabilities */
+	PM_WKEN_WKUP |= 0x100;
+#endif /* #ifdef IOPAD_WKUP */
+
+	/* Jump to SRAM to execute idle */
+	if (ret == PRCM_PASS)
+		omap_sram_idle();
+
+#ifdef IOPAD_WKUP
+	/* Disabling IO_PAD capabilities */
+	PM_WKEN_WKUP &= ~(0x100);
+#endif /* #ifdef IOPAD_WKUP */
+	prcm_restore_mpu_core_domains(target_state, wakeup_source);
+
+restore:
+	if (current_state.iva2_state == PRCM_ON)
+		/* Force power domains back to original state */
+		prcm_force_power_domain_state(DOM_IVA2,
+				current_state.iva2_state);
+	if (current_state.gfx_state == PRCM_ON)
+		prcm_force_power_domain_state(DOM_SGX, current_state.gfx_state);
+	if (current_state.usbhost_state == PRCM_ON)
+		prcm_force_power_domain_state(DOM_USBHOST,
+				current_state.usbhost_state);
+	if (current_state.dss_state == PRCM_ON)
+		prcm_force_power_domain_state(DOM_DSS, current_state.dss_state);
+	if (current_state.cam_state == PRCM_ON)
+		prcm_force_power_domain_state(DOM_CAM, current_state.cam_state);
+	if (current_state.per_state == PRCM_ON)
+		prcm_force_power_domain_state(DOM_PER, current_state.per_state);
+	if (current_state.neon_state == PRCM_ON)
+		prcm_force_power_domain_state(DOM_NEON,
+				current_state.neon_state);
+	prcm_restore_registers(target_state);
+	if (target_state->core_state > PRCM_CORE_CSWR_MEMRET)
+		prcm_restore_core_context(target_state->core_state);
+
+#ifdef CONFIG_HW_SUP_TRANS
+	/* TODO This breaks suspend the second time
+	if (current_state.iva2_state == PRCM_ON)*/
+		prcm_set_power_domain_state(DOM_IVA2, PRCM_ON, PRCM_AUTO);
+	if (current_state.usbhost_state == PRCM_ON)
+		prcm_set_power_domain_state(DOM_USBHOST, PRCM_ON, PRCM_AUTO);
+	if (current_state.gfx_state == PRCM_ON)
+		prcm_set_power_domain_state(DOM_SGX, PRCM_ON, PRCM_AUTO);
+	if (current_state.dss_state == PRCM_ON)
+		prcm_set_power_domain_state(DOM_DSS, PRCM_ON, PRCM_AUTO);
+	if (current_state.cam_state == PRCM_ON)
+		prcm_set_power_domain_state(DOM_CAM, PRCM_ON, PRCM_AUTO);
+	if (current_state.per_state == PRCM_ON)
+		prcm_set_power_domain_state(DOM_PER, PRCM_ON, PRCM_AUTO);
+	if (current_state.neon_state == PRCM_ON)
+		prcm_set_power_domain_state(DOM_NEON, PRCM_ON, PRCM_AUTO);
+#endif /* #ifdef CONFIG_HW_SUP_TRANS */
+	if (target_state->mpu_state > PRCM_MPU_INACTIVE) {
+		prcm_get_pre_power_domain_state(DOM_MPU, &state);
+		if (target_state->mpu_state == PRCM_MPU_OFF) {
+			if (state != PRCM_OFF)
+				ret = PRCM_FAIL;
+		} else {
+			if (state != PRCM_RET)
+				ret = PRCM_FAIL;
+		}
+		if (ret == PRCM_FAIL) {
+#ifdef DEBUG_SUSPEND
+			printk(KERN_INFO "Mpu did not enter target state %d\n",
+					target_state->mpu_state);
+			printk(KERN_INFO "Pre pwstst : %x\n", PM_PREPWSTST_MPU);
+#endif
+			/* Reset previous power state registers and */
+							/*return error */
+			PM_PREPWSTST_MPU = 0xFF;
+			PM_PREPWSTST_CORE = 0xFF;
+			return PRCM_FAIL;
+		}
+	}
+	if (target_state->core_state >= PRCM_CORE_CSWR_MEMRET) {
+		prcm_get_pre_power_domain_state(DOM_CORE1, &state);
+		if (target_state->core_state == PRCM_CORE_OFF) {
+			if (state != PRCM_OFF)
+				ret = PRCM_FAIL;
+		} else {
+			if (state != PRCM_RET)
+				ret = PRCM_FAIL;
+		}
+		if (ret == PRCM_FAIL) {
+#ifdef DEBUG_SUSPEND
+			printk(KERN_INFO "Core did not enter"
+					" target state: %x\n",
+					target_state->core_state);
+			printk(KERN_INFO "Pre pwstst mpu: %x,"
+					"pre pwstst core: %x\n",
+					PM_PREPWSTST_MPU, PM_PREPWSTST_CORE);
+#endif
+			/* Reset previous power state registers and return */
+								/*error */
+			PM_PREPWSTST_MPU = 0xFF;
+			PM_PREPWSTST_CORE = 0xFF;
+			return PRCM_FAIL;
+		}
+	}
+#ifdef DEBUG_SUSPEND
+	prcm_debug("\nRegister dump after restore\n\n");
+#endif
+	return PRCM_PASS;
+}

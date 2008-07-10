@@ -166,6 +166,10 @@ extern unsigned int omap1610_idle_loop_suspend_sz;
 extern unsigned int omap242x_idle_loop_suspend_sz;
 extern unsigned int omap243x_idle_loop_suspend_sz;
 extern unsigned int omap34xx_suspend_sz;
+extern void restore_sram_functions(void);
+extern void save_scratchpad_contents(void);
+extern void clear_scratchpad_contents(void);
+extern u32 *get_restore_pointer(void);
 
 #ifdef CONFIG_OMAP_SERIAL_WAKE
 extern void omap_serial_wake_trigger(int enable);
