@@ -3,9 +3,8 @@
 #
 
 # Common support
-obj-y := irq.o id.o io.o memory.o control.o prcm.o clock.o mux.o \
-		devices.o serial.o gpmc.o timer-gp.o powerdomain.o \
-		clockdomain.o
+obj-y := irq.o id.o io.o memory.o control.o mux.o \
+		devices.o serial.o gpmc.o timer-gp.o \
 
 obj-$(CONFIG_OMAP_MCBSP) += mcbsp.o
 
@@ -18,7 +17,7 @@ obj-y					+= pm.o
 obj-$(CONFIG_ARCH_OMAP2)		+= pm24xx.o
 obj-$(CONFIG_ARCH_OMAP2420)		+= sleep242x.o
 obj-$(CONFIG_ARCH_OMAP2430)		+= sleep243x.o
-obj-$(CONFIG_ARCH_OMAP3)		+= pm34xx.o sleep34xx.o
+obj-$(CONFIG_ARCH_OMAP3)		+= sleep34xx.o
 obj-$(CONFIG_PM_DEBUG)			+= pm-debug.o
 endif
 
@@ -29,11 +28,11 @@ obj-$(CONFIG_OMAP_SMARTREFLEX)		+= smartreflex.o
 obj-$(CONFIG_ARCH_OMAP2)		+= clock24xx.o
 #obj-$(CONFIG_ARCH_OMAP3)		+= clock34xx.o
 ifeq ($(CONFIG_OMAP3_PM),)
-       obj-y += prcm.o clock.o
+       obj-y += prcm.o clock.o powerdomain.o clockdomain.o
        # Functions loaded to SRAM
        obj-$(CONFIG_ARCH_OMAP2) += sram24xx.o
        # Clock framework
-       obj-$(CONFIG_ARCH_OMAP3) += clock34xx.o
+       obj-$(CONFIG_ARCH_OMAP3) += clock34xx.o pm34xx.o
        # Power Management
        obj-$(CONFIG_PM) += pm.o 
 else

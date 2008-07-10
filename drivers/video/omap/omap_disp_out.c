@@ -157,7 +157,7 @@ extern int lpr_enabled;
 extern void edisco_init(u32 *handle);
 #endif
 
-#ifdef CONFIG_OMAP3_PM
+#if 0 /* To be added back after SRF is in place */
 struct res_handle		*lcd_rhandle = NULL;
 struct res_handle * dsi_rhandle = NULL;
 struct res_handle * tv_rhandle = NULL;
@@ -324,7 +324,7 @@ omap2_dss_rgb_enable(void)
 //			printk(KERN_WARNING "omap2_disp: twl4030_vaux3_ldo_use returns error \n");
 	}
 	else {
-#ifdef CONFIG_OMAP3_PM
+#if 0
 		resource_request(lcd_rhandle,T2_VPLL2_1V80);
 #else	
 		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
@@ -383,7 +383,7 @@ omap2_dss_rgb_disable(void)
 //						printk(KERN_WARNING "omap2_disp: twl4030_vaux3_ldo_unuse returns error \n");
 		}
 		else {
-#ifdef CONFIG_OMAP3_PM
+#if 0
 				resource_release(lcd_rhandle);
 #else
 				twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
@@ -623,7 +623,7 @@ bypass_gpio:
 #else
 
 	/* Enable power to DSI, edisco and initialize the edisco */
-#ifdef CONFIG_OMAP3_PM	
+#if 0
 	resource_request(dsi_rhandle,T2_VAUX3_2V80); 
 #else
 //	if( 0 != twl4030_vaux3_ldo_use())
@@ -803,7 +803,7 @@ h4_i2c_tvout_off(struct work_struct *work)
 	omap2_disp_get_all_clks();
 	omap2_disp_set_tvref(TVREF_OFF);
 	omap2_disp_put_all_clks();
-#ifdef CONFIG_OMAP3_PM
+#if 0
 	resource_release(tv_rhandle);
 #else
 	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,0x00,TWL4030_VDAC_DEDICATED);
@@ -855,7 +855,7 @@ h4_i2c_tvout_on(struct work_struct *work)
 	omap2_disp_set_tvref(TVREF_ON);
 	omap2_disp_put_all_clks();
 
-#ifdef CONFIG_OMAP3_PM
+#if 0
 	resource_request(tv_rhandle,T2_VDAC_1V80);
 #else	
 	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
@@ -878,7 +878,7 @@ tv_init(void)
 	printk(KERN_DEBUG DRIVER
 	       "TV %dx%d interlaced\n", H4_TV_XRES, H4_TV_YRES);
 
-#ifdef CONFIG_OMAP3_PM
+#if 0 /* To be added back once SRF is in place */
 	resource_request(tv_rhandle,T2_VDAC_1V80);
 	resource_release(tv_rhandle);
 #endif
@@ -1646,7 +1646,7 @@ omap2_dispout_init(void)
 		       "Could not create sysfs files for display control\n");
 		return -ENODEV;
 	}
-#ifdef CONFIG_OMAP3_PM
+#if 0
 
 #ifdef CONFIG_OMAP2_LCD
 		lcd_rhandle = resource_get("LCD", "t2_vpll2");
@@ -1722,7 +1722,7 @@ omap2_dispout_exit(void)
 	platform_device_unregister(&tv_device);
 	platform_driver_unregister(&omap2_tv_driver);
 #endif
-#ifdef CONFIG_OMAP3_PM
+#if 0
 #ifdef CONFIG_OMAP2_LCD
 		resource_put(lcd_rhandle);
 #endif
