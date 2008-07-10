@@ -46,6 +46,7 @@ typedef struct { volatile u32 offset[4096]; } __regbase32;
 #define PRM_REG32(offset)	__REG32(PRM_BASE + (offset))
 #define CM_REG32(offset)	__REG32(CM_BASE + (offset))
 
+#define CORE3_DPLL_MASK		0x7
 /* MASK values for some DPLL/CLOCK/POWER registers  */
 /* DPLL1/2/3/5 enable/put_in_bypass MASK */
 #define DPLL_ENBIT_MASK		0xFFFFFFF8
