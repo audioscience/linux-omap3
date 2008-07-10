@@ -831,6 +831,58 @@ int prcm_is_device_accessible(u32 deviceid, u8 *result)
 	return PRCM_PASS;
 }
 
+int prcm_interface_clock_autoidle(u32 deviceid, u8 control)
+{
+	u32 domain, omap, valid, enbit;
+	u32 *addr;
+
+	omap = OMAP(deviceid);
+	enbit = DEV_BIT_POS(deviceid);
+	domain = DOMAIN_ID(deviceid);
+
+	if (cpu_is_omap3430() && !(omap & (AT_3430|AT_3430_ES2)))
+		return PRCM_FAIL;
+
+	addr = get_addr(domain, REG_AUTOIDLE);
+	valid = get_val_bits(domain, REG_AUTOIDLE);
+
+	if (!(addr) || !(valid & (1 << enbit)))
+		return PRCM_FAIL;
+
+	if (control == PRCM_ENABLE)
+		*addr |= (1 << enbit);
+	else if (control == PRCM_DISABLE)
+		*addr &= ~(1 << enbit);
+
+	return PRCM_PASS;
+}
+
+int prcm_wakeup_event_control(u32 deviceid, u8 control)
+{
+	u32 domain, omap, valid, enbit;
+	u32 *addr;
+
+	omap = OMAP(deviceid);
+	enbit = DEV_BIT_POS(deviceid);
+	domain = DOMAIN_ID(deviceid);
+
+	if (cpu_is_omap3430() && !(omap & (AT_3430|AT_3430_ES2)))
+		return PRCM_FAIL;
+
+	addr = get_addr(domain, REG_WKEN);
+	valid = get_val_bits(domain, REG_WKEN);
+
+	if (!(addr) || !(valid & (1 << enbit)))
+		return PRCM_FAIL;
+
+	if (control == PRCM_ENABLE)
+		*addr |= (1 << enbit);
+	else if (control == PRCM_DISABLE)
+		*addr &= ~(1 << enbit);
+
+	return PRCM_PASS;
+}
+
 int prcm_enable_dpll(u32 dpll_id)
 {
 	u32 dpll_idlest_lock_bit, dpll_enbit_mask, delay;
@@ -1062,6 +1114,55 @@ int prcm_put_dpll_in_bypass(u32 dpll_id, u32 bypass_mode)
 	/* Restore the autoidle for the DPLL back */
 	*addr_auto = dpll_autoidle;
 	return ret;
+}
+
+int prcm_dpll_clock_auto_control(u32 dpll_id, u32 control)
+{
+	u32 valid;
+	u32 *addr;
+	u32 setting;
+
+	if (dpll_id > NO_OF_DPLL)
+		return PRCM_FAIL;
+
+	addr = get_addr_pll(dpll_id, REG_AUTOIDLE_PLL);
+	if (!addr)
+		return PRCM_FAIL;
+
+	valid = get_val_bits_pll(dpll_id, REG_AUTOIDLE_PLL);
+
+	if (dpll_id == DPLL4_PER)
+		setting = 1 << 3;
+	else if (dpll_id == DPLL3_CORE) {
+		*addr &= ~CORE3_DPLL_MASK;
+		switch (control) {
+		case DPLL_AUTOIDLE_BYPASS:
+			setting = 5;
+			break;
+		case DPLL_NO_AUTOIDLE:
+		case DPLL_AUTOIDLE:
+			setting = 1;
+			break;
+		default:
+			return PRCM_FAIL;
+			}
+	} else
+		setting = 1;
+
+	switch (control) {
+	case DPLL_AUTOIDLE:
+		*addr |= setting;
+		break;
+	case DPLL_NO_AUTOIDLE:
+		*addr &= ~setting;
+		break;
+	case DPLL_AUTOIDLE_BYPASS:
+		*addr |= setting;
+		break;
+	default:
+		return PRCM_FAIL;
+	}
+	return PRCM_PASS;
 }
 
 int prcm_get_dpll_mn_output(u32 dpll, u32 *mn_output)
