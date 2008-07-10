@@ -89,10 +89,26 @@ struct gpmc_timings {
 	u16 wr_cycle;		/* Total write cycle time */
 };
 
+#ifdef CONFIG_OMAP3_PM
+/* Structure to save gpmc cs context */
+struct gpmc_cs_config {
+	u32 gpmc_config1;
+	u32 gpmc_config2;
+	u32 gpmc_config3;
+	u32 gpmc_config4;
+	u32 gpmc_config5;
+	u32 gpmc_config6;
+	u32 gpmc_config7;
+	int is_valid;
+};
+#endif
+
 extern unsigned int gpmc_ns_to_ticks(unsigned int time_ns);
 extern unsigned int gpmc_ticks_to_ns(unsigned int ticks);
 extern unsigned int gpmc_round_ns_to_ticks(unsigned int time_ns);
 extern unsigned long gpmc_get_fclk_period(void);
+extern void gpmc_save_context(void);
+extern void gpmc_restore_context(void);
 
 extern void gpmc_cs_write_reg(int cs, int idx, u32 val);
 extern u32 gpmc_cs_read_reg(int cs, int idx);

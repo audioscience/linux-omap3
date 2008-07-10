@@ -54,6 +54,23 @@
 #define GPMC_CHUNK_SHIFT	24		/* 16 MB */
 #define GPMC_SECTION_SHIFT	28		/* 128 MB */
 
+#ifdef CONFIG_OMAP3_PM
+/*
+ * Structure to save/restore gpmc context
+ * to support core off
+ */
+static struct gpmc_context {
+	u32 sysconfig;
+	u32 irqenable;
+	u32 timeout_ctrl;
+	u32 config;
+	u32 prefetch_config1;
+	u32 prefetch_config2;
+	u32 prefetch_control;
+	struct gpmc_cs_config cs_context[GPMC_CS_NUM];
+} gpmc_ctx;
+#endif
+
 static struct resource	gpmc_mem_root;
 static struct resource	gpmc_cs_mem[GPMC_CS_NUM];
 static DEFINE_SPINLOCK(gpmc_mem_lock);
@@ -429,3 +446,68 @@ void __init gpmc_init(void)
 
 	gpmc_mem_init();
 }
+
+#ifdef CONFIG_OMAP3_PM
+void gpmc_save_context()
+{
+	int i;
+	gpmc_ctx.sysconfig = gpmc_read_reg(GPMC_SYSCONFIG);
+	gpmc_ctx.irqenable = gpmc_read_reg(GPMC_IRQENABLE);
+	gpmc_ctx.timeout_ctrl = gpmc_read_reg(GPMC_TIMEOUT_CONTROL);
+	gpmc_ctx.config = gpmc_read_reg(GPMC_CONFIG);
+	gpmc_ctx.prefetch_config1 = gpmc_read_reg(GPMC_PREFETCH_CONFIG1);
+	gpmc_ctx.prefetch_config2 = gpmc_read_reg(GPMC_PREFETCH_CONFIG2);
+	gpmc_ctx.prefetch_control = gpmc_read_reg(GPMC_PREFETCH_CONTROL);
+	for (i = 0; i < GPMC_CS_NUM; i++) {
+		gpmc_ctx.cs_context[i].is_valid =
+			 (gpmc_cs_read_reg(i, GPMC_CS_CONFIG7)) & (1 << 6);
+		if (gpmc_ctx.cs_context[i].is_valid) {
+			gpmc_ctx.cs_context[i].gpmc_config1 =
+				gpmc_cs_read_reg(i, GPMC_CS_CONFIG1);
+			gpmc_ctx.cs_context[i].gpmc_config2 =
+				gpmc_cs_read_reg(i, GPMC_CS_CONFIG2);
+			gpmc_ctx.cs_context[i].gpmc_config3 =
+				gpmc_cs_read_reg(i, GPMC_CS_CONFIG3);
+			gpmc_ctx.cs_context[i].gpmc_config4 =
+				gpmc_cs_read_reg(i, GPMC_CS_CONFIG4);
+			gpmc_ctx.cs_context[i].gpmc_config5 =
+				gpmc_cs_read_reg(i, GPMC_CS_CONFIG5);
+			gpmc_ctx.cs_context[i].gpmc_config6 =
+				gpmc_cs_read_reg(i, GPMC_CS_CONFIG6);
+			gpmc_ctx.cs_context[i].gpmc_config7 =
+				gpmc_cs_read_reg(i, GPMC_CS_CONFIG7);
+		}
+	}
+}
+
+void gpmc_restore_context()
+{
+	int i;
+	gpmc_write_reg(GPMC_SYSCONFIG, gpmc_ctx.sysconfig);
+	gpmc_write_reg(GPMC_IRQENABLE, gpmc_ctx.irqenable);
+	gpmc_write_reg(GPMC_TIMEOUT_CONTROL, gpmc_ctx.timeout_ctrl);
+	gpmc_write_reg(GPMC_CONFIG, gpmc_ctx.config);
+	gpmc_write_reg(GPMC_PREFETCH_CONFIG1, gpmc_ctx.prefetch_config1);
+	gpmc_write_reg(GPMC_PREFETCH_CONFIG2, gpmc_ctx.prefetch_config2);
+	gpmc_write_reg(GPMC_PREFETCH_CONTROL, gpmc_ctx.prefetch_control);
+	for (i = 0; i < GPMC_CS_NUM; i++) {
+		if (gpmc_ctx.cs_context[i].is_valid) {
+			gpmc_cs_write_reg(i, GPMC_CS_CONFIG1,
+					gpmc_ctx.cs_context[i].gpmc_config1);
+			gpmc_cs_write_reg(i, GPMC_CS_CONFIG2,
+					gpmc_ctx.cs_context[i].gpmc_config2);
+			gpmc_cs_write_reg(i, GPMC_CS_CONFIG3,
+					gpmc_ctx.cs_context[i].gpmc_config3);
+			gpmc_cs_write_reg(i, GPMC_CS_CONFIG4,
+					gpmc_ctx.cs_context[i].gpmc_config4);
+			gpmc_cs_write_reg(i, GPMC_CS_CONFIG5,
+					gpmc_ctx.cs_context[i].gpmc_config5);
+			gpmc_cs_write_reg(i, GPMC_CS_CONFIG6,
+					gpmc_ctx.cs_context[i].gpmc_config6);
+			gpmc_cs_write_reg(i, GPMC_CS_CONFIG7,
+					gpmc_ctx.cs_context[i].gpmc_config7);
+		}
+	}
+}
+#endif /* CONFIG_OMAP3_PM */
+
