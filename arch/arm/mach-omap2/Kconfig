@@ -123,3 +123,18 @@ config OMAP3_PM
 	depends on ARCH_OMAP3
 	default n
 
+config TRACK_RESOURCES
+        bool "Enable resource tracking"
+        depends on ARCH_OMAP34XX && OMAP3_PM
+        default n
+        ---help---
+        This option enables tracking of resources such as clock and voltage sources.
+
+config  AUTO_POWER_DOMAIN_CTRL
+        bool "Enable automatic power domain control"
+        depends on ARCH_OMAP34XX && OMAP3_PM
+        default n
+        ---help---
+        This option enables automatic control of power domains through the clock framework.
+
+

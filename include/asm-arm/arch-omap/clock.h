@@ -17,6 +17,18 @@ struct module;
 struct clk;
 struct clockdomain;
 
+#ifdef CONFIG_TRACK_RESOURCES
+#define NUM_RES_HANDLES 100
+
+struct resource_handle {
+	struct clk *clk;
+	struct list_head node1;
+	struct list_head node2;
+	struct device *dev;
+	short index;
+};
+#endif
+
 #if defined(CONFIG_ARCH_OMAP2) || defined(CONFIG_ARCH_OMAP3)
 
 struct clksel_rate {
@@ -59,7 +71,14 @@ struct dpll_data {
 #endif
 
 struct clk {
+#if defined(CONFIG_ARCH_OMAP34XX)
+	struct res_handle *res;
+#endif /* #if defined (CONFIG_ARCH_OMAP34XX) */
 	struct list_head	node;
+#ifdef CONFIG_TRACK_RESOURCES
+	struct list_head clk_got;
+	struct list_head clk_enabled;
+#endif
 	struct module		*owner;
 	const char		*name;
 	int			id;
@@ -126,6 +145,11 @@ extern int clk_get_usecount(struct clk *clk);
 extern void clk_enable_init_clocks(void);
 #ifdef CONFIG_CPU_FREQ
 extern void clk_init_cpufreq_table(struct cpufreq_frequency_table **table);
+#endif
+
+#ifdef CONFIG_OMAP34XX_OFFMODE
+void modify_timeout_value(struct clk *clk, u32 value);
+int context_restore_required(struct clk *clk);
 #endif
 
 /* Clock flags */
