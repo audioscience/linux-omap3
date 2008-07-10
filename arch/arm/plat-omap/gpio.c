@@ -102,6 +102,7 @@
 #define OMAP24XX_GPIO_IRQSTATUS2	0x0028
 #define OMAP24XX_GPIO_IRQENABLE2	0x002c
 #define OMAP24XX_GPIO_IRQENABLE1	0x001c
+#define OMAP24XX_GPIO_WAKE_EN		0x0020
 #define OMAP24XX_GPIO_CTRL		0x0030
 #define OMAP24XX_GPIO_OE		0x0034
 #define OMAP24XX_GPIO_DATAIN		0x0038
@@ -244,6 +245,23 @@ static inline struct gpio_bank *get_gpio_bank(int gpio)
 	if (cpu_is_omap34xx())
 		return &gpio_bank[gpio >> 5];
 }
+
+#ifdef CONFIG_OMAP3_PM
+struct gpio_restore_regs {
+	u32 gpio_sysconfig;
+	u32 gpio_wake_en;
+	u32 gpio_ctrl;
+	u32 gpio_oe;
+	u32 gpio_leveldetect0;
+	u32 gpio_leveldetect1;
+	u32 gpio_risingdetect;
+	u32 gpio_fallingdetect;
+	u32 gpio_dataout;
+	u32 gpio_setwkuena;
+	u32 gpio_setdataout;
+};
+static struct gpio_restore_regs gpio_restore_banks[5];
+#endif
 
 static inline int get_gpio_index(int gpio)
 {
@@ -1703,6 +1721,73 @@ void omap2_gpio_resume_after_retention(void)
 
 }
 
+#endif
+
+#ifdef CONFIG_OMAP3_PM
+/* save the registers of bank 2-6 */
+void omap_gpio_save(void)
+{
+	int i;
+	/* saving banks from 2-6 only */
+	for (i = 1; i < gpio_bank_count; i++) {
+		struct gpio_bank *bank = &gpio_bank[i];
+		gpio_restore_banks[i].gpio_sysconfig =
+			__raw_readl(bank->base + OMAP24XX_GPIO_SYSCONFIG);
+		gpio_restore_banks[i].gpio_wake_en =
+			__raw_readl(bank->base + OMAP24XX_GPIO_WAKE_EN);
+		gpio_restore_banks[i].gpio_ctrl =
+			__raw_readl(bank->base + OMAP24XX_GPIO_CTRL);
+		gpio_restore_banks[i].gpio_oe =
+			__raw_readl(bank->base + OMAP24XX_GPIO_OE);
+		gpio_restore_banks[i].gpio_leveldetect0 =
+			__raw_readl(bank->base + OMAP24XX_GPIO_LEVELDETECT0);
+		gpio_restore_banks[i].gpio_leveldetect1 =
+			__raw_readl(bank->base + OMAP24XX_GPIO_LEVELDETECT1);
+		gpio_restore_banks[i].gpio_risingdetect =
+			__raw_readl(bank->base + OMAP24XX_GPIO_RISINGDETECT);
+		gpio_restore_banks[i].gpio_fallingdetect =
+			__raw_readl(bank->base + OMAP24XX_GPIO_FALLINGDETECT);
+		gpio_restore_banks[i].gpio_dataout =
+			__raw_readl(bank->base + OMAP24XX_GPIO_DATAOUT);
+		gpio_restore_banks[i].gpio_setwkuena =
+			__raw_readl(bank->base + OMAP24XX_GPIO_SETWKUENA);
+		gpio_restore_banks[i].gpio_setdataout =
+			__raw_readl(bank->base + OMAP24XX_GPIO_SETDATAOUT);
+	}
+}
+EXPORT_SYMBOL(omap_gpio_save);
+
+/* restore the required registers of bank 2-6 */
+void omap_gpio_restore(void)
+{
+	int i;
+	for (i = 1; i < gpio_bank_count; i++) {
+		struct gpio_bank *bank = &gpio_bank[i];
+		__raw_writel(gpio_restore_banks[i].gpio_sysconfig,
+				bank->base + OMAP24XX_GPIO_SYSCONFIG);
+		__raw_writel(gpio_restore_banks[i].gpio_wake_en,
+				bank->base + OMAP24XX_GPIO_WAKE_EN);
+		__raw_writel(gpio_restore_banks[i].gpio_ctrl,
+				bank->base + OMAP24XX_GPIO_CTRL);
+		__raw_writel(gpio_restore_banks[i].gpio_oe,
+				bank->base + OMAP24XX_GPIO_OE);
+		__raw_writel(gpio_restore_banks[i].gpio_leveldetect0,
+				bank->base + OMAP24XX_GPIO_LEVELDETECT0);
+		__raw_writel(gpio_restore_banks[i].gpio_leveldetect1,
+				bank->base + OMAP24XX_GPIO_LEVELDETECT1);
+		__raw_writel(gpio_restore_banks[i].gpio_risingdetect,
+				bank->base + OMAP24XX_GPIO_RISINGDETECT);
+		__raw_writel(gpio_restore_banks[i].gpio_fallingdetect,
+				bank->base + OMAP24XX_GPIO_FALLINGDETECT);
+		__raw_writel(gpio_restore_banks[i].gpio_dataout,
+				bank->base + OMAP24XX_GPIO_DATAOUT);
+		__raw_writel(gpio_restore_banks[i].gpio_setwkuena,
+				bank->base + OMAP24XX_GPIO_SETWKUENA);
+		__raw_writel(gpio_restore_banks[i].gpio_setdataout,
+				bank->base + OMAP24XX_GPIO_SETDATAOUT);
+	}
+}
+EXPORT_SYMBOL(omap_gpio_restore);
 #endif
 
 /*
