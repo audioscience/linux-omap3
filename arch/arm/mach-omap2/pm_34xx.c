@@ -222,10 +222,15 @@ void memory_logic_res_seting(void)
 static int omap3_pm_suspend(void)
 {
 	int ret;
+	u32 prcm_state, prepwstst;
 
 	local_irq_disable();
 	local_fiq_disable();
 
+	PM_PREPWSTST_MPU = 0xFF;
+	PM_PREPWSTST_CORE = 0xFF;
+	PM_PREPWSTST_NEON = 0xFF;
+	PM_PREPWSTST_PER = 0xFF;
 #ifdef CONFIG_CORE_OFF
 	if (enable_off)
 		omap_uart_save_ctx();
@@ -242,23 +247,18 @@ static int omap3_pm_suspend(void)
 #ifdef CONFIG_OMAP34XX_OFFMODE
 	context_restore_update(DOM_PER);
 	context_restore_update(DOM_CORE1);
+	prcm_state = PRCM_OFF;
+#else
+	prcm_state = PRCM_RET;
+#endif
 
-	target_state.iva2_state = PRCM_OFF;
-	target_state.gfx_state = PRCM_OFF;
-	target_state.dss_state = PRCM_OFF;
-	target_state.cam_state = PRCM_OFF;
-	target_state.per_state = PRCM_OFF;
-	target_state.usbhost_state = PRCM_OFF;
-	target_state.neon_state = PRCM_OFF;
-#else /* !CONFIG_OMAP34XX_OFFMODE */
-	target_state.iva2_state = PRCM_RET;
-	target_state.gfx_state = PRCM_RET;
-	target_state.dss_state = PRCM_RET;
-	target_state.cam_state = PRCM_RET;
-	target_state.per_state = PRCM_RET;
-	target_state.neon_state = PRCM_RET;
-	target_state.usbhost_state = PRCM_RET;
-#endif /* #ifdef CONFIG_OMAP34XX_OFFMODE */
+	target_state.iva2_state = prcm_state;
+	target_state.gfx_state = prcm_state;
+	target_state.dss_state = prcm_state;
+	target_state.cam_state = prcm_state;
+	target_state.per_state = prcm_state;
+	target_state.usbhost_state = prcm_state;
+	target_state.neon_state = prcm_state;
 
 #ifdef CONFIG_MPU_OFF
 	if (enable_off)
@@ -293,14 +293,17 @@ static int omap3_pm_suspend(void)
 
 	ret = prcm_set_chip_power_mode(&target_state, PRCM_WAKEUP_T2_KEYPAD |
 	PRCM_WAKEUP_TOUCHSCREEN | PRCM_WAKEUP_UART);
+
 #ifdef CONFIG_MPU_OFF
 	*(scratchpad_restore_addr) = 0;
 #endif
 	if (target_state.neon_state == PRCM_OFF)
 		omap3_restore_neon_context();
+	PM_PREPWSTST_NEON = 0xFF;
 
 	if (target_state.per_state == PRCM_OFF)
 		omap3_restore_per_context();
+	PM_PREPWSTST_PER = 0xFF;
 #ifdef CONFIG_CORE_OFF
 	if (enable_off) {
 		omap3_restore_core_settings();
@@ -323,28 +326,30 @@ static int omap3_pm_suspend(void)
 #endif
 	local_fiq_enable();
 	local_irq_enable();
-	if (ret != 0)
-		printk(KERN_ERR "Could not enter target state in pm_suspend\n");
-	else {
-		printk(KERN_INFO "Successfully put chip to target state "
-					"in suspend\n");
-#ifdef CONFIG_MPU_OFF
-#ifdef CONFIG_CORE_OFF
-		if (enable_off)
-			printk(KERN_INFO "Target MPU state: OFF, "
-					"Target CORE state: OFF\n");
-		else
-			printk(KERN_INFO "Target MPU state: CSWR_L2RET, "
-					"Target CORE state: CSWR_MEMRET\n");
-#else
-		printk(KERN_INFO "Target MPU state: OFF, "
-					"Target CORE state: CSWR_MEMRET\n");
-#endif
-#else
-		printk(KERN_INFO "Target MPU state: CSWR_L2RET, "
-					"Target CORE state: CSWR_MEMRET\n");
-#endif
-	}
+
+	printk(KERN_INFO "\nSuspend/Resume Result: %s!! \n",
+		(ret == PRCM_PASS) ? "SUCCESS" : "FAIL");
+
+	prcm_state = target_state.mpu_state;
+	prepwstst = PM_PREPWSTST_MPU & 0x3;
+	printk(KERN_INFO "MPU state : TARGET-%4s PREPWST[0x%x]-%4s\n",
+		(prcm_state == PRCM_MPU_OFF) ? "OFF" :
+		(prcm_state >= PRCM_MPU_CSWR_L2RET) ? "RET" : "ON",
+		PM_PREPWSTST_MPU,
+		(prepwstst == 0x0) ? "OFF" :
+		(prepwstst == 0x1) ? "RET" : "ON");
+
+	prcm_state = target_state.core_state;
+	prepwstst = PM_PREPWSTST_CORE & 0x3;
+	printk(KERN_INFO "CORE state: TARGET-%4s PREPWST[0x%x]-%4s\n",
+		(prcm_state == PRCM_CORE_OFF) ? "OFF" :
+		(prcm_state >= PRCM_CORE_CSWR_MEMRET) ? "RET":"ON",
+		PM_PREPWSTST_CORE,
+		(prepwstst == 0x0) ? "OFF" :
+		(prepwstst == 0x1) ? "RET" : "ON");
+
+	PM_PREPWSTST_CORE = PM_PREPWSTST_CORE;
+	PM_PREPWSTST_MPU = PM_PREPWSTST_MPU;
 	return 0;
 }
 

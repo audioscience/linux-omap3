@@ -463,36 +463,36 @@ struct dpll_param mpu_dpll_param[5][PRCM_NO_VDD1_OPPS] = {
 	{{0x0FA, 0x05, 0x07, 0x04}, {0x0FA, 0x05, 0x07, 0x02},
 	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
 	{0x0FA, 0x05, 0x07, 0x01}, {0x113, 0x05, 0x07, 0x01},
-	/* OPP5 (625 Mhz) */
-	{0x271, 0x0B, 0x03, 0x01} },
+	/* OPP5 (600 Mhz) */
+	{0x12C, 0x05, 0x07, 0x01} },
 	/* 13M values */
 	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
 	{{0x1F4, 0x0C, 0x03, 0x04}, {0x1F4, 0x0C, 0x03, 0x02},
 	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
 	{0x1F4, 0x0C, 0x03, 0x01}, {0x226, 0x0C, 0x03, 0x01},
-	/* OPP5 (625 Mhz) */
-	{0x271, 0x0C, 0x03, 0x01} },
+	/* OPP5 (600 Mhz) */
+	{0x258, 0x0C, 0x03, 0x01} },
 	/* 19.2M values */
 	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
 	{{0x271, 0x17, 0x03, 0x04}, {0x271, 0x17, 0x03, 0x02},
 	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
 	{0x271, 0x17, 0x03, 0x01}, {0x191, 0x0D, 0x05, 0x01},
-	/* OPP5 (625 Mhz) */
-	{0x28B, 0x13, 0x03, 0x01} },
+	/* OPP5 (600 Mhz) */
+	{0x177, 0x0B, 0x06, 0x01} },
 	/* 26M values */
 	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
 	{{0x0FA, 0x0C, 0x07, 0x04}, {0x0FA, 0x0C, 0x07, 0x02},
 	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
 	{0x0FA, 0x0C, 0x07, 0x01}, {0x113, 0x0C, 0x07, 0x01},
-	/* OPP5 (625 Mhz) */
-	{0x271, 0x19, 0x03, 0x01} },
+	/* OPP5 (600 Mhz) */
+	{0x12C, 0x0C, 0x07, 0x01} },
 	/* 38.4M values */
 	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
 	{{0x271, 0x2F, 0x03, 0x04}, {0x271, 0x2F, 0x03, 0x02},
 	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
 	{0x271, 0x2F, 0x03, 0x01}, {0x1BC, 0x1E, 0x04, 0x01},
-	/* OPP5 (625 Mhz) */
-	{0x1D8, 0x1C, 0x05, 0x01} },
+	/* OPP5 (600 Mhz) */
+	{0x177, 0x17, 0x06, 0x01} },
 };
 
 
@@ -508,8 +508,8 @@ struct dpll_param iva_dpll_param[5][PRCM_NO_VDD1_OPPS] = {
 	/* 13M values */
 	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
 	{{0x168, 0x0C, 0x03, 0x04}, {0x168, 0x0C, 0x03, 0x02},
-	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
-	 {0x168, 0x0C, 0x03, 0x01}, {0x18C, 0x0C, 0x03, 0x01},
+	/* OPP3(360 Mhz) and OPP4(400 Mhz)*/
+	 {0x168, 0x0C, 0x03, 0x01}, {0x190, 0x0C, 0x03, 0x01},
 	/* OPP5 (430 Mhz) */
 	 {0x1AE, 0x0C, 0x03, 0x01} },
 	/* 19.2M values */
@@ -537,6 +537,7 @@ struct dpll_param iva_dpll_param[5][PRCM_NO_VDD1_OPPS] = {
 
 /* CORE parameters */
 struct dpll_param core_dpll_param[5][PRCM_NO_VDD2_OPPS] = {
+#ifdef CONFIG_OMAP3_CORE_166MHZ
 	/* 12M values */
 	/* OPP1(83 Mhz) and OPP2(166 Mhz) */
 	{{0, 0, 0, 0}, {0x0A6, 0x05, 0x07, 0x02}, {0x0A6, 0x05, 0x07, 0x01} },
@@ -552,6 +553,24 @@ struct dpll_param core_dpll_param[5][PRCM_NO_VDD2_OPPS] = {
 	/* 38.4M values */
 	/* OPP1(83 Mhz) and OPP2(166 Mhz) */
 	{{0, 0, 0, 0}, {0x19F, 0x2F, 0x03, 0x02}, {0x19F, 0x2F, 0x03, 0x01} },
+
+#elif defined(CONFIG_OMAP3_CORE_133MHZ)
+	/* 12M values */
+	/* OPP1(66 Mhz) and OPP2(133 Mhz) */
+	{{0, 0, 0, 0}, {0x085, 0x05, 0x07, 0x02}, {0x085, 0x05, 0x07, 0x01} },
+	/* 13M values */
+	/* OPP1(66 Mhz) and OPP2(133 Mhz) */
+	{{0, 0, 0, 0}, {0x10A, 0x0C, 0x03, 0x02}, {0x10A, 0x0C, 0x03, 0x01} },
+	/* 19.2M values */
+	/* OPP1(83 Mhz) and OPP2(133 Mhz) */
+	{{0, 0, 0, 0}, {0x115, 0x13, 0x03, 0x02}, {0x115, 0x13, 0x03, 0x01} },
+	/* 26M values */
+	/* OPP1(66 Mhz) and OPP2(133 Mhz) */
+	{{0, 0, 0, 0}, {0x085, 0x0C, 0x07, 0x02}, {0x085, 0x0C, 0x07, 0x01} },
+	/* 38.4M values */
+	/* OPP1(66 Mhz) and OPP2(133 Mhz) */
+	{{0, 0, 0, 0}, {0x11C, 0x28, 0x03, 0x02}, {0x19F, 0x2F, 0x03, 0x01} },
+#endif
 };
 
 struct dpll_param usb_dpll_param[5] = {
@@ -3833,6 +3852,11 @@ static int prcm_prepare_mpu_core_domains(struct system_power_state *state,
 		prcm_set_core_domain_state(state->core_state);
 		prcm_get_initiators_not_standby(DOM_CORE1, &initiators);
 		if (initiators) {
+#ifdef CONFIG_OMAP_LL_DEBUG_UART3
+			void enable_debug_uart_per(struct system_power_state
+								*state);
+			enable_debug_uart_per(state);
+#endif
 			printk(KERN_INFO "Initiators still active in core"
 						"domain : %x\n", initiators);
 			return PRCM_FAIL;
@@ -4117,3 +4141,19 @@ restore:
 #endif
 	return PRCM_PASS;
 }
+
+#ifdef CONFIG_OMAP_LL_DEBUG_UART3
+/* To print on a UART3 debug console need restore PER/UART */
+void enable_debug_uart_per(struct system_power_state *state)
+{
+	void omap_uart_restore_ctx(int unum);
+	prcm_restore_registers(state);
+	prcm_set_power_domain_state(DOM_PER, PRCM_ON, PRCM_FORCE);
+	prcm_force_power_domain_state(DOM_PER, PRCM_ON);
+	CM_FCLKEN_PER = 0x800;
+	CM_ICLKEN_PER = 0x800;
+	if (state->per_state == PRCM_OFF)
+	       omap_uart_restore_ctx(2);
+}
+#endif
+
