@@ -385,8 +385,12 @@ static int __init clk_disable_unused(void)
 	unsigned long flags;
 
 	list_for_each_entry(ck, &clocks, node) {
+#ifndef CONFIG_ARCH_OMAP34XX
 		if (ck->usecount > 0 || (ck->flags & ALWAYS_ENABLED) ||
 			ck->enable_reg == 0)
+#else
+		if (ck->usecount > 0 || (ck->flags & ALWAYS_ENABLED))
+#endif
 			continue;
 
 		spin_lock_irqsave(&clockfw_lock, flags);

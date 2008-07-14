@@ -184,8 +184,7 @@ int activate_autoidle_resource(struct shared_resource *resp,
 {
 	unsigned long prcm_id = resp->prcm_id;
 	int ret;
-	/* TODO
-	ret = prcm_dpll_clock_auto_control(prcm_id, target_level);*/
+	ret = prcm_dpll_clock_auto_control(prcm_id, target_level);
 	if (ret == PRCM_FAIL) {
 		DPRINTK("Invalid DPLL Autoidle resource state\n");
 		return -1;
@@ -216,7 +215,8 @@ int activate_triton_power_res(struct shared_resource *resp,
 	unsigned short target_level)
 {
 	int result;
-	/* TODO result = twl4030_ldo_set_voltage(resp->prcm_id, target_level);*/
+	/* TODO
+	result = twl4030_ldo_set_voltage(resp->prcm_id, target_level);*/
 	return result;
 }
 
@@ -286,6 +286,12 @@ int turn_power_domains_off(void)
 				prcmid = (*resp)->prcm_id;
 				prcm_get_power_domain_state(prcmid, &state);
 				if (state == PRCM_ON) {
+#ifdef CONFIG_OMAP34XX_OFFMODE
+					if (prcmid == DOM_PER)
+						state = PRCM_ON;
+					else
+						state = PRCM_OFF;
+#else
 					if ((prcmid == DOM_IVA2) ||
 							(prcmid == DOM_SGX))
 						state = PRCM_OFF;
@@ -293,6 +299,7 @@ int turn_power_domains_off(void)
 						state = PRCM_ON;
 					else
 						state = PRCM_RET;
+#endif
 					prcm_force_power_domain_state
 						((*resp)->prcm_id, state);
 				}
@@ -301,3 +308,8 @@ int turn_power_domains_off(void)
 	}
 	return 0;
 }
+
+#ifdef CONFIG_AUTO_POWER_DOMAIN_CTRL
+late_initcall(turn_power_domains_off);
+#endif
+

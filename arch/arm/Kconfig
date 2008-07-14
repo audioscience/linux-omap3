@@ -1000,6 +1000,16 @@ endmenu
 
 endif
 
+if (ARCH_OMAP)
+
+menu "CPUIdle"
+
+source "drivers/cpuidle/Kconfig"
+
+endmenu
+
+endif
+
 menu "Floating point emulation"
 
 comment "At least one emulation must be selected"

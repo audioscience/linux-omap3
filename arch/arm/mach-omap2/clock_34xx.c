@@ -233,7 +233,6 @@ static void omap3_propagate_rate(struct clk *clk)
 /* Calls PRCM APIs to enable clock */
 static int _omap3_clk_enable(struct clk *clk)
 {
-#ifdef ENABLE_CLOCKCONTROL
 	int ret = 0;
 
 	pr_debug("Clk: %s\n", clk->name);
@@ -272,15 +271,11 @@ static int _omap3_clk_enable(struct clk *clk)
 		return -EINVAL;
 	else
 		return 0;
-#else
-	return 0;
-#endif
 }
 
 /* Calls PRCM APIs to disable clock */
 static void _omap3_clk_disable(struct clk *clk)
 {
-#ifdef ENABLE_CLOCKCONTROL
 	pr_debug("Clk: %s\n", clk->name);
 	if (clk->flags & ALWAYS_ENABLED)
 		return;
@@ -308,7 +303,6 @@ static void _omap3_clk_disable(struct clk *clk)
 	}
 
 	pr_debug("Done Clk: %s\n", clk->name);
-#endif
 }
 
 /* Update usecount and disable clock if usecount reaches 0 */
@@ -467,7 +461,6 @@ static long omap3_clk_round_rate(struct clk *tclk, unsigned long rate)
 /* Set the clock rate for a clock source */
 static int omap3_clk_set_rate(struct clk *clk, unsigned long rate)
 {
-#ifdef ENABLE_CLOCKCONTROL
 	int ret = -EINVAL;
 	u32 validrate, parent_rate, mnoutput;
 	u32 new_div = 0;
@@ -531,15 +524,11 @@ static int omap3_clk_set_rate(struct clk *clk, unsigned long rate)
 		clk->recalc(clk);
 
 	return ret;
-#else
-	return 0;
-#endif
 }
 
 /* Change the parent of a clock */
 static int omap3_clk_set_parent(struct clk *cclk, struct clk *new_parent)
 {
-#ifdef ENABLE_CLOCKCONTROL
 	int ret = -EINVAL;
 
 	pr_debug("Clock name: %s, Parent name: %s\n", cclk->name,
@@ -567,9 +556,6 @@ static int omap3_clk_set_parent(struct clk *cclk, struct clk *new_parent)
 		cclk->recalc(cclk);
 	}
 	return ret;
-#else
-	return 0;
-#endif
 }
 
 /* Return the parent of a clock */
@@ -617,7 +603,6 @@ static long omap3_round_to_table_rate(struct clk *clk, unsigned long rate)
 
 static int omap3_select_table_rate(struct clk *clk, unsigned long rate)
 {
-#ifdef ENABLE_CLOCKCONTROL
 	u8 cpu_mask = 0;
 	u32 cur_vdd_rate, current_opp;
 	struct vdd_prcm_config *prcm_vdd;
@@ -707,8 +692,6 @@ static int omap3_select_table_rate(struct clk *clk, unsigned long rate)
 		omap3_clk_recalc(&emul_core_alwon_ck);
 		omap3_propagate_rate(&emul_core_alwon_ck);
 	}
-
-#endif
 	return 0;
 }
 

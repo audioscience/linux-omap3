@@ -3,7 +3,7 @@
 #
 
 # Common support
-obj-y := irq.o id.o io.o memory.o control.o mux.o \
+obj-y := irq.o id.o io.o memory.o control.o mux.o prcm.o\
 		devices.o serial.o gpmc.o timer-gp.o \
 
 obj-$(CONFIG_OMAP_MCBSP) += mcbsp.o
@@ -28,7 +28,7 @@ obj-$(CONFIG_OMAP_SMARTREFLEX)		+= smartreflex.o
 obj-$(CONFIG_ARCH_OMAP2)		+= clock24xx.o
 #obj-$(CONFIG_ARCH_OMAP3)		+= clock34xx.o
 ifeq ($(CONFIG_OMAP3_PM),)
-       obj-y += prcm.o clock.o powerdomain.o clockdomain.o
+       obj-y += clock.o powerdomain.o clockdomain.o
        # Functions loaded to SRAM
        obj-$(CONFIG_ARCH_OMAP2) += sram24xx.o
        # Clock framework
@@ -36,7 +36,7 @@ ifeq ($(CONFIG_OMAP3_PM),)
        # Power Management
        obj-$(CONFIG_PM) += pm.o 
 else
-       obj-y += prcm_34xx.o pm_34xx.o clock_34xx.o sram-fn_34xx.o resource_34xx.o constraint_34xx.o
+       obj-y += prcm_34xx.o pm_34xx.o clock_34xx.o sram-fn_34xx.o resource_34xx.o constraint_34xx.o pm_idle_34xx.o
        # Power Management
 endif
 

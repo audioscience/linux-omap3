@@ -311,5 +311,30 @@ enum mpui1610_save_state {
 #endif
 };
 
+#ifdef CONFIG_OMAP3_PM
+#define OMAP3_MAX_STATES 7
+#define OMAP3_STATE_C0 0 /* System executing code*/
+#define OMAP3_STATE_C1 1 /* MPU WFI + Dynamic tick + CORE ACTIVE*/
+#define OMAP3_STATE_C2 2 /* MPU CSWR + CORE ACTIVE*/
+#define OMAP3_STATE_C3 3 /* MPU OFF + CORE ACTIVE*/
+#define OMAP3_STATE_C4 4 /* MPU RET + CORE CSWR */
+#define OMAP3_STATE_C5 5 /* MPU OFF + CORE CSWR */
+#define OMAP3_STATE_C6 6 /* MPU OFF + CORE OFF */
+#ifdef CONFIG_CORE_OFF_CPUIDLE
+#define MAX_SUPPORTED_STATES 7
+#else
+/*Currently, we support only upto C4*/
+#define MAX_SUPPORTED_STATES 5
+#endif
+#define SR1_ID 1
+#define SR2_ID 2
+
+extern int cpuidle_deepest_st;
+extern void set_blank_interval(int fb_timeout_val);
+extern u32 current_vdd1_opp;
+extern u32 current_vdd2_opp;
+#endif
+
+
 #endif /* ASSEMBLER */
 #endif /* __ASM_ARCH_OMAP_PM_H */
