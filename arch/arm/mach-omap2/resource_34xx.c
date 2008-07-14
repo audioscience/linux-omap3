@@ -23,6 +23,7 @@
 #include <asm/arch/clock.h>
 #include "resource_34xx.h"
 #include "prcm-regs.h"
+#include <asm/arch/power_companion.h>
 
 u32 current_vdd1_opp = PRCM_VDD1_OPP3;
 u32 current_vdd2_opp = PRCM_VDD2_OPP3;
@@ -215,8 +216,7 @@ int activate_triton_power_res(struct shared_resource *resp,
 	unsigned short target_level)
 {
 	int result;
-	/* TODO
-	result = twl4030_ldo_set_voltage(resp->prcm_id, target_level);*/
+	result = twl4030_ldo_set_voltage(resp->prcm_id, target_level);
 	return result;
 }
 
