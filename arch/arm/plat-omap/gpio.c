@@ -249,6 +249,8 @@ static inline struct gpio_bank *get_gpio_bank(int gpio)
 #ifdef CONFIG_OMAP3_PM
 struct gpio_restore_regs {
 	u32 gpio_sysconfig;
+	u32 gpio_irqenable1;
+	u32 gpio_irqenable2;
 	u32 gpio_wake_en;
 	u32 gpio_ctrl;
 	u32 gpio_oe;
@@ -1733,6 +1735,10 @@ void omap_gpio_save(void)
 		struct gpio_bank *bank = &gpio_bank[i];
 		gpio_restore_banks[i].gpio_sysconfig =
 			__raw_readl(bank->base + OMAP24XX_GPIO_SYSCONFIG);
+		gpio_restore_banks[i].gpio_irqenable1 =
+			__raw_readl(bank->base + OMAP24XX_GPIO_IRQENABLE1);
+		gpio_restore_banks[i].gpio_irqenable2 =
+			__raw_readl(bank->base + OMAP24XX_GPIO_IRQENABLE2);
 		gpio_restore_banks[i].gpio_wake_en =
 			__raw_readl(bank->base + OMAP24XX_GPIO_WAKE_EN);
 		gpio_restore_banks[i].gpio_ctrl =
@@ -1765,6 +1771,10 @@ void omap_gpio_restore(void)
 		struct gpio_bank *bank = &gpio_bank[i];
 		__raw_writel(gpio_restore_banks[i].gpio_sysconfig,
 				bank->base + OMAP24XX_GPIO_SYSCONFIG);
+		__raw_writel(gpio_restore_banks[i].gpio_irqenable1,
+				bank->base + OMAP24XX_GPIO_IRQENABLE1);
+		__raw_writel(gpio_restore_banks[i].gpio_irqenable2,
+				bank->base + OMAP24XX_GPIO_IRQENABLE2);
 		__raw_writel(gpio_restore_banks[i].gpio_wake_en,
 				bank->base + OMAP24XX_GPIO_WAKE_EN);
 		__raw_writel(gpio_restore_banks[i].gpio_ctrl,

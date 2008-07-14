@@ -41,11 +41,34 @@
 #include <asm/io.h>
 #include <asm/delay.h>
 #include <asm/arch/control.h>
+#ifdef CONFIG_OMAP3_PM
+#include "prcm-regs.h"
+#include "ti-compat.h"
+#include <asm/arch/prcm_34xx.h>
+#endif
 
+#define	SDP3430_SMC91X_CS	3
 #define ENABLE_VAUX1_DEDICATED	0x03
 #define ENABLE_VAUX1_DEV_GRP	0x20
 
+#define ENABLE_VAUX3_DEDICATED	0x03
+#define ENABLE_VAUX3_DEV_GRP	0x20
 #define TWL4030_MSECURE_GPIO	22
+
+#ifdef CONFIG_OMAP3_PM
+#define CONTROL_SYSC_SMARTIDLE  (0x2 << 3)
+#define CONTROL_SYSC_AUTOIDLE   (0x1)
+
+#define PRCM_INTERRUPT_MASK     (1 << 11)
+#define UART1_INTERRUPT_MASK    (1 << 8)
+#define UART2_INTERRUPT_MASK    (1 << 9)
+#define UART3_INTERRUPT_MASK    (1 << 10)
+#define TWL4030_MSECURE_GPIO    22
+int console_detect(char *str);
+unsigned int uart_interrupt_mask_value;
+u32 *console_padconf_reg;
+bool console_detected;
+#endif
 
 static struct resource ldp_smc911x_resources[] = {
 	[0] = {
@@ -66,6 +89,139 @@ static struct platform_device ldp_smc911x_device = {
 	.num_resources	= ARRAY_SIZE(ldp_smc911x_resources),
 	.resource	= ldp_smc911x_resources,
 };
+
+#ifdef CONFIG_OMAP3_PM
+/*
+ * Board DDR timings used during frequency changes
+ */
+struct dvfs_config omap3_vdd2_config[PRCM_NO_VDD2_OPPS] = {
+#ifdef CONFIG_OMAP3_CORE_166MHZ
+	{
+	/* SDRC CS0/CS1 values 83MHZ*/
+	/* not optimized at 1/2 speed except for RFR */
+	{{0x00025801, 0x629db4c6, 0x00012214},    /* cs 0 */
+	 {0x00025801, 0x629db4c6, 0x00012214} },  /* cs 1 */
+	},
+
+	/* SDRC CS0/CS1 values 166MHZ*/
+	{
+	{{0x0004e201, 0xaa9db4c6, 0x00011517},
+	 {0x0004e201, 0xaa9db4c6, 0x00011517} },
+	},
+#elif defined(CONFIG_OMAP3_CORE_133MHZ)
+	{
+	/* SDRC CS0/CS1 values 66MHZ*/
+	{{0x0001ef01, 0x8a99b485, 0x00011412},
+	 {0x0001ef01, 0x8a99b485, 0x00011412} },
+	},
+
+	/* SDRC CS0/CS1 values 133MHZ*/
+	{
+	{{0x0003de01, 0x8a99b485, 0x00011412},
+	 {0x0003de01, 0x8a99b485, 0x00011412} },
+	},
+#endif
+};
+
+static u32 *uart_detect(void){
+	char str[7];
+
+	if (console_detected)
+		return console_padconf_reg;
+
+	console_padconf_reg = NULL;
+	console_detected = 0;
+
+	if (console_detect(str))
+		printk(KERN_INFO"Invalid console paramter\n");
+
+	if (!strcmp(str, "ttyS0")) {
+		console_padconf_reg = (u32 *)(&CONTROL_PADCONF_UART1_CTS);
+		uart_interrupt_mask_value = UART1_INTERRUPT_MASK;
+		}
+	else if (!strcmp(str, "ttyS1")) {
+		console_padconf_reg = (u32 *)(&CONTROL_PADCONF_UART2_TX);
+		uart_interrupt_mask_value = UART2_INTERRUPT_MASK;
+		}
+	else if (!strcmp(str, "ttyS2")) {
+		console_padconf_reg = (u32 *)(&CONTROL_PADCONF_UART3_RTS_SD);
+		uart_interrupt_mask_value = UART3_INTERRUPT_MASK;
+		}
+	else
+		printk(KERN_INFO
+		"Unable to recongnize Console UART!\n");
+
+	if (console_padconf_reg)
+		console_detected = 1;
+
+	return console_padconf_reg;
+}
+
+void  init_wakeupconfig(void)
+{
+	u32 *ptr;
+	ptr = uart_detect();
+	*ptr |= (u32)((IO_PAD_WAKEUPENABLE | IO_PAD_OFFPULLUDENABLE |
+			IO_PAD_OFFOUTENABLE | IO_PAD_OFFENABLE |
+			IO_PAD_INPUTENABLE | IO_PAD_PULLUDENABLE)
+				<<  IO_PAD_HIGH_SHIFT);
+
+}
+
+bool is_console_wakeup(void)
+{
+	if ((*uart_detect() >> IO_PAD_HIGH_SHIFT) & IO_PAD_WAKEUPEVENT)
+		return 1;
+	return 0;
+}
+void uart_padconf_control(void)
+{
+	u32 *ptr;
+	ptr = (u32 *)uart_detect();
+		*ptr |= (u32)((IO_PAD_WAKEUPENABLE)
+			<< IO_PAD_HIGH_SHIFT);
+}
+
+void setup_board_wakeup_source(u32 wakeup_source)
+{
+	if ((wakeup_source & PRCM_WAKEUP_T2_KEYPAD) ||
+		(wakeup_source & PRCM_WAKEUP_TOUCHSCREEN)) {
+		PRCM_GPIO1_SYSCONFIG = 0x15;
+		PM_WKEN_WKUP |= 0x8;
+		PM_MPUGRPSEL_WKUP = 0x8;
+		/* Unmask GPIO interrupt*/
+		INTC_MIR_0 = ~((1<<29));
+	}
+	if (wakeup_source & PRCM_WAKEUP_T2_KEYPAD) {
+		CONTROL_PADCONF_SYS_NIRQ &= 0xFFFFFFF8;
+		CONTROL_PADCONF_SYS_NIRQ |= 0x4;
+		GPIO1_SETIRQENABLE1 |= 0x1;
+		GPIO1_SETWKUENA |= 0x1;
+		GPIO1_FALLINGDETECT |= 0x1;
+	}
+	/* Unmasking the PRCM interrupts */
+	INTC_MIR_0 &= ~PRCM_INTERRUPT_MASK;
+	if (wakeup_source & PRCM_WAKEUP_UART) {
+		/* Unmasking the UART interrupts */
+		INTC_MIR_2 = ~uart_interrupt_mask_value;
+	}
+}
+
+static void scm_clk_init(void)
+{
+	struct clk *p_omap_ctrl_clk = NULL;
+
+	p_omap_ctrl_clk = clk_get(NULL, "omapctrl_ick");
+	if (p_omap_ctrl_clk != NULL) {
+		if (clk_enable(p_omap_ctrl_clk) != 0) {
+			printk(KERN_ERR "failed to enable scm clks\n");
+			clk_put(p_omap_ctrl_clk);
+		}
+	}
+	/* Sysconfig set to SMARTIDLE and AUTOIDLE */
+	CONTROL_SYSCONFIG = (CONTROL_SYSC_SMARTIDLE | CONTROL_SYSC_AUTOIDLE);
+}
+#endif
 
 static int ldp_twl4030_keymap[] = {
 	KEY(0, 0, KEY_1),
@@ -328,6 +484,10 @@ static void __init omap_ldp_init_irq(void)
 {
 	omap2_init_common_hw();
 	omap_init_irq();
+#ifdef CONFIG_OMAP3_PM
+	/* System Control module clock initialization */
+	scm_clk_init();
+#endif
 	omap_gpio_init();
 	ldp_init_smc911x();
 }
@@ -365,6 +525,9 @@ static void __init omap_ldp_init(void)
 	ldp_spi_board_info[0].irq = OMAP_GPIO_IRQ(ts_gpio);
 	spi_register_board_info(ldp_spi_board_info,
 				ARRAY_SIZE(ldp_spi_board_info));
+#ifdef CONFIG_OMAP3_PM
+	prcm_init();
+#endif
 	ads7846_dev_init();
 	ldp_flash_init();
 	omap_serial_init();
