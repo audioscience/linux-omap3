@@ -43,10 +43,6 @@
 #ifndef MEMRY_
 #define MEMRY_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dspapi.h>
 
 #include <memdefs.h>
@@ -96,9 +92,5 @@ extern "C" {
 	extern inline VOID MEMRY_UnMapLinearAddress(PVOID pBaseAddr)
 	{
 	}
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif				/* MEMRY_ */

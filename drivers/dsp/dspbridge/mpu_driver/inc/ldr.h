@@ -45,16 +45,9 @@
 #ifndef LDR_
 #define LDR_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dspapi.h>
 
 /* Loader objects: */
 	struct LDR_MODULE;
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* LDR_ */

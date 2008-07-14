@@ -32,10 +32,6 @@
 #ifndef DMM_
 #define DMM_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dbdefs.h>
 
 	struct DMM_OBJECT;
@@ -72,7 +68,9 @@ extern "C" {
 					  ULONG addr,
 					  ULONG *pSize);
 
-	extern DSP_STATUS DMM_Destroy(struct DMM_OBJECT *hDmmMgr, BOOL bForce);
+	extern DSP_STATUS DMM_Destroy(struct DMM_OBJECT *hDmmMgr);
+
+	extern DSP_STATUS DMM_DeleteTables(struct DMM_OBJECT *hDmmMgr);
 
 	extern DSP_STATUS DMM_Create(OUT struct DMM_OBJECT **phDmmMgr,
 				     struct DEV_OBJECT *hDevObject,
@@ -82,12 +80,7 @@ extern "C" {
 
 	extern VOID DMM_Exit();
 
-	extern DSP_STATUS DMM_ChunkAdd(struct DMM_OBJECT *hDmmMgr, ULONG addr,
-				       ULONG size);
-
-	extern DSP_STATUS DMM_Reset(struct DMM_OBJECT *hDmmMgr);
-
-#ifdef __cplusplus
-}
-#endif
+	extern DSP_STATUS DMM_CreateTables(struct DMM_OBJECT *hDmmMgr,
+						ULONG addr, ULONG size);
+	extern ULONG *DMM_GetPhysicalAddrTable(void);
 #endif				/* DMM_ */

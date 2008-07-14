@@ -39,10 +39,6 @@
 #ifndef DBC_
 #define DBC_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* Assertion Macros: */
 #if GT_TRACE
 
@@ -63,7 +59,4 @@ extern "C" {
 
 #endif				/* DEBUG */
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* DBC_ */

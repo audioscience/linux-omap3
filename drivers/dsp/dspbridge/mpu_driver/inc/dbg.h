@@ -40,10 +40,6 @@
 #ifndef DBG_
 #define DBG_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dspapi.h>
 
 /* Levels of trace debug messages: */
@@ -53,7 +49,7 @@ extern "C" {
 #define DBG_LEVEL3  (BYTE)(0x08)	/* Display debugging state/varibles */
 #define DBG_LEVEL4  (BYTE)(0x10)	/* Display debugging state/varibles */
 #define DBG_LEVEL5  (BYTE)(0x20)	/* Module Init, Exit */
-#define DBG_LEVEL6  (BYTE)(0x40)	/* Warn OSAL Failures */
+#define DBG_LEVEL6  (BYTE)(0x40)	/* Warn SERVICES Failures */
 #define DBG_LEVEL7  (BYTE)(0x80)	/* Warn Critical Errors */
 
 #if ((defined DEBUG) || (defined DDSP_DEBUG_PRODUCT)) && GT_TRACE
@@ -111,7 +107,4 @@ extern "C" {
 
 #endif	     /* ((defined DEBUG) || (defined DDSP_DEBUG_PRODUCT)) && GT_TRACE */
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* DBG_ */

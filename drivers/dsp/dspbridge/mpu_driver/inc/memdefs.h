@@ -31,10 +31,6 @@
 #ifndef MEMDEFS_
 #define MEMDEFS_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* Memory Pool Attributes: */
 	typedef enum {
 		MEM_PAGED = 0,
@@ -53,7 +49,4 @@ extern "C" {
 #define TO_VIRTUAL_UNCACHED(x) x
 #define INTREG_TO_VIRTUAL_UNCACHED(x) x
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* MEMDEFS_ */

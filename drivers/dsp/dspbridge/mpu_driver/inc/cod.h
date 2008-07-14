@@ -71,10 +71,6 @@
 #ifndef COD_
 #define COD_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dblldefs.h>
 
 #define COD_MAXPATHLENGTH       255
@@ -243,7 +239,7 @@ extern "C" {
  *  Ensures:
  */
 	extern DSP_STATUS CDECL COD_GetBaseName(struct COD_MANAGER *hManager,
-						CHAR * pszName, UINT uSize);
+						char *pszName, UINT uSize);
 
 /*
  *  ======== COD_GetEntry ========
@@ -381,7 +377,7 @@ extern "C" {
 	extern DSP_STATUS CDECL COD_LoadBase(struct COD_MANAGER *hManager,
 					     UINT nArgc, PSTR aArgs[],
 					     COD_WRITEFXN pfnWrite, PVOID pArb,
-					     CHAR * envp[]);
+					     char *envp[]);
 
 /*
  *  ======== COD_LoadSection ========
@@ -427,7 +423,7 @@ extern "C" {
  *  Ensures:
  */
 	extern DSP_STATUS COD_Open(struct COD_MANAGER *hMgr,
-				   IN CHAR * pszCoffPath,
+				   IN char *pszCoffPath,
 				   COD_FLAGS flags,
 				   OUT struct COD_LIBRARYOBJ **pLib);
 
@@ -448,7 +444,7 @@ extern "C" {
  *      pszCoffPath != NULL.
  *  Ensures:
  */
-extern DSP_STATUS COD_OpenBase(struct COD_MANAGER *hMgr, IN CHAR * pszCoffPath,
+extern DSP_STATUS COD_OpenBase(struct COD_MANAGER *hMgr, IN char *pszCoffPath,
 				       DBLL_Flags flags);
 
 /*
@@ -497,7 +493,4 @@ extern DSP_STATUS COD_OpenBase(struct COD_MANAGER *hMgr, IN CHAR * pszCoffPath,
 					      IN PSTR pstrSect,
 					      IN struct COD_LOADATTRS *pAttrs);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* COD_ */

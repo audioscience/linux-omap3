@@ -29,15 +29,8 @@
 #ifndef DEVDEFS_
 #define DEVDEFS_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* WCD Device Object */
 	struct DEV_OBJECT;
 	/*typedef struct DEV_OBJECT *DEV_HOBJECT;*/
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* DEVDEFS_ */

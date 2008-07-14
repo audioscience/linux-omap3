@@ -34,10 +34,6 @@
 #ifndef DDMA_SH_
 #define DDMA_SH_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <ddmatypes.h>
 
 /* Max # of DDSP DMA channels allowed */
@@ -95,8 +91,5 @@ struct DDMA_ZCPYCHNLDESC {
 	DDMA_DWORD outUserArg;	/* Optional out user argument */
 	} ;
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* DDMA_SH_ */
 

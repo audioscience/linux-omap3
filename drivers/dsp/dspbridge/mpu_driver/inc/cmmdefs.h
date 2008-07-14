@@ -35,10 +35,6 @@
 #ifndef CMMDEFS_
 #define CMMDEFS_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <list.h>
 
 /* Cmm attributes used in CMM_Create() */
@@ -138,7 +134,4 @@ extern "C" {
 	struct CMM_XLATOROBJECT;
 	/*typedef struct CMM_XLATOROBJECT *CMM_HXLATOR;*/
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* CMMDEFS_ */

@@ -24,9 +24,6 @@
 #else
 #include <linux/types.h>
 #endif
-#ifdef __cplusplus
-extern "C" {			/* C-only version */
-#endif
 
 /*
  * Dynamic Loader
@@ -222,11 +219,8 @@ extern "C" {			/* C-only version */
  * miscellaneous host-side functions
  *****************************************************************************
  *****************************************************************************/
-#ifndef __KERNEL__
-	typedef uint32_t LDR_ADDR;
-#else
+
 	typedef u32 LDR_ADDR;
-#endif
 
 /*
  * the structure of a symbol known to the dynamic loader
@@ -533,7 +527,5 @@ extern "C" {			/* C-only version */
 		void (*release) (struct Dynamic_Loader_Initialize *thisptr);
 
 	};			/* class Dynamic_Loader_Initialize */
-#ifdef __cplusplus
-}
-#endif
+
 #endif				/* _DYNAMIC_LOADER_H_ */

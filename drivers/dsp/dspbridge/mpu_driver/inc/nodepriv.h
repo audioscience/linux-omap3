@@ -38,10 +38,6 @@
 #ifndef NODEPRIV_
 #define NODEPRIV_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <strmdefs.h>
 #include <nodedefs.h>
 #include <nldrdefs.h>
@@ -238,7 +234,4 @@ extern "C" {
  */
 	extern NLDR_LOADTYPE NODE_GetLoadType(struct NODE_OBJECT *hNode);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* NODEPRIV_ */

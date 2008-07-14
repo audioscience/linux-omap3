@@ -125,10 +125,6 @@
 #ifndef _MBX_SH_H
 #define _MBX_SH_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define MBX_CLASS_MSK      0xFC00	/* Class bits are 10 thru 15 */
 #define MBX_VALUE_MSK      0x03FF	/* Value is 0 thru 9 */
 
@@ -218,7 +214,4 @@ extern "C" {
 /* Zero-Copy channel */
 #define MBX_SETZCPYVAL(x)  (MBX_ZCPY_CLASS | (x << MBX_ZCPY_CHNLSHIFT))
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* _MBX_SH_H */

@@ -67,10 +67,6 @@
 #ifndef CMM_
 #define CMM_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <devdefs.h>
 #include <dspapi.h>
 
@@ -421,7 +417,4 @@ extern "C" {
 	extern PVOID CMM_XlatorTranslate(struct CMM_XLATOROBJECT *hXlator,
 					 PVOID pAddr, CMM_XLATETYPE xType);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* CMM_ */

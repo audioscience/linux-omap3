@@ -35,10 +35,6 @@
 #ifndef WMDIO_
 #define WMDIO_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <devdefs.h>
 #include <iodefs.h>
 
@@ -54,8 +50,4 @@ extern "C" {
 	extern DSP_STATUS WMD_IO_GetProcLoad(IN struct IO_MGR *hIOMgr,
 				OUT struct DSP_PROCLOADSTAT *pProcStat);
 
-
-#ifdef __cplusplus
-}
-#endif
 #endif				/* WMDIO_ */

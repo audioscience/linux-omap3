@@ -46,10 +46,6 @@
 #ifndef ERRBASE_
 #define ERRBASE_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* Base of generic errors and component errors */
 #define DSP_SBASE               (DSP_STATUS)0x00008000
 #define DSP_EBASE               (DSP_STATUS)0x80008000
@@ -510,7 +506,4 @@ extern "C" {
 /* General KFILE error condition */
 #define E_KFILE_ERROR               (KFILE_EBASE + 0x08)
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* ERRBASE_ */

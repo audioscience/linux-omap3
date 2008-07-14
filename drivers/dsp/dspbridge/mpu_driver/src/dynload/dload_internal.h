@@ -244,7 +244,7 @@ struct dload_state {
 #ifdef TARGET_ENDIANNESS
 #define TARGET_BIG_ENDIAN TARGET_ENDIANNESS
 #else
-#define TARGET_BIG_ENDIAN dlthis->big_e_target
+#define TARGET_BIG_ENDIAN (dlthis->big_e_target)
 #endif
 
 /*

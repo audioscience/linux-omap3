@@ -29,10 +29,6 @@
 #ifndef NLDRDEFS_
 #define NLDRDEFS_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dbdcddef.h>
 #include <devdefs.h>
 
@@ -310,7 +306,4 @@ extern "C" {
 		NLDR_UNLOADFXN pfnUnload;
 	} ;
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* NLDRDEFS_ */

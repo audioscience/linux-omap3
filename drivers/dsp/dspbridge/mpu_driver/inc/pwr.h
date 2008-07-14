@@ -40,10 +40,6 @@
 #include <errbase.h>
 #include <pwr_sh.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /*
  *  ======== PWR_SleepDSP ========
  *      Signal the DSP to go to sleep.
@@ -130,7 +126,4 @@ extern "C" {
 	extern DSP_STATUS PWR_PM_PostScale(IN USHORT voltage_domain,
 					   UINT level);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* PWR_ */

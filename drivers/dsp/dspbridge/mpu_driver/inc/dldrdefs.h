@@ -35,10 +35,6 @@
 #ifndef DLDRDEFS_
 #define DLDRDEFS_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dbdcddef.h>
 #include <dev.h>
 
@@ -158,7 +154,7 @@ extern "C" {
 					       pNodeProps,
 					       OUT struct DLDR_NODEOBJECT
 					       **phDldrNode,
-					       OUT BOOL * pfPhaseSplit);
+					       OUT BOOL *pfPhaseSplit);
 
 /*
  *  ======== DLDR_Create ========
@@ -318,7 +314,4 @@ extern "C" {
 		DLDR_UNLOADFXN pfnUnload;
 	} ;
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* DLDRDEFS_ */

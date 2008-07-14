@@ -63,10 +63,6 @@
 #ifndef NODE_
 #define NODE_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <procpriv.h>
 
 #include <nodedefs.h>
@@ -620,8 +616,4 @@ extern "C" {
 					    OUT struct DSP_NDBPROPS
 					    *pNodeProps);
 
-
-#ifdef __cplusplus
-}
-#endif
 #endif				/* NODE_ */

@@ -91,7 +91,7 @@ typedef union {
 	struct {
 		struct DSP_UUID *pUuid;
 		DSP_DCDOBJTYPE objType;
-		CHAR *pszPathName;
+		char *pszPathName;
 	} ARGS_MGR_REGISTEROBJECT;
 
 	struct {
@@ -157,8 +157,8 @@ typedef union {
 	struct {
 		DSP_HPROCESSOR hProcessor;
 		INT iArgc;
-		CHAR **aArgv;
-		CHAR **aEnvp;
+		char **aArgv;
+		char **aEnvp;
 	} ARGS_PROC_LOAD;
 
 	struct {
@@ -433,7 +433,7 @@ typedef union {
 	/* UTIL module */
 	struct {
 		INT cArgc;
-		CHAR **ppArgv;
+		char **ppArgv;
 	} ARGS_UTIL_TESTDLL;
 
 } Trapped_Args;

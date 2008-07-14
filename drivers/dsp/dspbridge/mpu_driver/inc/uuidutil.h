@@ -31,10 +31,6 @@
 #ifndef UUIDUTIL_
 #define UUIDUTIL_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define MAXUUIDLEN  37
 
 /*
@@ -54,7 +50,7 @@ extern "C" {
  *  Details:
  *      UUID string limit currently set at MAXUUIDLEN.
  */
-	VOID UUID_UuidToString(IN struct DSP_UUID *pUuid, OUT CHAR * pszUuid,
+	VOID UUID_UuidToString(IN struct DSP_UUID *pUuid, OUT char *pszUuid,
 			       INT size);
 
 /*
@@ -72,10 +68,7 @@ extern "C" {
  *      We assume the string representation of a UUID has the following format:
  *      "12345678_1234_1234_1234_123456789abc".
  */
-	extern VOID UUID_UuidFromString(IN CHAR * pszUuid,
+	extern VOID UUID_UuidFromString(IN char *pszUuid,
 					OUT struct DSP_UUID *pUuid);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* UUIDUTIL_ */

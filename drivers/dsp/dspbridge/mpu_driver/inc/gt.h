@@ -76,7 +76,7 @@ struct GT_Mask {
  *
  *  -   GT_5CLASS   Display entry for module init/exit functions
  *
- *  -   GT_6CLASS   Warn whenever OSAL function fails
+ *  -   GT_6CLASS   Warn whenever SERVICES function fails
  *
  *  -   GT_7CLASS   Warn failure of Critical failures
  *
@@ -135,7 +135,7 @@ GT_create(struct GT_Mask *mask /* OUT */ , String modName)
 MdUns
 GT_curLine(Void)
 {
-	return ((MdUns) NULL);
+	return (MdUns)NULL;
 }
 
 /*
@@ -163,7 +163,7 @@ GT_init(Void)
 Bool
 GT_query(struct GT_Mask mask, SmBits class)
 {
-	return (FALSE);
+	return FALSE;
 }
 
 /*

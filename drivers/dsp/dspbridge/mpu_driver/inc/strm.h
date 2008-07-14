@@ -56,10 +56,6 @@
 #ifndef STRM_
 #define STRM_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dev.h>
 
 #include <strmdefs.h>
@@ -442,7 +438,4 @@ extern "C" {
 					       UINT uSize,
 					       BYTE *pBuffer);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* STRM_ */

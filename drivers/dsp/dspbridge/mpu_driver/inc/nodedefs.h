@@ -31,10 +31,6 @@
 #ifndef NODEDEFS_
 #define NODEDEFS_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define NODE_SUSPENDEDPRI -1
 
 /* NODE Objects: */
@@ -43,7 +39,4 @@ extern "C" {
 	struct NODE_OBJECT;
 	/*typedef struct NODE_OBJECT *NODE_HOBJECT;*/
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* NODEDEFS_ */

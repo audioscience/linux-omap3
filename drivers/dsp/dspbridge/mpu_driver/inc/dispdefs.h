@@ -29,10 +29,6 @@
 #ifndef DISPDEFS_
 #define DISPDEFS_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 	struct DISP_OBJECT;
 	/*typedef struct DISP_OBJECT *DISP_HOBJECT;*/
 
@@ -47,7 +43,4 @@ extern "C" {
 		DWORD hReserved2;	/* Reserved for future use. */
 	} ;
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* DISPDEFS_ */

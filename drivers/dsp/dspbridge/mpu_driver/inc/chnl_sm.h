@@ -50,10 +50,6 @@
 #ifndef CHNLSM_
 #define CHNLSM_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <wmd.h>
 
 /*
@@ -156,8 +152,8 @@ extern "C" {
  *      If the interrupt is *not* shared, this routine must return TRUE.
  */
 	extern BOOL CDECL CHNLSM_ISR(struct WMD_DEV_CONTEXT *hDevContext,
-				     OUT BOOL * pfSchedDPC,
-				     OUT WORD * pwIntrVal);
+				     OUT BOOL *pfSchedDPC,
+				     OUT WORD *pwIntrVal);
 
 /*
  *  ======== CHNLSM_Read ========
@@ -211,7 +207,4 @@ extern "C" {
 					    IN BYTE *pHostBuf,
 					    DWORD dwDSPAddr, ULONG ulNumBytes);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* CHNLSM_ */

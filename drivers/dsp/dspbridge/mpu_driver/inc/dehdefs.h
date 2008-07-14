@@ -30,10 +30,6 @@
 #ifndef DEHDEFS_
 #define DEHDEFS_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <mbx_sh.h>		/* shared mailbox codes */
 
 /* DEH object manager */
@@ -45,7 +41,4 @@ extern "C" {
 #define DEH_USERS_BASE  MBX_DEH_USERS_BASE
 #define DEH_LIMIT       MBX_DEH_LIMIT
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* _DEHDEFS_H */

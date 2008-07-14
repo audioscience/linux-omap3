@@ -52,10 +52,6 @@
 #ifndef KFILE_
 #define KFILE_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dspapi.h>
 
 /*
@@ -129,8 +125,8 @@ extern "C" {
  *      - pszFileName != NULL.
  *  Ensures:
  */
-	extern struct KFILE_FileObj *KFILE_Open(IN CONST CHAR * filename,
-				       IN CONST CHAR * mode);
+	extern struct KFILE_FileObj *KFILE_Open(IN CONST char *filename,
+				       IN CONST char *mode);
 
 /*
  *  ======== KFILE_Read ========
@@ -150,7 +146,7 @@ extern "C" {
  *      pBuffer is a valid pointer.
  *  Ensures:
  */
-	extern INT KFILE_Read(OUT VOID * buffer,
+	extern INT KFILE_Read(OUT VOID *buffer,
 			      IN INT size, IN INT count,
 			      IN struct KFILE_FileObj *hFile);
 
@@ -215,12 +211,9 @@ extern "C" {
  *      The file position indicator is advanced by the number of
  *      characters written.
  */
-	extern INT KFILE_Write(OUT VOID * buffer,
+	extern INT KFILE_Write(OUT VOID *buffer,
 			       IN INT size,
 			       IN INT count,
 			       IN struct KFILE_FileObj *hFile);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* KFILE_ */

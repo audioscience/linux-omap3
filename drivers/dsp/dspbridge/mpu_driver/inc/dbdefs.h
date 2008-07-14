@@ -72,10 +72,6 @@
 #include <std.h>		/* DSP/BIOS type definitions           */
 #include <rms_sh.h>		/* Types shared between GPP and DSP    */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define PG_SIZE_4K 4096
 #define PG_MASK(pg_size) (~((pg_size)-1))
 #define PG_ALIGN_LOW(addr, pg_size) ((addr) & PG_MASK(pg_size))
@@ -127,7 +123,8 @@ extern "C" {
 
 /* Pre-Defined Message Command Codes available to user: */
 #define DSP_RMSUSERCODESTART RMS_USER	/* Start of RMS user cmd codes */
-#define DSP_RMSUSERCODEEND RMS_USER + RMS_MAXUSERCODES;	/* end of user codes */
+/* end of user codes */
+#define DSP_RMSUSERCODEEND (RMS_USER + RMS_MAXUSERCODES);
 #define DSP_RMSBUFDESC RMS_BUFDESC	/* MSG contains SM buffer description */
 
 /* Shared memory identifier for MEM segment named "SHMSEG0" */
@@ -579,7 +576,4 @@ bit 6 - MMU element size = 64bit (valid only for non mixed page entries)
 #define GEM_CACHE_LINE_SIZE     128
 #define GEM_L1P_PREFETCH_SIZE   128
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* DBDEFS_ */

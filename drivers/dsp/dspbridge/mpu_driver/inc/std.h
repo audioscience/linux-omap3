@@ -115,26 +115,14 @@
  *  *Bits - unsigned type (bit-maps)
  */
 typedef short MdInt;		/* MDSIZE-bit signed integer */
-#if defined(_6x_)
-typedef int LgInt;		/* LGSIZE-bit signed integer */
-#else
 typedef long LgInt;		/* LGSIZE-bit signed integer */
-#endif
 
 typedef unsigned char SmUns;	/* SMSIZE-bit unsigned integer */
 typedef unsigned short MdUns;	/* MDSIZE-bit unsigned integer */
-#if defined(_6x_)
-typedef unsigned LgUns;		/* LGSIZE-bit unsigned integer */
-#else
 typedef unsigned long LgUns;	/* LGSIZE-bit unsigned integer */
-#endif
 
 typedef unsigned char SmBits;	/* SMSIZE-bit bit string */
-#if defined(_6x_)
-typedef unsigned LgBits;	/* LGSIZE-bit bit string */
-#else
 typedef unsigned long LgBits;	/* LGSIZE-bit bit string */
-#endif
 
 /*
  *  Aliases for standard C types
@@ -147,12 +135,7 @@ typedef char *String;		/* pointer to null-terminated character
 				 * sequence
 				 */
 
-#if defined(_28_) || defined(_29_) || defined(_50_) || defined(_54_) || \
-    defined(_55_) || defined(_6x_)
-typedef unsigned Uns;
-#else
 typedef unsigned long Uns;
-#endif
 
 #if defined(_80_)
 typedef int Bool;		/* boolean */
@@ -164,16 +147,6 @@ typedef MdUns Bool;		/* boolean */
 
 typedef SmBits Byte;		/* smallest unit of addressable store */
 typedef void *Ptr;		/* pointer to arbitrary type */
-
-/* Arg should be size of Ptr */
-#if defined(M_I86SM) || defined(_29_) || defined(_50_) || defined(_54_) || \
-    defined(_6x_)
-typedef Int Arg;
-#elif defined(_55_) || defined(_28_)
-typedef void *Arg;
-#else
-typedef LgInt Arg;		/* uninterpreted LGSIZE-bit word */
-#endif
 
 typedef Int(*Fxn) ();		/* generic function type */
 

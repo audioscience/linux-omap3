@@ -41,10 +41,6 @@
 #ifndef CHNLDEFS_
 #define CHNLDEFS_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* Channel id option. */
 #define CHNL_PICKFREE       (~0UL)	/* Let manager pick a free channel. */
 
@@ -97,7 +93,4 @@ extern "C" {
 		DWORD dwArg;	/* User argument associated with pBuf.    */
 	} ;
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* CHNLDEFS_ */

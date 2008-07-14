@@ -41,10 +41,6 @@
 #ifndef DBDCD_
 #define DBDCD_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dbdcddef.h>
 #include <nldrdefs.h>
 
@@ -72,7 +68,7 @@ extern "C" {
  *      ".dcd_register", which is used for auto registration.
  */
 	extern DSP_STATUS DCD_AutoRegister(IN struct DCD_MANAGER *hDcdMgr,
-					   IN CHAR * pszCoffPath);
+					   IN char *pszCoffPath);
 
 /*
  *  ======== DCD_AutoUnregister ========
@@ -98,7 +94,7 @@ extern "C" {
  *      ".dcd_register", which is used for auto unregistration.
  */
 	extern DSP_STATUS DCD_AutoUnregister(IN struct DCD_MANAGER *hDcdMgr,
-					     IN CHAR * pszCoffPath);
+					     IN char *pszCoffPath);
 
 /*
  *  ======== DCD_CreateManager ========
@@ -118,7 +114,7 @@ extern "C" {
  *  Ensures:
  *      A DCD manager handle is created.
  */
-	extern DSP_STATUS DCD_CreateManager(IN CHAR * pszZlDllName,
+	extern DSP_STATUS DCD_CreateManager(IN char *pszZlDllName,
 					    OUT struct DCD_MANAGER **phDcdMgr);
 
 /*
@@ -202,7 +198,7 @@ extern "C" {
 					 IN struct DSP_UUID *pUuid,
 					 USHORT numLibs,
 					 OUT struct DSP_UUID *pDepLibUuids,
-					 OUT BOOL * pPersistentDepLibs,
+					 OUT BOOL *pPersistentDepLibs,
 					 IN NLDR_PHASE phase);
 
 /*
@@ -263,7 +259,7 @@ extern "C" {
 					     IN OUT PSTR pstrLibName,
 					     IN OUT DWORD *pdwSize,
 					     IN NLDR_PHASE phase,
-					     OUT BOOL * fPhaseSplit);
+					     OUT BOOL *fPhaseSplit);
 
 /*
  *  ======== DCD_GetObjectDef ========
@@ -327,7 +323,7 @@ extern "C" {
  *      ".dcd_register", which is used for auto registration.
  */
 	extern DSP_STATUS DCD_GetObjects(IN struct DCD_MANAGER *hDcdMgr,
-					 IN CHAR * pszCoffPath,
+					 IN char *pszCoffPath,
 					 DCD_REGISTERFXN registerFxn,
 					 PVOID handle);
 
@@ -365,7 +361,7 @@ extern "C" {
  */
 	extern DSP_STATUS DCD_RegisterObject(IN struct DSP_UUID *pUuid,
 					     IN DSP_DCDOBJTYPE objType,
-					     IN CHAR * pszPathName);
+					     IN char *pszPathName);
 
 /*
  *  ======== DCD_UnregisterObject ========
@@ -388,7 +384,4 @@ extern "C" {
 	extern DSP_STATUS DCD_UnregisterObject(IN struct DSP_UUID *pUuid,
 					       IN DSP_DCDOBJTYPE objType);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* _DBDCD_H */

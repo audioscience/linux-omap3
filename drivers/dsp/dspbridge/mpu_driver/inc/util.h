@@ -50,10 +50,6 @@
 #ifndef _UTIL_H
 #define _UTIL_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <linux/delay.h>
 #include <linux/sched.h>
 #include <dspapi.h>
@@ -73,7 +69,7 @@ extern "C" {
  *      UTIL initialized.
  *  Ensures:
  */
-	extern DWORD UTIL_CDTestDll(IN INT cArgc, IN CHAR **ppArgv);
+	extern DWORD UTIL_CDTestDll(IN INT cArgc, IN char **ppArgv);
 
 /*
  *  ======== UTIL_CmdLineToArgs ========
@@ -91,9 +87,9 @@ extern "C" {
  *      UTIL initialized.
  *  Ensures:
  */
-	extern INT UTIL_CmdLineToArgs(IN CHAR * pszProgName,
-				      IN CHAR * argv[UTIL_MAXARGVS],
-				      IN CHAR * pCmdLine, IN BOOL fHasProgName);
+	extern INT UTIL_CmdLineToArgs(IN char *pszProgName,
+				      IN char *argv[UTIL_MAXARGVS],
+				      IN char *pCmdLine, IN BOOL fHasProgName);
 
 /*
  *  ======== UTIL_Exit ========
@@ -107,7 +103,7 @@ extern "C" {
  *  Ensures:
  *      Resources used by module are freed when cRef reaches zero.
  */
-	extern inline VOID UTIL_Exit()
+	extern inline VOID UTIL_Exit(void)
 	{
 	}
 /*
@@ -138,7 +134,7 @@ extern "C" {
  *  Ensures:
  *      UTIL initialized.
  */
-	extern inline BOOL UTIL_Init()
+	extern inline BOOL UTIL_Init(void)
 	{
 		return TRUE;
 	}
@@ -174,9 +170,5 @@ extern "C" {
 			schedule_timeout(dwMicroSeconds * HZ / 1000000);
 		}
 	}
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif				/* _UTIL_H */

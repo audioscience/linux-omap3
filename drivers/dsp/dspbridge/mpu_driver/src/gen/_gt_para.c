@@ -66,7 +66,7 @@ struct GT_Config *GT = &_GT_params;
 static Int
 GT_nop(Void)
 {
-	return (0);
+	return 0;
 }
 
 /*

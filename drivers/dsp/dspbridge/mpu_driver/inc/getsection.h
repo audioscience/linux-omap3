@@ -24,10 +24,6 @@ typedef unsigned int size_t;
 #endif
 #include "dynamic_loader.h"
 
-#ifdef __cplusplus
-extern "C" {			/* C-only version */
-#endif
-
 /*
  * Get Section Information
  *
@@ -122,7 +118,4 @@ extern "C" {			/* C-only version */
  */
 	extern void DLOAD_module_close(DLOAD_module_info minfo);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* _GETSECTION_H_ */

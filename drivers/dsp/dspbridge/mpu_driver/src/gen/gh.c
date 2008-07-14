@@ -43,7 +43,7 @@ struct GH_THashTab {
 };
 
 static Void nop(Ptr p);
-static Int curInit = 0;
+static Int curInit;
 static Void myfree(Ptr ptr, Int size);
 
 /*
@@ -58,7 +58,7 @@ struct GH_THashTab *GH_create(MdUns maxBucket, MdUns valSize,
 	MdUns i;
 	hashTab = (struct GH_THashTab *)GS_alloc(sizeof(struct GH_THashTab));
 	if (hashTab == NULL)
-		return (NULL);
+		return NULL;
 	hashTab->maxBucket = maxBucket;
 	hashTab->valSize = valSize;
 	hashTab->hash = hash;
@@ -69,13 +69,13 @@ struct GH_THashTab *GH_create(MdUns maxBucket, MdUns valSize,
 			   GS_alloc(sizeof(struct Elem *) * maxBucket);
 	if (hashTab->buckets == NULL) {
 		GH_delete(hashTab);
-		return (NULL);
+		return NULL;
 	}
 
 	for (i = 0; i < maxBucket; i++)
 		hashTab->buckets[i] = NULL;
 
-	return (hashTab);
+	return hashTab;
 }
 
 /*
@@ -129,10 +129,10 @@ Ptr GH_find(struct GH_THashTab *hashTab, Ptr key)
 
 	for (; elem; elem = elem->next) {
 		if ((*hashTab->match)(key, elem->data))
-			return (elem->data);
+			return elem->data;
 	}
 
-	return (NULL);
+	return NULL;
 }
 
 /*
@@ -168,10 +168,10 @@ Ptr GH_insert(struct GH_THashTab *hashTab, Ptr key, Ptr value)
 		elem->next = hashTab->buckets[i];
 		hashTab->buckets[i] = elem;
 
-		return (elem->data);
+		return elem->data;
 	}
 
-	return (NULL);
+	return NULL;
 }
 
 /*

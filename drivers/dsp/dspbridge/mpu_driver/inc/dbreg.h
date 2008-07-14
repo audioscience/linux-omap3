@@ -59,10 +59,6 @@
 #ifndef DBREG_
 #define DBREG_ 1	/* Defined as "1" so InstallShield programs compile. */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define REG_MGR_OBJECT      1
 #define REG_DRV_OBJECT      2
 /* general registry definitions */
@@ -114,7 +110,5 @@ extern "C" {
 #define IVA1RESOURCES    "ARM7IvaResources"	/* ARM7 IVA resurces on OMAP */
 #define PHYSMEMPOOLBASE  "PhysicalMemBase"   /* Physical mem passed to driver */
 #define PHYSMEMPOOLSIZE  "PhysicalMemSize"   /* Physical mem passed to driver */
-#ifdef __cplusplus
-}
-#endif
+
 #endif				/* DBREG_ */

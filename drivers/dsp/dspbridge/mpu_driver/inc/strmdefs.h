@@ -29,10 +29,6 @@
 #ifndef STRMDEFS_
 #define STRMDEFS_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define STRM_MAXEVTNAMELEN      32
 
 	struct STRM_MGR;
@@ -58,8 +54,5 @@ extern "C" {
 						 * returned */
 	} ;
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* STRMDEFS_ */
 

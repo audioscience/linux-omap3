@@ -28,10 +28,6 @@
 #ifndef IODEFS_
 #define IODEFS_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define IO_MAXIRQ   0xff	/* Arbitrarily large number. */
 
 /* IO Objects: */
@@ -47,7 +43,4 @@ extern "C" {
 		ULONG uSMLength;	/* Size (in bytes) of shared memory. */
 	} ;
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* IODEFS_ */

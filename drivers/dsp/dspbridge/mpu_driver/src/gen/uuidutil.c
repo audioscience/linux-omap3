@@ -52,7 +52,7 @@
  *      Note: snprintf format specifier is:
  *      %[flags] [width] [.precision] [{h | l | I64 | L}]type
  */
-VOID UUID_UuidToString(IN struct DSP_UUID *pUuid, OUT CHAR *pszUuid,
+VOID UUID_UuidToString(IN struct DSP_UUID *pUuid, OUT char *pszUuid,
 		       IN INT size)
 {
 	INT i;			/* return result from snprintf. */
@@ -131,12 +131,12 @@ int htoi(char c)
  *  Purpose:
  *      Converts a string to a struct DSP_UUID.
  */
-VOID UUID_UuidFromString(IN CHAR *pszUuid, OUT struct DSP_UUID *pUuid)
+VOID UUID_UuidFromString(IN char *pszUuid, OUT struct DSP_UUID *pUuid)
 {
-	CHAR c;
+	char c;
 	INT i, j;
 	LONG result;
-	CHAR *temp = pszUuid;
+	char *temp = pszUuid;
 
 	result = 0;
 	for (i = 0; i < 8; i++) {

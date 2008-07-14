@@ -56,10 +56,6 @@
 #ifndef CSL_
 #define CSL_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dspapi.h>
 
 /*
@@ -75,7 +71,7 @@ extern "C" {
  *      ptstrSrc is a valid string pointer.
  *  Ensures:
  */
-	extern INT CSL_Atoi(IN CONST CHAR * ptstrSrc);
+	extern INT CSL_Atoi(IN CONST char *ptstrSrc);
 
 /*
  *  ======== CSL_Exit ========
@@ -247,8 +243,8 @@ extern "C" {
  *      szSeparators is a valid string pointer.
  *  Ensures:
  */
-	extern CHAR *CSL_Strtok(IN CHAR *ptstrSrc,
-				IN CONST CHAR *szSeparators);
+	extern char *CSL_Strtok(IN char *ptstrSrc,
+				IN CONST char *szSeparators);
 
 /*
  *  ======== CSL_Strtokr ========
@@ -267,11 +263,8 @@ extern "C" {
  *      ppstrCur != NULL
  *  Ensures:
  */
-	extern CHAR *CSL_Strtokr(IN CHAR *pstrSrc,
-				 IN CONST CHAR * szSeparators,
-				 OUT CHAR **ppstrCur);
+	extern char *CSL_Strtokr(IN char *pstrSrc,
+				 IN CONST char *szSeparators,
+				 OUT char **ppstrCur);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* CSL_ */

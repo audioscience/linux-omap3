@@ -63,10 +63,6 @@
 #include <list.h>
 #include <ntfy.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /*
  *  These target side symbols define the beginning and ending addresses
  *  of shared memory buffer. They are defined in the *cfg.cmd file by
@@ -116,11 +112,7 @@ struct loadMonStruct {
 
 #endif
 
-#if _CHNL_WORDSIZE == 4
 	typedef DWORD SMWORD;
-#else
-	typedef SHORT SMWORD;
-#endif
 
 	typedef enum {
 		SHM_CURROPP = 0,
@@ -195,7 +187,7 @@ struct loadMonStruct {
 		/* Abstract syncronization object */
 		struct SYNC_OBJECT *hSyncEvent;
 		/* Name of Sync event */
-		CHAR szEventName[SYNC_MAXNAMELENGTH + 1];
+		char szEventName[SYNC_MAXNAMELENGTH + 1];
 		HANDLE hProcess;	/* Process which created this channel */
 		ULONG pCBArg;	/* Argument to use with callback */
 		struct LST_LIST *pIORequests;	/* List of IOR's to driver */
@@ -228,7 +220,4 @@ struct loadMonStruct {
 		DWORD status;	/* Status of IO completion.              */
 	} ;
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* _CHNL_SM_ */

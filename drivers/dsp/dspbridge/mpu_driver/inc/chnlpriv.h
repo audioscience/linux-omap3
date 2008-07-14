@@ -46,10 +46,6 @@
 #ifndef CHNLPRIV_
 #define CHNLPRIV_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <chnldefs.h>
 #include <devdefs.h>
 #include <sync.h>
@@ -118,7 +114,7 @@ extern "C" {
 		/*
 		 * Name of channel I/O completion event. Not required in Linux
 		 */
-		CHAR szEventName[CHNL_MAXEVTNAMELEN + 1];
+		char szEventName[CHNL_MAXEVTNAMELEN + 1];
 	} ;
 
 /* Channel manager info: */
@@ -137,7 +133,4 @@ extern "C" {
 		UINT uWordSize;	/* DSP Word size.                       */
 	} ;
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* CHNLPRIV_ */

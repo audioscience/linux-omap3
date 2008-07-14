@@ -40,7 +40,7 @@
 #include <gs.h>
 
 /*  ----------------------------------- Globals */
-static LgUns cumsize = 0;
+static LgUns cumsize;
 
 /*
  *  ======== GS_alloc ========
@@ -53,9 +53,9 @@ Ptr GS_alloc(Uns size)
 
 	p = MEM_Calloc(size, MEM_PAGED);
 	if (p == NULL)
-		return (NULL);
+		return NULL;
 	cumsize += size;
-	return (p);
+	return p;
 }
 
 /*
@@ -63,7 +63,7 @@ Ptr GS_alloc(Uns size)
  *  purpose:
  *      Discontinue the usage of the GS module.
  */
-Void GS_exit()
+Void GS_exit(void)
 {
 	MEM_Exit();
 }

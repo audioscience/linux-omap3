@@ -33,10 +33,6 @@
 #ifndef BRDDEFS_
 #define BRDDEFS_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* platform status values */
 #define BRD_STOPPED     0x0	/* No Monitor Loaded, Not running. */
 #define BRD_IDLE        0x1	/* Monitor Loaded, but suspended.  */
@@ -62,7 +58,4 @@ extern "C" {
 	/*typedef struct BRD_OBJECT *BRD_HOBJECT;*/
 	struct BRD_OBJECT;
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* BRDDEFS_ */

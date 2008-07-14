@@ -50,10 +50,6 @@
 #ifndef NLDR_
 #define NLDR_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 	extern DSP_STATUS NLDR_Allocate(struct NLDR_OBJECT *hNldr,
 					PVOID pPrivRef,
 					IN CONST struct DCD_NODEPROPS
@@ -82,7 +78,4 @@ extern "C" {
 	extern DSP_STATUS NLDR_Unload(struct NLDR_NODEOBJECT *hNldrNode,
 				      NLDR_PHASE phase);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* NLDR_ */

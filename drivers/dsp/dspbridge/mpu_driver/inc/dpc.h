@@ -41,10 +41,6 @@
 #ifndef DPC_
 #define DPC_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 	struct DPC_OBJECT;
 	/*typedef struct DPC_OBJECT *DPC_HOBJECT;*/
 
@@ -169,7 +165,4 @@ extern "C" {
  */
 	extern DSP_STATUS CDECL DPC_Schedule(IN struct DPC_OBJECT *hDPC);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* DPC_ */

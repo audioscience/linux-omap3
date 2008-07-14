@@ -68,10 +68,6 @@
 #ifndef MEM_
 #define MEM_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dspapi.h>
 
 #include <memdefs.h>
@@ -350,7 +346,4 @@ extern "C" {
 	extern VOID MEM_ExtPhysPoolInit(IN DWORD poolPhysBase,
 					IN DWORD poolSize);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* MEM_ */

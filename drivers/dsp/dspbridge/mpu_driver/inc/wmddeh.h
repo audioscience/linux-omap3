@@ -41,10 +41,6 @@
 #ifndef WMDDEH_
 #define WMDDEH_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <devdefs.h>
 
 #include <dehdefs.h>
@@ -65,7 +61,4 @@ extern "C" {
 
 	extern void WMD_DEH_Notify(struct DEH_MGR *hDehMgr,
 				   ULONG ulEventMask, DWORD dwErrInfo);
-#ifdef __cplusplus
-}
-#endif
 #endif				/* WMDDEH_ */

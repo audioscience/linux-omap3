@@ -49,10 +49,6 @@
 #ifndef ISR_
 #define ISR_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <cfg.h>
 
 /* Interrupt Object handle: */
@@ -221,7 +217,4 @@ extern "C" {
  */
 	extern DSP_STATUS CDECL ISR_Uninstall(IN struct ISR_IRQ *hIRQ);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* ISR_ */

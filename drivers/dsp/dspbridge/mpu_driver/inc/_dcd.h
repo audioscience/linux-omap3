@@ -54,10 +54,6 @@
 #ifndef _WCD_
 #define _WCD_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <wcdioctl.h>
 
 /*
@@ -198,7 +194,4 @@ extern "C" {
 
 	extern DWORD UTILWRAP_TestDll(Trapped_Args * args);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* _WCD_ */

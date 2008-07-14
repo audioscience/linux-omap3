@@ -315,7 +315,7 @@ struct doff_syment_t {
 
 /* special values for dn_scnum */
 #define  DN_UNDEF  0		/* undefined symbol               */
-#define  DN_ABS    -1		/* value of symbol is absolute    */
+#define  DN_ABS    (-1)		/* value of symbol is absolute    */
 /* special values for dn_sclass */
 #define DN_EXT     2
 #define DN_STATLAB 20

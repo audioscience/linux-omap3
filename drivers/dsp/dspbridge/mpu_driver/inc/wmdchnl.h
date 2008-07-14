@@ -39,13 +39,6 @@
 #ifndef WMDCHNL_
 #define WMDCHNL_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/*#include <devdefs.h>
-#include <chnlpriv.h>*/
-
 	extern DSP_STATUS WMD_CHNL_Create(OUT struct CHNL_MGR **phChnlMgr,
 					  struct DEV_OBJECT *hDevObject,
 					  IN CONST struct CHNL_MGRATTRS
@@ -94,7 +87,4 @@ extern "C" {
 						  struct DSP_NOTIFICATION
 						  *hNotification);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* WMDCHNL_ */

@@ -248,7 +248,7 @@ Int _GT_trace(struct GT_Mask *mask, String format, ...)
 #endif
 	(*GT->PRINTFXN)(format, arg1, arg2, arg3, arg4, arg5, arg6);
 
-	return (0);
+	return 0;
 }
 
 /*

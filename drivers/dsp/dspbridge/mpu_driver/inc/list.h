@@ -50,10 +50,6 @@
 #ifndef LIST_
 #define LIST_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dspapi.h>
 
 #define LST_IsEmpty(l)      (((l)->head.next == &(l)->head))
@@ -301,7 +297,4 @@ extern "C" {
 extern VOID LST_RemoveElem(IN struct LST_LIST *pList,
 			   IN struct LST_ELEM *pCurElem);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* LIST_ */

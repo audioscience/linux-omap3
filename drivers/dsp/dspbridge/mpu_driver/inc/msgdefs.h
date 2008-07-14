@@ -30,10 +30,6 @@
 #ifndef MSGDEFS_
 #define MSGDEFS_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define MSGMGR_SIGNATURE    0x4d47534d	/* "MGSM" */
 
 /* MSG Objects: */
@@ -45,8 +41,5 @@ extern "C" {
 /* Function prototype for callback to be called on RMS_EXIT message received */
 	typedef VOID(CDECL * MSG_ONEXIT) (HANDLE h, INT nStatus);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* MSGDEFS_ */
 

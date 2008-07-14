@@ -31,10 +31,6 @@
 #ifndef UTILDEFS_
 #define UTILDEFS_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* constants taken from configmg.h */
 #define UTIL_MAXMEMREGS     9
 #define UTIL_MAXIOPORTS     20
@@ -52,7 +48,4 @@ extern "C" {
 		DWORD dwNumberOfProcessors;	/* Used as sanity check */
 	} ;
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* UTILDEFS_ */

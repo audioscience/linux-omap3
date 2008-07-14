@@ -93,7 +93,7 @@ struct DBL_SectInfo {
  *  *dspAddr (or starting at *dspAddr if reserve == TRUE). Returns 0 on
  *  success, or an error code on failure.
  */
-typedef Int(*DBL_AllocFxn) (Void * hdl, Int space, LgUns size, Uns align,
+typedef Int(*DBL_AllocFxn) (Void *hdl, Int space, LgUns size, Uns align,
 			    LgUns *dspAddr, Int segId, Int req, Bool reserved);
 
 /*
@@ -114,7 +114,7 @@ typedef Int(*DBL_AllocFxn) (Void * hdl, Int space, LgUns size, Uns align,
  *  the .cinit section must have already been written, or on the host,
  *  in which case we need to use the data in buf.
  */
-typedef Int(*DBL_CinitFxn) (Void * hdl, LgUns dspAddr, Void * buf,
+typedef Int(*DBL_CinitFxn) (Void *hdl, LgUns dspAddr, Void *buf,
 			    LgUns nBytes, Int mtype);
 
 /*

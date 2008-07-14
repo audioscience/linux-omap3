@@ -28,15 +28,8 @@
 #ifndef DRVDEFS_
 #define DRVDEFS_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* WCD Driver Object */
 	struct DRV_OBJECT;
 	/*typedef struct DRV_OBJECT *DRV_HOBJECT;*/
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* DRVDEFS_ */

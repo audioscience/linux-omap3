@@ -86,7 +86,7 @@ struct GB_TMap *GB_create(GB_BitNum len)
 		}
 	}
 
-	return (map);
+	return map;
 }
 
 /*
@@ -115,7 +115,7 @@ GB_BitNum GB_findandset(struct GB_TMap *map)
 	if (bitn != GB_NOBITS)
 		GB_set(map, bitn);
 
-	return (bitn);
+	return bitn;
 }
 
 /*
@@ -134,7 +134,7 @@ GB_BitNum GB_minclear(struct GB_TMap *map)
 		if (~*word) {
 			for (bit = 0; bit < LGSIZE; bit++, bitAcc++) {
 				if (bitAcc == map->len)
-					return (GB_NOBITS);
+					return GB_NOBITS;
 
 				if (~*word & (1L << bit))
 					return (i * LGSIZE + bit);
@@ -145,7 +145,7 @@ GB_BitNum GB_minclear(struct GB_TMap *map)
 		}
 	}
 
-	return (GB_NOBITS);
+	return GB_NOBITS;
 }
 
 /*

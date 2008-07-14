@@ -28,16 +28,9 @@
 #ifndef PROCPRIV_
 #define PROCPRIV_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* RM PROC Object */
 	struct PROC_OBJECT;
 	/*typedef struct PROC_OBJECT *PROC_HOBJECT;*/
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* PROCPRIV_ */
 

@@ -52,10 +52,6 @@
 #ifndef IOSM_
 #define IOSM_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <_chnl_sm.h>
 
 #include <iodefs.h>
@@ -71,11 +67,11 @@ extern "C" {
     ((((LONG)&(((type *)0)->field)) / wordsize) + (DWORD)base)
 
 /* Access can be different SM access word size (e.g. 16/32 bit words) */
-#define IO_SetValue(pContext, type, base, field, value) base->field = value
-#define IO_GetValue(pContext, type, base, field)        (base->field)
-#define IO_OrValue(pContext, type, base, field, value)  base->field |= value
-#define IO_AndValue(pContext, type, base, field, value) base->field &= value
-#define IO_SetLong(pContext, type, base, field, value)  base->field = value
+#define IO_SetValue(pContext, type, base, field, value) (base->field = value)
+#define IO_GetValue(pContext, type, base, field)	(base->field)
+#define IO_OrValue(pContext, type, base, field, value)  (base->field |= value)
+#define IO_AndValue(pContext, type, base, field, value) (base->field &= value)
+#define IO_SetLong(pContext, type, base, field, value)  (base->field = value)
 #define IO_GetLong(pContext, type, base, field)         (base->field)
 
 #define IO_DisableInterrupt(h)  CHNLSM_DisableInterrupt(h)
@@ -367,7 +363,4 @@ extern "C" {
 
 	extern VOID IO_IntrDSP2(IN struct IO_MGR *pIOMgr, IN WORD wMbVal);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* IOSM_ */

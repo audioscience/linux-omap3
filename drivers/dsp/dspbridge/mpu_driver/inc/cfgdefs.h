@@ -42,10 +42,6 @@
 #ifndef CFGDEFS_
 #define CFGDEFS_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* Maximum length of module search path. */
 #define CFG_MAXSEARCHPATHLEN    255
 
@@ -131,7 +127,4 @@ extern "C" {
 		/* DSP Memory types */
 	} ;
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* CFGDEFS_ */

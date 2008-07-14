@@ -37,10 +37,6 @@
 #ifndef NTFY_
 #define NTFY_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 	struct NTFY_OBJECT;
 	/*typedef struct NTFY_OBJECT *NTFY_HOBJECT;*/
 
@@ -148,7 +144,4 @@ extern "C" {
 					IN UINT uEventMask,
 					IN UINT uNotifyType);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* NTFY_ */

@@ -37,10 +37,6 @@
 #ifndef WMDMSG_
 #define WMDMSG_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <msgdefs.h>
 
 	extern DSP_STATUS WMD_MSG_Create(OUT struct MSG_MGR **phMsgMgr,
@@ -71,7 +67,4 @@ extern "C" {
 
 	extern VOID WMD_MSG_SetQueueId(struct MSG_QUEUE *hMsgQueue, DWORD dwId);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* WMDMSG_ */

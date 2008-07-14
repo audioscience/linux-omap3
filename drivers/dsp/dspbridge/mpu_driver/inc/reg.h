@@ -51,10 +51,6 @@
 #ifndef _REG_H
 #define _REG_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dspapi.h>
 
 /*  ------------------------- Defines, Data Structures, Typedefs for Linux */
@@ -258,7 +254,4 @@ extern "C" {
 				       IN CONST DWORD dwType,
 				       IN BYTE *pbValue, IN DWORD dwValueSize);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* _REG_H */

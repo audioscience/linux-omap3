@@ -31,10 +31,6 @@
  *****************************************************************************
  *****************************************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "dynamic_loader.h"
 
 #include "DLstream.h"
@@ -42,7 +38,4 @@ extern "C" {
 #include "DLalloc.h"
 #include "DLinit.h"
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* _DLCLASSES_HDR_H */

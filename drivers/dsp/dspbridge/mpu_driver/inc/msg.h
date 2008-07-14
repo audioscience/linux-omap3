@@ -39,10 +39,6 @@
 #ifndef MSG_
 #define MSG_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <devdefs.h>
 #include <msgdefs.h>
 
@@ -107,7 +103,4 @@ extern "C" {
  */
 	extern BOOL MSG_Init();
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* MSG_ */

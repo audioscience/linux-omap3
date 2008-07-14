@@ -42,10 +42,6 @@
 #ifndef DBDCDDEF_
 #define DBDCDDEF_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dbdefs.h>
 #include <mgrpriv.h>		/* for MGR_PROCESSOREXTINFO */
 
@@ -95,8 +91,5 @@ extern "C" {
 						     IN DSP_DCDOBJTYPE objType,
 						     IN PVOID handle);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* DBDCDDEF_ */
 

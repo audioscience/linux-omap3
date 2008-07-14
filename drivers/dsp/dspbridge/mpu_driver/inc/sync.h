@@ -55,10 +55,6 @@
 #ifndef _SYNC_H
 #define _SYNC_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dspapi.h>
 
 /* Special timeout value indicating an infinite wait: */
@@ -342,8 +338,4 @@ extern "C" {
 						    IN DWORD dwTimeout,
 						    OUT UINT *puIndex);
 
-
-#ifdef __cplusplus
-}
-#endif
 #endif				/* _SYNC_H */

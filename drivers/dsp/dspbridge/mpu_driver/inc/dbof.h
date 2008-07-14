@@ -31,10 +31,6 @@
 #ifndef DBOF_
 #define DBOF_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* Enough to hold DCD section names: 32 digit ID + underscores */
 #define DBOF_DCDSECTNAMELEN     40
 
@@ -117,8 +113,5 @@ extern "C" {
 		MdUns resvd;	/* Reserved for future use */
 	} ;
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* DBOF_ */
 

@@ -72,11 +72,7 @@
 /*============================================================================*/
 
 #ifndef NULL
-#ifdef __cplusplus
-#define NULL    0
-#else
 #define NULL    ((void *)0)	/* Null pointer. */
-#endif
 #endif
 
 /*============================================================================*/
@@ -95,7 +91,7 @@ typedef unsigned char BYTE;	/* b    */
 typedef unsigned short WORD;	/* w    */
 typedef unsigned long DWORD;	/* dw   */
 
-typedef char CHAR;		/* ch   */
+typedef char CHAR;		/* ch   */ /* Not used for linux */
 typedef int INT;		/* n    */
 typedef long LONG;		/* l    */
 
@@ -103,7 +99,7 @@ typedef unsigned short USHORT;	/* us   */
 typedef unsigned int UINT;	/* u    */
 typedef unsigned long ULONG;	/* ul   */
 
-typedef CHAR *PSTR;		/* pstr */
+typedef char *PSTR;		/* pstr */
 
 #ifndef OMAPBRIDGE_TYPES
 #define OMAPBRIDGE_TYPES
@@ -124,10 +120,10 @@ typedef PVOID HANDLE;		/* h    */
 
 typedef unsigned short WCHAR;	/* wch  */
 
-typedef CHAR TCHAR;
+typedef char TCHAR; /* Not used for linux */
 
-typedef TCHAR *PSTRING;		/* Generic character string type */
-typedef TCHAR CHARACTER;
+typedef char *PSTRING;		/* Generic character string type */
+typedef char CHARACTER;
 
 typedef long long LARGE_INTEGER;
 #define TEXT(x) x

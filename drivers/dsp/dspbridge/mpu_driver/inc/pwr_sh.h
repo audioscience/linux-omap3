@@ -29,10 +29,6 @@
 
 #include <mbx_sh.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* valid sleep command codes that can be sent by GPP via mailbox: */
 #define PWR_DEEPSLEEP           MBX_PM_DSPIDLE
 #define PWR_EMERGENCYDEEPSLEEP  MBX_PM_EMERGENCYSLEEP
@@ -42,7 +38,4 @@ extern "C" {
 #define PWR_AUTODISABLE         MBX_PM_PWRDISABLE
 #define PWR_RETENTION             MBX_PM_DSPRETN
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* PWR_SH_ */

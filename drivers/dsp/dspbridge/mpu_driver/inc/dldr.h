@@ -48,10 +48,6 @@
 #ifndef DLDR_
 #define DLDR_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 	extern DSP_STATUS DLDR_Allocate(struct DLDR_OBJECT *hDldr,
 					PVOID pPrivRef,
 					IN CONST struct DCD_NODEPROPS
@@ -76,7 +72,4 @@ extern "C" {
 	extern DSP_STATUS DLDR_Unload(struct DLDR_NODEOBJECT *hDldrNode,
 				      DLDR_PHASE phase);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* DLDR_ */

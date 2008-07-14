@@ -31,10 +31,6 @@
 #ifndef DBL_
 #define DBL_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dbdefs.h>
 #include <dbldefs.h>
 
@@ -169,7 +165,7 @@ extern "C" {
  *      pEntry != NULL.
  *  Ensures:
  */
-	extern Bool DBL_getEntry(struct DBL_LibraryObj *lib, LgUns * pEntry);
+	extern Bool DBL_getEntry(struct DBL_LibraryObj *lib, LgUns *pEntry);
 
 /*
  *  ======== DBL_getSect ========
@@ -191,7 +187,7 @@ extern "C" {
  *  Ensures:
  */
 	extern DSP_STATUS DBL_getSect(struct DBL_LibraryObj *lib, String name,
-				      LgUns * pAddr, LgUns * pSize);
+				      LgUns *pAddr, LgUns *pSize);
 
 /*
  *  ======== DBL_init ========
@@ -229,7 +225,7 @@ extern "C" {
  *  Ensures:
  */
 	extern DSP_STATUS DBL_load(struct DBL_LibraryObj *lib, DBL_Flags flags,
-				   struct DBL_Attrs *attrs, LgUns * pEntry);
+				   struct DBL_Attrs *attrs, LgUns *pEntry);
 
 /*
  *  ======== DBL_loadSect ========
@@ -355,7 +351,4 @@ extern "C" {
 					 String sectName,
 					 struct DBL_Attrs *attrs);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* DBL_ */

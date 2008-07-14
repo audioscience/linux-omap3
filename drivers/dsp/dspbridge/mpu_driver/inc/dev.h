@@ -79,10 +79,6 @@
 #ifndef DEV_
 #define DEV_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /*  ----------------------------------- Module Dependent Headers */
 #include <chnldefs.h>
 #include <cmm.h>
@@ -852,7 +848,4 @@ extern "C" {
 	extern DSP_STATUS CDECL DEV_StartIVADevice(struct CFG_DEVNODE*
 						   hDevNode);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* DEV_ */

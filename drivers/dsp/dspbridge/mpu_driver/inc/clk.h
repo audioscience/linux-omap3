@@ -26,44 +26,40 @@
 #ifndef _CLK_H
 #define _CLK_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dspapi.h>
 
 	/* Generic TIMER object: */
 	/*typedef struct TIMER_OBJECT *TIMER_HOBJECT;*/
 	struct TIMER_OBJECT;
 	typedef enum {
-		OSALCLK_iva2_ck = 0,
-		OSALCLK_mailbox_ick,
-		OSALCLK_gpt5_fck,
-		OSALCLK_gpt5_ick,
-		OSALCLK_gpt6_fck,
-		OSALCLK_gpt6_ick,
-		OSALCLK_gpt7_fck,
-		OSALCLK_gpt7_ick,
-		OSALCLK_gpt8_fck,
-		OSALCLK_gpt8_ick,
-		OSALCLK_wdt3_fck,
-		OSALCLK_wdt3_ick,
-		OSALCLK_mcbsp1_fck,
-		OSALCLK_mcbsp1_ick,
-		OSALCLK_mcbsp2_fck,
-		OSALCLK_mcbsp2_ick,
-		OSALCLK_mcbsp3_fck,
-		OSALCLK_mcbsp3_ick,
-		OSALCLK_mcbsp4_fck,
-		OSALCLK_mcbsp4_ick,
-		OSALCLK_mcbsp5_fck,
-		OSALCLK_mcbsp5_ick,
-		OSALCLK_ssi_fck,
-		OSALCLK_ssi_ick,
-		OSALCLK_sys_32k_ck,
-		OSALCLK_sys_ck,
-		OSALCLK_NOT_DEFINED
-	} OSAL_ClkId;
+		SERVICESCLK_iva2_ck = 0,
+		SERVICESCLK_mailbox_ick,
+		SERVICESCLK_gpt5_fck,
+		SERVICESCLK_gpt5_ick,
+		SERVICESCLK_gpt6_fck,
+		SERVICESCLK_gpt6_ick,
+		SERVICESCLK_gpt7_fck,
+		SERVICESCLK_gpt7_ick,
+		SERVICESCLK_gpt8_fck,
+		SERVICESCLK_gpt8_ick,
+		SERVICESCLK_wdt3_fck,
+		SERVICESCLK_wdt3_ick,
+		SERVICESCLK_mcbsp1_fck,
+		SERVICESCLK_mcbsp1_ick,
+		SERVICESCLK_mcbsp2_fck,
+		SERVICESCLK_mcbsp2_ick,
+		SERVICESCLK_mcbsp3_fck,
+		SERVICESCLK_mcbsp3_ick,
+		SERVICESCLK_mcbsp4_fck,
+		SERVICESCLK_mcbsp4_ick,
+		SERVICESCLK_mcbsp5_fck,
+		SERVICESCLK_mcbsp5_ick,
+		SERVICESCLK_ssi_fck,
+		SERVICESCLK_ssi_ick,
+		SERVICESCLK_sys_32k_ck,
+		SERVICESCLK_sys_ck,
+		SERVICESCLK_NOT_DEFINED
+	} SERVICES_ClkId;
 
 /*
  *  ======== CLK_Exit ========
@@ -104,7 +100,7 @@ extern "C" {
  *  Requires:
  *  Ensures:
  */
-	extern DSP_STATUS CLK_Enable(IN OSAL_ClkId clk_id);
+	extern DSP_STATUS CLK_Enable(IN SERVICES_ClkId clk_id);
 
 /*
  *  ======== CLK_Disable ========
@@ -117,7 +113,7 @@ extern "C" {
  *  Requires:
  *  Ensures:
  */
-	extern DSP_STATUS CLK_Disable(IN OSAL_ClkId clk_id);
+	extern DSP_STATUS CLK_Disable(IN SERVICES_ClkId clk_id);
 
 /*
  *  ======== CLK_GetRate ========
@@ -130,7 +126,7 @@ extern "C" {
  *  Requires:
  *  Ensures:
  */
-	extern DSP_STATUS CLK_GetRate(IN OSAL_ClkId clk_id, ULONG *speedMhz);
+	extern DSP_STATUS CLK_GetRate(IN SERVICES_ClkId clk_id, ULONG *speedMhz);
 /*
  *  ======== CLK_Set_32KHz ========
  *  Purpose:
@@ -142,7 +138,7 @@ extern "C" {
  *  Requires:
  *  Ensures:
  */
-	extern DSP_STATUS CLK_Set_32KHz(IN OSAL_ClkId clk_id);
+	extern DSP_STATUS CLK_Set_32KHz(IN SERVICES_ClkId clk_id);
 	extern void SSI_Clk_Prepare(BOOL FLAG);
 
 /*
@@ -156,10 +152,7 @@ extern "C" {
  *  Requires:
  *  Ensures:
  */
-	extern INT CLK_Get_UseCnt(IN OSAL_ClkId clk_id);
-/*	extern DSP_STATUS CLK_AutoIdleCtrl(IN OSAL_ClkId clk_id,INT cmd); */
+	extern INT CLK_Get_UseCnt(IN SERVICES_ClkId clk_id);
+/*	extern DSP_STATUS CLK_AutoIdleCtrl(IN SERVICES_ClkId clk_id,INT cmd); */
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* _SYNC_H */

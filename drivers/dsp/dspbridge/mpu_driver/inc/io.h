@@ -36,10 +36,6 @@
 #ifndef IO_
 #define IO_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <cfgdefs.h>
 #include <devdefs.h>
 
@@ -133,7 +129,4 @@ extern "C" {
  */
 	extern DSP_STATUS IO_OnLoaded(struct IO_MGR *hIOMgr);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* CHNL_ */

@@ -57,10 +57,6 @@
 #ifndef CHNL_
 #define CHNL_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <chnlpriv.h>
 
 /*
@@ -126,7 +122,7 @@ extern "C" {
  *                          any context.
  *      else:               *ppBuf contains NULL if ppBuf != NULL.
  */
-	extern DSP_STATUS CHNL_AllocBuffer(OUT PVOID * ppBuf,
+	extern DSP_STATUS CHNL_AllocBuffer(OUT PVOID *ppBuf,
 					   struct CHNL_MGR *hChnlMgr,
 					   ULONG cBytes);
 
@@ -538,7 +534,4 @@ extern "C" {
 				    ULONG uChnlId,
 				    CONST IN struct CHNL_ATTRS *pAttrs);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* CHNL_ */

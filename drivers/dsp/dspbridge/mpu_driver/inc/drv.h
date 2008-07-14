@@ -61,10 +61,6 @@
 #ifndef DRV_
 #define DRV_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <devdefs.h>
 
 #include <drvdefs.h>
@@ -439,7 +435,4 @@ struct PROCESS_CONTEXT{
 	extern DSP_STATUS DRV_ReleaseResources(IN DWORD dwContext,
 					       struct DRV_OBJECT *hDrvObject);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* DRV_ */

@@ -46,10 +46,6 @@
 #ifndef DISP_
 #define DISP_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dbdefs.h>
 #include <nodedefs.h>
 #include <nodepriv.h>
@@ -237,7 +233,4 @@ extern "C" {
 				       ULONG ulFxnAddr,
 				       ULONG ulExecuteFxn, NODE_ENV nodeEnv);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* DISP_ */

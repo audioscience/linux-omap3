@@ -22,7 +22,7 @@
  *
  *! Revision History
  *! ================
- *! 19-Apr-2004 sb   Updated HAL typedefs
+ *! 19-Apr-2004 sb   Updated HW typedefs
  *! 16-Feb-2004 vp   Added MMU endianness attributes to WMDIOCTL_EXTPROC
  *! 21-Mar-2003 sb   Changed WMDIOCTL_NUMOFMMUTLB from 7 to 32
  *! 14-May-2001 sg   Added codes for PWR.
@@ -42,12 +42,12 @@
 #define WMDIOCTL_
 
 /* ------------------------------------ Hardware Abstraction Layer */
-#include <hal_defs.h>
-#include <hal_mmu.h>
+#include <hw_defs.h>
+#include <hw_mmu.h>
 
 /* Any IOCTLS at or above this value are reserved for standard WMD interfaces.*/
 #define WMDIOCTL_RESERVEDBASE       0x8000
-#define WMDIOCTL_BIOSSCOPEBASE      WMDIOCTL_RESERVEDBASE + 0x100
+#define WMDIOCTL_BIOSSCOPEBASE      (WMDIOCTL_RESERVEDBASE + 0x100)
 
 #define WMDIOCTL_CHNLREAD           (WMDIOCTL_RESERVEDBASE + 0x10)
 #define WMDIOCTL_CHNLWRITE          (WMDIOCTL_RESERVEDBASE + 0x20)
@@ -105,9 +105,9 @@ struct WMDIOCTL_EXTPROC {
 	/* GPP virtual address. __va does not work for ioremapped addresses */
 	ULONG ulGppVa;
 	ULONG ulSize;		/* Size of the mapped memory in bytes */
-	HAL_Endianism_t endianism;
-	HAL_MMUMixedSize_t mixedMode;
-	HAL_ElementSize_t elemSize;
+	HW_Endianism_t endianism;
+	HW_MMUMixedSize_t mixedMode;
+	HW_ElementSize_t elemSize;
 };
 
 struct WMDIOCTL_CHNLRW_ARGS {

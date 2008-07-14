@@ -62,10 +62,6 @@
 #ifndef PROC_
 #define PROC_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <cfgdefs.h>
 #include <devdefs.h>
 
@@ -388,8 +384,8 @@ extern "C" {
  *      can load the processor.
  */
 	extern DSP_STATUS PROC_Load(DSP_HPROCESSOR hProcessor,
-				    IN CONST INT iArgc, IN CONST CHAR **aArgv,
-				    IN CONST CHAR **aEnvp);
+				    IN CONST INT iArgc, IN CONST char **aArgv,
+				    IN CONST char **aEnvp);
 
 /*
  *  ======== PROC_RegisterNotify ========
@@ -649,7 +645,4 @@ extern "C" {
 	extern DSP_STATUS PROC_UnReserveMemory(DSP_HPROCESSOR hProcessor,
 					       PVOID pRsvAddr);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* PROC_ */

@@ -29,10 +29,6 @@
 #ifndef MGRPRIV_
 #define MGRPRIV_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /*
  * OMAP1510 specific
  */
@@ -58,7 +54,4 @@ extern "C" {
 	} ;
 	/*MGR_PROCESSOREXTINFO, *MGR_HPROCESSOREXTINFO;*/
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* MGRPRIV_ */

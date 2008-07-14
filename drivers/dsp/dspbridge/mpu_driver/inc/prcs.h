@@ -38,10 +38,6 @@
 #ifndef _PRCS_H
 #define _PRCS_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dspapi.h>
 
 /*
@@ -104,7 +100,4 @@ extern "C" {
  */
 	extern BOOL PRCS_Init();
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* _PRCS_H */

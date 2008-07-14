@@ -48,10 +48,6 @@
 #ifndef RMS_SH_
 #define RMS_SH_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <rmstypes.h>
 
 /* Node Types: */
@@ -125,8 +121,5 @@ extern "C" {
 		RMS_WORD numInputStreams;
 	} ;
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* RMS_SH_ */
 

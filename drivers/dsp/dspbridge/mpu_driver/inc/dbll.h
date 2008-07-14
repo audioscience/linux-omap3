@@ -29,10 +29,6 @@
 #ifndef DBLL_
 #define DBLL_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dbdefs.h>
 #include <dblldefs.h>
 
@@ -70,8 +66,5 @@ extern "C" {
 					  String sectName,
 					  struct DBLL_Attrs *attrs);
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* DBLL_ */
 

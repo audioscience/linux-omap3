@@ -47,10 +47,6 @@
 #ifndef MGR_
 #define MGR_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <mgrpriv.h>
 
 #define MAX_EVENTS 32
@@ -235,7 +231,4 @@ extern "C" {
  */
 	extern BOOL CDECL MGR_Init();
 
-#ifdef __cplusplus
-}
-#endif
 #endif				/* MGR_ */

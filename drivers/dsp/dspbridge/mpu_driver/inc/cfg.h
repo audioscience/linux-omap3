@@ -65,10 +65,6 @@
 #ifndef CFG_
 #define CFG_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <dspapi.h>
 #include <cfgdefs.h>
 
@@ -243,7 +239,7 @@ extern "C" {
  *      pfEnablePerf != NULL;
  *  Ensures:
  */
-	extern VOID CFG_GetPerfValue(OUT BOOL * pfEnablePerf);
+	extern VOID CFG_GetPerfValue(OUT BOOL *pfEnablePerf);
 
 /*
  *  ======== CFG_GetWMDFileName ========
@@ -342,7 +338,5 @@ extern "C" {
 	extern DSP_STATUS CFG_SetObject(IN DWORD dwValue, IN DWORD dwType);
 
 	extern DSP_STATUS CFG_GetC55Procs(OUT DWORD *numProcs);
-#ifdef __cplusplus
-}
-#endif
+
 #endif				/* CFG_ */
