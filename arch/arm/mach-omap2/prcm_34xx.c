@@ -2426,6 +2426,72 @@ int prcm_do_frequency_scaling(u32 target_opp_id, u32 current_opp_id)
 	return PRCM_PASS;
 }
 
+int prcm_do_voltage_scaling(u32 target_opp_id, u32 current_opp_id)
+{
+	u32 id_type, vdd;
+	int curr_opp_no, target_opp_no;
+	u8 vsel = 0;
+
+	if (target_opp_id == current_opp_id)
+		return PRCM_PASS;
+
+	vdd = get_vdd(target_opp_id);
+
+	/* Only VDD1 and VDD2 are allowed to be scaled by software */
+	/* Presently only VDD1 code is written */
+	if ((vdd != PRCM_VDD1) && (vdd != PRCM_VDD2)) {
+		pr_debug("Not VDD1 or VDD2\n");
+		return PRCM_FAIL;
+	}
+
+	if (vdd != get_vdd(current_opp_id)) {
+		pr_debug("VDD value for target and current not matching\n");
+		return PRCM_FAIL;
+	}
+
+	id_type = get_other_id_type(target_opp_id);
+	if (!(id_type & ID_OPP)) {
+		pr_debug("ID type of target is not a OPP ID type\n");
+		return PRCM_FAIL;
+	}
+
+	id_type = get_other_id_type(current_opp_id);
+	if (!(id_type & ID_OPP)) {
+		pr_debug("ID type of current is not a OPP ID type\n");
+		return PRCM_FAIL;
+	}
+	curr_opp_no = current_opp_id & OPP_NO_MASK;
+	target_opp_no = target_opp_id & OPP_NO_MASK;
+
+	if (curr_opp_no == target_opp_no) {
+		pr_debug("Nothing to change, both current and target"
+						"OPPs are same \n");
+		return PRCM_PASS;
+	}
+
+	if (vdd == PRCM_VDD1)
+		vsel = mpu_iva2_vdd1_volts [target_opp_no - 1];
+
+	else if (vdd == PRCM_VDD2)
+		vsel = core_l3_vdd2_volts [target_opp_no - 1];
+
+#ifdef CONFIG_OMAP_VOLT_VSEL
+	if (set_voltage_level(vdd, vsel)) {
+		printk(KERN_ERR "Unable to set the voltage level \n");
+		return PRCM_FAIL;
+	}
+
+#elif defined(CONFIG_OMAP_VOLT_SR_BYPASS)
+	if (sr_voltagescale_vcbypass(target_opp_id, vsel)) {
+		printk(KERN_ERR "Unable to set the voltage level \n");
+		return PRCM_FAIL;
+	}
+#endif /* #ifdef  CONFIG_OMAP_VOLT_VSEL */
+
+	return PRCM_PASS;
+}
+
+
 /*============================================================================*/
 /*======================== GET DOMAIN INTERFACE CLKS  ========================*/
 /*============================================================================*/
