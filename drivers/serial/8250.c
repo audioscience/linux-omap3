@@ -46,6 +46,18 @@
 
 #include "8250.h"
 
+#ifdef CONFIG_OMAP3_PM
+unsigned long isr8250_activity;
+#endif
+
+#ifdef CONFIG_ARCH_OMAP34XX
+#define OMAP_MDR1_DISABLE 0x07
+#define OMAP_460800_DIV   0x08
+#define OMAP_921600_DIV   0x04
+#define OMAP_MDR1_MODE13X 0x03
+#define OMAP_MDR1_MODE16X 0x00
+#endif
+
 /*
  * Configuration:
  *   share_irqs - whether we pass IRQF_SHARED to request_irq().  This option
@@ -3028,3 +3040,65 @@ module_param_array(probe_rsa, ulong, &probe_rsa_count, 0444);
 MODULE_PARM_DESC(probe_rsa, "Probe I/O ports for RSA");
 #endif
 MODULE_ALIAS_CHARDEV_MAJOR(TTY_MAJOR);
+
+#if defined(CONFIG_OMAP3_PM)
+/**
+ * are_driver8250_uarts_active() - Check if any ports managed by this
+ * driver are currently busy.  This should be called with interrupts
+ * disabled.
+ */
+int are_driver8250_uarts_active(int *driver8250_managed)
+{
+	struct circ_buf *xmit;
+	unsigned int status;
+	int j;
+
+	*driver8250_managed = 0x7; /* OMAP has 3 UART instances */
+
+	for (j = 0; j < UART_NR; j++) {
+		struct uart_8250_port *up = &serial8250_ports[j];
+
+		/* check ownership of port */
+		/* Check only ports managed by this driver and open */
+		if ((up->port.dev == NULL) || (up->port.type == PORT_UNKNOWN)) {
+			*driver8250_managed &= ~(1 << j);
+			continue;
+		}
+
+		/* driver owns this port but its closed */
+		if (up->port.info == NULL)
+			continue;
+
+		/* check for recent driver activity */
+		/* if from now to last activty < 5 second keep clocks on */
+		if ((jiffies_to_msecs(jiffies - isr8250_activity) < 5000))
+			return 1;
+
+		/* check for any current pending activity */
+		/* Any queued work in ring buffer which can be handled still? */
+		xmit = &up->port.info->xmit;
+		if (!(uart_circ_empty(xmit) || uart_tx_stopped(&up->port)))
+			return 1;
+		status = serial_inp(up, UART_LSR);
+
+		/* TX hardware not empty/ */
+		if (!(status & (UART_LSR_TEMT | UART_LSR_THRE)))
+			return 1;
+
+		/* Any rx activity? */
+		if (status & UART_LSR_DR)
+			return 1;
+
+		/* Any modem activity */
+		status = serial_in(up, UART_MSR);
+		if (!((status & UART_MSR_ANY_DELTA) == 0))
+			return 1;
+	}
+	if (*driver8250_managed)
+		return 0;
+	return 1;
+}
+EXPORT_SYMBOL(are_driver8250_uarts_active);
+
+#endif
+

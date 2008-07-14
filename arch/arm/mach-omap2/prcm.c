@@ -28,6 +28,12 @@
 static void __iomem *prm_base;
 static void __iomem *cm_base;
 
+#ifdef CONFIG_OMAP3_PM
+void omap2_clk_prepare_for_reboot(void)
+{
+}
+#endif
+
 u32 omap_prcm_get_reset_sources(void)
 {
 	/* XXX This presumably needs modification for 34XX */
