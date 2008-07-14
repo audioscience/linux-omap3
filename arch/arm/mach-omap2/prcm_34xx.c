@@ -389,6 +389,84 @@ struct reg_def clksel_reg[PRCM_NO_OF_CLKS] = {
 
 };
 
+struct sysconf_reg sysc_reg_core1[] = {
+	{PRCM_SSI,      (u32 *)&PRCM_SSI_SYSCONFIG},
+	{PRCM_SDRC,     (u32 *)&PRCM_SDRC_SYSCONFIG},
+	{PRCM_SDMA,     (u32 *)&PRCM_SDMA_SYSCONFIG},
+	{PRCM_HSOTG,    (u32 *)&PRCM_HSOTG_SYSCONFIG},
+	{PRCM_OMAP_CTRL, (u32 *)&PRCM_OMAP_CTRL_SYSCONFIG},
+	{PRCM_MBOXES,   (u32 *)&PRCM_MBOXES_SYSCONFIG},
+	{PRCM_MCBSP1,   (u32 *)&PRCM_MCBSP1_SYSCONFIG},
+	{PRCM_MCBSP5,   (u32 *)&PRCM_MCBSP5_SYSCONFIG},
+	{PRCM_GPT10,    (u32 *)&PRCM_GPT10_SYSCONFIG},
+	{PRCM_GPT11,    (u32 *)&PRCM_GPT11_SYSCONFIG},
+	{PRCM_UART1,    (u32 *)&PRCM_UART1_SYSCONFIG},
+	{PRCM_UART2,    (u32 *)&PRCM_UART2_SYSCONFIG},
+	{PRCM_I2C1,     (u32 *)&PRCM_I2C1_SYSCONFIG},
+	{PRCM_I2C2,     (u32 *)&PRCM_I2C2_SYSCONFIG},
+	{PRCM_I2C3,     (u32 *)&PRCM_I2C3_SYSCONFIG},
+	{PRCM_MCSPI1,   (u32 *)&PRCM_MCSPI1_SYSCONFIG},
+	{PRCM_MCSPI2,   (u32 *)&PRCM_MCSPI2_SYSCONFIG},
+	{PRCM_MCSPI3,   (u32 *)&PRCM_MCSPI3_SYSCONFIG},
+	{PRCM_MCSPI4,   (u32 *)&PRCM_MCSPI4_SYSCONFIG},
+	{PRCM_HDQ,      (u32 *)&PRCM_HDQ_SYSCONFIG},
+	{PRCM_MMC1,     (u32 *)&PRCM_MMC1_SYSCONFIG},
+	{PRCM_MMC2,     (u32 *)&PRCM_MMC2_SYSCONFIG},
+	{PRCM_SMS,      (u32 *)&PRCM_SMS_SYSCONFIG},
+	{PRCM_GPMC,     (u32 *)&PRCM_GPMC_SYSCONFIG},
+	{PRCM_MPU_INTC, (u32 *)&PRCM_MPU_INTC_SYSCONFIG},
+	{PRCM_MMC3,     (u32 *)&PRCM_MMC3_SYSCONFIG},
+	{0x0,           0x0},
+};
+
+/* WKUP */
+struct sysconf_reg sysc_reg_wkup[] = {
+	{PRCM_GPIO1,    (u32 *)&PRCM_GPIO1_SYSCONFIG},
+	{PRCM_GPT1,     (u32 *)&PRCM_GPT1_SYSCONFIG},
+	{PRCM_GPT12,    (u32 *)&PRCM_GPT12_SYSCONFIG},
+	{PRCM_WDT2,     (u32 *)&PRCM_WDT2_SYSCONFIG},
+	{0x0,           0x0},
+};
+
+struct sysconf_reg sysc_reg_dss[] = {
+	{PRCM_DSS,      (u32 *)&PRCM_DSS_SYSCONFIG},
+	{PRCM_DISPC,    (u32 *)&PRCM_DISPC_SYSCONFIG},
+	{PRCM_RFBI,     (u32 *)&PRCM_RFBI_SYSCONFIG},
+	{0x0,           0x0},
+};
+
+/* CAM */
+struct sysconf_reg sysc_reg_cam[] = {
+	{PRCM_CAM,      (u32 *)&PRCM_CAM_SYSCONFIG},
+	{PRCM_CSIA,     (u32 *)&PRCM_CSIA_SYSCONFIG},
+	{PRCM_CSIB,     (u32 *)&PRCM_CSIB_SYSCONFIG},
+	{PRCM_MMU,      (u32 *)&PRCM_MMU_SYSCONFIG},
+	{0,             0x0},
+};
+
+/* PER */
+struct sysconf_reg sysc_reg_per[] = {
+	{PRCM_MCBSP2,   (u32 *)&PRCM_MCBSP2_SYSCONFIG},
+	{PRCM_MCBSP3,   (u32 *)&PRCM_MCBSP3_SYSCONFIG},
+	{PRCM_MCBSP4,   (u32 *)&PRCM_MCBSP4_SYSCONFIG},
+	{PRCM_GPT2,     (u32 *)&PRCM_GPT2_SYSCONFIG},
+	{PRCM_GPT3,     (u32 *)&PRCM_GPT3_SYSCONFIG},
+	{PRCM_GPT4,     (u32 *)&PRCM_GPT4_SYSCONFIG},
+	{PRCM_GPT5,     (u32 *)&PRCM_GPT5_SYSCONFIG},
+	{PRCM_GPT6,     (u32 *)&PRCM_GPT6_SYSCONFIG},
+	{PRCM_GPT7,     (u32 *)&PRCM_GPT7_SYSCONFIG},
+	{PRCM_GPT8,     (u32 *)&PRCM_GPT8_SYSCONFIG},
+	{PRCM_GPT9,     (u32 *)&PRCM_GPT9_SYSCONFIG},
+	{PRCM_UART3,    (u32 *)&PRCM_UART3_SYSCONFIG},
+	{PRCM_WDT3,     (u32 *)&PRCM_WDT3_SYSCONFIG},
+	{PRCM_GPIO2,    (u32 *)&PRCM_GPIO2_SYSCONFIG},
+	{PRCM_GPIO3,    (u32 *)&PRCM_GPIO3_SYSCONFIG},
+	{PRCM_GPIO4,    (u32 *)&PRCM_GPIO4_SYSCONFIG},
+	{PRCM_GPIO5,    (u32 *)&PRCM_GPIO5_SYSCONFIG},
+	{PRCM_GPIO6,    (u32 *)&PRCM_GPIO6_SYSCONFIG},
+	{0,             0x0},
+};
+
 /* Array containing possible divider values for all clocks
  which have dividers */
 u32 div_arr[] = {
@@ -596,13 +674,14 @@ u8 core_l3_vdd2_volts [PRCM_NO_VDD2_OPPS] = { /* only 3 OPPs */
 	/* Vsel corresponding to 0.9V (OPP1), 1.00V (OPP2), 1.15 (OPP3) */
 	0x18, 0x20, 0x2C
 };
-
+#if 0
 u32 omap_prcm_get_reset_sources(void)
 {
 	omap3_clk_prepare_for_reboot();
 	return PRM_RSTST & 0x7fb;
 }
 EXPORT_SYMBOL(omap_prcm_get_reset_sources);
+#endif
 
 void omap_udelay(u32 udelay)
 {
@@ -636,7 +715,7 @@ inline int loop_wait(u32 *lcnt, u32 *rcnt, u32 delay)
 	}
 	return PRCM_PASS;
 }
-
+#if 0
 /* Resets clock rates and reboots the system. Only called from system.h */
 void omap_prcm_arch_reset(char mode)
 {
@@ -644,6 +723,7 @@ void omap_prcm_arch_reset(char mode)
 	/* Assert global software reset */
 	PRM_RSTCTRL |= 2;
 }
+#endif
 
 static int check_device_status(u32 deviceid, u8 control)
 {
@@ -2080,6 +2160,161 @@ int prcm_clk_get_source(u32 clk_id, u32 *parent_id)
 	return PRCM_PASS;
 }
 
+int prcm_set_domain_power_configuration(u32 domainid, u8 idlemode,
+					u8 standbymode, u8 autoidleenable)
+{
+	struct sysconf_reg *sysconf = NULL;
+	u32 *addr, *fclken_addr, *iclken_addr;
+	u32 index = 0, device_id = PRCM_SSI, i_mask = 0;
+	u32 ret, loop_cnt = 0, retries_cnt = 0;
+	u32     cm_fclken, cm_iclken;
+
+	u32 valid_func_clk = 0, valid_int_clk = 0;
+	u32 valid_idlest;
+	u32 mask = 0;
+
+	if (domainid > PRCM_NUM_DOMAINS)
+		return PRCM_FAIL;
+
+	switch (domainid) {
+	case DOM_CORE1:
+	case DOM_CORE2:
+		/* Save the fclk/iclk registers */
+		cm_fclken = CM_FCLKEN1_CORE;
+		cm_iclken = CM_ICLKEN1_CORE;
+		fclken_addr = (u32 *)&CM_FCLKEN1_CORE;
+		iclken_addr = (u32 *)&CM_ICLKEN1_CORE;
+		i_mask = CORE1_IMASK;
+		sysconf = sysc_reg_core1;
+		break;
+	case DOM_WKUP:
+		cm_fclken = CM_FCLKEN_WKUP;
+		cm_iclken = CM_ICLKEN_WKUP;
+		fclken_addr = (u32 *)&CM_FCLKEN_WKUP;
+		iclken_addr = (u32 *)&CM_ICLKEN_WKUP;
+		i_mask = WKUP_IMASK;
+		sysconf = sysc_reg_wkup;
+		break;
+	case DOM_DSS:
+		cm_fclken = CM_FCLKEN_DSS;
+		cm_iclken = CM_ICLKEN_DSS;
+		fclken_addr = (u32 *)&CM_FCLKEN_DSS;
+		iclken_addr = (u32 *)&CM_ICLKEN_DSS;
+		i_mask = DSS_IMASK;
+		sysconf = sysc_reg_dss;
+		break;
+	case DOM_CAM:
+		cm_fclken = CM_FCLKEN_CAM;
+		cm_iclken = CM_ICLKEN_CAM;
+		fclken_addr = (u32 *)&CM_FCLKEN_CAM;
+		iclken_addr = (u32 *)&CM_ICLKEN_CAM;
+		i_mask = CAM_IMASK;
+		sysconf = sysc_reg_cam;
+		break;
+	case DOM_PER:
+		cm_fclken = CM_FCLKEN_PER;
+		cm_iclken = CM_ICLKEN_PER;
+		fclken_addr = (u32 *)&CM_FCLKEN_PER;
+		iclken_addr = (u32 *)&CM_ICLKEN_PER;
+		i_mask = PER_IMASK;
+		sysconf = sysc_reg_per;
+		break;
+	default:
+		printk(KERN_INFO "Invalid domainid %d\n", domainid);
+		return PRCM_FAIL;
+	}
+	/* enable Functional and interface clocks */
+	valid_func_clk = get_val_bits(domainid, REG_FCLKEN);
+	valid_int_clk  = get_val_bits(domainid, REG_ICLKEN);
+	valid_idlest   = get_val_bits(domainid, REG_IDLEST);
+
+	prcm_set_domain_functional_clocks(domainid,
+		valid_func_clk);
+	prcm_set_domain_interface_clocks(domainid,
+		valid_int_clk);
+
+	ret = prcm_get_devices_not_idle(domainid, &mask);
+	if (ret == PRCM_FAIL) {
+		printk(KERN_ERR"Error: Devices not idled in"
+			" set_domain_power_configuration\n");
+		return ret;
+	}
+	while ((mask | i_mask) != valid_idlest) {
+		prcm_get_devices_not_idle(domainid, &mask);
+		ret = loop_wait(&loop_cnt, &retries_cnt, 1000);
+		if (ret != PRCM_PASS) {
+			printk(KERN_INFO "Loop count exceeded "
+			"in set_power_configuration for domain:%u"
+			"mask=%x,imask=%x,valid_idlest=%x\n",
+			domainid, mask, i_mask, valid_idlest);
+			return ret;
+		}
+	}
+	while (device_id != 0) {
+		addr = sysconf[index].reg_addr;
+		device_id = sysconf[index].device_id;
+
+		/* The end if each array is marked by "0" entries.
+		 * Break out of the loop is a NULL address is
+		 * encountered.
+		 */
+		if (!addr)
+			break;
+
+		pr_debug("Domain is %d, Address is %p\n", domainid, addr);
+
+		if (standbymode != PRCM_MIDLEMODE_DONTCARE) {
+			 /* Setting the MIDLEMODE field */
+			if (device_id == PRCM_SSI   || device_id == PRCM_SDMA ||
+			device_id == PRCM_HSOTG || device_id == PRCM_DISPC ||
+			device_id == PRCM_CAM   || device_id == PRCM_CSIA
+			|| device_id == PRCM_CSIB
+			) {
+				pr_debug("MIDLEMODE SET\n");
+				*addr |= (*addr & ~(PRCM_STANDBY_MASK)) |
+				(standbymode << PRCM_STANDBY_OFF);
+				pr_debug("TYPE %d *ADDR %x\n", INIT_TAR, *addr);
+			}
+		}
+		if (idlemode != PRCM_SIDLEMODE_DONTCARE) {
+			if (device_id == PRCM_SDRC && idlemode !=
+							 PRCM_SMART_IDLE)
+				printk("SDRC: Setting idle mode %u not"
+						"supported\n", idlemode);
+
+
+			/* Setting the SIDLEMODE field */
+			if (device_id == PRCM_CAM || device_id == PRCM_HDQ ||
+				device_id == PRCM_MPU_INTC || device_id ==
+				PRCM_CSIA || device_id == PRCM_CSIB)
+				pr_debug("SIDLEMODE cannot be set for %u\n",
+								 device_id);
+			else
+				*addr |= (*addr & ~(PRCM_IDLE_MASK)) |
+				(idlemode << PRCM_IDLE_OFF);
+
+		}
+
+		/* Setting the AUTOIDLE ENABLE field */
+		if (device_id == PRCM_SDRC   || device_id == PRCM_MCBSP1 ||
+		device_id == PRCM_MCBSP2 || device_id == PRCM_MCBSP3 ||
+		device_id == PRCM_MCBSP4 || device_id == PRCM_MCBSP5) {
+			pr_debug("AUTOIDLEMODE cannot set for %u\n", device_id);
+		} else {
+			*addr |= (*addr & ~(PRCM_AUTO_IDLE_MASK)) |
+			(autoidleenable << PRCM_AUTO_IDLE_OFF);
+		}
+
+		index++;
+	}
+
+	/* Restore the fclk/iclk registers */
+	*fclken_addr = cm_fclken;
+	*iclken_addr = cm_iclken;
+
+	return PRCM_PASS;
+}
+
 int prcm_do_frequency_scaling(u32 target_opp_id, u32 current_opp_id)
 {
 	u32 id_type, vdd;
@@ -3055,7 +3290,6 @@ int prcm_init(void)
 	/* To be enabled later when device drivers are tested with the
 	 * configuration */
 
-	/* TODO
 	prcm_set_domain_power_configuration(DOM_CORE1, PRCM_SIDLEMODE_DONTCARE,
 					PRCM_MIDLEMODE_DONTCARE, PRCM_TRUE);
 	prcm_set_domain_power_configuration(DOM_WKUP, PRCM_SIDLEMODE_DONTCARE,
@@ -3068,7 +3302,6 @@ int prcm_init(void)
 					PRCM_MIDLEMODE_DONTCARE, PRCM_TRUE);
 	prcm_set_domain_power_configuration(DOM_PER, PRCM_SIDLEMODE_DONTCARE,
 					PRCM_MIDLEMODE_DONTCARE, PRCM_TRUE);
-	*/
 
 	if (is_sil_rev_equal_to(OMAP3430_REV_ES1_0) ||
 			is_sil_rev_equal_to(OMAP3430_REV_ES2_0)) {
