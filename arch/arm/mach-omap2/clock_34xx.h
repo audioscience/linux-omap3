@@ -72,7 +72,7 @@ extern void save_scratchpad_contents(void);
 #define S26M	26000000
 #define S38M	38400000
 
-#define S625M	625000000
+#define S600M	600000000
 #define S550M	550000000
 #define S500M	500000000
 #define S250M	250000000
@@ -111,7 +111,7 @@ static struct vdd_prcm_config vdd1_rate_table[] = {
 	/*OPP4*/
 	{S550M, PRCM_VDD1_OPP4, RATE_IN_343X},
 	/*OPP5*/
-	{S625M, PRCM_VDD1_OPP5, RATE_IN_343X},
+	{S600M, PRCM_VDD1_OPP5, RATE_IN_343X},
 };
 
 static struct vdd_prcm_config vdd2_rate_table[] = {
@@ -128,7 +128,7 @@ static struct vdd_prcm_config vdd2_rate_table[] = {
 
 /* Base external input clocks */
 /* 32K clock */
-static struct clk sys_32k_ck = {
+static struct clk omap_32k_fck = {
 	.name = "omap_32k_fck",
 	.prcmid = PRCM_SYS_32K_CLK,
 	.rate = S_32K,
@@ -137,8 +137,8 @@ static struct clk sys_32k_ck = {
 	.recalc = &omap3_propagate_rate,
 };
 
-static struct clk osc_ck = {	/* (*12, *13, 19.2, *26, 38.4)MHz */
-	.name = "osc_ck",
+static struct clk osc_sys_ck = {	/* (*12, *13, 19.2, *26, 38.4)MHz */
+	.name = "osc_sys_ck",
 	.rate = S_OSC,		/* fixed up in clock init */
 	.flags = CLOCK_IN_OMAP343X | RATE_FIXED |
 	    ALWAYS_ENABLED | RATE_PROPAGATES,
@@ -147,7 +147,7 @@ static struct clk osc_ck = {	/* (*12, *13, 19.2, *26, 38.4)MHz */
 
 static struct clk sys_ck = {	/* (*12, *13, 19.2, 26, 38.4)MHz */
 	.name = "sys_ck",	/* ~ ref_clk also */
-	.parent = &osc_ck,
+	.parent = &osc_sys_ck,
 	.rate = S_OSC,
 	.prcmid = PRCM_SYS_CLK,
 	.flags = CLOCK_IN_OMAP343X | RATE_FIXED |
@@ -155,8 +155,8 @@ static struct clk sys_ck = {	/* (*12, *13, 19.2, 26, 38.4)MHz */
 	.recalc = &omap3_clk_recalc,
 };
 
-static struct clk sys_alt_ck = {
-	.name = "sys_alt_ck",
+static struct clk sysaltck = {
+	.name = "sysaltck",
 	.rate = S_ALT,
 	.prcmid = PRCM_SYS_ALT_CLK,
 	.flags = CLOCK_IN_OMAP343X | RATE_FIXED |
@@ -178,14 +178,6 @@ static struct clk usim_ick = {
 	.prcmid = PRCM_USIM,
 	.flags = CLOCK_IN_OMAP343X | I_CLK,
 	.recalc = &omap3_followparent_recalc,
-};
-
-static struct clk usbhost2_fck = {
-	.name = "usbhost2_fck",
-	.parent = &sys_ck,
-	.prcmid = PRCM_USBHOST2,
-	.flags = CLOCK_IN_OMAP343X | F_CLK | DPLL_OUTPUT | POWER_ON_REQUIRED,
-	.recalc = &omap3_clk_recalc,
 };
 
 static struct clk core_ck = {	/* Same as DPLL3_M2_CLK */
@@ -216,7 +208,7 @@ static struct clk cpefuse_fck = {
 
 static struct clk ts_fck = {
 	.name = "ts_fck",
-	.parent = &sys_32k_ck,
+	.parent = &omap_32k_fck,
 	.prcmid = PRCM_TS,
 	.flags = CLOCK_IN_OMAP343X | F_CLK | POWER_ON_REQUIRED,
 	.recalc = &omap3_followparent_recalc,
@@ -231,8 +223,8 @@ static struct clk emul_core_alwon_ck = {	/* Same as DPLL3_M3X2_CLK */
 	.recalc = &omap3_clk_recalc,
 };
 
-static struct clk cm_96m_ck = {	/* same as DPLL4_M2X2_CLK */
-	.name = "cm_96m_ck",
+static struct clk cm_96m_fck = {	/* same as DPLL4_M2X2_CLK */
+	.name = "cm_96m_fck",
 	.parent = &sys_ck,
 	.prcmid = PRCM_DPLL4_M2X2_CLK,
 	.flags = CLOCK_IN_OMAP343X | ALWAYS_ENABLED |
@@ -271,7 +263,7 @@ static struct clk emul_per_alwon_ck = {	/* same as DPLL4_M6X2_CLK */
 
 static struct clk func_48m_ck = {
 	.name = "func_48m_ck",
-	.parent = &func_96m_ck,	/*can be sys_alt_ck too */
+	.parent = &func_96m_ck,	/*can be sysaltck too */
 	.prcmid = PRCM_48M_FCLK,
 	.flags = CLOCK_IN_OMAP343X | RATE_PROPAGATES |
 	    ALWAYS_ENABLED | RATE_CKCTL | SRC_SEL,
@@ -290,7 +282,7 @@ static struct clk func_12m_ck = {
 static struct clk dss_tv_fck = {
 	/* This node controls dss_96m_fck too */
 	.name = "dss_tv_fck",
-	.parent = &dpll4_m3x2_ck,	/*can be sys_alt_ck too */
+	.parent = &dpll4_m3x2_ck,	/*can be sysaltck too */
 	.prcmid = PRCM_TVOUT,
 	.flags = CLOCK_IN_OMAP343X | SRC_SEL | F_CLK | POWER_ON_REQUIRED,
 	.recalc = &omap3_followparent_recalc,
@@ -300,7 +292,7 @@ static struct clk dss_tv_fck = {
 static struct clk sys_clkout1 = {
 /*May need to revisit this - sys_clkout1 can be output clock too */
 	.name = "sys_clkout1",
-	.parent = &osc_ck,
+	.parent = &osc_sys_ck,
 	.prcmid = PRCM_SYS_CLKOUT1,
 	.flags = CLOCK_IN_OMAP343X,
 	.recalc = &omap3_followparent_recalc,
@@ -341,8 +333,8 @@ static struct clk l4_ck = {
 	.recalc = &omap3_clk_recalc,
 };
 
-static struct clk rm_ck = {
-	.name = "rm_ck",
+static struct clk rm_ick = {
+	.name = "rm_ick",
 	.parent = &l4_ck,
 	.prcmid = PRCM_RM_ICLK,
 	.flags = CLOCK_IN_OMAP343X | ALWAYS_ENABLED |
@@ -413,27 +405,12 @@ static struct clk sgx_ick = {
 	.recalc = &omap3_followparent_recalc,
 };
 
-static struct clk hsusb_ick = {
+
+static struct clk hsotgusb_ick = {
 	.name = "hsotgusb_ick",
 	.parent = &l3_ck,
 	.prcmid = PRCM_HSOTG,
 	.flags = CLOCK_IN_OMAP343X | I_CLK | POWER_ON_REQUIRED,
-	.recalc = &omap3_followparent_recalc,
-};
-
-static struct clk usbhost_ick = {
-	.name = "usbhost_ick",
-	.parent = &l3_ck,
-	.prcmid = PRCM_USBHOST1,
-	.flags = CLOCK_IN_OMAP343X | I_CLK,
-	.recalc = &omap3_followparent_recalc,
-};
-
-static struct clk usbhost1_fck = {
-	.name = "usbhost1_fck",
-	.parent = &func_48m_ck,
-	.prcmid = PRCM_USBHOST1,
-	.flags = CLOCK_IN_OMAP343X | F_CLK | POWER_ON_REQUIRED,
 	.recalc = &omap3_followparent_recalc,
 };
 
@@ -501,8 +478,8 @@ static struct clk des1_ick = {
 	.recalc = &omap3_followparent_recalc,
 };
 
-static struct clk rng1_ick = {
-	.name = "rng1_ick",
+static struct clk rng_ick = {
+	.name = "rng_ick",
 	.parent = &l4_ck,
 	.prcmid = PRCM_RNG,
 	.flags = CLOCK_IN_OMAP343X | I_CLK | POWER_ON_REQUIRED,
@@ -545,8 +522,8 @@ static struct clk mcbsp5_ick = {
 	.recalc = &omap3_followparent_recalc,
 };
 
-static struct clk mmc1_fck = {
-	.name = "mmc_fck",
+static struct clk mmchs1_fck = {
+	.name = "mmchs_fck",
 	.id = 1,
 	.prcmid = PRCM_MMC1,
 	.parent = &func_96m_ck,
@@ -554,8 +531,8 @@ static struct clk mmc1_fck = {
 	.recalc = &omap3_followparent_recalc,
 };
 
-static struct clk mmc1_ick = {
-	.name = "mmc_ick",
+static struct clk mmchs1_ick = {
+	.name = "mmchs_ick",
 	.id = 1,
 	.prcmid = PRCM_MMC1,
 	.parent = &l4_ck,
@@ -563,8 +540,8 @@ static struct clk mmc1_ick = {
 	.recalc = &omap3_followparent_recalc,
 };
 
-static struct clk mmc2_fck = {
-	.name = "mmc_fck",
+static struct clk mmchs2_fck = {
+	.name = "mmchs_fck",
 	.id = 2,
 	.prcmid = PRCM_MMC2,
 	.parent = &func_96m_ck,
@@ -572,8 +549,8 @@ static struct clk mmc2_fck = {
 	.recalc = &omap3_followparent_recalc,
 };
 
-static struct clk mmc2_ick = {
-	.name = "mmc_ick",
+static struct clk mmchs2_ick = {
+	.name = "mmchs_ick",
 	.id = 2,
 	.prcmid = PRCM_MMC2,
 	.parent = &l4_ck,
@@ -581,8 +558,8 @@ static struct clk mmc2_ick = {
 	.recalc = &omap3_followparent_recalc,
 };
 
-static struct clk mmc3_fck = {
-	.name = "mmc_fck",
+static struct clk mmchs3_fck = {
+	.name = "mmchs_fck",
 	.id = 3,
 	.prcmid = PRCM_MMC3,
 	.parent = &func_96m_ck,
@@ -590,8 +567,8 @@ static struct clk mmc3_fck = {
 	.recalc = &omap3_followparent_recalc,
 };
 
-static struct clk mmc3_ick = {
-	.name = "mmc_ick",
+static struct clk mmchs3_ick = {
+	.name = "mmchs_ick",
 	.id = 3,
 	.prcmid = PRCM_MMC3,
 	.parent = &l4_ck,
@@ -669,13 +646,47 @@ static struct clk i2c3_ick = {
 	.recalc = &omap3_followparent_recalc,
 };
 
-static struct clk usbtll_host_sar_fck = {
-	.name = "usbtll_host_sar_fck",
-	.prcmid = PRCM_USBTLL,
-	.parent = &sys_ck,
+
+static struct clk omap_120m_fck = {
+	.name = "omap_120m_fck",
+	.parent	= &sys_ck,
+	.prcmid = PRCM_DPLL5_M2_CLK,
+	.flags = CLOCK_IN_OMAP343X | RATE_PROPAGATES | DPLL_OUTPUT,
+	.recalc = &omap3_clk_recalc,
+};
+
+static struct clk usbhost_ick = {
+	.name = "usbhost_ick",
+	.parent = &l3_ck,
+	.prcmid = PRCM_USBHOST1,
+	.flags = CLOCK_IN_OMAP343X | I_CLK,
+	.recalc = &omap3_followparent_recalc,
+};
+
+static struct clk usbhost_48m_fck = {
+	.name = "usbhost_48m_fck",
+	.parent = &func_48m_ck,
+	.prcmid = PRCM_USBHOST1,
 	.flags = CLOCK_IN_OMAP343X | F_CLK | POWER_ON_REQUIRED,
 	.recalc = &omap3_followparent_recalc,
 };
+
+static struct clk usbhost_120m_fck = {
+	.name = "usbhost_120m_fck",
+	.parent = &omap_120m_fck,
+	.prcmid = PRCM_USBHOST2,
+	.flags = CLOCK_IN_OMAP343X | F_CLK | POWER_ON_REQUIRED,
+	.recalc = &omap3_followparent_recalc,
+};
+
+static struct clk usbtll_fck = {
+	.name = "usbtll_fck",
+	.prcmid = PRCM_USBTLL,
+	.parent = &omap_120m_fck,
+	.flags = CLOCK_IN_OMAP343X | F_CLK | POWER_ON_REQUIRED,
+	.recalc = &omap3_followparent_recalc,
+};
+
 
 static struct clk usbtll_ick = {
 	.name = "usbtll_ick",
@@ -808,7 +819,7 @@ static struct clk hdq_ick = {
 static struct clk gpt10_fck = {
 	.name = "gpt10_fck",
 	.prcmid = PRCM_GPT10,
-	/* Can be sys_32k_fck too */
+	/* Can be omap_32k_fck too */
 	.parent = &sys_ck,
 	.rate = S_OSC,
 	.flags = CLOCK_IN_OMAP343X | SRC_SEL | F_CLK | POWER_ON_REQUIRED,
@@ -826,7 +837,7 @@ static struct clk gpt10_ick = {
 static struct clk gpt11_fck = {
 	.name = "gpt11_fck",
 	.prcmid = PRCM_GPT11,
-	/* Can be sys_32k_fck too */
+	/* Can be omap_32k_fck too */
 	.parent = &sys_ck,
 	.rate = S_OSC,
 	.flags = CLOCK_IN_OMAP343X | SRC_SEL | F_CLK | POWER_ON_REQUIRED,
@@ -877,7 +888,7 @@ static struct clk ssi_ssr_sst_fck = {
 };
 
 /* DSS domain clocks */
-static struct clk dss1_fck = {
+static struct clk dss1_alwon_fck = {
 	.name = "dss1_alwon_fck",
 	.prcmid = PRCM_DSS,
 	.parent = &sys_ck,
@@ -892,8 +903,8 @@ static struct clk dss_96m_fck = {
 	.recalc = &omap3_followparent_recalc,
 };
 
-static struct clk dss2_fck = {
-	.name = "dss2_fck",
+static struct clk dss2_alwon_fck = {
+	.name = "dss2_alwon_fck",
 	.prcmid = PRCM_DSS2,
 	.parent = &sys_ck,
 	.flags = CLOCK_IN_OMAP343X | F_CLK | POWER_ON_REQUIRED,
@@ -918,8 +929,8 @@ static struct clk cam_ick = {
 	.recalc = &omap3_followparent_recalc,
 };
 
-static struct clk cam_fck = {
-	.name = "cam_fck",
+static struct clk cam_mclk = {
+	.name = "cam_mclk",
 	.prcmid = PRCM_CAM,
 	.parent = &sys_ck,
 	.flags = CLOCK_IN_OMAP343X | F_CLK | DPLL_OUTPUT | POWER_ON_REQUIRED,
@@ -946,7 +957,7 @@ static struct clk gpt1_fck = {
 	.name = "gpt1_fck",
 	.prcmid = PRCM_GPT1,
 	/* Can be sys_ck too */
-	.parent = &sys_32k_ck,
+	.parent = &omap_32k_fck,
 	.rate = S_32K,
 	.flags = CLOCK_IN_OMAP343X | SRC_SEL | F_CLK,
 	.recalc = &omap3_followparent_recalc,
@@ -962,7 +973,7 @@ static struct clk sync_32k_ick = {
 
 static struct clk sync_32k_fck = {
 	.name = "sync_32k_fck",
-	.parent = &sys_32k_ck,
+	.parent = &omap_32k_fck,
 	.flags = CLOCK_IN_OMAP343X,
 	.recalc = &omap3_followparent_recalc,
 };
@@ -980,7 +991,7 @@ static struct clk wdt2_fck = {
 	.name = "wdt_fck",
 	.id = 2,
 	.prcmid = PRCM_WDT2,
-	.parent = &sys_32k_ck,
+	.parent = &omap_32k_fck,
 	.flags = CLOCK_IN_OMAP343X | F_CLK,
 	.recalc = &omap3_followparent_recalc,
 };
@@ -988,7 +999,7 @@ static struct clk wdt2_fck = {
 static struct clk gpio1_fck = {
 	.name = "gpio1_fck",
 	.prcmid = PRCM_GPIO1,
-	.parent = &sys_32k_ck,
+	.parent = &omap_32k_fck,
 	.flags = CLOCK_IN_OMAP343X | F_CLK,
 	.recalc = &omap3_followparent_recalc,
 };
@@ -1011,7 +1022,7 @@ static struct clk gpt12_ick = {
 
 static struct clk gpt12_fck = {
 	.name = "gpt12_fck",
-	.parent = &sys_32k_ck,
+	.parent = &omap_32k_fck,
 	.rate = S_32K,
 	/* No s/w control for this clock */
 	.flags = CLOCK_IN_OMAP343X | ALWAYS_ENABLED,
@@ -1030,7 +1041,7 @@ static struct clk wdt1_ick = {
 static struct clk wdt1_fck = {
 	.name = "wdt_fck",
 	.id = 1,
-	.parent = &sys_32k_ck,
+	.parent = &omap_32k_fck,
 	/* No s/w control for this clock */
 	.flags = CLOCK_IN_OMAP343X | ALWAYS_ENABLED,
 	.recalc = &omap3_followparent_recalc,
@@ -1110,7 +1121,7 @@ static struct clk wdt3_fck = {
 	.name = "wdt_fck",
 	.id = 3,
 	.prcmid = PRCM_WDT3,
-	.parent = &sys_32k_ck,
+	.parent = &omap_32k_fck,
 	.flags = CLOCK_IN_OMAP343X | F_CLK | POWER_ON_REQUIRED,
 	.recalc = &omap3_followparent_recalc,
 };
@@ -1127,7 +1138,7 @@ static struct clk wdt3_ick = {
 static struct clk gpio2_fck = {
 	.name = "gpio2_fck",
 	.prcmid = PRCM_GPIO2,
-	.parent = &sys_32k_ck,
+	.parent = &omap_32k_fck,
 	.flags = CLOCK_IN_OMAP343X | F_CLK | POWER_ON_REQUIRED,
 	.recalc = &omap3_followparent_recalc,
 };
@@ -1143,7 +1154,7 @@ static struct clk gpio2_ick = {
 static struct clk gpio3_fck = {
 	.name = "gpio3_fck",
 	.prcmid = PRCM_GPIO3,
-	.parent = &sys_32k_ck,
+	.parent = &omap_32k_fck,
 	.flags = CLOCK_IN_OMAP343X | F_CLK | POWER_ON_REQUIRED,
 	.recalc = &omap3_followparent_recalc,
 };
@@ -1159,7 +1170,7 @@ static struct clk gpio3_ick = {
 static struct clk gpio4_fck = {
 	.name = "gpio4_fck",
 	.prcmid = PRCM_GPIO4,
-	.parent = &sys_32k_ck,
+	.parent = &omap_32k_fck,
 	.flags = CLOCK_IN_OMAP343X | F_CLK | POWER_ON_REQUIRED,
 	.recalc = &omap3_followparent_recalc,
 };
@@ -1175,7 +1186,7 @@ static struct clk gpio4_ick = {
 static struct clk gpio5_fck = {
 	.name = "gpio5_fck",
 	.prcmid = PRCM_GPIO5,
-	.parent = &sys_32k_ck,
+	.parent = &omap_32k_fck,
 	.flags = CLOCK_IN_OMAP343X | F_CLK | POWER_ON_REQUIRED,
 	.recalc = &omap3_followparent_recalc,
 };
@@ -1191,7 +1202,7 @@ static struct clk gpio5_ick = {
 static struct clk gpio6_fck = {
 	.name = "gpio6_fck",
 	.prcmid = PRCM_GPIO6,
-	.parent = &sys_32k_ck,
+	.parent = &omap_32k_fck,
 	.flags = CLOCK_IN_OMAP343X | F_CLK | POWER_ON_REQUIRED,
 	.recalc = &omap3_followparent_recalc,
 };
@@ -1215,7 +1226,7 @@ static struct clk gpt2_ick = {
 static struct clk gpt2_fck = {
 	.name = "gpt2_fck",
 	.prcmid = PRCM_GPT2,
-	.parent = &sys_ck,	/* can be sys_32k_ck too */
+	.parent = &sys_ck,	/* can be omap_32k_fck too */
 	.rate = S_OSC,
 	.flags = CLOCK_IN_OMAP343X | F_CLK | SRC_SEL | POWER_ON_REQUIRED,
 	.recalc = &omap3_followparent_recalc,
@@ -1232,7 +1243,7 @@ static struct clk gpt3_ick = {
 static struct clk gpt3_fck = {
 	.name = "gpt3_fck",
 	.prcmid = PRCM_GPT3,
-	.parent = &sys_ck,	/* Can be sys_32k_ck too */
+	.parent = &sys_ck,	/* Can be omap_32k_fck too */
 	.rate = S_OSC,
 	.flags = CLOCK_IN_OMAP343X | F_CLK | SRC_SEL | POWER_ON_REQUIRED,
 	.recalc = &omap3_followparent_recalc,
@@ -1249,7 +1260,7 @@ static struct clk gpt4_ick = {
 static struct clk gpt4_fck = {
 	.name = "gpt4_fck",
 	.prcmid = PRCM_GPT4,
-	.parent = &sys_ck,	/* Can be sys_32k_ck too */
+	.parent = &sys_ck,	/* Can be omap_32k_fck too */
 	.rate = S_OSC,
 	.flags = CLOCK_IN_OMAP343X | F_CLK | SRC_SEL | POWER_ON_REQUIRED,
 	.recalc = &omap3_followparent_recalc,
@@ -1266,7 +1277,7 @@ static struct clk gpt5_ick = {
 static struct clk gpt5_fck = {
 	.name = "gpt5_fck",
 	.prcmid = PRCM_GPT5,
-	.parent = &sys_ck,	/* Can be sys_32k_ck too */
+	.parent = &sys_ck,	/* Can be omap_32k_fck too */
 	.rate = S_OSC,
 	.flags = CLOCK_IN_OMAP343X | F_CLK | SRC_SEL | POWER_ON_REQUIRED,
 	.recalc = &omap3_followparent_recalc,
@@ -1283,7 +1294,7 @@ static struct clk gpt6_ick = {
 static struct clk gpt6_fck = {
 	.name = "gpt6_fck",
 	.prcmid = PRCM_GPT6,
-	.parent = &sys_ck,	/* Can be sys_32k_ck too */
+	.parent = &sys_ck,	/* Can be omap_32k_fck too */
 	.rate = S_OSC,
 	.flags = CLOCK_IN_OMAP343X | F_CLK | SRC_SEL | POWER_ON_REQUIRED,
 	.recalc = &omap3_followparent_recalc,
@@ -1300,7 +1311,7 @@ static struct clk gpt7_ick = {
 static struct clk gpt7_fck = {
 	.name = "gpt7_fck",
 	.prcmid = PRCM_GPT7,
-	.parent = &sys_ck,	/* Can be sys_32k_ck too */
+	.parent = &sys_ck,	/* Can be omap_32k_fck too */
 	.rate = S_OSC,
 	.flags = CLOCK_IN_OMAP343X | F_CLK | SRC_SEL | POWER_ON_REQUIRED,
 	.recalc = &omap3_followparent_recalc,
@@ -1317,7 +1328,7 @@ static struct clk gpt8_ick = {
 static struct clk gpt8_fck = {
 	.name = "gpt8_fck",
 	.prcmid = PRCM_GPT8,
-	.parent = &sys_ck,	/* Can be sys_32k_ck too */
+	.parent = &sys_ck,	/* Can be omap_32k_fck too */
 	.rate = S_OSC,
 	.flags = CLOCK_IN_OMAP343X | F_CLK | SRC_SEL | POWER_ON_REQUIRED,
 	.recalc = &omap3_followparent_recalc,
@@ -1334,7 +1345,7 @@ static struct clk gpt9_ick = {
 static struct clk gpt9_fck = {
 	.name = "gpt9_fck",
 	.prcmid = PRCM_GPT9,
-	.parent = &sys_ck,	/* Can be sys_32k_ck too */
+	.parent = &sys_ck,	/* Can be omap_32k_fck too */
 	.rate = S_OSC,
 	.flags = CLOCK_IN_OMAP343X | F_CLK | SRC_SEL | POWER_ON_REQUIRED,
 	.recalc = &omap3_followparent_recalc,
@@ -1386,15 +1397,15 @@ static struct clk virt_vdd2_prcm_set = {
 
 static struct clk *onchip_clks[] = {
 	/* external root sources */
-	&sys_32k_ck,
-	&osc_ck,
+	&omap_32k_fck,
+	&osc_sys_ck,
 	&sys_ck,
-	&sys_alt_ck,
+	&sysaltck,
 	/* internal sources */
 	&core_ck,
 	&core_x2_ck,
 	&emul_core_alwon_ck,
-	&cm_96m_ck,
+	&cm_96m_fck,
 	&func_96m_ck,
 	&dpll4_m3x2_ck,
 	&emul_per_alwon_ck,
@@ -1406,19 +1417,18 @@ static struct clk *onchip_clks[] = {
 	&l3_ck,
 	&gpmc_fck,
 	&l4_ck,
-	&rm_ck,
+	&rm_ick,
 	&dpll1_fck,
 	&dpll2_fck,
 	&mpu_ck,
 	&iva2_ck,
 	&usim_fck,
 	&usim_ick,
-	&usbhost2_fck,
 	&cpefuse_fck,
 	&ts_fck,
 	&sgx_fck,
 	&sgx_ick,
-	&hsusb_ick,
+	&hsotgusb_ick,
 	&sdrc_ick,
 	&pka_ick,
 	&aes2_ick,
@@ -1427,17 +1437,17 @@ static struct clk *onchip_clks[] = {
 	&aes1_ick,
 	&sha11_ick,
 	&des1_ick,
-	&rng1_ick,
+	&rng_ick,
 	&mcbsp1_fck,
 	&mcbsp1_ick,
 	&mcbsp5_fck,
 	&mcbsp5_ick,
-	&mmc1_fck,
-	&mmc1_ick,
-	&mmc2_fck,
-	&mmc2_ick,
-	&mmc3_fck,
-	&mmc3_ick,
+	&mmchs1_fck,
+	&mmchs1_ick,
+	&mmchs2_fck,
+	&mmchs2_ick,
+	&mmchs3_fck,
+	&mmchs3_ick,
 	&mspro_fck,
 	&mspro_ick,
 	&i2c1_fck,
@@ -1446,9 +1456,11 @@ static struct clk *onchip_clks[] = {
 	&i2c2_ick,
 	&i2c3_fck,
 	&i2c3_ick,
+	&omap_120m_fck,
 	&usbhost_ick,
-	&usbhost1_fck,
-	&usbtll_host_sar_fck,
+	&usbhost_48m_fck,
+	&usbhost_120m_fck,
+	&usbtll_fck,
 	&usbtll_ick,
 	&uart1_fck,
 	&uart1_ick,
@@ -1472,11 +1484,11 @@ static struct clk *onchip_clks[] = {
 	&mailboxes_ick,
 	&ssi_ick,
 	&ssi_ssr_sst_fck,
-	&dss1_fck,
+	&dss1_alwon_fck,
 	&dss_96m_fck,
-	&dss2_fck,
+	&dss2_alwon_fck,
 	&dss_ick,
-	&cam_fck,
+	&cam_mclk,
 	&cam_ick,
 	&csi2_fck,
 	&gpt1_fck,

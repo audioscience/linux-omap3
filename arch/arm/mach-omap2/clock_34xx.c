@@ -192,6 +192,7 @@ static char *id_to_name[] = {"iva2", "mpu", "core", "core", "sgx", NULL, "dss",
 static struct vdd_prcm_config *curr_vdd1_prcm_set;
 static struct vdd_prcm_config *curr_vdd2_prcm_set;
 
+#ifndef CONFIG_CPU_FREQ 
 static unsigned long compute_lpj(unsigned long ref, u_int div, u_int mult)
 {
 	unsigned long new_jiffy_l, new_jiffy_h;
@@ -211,7 +212,7 @@ static unsigned long compute_lpj(unsigned long ref, u_int div, u_int mult)
 
 	return new_jiffy_h + new_jiffy_l * 100;
 }
-
+#endif
 /*-------------------------------------------------------------------------
  * Omap3 specific clock functions
  *-------------------------------------------------------------------------*/
@@ -245,7 +246,7 @@ static int _omap3_clk_enable(struct clk *clk)
 	if (clk == &sys_clkout2)
 		ret = prcm_control_external_output_clock2(PRCM_ENABLE);
 
-	if (clk->flags & F_CLK)
+	if (clk->flags & F_CLK) {
 #ifdef CONFIG_AUTO_POWER_DOMAIN_CTRL
 		ret = enable_power_domain(clk);
 		if (ret)
@@ -254,7 +255,8 @@ static int _omap3_clk_enable(struct clk *clk)
 		ret =
 		    prcm_clock_control(clk->prcmid, FCLK, PRCM_ENABLE,
 				       PRCM_ACCESS_CHK);
-	if (clk->flags & I_CLK)
+	}
+	if (clk->flags & I_CLK) {
 #ifdef CONFIG_AUTO_POWER_DOMAIN_CTRL
 		ret = enable_power_domain(clk);
 		if (ret)
@@ -263,6 +265,7 @@ static int _omap3_clk_enable(struct clk *clk)
 		ret =
 		    prcm_clock_control(clk->prcmid, ICLK, PRCM_ENABLE,
 				       PRCM_ACCESS_CHK);
+	}
 
 	pr_debug("Done Clk: %s\n", clk->name);
 	if (ret == PRCM_FAIL)
@@ -689,10 +692,12 @@ static int omap3_select_table_rate(struct clk *clk, unsigned long rate)
 		omap3_propagate_rate(&mpu_ck);
 		omap3_clk_recalc(&iva2_ck);
 		omap3_propagate_rate(&iva2_ck);
+#ifndef CONFIG_CPU_FREQ
 		/*Update loops_per_jiffy if processor speed is being changed*/
 		loops_per_jiffy = compute_lpj(loops_per_jiffy,
 				(cur_vdd_rate / 1000),
 				(found_speed / 1000));
+#endif
 	} else {
 		curr_vdd2_prcm_set = prcm_vdd;
 		omap3_clk_recalc(&core_ck);
@@ -800,19 +805,19 @@ static int omap3_update_sources(void)
 				if (pid == PRCM_DPLL4_M2X2_CLK)
 					cp->parent = &func_96m_ck;
 				else
-					cp->parent = &sys_alt_ck;
+					cp->parent = &sysaltck;
 				break;
 			case PRCM_USIM:
 				if (pid == PRCM_SYS_CLK)
 					cp->parent = &sys_ck;
 				else if (pid == PRCM_DPLL4_M2X2_CLK)
-					cp->parent = &cm_96m_ck;
+					cp->parent = &cm_96m_fck;
 				else
 					cp->parent = &ext_mcbsp_ck;
 				break;
 			case PRCM_96M_CLK:
 				if (pid == PRCM_DPLL4_M2X2_CLK)
-					cp->parent = &cm_96m_ck;
+					cp->parent = &cm_96m_fck;
 				else
 					cp->parent = &sys_ck;
 				break;
@@ -846,7 +851,7 @@ static int omap3_update_sources(void)
 			case PRCM_GPT10:
 			case PRCM_GPT11:
 				if (pid == PRCM_SYS_32K_CLK)
-					cp->parent = &sys_32k_ck;
+					cp->parent = &omap_32k_fck;
 				else
 					cp->parent = &sys_ck;
 
@@ -871,7 +876,7 @@ static int __init omap3_clk_arch_init(void)
 		panic("FATAL ERROR: Unable to Configure DPLL5\n");
 	if (prcm_enable_dpll(DPLL5_PER2))
 		panic("FATAL ERROR: Unable to Lock DPLL5\n");
-	omap3_get_crystal_rate(&osc_ck);
+	omap3_get_crystal_rate(&osc_sys_ck);
 	omap3_update_sources();
 
 	sys_clk_speed = prcm_get_system_clock_speed() * 1000;
@@ -905,9 +910,9 @@ static int __init omap3_clk_arch_init(void)
 	}
 	curr_vdd2_prcm_set = vdd2_prcm;
 
-	propagate_rate(&osc_ck);	/* update main root fast */
-	propagate_rate(&sys_32k_ck);	/* update main root slow */
-	propagate_rate(&sys_alt_ck);	/* update alt ck tree */
+	propagate_rate(&osc_sys_ck);	/* update main root fast */
+	propagate_rate(&omap_32k_fck);	/* update main root slow */
+	propagate_rate(&sysaltck);	/* update alt ck tree */
 
 	pr_debug("Rate propagation done for all clocks\n");
 	return 0;
@@ -938,8 +943,8 @@ int __init omap3_clk_init(void)
 
 #ifdef CONFIG_OMAP34XX_OFFMODE
 	spin_lock_init(&inatimer_lock);
-	init_timer(&coredomain_timer);
-	init_timer(&perdomain_timer);
+	init_timer_deferrable(&coredomain_timer);
+	init_timer_deferrable(&perdomain_timer);
 
 	coredomain_timer.function = coredomain_timer_func;
 	perdomain_timer.function = perdomain_timer_func;
