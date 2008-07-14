@@ -20,6 +20,7 @@
 #include <linux/errno.h>
 #include <linux/notifier.h>
 #include <linux/clk.h>
+#include <linux/pm_qos_params.h>
 
 #include <asm/arch/clock.h>
 #include <asm/arch/resource.h>
@@ -222,6 +223,8 @@ unsigned int vdd2_opp_setting(u32 target_opp_no)
 	return target_vdd2_opp;
 }
 
+u8 pm_qos_req_added = 0;
+
 int activate_constraint(struct shared_resource *resp,
 			unsigned short current_value,
 			unsigned short target_value)
@@ -232,6 +235,38 @@ int activate_constraint(struct shared_resource *resp,
 	DPRINTK("CUR_VAL = %d, TAR_VAL = %d\n", current_value, target_value);
 	if (type == RES_LATENCY_CO) {
 		/* TODO Need to use pm_qos here */
+		/* Remove previous latencies set by omap_lt_co */
+		if (pm_qos_req_added)
+			pm_qos_remove_requirement(PM_QOS_CPU_DMA_LATENCY,
+							"omap_lt_co");
+		switch (target_value) {
+		case CO_LATENCY_WFI:
+		/* Allows only wfi + tick suppression. State C1*/
+		pm_qos_add_requirement(PM_QOS_CPU_DMA_LATENCY,
+						"omap_lt_co", 99);
+		break;
+		case CO_LATENCY_MPURET_COREON:
+		/* Allows upto MPU RET. State C2*/
+		pm_qos_add_requirement(PM_QOS_CPU_DMA_LATENCY,
+						"omap_lt_co", 3299);
+		break;
+		case CO_LATENCY_MPUOFF_COREON:
+		/* Allows upto MPU OFF. State C3*/
+		pm_qos_add_requirement(PM_QOS_CPU_DMA_LATENCY,
+						"omap_lt_co", 9999);
+		break;
+		case CO_LATENCY_MPUOFF_CORERET:
+		/* Allows upto CORE RET. State C4*/
+		pm_qos_add_requirement(PM_QOS_CPU_DMA_LATENCY,
+						"omap_lt_co", 39999);
+		break;
+		case CO_UNUSED:
+		break;
+		default:
+		pm_qos_add_requirement(PM_QOS_CPU_DMA_LATENCY,
+						"omap_lt_co", target_value);
+		break;
+		}
 	} else if ((type == PRCM_ARMFREQ_CONSTRAINT)) {
 		for (ind = 0; ind < max_vdd1_opp; ind++) {
 			if (vdd1_arm_dsp_freq[ind][0] >= target_value) {
