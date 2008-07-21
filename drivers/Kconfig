@@ -100,5 +100,7 @@ source "drivers/auxdisplay/Kconfig"
 
 source "drivers/uio/Kconfig"
 
+source "drivers/dsp/dspbridge/Kconfig"
+
 source "drivers/xen/Kconfig"
 endmenu

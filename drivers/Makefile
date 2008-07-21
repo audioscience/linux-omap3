@@ -37,6 +37,7 @@ obj-y				+= base/ block/ misc/ mfd/ net/ media/ cbus/
 obj-y				+= i2c/
 obj-y				+= cbus/
 obj-$(CONFIG_ARCH_OMAP)		+= dsp/dspgateway/
+obj-$(CONFIG_MPU_BRIDGE)	+= dsp/dspbridge/
 obj-$(CONFIG_NUBUS)		+= nubus/
 obj-$(CONFIG_ATM)		+= atm/
 obj-y				+= macintosh/
