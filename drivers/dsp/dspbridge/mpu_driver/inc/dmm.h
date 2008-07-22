@@ -39,7 +39,7 @@
 
 /* DMM attributes used in DMM_Create() */
 	struct DMM_MGRATTRS {
-		ULONG reserved;
+		u32 reserved;
 	} ;
 
 #define DMMPOOLSIZE      0x3000000
@@ -55,18 +55,18 @@
 					OUT struct DMM_OBJECT **phDmmMgr);
 
 	extern DSP_STATUS DMM_ReserveMemory(struct DMM_OBJECT *hDmmMgr,
-					    ULONG size,
-					    ULONG *pRsvAddr);
+					    u32 size,
+					    u32 *pRsvAddr);
 
 	extern DSP_STATUS DMM_UnReserveMemory(struct DMM_OBJECT *hDmmMgr,
-					      ULONG rsvAddr);
+					      u32 rsvAddr);
 
-	extern DSP_STATUS DMM_MapMemory(struct DMM_OBJECT *hDmmMgr, ULONG addr,
-					ULONG size);
+	extern DSP_STATUS DMM_MapMemory(struct DMM_OBJECT *hDmmMgr, u32 addr,
+					u32 size);
 
 	extern DSP_STATUS DMM_UnMapMemory(struct DMM_OBJECT *hDmmMgr,
-					  ULONG addr,
-					  ULONG *pSize);
+					  u32 addr,
+					  u32 *pSize);
 
 	extern DSP_STATUS DMM_Destroy(struct DMM_OBJECT *hDmmMgr);
 
@@ -78,9 +78,9 @@
 
 	extern BOOL DMM_Init();
 
-	extern VOID DMM_Exit();
+	extern void DMM_Exit();
 
 	extern DSP_STATUS DMM_CreateTables(struct DMM_OBJECT *hDmmMgr,
-						ULONG addr, ULONG size);
-	extern ULONG *DMM_GetPhysicalAddrTable(void);
+						u32 addr, u32 size);
+	extern u32 *DMM_GetPhysicalAddrTable(void);
 #endif				/* DMM_ */

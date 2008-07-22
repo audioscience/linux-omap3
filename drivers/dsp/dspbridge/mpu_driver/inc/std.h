@@ -52,19 +52,21 @@
  *! 22-Feb-1995 mf: 	Float is float for _SUN_ and _80_
  *! 22-Dec-1994 mf: 	Added _80_ definition, for PP or MP.
  *! 09-Dec-1994 mf: 	Added _53_ definition.
- *! 22-Nov-1994 mf: 	Ptr is void * everywhere.
  *!			Added definitions of _30_, etc.
  *! 23-Aug-1994 dh	removed _21_ special case (kw)
  *! 17-Aug-1994 dh	added _51_ support
  *! 03-Aug-1994 kw	updated _80_ support
  *! 30-Jun-1994 kw	added _80_ support
  *! 05-Apr-1994 kw:	Added _SUN_ to _FLOAT_ definition
- *! 01-Mar-1994 kw: 	Made Bool an int (was MdUns) for _56_ (more efficient).
+ *! 01-Mar-1994 kw: 	Made Bool an int (was u16) for _56_ (more efficient).
  *!			Added _53_ support.
  */
 
 #ifndef STD_
 #define STD_
+
+#include <linux/types.h>
+#include <asm/types.h>
 
 /*
  *  ======== _TI_ ========
@@ -110,51 +112,27 @@
  *  Md* - 16-bit type
  *  Lg* - 32-bit type
  *
- *  *Int - signed type
- *  *Uns - unsigned type
+ *  *s32 - signed type
+ *  *u32 - unsigned type
  *  *Bits - unsigned type (bit-maps)
  */
-typedef short MdInt;		/* MDSIZE-bit signed integer */
-typedef long LgInt;		/* LGSIZE-bit signed integer */
 
-typedef unsigned char SmUns;	/* SMSIZE-bit unsigned integer */
-typedef unsigned short MdUns;	/* MDSIZE-bit unsigned integer */
-typedef unsigned long LgUns;	/* LGSIZE-bit unsigned integer */
-
-typedef unsigned char SmBits;	/* SMSIZE-bit bit string */
-typedef unsigned long LgBits;	/* LGSIZE-bit bit string */
 
 /*
  *  Aliases for standard C types
  */
-typedef int Int;		/* for those rare occasions */
-typedef char Char;
-#define Void void
 
-typedef char *String;		/* pointer to null-terminated character
-				 * sequence
-				 */
-
-typedef unsigned long Uns;
 
 #if defined(_80_)
 typedef int Bool;		/* boolean */
 #elif defined(_W32_)
 typedef long Bool;		/* boolean to match Windows boolean def */
 #else
-typedef MdUns Bool;		/* boolean */
+typedef u16 Bool;		/* boolean */
 #endif
 
-typedef SmBits Byte;		/* smallest unit of addressable store */
-typedef void *Ptr;		/* pointer to arbitrary type */
 
-typedef Int(*Fxn) ();		/* generic function type */
-
-#if defined(_80_) || defined(_SUN_) || defined(_67_)
-typedef float Float;
-#else
-typedef double Float;
-#endif
+typedef s32(*Fxn) ();		/* generic function type */
 
 #ifndef NULL
 #define NULL 0
@@ -166,15 +144,15 @@ typedef double Float;
 #endif
 
 /*
- * These macros are used to cast 'Arg' types to 'Int' or 'Ptr'.
+ * These macros are used to cast 'Arg' types to 's32' or 'Ptr'.
  * These macros were added for the 55x since Arg is not the same
- * size as Int and Ptr in 55x large model.
+ * size as s32 and Ptr in 55x large model.
  */
 #if defined(_28l_) || defined(_55l_)
-#define ArgToInt(A)	((Int)((long)(A) & 0xffff))
+#define ArgToInt(A)	((s32)((long)(A) & 0xffff))
 #define ArgToPtr(A)	((Ptr)(A))
 #else
-#define ArgToInt(A)	((Int)(A))
+#define ArgToInt(A)	((s32)(A))
 #define ArgToPtr(A)	((Ptr)(A))
 #endif
 

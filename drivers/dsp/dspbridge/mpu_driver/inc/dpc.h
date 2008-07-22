@@ -61,7 +61,7 @@
  *      However, the DPC may take hardware interrupts during execution.
  *      Interrupts to the processor are enabled.
  */
-	typedef VOID(CDECL * DPC_PROC) (PVOID pRefData);
+	typedef void(CDECL * DPC_PROC) (void *pRefData);
 
 /*
  *  ======== DPC_Cancel ========
@@ -101,7 +101,7 @@
  */
 	extern DSP_STATUS CDECL DPC_Create(OUT struct DPC_OBJECT **phDPC,
 					   IN DPC_PROC pfnDPC,
-					   IN PVOID pRefData);
+					   IN void *pRefData);
 
 /*
  *  ======== DPC_Destroy ========
@@ -133,7 +133,7 @@
  *  Ensures:
  *      Resources acquired in DPC_Init() are freed.
  */
-	extern VOID CDECL DPC_Exit();
+	extern void CDECL DPC_Exit();
 
 /*
  *  ======== DPC_Init ========

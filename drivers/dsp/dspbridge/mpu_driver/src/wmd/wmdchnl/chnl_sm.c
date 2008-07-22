@@ -148,14 +148,14 @@
 #define MAILBOX_IRQ INT_MAIL_MPU_IRQ
 
 /*  ----------------------------------- Function Prototypes */
-static struct LST_LIST *CreateChirpList(ULONG uChirps);
+static struct LST_LIST *CreateChirpList(u32 uChirps);
 
 static void FreeChirpList(struct LST_LIST *pList);
 
 static struct CHNL_IRP *MakeNewChirp(void);
 
 static DSP_STATUS SearchFreeChannel(struct CHNL_MGR *pChnlMgr,
-				   OUT DWORD *pdwChnl);
+				   OUT u32 *pdwChnl);
 
 /*
  *  ======== WMD_CHNL_AddIOReq ========
@@ -164,19 +164,19 @@ static DSP_STATUS SearchFreeChannel(struct CHNL_MGR *pChnlMgr,
  *      The direction (mode) is specified in the channel object. Note the DSP
  *      address is specified for channels opened in direct I/O mode.
  */
-DSP_STATUS WMD_CHNL_AddIOReq(struct CHNL_OBJECT *hChnl, PVOID pHostBuf,
-			    ULONG cBytes, ULONG cBufSize,
-			    OPTIONAL DWORD dwDspAddr, DWORD dwArg)
+DSP_STATUS WMD_CHNL_AddIOReq(struct CHNL_OBJECT *hChnl, void *pHostBuf,
+			    u32 cBytes, u32 cBufSize,
+			    OPTIONAL u32 dwDspAddr, u32 dwArg)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct CHNL_OBJECT *pChnl = (struct CHNL_OBJECT *)hChnl;
 	struct CHNL_IRP *pChirp = NULL;
-	DWORD dwState;
+	u32 dwState;
 	BOOL fIsEOS;
 	struct CHNL_MGR *pChnlMgr = pChnl->pChnlMgr;
-	BYTE *pHostSysBuf = NULL;
+	u8 *pHostSysBuf = NULL;
 	BOOL fSchedDPC = FALSE;
-	WORD wMbVal = 0;
+	u16 wMbVal = 0;
 
 	DBG_Trace(DBG_ENTER,
 		  "> WMD_CHNL_AddIOReq pChnl %p CHNL_IsOutput %x uChnlType "
@@ -186,7 +186,7 @@ DSP_STATUS WMD_CHNL_AddIOReq(struct CHNL_OBJECT *hChnl, PVOID pHostBuf,
 	fIsEOS = (cBytes == 0) ? TRUE : FALSE;
 
 	if (pChnl->uChnlType == CHNL_PCPY && pChnl->uId > 1 && pHostBuf) {
-		if (!(pHostBuf < (PVOID)USERMODE_ADDR)) {
+		if (!(pHostBuf < (void *)USERMODE_ADDR)) {
 			pHostSysBuf = pHostBuf;
 			goto func_cont;
 		}
@@ -324,7 +324,7 @@ DSP_STATUS WMD_CHNL_CancelIO(struct CHNL_OBJECT *hChnl)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct CHNL_OBJECT *pChnl = (struct CHNL_OBJECT *)hChnl;
-	ULONG iChnl = -1;
+	u32 iChnl = -1;
 	CHNL_MODE uMode;
 	struct CHNL_IRP *pChirp;
 	struct CHNL_MGR *pChnlMgr = NULL;
@@ -457,7 +457,7 @@ DSP_STATUS WMD_CHNL_Create(OUT struct CHNL_MGR **phChnlMgr,
 {
 	DSP_STATUS status = DSP_SOK;
 	struct CHNL_MGR *pChnlMgr = NULL;
-	INT cChannels;
+	s32 cChannels;
 #ifdef DEBUG
 	struct CHNL_MGR *hChnlMgr;
 #endif
@@ -529,7 +529,7 @@ DSP_STATUS WMD_CHNL_Destroy(struct CHNL_MGR *hChnlMgr)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct CHNL_MGR *pChnlMgr = hChnlMgr;
-	ULONG iChnl;
+	u32 iChnl;
 
 	if (MEM_IsValidHandle(hChnlMgr, CHNL_MGRSIGNATURE)) {
 		/* Close all open channels: */
@@ -562,7 +562,7 @@ DSP_STATUS WMD_CHNL_Destroy(struct CHNL_MGR *hChnlMgr)
  *  purpose:
  *      Flushes all the outstanding data requests on a channel.
  */
-DSP_STATUS WMD_CHNL_FlushIO(struct CHNL_OBJECT *hChnl, DWORD dwTimeOut)
+DSP_STATUS WMD_CHNL_FlushIO(struct CHNL_OBJECT *hChnl, u32 dwTimeOut)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct CHNL_OBJECT *pChnl = (struct CHNL_OBJECT *)hChnl;
@@ -649,7 +649,7 @@ DSP_STATUS WMD_CHNL_GetInfo(struct CHNL_OBJECT *hChnl,
  *      I/O request.
  *      Note: Ensures Channel Invariant (see notes above).
  */
-DSP_STATUS WMD_CHNL_GetIOC(struct CHNL_OBJECT *hChnl, DWORD dwTimeOut,
+DSP_STATUS WMD_CHNL_GetIOC(struct CHNL_OBJECT *hChnl, u32 dwTimeOut,
 			  OUT struct CHNL_IOC *pIOC)
 {
 	DSP_STATUS status = DSP_SOK;
@@ -658,7 +658,7 @@ DSP_STATUS WMD_CHNL_GetIOC(struct CHNL_OBJECT *hChnl, DWORD dwTimeOut,
 	DSP_STATUS statSync;
 	BOOL fDequeueIOC = TRUE;
 	struct CHNL_IOC ioc;
-	BYTE *pHostSysBuf = NULL;
+	u8 *pHostSysBuf = NULL;
 
 	DBG_Trace(DBG_ENTER, "> WMD_CHNL_GetIOC pChnl %p CHNL_IsOutput %x "
 		 "uChnlType %x\n", pChnl, CHNL_IsOutput(pChnl->uMode),
@@ -753,7 +753,7 @@ DSP_STATUS WMD_CHNL_GetIOC(struct CHNL_OBJECT *hChnl, DWORD dwTimeOut,
 	enable_irq(MAILBOX_IRQ);
 	SYNC_LeaveCS(pChnl->pChnlMgr->hCSObj);
 	if (fDequeueIOC && (pChnl->uChnlType == CHNL_PCPY && pChnl->uId > 1)) {
-		if (!(ioc.pBuf < (PVOID) USERMODE_ADDR))
+		if (!(ioc.pBuf < (void *) USERMODE_ADDR))
 			goto func_cont;
 
 		/* If the addr is in user mode, then copy it */
@@ -807,7 +807,7 @@ func_end:
  *  Purpose:
  *      Retrieve information related to the channel manager.
  */
-DSP_STATUS WMD_CHNL_GetMgrInfo(struct CHNL_MGR *hChnlMgr, ULONG uChnlID,
+DSP_STATUS WMD_CHNL_GetMgrInfo(struct CHNL_MGR *hChnlMgr, u32 uChnlID,
 			      OUT struct CHNL_MGRINFO *pMgrInfo)
 {
 	DSP_STATUS status = DSP_SOK;
@@ -841,7 +841,7 @@ DSP_STATUS WMD_CHNL_GetMgrInfo(struct CHNL_MGR *hChnlMgr, ULONG uChnlID,
  *  purpose:
  *      Idles a particular channel.
  */
-DSP_STATUS WMD_CHNL_Idle(struct CHNL_OBJECT *hChnl, DWORD dwTimeOut,
+DSP_STATUS WMD_CHNL_Idle(struct CHNL_OBJECT *hChnl, u32 dwTimeOut,
 			 BOOL fFlush)
 {
 	CHNL_MODE uMode;
@@ -875,7 +875,7 @@ DSP_STATUS WMD_CHNL_Idle(struct CHNL_OBJECT *hChnl, DWORD dwTimeOut,
  */
 DSP_STATUS WMD_CHNL_Open(OUT struct CHNL_OBJECT **phChnl,
 			 struct CHNL_MGR *hChnlMgr, CHNL_MODE uMode,
-			 ULONG uChnlId, CONST IN struct CHNL_ATTRS *pAttrs)
+			 u32 uChnlId, CONST IN struct CHNL_ATTRS *pAttrs)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct CHNL_MGR *pChnlMgr = hChnlMgr;
@@ -1003,8 +1003,8 @@ func_end:
  *  purpose:
  *      Registers for events on a particular channel.
  */
-DSP_STATUS WMD_CHNL_RegisterNotify(struct CHNL_OBJECT *hChnl, UINT uEventMask,
-				  UINT uNotifyType,
+DSP_STATUS WMD_CHNL_RegisterNotify(struct CHNL_OBJECT *hChnl, u32 uEventMask,
+				  u32 uNotifyType,
 				  struct DSP_NOTIFICATION *hNotification)
 {
 	DSP_STATUS status = DSP_SOK;
@@ -1028,11 +1028,11 @@ DSP_STATUS WMD_CHNL_RegisterNotify(struct CHNL_OBJECT *hChnl, UINT uEventMask,
  *  Requires:
  *  Ensures:
  */
-static struct LST_LIST *CreateChirpList(ULONG uChirps)
+static struct LST_LIST *CreateChirpList(u32 uChirps)
 {
 	struct LST_LIST *pChirpList;
 	struct CHNL_IRP *pChirp;
-	ULONG i;
+	u32 i;
 
 	pChirpList = LST_Create();
 
@@ -1093,10 +1093,10 @@ static struct CHNL_IRP *MakeNewChirp(void)
  *      Search for a free channel slot in the array of channel pointers.
  */
 static DSP_STATUS SearchFreeChannel(struct CHNL_MGR *pChnlMgr,
-				   OUT DWORD *pdwChnl)
+				   OUT u32 *pdwChnl)
 {
 	DSP_STATUS status = CHNL_E_OUTOFSTREAMS;
-	DWORD i;
+	u32 i;
 
 	DBC_Require(MEM_IsValidHandle(pChnlMgr, CHNL_MGRSIGNATURE));
 

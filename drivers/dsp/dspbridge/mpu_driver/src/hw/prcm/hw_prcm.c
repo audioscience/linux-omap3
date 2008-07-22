@@ -35,19 +35,19 @@
 /*
 * LOCAL FUNCTIONS PROTOTYPES
 */
-static HW_STATUS HW_RST_WriteVal(const UWORD32 baseAddress,
+static HW_STATUS HW_RST_WriteVal(const u32 baseAddress,
 				    HW_RstModule_t r, HW_SetClear_t val);
 
 /*
 * EXPORTED FUNCTIONS
 */
 
-HW_STATUS HW_RST_Reset(const UWORD32 baseAddress, HW_RstModule_t r)
+HW_STATUS HW_RST_Reset(const u32 baseAddress, HW_RstModule_t r)
 {
     return HW_RST_WriteVal(baseAddress, r, HW_SET);
 }
 
-HW_STATUS HW_RST_UnReset(const UWORD32 baseAddress, HW_RstModule_t r)
+HW_STATUS HW_RST_UnReset(const u32 baseAddress, HW_RstModule_t r)
 {
     return HW_RST_WriteVal(baseAddress, r, HW_CLEAR);
 }
@@ -55,7 +55,7 @@ HW_STATUS HW_RST_UnReset(const UWORD32 baseAddress, HW_RstModule_t r)
 /*
 * LOCAL FUNCTIONS
 */
-static HW_STATUS HW_RST_WriteVal(const UWORD32 baseAddress,
+static HW_STATUS HW_RST_WriteVal(const u32 baseAddress,
 				    HW_RstModule_t r, HW_SetClear_t val)
 {
     HW_STATUS status = RET_OK;
@@ -77,11 +77,11 @@ static HW_STATUS HW_RST_WriteVal(const UWORD32 baseAddress,
     return status;
 }
 
-HW_STATUS HW_PWR_IVA2StateGet(const UWORD32 baseAddress, HW_PwrModule_t p,
+HW_STATUS HW_PWR_IVA2StateGet(const u32 baseAddress, HW_PwrModule_t p,
 				HW_PwrState_t *value)
 {
 	HW_STATUS status = RET_OK;
-	UWORD32 temp;
+	u32 temp;
 
 	switch (p) {
 	case HW_PWR_DOMAIN_DSP:
@@ -104,7 +104,7 @@ HW_STATUS HW_PWR_IVA2StateGet(const UWORD32 baseAddress, HW_PwrModule_t p,
 	return status;
 }
 
-HW_STATUS HW_PWRST_IVA2RegGet(const UWORD32 baseAddress, UWORD32 *value)
+HW_STATUS HW_PWRST_IVA2RegGet(const u32 baseAddress, u32 *value)
 {
 	HW_STATUS status = RET_OK;
 
@@ -114,7 +114,7 @@ HW_STATUS HW_PWRST_IVA2RegGet(const UWORD32 baseAddress, UWORD32 *value)
 }
 
 
-HW_STATUS HW_PWR_IVA2PowerStateSet(const UWORD32 baseAddress,
+HW_STATUS HW_PWR_IVA2PowerStateSet(const u32 baseAddress,
 				     HW_PwrModule_t p, HW_PwrState_t value)
 {
 	HW_STATUS status = RET_OK;
@@ -145,7 +145,7 @@ HW_STATUS HW_PWR_IVA2PowerStateSet(const UWORD32 baseAddress,
 	return status;
 }
 
-HW_STATUS HW_PWR_CLKCTRL_IVA2RegSet(const UWORD32 baseAddress,
+HW_STATUS HW_PWR_CLKCTRL_IVA2RegSet(const u32 baseAddress,
 				      HW_TransitionState_t val)
 {
        HW_STATUS status = RET_OK;
@@ -156,8 +156,8 @@ HW_STATUS HW_PWR_CLKCTRL_IVA2RegSet(const UWORD32 baseAddress,
 
 }
 
-HW_STATUS HW_RSTST_RegGet(const UWORD32 baseAddress, HW_RstModule_t m,
-			    UWORD32 *value)
+HW_STATUS HW_RSTST_RegGet(const u32 baseAddress, HW_RstModule_t m,
+			    u32 *value)
 {
 	HW_STATUS status = RET_OK;
 
@@ -166,8 +166,8 @@ HW_STATUS HW_RSTST_RegGet(const UWORD32 baseAddress, HW_RstModule_t m,
 	return status;
 }
 
-HW_STATUS HW_RSTCTRL_RegGet(const UWORD32 baseAddress, HW_RstModule_t m,
-			      UWORD32 *value)
+HW_STATUS HW_RSTCTRL_RegGet(const u32 baseAddress, HW_RstModule_t m,
+			      u32 *value)
 {
 	HW_STATUS status = RET_OK;
 

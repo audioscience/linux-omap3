@@ -49,7 +49,7 @@
 #define DLDR_
 
 	extern DSP_STATUS DLDR_Allocate(struct DLDR_OBJECT *hDldr,
-					PVOID pPrivRef,
+					void *pPrivRef,
 					IN CONST struct DCD_NODEPROPS
 					*pNodeProps,
 					OUT struct DLDR_NODEOBJECT
@@ -59,12 +59,12 @@
 				      struct DEV_OBJECT *hDevObject,
 				      IN CONST struct DLDR_ATTRS *pAttrs);
 
-	extern VOID DLDR_Delete(struct DLDR_OBJECT *hDldr);
-	extern VOID DLDR_Exit();
-	extern VOID DLDR_Free(struct DLDR_NODEOBJECT *hDldrNode);
+	extern void DLDR_Delete(struct DLDR_OBJECT *hDldr);
+	extern void DLDR_Exit();
+	extern void DLDR_Free(struct DLDR_NODEOBJECT *hDldrNode);
 
 	extern DSP_STATUS DLDR_GetFxnAddr(struct DLDR_NODEOBJECT *hDldrNode,
-					  PSTR pstrFxn, ULONG *pulAddr);
+					  char *pstrFxn, u32 *pulAddr);
 
 	extern BOOL DLDR_Init();
 	extern DSP_STATUS DLDR_Load(struct DLDR_NODEOBJECT *hDldrNode,

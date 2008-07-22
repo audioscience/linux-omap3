@@ -59,8 +59,8 @@
 #include "_tiomap.h"
 #include "mmu_fault.h"
 
-DWORD dmmuEventMask;
-DWORD faultAddr;
+u32 dmmuEventMask;
+u32 faultAddr;
 
 static BOOL MMU_CheckIfFault(struct WMD_DEV_CONTEXT *pDevContext);
 
@@ -69,7 +69,7 @@ static BOOL MMU_CheckIfFault(struct WMD_DEV_CONTEXT *pDevContext);
  *  Purpose:
  *      Deferred procedure call to handle DSP MMU fault.
  */
-VOID MMU_FaultDpc(IN PVOID pRefData)
+void MMU_FaultDpc(IN void *pRefData)
 {
 	struct DEH_MGR *hDehMgr = (struct DEH_MGR *)pRefData;
 	struct DEH_MGR *pDehMgr = (struct DEH_MGR *)hDehMgr;
@@ -87,11 +87,10 @@ VOID MMU_FaultDpc(IN PVOID pRefData)
  *  Purpose:
  *      ISR to be triggered by a DSP MMU fault interrupt.
  */
-VOID MMU_FaultIsr(IN PVOID pRefData)
+void MMU_FaultIsr(IN void *pRefData)
 {
 	struct DEH_MGR *pDehMgr = (struct DEH_MGR *)pRefData;
 	struct WMD_DEV_CONTEXT *pDevContext;
-	HW_STATUS hwStatus;
 	struct CFG_HOSTRES resources;
 	DSP_STATUS status = DSP_SOK;
 

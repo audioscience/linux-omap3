@@ -69,7 +69,7 @@
  *  Disables the clock for the DSP external periperal clock (DSPPER_CK)
  *  Register 0xe100:8000 offset 0x8 bit position 1 is set to zero.
  */
-extern VOID dspPeripheralClockDisable(struct WMD_DEV_CONTEXT *pDevContext);
+extern void dspPeripheralClockDisable(struct WMD_DEV_CONTEXT *pDevContext);
 
 /*
  *  ======== dspPeripheralClockEnable ========
@@ -77,7 +77,7 @@ extern VOID dspPeripheralClockDisable(struct WMD_DEV_CONTEXT *pDevContext);
  *  GPIO clk and GPIO peripheral clock.
  *  Register 0xe100:8000 offset 0x8 bit position 0,1,2,3,4 and 5 are set to 1.
  */
-extern VOID dspPeripheralClockEnable(struct WMD_DEV_CONTEXT *pDevContext);
+extern void dspPeripheralClockEnable(struct WMD_DEV_CONTEXT *pDevContext);
 
 /*
  *  ======== releaseDSP ========
@@ -95,14 +95,14 @@ extern DSP_STATUS releaseDSP(struct WMD_DEV_CONTEXT *pDevContext,
  *  the API control logic in the DSP subsystem so that they can be programmed.
  *  0xfffe:ce00 bit postion 2 is set to one.
  */
-extern VOID releaseDSPInterface(struct WMD_DEV_CONTEXT *pDevContext);
+extern void releaseDSPInterface(struct WMD_DEV_CONTEXT *pDevContext);
 
 /*
  *  ======== resetDSP ========
  *  Resets the DSP. This stops the DSP from running.
  *  0xfffe:ce00 bit postion 1 is set to zero
  */
-extern VOID resetDSP(struct WMD_DEV_CONTEXT *pDevContext);
+extern void resetDSP(struct WMD_DEV_CONTEXT *pDevContext);
 
 /*
  *  ======== resetDSPInterface ========
@@ -111,13 +111,13 @@ extern VOID resetDSP(struct WMD_DEV_CONTEXT *pDevContext);
  *  the API and MMU.
  *  0xfffe:ce00 bit postion 2 is set to zero.
  */
-extern VOID resetDSPInterface(struct WMD_DEV_CONTEXT *pDevContext);
+extern void resetDSPInterface(struct WMD_DEV_CONTEXT *pDevContext);
 
  /*
   *  ======== setTCEndianism =========
   *  Sets the endianism register.
   */
-extern VOID setTCEndianism(struct WMD_DEV_CONTEXT *pDevContext, DWORD value);
+extern void setTCEndianism(struct WMD_DEV_CONTEXT *pDevContext, u32 value);
 
 #endif				/* _TIOMAP_CLK_ */
 

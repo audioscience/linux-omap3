@@ -89,21 +89,21 @@ struct WAIT_OBJECT {
 
 /* Generic SYNC object: */
 struct SYNC_OBJECT {
-	DWORD dwSignature;	/* Used for object validation. */
+	u32 dwSignature;	/* Used for object validation. */
 	sync_state state;
 	spinlock_t sync_lock;
 	struct WAIT_OBJECT *pWaitObj;
 };
 
 struct SYNC_CSOBJECT {
-	DWORD dwSignature;	/* used for object validation */
+	u32 dwSignature;	/* used for object validation */
 	struct semaphore sem;
 } ;
 
 struct SYNC_DPCCSOBJECT {
-	DWORD dwSignature;	/* used for object validation */
+	u32 dwSignature;	/* used for object validation */
 	spinlock_t sync_dpccs_lock;
-	INT count;
+	s32 count;
 } ;
 
 /*  ----------------------------------- Globals */
@@ -158,7 +158,7 @@ DSP_STATUS SYNC_CloseEvent(struct SYNC_OBJECT *hEvent)
  *  Purpose:
  *      Cleanup SYNC module.
  */
-VOID SYNC_Exit(void)
+void SYNC_Exit(void)
 {
 	GT_0trace(SYNC_debugMask, GT_5CLASS, "SYNC_Exit\n");
 }
@@ -250,7 +250,7 @@ DSP_STATUS SYNC_SetEvent(struct SYNC_OBJECT *hEvent)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct SYNC_OBJECT *pEvent = (struct SYNC_OBJECT *)hEvent;
-	ULONG flags;
+	u32 flags;
 
 	GT_1trace(SYNC_debugMask, GT_6CLASS, "SYNC_SetEvent: hEvent 0x%x\n",
 		  hEvent);
@@ -293,11 +293,11 @@ DSP_STATUS SYNC_SetEvent(struct SYNC_OBJECT *hEvent)
  *      Wait for an event to be signalled, up to the specified timeout.
  *      Note: dwTimeOut must be 0xffffffff to signal infinite wait.
  */
-DSP_STATUS SYNC_WaitOnEvent(struct SYNC_OBJECT *hEvent, DWORD dwTimeout)
+DSP_STATUS SYNC_WaitOnEvent(struct SYNC_OBJECT *hEvent, u32 dwTimeout)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct SYNC_OBJECT *pEvent = (struct SYNC_OBJECT *)hEvent;
-	UINT temp;
+	u32 temp;
 
 	GT_2trace(SYNC_debugMask, GT_6CLASS, "SYNC_WaitOnEvent: hEvent 0x%x\n, "
 		  "dwTimeOut 0x%x", hEvent, dwTimeout);
@@ -320,12 +320,12 @@ DSP_STATUS SYNC_WaitOnEvent(struct SYNC_OBJECT *hEvent, DWORD dwTimeout)
  *      specified timeout.
  */
 DSP_STATUS SYNC_WaitOnMultipleEvents(struct SYNC_OBJECT **hSyncEvents,
-				     UINT uCount, DWORD dwTimeout,
-				     OUT UINT *puIndex)
+				     u32 uCount, u32 dwTimeout,
+				     OUT u32 *puIndex)
 {
-	UINT i;
+	u32 i;
 	DSP_STATUS status = DSP_SOK;
-	UINT curr;
+	u32 curr;
 	struct WAIT_OBJECT *Wp;
 
 	DBC_Require(uCount > 0);

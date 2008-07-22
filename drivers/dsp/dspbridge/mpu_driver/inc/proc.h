@@ -91,7 +91,7 @@
  *  Details:
  *      When pAttrIn is NULL, the default timeout value is 10 seconds.
  */
-	extern DSP_STATUS PROC_Attach(UINT uProcessor,
+	extern DSP_STATUS PROC_Attach(u32 uProcessor,
 				      OPTIONAL CONST struct DSP_PROCESSORATTRIN
 				      *pAttrIn,
 				      OUT DSP_HPROCESSOR *phProcessor);
@@ -143,7 +143,7 @@
  *      This function Calls WMD_BRD_Ioctl.
  */
 	extern DSP_STATUS PROC_Ctrl(DSP_HPROCESSOR hProcessor,
-				    ULONG dwCmd, IN struct DSP_CBDATA *pArgs);
+				    u32 dwCmd, IN struct DSP_CBDATA *pArgs);
 
 /*
  *  ======== PROC_Detach ========
@@ -196,9 +196,9 @@
  */
 	extern DSP_STATUS PROC_EnumNodes(DSP_HPROCESSOR hProcessor,
 					 IN DSP_HNODE *aNodeTab,
-					 IN UINT uNodeTabSize,
-					 OUT UINT *puNumNodes,
-					 OUT UINT *puAllocated);
+					 IN u32 uNodeTabSize,
+					 OUT u32 *puNumNodes,
+					 OUT u32 *puAllocated);
 
 /*
  *  ======== PROC_GetResourceInfo ========
@@ -229,10 +229,10 @@
  *      DSP_ENOTIMPL, and does not write any data to the pResourceInfo struct.
  */
 	extern DSP_STATUS PROC_GetResourceInfo(DSP_HPROCESSOR hProcessor,
-					       UINT uResourceType,
+					       u32 uResourceType,
 					       OUT struct DSP_RESOURCEINFO *
 					       pResourceInfo,
-					       UINT uResourceInfoSize);
+					       u32 uResourceInfoSize);
 
 /*
  *  ======== PROC_Exit ========
@@ -246,7 +246,7 @@
  *  Ensures:
  *      When reference count == 0, PROC's private resources are freed.
  */
-	extern VOID CDECL PROC_Exit();
+	extern void CDECL PROC_Exit();
 
 /*
  * ======== PROC_GetDevObject =========
@@ -305,7 +305,7 @@
 	extern DSP_STATUS PROC_GetState(DSP_HPROCESSOR hProcessor,
 					OUT struct DSP_PROCESSORSTATE
 					*pProcStatus,
-					UINT uStateInfoSize);
+					u32 uStateInfoSize);
 
 /*
  *  ======== PROC_GetProcessorID ========
@@ -327,7 +327,7 @@
  *  Details:
  */
 	extern DSP_STATUS PROC_GetProcessorId(DSP_HPROCESSOR hProcessor,
-					      UINT *procID);
+					      u32 *procID);
 
 /*
  *  ======== PROC_GetTrace ========
@@ -349,8 +349,8 @@
  *  Ensures:
  *  Details:
  */
-	extern DSP_STATUS PROC_GetTrace(DSP_HPROCESSOR hProcessor, BYTE *pBuf,
-					UINT uMaxSize);
+	extern DSP_STATUS PROC_GetTrace(DSP_HPROCESSOR hProcessor, u8 *pBuf,
+					u32 uMaxSize);
 
 /*
  *  ======== PROC_Load ========
@@ -384,7 +384,7 @@
  *      can load the processor.
  */
 	extern DSP_STATUS PROC_Load(DSP_HPROCESSOR hProcessor,
-				    IN CONST INT iArgc, IN CONST char **aArgv,
+				    IN CONST s32 iArgc, IN CONST char **aArgv,
 				    IN CONST char **aEnvp);
 
 /*
@@ -410,7 +410,7 @@
  *  Details:
  */
 	extern DSP_STATUS PROC_RegisterNotify(DSP_HPROCESSOR hProcessor,
-					      UINT uEventMask, UINT uNotifyType,
+					      u32 uEventMask, u32 uNotifyType,
 					      struct DSP_NOTIFICATION
 					      *hNotification);
 
@@ -432,7 +432,7 @@
  *  Ensures:
  */
 	extern DSP_STATUS PROC_NotifyClients(DSP_HPROCESSOR hProc,
-					     UINT uEvents);
+					     u32 uEvents);
 
 /*
  *  ======== PROC_NotifyAllClients ========
@@ -455,7 +455,7 @@
  *      about the state changes in NODE or STRM.
  */
 	extern DSP_STATUS PROC_NotifyAllClients(DSP_HPROCESSOR hProc,
-						UINT uEvents);
+						u32 uEvents);
 
 /*
  *  ======== PROC_Start ========
@@ -521,8 +521,8 @@
  *      All the arguments are currently ignored.
  */
 	extern DSP_STATUS PROC_FlushMemory(DSP_HPROCESSOR hProcessor,
-					   PVOID pMpuAddr,
-					   ULONG ulSize, ULONG ulFlags);
+					   void *pMpuAddr,
+					   u32 ulSize, u32 ulFlags);
 
 
 /*
@@ -544,8 +544,8 @@
  *      All the arguments are currently ignored.
  */
 	extern DSP_STATUS PROC_InvalidateMemory(DSP_HPROCESSOR hProcessor,
-					   PVOID pMpuAddr,
-					   ULONG ulSize);
+					   void *pMpuAddr,
+					   u32 ulSize);
 
 /*
  *  ======== PROC_Map ========
@@ -557,7 +557,7 @@
  *      ulSize	  :   Size of the memory region to map.
  *      pReqAddr	:   Requested DSP start address. Offset-adjusted actual
  *			  mapped address is in the last argument.
- *      ppMapAddr       :   Ptr to DSP side mapped BYTE address.
+ *      ppMapAddr       :   Ptr to DSP side mapped u8 address.
  *      ulMapAttr       :   Optional endianness attributes, virt to phys flag.
  *  Returns:
  *      DSP_SOK	 :   Success.
@@ -575,10 +575,10 @@
  *  Details:
  */
 	extern DSP_STATUS PROC_Map(DSP_HPROCESSOR hProcessor,
-				   PVOID pMpuAddr,
-				   ULONG ulSize,
-				   PVOID pReqAddr,
-				   PVOID *ppMapAddr, ULONG ulMapAttr);
+				   void *pMpuAddr,
+				   u32 ulSize,
+				   void *pReqAddr,
+				   void **ppMapAddr, u32 ulMapAttr);
 
 /*
  *  ======== PROC_ReserveMemory ========
@@ -587,7 +587,7 @@
  *  Parameters:
  *      hProcessor      :   The processor handle.
  *      ulSize	  :   Size of the address space to reserve.
- *      ppRsvAddr       :   Ptr to DSP side reserved BYTE address.
+ *      ppRsvAddr       :   Ptr to DSP side reserved u8 address.
  *  Returns:
  *      DSP_SOK	 :   Success.
  *      DSP_EHANDLE     :   Invalid processor handle.
@@ -600,7 +600,7 @@
  *  Details:
  */
 	extern DSP_STATUS PROC_ReserveMemory(DSP_HPROCESSOR hProcessor,
-					     ULONG ulSize, PVOID *ppRsvAddr);
+					     u32 ulSize, void **ppRsvAddr);
 
 /*
  *  ======== PROC_UnMap ========
@@ -621,7 +621,7 @@
  *  Ensures:
  *  Details:
  */
-	extern DSP_STATUS PROC_UnMap(DSP_HPROCESSOR hProcessor, PVOID pMapAddr);
+	extern DSP_STATUS PROC_UnMap(DSP_HPROCESSOR hProcessor, void *pMapAddr);
 
 /*
  *  ======== PROC_UnReserveMemory ========
@@ -643,6 +643,6 @@
  *  Details:
  */
 	extern DSP_STATUS PROC_UnReserveMemory(DSP_HPROCESSOR hProcessor,
-					       PVOID pRsvAddr);
+					       void *pRsvAddr);
 
 #endif				/* PROC_ */

@@ -50,7 +50,7 @@ struct MAILBOX_CONTEXT mboxsetting = {0, 0, 0};
  *  purpose:
  *  	Saves the mailbox context
  */
-HW_STATUS HW_MBOX_saveSettings(UWORD32    baseAddress)
+HW_STATUS HW_MBOX_saveSettings(u32    baseAddress)
 {
 	HW_STATUS status = RET_OK;
 
@@ -68,7 +68,7 @@ HW_STATUS HW_MBOX_saveSettings(UWORD32    baseAddress)
  *  purpose:
  *  	Restores the mailbox context
  */
-HW_STATUS HW_MBOX_restoreSettings(UWORD32    baseAddress)
+HW_STATUS HW_MBOX_restoreSettings(u32    baseAddress)
 {
 	 HW_STATUS status = RET_OK;
 	/* Restor IRQ enable status */
@@ -84,13 +84,13 @@ HW_STATUS HW_MBOX_restoreSettings(UWORD32    baseAddress)
 /*
  *  ======== HW_MBOX_MsgRead ========
  *  purpose:
- *  	Reads a UWORD32 from the sub module message box Specified. if there
+ *  	Reads a u32 from the sub module message box Specified. if there
  *  	are no messages in the mailbox then and error is returned.
  */
 HW_STATUS HW_MBOX_MsgRead(
-		      const UWORD32    baseAddress,
+		      const u32    baseAddress,
 		      const HW_MBOX_Id_t   mailBoxId,
-		      UWORD32 *const   pReadValue
+		      u32 *const   pReadValue
 		      )
 {
     HW_STATUS status = RET_OK;
@@ -107,7 +107,7 @@ HW_STATUS HW_MBOX_MsgRead(
 
     /* Read 32-bit message in mail box */
     *pReadValue = MLBMAILBOX_MESSAGE___0_15ReadRegister32(baseAddress,
-							 (UWORD32)mailBoxId);
+							 (u32)mailBoxId);
 
     return status;
 }
@@ -115,11 +115,11 @@ HW_STATUS HW_MBOX_MsgRead(
 /*
  *  ======== HW_MBOX_MsgWrite ========
  *  purpose:
- *  	Writes a UWORD32 from the sub module message box Specified.
+ *  	Writes a u32 from the sub module message box Specified.
  */
-HW_STATUS HW_MBOX_MsgWrite(const UWORD32 baseAddress,
+HW_STATUS HW_MBOX_MsgWrite(const u32 baseAddress,
 			     const HW_MBOX_Id_t mailBoxId,
-			     const UWORD32   writeValue)
+			     const u32   writeValue)
 {
     HW_STATUS status = RET_OK;
 
@@ -132,8 +132,8 @@ HW_STATUS HW_MBOX_MsgWrite(const UWORD32 baseAddress,
 			   RES_MBOX_BASE + RES_INVALID_INPUT_PARAM);
 
     /* Write 32-bit value to mailbox */
-    MLBMAILBOX_MESSAGE___0_15WriteRegister32(baseAddress, (UWORD32)mailBoxId,
-					    (UWORD32)writeValue);
+    MLBMAILBOX_MESSAGE___0_15WriteRegister32(baseAddress, (u32)mailBoxId,
+					    (u32)writeValue);
 
     return status;
 }
@@ -144,13 +144,13 @@ HW_STATUS HW_MBOX_MsgWrite(const UWORD32 baseAddress,
  *  	Reads the full status register for mailbox.
  */
 HW_STATUS HW_MBOX_IsFull(
-		      const UWORD32    baseAddress,
+		      const u32    baseAddress,
 		      const HW_MBOX_Id_t   mailBoxId,
-		      UWORD32  *const     pIsFull
+		      u32  *const     pIsFull
 		  )
 {
     HW_STATUS status = RET_OK;
-    UWORD32 fullStatus;
+    u32 fullStatus;
 
     /* Check input parameters */
     CHECK_INPUT_PARAM(baseAddress, 0, RET_BAD_NULL_PARAM, RES_MBOX_BASE +
@@ -164,7 +164,7 @@ HW_STATUS HW_MBOX_IsFull(
 
     /* read the is full status parameter for Mailbox */
     fullStatus = MLBMAILBOX_FIFOSTATUS___0_15FifoFullMBmRead32(baseAddress,
-							(UWORD32)mailBoxId);
+							(u32)mailBoxId);
 
     /* fill in return parameter */
     *pIsFull = (fullStatus & 0xFF);
@@ -178,9 +178,9 @@ HW_STATUS HW_MBOX_IsFull(
  *  	Gets number of messages in a specified mailbox.
  */
 HW_STATUS HW_MBOX_NumMsgGet(
-		      const   UWORD32   baseAddress,
+		      const   u32   baseAddress,
 		      const   HW_MBOX_Id_t  mailBoxId,
-		      UWORD32 *const    pNumMsg
+		      u32 *const    pNumMsg
 		  )
 {
     HW_STATUS status = RET_OK;
@@ -198,7 +198,7 @@ HW_STATUS HW_MBOX_NumMsgGet(
 
     /* Get number of messages available for MailBox */
     *pNumMsg = MLBMAILBOX_MSGSTATUS___0_15NbOfMsgMBmRead32(baseAddress,
-							  (UWORD32)mailBoxId);
+							  (u32)mailBoxId);
 
     return status;
 }
@@ -209,14 +209,14 @@ HW_STATUS HW_MBOX_NumMsgGet(
  *  	Enables the specified IRQ.
  */
 HW_STATUS HW_MBOX_EventEnable(
-		      const UWORD32	     baseAddress,
+		      const u32	     baseAddress,
 		      const HW_MBOX_Id_t       mailBoxId,
 		  const HW_MBOX_UserId_t   userId,
-		  const UWORD32	     events
+		  const u32	     events
 		      )
 {
 	HW_STATUS status = RET_OK;
-	UWORD32      irqEnableReg;
+	u32      irqEnableReg;
 
 	/* Check input parameters */
 	CHECK_INPUT_PARAM(baseAddress, 0, RET_BAD_NULL_PARAM, RES_MBOX_BASE +
@@ -239,15 +239,15 @@ HW_STATUS HW_MBOX_EventEnable(
 
 	/* Get current enable status */
 	irqEnableReg = MLBMAILBOX_IRQENABLE___0_3ReadRegister32(baseAddress,
-							     (UWORD32)userId);
+							     (u32)userId);
 
 	/* update enable value */
-	irqEnableReg |= ((UWORD32)(events)) << (((UWORD32)(mailBoxId)) *
+	irqEnableReg |= ((u32)(events)) << (((u32)(mailBoxId)) *
 			HW_MBOX_ID_WIDTH);
 
 	/* write new enable status */
-	MLBMAILBOX_IRQENABLE___0_3WriteRegister32(baseAddress, (UWORD32)userId,
-						 (UWORD32)irqEnableReg);
+	MLBMAILBOX_IRQENABLE___0_3WriteRegister32(baseAddress, (u32)userId,
+						 (u32)irqEnableReg);
 
 	mboxsetting.sysconfig = MLBMAILBOX_SYSCONFIGReadRegister32(baseAddress);
 	/* Get current enable status */
@@ -264,14 +264,14 @@ HW_STATUS HW_MBOX_EventEnable(
  *  	Disables the specified IRQ.
  */
 HW_STATUS HW_MBOX_EventDisable(
-		      const UWORD32	     baseAddress,
+		      const u32	     baseAddress,
 		      const HW_MBOX_Id_t       mailBoxId,
 		  const HW_MBOX_UserId_t   userId,
-		  const UWORD32	     events
+		  const u32	     events
 		      )
 {
     HW_STATUS status = RET_OK;
-    UWORD32      irqDisableReg;
+    u32      irqDisableReg;
 
     /* Check input parameters */
     CHECK_INPUT_PARAM(baseAddress, 0, RET_BAD_NULL_PARAM, RES_MBOX_BASE +
@@ -294,15 +294,15 @@ HW_STATUS HW_MBOX_EventDisable(
 
     /* Get current enable status */
     irqDisableReg = MLBMAILBOX_IRQENABLE___0_3ReadRegister32(baseAddress,
-		    (UWORD32)userId);
+		    (u32)userId);
 
     /* update enable value */
-    irqDisableReg &= ~((UWORD32)(events)) << (((UWORD32)(mailBoxId)) *
+    irqDisableReg &= ~((u32)(events)) << (((u32)(mailBoxId)) *
 		     HW_MBOX_ID_WIDTH);
 
     /* write new enable status */
-    MLBMAILBOX_IRQENABLE___0_3WriteRegister32(baseAddress, (UWORD32)userId,
-					     (UWORD32)irqDisableReg);
+    MLBMAILBOX_IRQENABLE___0_3WriteRegister32(baseAddress, (u32)userId,
+					     (u32)irqDisableReg);
 
     return status;
 }
@@ -313,14 +313,14 @@ HW_STATUS HW_MBOX_EventDisable(
  *  	Sets the status of the specified IRQ.
  */
 HW_STATUS HW_MBOX_EventAck(
-		      const UWORD32	  baseAddress,
+		      const u32	  baseAddress,
 		      const HW_MBOX_Id_t	mailBoxId,
 		  const HW_MBOX_UserId_t    userId,
-		  const UWORD32	      event
+		  const u32	      event
 		     )
 {
     HW_STATUS status = RET_OK;
-    UWORD32      irqStatusReg;
+    u32      irqStatusReg;
 
     /* Check input parameters */
     CHECK_INPUT_PARAM(baseAddress,   0, RET_BAD_NULL_PARAM, RES_MBOX_BASE +
@@ -344,12 +344,12 @@ HW_STATUS HW_MBOX_EventAck(
 
 
     /* calculate status to write */
-    irqStatusReg = ((UWORD32)event) << (((UWORD32)(mailBoxId)) *
+    irqStatusReg = ((u32)event) << (((u32)(mailBoxId)) *
 		   HW_MBOX_ID_WIDTH);
 
     /* clear Irq Status for specified mailbox/User Id */
-    MLBMAILBOX_IRQSTATUS___0_3WriteRegister32(baseAddress, (UWORD32)userId,
-					     (UWORD32)irqStatusReg);
+    MLBMAILBOX_IRQSTATUS___0_3WriteRegister32(baseAddress, (u32)userId,
+					     (u32)irqStatusReg);
 
     return status;
 }

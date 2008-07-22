@@ -67,7 +67,7 @@
  *  ======== NTFY_OBJECT ========
  */
 struct NTFY_OBJECT {
-	DWORD dwSignature;	/* For object validation */
+	u32 dwSignature;	/* For object validation */
 	struct LST_LIST *notifyList;	/* List of NOTIFICATION objects */
 	struct SYNC_CSOBJECT *hSync;	/* For critical sections */
 };
@@ -78,14 +78,14 @@ struct NTFY_OBJECT {
  */
 struct NOTIFICATION {
 	struct LST_ELEM listElem;
-	UINT uEventMask;	/* Events to be notified about */
-	UINT uNotifyType;	/* Type of notification to be sent */
+	u32 uEventMask;	/* Events to be notified about */
+	u32 uNotifyType;	/* Type of notification to be sent */
 
 	/*
 	 *  We keep a copy of the event name to check if the event has
 	 *  already been registered. (SYNC also keeps a copy of the name).
 	 */
-	PSTR pstrName;		/* Name of event */
+	char *pstrName;		/* Name of event */
 	HANDLE hEvent;		/* Handle for notification */
 	struct SYNC_OBJECT *hSync;
 };
@@ -96,7 +96,7 @@ static struct GT_Mask NTFY_debugMask = { 0, 0 };    /* GT trace variable */
 #endif
 
 /*  ----------------------------------- Function Prototypes */
-static VOID DeleteNotify(struct NOTIFICATION *pNotify);
+static void DeleteNotify(struct NOTIFICATION *pNotify);
 
 /*
  *  ======== NTFY_Create ========
@@ -119,7 +119,7 @@ DSP_STATUS NTFY_Create(struct NTFY_OBJECT* *phNtfy)
 		if (DSP_SUCCEEDED(status)) {
 			pNtfy->notifyList = LST_Create();
 			if (pNtfy->notifyList == NULL) {
-				(VOID) SYNC_DeleteCS(pNtfy->hSync);
+				(void) SYNC_DeleteCS(pNtfy->hSync);
 				MEM_FreeObject(pNtfy);
 				status = DSP_EMEMORY;
 			} else {
@@ -142,7 +142,7 @@ DSP_STATUS NTFY_Create(struct NTFY_OBJECT* *phNtfy)
  *  Purpose:
  *      Free resources allocated in NTFY_Create.
  */
-VOID NTFY_Delete(struct NTFY_OBJECT *hNtfy)
+void NTFY_Delete(struct NTFY_OBJECT *hNtfy)
 {
 	struct NOTIFICATION *pNotify;
 
@@ -150,15 +150,15 @@ VOID NTFY_Delete(struct NTFY_OBJECT *hNtfy)
 
 	/* Remove any elements remaining in list */
 	if (hNtfy->notifyList) {
-		while (pNotify = (struct NOTIFICATION *)LST_GetHead(hNtfy->
-								notifyList)) {
+		while ((pNotify = (struct NOTIFICATION *)LST_GetHead(hNtfy->
+								notifyList))) {
 			DeleteNotify(pNotify);
 		}
 		DBC_Assert(LST_IsEmpty(hNtfy->notifyList));
 		LST_Delete(hNtfy->notifyList);
 	}
 	if (hNtfy->hSync)
-		(VOID)SYNC_DeleteCS(hNtfy->hSync);
+		(void)SYNC_DeleteCS(hNtfy->hSync);
 
 	MEM_FreeObject(hNtfy);
 }
@@ -168,7 +168,7 @@ VOID NTFY_Delete(struct NTFY_OBJECT *hNtfy)
  *  Purpose:
  *      Discontinue usage of NTFY module.
  */
-VOID NTFY_Exit(void)
+void NTFY_Exit(void)
 {
 	GT_0trace(NTFY_debugMask, GT_5CLASS, "Entered NTFY_Exit\n");
 }
@@ -194,7 +194,7 @@ BOOL NTFY_Init(void)
  *      element in the notification list that is to be notified about the
  *      event specified in uEventMask.
  */
-VOID NTFY_Notify(struct NTFY_OBJECT *hNtfy, UINT uEventMask)
+void NTFY_Notify(struct NTFY_OBJECT *hNtfy, u32 uEventMask)
 {
 	struct NOTIFICATION *pNotify;
 
@@ -205,21 +205,21 @@ VOID NTFY_Notify(struct NTFY_OBJECT *hNtfy, UINT uEventMask)
 	 *  uEventMask events.
 	 */
 
-	(VOID) SYNC_EnterCS(hNtfy->hSync);
+	(void) SYNC_EnterCS(hNtfy->hSync);
 
 	pNotify = (struct NOTIFICATION *)LST_First(hNtfy->notifyList);
 	while (pNotify != NULL) {
 		if (pNotify->uEventMask & uEventMask) {
 			/* Notify */
 			if (pNotify->uNotifyType == DSP_SIGNALEVENT)
-				(VOID)SYNC_SetEvent(pNotify->hSync);
+				(void)SYNC_SetEvent(pNotify->hSync);
 
 		}
 		pNotify = (struct NOTIFICATION *)LST_Next(hNtfy->notifyList,
 			  (struct LST_ELEM *)pNotify);
 	}
 
-	(VOID) SYNC_LeaveCS(hNtfy->hSync);
+	(void) SYNC_LeaveCS(hNtfy->hSync);
 }
 
 /*
@@ -232,7 +232,7 @@ VOID NTFY_Notify(struct NTFY_OBJECT *hNtfy, UINT uEventMask)
  */
 DSP_STATUS NTFY_Register(struct NTFY_OBJECT *hNtfy,
 			 struct DSP_NOTIFICATION *hNotification,
-			 UINT uEventMask, UINT uNotifyType)
+			 u32 uEventMask, u32 uNotifyType)
 {
 	struct NOTIFICATION *pNotify;
 	struct SYNC_ATTRS syncAttrs;
@@ -253,7 +253,7 @@ DSP_STATUS NTFY_Register(struct NTFY_OBJECT *hNtfy,
 	if (!DSP_SUCCEEDED(status))
 		return status;
 
-	(VOID)SYNC_EnterCS(hNtfy->hSync);
+	(void)SYNC_EnterCS(hNtfy->hSync);
 
 	pNotify = (struct NOTIFICATION *)LST_First(hNtfy->notifyList);
 	while (pNotify != NULL) {
@@ -307,7 +307,7 @@ DSP_STATUS NTFY_Register(struct NTFY_OBJECT *hNtfy,
 			pNotify->uEventMask = uEventMask;
 		}
 	}
-	(VOID)SYNC_LeaveCS(hNtfy->hSync);
+	(void)SYNC_LeaveCS(hNtfy->hSync);
 	return status;
 }
 
@@ -316,10 +316,10 @@ DSP_STATUS NTFY_Register(struct NTFY_OBJECT *hNtfy,
  *  Purpose:
  *      Free the notification object.
  */
-static VOID DeleteNotify(struct NOTIFICATION *pNotify)
+static void DeleteNotify(struct NOTIFICATION *pNotify)
 {
 	if (pNotify->hSync)
-		(VOID) SYNC_CloseEvent(pNotify->hSync);
+		(void) SYNC_CloseEvent(pNotify->hSync);
 
 	if (pNotify->pstrName)
 		MEM_Free(pNotify->pstrName);

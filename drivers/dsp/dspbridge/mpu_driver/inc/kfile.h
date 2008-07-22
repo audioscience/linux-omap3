@@ -79,7 +79,7 @@
  *      KFILE initialized.
  *  Ensures:
  */
-	extern INT KFILE_Close(IN struct KFILE_FileObj *hFile);
+	extern s32 KFILE_Close(IN struct KFILE_FileObj *hFile);
 
 /*
  *  ======== KFILE_Exit ========
@@ -93,7 +93,7 @@
  *  Ensures:
  *      Resources used by module are freed when cRef reaches zero.
  */
-	extern VOID KFILE_Exit();
+	extern void KFILE_Exit();
 
 /*
  *  ======== KFILE_Init ========
@@ -146,8 +146,8 @@
  *      pBuffer is a valid pointer.
  *  Ensures:
  */
-	extern INT KFILE_Read(OUT VOID *buffer,
-			      IN INT size, IN INT count,
+	extern s32 KFILE_Read(OUT void *buffer,
+			      IN s32 size, IN s32 count,
 			      IN struct KFILE_FileObj *hFile);
 
 /*
@@ -171,8 +171,8 @@
  *      KFILE initialized.
  *  Ensures:
  */
-	extern INT KFILE_Seek(IN struct KFILE_FileObj *hFile,
-			      IN LONG offset, IN INT origin);
+	extern s32 KFILE_Seek(IN struct KFILE_FileObj *hFile,
+			      IN s32 offset, IN s32 origin);
 
 /*
  *  ======== KFILE_Tell ========
@@ -189,7 +189,7 @@
  *      KFILE initialized.
  *  Ensures:
  */
-	extern LONG KFILE_Tell(IN struct KFILE_FileObj *hFile);
+	extern s32 KFILE_Tell(IN struct KFILE_FileObj *hFile);
 
 /*
  *  ======== KFILE_Write ========
@@ -211,9 +211,9 @@
  *      The file position indicator is advanced by the number of
  *      characters written.
  */
-	extern INT KFILE_Write(OUT VOID *buffer,
-			       IN INT size,
-			       IN INT count,
+	extern s32 KFILE_Write(OUT void *buffer,
+			       IN s32 size,
+			       IN s32 count,
 			       IN struct KFILE_FileObj *hFile);
 
 #endif				/* KFILE_ */

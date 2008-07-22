@@ -31,7 +31,7 @@
 
 /*  ----------------------------------- DSP/BIOS Bridge */
 #include <std.h>
-
+#include <linux/types.h>
 /*  ----------------------------------- This */
 #include <gs.h>
 #include <gb.h>
@@ -44,7 +44,7 @@ typedef GB_BitNum GB_WordNum;
 struct GB_TMap {
 	GB_BitNum len;
 	GB_WordNum wcnt;
-	LgUns *words;
+	u32 *words;
 };
 
 /*
@@ -53,9 +53,9 @@ struct GB_TMap {
  *      Clears a bit in the bit map.
  */
 
-Void GB_clear(struct GB_TMap *map, GB_BitNum bitn)
+void GB_clear(struct GB_TMap *map, GB_BitNum bitn)
 {
-	LgUns mask;
+	u32 mask;
 
 	mask = 1L << (bitn % LGSIZE);
 	map->words[bitn / LGSIZE] &= ~mask;
@@ -75,7 +75,7 @@ struct GB_TMap *GB_create(GB_BitNum len)
 	if (map != NULL) {
 		map->len = len;
 		map->wcnt = len / LGSIZE + 1;
-		map->words = (LgUns *)GS_alloc(map->wcnt * sizeof(LgUns));
+		map->words = (u32 *)GS_alloc(map->wcnt * sizeof(u32));
 		if (map->words != NULL) {
 			for (i = 0; i < map->wcnt; i++)
 				map->words[i] = 0L;
@@ -95,9 +95,9 @@ struct GB_TMap *GB_create(GB_BitNum len)
  *      Frees a bit map.
  */
 
-Void GB_delete(struct GB_TMap *map)
+void GB_delete(struct GB_TMap *map)
 {
-	GS_frees(map->words, map->wcnt * sizeof(LgUns));
+	GS_frees(map->words, map->wcnt * sizeof(u32));
 	GS_frees(map, sizeof(struct GB_TMap));
 }
 
@@ -128,7 +128,7 @@ GB_BitNum GB_minclear(struct GB_TMap *map)
 	GB_BitNum bitAcc = 0;
 	GB_WordNum i;
 	GB_BitNum bit;
-	LgUns *word;
+	u32 *word;
 
 	for (word = map->words, i = 0; i < map->wcnt; word++, i++) {
 		if (~*word) {
@@ -154,9 +154,9 @@ GB_BitNum GB_minclear(struct GB_TMap *map)
  *      Sets a bit in the bit map.
  */
 
-Void GB_set(struct GB_TMap *map, GB_BitNum bitn)
+void GB_set(struct GB_TMap *map, GB_BitNum bitn)
 {
-	LgUns mask;
+	u32 mask;
 
 	mask = 1L << (bitn % LGSIZE);
 	map->words[bitn / LGSIZE] |= mask;
@@ -170,8 +170,8 @@ Void GB_set(struct GB_TMap *map, GB_BitNum bitn)
 
 Bool GB_test(struct GB_TMap *map, GB_BitNum bitn)
 {
-	LgUns mask;
-	LgUns word;
+	u32 mask;
+	u32 word;
 
 	mask = 1L << (bitn % LGSIZE);
 	word = map->words[bitn / LGSIZE];

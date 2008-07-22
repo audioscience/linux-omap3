@@ -126,8 +126,8 @@
 * -----------------------------------------------------------------------------
 */
 #define RETURN_32BITS_FROM_16LOWER_AND_16UPPER(lower16Bits,upper16Bits)\
-    (((((UWORD32)lower16Bits)  & LOWER_16BIT_MASK)) | \
-     (((((UWORD32)upper16Bits) & LOWER_16BIT_MASK) << UPPER_16BIT_SHIFT)))
+    (((((u32)lower16Bits)  & LOWER_16BIT_MASK)) | \
+     (((((u32)upper16Bits) & LOWER_16BIT_MASK) << UPPER_16BIT_SHIFT)))
 
 
 /* ----------------------------------------------------------------------------
@@ -139,8 +139,8 @@
 * -----------------------------------------------------------------------------
 */
 #define RETURN_16BITS_FROM_8LOWER_AND_8UPPER(lower8Bits,upper8Bits)\
-    (((((UWORD32)lower8Bits)  & LOWER_8BIT_MASK)) | \
-     (((((UWORD32)upper8Bits) & LOWER_8BIT_MASK) << UPPER_8BIT_OF16_SHIFT)))
+    (((((u32)lower8Bits)  & LOWER_8BIT_MASK)) | \
+     (((((u32)upper8Bits) & LOWER_8BIT_MASK) << UPPER_8BIT_OF16_SHIFT)))
 
 /* ----------------------------------------------------------------------------
 * Definition: RETURN_32BITS_FROM_4_8BIT_VALUES(
@@ -155,12 +155,12 @@
 */
 #define RETURN_32BITS_FROM_4_8BIT_VALUES(lower8Bits, lowerMiddle8Bits,\
 	lowerUpper8Bits, upper8Bits)\
-	(((((UWORD32)lower8Bits) & LOWER_8BIT_MASK)) | \
-	(((((UWORD32)lowerMiddle8Bits) & LOWER_8BIT_MASK) <<\
+	(((((u32)lower8Bits) & LOWER_8BIT_MASK)) | \
+	(((((u32)lowerMiddle8Bits) & LOWER_8BIT_MASK) <<\
 		LOWER_MIDDLE_8BIT_SHIFT)) | \
-	(((((UWORD32)lowerUpper8Bits) & LOWER_8BIT_MASK) <<\
+	(((((u32)lowerUpper8Bits) & LOWER_8BIT_MASK) <<\
 		UPPER_MIDDLE_8BIT_SHIFT)) | \
-	(((((UWORD32)upper8Bits) & LOWER_8BIT_MASK) <<\
+	(((((u32)upper8Bits) & LOWER_8BIT_MASK) <<\
 		UPPER_8BIT_SHIFT)))
 
 /* ----------------------------------------------------------------------------
@@ -171,7 +171,7 @@
 * -----------------------------------------------------------------------------
 */
 #define READ_LOWER_16BITS_OF_32(value32bits)\
-    ((UWORD16)((UWORD32)(value32bits) & LOWER_16BIT_MASK))
+    ((u16)((u32)(value32bits) & LOWER_16BIT_MASK))
 
 /* ----------------------------------------------------------------------------
 * Definition: READ_UPPER_16BITS_OF_32(value32bits)
@@ -181,7 +181,7 @@
 * -----------------------------------------------------------------------------
 */
 #define READ_UPPER_16BITS_OF_32(value32bits)\
-	(((UWORD16)((UWORD32)(value32bits) >> UPPER_16BIT_SHIFT)) &\
+	(((u16)((u32)(value32bits) >> UPPER_16BIT_SHIFT)) &\
 	LOWER_16BIT_MASK)
 
 
@@ -193,7 +193,7 @@
 * -----------------------------------------------------------------------------
 */
 #define READ_LOWER_8BITS_OF_32(value32bits)\
-    ((UWORD8)((UWORD32)(value32bits) & LOWER_8BIT_MASK))
+    ((u8)((u32)(value32bits) & LOWER_8BIT_MASK))
 
 /* ----------------------------------------------------------------------------
 * Definition: READ_LOWER_MIDDLE_8BITS_OF_32(value32bits)
@@ -203,7 +203,7 @@
 * -----------------------------------------------------------------------------
 */
 #define READ_LOWER_MIDDLE_8BITS_OF_32(value32bits)\
-	(((UWORD8)((UWORD32)(value32bits) >> LOWER_MIDDLE_8BIT_SHIFT)) &\
+	(((u8)((u32)(value32bits) >> LOWER_MIDDLE_8BIT_SHIFT)) &\
 	LOWER_8BIT_MASK)
 
 /* ----------------------------------------------------------------------------
@@ -214,7 +214,7 @@
 * -----------------------------------------------------------------------------
 */
 #define READ_UPPER_MIDDLE_8BITS_OF_32(value32bits)\
-	(((UWORD8)((UWORD32)(value32bits) >> LOWER_MIDDLE_8BIT_SHIFT)) &\
+	(((u8)((u32)(value32bits) >> LOWER_MIDDLE_8BIT_SHIFT)) &\
 	LOWER_8BIT_MASK)
 
 /* ----------------------------------------------------------------------------
@@ -225,7 +225,7 @@
 * -----------------------------------------------------------------------------
 */
 #define READ_UPPER_8BITS_OF_32(value32bits)\
-    (((UWORD8)((UWORD32)(value32bits) >> UPPER_8BIT_SHIFT)) & LOWER_8BIT_MASK)
+    (((u8)((u32)(value32bits) >> UPPER_8BIT_SHIFT)) & LOWER_8BIT_MASK)
 
 
 /* ----------------------------------------------------------------------------
@@ -236,7 +236,7 @@
 * -----------------------------------------------------------------------------
 */
 #define READ_LOWER_8BITS_OF_16(value16bits)\
-    ((UWORD8)((UWORD16)(value16bits) & LOWER_8BIT_MASK))
+    ((u8)((u16)(value16bits) & LOWER_8BIT_MASK))
 
 /* ----------------------------------------------------------------------------
 * Definition: READ_UPPER_8BITS_OF_16(value32bits)
@@ -246,7 +246,7 @@
 * -----------------------------------------------------------------------------
 */
 #define READ_UPPER_8BITS_OF_16(value16bits)\
-    (((UWORD8)((UWORD32)(value16bits) >> UPPER_8BIT_SHIFT)) & LOWER_8BIT_MASK)
+    (((u8)((u32)(value16bits) >> UPPER_8BIT_SHIFT)) & LOWER_8BIT_MASK)
 
 /* ============================================================================
 * EXPORTED TYPES
@@ -254,37 +254,21 @@
 */
 
 /* ----------------------------------------------------------------------------
-* TYPE: UWORD8, UCHAR, WORD8
 *
 * DESCRIPTION:  8 bit tpyes
 *
 * -----------------------------------------------------------------------------
 */
-typedef unsigned char  UWORD8;
-#ifndef OMAPBRIDGE_TYPES
-typedef unsigned char  UCHAR;
-#endif
 typedef signed   char  WORD8;
 
 /* ----------------------------------------------------------------------------
-* TYPE: UWORD16, WORD16
+* TYPE: UWORD16
 *
 * DESCRIPTION:  16 bit tpyes
 *
 * -----------------------------------------------------------------------------
 */
-typedef unsigned short UWORD16;
-typedef	  short WORD16;
 
-/* ----------------------------------------------------------------------------
-* TYPE: UWORD32, WORD32
-*
-* DESCRIPTION:  32 bit tpyes
-*
-* -----------------------------------------------------------------------------
-*/
-typedef unsigned long  UWORD32;
-typedef	  long  WORD32;
 
 /* ----------------------------------------------------------------------------
 * TYPE: REG_UWORD8, REG_WORD8
@@ -343,9 +327,8 @@ typedef enum boolean_label {
     True = 1
 } boolean_t, pBoolean_t;
 
-/* Boolean  Definition */
-#define BOOL	   boolean_t
 #endif
+
 
 /* ----------------------------------------------------------------------------
 * TYPE: ReturnCode_t
@@ -389,8 +372,8 @@ typedef enum ReturnCode_label {
 *
 * -----------------------------------------------------------------------------
 */
-#define RD_MEM_8(addr)	((UWORD8)(*((UWORD8 *)(addr))))
-#define WR_MEM_8(addr, data)	(*((UWORD8 *)(addr)) = (UWORD8)(data))
+#define RD_MEM_8(addr)	((u8)(*((u8 *)(addr))))
+#define WR_MEM_8(addr, data)	(*((u8 *)(addr)) = (u8)(data))
 
 /* ----------------------------------------------------------------------------
 * MACRO: RD_MEM_8_VOLATILE, WR_MEM_8_VOLATILE
@@ -399,8 +382,8 @@ typedef enum ReturnCode_label {
 *
 * -----------------------------------------------------------------------------
 */
-#define RD_MEM_8_VOLATILE(addr)	((UWORD8)(*((REG_UWORD8 *)(addr))))
-#define WR_MEM_8_VOLATILE(addr, data) (*((REG_UWORD8 *)(addr)) = (UWORD8)(data))
+#define RD_MEM_8_VOLATILE(addr)	((u8)(*((REG_UWORD8 *)(addr))))
+#define WR_MEM_8_VOLATILE(addr, data) (*((REG_UWORD8 *)(addr)) = (u8)(data))
 
 
 /* ----------------------------------------------------------------------------
@@ -410,8 +393,8 @@ typedef enum ReturnCode_label {
 *
 * -----------------------------------------------------------------------------
 */
-#define RD_MEM_16(addr)	((UWORD16)(*((UWORD16 *)(addr))))
-#define WR_MEM_16(addr, data)	(*((UWORD16 *)(addr)) = (UWORD16)(data))
+#define RD_MEM_16(addr)	((u16)(*((u16 *)(addr))))
+#define WR_MEM_16(addr, data)	(*((u16 *)(addr)) = (u16)(data))
 
 /* ----------------------------------------------------------------------------
 * MACRO: RD_MEM_16_VOLATILE, WR_MEM_16_VOLATILE
@@ -420,9 +403,9 @@ typedef enum ReturnCode_label {
 *
 * -----------------------------------------------------------------------------
 */
-#define RD_MEM_16_VOLATILE(addr)	((UWORD16)(*((REG_UWORD16 *)(addr))))
+#define RD_MEM_16_VOLATILE(addr)	((u16)(*((REG_UWORD16 *)(addr))))
 #define WR_MEM_16_VOLATILE(addr, data)	(*((REG_UWORD16 *)(addr)) =\
-					(UWORD16)(data))
+					(u16)(data))
 
 /* ----------------------------------------------------------------------------
 * MACRO: RD_MEM_32, WR_MEM_32
@@ -431,8 +414,8 @@ typedef enum ReturnCode_label {
 *
 * -----------------------------------------------------------------------------
 */
-#define RD_MEM_32(addr)	((UWORD32)(*((UWORD32 *)(addr))))
-#define WR_MEM_32(addr, data)	(*((UWORD32 *)(addr)) = (UWORD32)(data))
+#define RD_MEM_32(addr)	((u32)(*((u32 *)(addr))))
+#define WR_MEM_32(addr, data)	(*((u32 *)(addr)) = (u32)(data))
 
 /* ----------------------------------------------------------------------------
 * MACRO: RD_MEM_32_VOLATILE, WR_MEM_32_VOLATILE
@@ -441,9 +424,9 @@ typedef enum ReturnCode_label {
 *
 * -----------------------------------------------------------------------------
 */
-#define RD_MEM_32_VOLATILE(addr)	((UWORD32)(*((REG_UWORD32 *)(addr))))
+#define RD_MEM_32_VOLATILE(addr)	((u32)(*((REG_UWORD32 *)(addr))))
 #define WR_MEM_32_VOLATILE(addr, data)	(*((REG_UWORD32 *)(addr)) =\
-					(UWORD32)(data))
+					(u32)(data))
 
 
 /* ----------------------------------------------------------------------------

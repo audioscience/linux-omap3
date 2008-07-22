@@ -72,25 +72,25 @@
 	/*typedef struct CHNL_OBJECT *CHNL_HOBJECT;*/
 
 /* CHNL types: */
-	typedef ULONG CHNL_MODE;	/* Channel transfer mode.         */
+	typedef u32 CHNL_MODE;	/* Channel transfer mode.         */
 
 /* Channel attributes: */
 	struct CHNL_ATTRS {
-		ULONG uIOReqs;	/* Max # of preallocated I/O requests.    */
+		u32 uIOReqs;	/* Max # of preallocated I/O requests.    */
 		HANDLE hEvent;	/* User supplied auto-reset event object. */
-		PSTR pstrEventName;	/* Ptr to name of user event object.  */
+		char *pstrEventName;	/* Ptr to name of user event object.  */
 		HANDLE hReserved1;	/* Reserved for future use.         */
-		DWORD hReserved2;	/* Reserved for future use.        */
+		u32 hReserved2;	/* Reserved for future use.        */
 
 	};
 
 /* I/O completion record: */
 	struct CHNL_IOC {
-		PVOID pBuf;	/* Buffer to be filled/emptied.           */
-		DWORD cBytes;	/* Bytes transferred.                     */
-		DWORD cBufSize;	/* Actual buffer size in bytes            */
-		DWORD status;	/* Status of IO completion.               */
-		DWORD dwArg;	/* User argument associated with pBuf.    */
+		void *pBuf;	/* Buffer to be filled/emptied.           */
+		u32 cBytes;	/* Bytes transferred.                     */
+		u32 cBufSize;	/* Actual buffer size in bytes            */
+		u32 status;	/* Status of IO completion.               */
+		u32 dwArg;	/* User argument associated with pBuf.    */
 	} ;
 
 #endif				/* CHNLDEFS_ */

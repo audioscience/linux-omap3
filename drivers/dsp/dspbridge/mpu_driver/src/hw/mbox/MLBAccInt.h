@@ -52,82 +52,82 @@
 /* Register set MAILBOX_MESSAGE___REGSET_0_15 address offset, bank address
  * increment and number of banks */
 
-#define MLB_MAILBOX_MESSAGE___REGSET_0_15_OFFSET    (UWORD32)(0x0040)
-#define MLB_MAILBOX_MESSAGE___REGSET_0_15_STEP   (UWORD32)(0x0004)
+#define MLB_MAILBOX_MESSAGE___REGSET_0_15_OFFSET    (u32)(0x0040)
+#define MLB_MAILBOX_MESSAGE___REGSET_0_15_STEP   (u32)(0x0004)
 
 /* Register offset address definitions relative to register set
  * MAILBOX_MESSAGE___REGSET_0_15 */
 
-#define MLB_MAILBOX_MESSAGE___0_15_OFFSET   (UWORD32)(0x0)
+#define MLB_MAILBOX_MESSAGE___0_15_OFFSET   (u32)(0x0)
 
 
 /* Register set MAILBOX_FIFOSTATUS___REGSET_0_15 address offset, bank address
  * increment and number of banks */
 
-#define MLB_MAILBOX_FIFOSTATUS___REGSET_0_15_OFFSET  (UWORD32)(0x0080)
-#define MLB_MAILBOX_FIFOSTATUS___REGSET_0_15_STEP   (UWORD32)(0x0004)
+#define MLB_MAILBOX_FIFOSTATUS___REGSET_0_15_OFFSET  (u32)(0x0080)
+#define MLB_MAILBOX_FIFOSTATUS___REGSET_0_15_STEP   (u32)(0x0004)
 
 /* Register offset address definitions relative to register set
  * MAILBOX_FIFOSTATUS___REGSET_0_15 */
 
-#define MLB_MAILBOX_FIFOSTATUS___0_15_OFFSET    (UWORD32)(0x0)
+#define MLB_MAILBOX_FIFOSTATUS___0_15_OFFSET    (u32)(0x0)
 
 
 /* Register set MAILBOX_MSGSTATUS___REGSET_0_15 address offset, bank address
  * increment and number of banks */
 
-#define MLB_MAILBOX_MSGSTATUS___REGSET_0_15_OFFSET  (UWORD32)(0x00c0)
-#define MLB_MAILBOX_MSGSTATUS___REGSET_0_15_STEP    (UWORD32)(0x0004)
+#define MLB_MAILBOX_MSGSTATUS___REGSET_0_15_OFFSET  (u32)(0x00c0)
+#define MLB_MAILBOX_MSGSTATUS___REGSET_0_15_STEP    (u32)(0x0004)
 
 /* Register offset address definitions relative to register set
  * MAILBOX_MSGSTATUS___REGSET_0_15 */
 
-#define MLB_MAILBOX_MSGSTATUS___0_15_OFFSET    (UWORD32)(0x0)
+#define MLB_MAILBOX_MSGSTATUS___0_15_OFFSET    (u32)(0x0)
 
 
 /* Register set MAILBOX_IRQSTATUS___REGSET_0_3 address offset, bank address
  * increment and number of banks */
 
-#define MLB_MAILBOX_IRQSTATUS___REGSET_0_3_OFFSET        (UWORD32)(0x0100)
-#define MLB_MAILBOX_IRQSTATUS___REGSET_0_3_STEP          (UWORD32)(0x0008)
+#define MLB_MAILBOX_IRQSTATUS___REGSET_0_3_OFFSET        (u32)(0x0100)
+#define MLB_MAILBOX_IRQSTATUS___REGSET_0_3_STEP          (u32)(0x0008)
 
 /* Register offset address definitions relative to register set
  * MAILBOX_IRQSTATUS___REGSET_0_3 */
 
-#define MLB_MAILBOX_IRQSTATUS___0_3_OFFSET        (UWORD32)(0x0)
+#define MLB_MAILBOX_IRQSTATUS___0_3_OFFSET        (u32)(0x0)
 
 
 /* Register set MAILBOX_IRQENABLE___REGSET_0_3 address offset, bank address
  * increment and number of banks */
 
-#define MLB_MAILBOX_IRQENABLE___REGSET_0_3_OFFSET     (UWORD32)(0x0104)
-#define MLB_MAILBOX_IRQENABLE___REGSET_0_3_STEP     (UWORD32)(0x0008)
+#define MLB_MAILBOX_IRQENABLE___REGSET_0_3_OFFSET     (u32)(0x0104)
+#define MLB_MAILBOX_IRQENABLE___REGSET_0_3_STEP     (u32)(0x0008)
 
 /* Register offset address definitions relative to register set
  * MAILBOX_IRQENABLE___REGSET_0_3 */
 
-#define MLB_MAILBOX_IRQENABLE___0_3_OFFSET          (UWORD32)(0x0)
+#define MLB_MAILBOX_IRQENABLE___0_3_OFFSET          (u32)(0x0)
 
 
 /* Register offset address definitions */
 
-#define MLB_MAILBOX_SYSCONFIG_OFFSET            (UWORD32)(0x10)
-#define MLB_MAILBOX_SYSSTATUS_OFFSET            (UWORD32)(0x14)
+#define MLB_MAILBOX_SYSCONFIG_OFFSET            (u32)(0x10)
+#define MLB_MAILBOX_SYSSTATUS_OFFSET            (u32)(0x14)
 
 
 /* Bitfield mask and offset declarations */
 
-#define MLB_MAILBOX_SYSCONFIG_SIdleMode_MASK        (UWORD32)(0x18)
-#define MLB_MAILBOX_SYSCONFIG_SIdleMode_OFFSET      (UWORD32)(3)
-#define MLB_MAILBOX_SYSCONFIG_SoftReset_MASK        (UWORD32)(0x2)
-#define MLB_MAILBOX_SYSCONFIG_SoftReset_OFFSET      (UWORD32)(1)
-#define MLB_MAILBOX_SYSCONFIG_AutoIdle_MASK          (UWORD32)(0x1)
-#define MLB_MAILBOX_SYSCONFIG_AutoIdle_OFFSET        (UWORD32)(0)
-#define MLB_MAILBOX_SYSSTATUS_ResetDone_MASK         (UWORD32)(0x1)
-#define MLB_MAILBOX_SYSSTATUS_ResetDone_OFFSET         (UWORD32)(0)
-#define MLB_MAILBOX_FIFOSTATUS___0_15_FifoFullMBm_MASK   (UWORD32)(0x1)
-#define MLB_MAILBOX_FIFOSTATUS___0_15_FifoFullMBm_OFFSET  (UWORD32)(0)
-#define MLB_MAILBOX_MSGSTATUS___0_15_NbOfMsgMBm_MASK    (UWORD32)(0x7f)
-#define MLB_MAILBOX_MSGSTATUS___0_15_NbOfMsgMBm_OFFSET    (UWORD32)(0)
+#define MLB_MAILBOX_SYSCONFIG_SIdleMode_MASK        (u32)(0x18)
+#define MLB_MAILBOX_SYSCONFIG_SIdleMode_OFFSET      (u32)(3)
+#define MLB_MAILBOX_SYSCONFIG_SoftReset_MASK        (u32)(0x2)
+#define MLB_MAILBOX_SYSCONFIG_SoftReset_OFFSET      (u32)(1)
+#define MLB_MAILBOX_SYSCONFIG_AutoIdle_MASK          (u32)(0x1)
+#define MLB_MAILBOX_SYSCONFIG_AutoIdle_OFFSET        (u32)(0)
+#define MLB_MAILBOX_SYSSTATUS_ResetDone_MASK         (u32)(0x1)
+#define MLB_MAILBOX_SYSSTATUS_ResetDone_OFFSET         (u32)(0)
+#define MLB_MAILBOX_FIFOSTATUS___0_15_FifoFullMBm_MASK   (u32)(0x1)
+#define MLB_MAILBOX_FIFOSTATUS___0_15_FifoFullMBm_OFFSET  (u32)(0)
+#define MLB_MAILBOX_MSGSTATUS___0_15_NbOfMsgMBm_MASK    (u32)(0x7f)
+#define MLB_MAILBOX_MSGSTATUS___0_15_NbOfMsgMBm_OFFSET    (u32)(0)
 
 #endif /* _MLB_ACC_INT_H */

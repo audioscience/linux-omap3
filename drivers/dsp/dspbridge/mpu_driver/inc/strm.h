@@ -81,9 +81,9 @@
  *  Ensures:
  */
 	extern DSP_STATUS STRM_AllocateBuffer(struct STRM_OBJECT *hStrm,
-					      UINT uSize,
-					      OUT BYTE **apBuffer,
-					      UINT uNumBufs);
+					      u32 uSize,
+					      OUT u8 **apBuffer,
+					      u32 uNumBufs);
 
 /*
  *  ======== STRM_Close ========
@@ -140,7 +140,7 @@
  *  Ensures:
  *      hStrmMgr is not valid.
  */
-	extern VOID STRM_Delete(struct STRM_MGR *hStrmMgr);
+	extern void STRM_Delete(struct STRM_MGR *hStrmMgr);
 
 /*
  *  ======== STRM_Exit ========
@@ -152,7 +152,7 @@
  *      STRM_Init() successfully called before.
  *  Ensures:
  */
-	extern VOID STRM_Exit();
+	extern void STRM_Exit();
 
 /*
  *  ======== STRM_FreeBuffer ========
@@ -172,7 +172,7 @@
  *  Ensures:
  */
 	extern DSP_STATUS STRM_FreeBuffer(struct STRM_OBJECT *hStrm,
-					  BYTE **apBuffer, UINT uNumBufs);
+					  u8 **apBuffer, u32 uNumBufs);
 
 /*
  *  ======== STRM_GetEventHandle ========
@@ -214,7 +214,7 @@
  */
 	extern DSP_STATUS STRM_GetInfo(struct STRM_OBJECT *hStrm,
 				       OUT struct STRM_INFO *pStreamInfo,
-				       UINT uStreamInfoSize);
+				       u32 uStreamInfoSize);
 
 /*
  *  ======== STRM_Idle ========
@@ -274,9 +274,9 @@
  *      pBuf != NULL.
  *  Ensures:
  */
-	extern DSP_STATUS STRM_Issue(struct STRM_OBJECT *hStrm, IN BYTE *pBuf,
-				     ULONG ulBytes, ULONG ulBufSize,
-				     IN DWORD dwArg);
+	extern DSP_STATUS STRM_Issue(struct STRM_OBJECT *hStrm, IN u8 *pBuf,
+				     u32 ulBytes, u32 ulBufSize,
+				     IN u32 dwArg);
 
 /*
  *  ======== STRM_Open ========
@@ -305,8 +305,8 @@
  *      DSP_SOK:        *phStrm is valid.
  *      error:          *phStrm == NULL.
  */
-	extern DSP_STATUS STRM_Open(struct NODE_OBJECT *hNode, UINT uDir,
-				    UINT uIndex, IN struct STRM_ATTR *pAttr,
+	extern DSP_STATUS STRM_Open(struct NODE_OBJECT *hNode, u32 uDir,
+				    u32 uIndex, IN struct STRM_ATTR *pAttr,
 				    OUT struct STRM_OBJECT **phStrm);
 
 /*
@@ -328,8 +328,8 @@
  *  Ensures:
  */
 	extern DSP_STATUS STRM_PrepareBuffer(struct STRM_OBJECT *hStrm,
-					     UINT uSize,
-					     BYTE *pBuffer);
+					     u32 uSize,
+					     u8 *pBuffer);
 
 /*
  *  ======== STRM_Reclaim ========
@@ -357,8 +357,8 @@
  *  Ensures:
  */
 	extern DSP_STATUS STRM_Reclaim(struct STRM_OBJECT *hStrm,
-				       OUT BYTE **pBufPtr, ULONG *pulBytes,
-				       ULONG *pulBufSize, DWORD *pdwArg);
+				       OUT u8 **pBufPtr, u32 *pulBytes,
+				       u32 *pulBufSize, u32 *pdwArg);
 
 /*
  *  ======== STRM_RegisterNotify ========
@@ -382,7 +382,7 @@
  *  Ensures:
  */
 	extern DSP_STATUS STRM_RegisterNotify(struct STRM_OBJECT *hStrm,
-					      UINT uEventMask, UINT uNotifyType,
+					      u32 uEventMask, u32 uNotifyType,
 					      struct DSP_NOTIFICATION
 					      *hNotification);
 
@@ -412,8 +412,8 @@
  *      Error:          *pMask == 0.
  */
 	extern DSP_STATUS STRM_Select(IN struct STRM_OBJECT **aStrmTab,
-				      UINT nStrms,
-				      OUT UINT *pMask, UINT uTimeout);
+				      u32 nStrms,
+				      OUT u32 *pMask, u32 uTimeout);
 
 /*
  *  ======== STRM_UnprepareBuffer ========
@@ -435,7 +435,7 @@
  *  Ensures:
  */
 	extern DSP_STATUS STRM_UnprepareBuffer(struct STRM_OBJECT *hStrm,
-					       UINT uSize,
-					       BYTE *pBuffer);
+					       u32 uSize,
+					       u8 *pBuffer);
 
 #endif				/* STRM_ */

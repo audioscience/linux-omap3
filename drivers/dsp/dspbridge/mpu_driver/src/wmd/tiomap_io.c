@@ -51,14 +51,14 @@
 #include "_tiomap_pwr.h"
 #include "tiomap_io.h"
 
-static ULONG ulExtBase;
-static ULONG ulExtEnd;
+static u32 ulExtBase;
+static u32 ulExtEnd;
 
-static ULONG ulShm0End;
-static ULONG ulDynExtBase;
-ULONG ulTraceSecBeg;
-ULONG ulTraceSecEnd;
-ULONG ulShmBaseVirt;
+static u32 ulShm0End;
+static u32 ulDynExtBase;
+u32 ulTraceSecBeg;
+u32 ulTraceSecEnd;
+u32 ulShmBaseVirt;
 
 BOOL bSymbolsReloaded = TRUE;
 
@@ -68,19 +68,19 @@ BOOL bSymbolsReloaded = TRUE;
  *      Copies DSP external memory buffers to the host side buffers.
  */
 DSP_STATUS ReadExtDspData(struct WMD_DEV_CONTEXT *hDevContext,
-			 OUT BYTE *pbHostBuf, DWORD dwDSPAddr,
-			 ULONG ulNumBytes, ULONG ulMemType)
+			 OUT u8 *pbHostBuf, u32 dwDSPAddr,
+			 u32 ulNumBytes, u32 ulMemType)
 {
 	DSP_STATUS	status = DSP_SOK;
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
-	ULONG	offset;
-	static ULONG	ulShmBaseVirt;
-	ULONG	ulTLBBaseVirt = 0;
-	ULONG	ulShmOffsetVirt = 0;
-	static ULONG	ulTraceSecBeg;
-	static ULONG	ulTraceSecEnd;
-	DWORD	dwExtProgVirtMem;
-	DWORD	dwBaseAddr = pDevContext->dwDspExtBaseAddr;
+	u32	offset;
+	static u32	ulShmBaseVirt;
+	u32	ulTLBBaseVirt = 0;
+	u32	ulShmOffsetVirt = 0;
+	static u32	ulTraceSecBeg;
+	static u32	ulTraceSecEnd;
+	u32	dwExtProgVirtMem;
+	u32	dwBaseAddr = pDevContext->dwDspExtBaseAddr;
 	BOOL	bTraceRead = FALSE;
 
 	DBG_Trace(DBG_ENTER, "ReadExtDspData,"
@@ -112,7 +112,7 @@ DSP_STATUS ReadExtDspData(struct WMD_DEV_CONTEXT *hDevContext,
 		if ((dwDSPAddr <= ulTraceSecEnd) &&
 			(dwDSPAddr >= ulTraceSecBeg)) {
 			DBG_Trace(DBG_LEVEL5, "Reading from DSP Trace"
-					"section 0x%x \n",dwDSPAddr);
+					"section 0x%x \n", dwDSPAddr);
 			bTraceRead = TRUE;
 		}
 	}
@@ -207,23 +207,23 @@ DSP_STATUS ReadExtDspData(struct WMD_DEV_CONTEXT *hDevContext,
 	offset = dwDSPAddr - ulExtBase;
 
 	if (DSP_SUCCEEDED(status))
-		memcpy(pbHostBuf, (BYTE *)dwBaseAddr+offset, ulNumBytes);
+		memcpy(pbHostBuf, (u8 *)dwBaseAddr+offset, ulNumBytes);
 
-	return (status);
+	return status;
 }
 /*
  *  ======== WriteDspData ========
  *  purpose:
  *      Copies buffers to the DSP internal/external memory.
  */
-DSP_STATUS WriteDspData(struct WMD_DEV_CONTEXT *hDevContext, IN BYTE *pbHostBuf,
-			DWORD dwDSPAddr, ULONG ulNumBytes, ULONG ulMemType)
+DSP_STATUS WriteDspData(struct WMD_DEV_CONTEXT *hDevContext, IN u8 *pbHostBuf,
+			u32 dwDSPAddr, u32 ulNumBytes, u32 ulMemType)
 {
-	DWORD offset;
-	DWORD dwBaseAddr = hDevContext->dwDspBaseAddr;
+	u32 offset;
+	u32 dwBaseAddr = hDevContext->dwDspBaseAddr;
 	struct CFG_HOSTRES resources;
 	DSP_STATUS status;
-	DWORD base1, base2, base3;
+	u32 base1, base2, base3;
 	base1 = OMAP_DSP_MEM1_SIZE;
 	base2 = OMAP_DSP_MEM2_BASE - OMAP_DSP_MEM1_BASE;
 	base3 = OMAP_DSP_MEM3_BASE - OMAP_DSP_MEM1_BASE;
@@ -250,9 +250,9 @@ DSP_STATUS WriteDspData(struct WMD_DEV_CONTEXT *hDevContext, IN BYTE *pbHostBuf,
 		return status;
 	}
 	if (ulNumBytes)
-		memcpy((BYTE *) (dwBaseAddr+offset), pbHostBuf, ulNumBytes);
+		memcpy((u8 *) (dwBaseAddr+offset), pbHostBuf, ulNumBytes);
 	else
-		*((DWORD *) pbHostBuf) = dwBaseAddr+offset;
+		*((u32 *) pbHostBuf) = dwBaseAddr+offset;
 
 	return status;
 }
@@ -264,18 +264,18 @@ DSP_STATUS WriteDspData(struct WMD_DEV_CONTEXT *hDevContext, IN BYTE *pbHostBuf,
  *
  */
 DSP_STATUS WriteExtDspData(struct WMD_DEV_CONTEXT *pDevContext,
-			  IN BYTE *pbHostBuf, DWORD dwDSPAddr, ULONG ulNumBytes,
-			  ULONG ulMemType, BOOL bDynamicLoad)
+			  IN u8 *pbHostBuf, u32 dwDSPAddr, u32 ulNumBytes,
+			  u32 ulMemType, BOOL bDynamicLoad)
 {
-	DWORD dwBaseAddr = pDevContext->dwDspExtBaseAddr;
-	DWORD dwOffset;
-	BYTE bTempByte1, bTempByte2;
-	BYTE remainByte[4];
-	INT i;
+	u32 dwBaseAddr = pDevContext->dwDspExtBaseAddr;
+	u32 dwOffset;
+	u8 bTempByte1, bTempByte2;
+	u8 remainByte[4];
+	s32 i;
 	DSP_STATUS retVal = DSP_SOK;
-	DWORD dwExtProgVirtMem;
-	ULONG ulTLBBaseVirt = 0;
-	ULONG ulShmOffsetVirt = 0;
+	u32 dwExtProgVirtMem;
+	u32 ulTLBBaseVirt = 0;
+	u32 ulShmOffsetVirt = 0;
 	struct CFG_HOSTRES hostRes;
 	BOOL bTraceLoad = FALSE;
 	bTempByte1 = 0x0;
@@ -303,7 +303,7 @@ DSP_STATUS WriteExtDspData(struct WMD_DEV_CONTEXT *pDevContext,
 	/* If dynamic, force remap/unmap */
 	if ((bDynamicLoad || bTraceLoad) && dwBaseAddr) {
 		dwBaseAddr = 0;
-		MEM_UnmapLinearAddress((PVOID)pDevContext->dwDspExtBaseAddr);
+		MEM_UnmapLinearAddress((void *)pDevContext->dwDspExtBaseAddr);
 		pDevContext->dwDspExtBaseAddr = 0x0;
 	}
 	if (!dwBaseAddr) {
@@ -384,7 +384,7 @@ DSP_STATUS WriteExtDspData(struct WMD_DEV_CONTEXT *pDevContext,
 				 dwExtProgVirtMem);
 
 			pDevContext->dwDspExtBaseAddr =
-				(DWORD)MEM_LinearAddress((VOID *)
+				(u32)MEM_LinearAddress((void *)
 				TO_VIRTUAL_UNCACHED(dwExtProgVirtMem), ulExtEnd
 				- ulExtBase);
 			dwBaseAddr += pDevContext->dwDspExtBaseAddr;
@@ -417,14 +417,14 @@ DSP_STATUS WriteExtDspData(struct WMD_DEV_CONTEXT *pDevContext,
 	}
 	if (DSP_SUCCEEDED(retVal)) {
 		if (ulNumBytes)
-			memcpy((BYTE *) dwBaseAddr + dwOffset, pbHostBuf,
+			memcpy((u8 *) dwBaseAddr + dwOffset, pbHostBuf,
 				ulNumBytes);
 		else
-			*((DWORD *) pbHostBuf) = dwBaseAddr+dwOffset;
+			*((u32 *) pbHostBuf) = dwBaseAddr+dwOffset;
 	}
 	/* Unmap here to force remap for other Ext loads */
 	if ((bDynamicLoad || bTraceLoad) && pDevContext->dwDspExtBaseAddr) {
-		MEM_UnmapLinearAddress((PVOID) pDevContext->dwDspExtBaseAddr);
+		MEM_UnmapLinearAddress((void *) pDevContext->dwDspExtBaseAddr);
 		pDevContext->dwDspExtBaseAddr = 0x0;
 	}
 #ifdef OPT_REDUCE_SYMBOL_LOOKUPS

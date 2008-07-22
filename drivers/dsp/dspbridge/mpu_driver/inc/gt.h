@@ -33,7 +33,7 @@
  *! 03-Jan-1997	ge	Replaced "GT_" prefix to GT_Config structure members
  *!                 to eliminate preprocessor confusion with other macros.
  */
-
+#include <linux/types.h>
 #ifndef GT_
 #define GT_
 
@@ -55,8 +55,8 @@ struct GT_Config {
 extern struct GT_Config *GT;
 
 struct GT_Mask {
-	String modName;
-	SmBits *flags;
+	char *modName;
+	u8 *flags;
 } ;
 
 /*
@@ -82,14 +82,14 @@ struct GT_Mask {
  *
  */
 
-#define GT_ENTER	((SmBits)0x01)
-#define GT_1CLASS	((SmBits)0x02)
-#define GT_2CLASS	((SmBits)0x04)
-#define GT_3CLASS	((SmBits)0x08)
-#define GT_4CLASS	((SmBits)0x10)
-#define GT_5CLASS	((SmBits)0x20)
-#define GT_6CLASS	((SmBits)0x40)
-#define GT_7CLASS	((SmBits)0x80)
+#define GT_ENTER	((u8)0x01)
+#define GT_1CLASS	((u8)0x02)
+#define GT_2CLASS	((u8)0x04)
+#define GT_3CLASS	((u8)0x08)
+#define GT_4CLASS	((u8)0x10)
+#define GT_5CLASS	((u8)0x20)
+#define GT_6CLASS	((u8)0x40)
+#define GT_7CLASS	((u8)0x80)
 
 #ifdef _LINT_
 
@@ -99,8 +99,8 @@ struct GT_Mask {
  *  ======== GT_assert ========
  */
 /* ARGSUSED */
-Void
-GT_assert(struct GT_Mask mask, Int expr)
+void
+GT_assert(struct GT_Mask mask, s32 expr)
 {
 }
 
@@ -108,7 +108,7 @@ GT_assert(struct GT_Mask mask, Int expr)
  *  ======== GT_config ========
  */
 /* ARGSUSED */
-Void
+void
 GT_config(struct GT_Config config)
 {
 }
@@ -117,8 +117,8 @@ GT_config(struct GT_Config config)
  *  ======== GT_create ========
  */
 /* ARGSUSED */
-Void
-GT_create(struct GT_Mask *mask /* OUT */ , String modName)
+void
+GT_create(struct GT_Mask *mask /* OUT */ , char *modName)
 {
 }
 
@@ -132,18 +132,18 @@ GT_create(struct GT_Mask *mask /* OUT */ , String modName)
  *          "in module XX_mod, executing line %u\n", GT_curLine());
  */
 /* ARGSUSED */
-MdUns
-GT_curLine(Void)
+u16
+GT_curLine(void)
 {
-	return (MdUns)NULL;
+	return (u16)NULL;
 }
 
 /*
  *  ======== GT_exit ========
  */
 /* ARGSUSED */
-Void
-GT_exit(Void)
+void
+GT_exit(void)
 {
 }
 
@@ -151,8 +151,8 @@ GT_exit(Void)
  *  ======== GT_init ========
  */
 /* ARGSUSED */
-Void
-GT_init(Void)
+void
+GT_init(void)
 {
 }
 
@@ -161,7 +161,7 @@ GT_init(Void)
  */
 /* ARGSUSED */
 Bool
-GT_query(struct GT_Mask mask, SmBits class)
+GT_query(struct GT_Mask mask, u8 class)
 {
 	return FALSE;
 }
@@ -172,8 +172,8 @@ GT_query(struct GT_Mask mask, SmBits class)
  */
 
 /* ARGSUSED */
-Void
-GT_set(String settings)
+void
+GT_set(char *settings)
 {
 }
 
@@ -183,50 +183,50 @@ GT_set(String settings)
  */
 
 /* ARGSUSED */
-Void
+void
 GT_setprintf(Fxn fxn)
 {
 }
 
 /* ARGSUSED */
-Void
-GT_0trace(struct GT_Mask mask, SmBits class, String format)
+void
+GT_0trace(struct GT_Mask mask, u8 class, char *format)
 {
 }
 
 /* ARGSUSED */
-Void
-GT_1trace(struct GT_Mask mask, SmBits class, String format, ...)
+void
+GT_1trace(struct GT_Mask mask, u8 class, char *format, ...)
 {
 }
 
 /* ARGSUSED */
-Void
-GT_2trace(struct GT_Mask mask, SmBits class, String format, ...)
+void
+GT_2trace(struct GT_Mask mask, u8 class, char *format, ...)
 {
 }
 
 /* ARGSUSED */
-Void
-GT_3trace(struct GT_Mask mask, SmBits class, String format, ...)
+void
+GT_3trace(struct GT_Mask mask, u8 class, char *format, ...)
 {
 }
 
 /* ARGSUSED */
-Void
-GT_4trace(struct GT_Mask mask, SmBits class, String format, ...)
+void
+GT_4trace(struct GT_Mask mask, u8 class, char *format, ...)
 {
 }
 
 /* ARGSUSED */
-Void
-GT_5trace(struct GT_Mask mask, SmBits class, String format, ...)
+void
+GT_5trace(struct GT_Mask mask, u8 class, char *format, ...)
 {
 }
 
 /* ARGSUSED */
-Void
-GT_6trace(struct GT_Mask mask, SmBits class, String format, ...)
+void
+GT_6trace(struct GT_Mask mask, u8 class, char *format, ...)
 {
 }
 
@@ -234,13 +234,13 @@ GT_6trace(struct GT_Mask mask, SmBits class, String format, ...)
 
 #define	GT_BOUND    26		/* 26 letters in alphabet */
 
-extern Void _GT_create(struct GT_Mask *mask, String modName);
+extern void _GT_create(struct GT_Mask *mask, char *modName);
 
 #define GT_exit()
 
-extern Void GT_init(Void);
-extern Void _GT_set(String str);
-extern Int _GT_trace(struct GT_Mask *mask, String format, ...);
+extern void GT_init(void);
+extern void _GT_set(char *str);
+extern s32 _GT_trace(struct GT_Mask *mask, char *format, ...);
 
 #if GT_ASSERT == 0
 
@@ -266,7 +266,7 @@ extern struct GT_Config _GT_params;
 
 #if GT_TRACE == 0
 
-#define GT_curLine()                ((MdUns)__LINE__)
+#define GT_curLine()                ((u16)__LINE__)
 #define GT_create(mask, modName)
 #define GT_exit()
 #define GT_init()
@@ -285,11 +285,11 @@ extern struct GT_Config _GT_params;
 
 #else				/* GT_TRACE == 1 */
 
-extern String GT_format;
-extern SmBits *GT_tMask[GT_BOUND];
+extern char *GT_format;
+extern u8 *GT_tMask[GT_BOUND];
 
 #define GT_create(mask, modName)    _GT_create((mask), (modName))
-#define GT_curLine()                ((MdUns)__LINE__)
+#define GT_curLine()                ((u16)__LINE__)
 #define GT_set(settings)          _GT_set(settings)
 #define GT_setprintf(fxn)         (_GT_params.PRINTFXN = (Fxn)(fxn))
 

@@ -49,7 +49,7 @@
  *!		 IFDEF to build for PM or DSP/BIOS Bridge
  *! 28-Jan-2000 rr: NT_CMD_FROM_OFFSET moved out to dsptrap.h
  *! 24-Jan-2000 rr: Merged with Scott's code.
- *! 21-Jan-2000 sg: In ARGS_CHNL_GETMODE changed mode to be ULONG to be
+ *! 21-Jan-2000 sg: In ARGS_CHNL_GETMODE changed mode to be u32 to be
  *!		 consistent with chnldefs.h.
  *! 11-Jan-2000 rr: CMD_CFG_GETCDVERSION_OFFSET added.
  *! 12-Nov-1999 rr: CMD_BRD_MONITOR_OFFSET added
@@ -75,17 +75,17 @@ typedef union {
 
 	/* MGR Module */
 	struct {
-		UINT uNode;
+		u32 uNode;
 		struct DSP_NDBPROPS *pNDBProps;
-		UINT uNDBPropsSize;
-		UINT *puNumNodes;
+		u32 uNDBPropsSize;
+		u32 *puNumNodes;
 	} ARGS_MGR_ENUMNODE_INFO;
 
 	struct {
-		UINT uProcessor;
+		u32 uProcessor;
 		struct DSP_PROCESSORINFO *pProcessorInfo;
-		UINT uProcessorInfoSize;
-		UINT *puNumProcs;
+		u32 uProcessorInfoSize;
+		u32 *puNumProcs;
 	} ARGS_MGR_ENUMPROC_INFO;
 
 	struct {
@@ -101,21 +101,21 @@ typedef union {
 
 	struct {
 		struct DSP_NOTIFICATION* *aNotifications;
-		UINT uCount;
-		UINT *puIndex;
-		UINT uTimeout;
+		u32 uCount;
+		u32 *puIndex;
+		u32 uTimeout;
 	} ARGS_MGR_WAIT;
 
 	/* PROC Module */
 	struct {
-		UINT uProcessor;
+		u32 uProcessor;
 		struct DSP_PROCESSORATTRIN *pAttrIn;
 		DSP_HPROCESSOR *phProcessor;
 	} ARGS_PROC_ATTACH;
 
 	struct {
 		DSP_HPROCESSOR hProcessor;
-		ULONG dwCmd;
+		u32 dwCmd;
 		struct DSP_CBDATA *pArgs;
 	} ARGS_PROC_CTRL;
 
@@ -126,45 +126,45 @@ typedef union {
 	struct {
 		DSP_HPROCESSOR hProcessor;
 		DSP_HNODE *aNodeTab;
-		UINT uNodeTabSize;
-		UINT *puNumNodes;
-		UINT *puAllocated;
+		u32 uNodeTabSize;
+		u32 *puNumNodes;
+		u32 *puAllocated;
 	} ARGS_PROC_ENUMNODE_INFO;
 
 	struct {
 		DSP_HPROCESSOR hProcessor;
-		UINT uResourceType;
+		u32 uResourceType;
 		struct DSP_RESOURCEINFO *pResourceInfo;
-		UINT uResourceInfoSize;
+		u32 uResourceInfoSize;
 	} ARGS_PROC_ENUMRESOURCES;
 
 	struct {
 		DSP_HPROCESSOR hProcessor;
 		struct DSP_PROCESSORSTATE *pProcStatus;
-		UINT uStateInfoSize;
+		u32 uStateInfoSize;
 	} ARGS_PROC_GETSTATE;
 
 	struct {
 		DSP_HPROCESSOR hProcessor;
-		BYTE *pBuf;
+		u8 *pBuf;
 
 	#ifndef RES_CLEANUP_DISABLE
-	    BYTE *pSize;
+	    u8 *pSize;
     #endif
-		UINT uMaxSize;
+		u32 uMaxSize;
 	} ARGS_PROC_GETTRACE;
 
 	struct {
 		DSP_HPROCESSOR hProcessor;
-		INT iArgc;
+		s32 iArgc;
 		char **aArgv;
 		char **aEnvp;
 	} ARGS_PROC_LOAD;
 
 	struct {
 		DSP_HPROCESSOR hProcessor;
-		UINT uEventMask;
-		UINT uNotifyType;
+		u32 uEventMask;
+		u32 uNotifyType;
 		struct DSP_NOTIFICATION *hNotification;
 	} ARGS_PROC_REGISTER_NOTIFY;
 
@@ -174,36 +174,36 @@ typedef union {
 
 	struct {
 		DSP_HPROCESSOR hProcessor;
-		ULONG ulSize;
-		PVOID *ppRsvAddr;
+		u32 ulSize;
+		void **ppRsvAddr;
 	} ARGS_PROC_RSVMEM;
 
 	struct {
 		DSP_HPROCESSOR hProcessor;
-		ULONG ulSize;
-		PVOID pRsvAddr;
+		u32 ulSize;
+		void *pRsvAddr;
 	} ARGS_PROC_UNRSVMEM;
 
 	struct {
 		DSP_HPROCESSOR hProcessor;
-		PVOID pMpuAddr;
-		ULONG ulSize;
-		PVOID pReqAddr;
-		PVOID *ppMapAddr;
-		ULONG ulMapAttr;
+		void *pMpuAddr;
+		u32 ulSize;
+		void *pReqAddr;
+		void **ppMapAddr;
+		u32 ulMapAttr;
 	} ARGS_PROC_MAPMEM;
 
 	struct {
 		DSP_HPROCESSOR hProcessor;
-		ULONG ulSize;
-		PVOID pMapAddr;
+		u32 ulSize;
+		void *pMapAddr;
 	} ARGS_PROC_UNMAPMEM;
 
 	struct {
 		DSP_HPROCESSOR hProcessor;
-		PVOID pMpuAddr;
-		ULONG ulSize;
-		ULONG ulFlags;
+		void *pMpuAddr;
+		u32 ulSize;
+		u32 ulFlags;
 	} ARGS_PROC_FLUSHMEMORY;
 
 	struct {
@@ -212,8 +212,8 @@ typedef union {
 
 	struct {
 		DSP_HPROCESSOR hProcessor;
-		PVOID pMpuAddr;
-		ULONG ulSize;
+		void *pMpuAddr;
+		u32 ulSize;
 	} ARGS_PROC_INVALIDATEMEMORY;
 
 
@@ -228,21 +228,21 @@ typedef union {
 
 	struct {
 		DSP_HNODE hNode;
-		UINT uSize;
+		u32 uSize;
 		struct DSP_BUFFERATTR *pAttr;
-		BYTE **pBuffer;
+		u8 **pBuffer;
 	} ARGS_NODE_ALLOCMSGBUF;
 
 	struct {
 		DSP_HNODE hNode;
-		INT iPriority;
+		s32 iPriority;
 	} ARGS_NODE_CHANGEPRIORITY;
 
 	struct {
 		DSP_HNODE hNode;
-		UINT uStream;
+		u32 uStream;
 		DSP_HNODE hOtherNode;
-		UINT uOtherStream;
+		u32 uOtherStream;
 		struct DSP_STRMATTR *pAttrs;
 		struct DSP_CBDATA *pConnParam;
 	} ARGS_NODE_CONNECT;
@@ -258,19 +258,19 @@ typedef union {
 	struct {
 		DSP_HNODE hNode;
 		struct DSP_BUFFERATTR *pAttr;
-		BYTE *pBuffer;
+		u8 *pBuffer;
 	} ARGS_NODE_FREEMSGBUF;
 
 	struct {
 		DSP_HNODE hNode;
 		struct DSP_NODEATTR *pAttr;
-		UINT uAttrSize;
+		u32 uAttrSize;
 	} ARGS_NODE_GETATTR;
 
 	struct {
 		DSP_HNODE hNode;
 		struct DSP_MSG *pMessage;
-		UINT uTimeout;
+		u32 uTimeout;
 	} ARGS_NODE_GETMESSAGE;
 
 	struct {
@@ -280,13 +280,13 @@ typedef union {
 	struct {
 		DSP_HNODE hNode;
 		struct DSP_MSG *pMessage;
-		UINT uTimeout;
+		u32 uTimeout;
 	} ARGS_NODE_PUTMESSAGE;
 
 	struct {
 		DSP_HNODE hNode;
-		UINT uEventMask;
-		UINT uNotifyType;
+		u32 uEventMask;
+		u32 uNotifyType;
 		struct DSP_NOTIFICATION *hNotification;
 	} ARGS_NODE_REGISTERNOTIFY;
 
@@ -309,9 +309,9 @@ typedef union {
 
 	struct {
 		DSP_HSTREAM hStream;
-		UINT uSize;
-		BYTE **apBuffer;
-		UINT uNumBufs;
+		u32 uSize;
+		u8 **apBuffer;
+		u32 uNumBufs;
 	} ARGS_STRM_ALLOCATEBUFFER;
 
 	struct {
@@ -320,8 +320,8 @@ typedef union {
 
 	struct {
 		DSP_HSTREAM hStream;
-		BYTE **apBuffer;
-		UINT uNumBufs;
+		u8 **apBuffer;
+		u32 uNumBufs;
 	} ARGS_STRM_FREEBUFFER;
 
 	struct {
@@ -332,7 +332,7 @@ typedef union {
 	struct {
 		DSP_HSTREAM hStream;
 		struct STRM_INFO *pStreamInfo;
-		UINT uStreamInfoSize;
+		u32 uStreamInfoSize;
 	} ARGS_STRM_GETINFO;
 
 	struct {
@@ -342,54 +342,54 @@ typedef union {
 
 	struct {
 		DSP_HSTREAM hStream;
-		BYTE *pBuffer;
-		ULONG dwBytes;
-		ULONG dwBufSize;
-		DWORD dwArg;
+		u8 *pBuffer;
+		u32 dwBytes;
+		u32 dwBufSize;
+		u32 dwArg;
 	} ARGS_STRM_ISSUE;
 
 	struct {
 		DSP_HNODE hNode;
-		UINT uDirection;
-		UINT uIndex;
+		u32 uDirection;
+		u32 uIndex;
 		struct STRM_ATTR *pAttrIn;
 		DSP_HSTREAM *phStream;
 	} ARGS_STRM_OPEN;
 
 	struct {
 		DSP_HSTREAM hStream;
-		BYTE **pBufPtr;
-		ULONG *pBytes;
-		ULONG *pBufSize;
-		DWORD *pdwArg;
+		u8 **pBufPtr;
+		u32 *pBytes;
+		u32 *pBufSize;
+		u32 *pdwArg;
 	} ARGS_STRM_RECLAIM;
 
 	struct {
 		DSP_HSTREAM hStream;
-		UINT uEventMask;
-		UINT uNotifyType;
+		u32 uEventMask;
+		u32 uNotifyType;
 		struct DSP_NOTIFICATION *hNotification;
 	} ARGS_STRM_REGISTERNOTIFY;
 
 	struct {
 		DSP_HSTREAM *aStreamTab;
-		UINT nStreams;
-		UINT *pMask;
-		UINT uTimeout;
+		u32 nStreams;
+		u32 *pMask;
+		u32 uTimeout;
 	} ARGS_STRM_SELECT;
 
 	/* CMM Module */
 	struct {
 		struct CMM_OBJECT *hCmmMgr;
-		UINT uSize;
+		u32 uSize;
 		struct CMM_ATTRS *pAttrs;
-		OUT PVOID *ppBufVA;
+		OUT void **ppBufVA;
 	} ARGS_CMM_ALLOCBUF;
 
 	struct {
 		struct CMM_OBJECT *hCmmMgr;
-		PVOID pBufPA;
-		ULONG ulSegId;
+		void *pBufPA;
+		u32 ulSegId;
 	} ARGS_CMM_FREEBUF;
 
 	struct {
@@ -404,35 +404,35 @@ typedef union {
 
 	/* MEM Module */
 	struct {
-		ULONG cBytes;
+		u32 cBytes;
 		MEM_POOLATTRS type;
-		PVOID pMem;
+		void *pMem;
 	} ARGS_MEM_ALLOC;
 
 	struct {
-		ULONG cBytes;
+		u32 cBytes;
 		MEM_POOLATTRS type;
-		PVOID pMem;
+		void *pMem;
 	} ARGS_MEM_CALLOC;
 
 	struct {
-		PVOID pMem;
+		void *pMem;
 	} ARGS_MEM_FREE;
 
 	struct {
-		PVOID pBuffer;
-		ULONG cSize;
-		PVOID pLockedBuffer;
+		void *pBuffer;
+		u32 cSize;
+		void *pLockedBuffer;
 	} ARGS_MEM_PAGELOCK;
 
 	struct {
-		PVOID pBuffer;
-		ULONG cSize;
+		void *pBuffer;
+		u32 cSize;
 	} ARGS_MEM_PAGEUNLOCK;
 
 	/* UTIL module */
 	struct {
-		INT cArgc;
+		s32 cArgc;
 		char **ppArgv;
 	} ARGS_UTIL_TESTDLL;
 

@@ -63,7 +63,7 @@ static struct GT_Mask PRCS_debugMask = { 0, 0 };	/* GT trace var. */
  *  Purpose:
  *      Discontinue usage of the PRCS module.
  */
-VOID PRCS_Exit(void)
+void PRCS_Exit(void)
 {
 	GT_0trace(PRCS_debugMask, GT_5CLASS, "PRCS_Exit\n");
 }

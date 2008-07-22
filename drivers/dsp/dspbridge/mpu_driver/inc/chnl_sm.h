@@ -125,7 +125,7 @@
  *  Ensures:
  */
 	extern DSP_STATUS CDECL CHNLSM_InterruptDSP2(struct WMD_DEV_CONTEXT*
-						     hDevContext, WORD wMbVal);
+						     hDevContext, u16 wMbVal);
 
 /*
  *  ======== CHNLSM_ISR ========
@@ -153,7 +153,7 @@
  */
 	extern BOOL CDECL CHNLSM_ISR(struct WMD_DEV_CONTEXT *hDevContext,
 				     OUT BOOL *pfSchedDPC,
-				     OUT WORD *pwIntrVal);
+				     OUT u16 *pwIntrVal);
 
 /*
  *  ======== CHNLSM_Read ========
@@ -169,8 +169,8 @@
  *  Ensures:
  */
 	extern DSP_STATUS CDECL CHNLSM_Read(struct WMD_DEV_CONTEXT *hDevContext,
-					    OUT BYTE *pHostBuf,
-					    DWORD dwDSPAddr, ULONG ulNumBytes);
+					    OUT u8 *pHostBuf,
+					    u32 dwDSPAddr, u32 ulNumBytes);
 
 /*
  *  ======== CHNLSM_UpdateSHMLength ========
@@ -185,10 +185,10 @@
  *  Requires:
  *      pSHMLength != NULL.
  *  Ensures:
- *      No more than sizeof(ULONG) bytes written to *pSHMLength
+ *      No more than sizeof(u32) bytes written to *pSHMLength
  */
 	extern BOOL CHNLSM_UpdateSHMLength(struct WMD_DEV_CONTEXT *hDevContext,
-					   IN OUT ULONG *pSHMLength);
+					   IN OUT u32 *pSHMLength);
 
 /*
  *  ======== CHNLSM_Write ========
@@ -204,7 +204,7 @@
  *  Ensures:
  */
        extern DSP_STATUS CDECL CHNLSM_Write(struct WMD_DEV_CONTEXT *hDevContext,
-					    IN BYTE *pHostBuf,
-					    DWORD dwDSPAddr, ULONG ulNumBytes);
+					    IN u8 *pHostBuf,
+					    u32 dwDSPAddr, u32 ulNumBytes);
 
 #endif				/* CHNLSM_ */

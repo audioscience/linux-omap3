@@ -96,7 +96,7 @@ struct MSG {
  */
 struct MSG_MGR {
 	/* The first two fields must match those in msgobj.h */
-	DWORD dwSignature;
+	u32 dwSignature;
 	struct WMD_DRV_INTERFACE *pIntfFxns;	/* Function interface to WMD. */
 
 	struct IO_MGR *hIOMgr;	/* IO manager */
@@ -106,8 +106,8 @@ struct MSG_MGR {
 	struct SYNC_OBJECT *hSyncEvent;
 	struct LST_LIST *msgFreeList;	/* Free MsgFrames ready to be filled */
 	struct LST_LIST *msgUsedList;	/* MsgFrames ready to go to DSP */
-	UINT uMsgsPending;	/* # of queued messages to go to DSP */
-	UINT uMaxMsgs;	/* Max # of msgs that fit in buffer */
+	u32 uMsgsPending;	/* # of queued messages to go to DSP */
+	u32 uMaxMsgs;	/* Max # of msgs that fit in buffer */
 	MSG_ONEXIT onExit;	/* called when RMS_EXIT is received */
 } ;
 
@@ -122,10 +122,10 @@ struct MSG_MGR {
  */
 struct MSG_QUEUE {
 	struct LST_ELEM listElem;
-	DWORD dwSignature;
+	u32 dwSignature;
 	struct MSG_MGR *hMsgMgr;
-	UINT uMaxMsgs;	/* Node message depth */
-	DWORD dwId;	/* Node environment pointer */
+	u32 uMaxMsgs;	/* Node message depth */
+	u32 dwId;	/* Node environment pointer */
 	struct LST_LIST *msgFreeList;	/* Free MsgFrames ready to be filled */
 	/* Filled MsgFramess waiting to be read */
 	struct LST_LIST *msgUsedList;
@@ -135,7 +135,7 @@ struct MSG_QUEUE {
 	struct SYNC_OBJECT *hSyncDoneAck;	/* For synchronizing cleanup */
 	struct NTFY_OBJECT *hNtfy;	/* For notification of message ready */
 	BOOL fDone;	/* TRUE <==> deleting the object */
-	UINT refCount;	/* Number of pending MSG_get/put calls */
+	u32 refCount;	/* Number of pending MSG_get/put calls */
 };
 
 /*
@@ -143,7 +143,7 @@ struct MSG_QUEUE {
  */
 struct MSG_DSPMSG {
 	struct DSP_MSG msg;
-	DWORD dwId;	/* Identifies the node the message goes to */
+	u32 dwId;	/* Identifies the node the message goes to */
 } ;
 
 /*

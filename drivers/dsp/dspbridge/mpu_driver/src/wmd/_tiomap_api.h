@@ -134,7 +134,7 @@ typedef enum {
  *  Configures the SARAM blocks which can be accessed in the HOM mode
  *  Register 0xfffe:c900 offset 0x1c.
  */
-extern VOID setAPIsize(struct WMD_DEV_CONTEXT *pDevContext, WORD size);
+extern void setAPIsize(struct WMD_DEV_CONTEXT *pDevContext, u16 size);
 
 /*
  *  ======== setDspBootModeAPI ========
@@ -143,7 +143,7 @@ extern VOID setAPIsize(struct WMD_DEV_CONTEXT *pDevContext, WORD size);
  *  Boot mode is set API_DSP_BOOT_INTERNAL; DSP will start executing from
  *  SARAM location 0x10000 byte address.
  */
-extern VOID setDspBootModeAPI(struct WMD_DEV_CONTEXT *pDevContext,
+extern void setDspBootModeAPI(struct WMD_DEV_CONTEXT *pDevContext,
 			      API_DSPBootMode_t dsp_boot_mode);
 
 /*
@@ -157,7 +157,7 @@ extern VOID setDspBootModeAPI(struct WMD_DEV_CONTEXT *pDevContext,
  *      -   Enable the time out
  *      -   Set it to high frequency mode
  */
-extern VOID setAPI(struct WMD_DEV_CONTEXT *pDevContext,
+extern void setAPI(struct WMD_DEV_CONTEXT *pDevContext,
 		   API_HighFreq_t high_freq,
 		   API_TimeoutEn_t timeout_en,
 		   API_ApiErrEn_t api_err_en,
@@ -177,6 +177,6 @@ extern VOID setAPI(struct WMD_DEV_CONTEXT *pDevContext,
  *      -   Enable the time out
  *      -   Set it to high frequency mode
  */
-extern VOID setupAPI(struct WMD_DEV_CONTEXT *pDevContext);
+extern void setupAPI(struct WMD_DEV_CONTEXT *pDevContext);
 
 #endif				/* _TIOMAP_API_ */

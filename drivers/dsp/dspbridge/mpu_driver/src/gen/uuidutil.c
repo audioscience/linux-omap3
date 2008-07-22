@@ -52,10 +52,10 @@
  *      Note: snprintf format specifier is:
  *      %[flags] [width] [.precision] [{h | l | I64 | L}]type
  */
-VOID UUID_UuidToString(IN struct DSP_UUID *pUuid, OUT char *pszUuid,
-		       IN INT size)
+void UUID_UuidToString(IN struct DSP_UUID *pUuid, OUT char *pszUuid,
+		       IN s32 size)
 {
-	INT i;			/* return result from snprintf. */
+	s32 i;			/* return result from snprintf. */
 
 	DBC_Require(pUuid && pszUuid);
 
@@ -131,11 +131,11 @@ int htoi(char c)
  *  Purpose:
  *      Converts a string to a struct DSP_UUID.
  */
-VOID UUID_UuidFromString(IN char *pszUuid, OUT struct DSP_UUID *pUuid)
+void UUID_UuidFromString(IN char *pszUuid, OUT struct DSP_UUID *pUuid)
 {
 	char c;
-	INT i, j;
-	LONG result;
+	s32 i, j;
+	s32 result;
 	char *temp = pszUuid;
 
 	result = 0;
@@ -167,7 +167,7 @@ VOID UUID_UuidFromString(IN char *pszUuid, OUT struct DSP_UUID *pUuid)
 		/* Go to next character in string */
 		temp++;
 	}
-	pUuid->usData2 = (USHORT)result;
+	pUuid->usData2 = (u16)result;
 
 	/* Step over underscore */
 	temp++;
@@ -184,7 +184,7 @@ VOID UUID_UuidFromString(IN char *pszUuid, OUT struct DSP_UUID *pUuid)
 		/* Go to next character in string */
 		temp++;
 	}
-	pUuid->usData3 = (USHORT)result;
+	pUuid->usData3 = (u16)result;
 
 	/* Step over underscore */
 	temp++;
@@ -201,7 +201,7 @@ VOID UUID_UuidFromString(IN char *pszUuid, OUT struct DSP_UUID *pUuid)
 		/* Go to next character in string */
 		temp++;
 	}
-	pUuid->ucData4 = (UCHAR)result;
+	pUuid->ucData4 = (u8)result;
 
 	result = 0;
 	for (i = 0; i < 2; i++) {
@@ -215,7 +215,7 @@ VOID UUID_UuidFromString(IN char *pszUuid, OUT struct DSP_UUID *pUuid)
 		/* Go to next character in string */
 		temp++;
 	}
-	pUuid->ucData5 = (UCHAR)result;
+	pUuid->ucData5 = (u8)result;
 
 	/* Step over underscore */
 	temp++;
@@ -233,6 +233,6 @@ VOID UUID_UuidFromString(IN char *pszUuid, OUT struct DSP_UUID *pUuid)
 			/* Go to next character in string */
 			temp++;
 		}
-		pUuid->ucData6[j] = (UCHAR)result;
+		pUuid->ucData6[j] = (u8)result;
 	}
 }

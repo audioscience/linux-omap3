@@ -38,26 +38,26 @@
  * ======== WakeDSP =========
  * Wakes up the DSP from DeepSleep
  */
-extern DSP_STATUS WakeDSP(struct WMD_DEV_CONTEXT *pDevContext, IN PVOID pArgs);
+extern DSP_STATUS WakeDSP(struct WMD_DEV_CONTEXT *pDevContext, IN void *pArgs);
 
 /*
  * ======== SleepDSP =========
  * Places the DSP in DeepSleep.
  */
 extern DSP_STATUS SleepDSP(struct WMD_DEV_CONTEXT *pDevContext,
-			   IN DWORD dwCmd, IN PVOID pArgs);
+			   IN u32 dwCmd, IN void *pArgs);
 /*
  *  ========InterruptDSP========
  *  	  Sends an interrupt to DSP unconditionally.
  */
-extern void InterruptDSP(struct WMD_DEV_CONTEXT *pDevContext, IN WORD wMbVal);
+extern void InterruptDSP(struct WMD_DEV_CONTEXT *pDevContext, IN u16 wMbVal);
 
 /*
  * ======== WakeDSP =========
  * Wakes up the DSP from DeepSleep
  */
 extern DSP_STATUS DSPPeripheralClkCtrl(struct WMD_DEV_CONTEXT *pDevContext,
-				       IN PVOID pArgs);
+				       IN void *pArgs);
 /*
  *  ======== handle_hibernation_fromDSP ========
  *  purpose:
@@ -69,20 +69,20 @@ DSP_STATUS handle_hibernation_fromDSP(struct WMD_DEV_CONTEXT *pDevContext);
  *  purpose:
  *  	Handle Post Scale notification to DSP
  */
-DSP_STATUS PostScale_DSP(struct WMD_DEV_CONTEXT *pDevContext, IN PVOID pArgs);
+DSP_STATUS PostScale_DSP(struct WMD_DEV_CONTEXT *pDevContext, IN void *pArgs);
 /*
  *  ======== PreScale_DSP ========
  *  purpose:
  *  	Handle Pre Scale notification to DSP
  */
-DSP_STATUS PreScale_DSP(struct WMD_DEV_CONTEXT *pDevContext, IN PVOID pArgs);
+DSP_STATUS PreScale_DSP(struct WMD_DEV_CONTEXT *pDevContext, IN void *pArgs);
 /*
  *  ======== handle_constraints_set ========
  *  purpose:
  *  	Handle constraints request from DSP
  */
 DSP_STATUS handle_constraints_set(struct WMD_DEV_CONTEXT *pDevContext,
-				 IN PVOID pArgs);
+				 IN void *pArgs);
 
 #endif				/* _TIOMAP_PWR_ */
 

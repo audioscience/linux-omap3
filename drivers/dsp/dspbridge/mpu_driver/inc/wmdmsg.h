@@ -45,26 +45,26 @@
 
 	extern DSP_STATUS WMD_MSG_CreateQueue(struct MSG_MGR *hMsgMgr,
 					      OUT struct MSG_QUEUE **phMsgQueue,
-					      DWORD dwId, UINT uMaxMsgs,
+					      u32 dwId, u32 uMaxMsgs,
 					      HANDLE h);
 
-	extern VOID WMD_MSG_Delete(struct MSG_MGR *hMsgMgr);
+	extern void WMD_MSG_Delete(struct MSG_MGR *hMsgMgr);
 
-	extern VOID WMD_MSG_DeleteQueue(struct MSG_QUEUE *hMsgQueue);
+	extern void WMD_MSG_DeleteQueue(struct MSG_QUEUE *hMsgQueue);
 
 	extern DSP_STATUS WMD_MSG_Get(struct MSG_QUEUE *hMsgQueue,
-				      struct DSP_MSG *pMsg, UINT uTimeout);
+				      struct DSP_MSG *pMsg, u32 uTimeout);
 
 	extern DSP_STATUS WMD_MSG_Put(struct MSG_QUEUE *hMsgQueue,
 				      IN CONST struct DSP_MSG *pMsg,
-				      UINT uTimeout);
+				      u32 uTimeout);
 
 	extern DSP_STATUS WMD_MSG_RegisterNotify(struct MSG_QUEUE *hMsgQueue,
-						 UINT uEventMask,
-						 UINT uNotifyType,
+						 u32 uEventMask,
+						 u32 uNotifyType,
 						 struct DSP_NOTIFICATION
 						 *hNotification);
 
-	extern VOID WMD_MSG_SetQueueId(struct MSG_QUEUE *hMsgQueue, DWORD dwId);
+	extern void WMD_MSG_SetQueueId(struct MSG_QUEUE *hMsgQueue, u32 dwId);
 
 #endif				/* WMDMSG_ */

@@ -36,9 +36,8 @@
  *      AddRegion
  *      CreateRegion
  *      GetRegion
- *......GetFreeRegion
- *......GetMappedRegion
- *......GetPhysicalAddrTable
+ *	GetFreeRegion
+ *	GetMappedRegion
  *
  *  Notes:
  *      Region: Generic memory entitiy having a start address and a size
@@ -91,7 +90,7 @@
  * DMM Mgr
  */
 struct DMM_OBJECT {
-	DWORD dwSignature;	/* Used for object validation */
+	u32 dwSignature;	/* Used for object validation */
 	/*
 	 * Dmm Lock is used to serialize access mem manager for multi-threads.
 	 */
@@ -104,27 +103,27 @@ struct DMM_OBJECT {
 static struct GT_Mask DMM_debugMask = { 0, 0 };	/* GT trace variable */
 #endif
 
-static ULONG cRefs;		/* module reference count */
+static u32 cRefs;		/* module reference count */
 struct MapPage {
-	ULONG   RegionSize : 15;
-	ULONG   MappedSize : 15;
-	ULONG   bReserved : 1;
-	ULONG   bMapped : 1;
+	u32   RegionSize : 15;
+	u32   MappedSize : 15;
+	u32   bReserved : 1;
+	u32   bMapped : 1;
 };
 
 /*  Create the free list */
 static struct MapPage *pVirtualMappingTable;
-static ULONG  iFreeRegion;	/* The index of free region */
-static ULONG  iFreeSize;
-static ULONG  *pPhysicalAddrTable;	/* Physical address of MPU buffer */
-static ULONG  dynMemMapBeg;	/* The Beginning of dynamic memory mapping */
-static ULONG  TableSize;/* The size of virtual and physical pages tables */
+static u32  iFreeRegion;	/* The index of free region */
+static u32  iFreeSize;
+static u32  *pPhysicalAddrTable;	/* Physical address of MPU buffer */
+static u32  dynMemMapBeg;	/* The Beginning of dynamic memory mapping */
+static u32  TableSize;/* The size of virtual and physical pages tables */
 
 /*  ----------------------------------- Function Prototypes */
-static struct MapPage *GetRegion(ULONG addr);
-static struct MapPage *GetFreeRegion(ULONG aSize);
-static struct MapPage *GetMappedRegion(ULONG aAddr);
-static ULONG *GetPhysicalAddrTable(void);
+static struct MapPage *GetRegion(u32 addr);
+static struct MapPage *GetFreeRegion(u32 aSize);
+static struct MapPage *GetMappedRegion(u32 aAddr);
+static u32 *GetPhysicalAddrTable(void);
 
 /*  ======== DMM_CreateTables ========
  *  Purpose:
@@ -133,7 +132,7 @@ static ULONG *GetPhysicalAddrTable(void);
  *      to hold the information of the virtual memory that is reserved
  *      for DSP.
  */
-DSP_STATUS DMM_CreateTables(struct DMM_OBJECT *hDmmMgr, ULONG addr, ULONG size)
+DSP_STATUS DMM_CreateTables(struct DMM_OBJECT *hDmmMgr, u32 addr, u32 size)
 {
 	struct DMM_OBJECT *pDmmObj = (struct DMM_OBJECT *)hDmmMgr;
 	DSP_STATUS status = DSP_SOK;
@@ -156,8 +155,8 @@ DSP_STATUS DMM_CreateTables(struct DMM_OBJECT *hDmmMgr, ULONG addr, ULONG size)
 			* to store the virtual to physical
 			* address translations
 			*/
-			pPhysicalAddrTable = (ULONG *)MEM_Calloc
-				(TableSize*sizeof(ULONG), MEM_NONPAGED);
+			pPhysicalAddrTable = (u32 *)MEM_Calloc
+				(TableSize*sizeof(u32), MEM_NONPAGED);
 			GT_1trace(DMM_debugMask, GT_4CLASS,
 			"DMM_CreateTables: Allocate"
 			"memory for pPhysicalAddrTable=%d entries\n",
@@ -222,7 +221,7 @@ DSP_STATUS DMM_Create(OUT struct DMM_OBJECT **phDmmMgr,
 			"Leaving DMM_Create status %x pDmmObject %x\n",
 			status, pDmmObject);
 
-	return (status);
+	return status;
 }
 
 /*
@@ -376,7 +375,7 @@ BOOL DMM_Init(void)
  *  mapping overlaps another one. This function stores the info that will be
  *  required later while unmapping the block.
  */
-DSP_STATUS DMM_MapMemory(struct DMM_OBJECT *hDmmMgr, ULONG addr, ULONG size)
+DSP_STATUS DMM_MapMemory(struct DMM_OBJECT *hDmmMgr, u32 addr, u32 size)
 {
 	struct DMM_OBJECT *pDmmObj = (struct DMM_OBJECT *)hDmmMgr;
 	struct MapPage *chunk;
@@ -407,14 +406,14 @@ DSP_STATUS DMM_MapMemory(struct DMM_OBJECT *hDmmMgr, ULONG addr, ULONG size)
  *  Purpose:
  *      Reserve a chunk of virtually contiguous DSP/IVA address space.
  */
-DSP_STATUS DMM_ReserveMemory(struct DMM_OBJECT *hDmmMgr, ULONG size,
-							ULONG *pRsvAddr)
+DSP_STATUS DMM_ReserveMemory(struct DMM_OBJECT *hDmmMgr, u32 size,
+							u32 *pRsvAddr)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct DMM_OBJECT *pDmmObj = (struct DMM_OBJECT *)hDmmMgr;
 	struct MapPage *node;
-	ULONG rsvAddr = 0;
-	ULONG rsvSize = 0;
+	u32 rsvAddr = 0;
+	u32 rsvSize = 0;
 
 	GT_3trace(DMM_debugMask, GT_ENTER,
 		 "Entered DMM_ReserveMemory () hDmmMgr %x, "
@@ -460,7 +459,7 @@ DSP_STATUS DMM_ReserveMemory(struct DMM_OBJECT *hDmmMgr, ULONG size,
  *  Purpose:
  *      Remove the mapped block from the reserved chunk.
  */
-DSP_STATUS DMM_UnMapMemory(struct DMM_OBJECT *hDmmMgr, ULONG addr, ULONG *pSize)
+DSP_STATUS DMM_UnMapMemory(struct DMM_OBJECT *hDmmMgr, u32 addr, u32 *pSize)
 {
 	struct DMM_OBJECT *pDmmObj = (struct DMM_OBJECT *)hDmmMgr;
 	struct MapPage *chunk;
@@ -493,13 +492,13 @@ DSP_STATUS DMM_UnMapMemory(struct DMM_OBJECT *hDmmMgr, ULONG addr, ULONG *pSize)
  *  Purpose:
  *      Free a chunk of reserved DSP/IVA address space.
  */
-DSP_STATUS DMM_UnReserveMemory(struct DMM_OBJECT *hDmmMgr, ULONG rsvAddr)
+DSP_STATUS DMM_UnReserveMemory(struct DMM_OBJECT *hDmmMgr, u32 rsvAddr)
 {
 	struct DMM_OBJECT *pDmmObj = (struct DMM_OBJECT *)hDmmMgr;
 	struct MapPage *chunk;
-	ULONG i;
+	u32 i;
 	DSP_STATUS status = DSP_SOK;
-	ULONG chunkSize;
+	u32 chunkSize;
 
 	GT_2trace(DMM_debugMask, GT_ENTER,
 		 "Entered DMM_UnReserveMemory () hDmmMgr "
@@ -546,10 +545,10 @@ DSP_STATUS DMM_UnReserveMemory(struct DMM_OBJECT *hDmmMgr, ULONG rsvAddr)
  *  Purpose:
  *      Returns a region containing the specified memory region
  */
-struct MapPage *GetRegion(ULONG aAddr)
+struct MapPage *GetRegion(u32 aAddr)
 {
 	struct MapPage *currRegion = NULL;
-	ULONG   i = 0;
+	u32   i = 0;
 
 	GT_1trace(DMM_debugMask, GT_ENTER, "Entered GetRegion () "
 		" aAddr %x\n", aAddr);
@@ -571,12 +570,12 @@ struct MapPage *GetRegion(ULONG aAddr)
  *  Purpose:
  *  Returns the requested free region
  */
-struct MapPage *GetFreeRegion(ULONG aSize)
+struct MapPage *GetFreeRegion(u32 aSize)
 {
 	struct MapPage *currRegion = NULL;
-	ULONG   i = 0;
-	ULONG   RegionSize = 0;
-	ULONG   nextI = 0;
+	u32   i = 0;
+	u32   RegionSize = 0;
+	u32   nextI = 0;
 	GT_1trace(DMM_debugMask, GT_ENTER, "Entered GetFreeRegion () "
 		"aSize 0x%x\n", aSize);
 
@@ -620,9 +619,9 @@ struct MapPage *GetFreeRegion(ULONG aSize)
  *  Purpose:
  *  Returns the requestedmapped region
  */
-struct MapPage *GetMappedRegion(ULONG aAddr)
+struct MapPage *GetMappedRegion(u32 aAddr)
 {
-	ULONG   i = 0;
+	u32   i = 0;
 	struct MapPage *currRegion = NULL;
 	GT_1trace(DMM_debugMask, GT_ENTER, "Entered GetMappedRegion () "
 						"aAddr 0x%x\n", aAddr);
@@ -642,7 +641,7 @@ struct MapPage *GetMappedRegion(ULONG aAddr)
  *  Purpose:
  *  Returns the physical table address
  */
-ULONG *DMM_GetPhysicalAddrTable(void)
+u32 *DMM_GetPhysicalAddrTable(void)
 {
 	GT_1trace(DMM_debugMask, GT_ENTER, "Entered "
 			"DMM_GetPhysicalAddrTable()- pPhysicalAddrTable 0x%x\n",

@@ -28,6 +28,7 @@
  */
 #ifndef __HW_DSPSS_H
 #define __HW_DSPSS_H
+#include <linux/types.h>
 
 /* EXPORTED TYPES */
 	typedef enum HW_DSPSYSC_BootMode {
@@ -41,8 +42,8 @@
 #define HW_DSP_IDLEBOOT_ADDR   0x007E0000
 
 /* EXPORTED FUNCTIONS */
-	extern HW_STATUS HW_DSPSS_BootModeSet(const UWORD32 baseAddress,
+	extern HW_STATUS HW_DSPSS_BootModeSet(const u32 baseAddress,
 						HW_DSPSYSC_BootMode_t bootMode,
-						const UWORD32 bootAddress);
+						const u32 bootAddress);
 
 #endif				/* __HW_DSPSS_H */

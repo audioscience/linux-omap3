@@ -68,17 +68,17 @@
 #include <asm/arch/resource.h>
 #endif
 #endif
-extern INT dsp_test_sleepstate;
+extern s32 dsp_test_sleepstate;
 #ifndef DISABLE_BRIDGE_PM
 extern struct constraint_handle *dsp_constraint_handle;
 #endif
 extern struct MAILBOX_CONTEXT mboxsetting;
 
-extern void GetHWRegs(UWORD32 prm_base, UWORD32 cm_base);
+extern void GetHWRegs(u32 prm_base, u32 cm_base);
 DSP_STATUS DSP_PeripheralClocks_Disable(struct WMD_DEV_CONTEXT *pDevContext,
-					IN PVOID pArgs);
+					IN void *pArgs);
 DSP_STATUS DSP_PeripheralClocks_Enable(struct WMD_DEV_CONTEXT *pDevContext,
-				       IN PVOID pArgs);
+				       IN void *pArgs);
 
 /*
  *  ======== handle_constraints_set ========
@@ -86,20 +86,20 @@ DSP_STATUS DSP_PeripheralClocks_Enable(struct WMD_DEV_CONTEXT *pDevContext,
  *  	Sets new DSP constraint
  */
 DSP_STATUS handle_constraints_set(struct WMD_DEV_CONTEXT *pDevContext,
-				  IN PVOID pArgs)
+				  IN void *pArgs)
 {
 #ifndef DISABLE_BRIDGE_PM
 #ifndef DISABLE_BRIDGE_DVFS
-	UWORD32 *pConstraintVal;
+	u32 *pConstraintVal;
 
-	pConstraintVal = (UWORD32 *)(pArgs);
+	pConstraintVal = (u32 *)(pArgs);
 	/* Read the target value requested by DSP  */
 	DBG_Trace(DBG_LEVEL7, "handle_constraints_set: opp requested = 0x%x\n",
-						  (UWORD32)*(pConstraintVal+1));
+						  (u32)*(pConstraintVal+1));
 
 	/* Set the new constraint in resource framework */
 	if (constraint_set(dsp_constraint_handle,
-			   (UWORD32)*(pConstraintVal+1)) == 0)
+			   (u32)*(pConstraintVal+1)) == 0)
 		return DSP_SOK;
 	else {
 		DBG_Trace(DBG_LEVEL7,
@@ -120,7 +120,7 @@ DSP_STATUS handle_constraints_set(struct WMD_DEV_CONTEXT *pDevContext,
 DSP_STATUS handle_hibernation_fromDSP(struct WMD_DEV_CONTEXT *pDevContext)
 {
 #ifndef DISABLE_BRIDGE_PM
-	USHORT usCount = TIHELEN_ACKTIMEOUT;
+	u16 usCount = TIHELEN_ACKTIMEOUT;
 	struct CFG_HOSTRES resources;
 	DSP_STATUS status = DSP_SOK;
 	HW_PwrState_t pwrState;
@@ -169,9 +169,9 @@ DSP_STATUS handle_hibernation_fromDSP(struct WMD_DEV_CONTEXT *pDevContext)
 			/* Set the OPP to low level before moving to OFF mode */
 			if (opplevel != CO_VDD1_OPP1) {
 					DBG_Trace(DBG_LEVEL5,
-						"Tiomap_pwr.c - DSP requested"
-						" OPP = %d, MPU requesting low OPP "
-						"%d instead\n", opplevel, CO_VDD1_OPP1);
+					   "Tiomap_pwr.c - DSP requested OPP "
+					   "= %d, MPU requesting low OPP %d "
+					   "instead\n", opplevel, CO_VDD1_OPP1);
 				if (constraint_set(dsp_constraint_handle,
 						  CO_VDD1_OPP1) != 0) {
 					DBG_Trace(DBG_LEVEL7,
@@ -197,13 +197,13 @@ DSP_STATUS handle_hibernation_fromDSP(struct WMD_DEV_CONTEXT *pDevContext)
  *  purpose:
  *  	Put DSP in low power consuming state.
  */
-DSP_STATUS SleepDSP(struct WMD_DEV_CONTEXT *pDevContext, IN DWORD dwCmd,
-		   IN PVOID pArgs)
+DSP_STATUS SleepDSP(struct WMD_DEV_CONTEXT *pDevContext, IN u32 dwCmd,
+		   IN void *pArgs)
 {
 	DSP_STATUS status = DSP_SOK;
 #ifndef DISABLE_BRIDGE_PM
 	struct CFG_HOSTRES resources;
-	USHORT usCount = TIHELEN_ACKTIMEOUT;
+	u16 usCount = TIHELEN_ACKTIMEOUT;
 	HW_PwrState_t pwrState;
 	HW_PwrState_t targetPwrState;
 
@@ -293,7 +293,7 @@ DSP_STATUS SleepDSP(struct WMD_DEV_CONTEXT *pDevContext, IN DWORD dwCmd,
  *  purpose:
  *  	Wake up DSP from sleep.
  */
-DSP_STATUS WakeDSP(struct WMD_DEV_CONTEXT *pDevContext, IN PVOID pArgs)
+DSP_STATUS WakeDSP(struct WMD_DEV_CONTEXT *pDevContext, IN void *pArgs)
 {
 	DSP_STATUS status = DSP_SOK;
 #ifndef DISABLE_BRIDGE_PM
@@ -342,14 +342,14 @@ DSP_STATUS WakeDSP(struct WMD_DEV_CONTEXT *pDevContext, IN PVOID pArgs)
  *  	Enable/Disable the DSP peripheral clocks as needed..
  */
 DSP_STATUS DSPPeripheralClkCtrl(struct WMD_DEV_CONTEXT *pDevContext,
-				IN PVOID pArgs)
+				IN void *pArgs)
 {
-	UWORD32 extClk = 0;
-	UWORD32 extClkId = 0;
-	UWORD32 extClkCmd = 0;
-	UWORD32 clkIdIndex = MBX_PM_MAX_RESOURCES;
-	UWORD32 tmpIndex;
-	UWORD32 dspPerClksBefore;
+	u32 extClk = 0;
+	u32 extClkId = 0;
+	u32 extClkCmd = 0;
+	u32 clkIdIndex = MBX_PM_MAX_RESOURCES;
+	u32 tmpIndex;
+	u32 dspPerClksBefore;
 	DSP_STATUS status = DSP_SOK;
 	DSP_STATUS status1 = DSP_SOK;
 
@@ -358,7 +358,7 @@ DSP_STATUS DSPPeripheralClkCtrl(struct WMD_DEV_CONTEXT *pDevContext,
 	DBG_Trace(DBG_ENTER, "DSPPeripheralClkCtrl : uDspPerClks = 0x%x \n",
 		  dspPerClksBefore);
 
-	extClk = (UWORD32)*((UWORD32 *)pArgs);
+	extClk = (u32)*((u32 *)pArgs);
 
 	DBG_Trace(DBG_LEVEL3, "DSPPeripheralClkCtrl : extClk+Cmd = 0x%x \n",
 		 extClk);
@@ -392,7 +392,7 @@ DSP_STATUS DSPPeripheralClkCtrl(struct WMD_DEV_CONTEXT *pDevContext,
 		status = CLK_Disable(BPWR_Clks[clkIdIndex].funClk);
 		if ((DSP_SUCCEEDED(status)) && (DSP_SUCCEEDED(status1))) {
 			(pDevContext->uDspPerClks) &=
-				(~((UWORD32) (1 << clkIdIndex)));
+				(~((u32) (1 << clkIdIndex)));
 		} else {
 			DBG_Trace(DBG_LEVEL7, "DSPPeripheralClkCtrl : Failed "
 				 "to disable clk\n");
@@ -426,15 +426,15 @@ DSP_STATUS DSPPeripheralClkCtrl(struct WMD_DEV_CONTEXT *pDevContext,
  *  Sends prescale notification to DSP
  *
  */
-DSP_STATUS PreScale_DSP(struct WMD_DEV_CONTEXT *pDevContext, IN PVOID pArgs)
+DSP_STATUS PreScale_DSP(struct WMD_DEV_CONTEXT *pDevContext, IN void *pArgs)
 {
 #ifndef DISABLE_BRIDGE_PM
 #ifndef DISABLE_BRIDGE_DVFS
-	UINT level;
-	UINT voltage_domain;
+	u32 level;
+	u32 voltage_domain;
 
-	voltage_domain = *((UINT *)pArgs);
-	level = *((UINT *)pArgs + 1);
+	voltage_domain = *((u32 *)pArgs);
+	level = *((u32 *)pArgs + 1);
 
 	DBG_Trace(DBG_LEVEL7, "PreScale_DSP: voltage_domain = %x, level = "
 		 "0x%x\n", voltage_domain, level);
@@ -467,19 +467,19 @@ DSP_STATUS PreScale_DSP(struct WMD_DEV_CONTEXT *pDevContext, IN PVOID pArgs)
  *  Sends postscale notification to DSP
  *
  */
-DSP_STATUS PostScale_DSP(struct WMD_DEV_CONTEXT *pDevContext, IN PVOID pArgs)
+DSP_STATUS PostScale_DSP(struct WMD_DEV_CONTEXT *pDevContext, IN void *pArgs)
 {
 #ifndef DISABLE_BRIDGE_PM
 #ifndef DISABLE_BRIDGE_DVFS
-	UINT level;
-	UINT voltage_domain;
+	u32 level;
+	u32 voltage_domain;
 	struct IO_MGR *hIOMgr;
 	DSP_STATUS status = DSP_SOK;
 
 	status = DEV_GetIOMgr(pDevContext->hDevObject, &hIOMgr);
 
-	voltage_domain = *((UINT *)pArgs);
-	level = *((UINT *)pArgs + 1);
+	voltage_domain = *((u32 *)pArgs);
+	level = *((u32 *)pArgs + 1);
 	DBG_Trace(DBG_LEVEL7,
 		 "PostScale_DSP: voltage_domain = %x, level = 0x%x\n",
 		 voltage_domain, level);
@@ -518,10 +518,10 @@ DSP_STATUS PostScale_DSP(struct WMD_DEV_CONTEXT *pDevContext, IN PVOID pArgs)
  *  Disables all the peripheral clocks that were requested by DSP
  */
 DSP_STATUS DSP_PeripheralClocks_Disable(struct WMD_DEV_CONTEXT *pDevContext,
-					IN PVOID pArgs)
+					IN void *pArgs)
 {
 
-	UWORD32 clkIdx;
+	u32 clkIdx;
 	DSP_STATUS status = DSP_SOK;
 
 	for (clkIdx = 0; clkIdx < MBX_PM_MAX_RESOURCES; clkIdx++) {
@@ -551,9 +551,9 @@ DSP_STATUS DSP_PeripheralClocks_Disable(struct WMD_DEV_CONTEXT *pDevContext,
  *  Enables all the peripheral clocks that were requested by DSP
  */
 DSP_STATUS DSP_PeripheralClocks_Enable(struct WMD_DEV_CONTEXT *pDevContext,
-				      IN PVOID pArgs)
+				      IN void *pArgs)
 {
-	UWORD32 clkIdx;
+	u32 clkIdx;
 	DSP_STATUS status = DSP_SOK;
 
 	for (clkIdx = 0; clkIdx < MBX_PM_MAX_RESOURCES; clkIdx++) {

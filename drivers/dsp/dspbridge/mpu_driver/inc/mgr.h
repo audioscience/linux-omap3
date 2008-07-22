@@ -68,8 +68,8 @@
 
 	DSP_STATUS MGR_WaitForBridgeEvents(struct DSP_NOTIFICATION
 					   **aNotifications,
-					   UINT uCount, OUT UINT *puIndex,
-					   UINT uTimeout);
+					   u32 uCount, OUT u32 *puIndex,
+					   u32 uTimeout);
 
 /*
  *  ======== MGR_Create ========
@@ -146,10 +146,10 @@
  *      DSP_FAILED  && *puNumNodes == 0.
  *  Details:
  */
-	extern DSP_STATUS MGR_EnumNodeInfo(UINT uNode,
+	extern DSP_STATUS MGR_EnumNodeInfo(u32 uNode,
 					   OUT struct DSP_NDBPROPS *pNDBProps,
-					   UINT uNDBPropsSize,
-					   OUT UINT *puNumNodes);
+					   u32 uNDBPropsSize,
+					   OUT u32 *puNumNodes);
 
 /*
  *  ======== MGR_EnumProcessorInfo ========
@@ -177,11 +177,11 @@
  *      DSP_FAILED && *puNumProcs == 0.
  *  Details:
  */
-	extern DSP_STATUS MGR_EnumProcessorInfo(UINT uProcessor,
+	extern DSP_STATUS MGR_EnumProcessorInfo(u32 uProcessor,
 						OUT struct DSP_PROCESSORINFO *
 						pProcessorInfo,
-						UINT uProcessorInfoSize,
-						OUT UINT *puNumProcs);
+						u32 uProcessorInfoSize,
+						OUT u32 *puNumProcs);
 /*
  *  ======== MGR_Exit ========
  *  Purpose:
@@ -194,7 +194,7 @@
  *  Ensures:
  *      When reference count == 0, MGR's private resources are freed.
  */
-	extern VOID CDECL MGR_Exit();
+	extern void CDECL MGR_Exit();
 
 /*
  *  ======== MGR_GetDCDHandle ========
@@ -215,7 +215,7 @@
  */
 	extern DSP_STATUS CDECL MGR_GetDCDHandle(IN struct MGR_OBJECT
 						 *hMGRHandle,
-						 OUT DWORD *phDCDHandle);
+						 OUT u32 *phDCDHandle);
 
 /*
  *  ======== MGR_Init ========

@@ -44,7 +44,7 @@
  */
 struct MSG_MGR_ {
 	/* The first two fields must match those in msgobj.h */
-	DWORD dwSignature;
+	u32 dwSignature;
 	struct WMD_DRV_INTERFACE *pIntfFxns;	/* Function interface to WMD. */
 };
 

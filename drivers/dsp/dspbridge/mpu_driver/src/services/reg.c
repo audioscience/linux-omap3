@@ -65,8 +65,8 @@ struct GT_Mask REG_debugMask = { 0, 0 };	/* GT trace var. */
  *  Deletes a registry entry value.  NOTE:  A registry entry value is not the
  *  same as *  a registry key.
  */
-DSP_STATUS REG_DeleteValue(OPTIONAL IN HANDLE *phKey, IN CONST PSTR pstrSubkey,
-			   IN CONST PSTR pstrValue)
+DSP_STATUS REG_DeleteValue(OPTIONAL IN HANDLE *phKey, IN CONST char *pstrSubkey,
+			   IN CONST char *pstrValue)
 {
 	DSP_STATUS status;
 	DBC_Require(pstrSubkey && pstrValue);
@@ -91,10 +91,10 @@ DSP_STATUS REG_DeleteValue(OPTIONAL IN HANDLE *phKey, IN CONST PSTR pstrSubkey,
  *  We will assume the input pdwValueSize is smaller than
  *  REG_MAXREGPATHLENGTH for implementation purposes.
  */
-DSP_STATUS REG_EnumValue(IN HANDLE *phKey, IN DWORD dwIndex,
-			 IN CONST PSTR pstrKey, IN OUT PSTR pstrValue,
-			 IN OUT DWORD *pdwValueSize, IN OUT PSTR pstrData,
-			 IN OUT DWORD *pdwDataSize)
+DSP_STATUS REG_EnumValue(IN HANDLE *phKey, IN u32 dwIndex,
+			 IN CONST char *pstrKey, IN OUT char *pstrValue,
+			 IN OUT u32 *pdwValueSize, IN OUT char *pstrData,
+			 IN OUT u32 *pdwDataSize)
 {
 	DSP_STATUS status;
 
@@ -127,9 +127,9 @@ void REG_Exit(void)
  *  ======== REG_GetValue ========
  *  Retrieve a value from the registry.
  */
-DSP_STATUS REG_GetValue(OPTIONAL IN HANDLE *phKey, IN CONST PSTR pstrSubkey,
-			IN CONST PSTR pstrValue, OUT BYTE *pbData,
-			IN OUT DWORD *pdwDataSize)
+DSP_STATUS REG_GetValue(OPTIONAL IN HANDLE *phKey, IN CONST char *pstrSubkey,
+			IN CONST char *pstrValue, OUT u8 *pbData,
+			IN OUT u32 *pdwDataSize)
 {
 	DSP_STATUS status;
 
@@ -172,9 +172,9 @@ BOOL REG_Init(void)
  *  ======== REG_SetValue ========
  *  Set a value in the registry.
  */
-DSP_STATUS REG_SetValue(OPTIONAL IN HANDLE *phKey, IN CONST PSTR pstrSubkey,
-			IN CONST PSTR pstrValue, IN CONST DWORD dwType,
-			IN BYTE *pbData, IN DWORD dwDataSize)
+DSP_STATUS REG_SetValue(OPTIONAL IN HANDLE *phKey, IN CONST char *pstrSubkey,
+			IN CONST char *pstrValue, IN CONST u32 dwType,
+			IN u8 *pbData, IN u32 dwDataSize)
 {
 	DSP_STATUS status;
 

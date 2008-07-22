@@ -52,7 +52,7 @@
  *  Ensures:
  *      Resources used by module are freed when cRef reaches zero.
  */
-	extern VOID PRCS_Exit();
+	extern void PRCS_Exit();
 
 /*
  *  ======== PRCS_GetCurrentHandle ========

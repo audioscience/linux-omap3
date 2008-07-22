@@ -32,7 +32,7 @@
 /*  ----------------------------------- DSP/BIOS Bridge */
 #include <std.h>
 #include <dbdefs.h>
-
+#include <linux/types.h>
 /*  ----------------------------------- OS Adaptation Layer */
 #include <mem.h>
 
@@ -40,16 +40,16 @@
 #include <gs.h>
 
 /*  ----------------------------------- Globals */
-static LgUns cumsize;
+static u32 cumsize;
 
 /*
  *  ======== GS_alloc ========
  *  purpose:
  *      Allocates memory of the specified size.
  */
-Ptr GS_alloc(Uns size)
+void *GS_alloc(u32 size)
 {
-	Ptr p;
+	void *p;
 
 	p = MEM_Calloc(size, MEM_PAGED);
 	if (p == NULL)
@@ -63,7 +63,7 @@ Ptr GS_alloc(Uns size)
  *  purpose:
  *      Discontinue the usage of the GS module.
  */
-Void GS_exit(void)
+void GS_exit(void)
 {
 	MEM_Exit();
 }
@@ -73,7 +73,7 @@ Void GS_exit(void)
  *  purpose:
  *      Frees the memory.
  */
-Void GS_free(Void *ptr)
+void GS_free(void *ptr)
 {
 	MEM_Free(ptr);
 	/* ack! no size info */
@@ -85,7 +85,7 @@ Void GS_free(Void *ptr)
  *  purpose:
  *      Frees the memory.
  */
-Void GS_frees(Ptr ptr, Uns size)
+void GS_frees(void *ptr, u32 size)
 {
 	MEM_Free(ptr);
 	cumsize -= size;
@@ -96,7 +96,7 @@ Void GS_frees(Ptr ptr, Uns size)
  *  purpose:
  *      Initializes the GS module.
  */
-Void GS_init(Void)
+void GS_init(void)
 {
 	static Bool curInit = FALSE;
 

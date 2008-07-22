@@ -69,9 +69,9 @@
 
 /*  ----------------------------------- Function Prototypes */
 static DSP_STATUS AddNewMsg(struct LST_LIST *msgList);
-static VOID DeleteMsgMgr(struct MSG_MGR *hMsgMgr);
-static VOID DeleteMsgQueue(struct MSG_QUEUE *hMsgQueue, UINT uNumToDSP);
-static VOID FreeMsgList(struct LST_LIST *msgList);
+static void DeleteMsgMgr(struct MSG_MGR *hMsgMgr);
+static void DeleteMsgQueue(struct MSG_QUEUE *hMsgQueue, u32 uNumToDSP);
+static void FreeMsgList(struct LST_LIST *msgList);
 
 /*
  *  ======== WMD_MSG_Create ========
@@ -137,10 +137,10 @@ DSP_STATUS WMD_MSG_Create(OUT struct MSG_MGR **phMsgMgr,
  */
 DSP_STATUS WMD_MSG_CreateQueue(struct MSG_MGR *hMsgMgr,
 			      OUT struct MSG_QUEUE **phMsgQueue,
-			      DWORD dwId, UINT uMaxMsgs, HANDLE hArg)
+			      u32 dwId, u32 uMaxMsgs, HANDLE hArg)
 {
-	UINT i;
-	UINT uNumAllocated = 0;
+	u32 i;
+	u32 uNumAllocated = 0;
 	struct MSG_QUEUE *pMsgQ;
 	DSP_STATUS status = DSP_SOK;
 
@@ -187,7 +187,7 @@ DSP_STATUS WMD_MSG_CreateQueue(struct MSG_MGR *hMsgMgr,
 
 	if (DSP_SUCCEEDED(status)) {
 		/* Enter critical section */
-		(VOID)SYNC_EnterCS(hMsgMgr->hSyncCS);
+		(void)SYNC_EnterCS(hMsgMgr->hSyncCS);
 		/* Initialize message frames and put in appropriate queues */
 		for (i = 0; i < uMaxMsgs && DSP_SUCCEEDED(status); i++) {
 			status = AddNewMsg(hMsgMgr->msgFreeList);
@@ -210,7 +210,7 @@ DSP_STATUS WMD_MSG_CreateQueue(struct MSG_MGR *hMsgMgr,
 
 		}
 		/* Exit critical section */
-		(VOID)SYNC_LeaveCS(hMsgMgr->hSyncCS);
+		(void)SYNC_LeaveCS(hMsgMgr->hSyncCS);
 	} else {
 		DeleteMsgQueue(pMsgQ, 0);
 	}
@@ -223,7 +223,7 @@ func_end:
  *  Purpose:
  *      Delete a MSG manager allocated in WMD_MSG_Create().
  */
-VOID WMD_MSG_Delete(struct MSG_MGR *hMsgMgr)
+void WMD_MSG_Delete(struct MSG_MGR *hMsgMgr)
 {
 	DBC_Require(MEM_IsValidHandle(hMsgMgr, MSGMGR_SIGNATURE));
 
@@ -235,10 +235,10 @@ VOID WMD_MSG_Delete(struct MSG_MGR *hMsgMgr)
  *  Purpose:
  *      Delete a MSG queue allocated in WMD_MSG_CreateQueue.
  */
-VOID WMD_MSG_DeleteQueue(struct MSG_QUEUE *hMsgQueue)
+void WMD_MSG_DeleteQueue(struct MSG_QUEUE *hMsgQueue)
 {
 	struct MSG_MGR *hMsgMgr = hMsgQueue->hMsgMgr;
-	UINT refCount;
+	u32 refCount;
 
 	DBC_Require(MEM_IsValidHandle(hMsgQueue, MSGQ_SIGNATURE));
 	hMsgQueue->fDone = TRUE;
@@ -252,14 +252,14 @@ VOID WMD_MSG_DeleteQueue(struct MSG_QUEUE *hMsgQueue)
 		refCount = hMsgQueue->refCount;
 	}
 	/* Remove message queue from hMsgMgr->queueList */
-	(VOID)SYNC_EnterCS(hMsgMgr->hSyncCS);
+	(void)SYNC_EnterCS(hMsgMgr->hSyncCS);
 	LST_RemoveElem(hMsgMgr->queueList, (struct LST_ELEM *)hMsgQueue);
 	/* Free the message queue object */
 	DeleteMsgQueue(hMsgQueue, hMsgQueue->uMaxMsgs);
 	if (LST_IsEmpty(hMsgMgr->msgFreeList))
 		SYNC_ResetEvent(hMsgMgr->hSyncEvent);
 
-	(VOID)SYNC_LeaveCS(hMsgMgr->hSyncCS);
+	(void)SYNC_LeaveCS(hMsgMgr->hSyncCS);
 }
 
 /*
@@ -268,13 +268,13 @@ VOID WMD_MSG_DeleteQueue(struct MSG_QUEUE *hMsgQueue)
  *      Get a message from a MSG queue.
  */
 DSP_STATUS WMD_MSG_Get(struct MSG_QUEUE *hMsgQueue,
-		      struct DSP_MSG *pMsg, UINT uTimeout)
+		      struct DSP_MSG *pMsg, u32 uTimeout)
 {
 	struct MSG_FRAME *pMsgFrame;
 	struct MSG_MGR *hMsgMgr;
 	BOOL fGotMsg = FALSE;
 	struct SYNC_OBJECT *hSyncs[2];
-	UINT uIndex;
+	u32 uIndex;
 	DSP_STATUS status = DSP_SOK;
 
 	DBC_Require(MEM_IsValidHandle(hMsgQueue, MSGQ_SIGNATURE));
@@ -282,7 +282,7 @@ DSP_STATUS WMD_MSG_Get(struct MSG_QUEUE *hMsgQueue,
 
 	hMsgMgr = hMsgQueue->hMsgMgr;
 	/* Enter critical section */
-	(VOID)SYNC_EnterCS(hMsgMgr->hSyncCS);
+	(void)SYNC_EnterCS(hMsgMgr->hSyncCS);
 	/* If a message is already there, get it */
 	if (!LST_IsEmpty(hMsgQueue->msgUsedList)) {
 		pMsgFrame = (struct MSG_FRAME *)LST_GetHead(hMsgQueue->
@@ -304,7 +304,7 @@ DSP_STATUS WMD_MSG_Get(struct MSG_QUEUE *hMsgQueue,
 
 	}
 	/* Exit critical section */
-	(VOID)SYNC_LeaveCS(hMsgMgr->hSyncCS);
+	(void)SYNC_LeaveCS(hMsgMgr->hSyncCS);
 	if (DSP_SUCCEEDED(status) && !fGotMsg) {
 		 /*  Wait til message is available, timeout, or done. We don't
 		  *  have to schedule the DPC, since the DSP will send messages
@@ -314,14 +314,14 @@ DSP_STATUS WMD_MSG_Get(struct MSG_QUEUE *hMsgQueue,
 		status = SYNC_WaitOnMultipleEvents(hSyncs, 2, uTimeout,
 			 &uIndex);
 		/* Enter critical section */
-		(VOID)SYNC_EnterCS(hMsgMgr->hSyncCS);
+		(void)SYNC_EnterCS(hMsgMgr->hSyncCS);
 		if (hMsgQueue->fDone) {
 			hMsgQueue->refCount--;
 			/* Exit critical section */
-			(VOID)SYNC_LeaveCS(hMsgMgr->hSyncCS);
+			(void)SYNC_LeaveCS(hMsgMgr->hSyncCS);
 			 /*  Signal that we're not going to access hMsgQueue
 			  *  anymore, so it can be deleted.  */
-			(VOID)SYNC_SetEvent(hMsgQueue->hSyncDoneAck);
+			(void)SYNC_SetEvent(hMsgQueue->hSyncDoneAck);
 			status = DSP_EFAIL;
 		} else {
 			if (DSP_SUCCEEDED(status)) {
@@ -344,7 +344,7 @@ DSP_STATUS WMD_MSG_Get(struct MSG_QUEUE *hMsgQueue,
 				SYNC_SetEvent(hMsgQueue->hSyncEvent);
 
 			/* Exit critical section */
-			(VOID)SYNC_LeaveCS(hMsgMgr->hSyncCS);
+			(void)SYNC_LeaveCS(hMsgMgr->hSyncCS);
 		}
 	}
 	return status;
@@ -356,13 +356,13 @@ DSP_STATUS WMD_MSG_Get(struct MSG_QUEUE *hMsgQueue,
  *      Put a message onto a MSG queue.
  */
 DSP_STATUS WMD_MSG_Put(struct MSG_QUEUE *hMsgQueue,
-		      IN CONST struct DSP_MSG *pMsg, UINT uTimeout)
+		      IN CONST struct DSP_MSG *pMsg, u32 uTimeout)
 {
 	struct MSG_FRAME *pMsgFrame;
 	struct MSG_MGR *hMsgMgr;
 	BOOL fPutMsg = FALSE;
 	struct SYNC_OBJECT *hSyncs[2];
-	UINT uIndex;
+	u32 uIndex;
 	DSP_STATUS status = DSP_SOK;
 
 	DBC_Require(MEM_IsValidHandle(hMsgQueue, MSGQ_SIGNATURE));
@@ -370,7 +370,7 @@ DSP_STATUS WMD_MSG_Put(struct MSG_QUEUE *hMsgQueue,
 
 	hMsgMgr = hMsgQueue->hMsgMgr;
 
-	(VOID) SYNC_EnterCS(hMsgMgr->hSyncCS);
+	(void) SYNC_EnterCS(hMsgMgr->hSyncCS);
 
 	/* If a message frame is available, use it */
 	if (!LST_IsEmpty(hMsgMgr->msgFreeList)) {
@@ -388,7 +388,7 @@ DSP_STATUS WMD_MSG_Put(struct MSG_QUEUE *hMsgQueue,
 			SYNC_ResetEvent(hMsgMgr->hSyncEvent);
 
 		/* Release critical section before scheduling DPC */
-		(VOID)SYNC_LeaveCS(hMsgMgr->hSyncCS);
+		(void)SYNC_LeaveCS(hMsgMgr->hSyncCS);
 		/* Schedule a DPC, to do the actual data transfer: */
 		IO_Schedule(hMsgMgr->hIOMgr);
 	} else {
@@ -397,7 +397,7 @@ DSP_STATUS WMD_MSG_Put(struct MSG_QUEUE *hMsgQueue,
 		else
 			hMsgQueue->refCount++;
 
-		(VOID)SYNC_LeaveCS(hMsgMgr->hSyncCS);
+		(void)SYNC_LeaveCS(hMsgMgr->hSyncCS);
 	}
 	if (DSP_SUCCEEDED(status) && !fPutMsg) {
 		/* Wait til a free message frame is available, timeout,
@@ -407,14 +407,14 @@ DSP_STATUS WMD_MSG_Put(struct MSG_QUEUE *hMsgQueue,
 		status = SYNC_WaitOnMultipleEvents(hSyncs, 2, uTimeout,
 			 &uIndex);
 		/* Enter critical section */
-		(VOID)SYNC_EnterCS(hMsgMgr->hSyncCS);
+		(void)SYNC_EnterCS(hMsgMgr->hSyncCS);
 		if (hMsgQueue->fDone) {
 			hMsgQueue->refCount--;
 			/* Exit critical section */
-			(VOID)SYNC_LeaveCS(hMsgMgr->hSyncCS);
+			(void)SYNC_LeaveCS(hMsgMgr->hSyncCS);
 			 /*  Signal that we're not going to access hMsgQueue
 			  *  anymore, so it can be deleted.  */
-			(VOID)SYNC_SetEvent(hMsgQueue->hSyncDoneAck);
+			(void)SYNC_SetEvent(hMsgQueue->hSyncDoneAck);
 			status = DSP_EFAIL;
 		} else {
 			if (DSP_SUCCEEDED(status)) {
@@ -443,7 +443,7 @@ DSP_STATUS WMD_MSG_Put(struct MSG_QUEUE *hMsgQueue,
 				SYNC_SetEvent(hMsgMgr->hSyncEvent);
 
 			/* Exit critical section */
-			(VOID) SYNC_LeaveCS(hMsgMgr->hSyncCS);
+			(void) SYNC_LeaveCS(hMsgMgr->hSyncCS);
 		}
 	}
 	return status;
@@ -452,8 +452,8 @@ DSP_STATUS WMD_MSG_Put(struct MSG_QUEUE *hMsgQueue,
 /*
  *  ======== WMD_MSG_RegisterNotify ========
  */
-DSP_STATUS WMD_MSG_RegisterNotify(struct MSG_QUEUE *hMsgQueue, UINT uEventMask,
-				  UINT uNotifyType,
+DSP_STATUS WMD_MSG_RegisterNotify(struct MSG_QUEUE *hMsgQueue, u32 uEventMask,
+				  u32 uNotifyType,
 				  struct DSP_NOTIFICATION *hNotification)
 {
 	DSP_STATUS status = DSP_SOK;
@@ -479,7 +479,7 @@ DSP_STATUS WMD_MSG_RegisterNotify(struct MSG_QUEUE *hMsgQueue, UINT uEventMask,
 /*
  *  ======== WMD_MSG_SetQueueId ========
  */
-VOID WMD_MSG_SetQueueId(struct MSG_QUEUE *hMsgQueue, DWORD dwId)
+void WMD_MSG_SetQueueId(struct MSG_QUEUE *hMsgQueue, u32 dwId)
 {
 	DBC_Require(MEM_IsValidHandle(hMsgQueue, MSGQ_SIGNATURE));
 	/* DBC_Require(dwId != 0); */
@@ -519,7 +519,7 @@ static DSP_STATUS AddNewMsg(struct LST_LIST *msgList)
 /*
  *  ======== DeleteMsgMgr ========
  */
-static VOID DeleteMsgMgr(struct MSG_MGR *hMsgMgr)
+static void DeleteMsgMgr(struct MSG_MGR *hMsgMgr)
 {
 	DBC_Require(MEM_IsValidHandle(hMsgMgr, MSGMGR_SIGNATURE));
 
@@ -546,11 +546,11 @@ static VOID DeleteMsgMgr(struct MSG_MGR *hMsgMgr)
 /*
  *  ======== DeleteMsgQueue ========
  */
-static VOID DeleteMsgQueue(struct MSG_QUEUE *hMsgQueue, UINT uNumToDSP)
+static void DeleteMsgQueue(struct MSG_QUEUE *hMsgQueue, u32 uNumToDSP)
 {
 	struct MSG_MGR *hMsgMgr = hMsgQueue->hMsgMgr;
 	struct MSG_FRAME *pMsg;
-	UINT i;
+	u32 i;
 
 	DBC_Require(MEM_IsValidHandle(hMsgQueue, MSGQ_SIGNATURE));
 
@@ -591,7 +591,7 @@ static VOID DeleteMsgQueue(struct MSG_QUEUE *hMsgQueue, UINT uNumToDSP)
 /*
  *  ======== FreeMsgList ========
  */
-static VOID FreeMsgList(struct LST_LIST *msgList)
+static void FreeMsgList(struct LST_LIST *msgList)
 {
 	struct MSG_FRAME *pMsg;
 

@@ -81,11 +81,11 @@
 
 /* The IRQ object, passed to our hardware and virtual interrupt routines: */
 struct ISR_IRQ {
-	DWORD dwSignature;	/* Used for object validation.   */
-	PVOID pRefData;		/* Argument for client's ISR.    */
+	u32 dwSignature;	/* Used for object validation.   */
+	void *pRefData;		/* Argument for client's ISR.    */
 	ISR_PROC pfnISR;	/* Client's ISR.                 */
 
-	DWORD dwIntrID;		/* hardware intertupt identifier */
+	u32 dwIntrID;		/* hardware intertupt identifier */
 };
 
 /*  ----------------------------------- Globals & Defines */
@@ -97,14 +97,14 @@ HANDLE hEvent;
 HANDLE hInterruptThread;
 
 /*  ----------------------------------- Function Prototypes */
-static INT HardwareIST(int irq, void *hIRQ, struct pt_regs *pt_regs);
+static irqreturn_t HardwareIST(int irq, void *hIRQ);
 
 /*
  *  ======== ISR_Exit ========
  *  Purpose:
  *      Discontinue usage of the ISR module.
  */
-VOID ISR_Exit(void)
+void ISR_Exit(void)
 {
 	GT_0trace(ISR_DebugMask, GT_ENTER, "Entered ISR_Exit\n");
 }
@@ -130,7 +130,7 @@ BOOL ISR_Init(void)
  */
 DSP_STATUS ISR_Install(OUT struct ISR_IRQ **phIRQ,
 		       IN CONST struct CFG_HOSTRES *pHostConfig,
-		       ISR_PROC pfnISR, DWORD dwIntrType, PVOID pRefData)
+		       ISR_PROC pfnISR, u32 dwIntrType, void *pRefData)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct ISR_IRQ *pIRQObject = NULL;
@@ -184,7 +184,7 @@ DSP_STATUS ISR_Install(OUT struct ISR_IRQ **phIRQ,
 				break;
 
 				default:
-				pIRQObject->dwIntrID = (DWORD) 0x00;
+				pIRQObject->dwIntrID = (u32) 0x00;
 				GT_0trace(ISR_DebugMask, GT_1CLASS,
 					  "Setting intr id to NULL\n");
 				break;
@@ -192,7 +192,7 @@ DSP_STATUS ISR_Install(OUT struct ISR_IRQ **phIRQ,
 
 			if (pIRQObject->dwIntrID != 0) {
 				status = request_irq(pIRQObject->dwIntrID,
-						    &HardwareIST, 0,
+						     HardwareIST, 0,
 						    "DspBridge", pIRQObject);
 			} else {
 				status = DSP_EINVALIDARG;
@@ -230,7 +230,7 @@ DSP_STATUS ISR_Uninstall(struct ISR_IRQ *hIRQ)
 	if (MEM_IsValidHandle(hIRQ, SIGNATURE)) {
 		/* Linux function to uninstall ISR */
 		free_irq(pIRQObject->dwIntrID, pIRQObject);
-		pIRQObject->dwIntrID = (DWORD) -1;
+		pIRQObject->dwIntrID = (u32) -1;
 	} else {
 		status = DSP_EHANDLE;
 	}
@@ -252,7 +252,7 @@ DSP_STATUS ISR_Uninstall(struct ISR_IRQ *hIRQ)
  *  Purpose:
  *      Linux calls this IRQ handler on interrupt.
  */
-static INT HardwareIST(int irq, void *hIRQ, struct pt_regs *pt_regs)
+static irqreturn_t HardwareIST(int irq, void *hIRQ)
 {
 	struct ISR_IRQ *pIRQObject = (struct ISR_IRQ *)hIRQ;
 

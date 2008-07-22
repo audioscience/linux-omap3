@@ -52,7 +52,7 @@
  */
 struct CHNL_MGR_ {
 	/* These must be the first fields in a CHNL_MGR struct: */
-	DWORD dwSignature;	/* Used for object validation.   */
+	u32 dwSignature;	/* Used for object validation.   */
 	struct WMD_DRV_INTERFACE *pIntfFxns;	/* Function interface to WMD. */
 } ;
 
@@ -63,7 +63,7 @@ struct CHNL_MGR_ {
  */
 struct CHNL_OBJECT_ {
 	/* These must be the first fields in a CHNL_OBJECT struct: */
-	DWORD dwSignature;	/* Used for object validation.      */
+	u32 dwSignature;	/* Used for object validation.      */
 	struct CHNL_MGR_ *pChnlMgr;	/* Pointer back to channel manager. */
 } ;
 

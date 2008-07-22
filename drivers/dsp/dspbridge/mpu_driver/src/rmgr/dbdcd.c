@@ -98,31 +98,31 @@
 
 /* DCD specific structures. */
 struct DCD_MANAGER {
-	DWORD dwSignature;	/* Used for object validation.   */
+	u32 dwSignature;	/* Used for object validation.   */
 	struct COD_MANAGER *hCodMgr;	/* Handle to COD manager object. */
 };
 
 /* Global reference variables. */
-static ULONG cRefs;
-static ULONG cEnumRefs;
+static u32 cRefs;
+static u32 cEnumRefs;
 
 extern struct GT_Mask curTrace;
 
 /* helper function prototypes. */
-static INT Atoi(char *pszBuf);
+static s32 Atoi(char *pszBuf);
 
-static DSP_STATUS GetAttrsFromBuf(char *pszBuf, ULONG ulBufSize,
+static DSP_STATUS GetAttrsFromBuf(char *pszBuf, u32 ulBufSize,
 				  DSP_DCDOBJTYPE objType,
 				  struct DCD_GENERICOBJ *pGenObj);
 
-static VOID CompressBuf(char *pszBuf, ULONG ulBufSize, INT cCharSize);
+static void CompressBuf(char *pszBuf, u32 ulBufSize, s32 cCharSize);
 
-static char DspChar2GppChar(char *pWord, Int cDspCharSize);
+static char DspChar2GppChar(char *pWord, s32 cDspCharSize);
 
 static DSP_STATUS GetDepLibInfo(IN struct DCD_MANAGER *hDcdMgr,
 				IN struct DSP_UUID *pUuid,
-				IN OUT USHORT *pNumLibs,
-				OPTIONAL OUT USHORT *pNumPersLibs,
+				IN OUT u16 *pNumLibs,
+				OPTIONAL OUT u16 *pNumPersLibs,
 				OPTIONAL OUT struct DSP_UUID *pDepLibUuids,
 				OPTIONAL OUT BOOL *pPersistentDepLibs,
 				IN NLDR_PHASE phase);
@@ -146,7 +146,7 @@ DSP_STATUS DCD_AutoRegister(IN struct DCD_MANAGER *hDcdMgr,
 	if (IsValidHandle(hDcdMgr)) {
 		status = DCD_GetObjects(hDcdMgr, pszCoffPath,
 					(DCD_REGISTERFXN)DCD_RegisterObject,
-					(PVOID)pszCoffPath);
+					(void *)pszCoffPath);
 	} else {
 		status = DSP_EHANDLE;
 		GT_0trace(curTrace, GT_6CLASS,
@@ -281,18 +281,18 @@ DSP_STATUS DCD_DestroyManager(IN struct DCD_MANAGER *hDcdMgr)
  *  Purpose:
  *      Enumerates objects in the DCD.
  */
-DSP_STATUS DCD_EnumerateObject(IN INT cIndex, IN DSP_DCDOBJTYPE objType,
+DSP_STATUS DCD_EnumerateObject(IN s32 cIndex, IN DSP_DCDOBJTYPE objType,
 			       OUT struct DSP_UUID *pUuid)
 {
 	DSP_STATUS status = DSP_SOK;
 	char szRegKey[REG_MAXREGPATHLENGTH];
 	char szValue[REG_MAXREGPATHLENGTH];
-	BYTE szData[REG_MAXREGPATHLENGTH];
-	DWORD dwValueSize;
-	DWORD dwDataSize;
+	char szData[REG_MAXREGPATHLENGTH];
+	u32 dwValueSize;
+	u32 dwDataSize;
 	struct DSP_UUID dspUuid;
 	char szObjType[MAX_INT2CHAR_LENGTH];	/* str. rep. of objType. */
-	DWORD dwKeyLen = 0;
+	u32 dwKeyLen = 0;
 
 	DBC_Require(cRefs >= 0);
 	DBC_Require(cIndex >= 0);
@@ -389,7 +389,7 @@ DSP_STATUS DCD_EnumerateObject(IN INT cIndex, IN DSP_DCDOBJTYPE objType,
  *  Purpose:
  *      Discontinue usage of the DCD module.
  */
-VOID DCD_Exit(void)
+void DCD_Exit(void)
 {
 	DBC_Require(cRefs > 0);
 
@@ -410,7 +410,7 @@ VOID DCD_Exit(void)
  */
 DSP_STATUS DCD_GetDepLibs(IN struct DCD_MANAGER *hDcdMgr,
 			 IN struct DSP_UUID *pUuid,
-			 USHORT numLibs, OUT struct DSP_UUID *pDepLibUuids,
+			 u16 numLibs, OUT struct DSP_UUID *pDepLibUuids,
 			 OUT BOOL *pPersistentDepLibs, IN NLDR_PHASE phase)
 {
 	DSP_STATUS status = DSP_SOK;
@@ -434,8 +434,8 @@ DSP_STATUS DCD_GetDepLibs(IN struct DCD_MANAGER *hDcdMgr,
  *  ======== DCD_GetNumDepLibs ========
  */
 DSP_STATUS DCD_GetNumDepLibs(IN struct DCD_MANAGER *hDcdMgr,
-			    IN struct DSP_UUID *pUuid, OUT USHORT *pNumLibs,
-			    OUT USHORT *pNumPersLibs, IN NLDR_PHASE phase)
+			    IN struct DSP_UUID *pUuid, OUT u16 *pNumLibs,
+			    OUT u16 *pNumPersLibs, IN NLDR_PHASE phase)
 {
 	DSP_STATUS status = DSP_SOK;
 
@@ -468,15 +468,15 @@ DSP_STATUS DCD_GetObjectDef(IN struct DCD_MANAGER *hDcdMgr,
 	struct DCD_MANAGER *pDcdMgr = hDcdMgr;	/* pointer to DCD manager */
 	struct COD_LIBRARYOBJ *lib = NULL;
 	DSP_STATUS status = DSP_SOK;
-	ULONG ulAddr = 0;	/* Used by COD_GetSection */
-	ULONG ulLen = 0;	/* Used by COD_GetSection */
-	DWORD dwBufSize;	/* Used by REG functions */
+	u32 ulAddr = 0;	/* Used by COD_GetSection */
+	u32 ulLen = 0;	/* Used by COD_GetSection */
+	u32 dwBufSize;	/* Used by REG functions */
 	char szRegKey[REG_MAXREGPATHLENGTH];
 	char *szUuid;		/*[MAXUUIDLEN];*/
 	char szRegData[MAXUUIDLEN];
 	char szSectName[MAXUUIDLEN + 2];	/* ".[UUID]\0" */
 	char *pszCoffBuf;
-	DWORD dwKeyLen;		/* Len of REG key. */
+	u32 dwKeyLen;		/* Len of REG key. */
 	char szObjType[MAX_INT2CHAR_LENGTH];	/* str. rep. of objType. */
 #ifdef _DB_TIOMAP
 	char *pTempCoffBuf;
@@ -537,7 +537,7 @@ DSP_STATUS DCD_GetObjectDef(IN struct DCD_MANAGER *hDcdMgr,
 		dwBufSize = REG_MAXREGPATHLENGTH;
 	}
 	if (DSP_SUCCEEDED(status)) {
-		status = REG_GetValue(NULL, szRegKey, szRegKey, szRegData,
+		status = REG_GetValue(NULL, szRegKey, szRegKey, (u8 *)szRegData,
 				     &dwBufSize);
 	}
 	if (!DSP_SUCCEEDED(status)) {
@@ -626,7 +626,7 @@ func_end:
  *  ======== DCD_GetObjects ========
  */
 DSP_STATUS DCD_GetObjects(IN struct DCD_MANAGER *hDcdMgr, IN char *pszCoffPath,
-			 DCD_REGISTERFXN registerFxn, PVOID handle)
+			 DCD_REGISTERFXN registerFxn, void *handle)
 {
 	struct DCD_MANAGER *pDcdMgr = hDcdMgr;	/* pointer to DCD manager */
 	DSP_STATUS status = DSP_SOK;
@@ -636,12 +636,12 @@ DSP_STATUS DCD_GetObjects(IN struct DCD_MANAGER *hDcdMgr, IN char *pszCoffPath,
 	char *pTempCoffBuf;
 #endif
 	struct COD_LIBRARYOBJ *lib = NULL;
-	ULONG ulAddr = 0;	/* Used by COD_GetSection */
-	ULONG ulLen = 0;	/* Used by COD_GetSection */
+	u32 ulAddr = 0;	/* Used by COD_GetSection */
+	u32 ulLen = 0;	/* Used by COD_GetSection */
 	char seps[] = ":, ";
 	char *pToken = NULL;
 	struct DSP_UUID dspUuid;
-	INT cObjectType;
+	s32 cObjectType;
 	DBC_Require(cRefs > 0);
 	GT_1trace(curTrace, GT_ENTER,
 		 "DCD_GetObjects: hDcdMgr 0x%x\n", hDcdMgr);
@@ -757,12 +757,12 @@ func_end:
  */
 DSP_STATUS DCD_GetLibraryName(IN struct DCD_MANAGER *hDcdMgr,
 			     IN struct DSP_UUID *pUuid,
-			     IN OUT PSTR pstrLibName, IN OUT DWORD *pdwSize,
+			     IN OUT char *pstrLibName, IN OUT u32 *pdwSize,
 			     NLDR_PHASE phase, OUT BOOL *fPhaseSplit)
 {
 	char szRegKey[REG_MAXREGPATHLENGTH];
 	char szUuid[MAXUUIDLEN];
-	DWORD dwKeyLen;		/* Len of REG key. */
+	u32 dwKeyLen;		/* Len of REG key. */
 	char szObjType[MAX_INT2CHAR_LENGTH];	/* str. rep. of objType. */
 	DSP_STATUS status = DSP_SOK;
 
@@ -831,8 +831,8 @@ DSP_STATUS DCD_GetLibraryName(IN struct DCD_MANAGER *hDcdMgr,
 	}
 	if (DSP_SUCCEEDED(status)) {
 		/* Retrieve path from the registry based on DSP_UUID */
-		status = REG_GetValue(NULL, szRegKey, szRegKey, pstrLibName,
-				     pdwSize);
+		status = REG_GetValue(NULL, szRegKey, szRegKey,
+					(u8 *)pstrLibName, pdwSize);
 	}
 	/* If can't find, phases might be registered as generic LIBRARYTYPE */
 	if (DSP_FAILED(status) && phase != NLDR_NOPHASE) {
@@ -861,8 +861,8 @@ DSP_STATUS DCD_GetLibraryName(IN struct DCD_MANAGER *hDcdMgr,
 		} else {
 			status = DSP_EFAIL;
 		}
-		status = REG_GetValue(NULL, szRegKey, szRegKey, pstrLibName,
-				     pdwSize);
+		status = REG_GetValue(NULL, szRegKey, szRegKey,
+					(u8 *)pstrLibName, pdwSize);
 	}
 
 	return status;
@@ -932,8 +932,8 @@ DSP_STATUS DCD_RegisterObject(IN struct DSP_UUID *pUuid,
 	DSP_STATUS status = DSP_SOK;
 	char szRegKey[REG_MAXREGPATHLENGTH];
 	char szUuid[MAXUUIDLEN + 1];
-	DWORD dwPathSize = 0;
-	DWORD dwKeyLen;		/* Len of REG key. */
+	u32 dwPathSize = 0;
+	u32 dwKeyLen;		/* Len of REG key. */
 	char szObjType[MAX_INT2CHAR_LENGTH];	/* str. rep. of objType. */
 
 	DBC_Require(cRefs > 0);
@@ -992,10 +992,10 @@ DSP_STATUS DCD_RegisterObject(IN struct DSP_UUID *pUuid,
 			 * info. */
 			dwPathSize = CSL_Strlen(pszPathName) + 1;
 			status = REG_SetValue(NULL, szRegKey, szRegKey, REG_SZ,
-					     (BYTE *)pszPathName, dwPathSize);
+					     (u8 *)pszPathName, dwPathSize);
 			GT_3trace(curTrace, GT_6CLASS,
 				 "REG_SetValue  REG_SZ=%d, "
-				 "(BYTE *)pszPathName=%s, dwPathSize=%d\n",
+				 "(u8 *)pszPathName=%s, dwPathSize=%d\n",
 				 REG_SZ, pszPathName, dwPathSize);
 			if (DSP_FAILED(status)) {
 				status = DSP_EFAIL;
@@ -1072,14 +1072,14 @@ DSP_STATUS DCD_UnregisterObject(IN struct DSP_UUID *pUuid,
  *  Purpose:
  *      This function converts strings in decimal or hex format to integers.
  */
-static INT Atoi(char *pszBuf)
+static s32 Atoi(char *pszBuf)
 {
-	INT result = 0;
+	s32 result = 0;
 	char *pch = pszBuf;
 	char c;
 	char first;
-	INT base = 10;
-	INT len;
+	s32 base = 10;
+	s32 len;
 
 	while (isspace(*pch))
 		pch++;
@@ -1128,7 +1128,7 @@ static INT Atoi(char *pszBuf)
  *      retrieve an object's attributes from it. IMPORTANT: Assume the
  *      buffer has been converted from DSP format to GPP format.
  */
-static DSP_STATUS GetAttrsFromBuf(char *pszBuf, ULONG ulBufSize,
+static DSP_STATUS GetAttrsFromBuf(char *pszBuf, u32 ulBufSize,
 				 DSP_DCDOBJTYPE objType,
 				 struct DCD_GENERICOBJ *pGenObj)
 {
@@ -1136,10 +1136,10 @@ static DSP_STATUS GetAttrsFromBuf(char *pszBuf, ULONG ulBufSize,
 	char seps[] = ", ";
 	char *pszCur;
 	char *token;
-	INT cLen = 0;
-	UINT i = 0;
+	s32 cLen = 0;
+	u32 i = 0;
 #ifdef _DB_TIOMAP
-	INT iEntry;
+	s32 iEntry;
 #endif
 
 	DBC_Require(pszBuf != NULL);
@@ -1156,9 +1156,9 @@ static DSP_STATUS GetAttrsFromBuf(char *pszBuf, ULONG ulBufSize,
 		 */
 		token = CSL_Strtokr(pszBuf, seps, &pszCur);
 
-		/* DWORD cbStruct */
+		/* u32 cbStruct */
 		pGenObj->objData.nodeObj.ndbProps.cbStruct =
-				(DWORD) Atoi(token);
+				(u32) Atoi(token);
 		token = CSL_Strtokr(NULL, seps, &pszCur);
 
 		/* DSP_UUID uiNodeID */
@@ -1176,15 +1176,15 @@ static DSP_STATUS GetAttrsFromBuf(char *pszBuf, ULONG ulBufSize,
 			   token, cLen);
 		pGenObj->objData.nodeObj.ndbProps.acName[cLen] = '\0';
 		token = CSL_Strtokr(NULL, seps, &pszCur);
-		/* UINT uNodeType */
+		/* u32 uNodeType */
 		pGenObj->objData.nodeObj.ndbProps.uNodeType = Atoi(token);
 		token = CSL_Strtokr(NULL, seps, &pszCur);
-		/* UINT bCacheOnGPP */
+		/* u32 bCacheOnGPP */
 		pGenObj->objData.nodeObj.ndbProps.bCacheOnGPP = Atoi(token);
 		token = CSL_Strtokr(NULL, seps, &pszCur);
 		/* DSP_RESOURCEREQMTS dspResourceReqmts */
 		pGenObj->objData.nodeObj.ndbProps.dspResourceReqmts.cbStruct =
-				(DWORD) Atoi(token);
+				(u32) Atoi(token);
 		token = CSL_Strtokr(NULL, seps, &pszCur);
 
 		pGenObj->objData.nodeObj.ndbProps.dspResourceReqmts.
@@ -1215,42 +1215,42 @@ static DSP_STATUS GetAttrsFromBuf(char *pszBuf, ULONG ulBufSize,
 			uMinimumPeriod = Atoi(token);
 		token = CSL_Strtokr(NULL, seps, &pszCur);
 
-		/* INT iPriority */
+		/* s32 iPriority */
 		pGenObj->objData.nodeObj.ndbProps.iPriority = Atoi(token);
 		token = CSL_Strtokr(NULL, seps, &pszCur);
 
-		/* UINT uStackSize */
+		/* u32 uStackSize */
 		pGenObj->objData.nodeObj.ndbProps.uStackSize = Atoi(token);
 		token = CSL_Strtokr(NULL, seps, &pszCur);
 
-		/* UINT uSysStackSize */
+		/* u32 uSysStackSize */
 		pGenObj->objData.nodeObj.ndbProps.uSysStackSize = Atoi(token);
 		token = CSL_Strtokr(NULL, seps, &pszCur);
 
-		/* UINT uStackSeg */
+		/* u32 uStackSeg */
 		pGenObj->objData.nodeObj.ndbProps.uStackSeg = Atoi(token);
 		token = CSL_Strtokr(NULL, seps, &pszCur);
 
-		/* UINT uMessageDepth */
+		/* u32 uMessageDepth */
 		pGenObj->objData.nodeObj.ndbProps.uMessageDepth = Atoi(token);
 		token = CSL_Strtokr(NULL, seps, &pszCur);
 
-		/* UINT uNumInputStreams */
+		/* u32 uNumInputStreams */
 		pGenObj->objData.nodeObj.ndbProps.uNumInputStreams =
 			Atoi(token);
 		token = CSL_Strtokr(NULL, seps, &pszCur);
 
-		/* UINT uNumOutputStreams */
+		/* u32 uNumOutputStreams */
 		pGenObj->objData.nodeObj.ndbProps.uNumOutputStreams =
 			Atoi(token);
 		token = CSL_Strtokr(NULL, seps, &pszCur);
 
-		/* UINT uTimeout */
+		/* u32 uTimeout */
 		pGenObj->objData.nodeObj.ndbProps.uTimeout =
 			Atoi(token);
 		token = CSL_Strtokr(NULL, seps, &pszCur);
 
-		/* PSTR pstrCreatePhaseFxn */
+		/* char * pstrCreatePhaseFxn */
 		cLen = strlen(token);
 		pGenObj->objData.nodeObj.pstrCreatePhaseFxn =
 			MEM_Calloc(cLen + 1, MEM_PAGED);
@@ -1259,7 +1259,7 @@ static DSP_STATUS GetAttrsFromBuf(char *pszBuf, ULONG ulBufSize,
 		pGenObj->objData.nodeObj.pstrCreatePhaseFxn[cLen] = '\0';
 		token = CSL_Strtokr(NULL, seps, &pszCur);
 
-		/* PSTR pstrExecutePhaseFxn */
+		/* char * pstrExecutePhaseFxn */
 		cLen = strlen(token);
 		pGenObj->objData.nodeObj.pstrExecutePhaseFxn =
 			 MEM_Calloc(cLen + 1, MEM_PAGED);
@@ -1268,7 +1268,7 @@ static DSP_STATUS GetAttrsFromBuf(char *pszBuf, ULONG ulBufSize,
 		pGenObj->objData.nodeObj.pstrExecutePhaseFxn[cLen] = '\0';
 		token = CSL_Strtokr(NULL, seps, &pszCur);
 
-		/* PSTR pstrDeletePhaseFxn */
+		/* char * pstrDeletePhaseFxn */
 		cLen = strlen(token);
 		pGenObj->objData.nodeObj.pstrDeletePhaseFxn =
 			MEM_Calloc(cLen + 1, MEM_PAGED);
@@ -1285,7 +1285,7 @@ static DSP_STATUS GetAttrsFromBuf(char *pszBuf, ULONG ulBufSize,
 		pGenObj->objData.nodeObj.uMsgNotifyType = Atoi(token);
 		token = CSL_Strtokr(NULL, seps, &pszCur);
 
-		/* PSTR pstrIAlgName */
+		/* char * pstrIAlgName */
 		if (token) {
 			cLen = strlen(token);
 			pGenObj->objData.nodeObj.pstrIAlgName =
@@ -1333,7 +1333,7 @@ static DSP_STATUS GetAttrsFromBuf(char *pszBuf, ULONG ulBufSize,
 		token = CSL_Strtokr(NULL, seps, &pszCur);
 		if (token) {
 			pGenObj->objData.nodeObj.ndbProps.uStackSegName =
-				(token);
+				(u32)(token);
 		}
 
 		break;
@@ -1405,7 +1405,7 @@ static DSP_STATUS GetAttrsFromBuf(char *pszBuf, ULONG ulBufSize,
  *  Purpose:
  *      Compress the DSP buffer, if necessary, to conform to PC format.
  */
-static VOID CompressBuf(char *pszBuf, ULONG ulBufSize, INT cCharSize)
+static void CompressBuf(char *pszBuf, u32 ulBufSize, s32 cCharSize)
 {
 	char *p;
 	char ch;
@@ -1460,11 +1460,11 @@ static VOID CompressBuf(char *pszBuf, ULONG ulBufSize, INT cCharSize)
  *  Purpose:
  *      Convert DSP char to host GPP char in a portable manner
  */
-static char DspChar2GppChar(char *pWord, Int cDspCharSize)
+static char DspChar2GppChar(char *pWord, s32 cDspCharSize)
 {
 	char ch = '\0';
 	char *chSrc;
-	INT i;
+	s32 i;
 
 	for (chSrc = pWord, i = cDspCharSize; i > 0; i--)
 		ch |= *chSrc++;
@@ -1477,8 +1477,8 @@ static char DspChar2GppChar(char *pWord, Int cDspCharSize)
  */
 static DSP_STATUS GetDepLibInfo(IN struct DCD_MANAGER *hDcdMgr,
 				IN struct DSP_UUID *pUuid,
-				IN OUT USHORT *pNumLibs,
-				OPTIONAL OUT USHORT *pNumPersLibs,
+				IN OUT u16 *pNumLibs,
+				OPTIONAL OUT u16 *pNumPersLibs,
 				OPTIONAL OUT struct DSP_UUID *pDepLibUuids,
 				OPTIONAL OUT BOOL *pPersistentDepLibs,
 				NLDR_PHASE phase)
@@ -1491,13 +1491,13 @@ static DSP_STATUS GetDepLibInfo(IN struct DCD_MANAGER *hDcdMgr,
 #ifdef _DB_TIOMAP
 	char *pTempCoffBuf;
 #endif
-	ULONG ulAddr = 0;	/* Used by COD_GetSection */
-	ULONG ulLen = 0;	/* Used by COD_GetSection */
-	DWORD dwDataSize = COD_MAXPATHLENGTH;
+	u32 ulAddr = 0;	/* Used by COD_GetSection */
+	u32 ulLen = 0;	/* Used by COD_GetSection */
+	u32 dwDataSize = COD_MAXPATHLENGTH;
 	char seps[] = ", ";
 	char *pToken = NULL;
 	BOOL fGetUuids = (pDepLibUuids != NULL);
-	USHORT nDepLibs = 0;
+	u16 nDepLibs = 0;
 	DSP_STATUS status = DSP_SOK;
 
 	DBC_Require(cRefs > 0);

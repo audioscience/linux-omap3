@@ -84,7 +84,7 @@ static struct GT_Mask CSL_DebugMask = { 0, 0 };	/* GT trace var. */
  *  Purpose:
  *      Convert a string to an integer
  */
-INT CSL_Atoi(IN CONST char *ptstrSrc)
+s32 CSL_Atoi(IN CONST char *ptstrSrc)
 {
 	char *end_position;
 
@@ -122,7 +122,7 @@ BOOL CSL_Init(void)
  *  Purpose:
  *      Convert a 1 or 2 digit number to a 2 digit string.
  */
-VOID CSL_NumToAscii(OUT PSTR pstrNumber, DWORD dwNum)
+void CSL_NumToAscii(OUT char *pstrNumber, u32 dwNum)
 {
 	char tens;
 
@@ -150,7 +150,7 @@ VOID CSL_NumToAscii(OUT PSTR pstrNumber, DWORD dwNum)
  *  Purpose:
  *      Compare 2 ASCII strings.  Works the same was as stdio's strcmp.
  */
-LONG CSL_Strcmp(IN CONST PSTR pstrStr1, IN CONST PSTR pstrStr2)
+s32 CSL_Strcmp(IN CONST char *pstrStr1, IN CONST char *pstrStr2)
 {
 	return strcmp(pstrStr1, pstrStr2);
 }
@@ -171,7 +171,7 @@ LONG CSL_Strcmp(IN CONST PSTR pstrStr1, IN CONST PSTR pstrStr2)
  *  Ensures:
  */
 
-PSTR CSL_Strstr(IN CONST PSTR haystack, IN CONST PSTR needle)
+char *CSL_Strstr(IN CONST char *haystack, IN CONST char *needle)
 {
 	return strstr(haystack, needle);
 }
@@ -181,7 +181,7 @@ PSTR CSL_Strstr(IN CONST PSTR haystack, IN CONST PSTR needle)
  *  Purpose:
  *      Safe strcpy function.
  */
-PSTR CSL_Strcpyn(OUT PSTR pstrDest, IN CONST PSTR pstrSrc, DWORD cMax)
+char *CSL_Strcpyn(OUT char *pstrDest, IN CONST char *pstrSrc, u32 cMax)
 {
 	return strncpy(pstrDest, pstrSrc, cMax);
 }
@@ -191,7 +191,7 @@ PSTR CSL_Strcpyn(OUT PSTR pstrDest, IN CONST PSTR pstrSrc, DWORD cMax)
  *  Purpose:
  *      Determine the length of a null terminated ASCII string.
  */
-DWORD CSL_Strlen(IN CONST PSTR pstrSrc)
+u32 CSL_Strlen(IN CONST char *pstrSrc)
 {
 	CONST char *pStr = pstrSrc;
 
@@ -199,7 +199,7 @@ DWORD CSL_Strlen(IN CONST PSTR pstrSrc)
 
 	while (*pStr++) ;
 
-	return ((DWORD) (pStr - pstrSrc - 1));
+	return ((u32) (pStr - pstrSrc - 1));
 }
 
 /*
@@ -207,7 +207,7 @@ DWORD CSL_Strlen(IN CONST PSTR pstrSrc)
  *  Purpose:
  *      Concatenate two strings together
  */
-PSTR CSL_Strncat(IN PSTR pszDest, IN PSTR pszSrc, IN DWORD dwSize)
+char *CSL_Strncat(IN char *pszDest, IN char *pszSrc, IN u32 dwSize)
 {
 
 	DBC_Require(pszDest && pszSrc);
@@ -221,7 +221,7 @@ PSTR CSL_Strncat(IN PSTR pszDest, IN PSTR pszSrc, IN DWORD dwSize)
  *      Compare at most n characters of two ASCII strings.  Works the same
  *      way as stdio's strncmp.
  */
-LONG CSL_Strncmp(IN CONST PSTR pstrStr1, IN CONST PSTR pstrStr2, DWORD n)
+s32 CSL_Strncmp(IN CONST char *pstrStr1, IN CONST char *pstrStr2, u32 n)
 {
 	return strncmp(pstrStr1, pstrStr2, n);
 }

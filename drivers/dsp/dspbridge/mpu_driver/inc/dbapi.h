@@ -26,7 +26,7 @@
  *! 27-Jun-2000 rr: Name changed to ddspapi.h. Broken into various h files.
  *! 12-May-2000 gp: Removed PROC_UNKNOWN state.  Moved OEM DSPProcessor_ fxns
  *!                 to ddspoem.h. Changed DDSP_MSG to be fixed length;
- *!                 Changed DDSPStream_Issue/Reclaim to take DWORD dwArg.
+ *!                 Changed DDSPStream_Issue/Reclaim to take u32 dwArg.
  *! 11-May-2000 gp: Reformatted; converted tabs to spaces; changed NODEHANDLE
  *!                 to HNODE; changed GUID to UUID; added "Detail" sections
  *!                 documenting differences from DDSP API spec. (ver. 0.6);

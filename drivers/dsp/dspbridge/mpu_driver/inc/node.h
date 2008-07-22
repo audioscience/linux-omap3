@@ -129,10 +129,10 @@
  *  Ensures:
  */
 	extern DSP_STATUS NODE_AllocMsgBuf(struct NODE_OBJECT *hNode,
-					   UINT uSize,
+					   u32 uSize,
 					   OPTIONAL struct DSP_BUFFERATTR
 					   *pAttr,
-					   OUT BYTE **pBuffer);
+					   OUT u8 **pBuffer);
 
 /*
  *  ======== NODE_ChangePriority ========
@@ -158,7 +158,7 @@
  *      DSP_SOK && (Node's current priority == nPriority)
  */
 	extern DSP_STATUS NODE_ChangePriority(struct NODE_OBJECT *hNode,
-					      INT nPriority);
+					      s32 nPriority);
 
 /*
  *  ======== NODE_CloseOrphans ========
@@ -227,9 +227,9 @@
  *  Ensures:
  */
 	extern DSP_STATUS NODE_Connect(struct NODE_OBJECT *hNode1,
-				       UINT uStream1,
+				       u32 uStream1,
 				       struct NODE_OBJECT *hNode2,
-				       UINT uStream2,
+				       u32 uStream2,
 				       OPTIONAL IN struct DSP_STRMATTR *pAttrs,
 				       OPTIONAL IN struct DSP_CBDATA
 				       *pConnParam);
@@ -350,9 +350,9 @@
  */
 	extern DSP_STATUS NODE_EnumNodes(struct NODE_MGR *hNodeMgr,
 					 IN DSP_HNODE *aNodeTab,
-					 UINT uNodeTabSize,
-					 OUT UINT *puNumNodes,
-					 OUT UINT *puAllocated);
+					 u32 uNodeTabSize,
+					 OUT u32 *puNumNodes,
+					 OUT u32 *puAllocated);
 
 /*
  *  ======== NODE_Exit ========
@@ -366,7 +366,7 @@
  *      Any resources acquired in NODE_Init() will be freed when last NODE
  *      client calls NODE_Exit().
  */
-	extern VOID NODE_Exit();
+	extern void NODE_Exit();
 
 /*
  *  ======== NODE_FreeMsgBuf ========
@@ -386,7 +386,7 @@
  *  Ensures:
  */
 	extern DSP_STATUS NODE_FreeMsgBuf(struct NODE_OBJECT *hNode,
-					  IN BYTE *pBuffer,
+					  IN u8 *pBuffer,
 					  OPTIONAL struct DSP_BUFFERATTR
 					  *pAttr);
 
@@ -411,7 +411,7 @@
  */
 	extern DSP_STATUS NODE_GetAttr(struct NODE_OBJECT *hNode,
 				       OUT struct DSP_NODEATTR *pAttr,
-				       UINT uAttrSize);
+				       u32 uAttrSize);
 
 /*
  *  ======== NODE_GetMessage ========
@@ -438,7 +438,7 @@
  */
 	extern DSP_STATUS NODE_GetMessage(struct NODE_OBJECT *hNode,
 					  OUT struct DSP_MSG *pMessage,
-					  UINT uTimeout);
+					  u32 uTimeout);
 
 /*
  *  ======== NODE_GetNldrObj ========
@@ -478,7 +478,7 @@
  *  Returns:
  *  Ensures:
  */
-	VOID NODE_OnExit(struct NODE_OBJECT *hNode, INT nStatus);
+	void NODE_OnExit(struct NODE_OBJECT *hNode, s32 nStatus);
 
 /*
  *  ======== NODE_Pause ========
@@ -525,7 +525,7 @@
  */
 	extern DSP_STATUS NODE_PutMessage(struct NODE_OBJECT *hNode,
 					  IN CONST struct DSP_MSG *pMsg,
-					  UINT uTimeout);
+					  u32 uTimeout);
 
 /*
  *  ======== NODE_RegisterNotify ========
@@ -549,7 +549,7 @@
  *  Ensures:
  */
 	extern DSP_STATUS NODE_RegisterNotify(struct NODE_OBJECT *hNode,
-					      UINT uEventMask, UINT uNotifyType,
+					      u32 uEventMask, u32 uNotifyType,
 					      struct DSP_NOTIFICATION
 					      *hNotification);
 

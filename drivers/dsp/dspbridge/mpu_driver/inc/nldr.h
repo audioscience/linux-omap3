@@ -51,7 +51,7 @@
 #define NLDR_
 
 	extern DSP_STATUS NLDR_Allocate(struct NLDR_OBJECT *hNldr,
-					PVOID pPrivRef,
+					void *pPrivRef,
 					IN CONST struct DCD_NODEPROPS
 					*pNodeProps,
 					OUT struct NLDR_NODEOBJECT **phNldrNode,
@@ -61,18 +61,18 @@
 				      struct DEV_OBJECT *hDevObject,
 				      IN CONST struct NLDR_ATTRS *pAttrs);
 
-	extern VOID NLDR_Delete(struct NLDR_OBJECT *hNldr);
-	extern VOID NLDR_Exit(VOID);
-	extern VOID NLDR_Free(struct NLDR_NODEOBJECT *hNldrNode);
+	extern void NLDR_Delete(struct NLDR_OBJECT *hNldr);
+	extern void NLDR_Exit(void);
+	extern void NLDR_Free(struct NLDR_NODEOBJECT *hNldrNode);
 
 	extern DSP_STATUS NLDR_GetFxnAddr(struct NLDR_NODEOBJECT *hNldrNode,
-					  PSTR pstrFxn, ULONG *pulAddr);
+					  char *pstrFxn, u32 *pulAddr);
 
 	extern DSP_STATUS NLDR_GetRmmManager(struct NLDR_OBJECT *hNldrObject,
 					     OUT struct RMM_TargetObj
 					     **phRmmMgr);
 
-	extern BOOL NLDR_Init(VOID);
+	extern BOOL NLDR_Init(void);
 	extern DSP_STATUS NLDR_Load(struct NLDR_NODEOBJECT *hNldrNode,
 				    NLDR_PHASE phase);
 	extern DSP_STATUS NLDR_Unload(struct NLDR_NODEOBJECT *hNldrNode,

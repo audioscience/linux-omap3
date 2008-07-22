@@ -38,6 +38,8 @@ ccflags-y += -DGT_TRACE -DDEBUG
 endif
 
 ccflags-y += -Wno-strict-prototypes -fomit-frame-pointer
+ccflags-y += -DOPT_ELIMINATE_EXTRA_DLOAD -DOPT_REDUCE_SYMBOL_LOOKUPS \
+		-DOPT_USE_MEMSET
 
 #Machine dependent
 ccflags-y += -D_TI_ -D_DB_TIOMAP -DOMAP_3430 -D__KERNEL__ -DTMS32060 \
@@ -46,16 +48,11 @@ ccflags-y += -D_TI_ -D_DB_TIOMAP -DOMAP_3430 -D__KERNEL__ -DTMS32060 \
 
 #Header files
 ccflags-y += -Idrivers/dsp/dspbridge/mpu_driver/src/services
-CFLAGS_cfg.o = -I/usr/include/
 ccflags-y += -Idrivers/dsp/dspbridge/mpu_driver/src/wmd/wmdchnl/ \
 		-Idrivers/dsp/dspbridge/mpu_driver/src/wmd/
 ccflags-y += -Idrivers/dsp/dspbridge/mpu_driver/src/pmgr/
 ccflags-y += -Idrivers/dsp/dspbridge/mpu_driver/src/rmgr/
 ccflags-y += -Iinclude -Idrivers/dsp/dspbridge/mpu_driver/inc
-INCLUDES =  -Iinclude/linux
-CFLAGS_cload.o = $(INCLUDES)
-CFLAGS_getsection.o = $(INCLUDES)
-CFLAGS_reloc.o = $(INCLUDES)
 ccflags-y += -Idrivers/dsp/dspbridge/mpu_driver/src/hw/inc \
 		-Idrivers/dsp/dspbridge/mpu_driver/src/hw/mmu \
 		-Idrivers/dsp/dspbridge/mpu_driver/src/hw/prcm \

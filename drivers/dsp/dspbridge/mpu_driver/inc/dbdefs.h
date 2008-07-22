@@ -58,7 +58,7 @@
  *!                 Added DSP_NOTIFICATION, DSP_STRMATTR. PSTRING changed
  *!                 back to TCHAR * and moved to dbtype.h.
  *! 11-Aug-2000 rr: Macros to check valid events and notify masks added.
- *! 09-Aug-2000 rr: Changed PSTRING to *CHAR
+ *! 09-Aug-2000 rr: Changed PSTRING to *s8
  *! 07-Aug-2000 rr: PROC_IDLE/SYNCINIT/UNKNOWN state removed.
  *! 20-Jul-2000 rr: Updated to version 0.8
  *! 17-Jul-2000 rr: New PROC states added to the DSP_PROCSTATE.
@@ -68,9 +68,13 @@
 #ifndef DBDEFS_
 #define DBDEFS_
 
+#include <linux/types.h>
+#include <asm/types.h>
+
 #include <dbtype.h>		/* GPP side type definitions           */
 #include <std.h>		/* DSP/BIOS type definitions           */
 #include <rms_sh.h>		/* Types shared between GPP and DSP    */
+#include <linux/types.h>
 
 #define PG_SIZE_4K 4096
 #define PG_MASK(pg_size) (~((pg_size)-1))
@@ -128,18 +132,18 @@
 #define DSP_RMSBUFDESC RMS_BUFDESC	/* MSG contains SM buffer description */
 
 /* Shared memory identifier for MEM segment named "SHMSEG0" */
-#define DSP_SHMSEG0     (UINT)(-1)
+#define DSP_SHMSEG0     (u32)(-1)
 
 /* Processor ID numbers */
 #define DSP_UNIT    0
 #define IVA_UNIT    1
 
-#define DSPWORD       BYTE
+#define DSPWORD       unsigned char
 #define DSPWORDSIZE     sizeof(DSPWORD)
 
 /* Success & Failure macros  */
-#define DSP_SUCCEEDED(Status)      ((INT)(Status) >= 0)
-#define DSP_FAILED(Status)         ((INT)(Status) < 0)
+#define DSP_SUCCEEDED(Status)      ((s32)(Status) >= 0)
+#define DSP_FAILED(Status)         ((s32)(Status) < 0)
 
 /* Power control enumerations */
 #define PROC_PWRCONTROL             0x8070
@@ -153,15 +157,15 @@
 #define    MAX_PROFILES     16
 
 /* Types defined for 'Bridge API */
-	typedef DWORD DSP_STATUS;	/* API return code type         */
+	typedef u32 DSP_STATUS;	/* API return code type         */
 
 	typedef HANDLE DSP_HNODE;	/* Handle to a DSP Node object  */
 	typedef HANDLE DSP_HPROCESSOR;	/* Handle to a Processor object */
 	typedef HANDLE DSP_HSTREAM;	/* Handle to a Stream object    */
 
-	typedef ULONG DSP_PROCFAMILY;	/* Processor family             */
-	typedef ULONG DSP_PROCTYPE;	/* Processor type (w/in family) */
-	typedef ULONG DSP_RTOSTYPE;	/* Type of DSP RTOS             */
+	typedef u32 DSP_PROCFAMILY;	/* Processor family             */
+	typedef u32 DSP_PROCTYPE;	/* Processor type (w/in family) */
+	typedef u32 DSP_RTOSTYPE;	/* Type of DSP RTOS             */
 
 /* Handy Macros */
 #define IsValidProcEvent(x) (((x) == 0) || (((x) & (DSP_PROCESSORSTATECHANGE | \
@@ -197,12 +201,12 @@
 
 /* The Node UUID structure */
 	struct DSP_UUID {
-		ULONG ulData1;
-		USHORT usData2;
-		USHORT usData3;
-		BYTE ucData4;
-		BYTE ucData5;
-		UCHAR ucData6[6];
+		u32 ulData1;
+		u16 usData2;
+		u16 usData3;
+		u8 ucData4;
+		u8 ucData5;
+		u8 ucData6[6];
 	};
 	/*DSP_UUID, *DSP_HUUID;*/
 
@@ -290,60 +294,60 @@
 
 /* Memory Segment Status Values */
 	 struct DSP_MEMSTAT {
-		ULONG ulSize;
-		ULONG ulTotalFreeSize;
-		ULONG ulLenMaxFreeBlock;
-		ULONG ulNumFreeBlocks;
-		ULONG ulNumAllocBlocks;
+		u32 ulSize;
+		u32 ulTotalFreeSize;
+		u32 ulLenMaxFreeBlock;
+		u32 ulNumFreeBlocks;
+		u32 ulNumAllocBlocks;
 	} ;
 
 /* Processor Load information Values */
 	 struct DSP_PROCLOADSTAT {
-		ULONG uCurrLoad;
-		ULONG uPredictedLoad;
-		ULONG uCurrDspFreq;
-		ULONG uPredictedFreq;
+		u32 uCurrLoad;
+		u32 uPredictedLoad;
+		u32 uCurrDspFreq;
+		u32 uPredictedFreq;
 	} ;
 
 /* Attributes for STRM connections between nodes */
 	struct DSP_STRMATTR {
-		UINT uSegid;	/* Memory segment on DSP to allocate buffers */
-		UINT uBufsize;	/* Buffer size (DSP words) */
-		UINT uNumBufs;	/* Number of buffers */
-		UINT uAlignment;	/* Buffer alignment */
-		UINT uTimeout;	/* Timeout for blocking STRM calls */
+		u32 uSegid;	/* Memory segment on DSP to allocate buffers */
+		u32 uBufsize;	/* Buffer size (DSP words) */
+		u32 uNumBufs;	/* Number of buffers */
+		u32 uAlignment;	/* Buffer alignment */
+		u32 uTimeout;	/* Timeout for blocking STRM calls */
 		DSP_STRMMODE lMode;	/* mode of stream when opened */
 		/* DMA chnl id if DSP_STRMMODE is LDMA or RDMA */
-		UINT uDMAChnlId;
-		UINT uDMAPriority;  /* DMA channel priority 0=lowest, >0=high */
+		u32 uDMAChnlId;
+		u32 uDMAPriority;  /* DMA channel priority 0=lowest, >0=high */
 	} ;
 
 /* The DSP_CBDATA structure */
 	struct DSP_CBDATA {
-		ULONG cbData;
-		BYTE cData[1];
+		u32 cbData;
+		u8 cData[1];
 	} ;
 	/*DSP_CBDATA, *DSP_HCBDATA;*/
 
 /* The DSP_MSG structure */
 	struct DSP_MSG {
-		DWORD dwCmd;
-		DWORD dwArg1;
-		DWORD dwArg2;
+		u32 dwCmd;
+		u32 dwArg1;
+		u32 dwArg2;
 	} ;
 	/*DSP_MSG, *DSP_HMSG;*/
 
 /* The DSP_RESOURCEREQMTS structure for node's resource requirements  */
 	struct DSP_RESOURCEREQMTS {
-		DWORD cbStruct;
-		UINT uStaticDataSize;
-		UINT uGlobalDataSize;
-		UINT uProgramMemSize;
-		UINT uWCExecutionTime;
-		UINT uWCPeriod;
-		UINT uWCDeadline;
-		UINT uAvgExectionTime;
-		UINT uMinimumPeriod;
+		u32 cbStruct;
+		u32 uStaticDataSize;
+		u32 uGlobalDataSize;
+		u32 uProgramMemSize;
+		u32 uWCExecutionTime;
+		u32 uWCPeriod;
+		u32 uWCDeadline;
+		u32 uAvgExectionTime;
+		u32 uMinimumPeriod;
 	} ;
 	/*DSP_RESOURCEREQMTS, *DSP_HRESOURCEREQMTS;*/
 
@@ -352,76 +356,76 @@
  * between two nodes, or between a node and the GPP
  */
 	struct DSP_STREAMCONNECT {
-		DWORD cbStruct;
+		u32 cbStruct;
 		DSP_CONNECTTYPE lType;
-		UINT uThisNodeStreamIndex;
+		u32 uThisNodeStreamIndex;
 		DSP_HNODE hConnectedNode;
 		struct DSP_UUID uiConnectedNodeID;
-		UINT uConnectedNodeStreamIndex;
+		u32 uConnectedNodeStreamIndex;
 	} ;
 	/*DSP_STREAMCONNECT, *DSP_HSTREAMCONNECT;*/
 
 #if defined(OMAP_2430) || defined(OMAP_3430)
 	struct DSP_NODEPROFS {
-		UINT ulHeapSize;
+		u32 ulHeapSize;
 	} ;
 	/*DSP_NODEPROFS, *DSP_HNODEPROFS;*/
 #endif
 
 /* The DSP_NDBPROPS structure reports the attributes of a node */
 	struct DSP_NDBPROPS {
-		DWORD cbStruct;
+		u32 cbStruct;
 		struct DSP_UUID uiNodeID;
-		CHARACTER acName[DSP_MAXNAMELEN];
+		char acName[DSP_MAXNAMELEN];
 		DSP_NODETYPE uNodeType;
-		UINT bCacheOnGPP;
+		u32 bCacheOnGPP;
 		struct DSP_RESOURCEREQMTS dspResourceReqmts;
-		INT iPriority;
-		UINT uStackSize;
-		UINT uSysStackSize;
-		UINT uStackSeg;
-		UINT uMessageDepth;
-		UINT uNumInputStreams;
-		UINT uNumOutputStreams;
-		UINT uTimeout;
-		UINT uCountProfiles;	/* Number of supported profiles */
+		s32 iPriority;
+		u32 uStackSize;
+		u32 uSysStackSize;
+		u32 uStackSeg;
+		u32 uMessageDepth;
+		u32 uNumInputStreams;
+		u32 uNumOutputStreams;
+		u32 uTimeout;
+		u32 uCountProfiles;	/* Number of supported profiles */
 		/* Array of profiles */
 		struct DSP_NODEPROFS aProfiles[MAX_PROFILES];
-		UINT uStackSegName; /* Stack Segment Name */
+		u32 uStackSegName; /* Stack Segment Name */
 	} ;
 	/*DSP_NDBPROPS, *DSP_HNDBPROPS;*/
 
     /* The DSP_NODEATTRIN structure describes the attributes of a node client */
     struct DSP_NODEATTRIN {
-	    DWORD cbStruct;
-	    INT iPriority;
-	    UINT uTimeout;
-	    UINT    uProfileID;
+	    u32 cbStruct;
+	    s32 iPriority;
+	    u32 uTimeout;
+	    u32    uProfileID;
 	    /* Reserved, for Bridge Internal use only */
-	    UINT    uHeapSize;
-	    PVOID   pGPPVirtAddr; /* Reserved, for Bridge Internal use only */
+	    u32    uHeapSize;
+	    void *pGPPVirtAddr; /* Reserved, for Bridge Internal use only */
 	} ;
 	/*DSP_NODEATTRIN, *DSP_HNODEATTRIN;*/
 
 /* The DSP_NODEINFO structure is used to retrieve information about a node */
 	struct DSP_NODEINFO {
-		DWORD cbStruct;
+		u32 cbStruct;
 		struct DSP_NDBPROPS nbNodeDatabaseProps;
-		UINT uExecutionPriority;
+		u32 uExecutionPriority;
 		DSP_NODESTATE nsExecutionState;
 		DSP_HNODE hDeviceOwner;
-		UINT uNumberStreams;
+		u32 uNumberStreams;
 		struct DSP_STREAMCONNECT scStreamConnection[16];
-		UINT uNodeEnv;
+		u32 uNodeEnv;
 	} ;
 	/*DSP_NODEINFO, *DSP_HNODEINFO;*/
 
 /* The DSP_NODEATTR structure describes the attributes of a node */
 	struct DSP_NODEATTR {
-		DWORD cbStruct;
+		u32 cbStruct;
 		struct DSP_NODEATTRIN inNodeAttrIn;
-		ULONG uInputs;
-		ULONG uOutputs;
+		u32 uInputs;
+		u32 uOutputs;
 		struct DSP_NODEINFO iNodeInfo;
 	} ;
 	/*DSP_NODEATTR, *DSP_HNODEATTR;*/
@@ -431,15 +435,15 @@
  *  window handle.
  */
 	struct DSP_NOTIFICATION {
-		PSTRING psName;
+		char *psName;
 		HANDLE handle;
 	} ;
 	/*DSP_NOTIFICATION, *DSP_HNOTIFICATION;*/
 
 /* The DSP_PROCESSORATTRIN structure describes the attributes of a processor */
 	struct DSP_PROCESSORATTRIN{
-		DWORD cbStruct;
-		UINT uTimeout;
+		u32 cbStruct;
+		u32 uTimeout;
 	} ;
 	/*DSP_PROCESSORATTRIN, *DSP_HPROCESSORATTRIN;*/
 
@@ -454,31 +458,31 @@
  * DSP processor
  */
 	struct DSP_PROCESSORINFO {
-		DWORD cbStruct;
+		u32 cbStruct;
 		DSP_PROCFAMILY uProcessorFamily;
 		DSP_PROCTYPE uProcessorType;
-		UINT uClockRate;
-		ULONG ulInternalMemSize;
-		ULONG ulExternalMemSize;
-		UINT uProcessorID;
+		u32 uClockRate;
+		u32 ulInternalMemSize;
+		u32 ulExternalMemSize;
+		u32 uProcessorID;
 		DSP_RTOSTYPE tyRunningRTOS;
-		INT nNodeMinPriority;
-		INT nNodeMaxPriority;
+		s32 nNodeMinPriority;
+		s32 nNodeMaxPriority;
 	} ;
 	/*DSP_PROCESSORINFO, *DSP_HPROCESSORINFO;*/
 
 /* Error information of last DSP exception signalled to the GPP */
 	struct DSP_ERRORINFO {
-		DWORD dwErrMask;
-		DWORD dwVal1;
-		DWORD dwVal2;
-		DWORD dwVal3;
+		u32 dwErrMask;
+		u32 dwVal1;
+		u32 dwVal2;
+		u32 dwVal3;
 	} ;
 	/*DSP_ERRORINFO;*/
 
 /* The DSP_PROCESSORSTATE structure describes the state of a DSP processor */
 	struct DSP_PROCESSORSTATE {
-		DWORD cbStruct;
+		u32 cbStruct;
 		DSP_PROCSTATE iState;
 		struct DSP_ERRORINFO errInfo;
 	} ;
@@ -489,10 +493,10 @@
  * processor's resources
  */
 	struct DSP_RESOURCEINFO {
-		DWORD cbStruct;
+		u32 cbStruct;
 		DSP_RESOURCEINFOTYPE uResourceType;
 		union {
-			ULONG ulResource;
+			u32 ulResource;
 			struct DSP_MEMSTAT memStat;
 			struct DSP_PROCLOADSTAT procLoadStat;
 		} result;
@@ -505,22 +509,22 @@
  * DSPStream_AllocateBuffers(), if applicable
  */
 	struct DSP_STREAMATTRIN {
-		DWORD cbStruct;
-		UINT uTimeout;
-		UINT uSegment;
-		UINT uAlignment;
-		UINT uNumBufs;
+		u32 cbStruct;
+		u32 uTimeout;
+		u32 uSegment;
+		u32 uAlignment;
+		u32 uNumBufs;
 		DSP_STRMMODE lMode;
-		UINT uDMAChnlId;
-		UINT uDMAPriority;
+		u32 uDMAChnlId;
+		u32 uDMAPriority;
 	} ;
 	/*DSP_STREAMATTRIN, *DSP_HSTREAMATTRIN;*/
 
 /* The DSP_BUFFERATTR structure describes the attributes of a data buffer */
 	struct DSP_BUFFERATTR {
-		DWORD cbStruct;
-		UINT uSegment;
-		UINT uAlignment;
+		u32 cbStruct;
+		u32 uSegment;
+		u32 uAlignment;
 	} ;
 	/*DSP_BUFFERATTR, *DSP_HBUFFERATTR;*/
 
@@ -529,10 +533,10 @@
  *  about a stream.
  */
 	struct DSP_STREAMINFO {
-		DWORD cbStruct;
-		UINT uNumberBufsAllowed;
-		UINT uNumberBufsInStream;
-		ULONG ulNumberBytes;
+		u32 cbStruct;
+		u32 uNumberBufsAllowed;
+		u32 uNumberBufsInStream;
+		u32 ulNumberBytes;
 		HANDLE hSyncObjectHandle;
 		DSP_STREAMSTATE ssStreamState;
 	} ;

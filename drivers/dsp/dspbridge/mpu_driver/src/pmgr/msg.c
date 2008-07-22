@@ -65,7 +65,7 @@
 #if GT_TRACE
 static struct GT_Mask MSG_debugMask = { 0, 0 };	/* GT trace variable */
 #endif
-static ULONG cRefs;		/* module reference count */
+static u32 cRefs;		/* module reference count */
 
 /*
  *  ======== MSG_Create ========
@@ -118,7 +118,7 @@ DSP_STATUS MSG_Create(OUT struct MSG_MGR **phMsgMgr,
  *  Purpose:
  *      Delete a MSG manager allocated in MSG_Create().
  */
-VOID MSG_Delete(struct MSG_MGR *hMsgMgr)
+void MSG_Delete(struct MSG_MGR *hMsgMgr)
 {
 	struct MSG_MGR_ *pMsgMgr = (struct MSG_MGR_ *)hMsgMgr;
 	struct WMD_DRV_INTERFACE *pIntfFxns;
@@ -140,7 +140,7 @@ VOID MSG_Delete(struct MSG_MGR *hMsgMgr)
 /*
  *  ======== MSG_Exit ========
  */
-VOID MSG_Exit(void)
+void MSG_Exit(void)
 {
 	DBC_Require(cRefs > 0);
 	cRefs--;

@@ -47,12 +47,12 @@
  *  purpose:
  *      Wait for the singal from DSP that it has started, or time out.
  */
-BOOL WaitForStart(struct WMD_DEV_CONTEXT *pDevContext, DWORD dwSyncAddr)
+BOOL WaitForStart(struct WMD_DEV_CONTEXT *pDevContext, u32 dwSyncAddr)
 {
-	USHORT usCount = TIHELEN_ACKTIMEOUT;
+	u16 usCount = TIHELEN_ACKTIMEOUT;
 
 	/*  Wait for response from board */
-	while (*((volatile WORD *)dwSyncAddr) && --usCount)
+	while (*((volatile u16 *)dwSyncAddr) && --usCount)
 		UTIL_Wait(TIHELEN_WRITE_DELAY);
 
 	/*  If timed out: return FALSE */

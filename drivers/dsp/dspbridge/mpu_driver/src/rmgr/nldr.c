@@ -186,7 +186,7 @@
 	((uuid1).usData3 == (uuid2).usData3) && \
 	((uuid1).ucData4 == (uuid2).ucData4) && \
 	((uuid1).ucData5 == (uuid2).ucData5) && \
-	(CSL_Strncmp((uuid1).ucData6, (uuid2).ucData6, 6)) == 0)
+	(CSL_Strncmp((void *)(uuid1).ucData6, (void *)(uuid2).ucData6, 6)) == 0)
 
     /*
      *  ======== MemInfo ========
@@ -194,10 +194,10 @@
      *  Must match dynm.h55.
      */
 struct MemInfo {
-	ULONG segid;		/* Dynamic loading memory segment number */
-	ULONG base;
-	ULONG len;
-	ULONG type;		/* Mask of DYNM_CODE, DYNM_INTERNAL, etc. */
+	u32 segid;		/* Dynamic loading memory segment number */
+	u32 base;
+	u32 len;
+	u32 type;		/* Mask of DYNM_CODE, DYNM_INTERNAL, etc. */
 };
 
 /*
@@ -206,7 +206,7 @@ struct MemInfo {
  */
 struct LibNode {
 	struct DBLL_LibraryObj *lib;	/* The library */
-	USHORT nDepLibs;	/* Number of dependent libraries */
+	u16 nDepLibs;	/* Number of dependent libraries */
 	struct LibNode *pDepLibs;	/* Dependent libraries of lib */
 };
 
@@ -216,10 +216,10 @@ struct LibNode {
  */
 struct OvlySect {
 	struct OvlySect *pNextSect;
-	ULONG loadAddr;		/* Load address of section */
-	ULONG runAddr;		/* Run address of section */
-	ULONG size;		/* Size of section */
-	USHORT page;		/* DBL_CODE, DBL_DATA */
+	u32 loadAddr;		/* Load address of section */
+	u32 runAddr;		/* Run address of section */
+	u32 size;		/* Size of section */
+	u16 page;		/* DBL_CODE, DBL_DATA */
 };
 
 /*
@@ -234,14 +234,14 @@ struct OvlyNode {
 	struct OvlySect *pDeleteSects;
 	struct OvlySect *pExecuteSects;
 	struct OvlySect *pOtherSects;
-	USHORT nCreateSects;
-	USHORT nDeleteSects;
-	USHORT nExecuteSects;
-	USHORT nOtherSects;
-	USHORT createRef;
-	USHORT deleteRef;
-	USHORT executeRef;
-	USHORT otherRef;
+	u16 nCreateSects;
+	u16 nDeleteSects;
+	u16 nExecuteSects;
+	u16 nOtherSects;
+	u16 createRef;
+	u16 deleteRef;
+	u16 executeRef;
+	u16 otherRef;
 };
 
 /*
@@ -249,7 +249,7 @@ struct OvlyNode {
  *  Overlay loader object.
  */
 struct NLDR_OBJECT {
-	DWORD dwSignature;	/* For object validation */
+	u32 dwSignature;	/* For object validation */
 	struct DEV_OBJECT *hDevObject;	/* Device object */
 	struct DCD_MANAGER *hDcdMgr;	/* Proc/Node data manager */
 	struct DBLL_TarObj *dbll;	/* The DBL loader */
@@ -260,14 +260,14 @@ struct NLDR_OBJECT {
 	NLDR_OVLYFXN ovlyFxn;	/* "write" for overlay nodes */
 	NLDR_WRITEFXN writeFxn;	/* "write" for dynamic nodes */
 	struct OvlyNode *ovlyTable;	/* Table of overlay nodes */
-	USHORT nOvlyNodes;	/* Number of overlay nodes in base */
-	USHORT nNode;		/* Index for tracking overlay nodes */
-	USHORT nSegs;		/* Number of dynamic load mem segs */
-	ULONG *segTable;	/* memtypes of dynamic memory segs
+	u16 nOvlyNodes;	/* Number of overlay nodes in base */
+	u16 nNode;		/* Index for tracking overlay nodes */
+	u16 nSegs;		/* Number of dynamic load mem segs */
+	u32 *segTable;	/* memtypes of dynamic memory segs
 				 * indexed by segid
 				 */
-	USHORT usDSPMauSize;	/* Size of DSP MAU */
-	USHORT usDSPWordSize;	/* Size of DSP word */
+	u16 usDSPMauSize;	/* Size of DSP MAU */
+	u16 usDSPWordSize;	/* Size of DSP word */
 };
 
 /*
@@ -275,9 +275,9 @@ struct NLDR_OBJECT {
  *  Dynamic node object. This object is created when a node is allocated.
  */
 struct NLDR_NODEOBJECT {
-	DWORD dwSignature;	/* For object validation */
+	u32 dwSignature;	/* For object validation */
 	struct NLDR_OBJECT *pNldr;	/* Dynamic loader handle */
-	PVOID pPrivRef;		/* Handle to pass to DBL_WriteFxn */
+	void *pPrivRef;		/* Handle to pass to DBL_WriteFxn */
 	struct DSP_UUID uuid;		/* Node's UUID */
 	BOOL fDynamic;		/* Dynamically loaded node? */
 	BOOL fOverlay;		/* Overlay node? */
@@ -287,7 +287,7 @@ struct NLDR_NODEOBJECT {
 	struct LibNode executeLib;   /* Library containing execute phase lib */
 	struct LibNode deleteLib;    /* Library containing delete phase lib */
 	struct LibNode persLib[MAXLIBS];  /* libs remain loaded until Delete */
-	INT nPersLib;		/* Number of persistent libraries */
+	s32 nPersLib;		/* Number of persistent libraries */
 	/* Path in lib dependency tree */
 	struct DBLL_LibraryObj *libPath[MAXDEPTH + 1];
 	NLDR_PHASE phase;	/* Node phase currently being loaded */
@@ -295,7 +295,7 @@ struct NLDR_NODEOBJECT {
 	/*
 	 *  Dynamic loading memory segments for data and code of each phase.
 	 */
-	USHORT segId[MAXFLAGS];
+	u16 segId[MAXFLAGS];
 
 	/*
 	 *  Mask indicating whether each mem segment specified in segId[]
@@ -304,7 +304,7 @@ struct NLDR_NODEOBJECT {
 	 *  then it is required to load execute phase data into the memory
 	 *  specified by segId[EXECUTEDATAFLAGBIT].
 	 */
-	ULONG codeDataFlagMask;
+	u32 codeDataFlagMask;
 };
 
 /* Dynamic loader function table */
@@ -328,47 +328,45 @@ static struct DBLL_Fxns dbllFxns = {
 };
 
 static struct GT_Mask NLDR_debugMask = { 0, 0 };	/* GT trace variable */
-static ULONG cRefs;		/* module reference count */
+static u32 cRefs;		/* module reference count */
 
-static DSP_STATUS AddOvlyInfo(PVOID handle, struct DBLL_SectInfo *sectInfo,
-			     LgUns addr, LgUns nBytes);
+static DSP_STATUS AddOvlyInfo(void *handle, struct DBLL_SectInfo *sectInfo,
+			     u32 addr, u32 nBytes);
 static DSP_STATUS AddOvlyNode(struct DSP_UUID *pUuid, DSP_DCDOBJTYPE objType,
-			     IN PVOID handle);
+			     IN void *handle);
 static DSP_STATUS AddOvlySect(struct NLDR_OBJECT *hNldr,
 			      struct OvlySect **pList,
 			      struct DBLL_SectInfo *pSectInfo, BOOL *pExists,
-			      LgUns addr, LgUns nBytes);
-static Int fakeOvlyWrite(Void *handle, LgUns dspAddr, Void *buf, LgUns nBytes,
-			Int mtype);
-static VOID FreeSects(struct NLDR_OBJECT *hNldr, struct OvlySect *pPhaseSects,
-		     USHORT nAlloc);
-static BOOL GetSymbolValue(PVOID handle, PVOID pArg, PVOID rmmHandle,
+			      u32 addr, u32 nBytes);
+static s32 fakeOvlyWrite(void *handle, u32 dspAddr, void *buf, u32 nBytes,
+			s32 mtype);
+static void FreeSects(struct NLDR_OBJECT *hNldr, struct OvlySect *pPhaseSects,
+		     u16 nAlloc);
+static BOOL GetSymbolValue(void *handle, void *pArg, void *rmmHandle,
 			  char *symName, struct DBLL_Symbol **sym);
 static DSP_STATUS LoadLib(struct NLDR_NODEOBJECT *hNldrNode,
 			 struct LibNode *root, struct DSP_UUID uuid,
 			 BOOL rootPersistent, struct DBLL_LibraryObj **libPath,
-			 NLDR_PHASE phase, USHORT depth);
+			 NLDR_PHASE phase, u16 depth);
 static DSP_STATUS LoadOvly(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase);
-static DSP_STATUS RemoteAlloc(PVOID *pRef, USHORT memType, ULONG size,
-			     ULONG align, ULONG *dspAddr,
-			     OPTIONAL INT segmentId, OPTIONAL INT req,
+static DSP_STATUS RemoteAlloc(void **pRef, u16 memType, u32 size,
+			     u32 align, u32 *dspAddr,
+			     OPTIONAL s32 segmentId, OPTIONAL s32 req,
 			     BOOL reserve);
-static DSP_STATUS RemoteFree(PVOID *pRef, USHORT space, ULONG dspAddr,
-			    ULONG size, BOOL reserve);
+static DSP_STATUS RemoteFree(void **pRef, u16 space, u32 dspAddr,
+			    u32 size, BOOL reserve);
 
-static VOID SwapBytes(char *buf, ULONG ulLen);
-
-static VOID UnloadLib(struct NLDR_NODEOBJECT *hNldrNode, struct LibNode *root);
-static VOID UnloadOvly(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase);
+static void UnloadLib(struct NLDR_NODEOBJECT *hNldrNode, struct LibNode *root);
+static void UnloadOvly(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase);
 static BOOL findInPersistentLibArray(struct NLDR_NODEOBJECT *hNldrNode,
 				    struct DBLL_LibraryObj *lib);
-static LgUns findLcm(LgUns a, LgUns b);
-static LgUns findGcf(LgUns a, LgUns b);
+static u32 findLcm(u32 a, u32 b);
+static u32 findGcf(u32 a, u32 b);
 
 /*
  *  ======== NLDR_Allocate ========
  */
-DSP_STATUS NLDR_Allocate(struct NLDR_OBJECT *hNldr, PVOID pPrivRef,
+DSP_STATUS NLDR_Allocate(struct NLDR_OBJECT *hNldr, void *pPrivRef,
 			 IN CONST struct DCD_NODEPROPS *pNodeProps,
 			 OUT struct NLDR_NODEOBJECT **phNldrNode,
 			 IN BOOL *pfPhaseSplit)
@@ -412,14 +410,14 @@ DSP_STATUS NLDR_Allocate(struct NLDR_OBJECT *hNldr, PVOID pPrivRef,
 			 *  Extract memory requirements from ndbProps masks
 			 */
 			/* Create phase */
-			pNldrNode->segId[CREATEDATAFLAGBIT] = (USHORT)
+			pNldrNode->segId[CREATEDATAFLAGBIT] = (u16)
 				(pNodeProps->ulDataMemSegMask >> CREATEBIT) &
 				SEGMASK;
 			pNldrNode->codeDataFlagMask |=
 				((pNodeProps->ulDataMemSegMask >>
 				(CREATEBIT + FLAGBIT)) & 1) <<
 				CREATEDATAFLAGBIT;
-			pNldrNode->segId[CREATECODEFLAGBIT] = (USHORT)
+			pNldrNode->segId[CREATECODEFLAGBIT] = (u16)
 				(pNodeProps->ulCodeMemSegMask >>
 				CREATEBIT) & SEGMASK;
 			pNldrNode->codeDataFlagMask |=
@@ -427,14 +425,14 @@ DSP_STATUS NLDR_Allocate(struct NLDR_OBJECT *hNldr, PVOID pPrivRef,
 				(CREATEBIT + FLAGBIT)) & 1) <<
 				CREATECODEFLAGBIT;
 			/* Execute phase */
-			pNldrNode->segId[EXECUTEDATAFLAGBIT] = (USHORT)
+			pNldrNode->segId[EXECUTEDATAFLAGBIT] = (u16)
 				(pNodeProps->ulDataMemSegMask >>
 				EXECUTEBIT) & SEGMASK;
 			pNldrNode->codeDataFlagMask |=
 				((pNodeProps->ulDataMemSegMask >>
 				(EXECUTEBIT + FLAGBIT)) & 1) <<
 				EXECUTEDATAFLAGBIT;
-			pNldrNode->segId[EXECUTECODEFLAGBIT] = (USHORT)
+			pNldrNode->segId[EXECUTECODEFLAGBIT] = (u16)
 				(pNodeProps->ulCodeMemSegMask >>
 				EXECUTEBIT) & SEGMASK;
 			pNldrNode->codeDataFlagMask |=
@@ -442,14 +440,14 @@ DSP_STATUS NLDR_Allocate(struct NLDR_OBJECT *hNldr, PVOID pPrivRef,
 				(EXECUTEBIT + FLAGBIT)) & 1) <<
 				EXECUTECODEFLAGBIT;
 			/* Delete phase */
-			pNldrNode->segId[DELETEDATAFLAGBIT] = (USHORT)
+			pNldrNode->segId[DELETEDATAFLAGBIT] = (u16)
 			    (pNodeProps->ulDataMemSegMask >> DELETEBIT) &
 			    SEGMASK;
 			pNldrNode->codeDataFlagMask |=
 				((pNodeProps->ulDataMemSegMask >>
 				(DELETEBIT + FLAGBIT)) & 1) <<
 				DELETEDATAFLAGBIT;
-			pNldrNode->segId[DELETECODEFLAGBIT] = (USHORT)
+			pNldrNode->segId[DELETECODEFLAGBIT] = (u16)
 				(pNodeProps->ulCodeMemSegMask >>
 				DELETEBIT) & SEGMASK;
 			pNldrNode->codeDataFlagMask |=
@@ -492,13 +490,13 @@ DSP_STATUS NLDR_Create(OUT struct NLDR_OBJECT **phNldr,
 	struct DBLL_Attrs saveAttrs;
 	struct DBLL_Attrs newAttrs;
 	DBLL_Flags flags;
-	ULONG ulEntry;
-	USHORT nSegs = 0;
+	u32 ulEntry;
+	u16 nSegs = 0;
 	struct MemInfo *pMemInfo;
-	ULONG ulLen = 0;
-	ULONG ulAddr;
+	u32 ulLen = 0;
+	u32 ulAddr;
 	struct RMM_Segment *rmmSegs = NULL;
-	USHORT i;
+	u16 i;
 	DSP_STATUS status = DSP_SOK;
 	DBC_Require(cRefs > 0);
 	DBC_Require(phNldr != NULL);
@@ -573,7 +571,7 @@ DSP_STATUS NLDR_Create(OUT struct NLDR_OBJECT **phNldr,
 	}
 	if (DSP_SUCCEEDED(status) && ulLen > 0) {
 		/* Parse memory segment data */
-		nSegs = (USHORT)(*((LgUns *)pszCoffBuf));
+		nSegs = (u16)(*((u32 *)pszCoffBuf));
 		if (nSegs > MAXMEMSEGS) {
 			GT_1trace(NLDR_debugMask, GT_6CLASS,
 				 "NLDR_Create: Invalid number of "
@@ -585,13 +583,13 @@ DSP_STATUS NLDR_Create(OUT struct NLDR_OBJECT **phNldr,
 	if (DSP_SUCCEEDED(status) && nSegs > 0) {
 		rmmSegs = MEM_Calloc(sizeof(struct RMM_Segment) * nSegs,
 				    MEM_PAGED);
-		pNldr->segTable = MEM_Calloc(sizeof(ULONG) * nSegs, MEM_PAGED);
+		pNldr->segTable = MEM_Calloc(sizeof(u32) * nSegs, MEM_PAGED);
 		if (rmmSegs == NULL || pNldr->segTable == NULL) {
 			status = DSP_EMEMORY;
 		} else {
 			pNldr->nSegs = nSegs;
 			pMemInfo = (struct MemInfo *)(pszCoffBuf +
-				   sizeof(LgUns));
+				   sizeof(u32));
 			for (i = 0; i < nSegs; i++) {
 				rmmSegs[i].base = (pMemInfo + i)->base;
 				rmmSegs[i].length = (pMemInfo + i)->len;
@@ -636,7 +634,7 @@ DSP_STATUS NLDR_Create(OUT struct NLDR_OBJECT **phNldr,
 		DBC_Assert(DSP_SUCCEEDED(status));
 		/* First count number of overlay nodes */
 		status = DCD_GetObjects(pNldr->hDcdMgr, szZLFile, AddOvlyNode,
-					(PVOID) pNldr);
+					(void *) pNldr);
 		/* Now build table of overlay nodes */
 		if (DSP_SUCCEEDED(status) && pNldr->nOvlyNodes > 0) {
 			/* Allocate table for overlay nodes */
@@ -647,7 +645,7 @@ DSP_STATUS NLDR_Create(OUT struct NLDR_OBJECT **phNldr,
 			pNldr->nNode = 0;
 			status = DCD_GetObjects(pNldr->hDcdMgr, szZLFile,
 						AddOvlyNode,
-						(PVOID) pNldr);
+						(void *) pNldr);
 		}
 	}
 	/* Do a fake reload of the base image to get overlay section info */
@@ -678,11 +676,11 @@ DSP_STATUS NLDR_Create(OUT struct NLDR_OBJECT **phNldr,
 /*
  *  ======== NLDR_Delete ========
  */
-VOID NLDR_Delete(struct NLDR_OBJECT *hNldr)
+void NLDR_Delete(struct NLDR_OBJECT *hNldr)
 {
 	struct OvlySect *pSect;
 	struct OvlySect *pNext;
-	USHORT i;
+	u16 i;
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(hNldr, NLDR_SIGNATURE));
 	GT_1trace(NLDR_debugMask, GT_ENTER, "NLDR_Delete(0x%x)\n", hNldr);
@@ -734,7 +732,7 @@ VOID NLDR_Delete(struct NLDR_OBJECT *hNldr)
  *  ======== NLDR_Exit ========
  *  Discontinue usage of NLDR module.
  */
-VOID NLDR_Exit(void)
+void NLDR_Exit(void)
 {
 	DBC_Require(cRefs > 0);
 
@@ -754,7 +752,7 @@ VOID NLDR_Exit(void)
 /*
  *  ======== NLDR_Free ========
  */
-VOID NLDR_Free(struct NLDR_NODEOBJECT *hNldrNode)
+void NLDR_Free(struct NLDR_NODEOBJECT *hNldrNode)
 {
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(hNldrNode, NLDR_NODESIGNATURE));
@@ -767,14 +765,14 @@ VOID NLDR_Free(struct NLDR_NODEOBJECT *hNldrNode)
 /*
  *  ======== NLDR_GetFxnAddr ========
  */
-DSP_STATUS NLDR_GetFxnAddr(struct NLDR_NODEOBJECT *hNldrNode, PSTR pstrFxn,
-			  ULONG *pulAddr)
+DSP_STATUS NLDR_GetFxnAddr(struct NLDR_NODEOBJECT *hNldrNode, char *pstrFxn,
+			  u32 *pulAddr)
 {
 	struct DBLL_Symbol *pSym;
 	struct NLDR_OBJECT *hNldr;
 	DSP_STATUS status = DSP_SOK;
 	BOOL status1 = FALSE;
-	INT i = 0;
+	s32 i = 0;
 	struct LibNode root;
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(hNldrNode, NLDR_NODESIGNATURE));
@@ -975,7 +973,7 @@ DSP_STATUS NLDR_Unload(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct LibNode *pRootLib = NULL;
-	INT i = 0;
+	s32 i = 0;
 
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(hNldrNode, NLDR_NODESIGNATURE));
@@ -1022,15 +1020,15 @@ DSP_STATUS NLDR_Unload(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase)
 /*
  *  ======== AddOvlyInfo ========
  */
-static DSP_STATUS AddOvlyInfo(PVOID handle, struct DBLL_SectInfo *sectInfo,
-			     LgUns addr, LgUns nBytes)
+static DSP_STATUS AddOvlyInfo(void *handle, struct DBLL_SectInfo *sectInfo,
+			     u32 addr, u32 nBytes)
 {
 	char *pNodeName;
 	char *pSectName = (char *)sectInfo->name;
 	BOOL fExists = FALSE;
 	char seps = ':';
 	char *pch;
-	USHORT i;
+	u16 i;
 	struct NLDR_OBJECT *hNldr = (struct NLDR_OBJECT *)handle;
 	DSP_STATUS status = DSP_SOK;
 
@@ -1096,12 +1094,12 @@ func_end:
  *  Callback function passed to DCD_GetObjects.
  */
 static DSP_STATUS AddOvlyNode(struct DSP_UUID *pUuid, DSP_DCDOBJTYPE objType,
-			     IN PVOID handle)
+			     IN void *handle)
 {
 	struct NLDR_OBJECT *hNldr = (struct NLDR_OBJECT *)handle;
-	CHARACTER *pNodeName = NULL;
+	char *pNodeName = NULL;
 	char *pBuf = NULL;
-	ULONG uLen;
+	u32 uLen;
 	struct DCD_GENERICOBJ objDef;
 	DSP_STATUS status = DSP_SOK;
 
@@ -1155,7 +1153,7 @@ func_end:
 static DSP_STATUS AddOvlySect(struct NLDR_OBJECT *hNldr,
 			      struct OvlySect **pList,
 			      struct DBLL_SectInfo *pSectInfo, BOOL *pExists,
-			      LgUns addr, LgUns nBytes)
+			      u32 addr, u32 nBytes)
 {
 	struct OvlySect *pNewSect = NULL;
 	struct OvlySect *pLastSect;
@@ -1208,20 +1206,20 @@ static DSP_STATUS AddOvlySect(struct NLDR_OBJECT *hNldr,
 /*
  *  ======== fakeOvlyWrite ========
  */
-static Int fakeOvlyWrite(Void *handle, LgUns dspAddr, Void *buf, LgUns nBytes,
-			Int mtype)
+static s32 fakeOvlyWrite(void *handle, u32 dspAddr, void *buf, u32 nBytes,
+			s32 mtype)
 {
-	return (Int)nBytes;
+	return (s32)nBytes;
 }
 
 /*
  *  ======== FreeSects ========
  */
-static VOID FreeSects(struct NLDR_OBJECT *hNldr, struct OvlySect *pPhaseSects,
-		     USHORT nAlloc)
+static void FreeSects(struct NLDR_OBJECT *hNldr, struct OvlySect *pPhaseSects,
+		     u16 nAlloc)
 {
 	struct OvlySect *pSect = pPhaseSects;
-	USHORT i = 0;
+	u16 i = 0;
 	BOOL fRet;
 
 	while (pSect && i < nAlloc) {
@@ -1241,13 +1239,13 @@ static VOID FreeSects(struct NLDR_OBJECT *hNldr, struct OvlySect *pPhaseSects,
  *  Find symbol in library's base image.  If not there, check dependent
  *  libraries.
  */
-static BOOL GetSymbolValue(PVOID handle, PVOID pArg, PVOID rmmHandle,
+static BOOL GetSymbolValue(void *handle, void *pArg, void *rmmHandle,
 			  char *name, struct DBLL_Symbol **sym)
 {
 	struct NLDR_OBJECT *hNldr = (struct NLDR_OBJECT *)handle;
 	struct NLDR_NODEOBJECT *hNldrNode = (struct NLDR_NODEOBJECT *)rmmHandle;
 	struct LibNode *root = (struct LibNode *)pArg;
-	USHORT i;
+	u16 i;
 	BOOL status = FALSE;
 
 	/* check the base image */
@@ -1315,15 +1313,15 @@ static BOOL GetSymbolValue(PVOID handle, PVOID pArg, PVOID rmmHandle,
 static DSP_STATUS LoadLib(struct NLDR_NODEOBJECT *hNldrNode,
 			 struct LibNode *root, struct DSP_UUID uuid,
 			 BOOL rootPersistent, struct DBLL_LibraryObj **libPath,
-			 NLDR_PHASE phase, USHORT depth)
+			 NLDR_PHASE phase, u16 depth)
 {
 	struct NLDR_OBJECT *hNldr = hNldrNode->pNldr;
-	USHORT nLibs = 0;	/* Number of dependent libraries */
-	USHORT nPLibs = 0;	/* Number of persistent libraries */
-	USHORT nLoaded = 0;	/* Number of dep. libraries loaded */
-	USHORT i;
-	ULONG entry;
-	DWORD dwBufSize = NLDR_MAXPATHLENGTH;
+	u16 nLibs = 0;	/* Number of dependent libraries */
+	u16 nPLibs = 0;	/* Number of persistent libraries */
+	u16 nLoaded = 0;	/* Number of dep. libraries loaded */
+	u16 i;
+	u32 entry;
+	u32 dwBufSize = NLDR_MAXPATHLENGTH;
 	DBLL_Flags flags = DBLL_SYMB | DBLL_CODE | DBLL_DATA | DBLL_DYNAMIC;
 	struct DBLL_Attrs newAttrs;
 	char *pszFileName = NULL;
@@ -1538,12 +1536,12 @@ static DSP_STATUS LoadOvly(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase)
 	struct OvlyNode *pONode = NULL;
 	struct OvlySect *pPhaseSects = NULL;
 	struct OvlySect *pOtherSects = NULL;
-	USHORT i;
-	USHORT nAlloc = 0;
-	USHORT nOtherAlloc = 0;
-	USHORT *pRefCount = NULL;
-	USHORT *pOtherRef = NULL;
-	ULONG nBytes;
+	u16 i;
+	u16 nAlloc = 0;
+	u16 nOtherAlloc = 0;
+	u16 *pRefCount = NULL;
+	u16 *pOtherRef = NULL;
+	u32 nBytes;
 	struct OvlySect *pSect;
 	DSP_STATUS status = DSP_SOK;
 
@@ -1672,19 +1670,19 @@ func_end:
 /*
  *  ======== RemoteAlloc ========
  */
-static DSP_STATUS RemoteAlloc(PVOID *pRef, USHORT space, ULONG size,
-			     ULONG align, ULONG *dspAddr,
-			     OPTIONAL IN INT segmentId, OPTIONAL IN INT req,
+static DSP_STATUS RemoteAlloc(void **pRef, u16 space, u32 size,
+			     u32 align, u32 *dspAddr,
+			     OPTIONAL s32 segmentId, OPTIONAL s32 req,
 			     BOOL reserve)
 {
 	struct NLDR_NODEOBJECT *hNode = (struct NLDR_NODEOBJECT *)pRef;
 	struct NLDR_OBJECT *hNldr;
 	struct RMM_TargetObj *rmm;
-	USHORT memPhaseBit = MAXFLAGS;
-	USHORT segid;
-	USHORT i;
-	USHORT memType;
-	ULONG nWords;
+	u16 memPhaseBit = MAXFLAGS;
+	u16 segid;
+	u16 i;
+	u16 memType;
+	u32 nWords;
 	struct RMM_Addr *pRmmAddr = (struct RMM_Addr *)dspAddr;
 	BOOL fReq = FALSE;
 	DSP_STATUS status = DSP_EMEMORY;	/* Set to fail */
@@ -1792,12 +1790,12 @@ func_cont:
 	return status;
 }
 
-static DSP_STATUS RemoteFree(PVOID *pRef, USHORT space, ULONG dspAddr,
-			    ULONG size, BOOL reserve)
+static DSP_STATUS RemoteFree(void **pRef, u16 space, u32 dspAddr,
+				u32 size, BOOL reserve)
 {
 	struct NLDR_OBJECT *hNldr = (struct NLDR_OBJECT *)pRef;
 	struct RMM_TargetObj *rmm;
-	ULONG nWords;
+	u32 nWords;
 	DSP_STATUS status = DSP_EMEMORY;	/* Set to fail */
 
 	DBC_Require(MEM_IsValidHandle(hNldr, NLDR_SIGNATURE));
@@ -1816,11 +1814,11 @@ static DSP_STATUS RemoteFree(PVOID *pRef, USHORT space, ULONG dspAddr,
 /*
  *  ======== UnloadLib ========
  */
-static VOID UnloadLib(struct NLDR_NODEOBJECT *hNldrNode, struct LibNode *root)
+static void UnloadLib(struct NLDR_NODEOBJECT *hNldrNode, struct LibNode *root)
 {
 	struct DBLL_Attrs newAttrs;
 	struct NLDR_OBJECT *hNldr = hNldrNode->pNldr;
-	USHORT i;
+	u16 i;
 
 	DBC_Assert(root != NULL);
 
@@ -1852,17 +1850,17 @@ static VOID UnloadLib(struct NLDR_NODEOBJECT *hNldrNode, struct LibNode *root)
 /*
  *  ======== UnloadOvly ========
  */
-static VOID UnloadOvly(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase)
+static void UnloadOvly(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase)
 {
 	struct NLDR_OBJECT *hNldr = hNldrNode->pNldr;
 	struct OvlyNode *pONode = NULL;
 	struct OvlySect *pPhaseSects = NULL;
 	struct OvlySect *pOtherSects = NULL;
-	USHORT i;
-	USHORT nAlloc = 0;
-	USHORT nOtherAlloc = 0;
-	USHORT *pRefCount = NULL;
-	USHORT *pOtherRef = NULL;
+	u16 i;
+	u16 nAlloc = 0;
+	u16 nOtherAlloc = 0;
+	u16 *pRefCount = NULL;
+	u16 *pOtherRef = NULL;
 	DSP_STATUS status = DSP_SOK;
 
 	/* Find the node in the table */
@@ -1924,7 +1922,7 @@ static VOID UnloadOvly(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase)
 static BOOL findInPersistentLibArray(struct NLDR_NODEOBJECT *hNldrNode,
 				    struct DBLL_LibraryObj *lib)
 {
-	INT i = 0;
+	s32 i = 0;
 
 	for (i = 0; i < hNldrNode->nPersLib; i++) {
 		if (lib == hNldrNode->persLib[i].lib)
@@ -1938,7 +1936,7 @@ static BOOL findInPersistentLibArray(struct NLDR_NODEOBJECT *hNldrNode,
 /*
  * ================ Find LCM (Least Common Multiplier ===
  */
-static LgUns findLcm(LgUns a, LgUns b)
+static u32 findLcm(u32 a, u32 b)
 {
 
 	return (a * b / findGcf(a, b));
@@ -1947,9 +1945,9 @@ static LgUns findLcm(LgUns a, LgUns b)
 /*
  * ================ Find GCF (Greatest Common Factor ) ===
  */
-static LgUns findGcf(LgUns a, LgUns b)
+static u32 findGcf(u32 a, u32 b)
 {
-	LgUns c;
+	u32 c;
 
 	/* Get the GCF (Greatest common factor between the numbers,
 	 * using Euclidian Algo */

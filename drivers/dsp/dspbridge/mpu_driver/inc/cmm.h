@@ -94,9 +94,9 @@
  *      the size requested.
  *
  */
-	extern PVOID CMM_CallocBuf(struct CMM_OBJECT *hCmmMgr,
-				   UINT uSize, struct CMM_ATTRS *pAttrs,
-				   OUT PVOID *ppBufVA);
+	extern void *CMM_CallocBuf(struct CMM_OBJECT *hCmmMgr,
+				   u32 uSize, struct CMM_ATTRS *pAttrs,
+				   OUT void **ppBufVA);
 
 /*
  *  ======== CMM_Create ========
@@ -155,7 +155,7 @@
  *     CMM is initialized.
  *  Ensures:
  */
-	extern VOID CMM_Exit();
+	extern void CMM_Exit();
 
 /*
  *  ======== CMM_FreeBuf ========
@@ -176,7 +176,7 @@
  *
  */
 	extern DSP_STATUS CMM_FreeBuf(struct CMM_OBJECT *hCmmMgr,
-				      PVOID pBufPA, ULONG ulSegId);
+				      void *pBufPA, u32 ulSegId);
 
 /*
  *  ======== CMM_GetHandle ========
@@ -258,14 +258,14 @@
  *
  */
 	extern DSP_STATUS CMM_RegisterGPPSMSeg(struct CMM_OBJECT *hCmmMgr,
-					       DWORD dwGPPBasePA,
-					       ULONG ulSize,
-					       DWORD dwDSPAddrOffset,
+					       unsigned int dwGPPBasePA,
+					       u32 ulSize,
+					       u32 dwDSPAddrOffset,
 					       CMM_CNVTTYPE cFactor,
-					       DWORD dwDSPBase,
-					       ULONG ulDSPSize,
-					       ULONG *pulSegId,
-					       DWORD dwGPPBaseBA);
+					       unsigned int dwDSPBase,
+					       u32 ulDSPSize,
+					       u32 *pulSegId,
+					       u32 dwGPPBaseBA);
 
 /*
  *  ======== CMM_UnRegisterGPPSMSeg ========
@@ -285,7 +285,7 @@
  *
  */
 	extern DSP_STATUS CMM_UnRegisterGPPSMSeg(struct CMM_OBJECT *hCmmMgr,
-						 ULONG ulSegId);
+						 u32 ulSegId);
 
 /*
  *  ======== CMM_XlatorAllocBuf ========
@@ -304,8 +304,8 @@
  *  Ensures:
  *
  */
-	extern PVOID CMM_XlatorAllocBuf(struct CMM_XLATOROBJECT *hXlator,
-					PVOID pVaBuf, UINT uPaSize);
+	extern void *CMM_XlatorAllocBuf(struct CMM_XLATOROBJECT *hXlator,
+					void *pVaBuf, u32 uPaSize);
 
 /*
  *  ======== CMM_XlatorCreate ========
@@ -367,7 +367,7 @@
  *
  */
 	extern DSP_STATUS CMM_XlatorFreeBuf(struct CMM_XLATOROBJECT *hXlator,
-					    PVOID pBufVa);
+					    void *pBufVa);
 
 /*
  *  ======== CMM_XlatorInfo ========
@@ -392,8 +392,8 @@
  *
  */
 	extern DSP_STATUS CMM_XlatorInfo(struct CMM_XLATOROBJECT *hXlator,
-					 IN OUT BYTE **pAddr,
-					 ULONG ulSize, UINT uSegId,
+					 IN OUT u8 **pAddr,
+					 u32 ulSize, u32 uSegId,
 					 BOOL bSetInfo);
 
 /*
@@ -414,7 +414,7 @@
  *  Ensures:
  *
  */
-	extern PVOID CMM_XlatorTranslate(struct CMM_XLATOROBJECT *hXlator,
-					 PVOID pAddr, CMM_XLATETYPE xType);
+	extern void *CMM_XlatorTranslate(struct CMM_XLATOROBJECT *hXlator,
+					 void *pAddr, CMM_XLATETYPE xType);
 
 #endif				/* CMM_ */

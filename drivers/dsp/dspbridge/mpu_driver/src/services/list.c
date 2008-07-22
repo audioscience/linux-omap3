@@ -93,7 +93,7 @@ struct LST_LIST *LST_Create(void)
  *  Purpose:
  *      Removes a list by freeing its control structure's memory space.
  */
-VOID LST_Delete(struct LST_LIST *pList)
+void LST_Delete(struct LST_LIST *pList)
 {
 	DBC_Require(pList != NULL);
 
@@ -107,7 +107,7 @@ VOID LST_Delete(struct LST_LIST *pList)
  *  Purpose:
  *      Discontinue usage of the LST module.
  */
-VOID LST_Exit(void)
+void LST_Exit(void)
 {
 	GT_0trace(LST_debugMask, GT_5CLASS, "LST_Exit\n");
 }
@@ -176,7 +176,7 @@ BOOL LST_Init(void)
  *  Purpose:
  *      Initializes a list element to default (cleared) values
  */
-VOID LST_InitElem(struct LST_ELEM *pElem)
+void LST_InitElem(struct LST_ELEM *pElem)
 {
 	DBC_Require(pElem != NULL);
 
@@ -194,7 +194,7 @@ VOID LST_InitElem(struct LST_ELEM *pElem)
  *  Purpose:
  *      Insert the element before the existing element.
  */
-VOID LST_InsertBefore(struct LST_LIST *pList, struct LST_ELEM *pElem,
+void LST_InsertBefore(struct LST_LIST *pList, struct LST_ELEM *pElem,
 		      struct LST_ELEM *pElemExisting)
 {
 	DBC_Require(pList != NULL);
@@ -241,7 +241,7 @@ struct LST_ELEM *LST_Next(struct LST_LIST *pList, struct LST_ELEM *pCurElem)
  *  Purpose:
  *      Adds the specified element to the tail of the list
  */
-VOID LST_PutTail(struct LST_LIST *pList, struct LST_ELEM *pElem)
+void LST_PutTail(struct LST_LIST *pList, struct LST_ELEM *pElem)
 {
 	DBC_Require(pList != NULL);
 	DBC_Require(pElem != NULL);
@@ -264,7 +264,7 @@ VOID LST_PutTail(struct LST_LIST *pList, struct LST_ELEM *pElem)
  *      Removes (unlinks) the given element from the list, if the list is not
  *      empty.  Does not free the list element.
  */
-VOID LST_RemoveElem(struct LST_LIST *pList, struct LST_ELEM *pCurElem)
+void LST_RemoveElem(struct LST_LIST *pList, struct LST_ELEM *pCurElem)
 {
 	DBC_Require(pList != NULL);
 	DBC_Require(pCurElem != NULL);

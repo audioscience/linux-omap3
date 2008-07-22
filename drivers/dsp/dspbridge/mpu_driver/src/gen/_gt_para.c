@@ -45,8 +45,8 @@
 #include <gp.h>
 
 /*  ----------------------------------- Function Prototypes */
-static void error(String msg, ...);
-static Int GT_nop(Void);
+static void error(char *msg, ...);
+static s32 GT_nop(void);
 
 /*  ----------------------------------- Defines, Data Structures, Typedefs */
 
@@ -63,8 +63,8 @@ struct GT_Config *GT = &_GT_params;
 /*
  *  ======== GT_nop ========
  */
-static Int
-GT_nop(Void)
+static s32
+GT_nop(void)
 {
 	return 0;
 }
@@ -75,20 +75,20 @@ GT_nop(Void)
  *      Prints error onto the standard output.
  */
 static void
-error(String fmt, ...)
+error(char *fmt, ...)
 {
-	Int arg1, arg2, arg3, arg4, arg5, arg6;
+	s32 arg1, arg2, arg3, arg4, arg5, arg6;
 
 	va_list va;
 
 	va_start(va, fmt);
 
-	arg1 = va_arg(va, Int);
-	arg2 = va_arg(va, Int);
-	arg3 = va_arg(va, Int);
-	arg4 = va_arg(va, Int);
-	arg5 = va_arg(va, Int);
-	arg6 = va_arg(va, Int);
+	arg1 = va_arg(va, s32);
+	arg2 = va_arg(va, s32);
+	arg3 = va_arg(va, s32);
+	arg4 = va_arg(va, s32);
+	arg5 = va_arg(va, s32);
+	arg6 = va_arg(va, s32);
 
 	va_end(va);
 

@@ -97,8 +97,8 @@
  *      CHNL_IOCSTATEOS.
  */
 	extern DSP_STATUS CHNL_AddIOReq(struct CHNL_OBJECT *hChnl,
-					PVOID pHostBuf,
-					ULONG cBytes);
+					void *pHostBuf,
+					u32 cBytes);
 
 /*
  *  ======== CHNL_AllocBuffer ========
@@ -122,9 +122,9 @@
  *                          any context.
  *      else:               *ppBuf contains NULL if ppBuf != NULL.
  */
-	extern DSP_STATUS CHNL_AllocBuffer(OUT PVOID *ppBuf,
+	extern DSP_STATUS CHNL_AllocBuffer(OUT void **ppBuf,
 					   struct CHNL_MGR *hChnlMgr,
-					   ULONG cBytes);
+					   u32 cBytes);
 
 /*
  *  ======== CHNL_CancelIO ========
@@ -279,7 +279,7 @@
  *      DSP_SOK:        No I/O requests will be pending on this channel.
  */
 	extern DSP_STATUS CHNL_FlushIO(struct CHNL_OBJECT *hChnl,
-					DWORD dwTimeOut);
+					u32 dwTimeOut);
 
 /*
  *  ======== CHNL_FreeBuffer ========
@@ -298,8 +298,8 @@
  *  Ensures:
  */
 	extern DSP_STATUS CHNL_FreeBuffer(struct CHNL_MGR *hChnlMgr,
-					  ULONG cBytes,
-					  PVOID pBuf);
+					  u32 cBytes,
+					  void *pBuf);
 
 /*
  *  ======== CHNL_GetEventHandle ========
@@ -339,7 +339,7 @@
  *                          if phChnl != NULL.
  */
 	extern DSP_STATUS CHNL_GetHandle(struct CHNL_MGR *hChnlMgr,
-					 ULONG uChnlID,
+					 u32 uChnlID,
 					 OUT struct CHNL_OBJECT **phChnl);
 
 /*
@@ -374,7 +374,7 @@
  *      pIOC->status will be undefined.
  */
 	extern DSP_STATUS CHNL_GetIOCompletion(struct CHNL_OBJECT *hChnl,
-					       DWORD dwTimeOut,
+					       u32 dwTimeOut,
 					       OUT struct CHNL_IOC *pIOC);
 
 /*
@@ -393,7 +393,7 @@
  *  Ensures:
  */
 	extern DSP_STATUS CHNL_GetId(struct CHNL_OBJECT *hChnl,
-				     OUT ULONG *pdwID);
+				     OUT u32 *pdwID);
 
 /*
  *  ======== CHNL_GetMgr ========
@@ -452,7 +452,7 @@
  *  Ensures:
  */
 	extern DSP_STATUS CHNL_GetPosition(struct CHNL_OBJECT *hChnl,
-					   OUT ULONG *pcPosition);
+					   OUT u32 *pcPosition);
 
 /*
  *  ======== CHNL_GetProcessHandle ========
@@ -531,7 +531,7 @@
  */
 	extern DSP_STATUS CHNL_Open(OUT struct CHNL_OBJECT **phChnl,
 				    struct CHNL_MGR *hChnlMgr, CHNL_MODE uMode,
-				    ULONG uChnlId,
+				    u32 uChnlId,
 				    CONST IN struct CHNL_ATTRS *pAttrs);
 
 #endif				/* CHNL_ */

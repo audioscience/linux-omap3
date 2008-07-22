@@ -66,7 +66,7 @@
 static struct GT_Mask SERVICES_debugMask = { 0, 0 };	/* GT trace var. */
 #endif
 
-static ULONG cRefs;		/* SERVICES module reference count */
+static u32 cRefs;		/* SERVICES module reference count */
 
 /*
  *  ======== SERVICES_Exit ========
@@ -74,7 +74,7 @@ static ULONG cRefs;		/* SERVICES module reference count */
  *      Discontinue usage of module; free resources when reference count
  *      reaches 0.
  */
-VOID SERVICES_Exit(void)
+void SERVICES_Exit(void)
 {
 	DBC_Require(cRefs > 0);
 

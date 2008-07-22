@@ -43,7 +43,7 @@
  */
 struct IO_MGR_ {
 	/* These must be the first fields in a IO_MGR struct: */
-	DWORD dwSignature;	/* Used for object validation.   */
+	u32 dwSignature;	/* Used for object validation.   */
 	struct WMD_DEV_CONTEXT *hWmdContext;	/* WMD device context.  */
 	struct WMD_DRV_INTERFACE *pIntfFxns;	/* Function interface to WMD. */
 	struct DEV_OBJECT *hDevObject;	/* Device this board represents. */

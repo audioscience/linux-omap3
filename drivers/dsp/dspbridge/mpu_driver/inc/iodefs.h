@@ -36,11 +36,11 @@
 
 /* IO manager attributes: */
 	struct IO_ATTRS {
-		BYTE bIRQ;	/* Channel's I/O IRQ number. */
+		u8 bIRQ;	/* Channel's I/O IRQ number. */
 		BOOL fShared;	/* TRUE if the IRQ is shareable. */
-		UINT uWordSize;	/* DSP Word size. */
-		DWORD dwSMBase;	/* Physical base address of shared memory. */
-		ULONG uSMLength;	/* Size (in bytes) of shared memory. */
+		u32 uWordSize;	/* DSP Word size. */
+		u32 dwSMBase;	/* Physical base address of shared memory. */
+		u32 uSMLength;	/* Size (in bytes) of shared memory. */
 	} ;
 
 #endif				/* IODEFS_ */

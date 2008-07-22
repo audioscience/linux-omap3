@@ -76,7 +76,7 @@
  *      Valid hMsgMgr.
  *  Ensures:
  */
-	extern VOID MSG_Delete(struct MSG_MGR *hMsgMgr);
+	extern void MSG_Delete(struct MSG_MGR *hMsgMgr);
 
 /*
  *  ======== MSG_Exit ========
@@ -90,7 +90,7 @@
  *      Any resources acquired in MSG_Init() will be freed when last MSG
  *      client calls MSG_Exit().
  */
-	extern VOID MSG_Exit();
+	extern void MSG_Exit();
 
 /*
  *  ======== MSG_Init ========

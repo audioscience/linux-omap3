@@ -34,13 +34,13 @@
 
 /* Node Dispatcher attributes */
 	struct DISP_ATTRS {
-		ULONG ulChnlOffset; /* Offset of channel ids reserved for RMS */
+		u32 ulChnlOffset; /* Offset of channel ids reserved for RMS */
 		/* Size of buffer for sending data to RMS */
-		ULONG ulChnlBufSize;
+		u32 ulChnlBufSize;
 		DSP_PROCFAMILY procFamily;	/* eg, 5000 */
 		DSP_PROCTYPE procType;	/* eg, 5510 */
 		HANDLE hReserved1;	/* Reserved for future use. */
-		DWORD hReserved2;	/* Reserved for future use. */
+		u32 hReserved2;	/* Reserved for future use. */
 	} ;
 
 #endif				/* DISPDEFS_ */

@@ -46,7 +46,7 @@
  *  Ensures:
  *      Resources used by module are freed when cRef reaches zero.
  */
-	extern VOID SERVICES_Exit();
+	extern void SERVICES_Exit();
 
 /*
  *  ======== SERVICES_Init ========

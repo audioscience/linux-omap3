@@ -54,11 +54,11 @@
 					  struct DSP_ERRORINFO *pErrInfo);
 
 	extern DSP_STATUS WMD_DEH_RegisterNotify(struct DEH_MGR *hDehMgr,
-						 UINT uEventMask,
-						 UINT uNotifyType,
+						 u32 uEventMask,
+						 u32 uNotifyType,
 						 struct DSP_NOTIFICATION
 						 *hNotification);
 
 	extern void WMD_DEH_Notify(struct DEH_MGR *hDehMgr,
-				   ULONG ulEventMask, DWORD dwErrInfo);
+				   u32 ulEventMask, u32 dwErrInfo);
 #endif				/* WMDDEH_ */

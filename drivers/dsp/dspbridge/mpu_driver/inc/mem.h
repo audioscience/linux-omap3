@@ -92,7 +92,7 @@
  *      the size requested.
  */
 #ifdef __KERNEL__
-	extern PVOID MEM_Alloc(IN ULONG cBytes, IN MEM_POOLATTRS type);
+	extern void *MEM_Alloc(IN u32 cBytes, IN MEM_POOLATTRS type);
 #else
 #define MEM_Alloc(size, type) malloc(size)
 #endif
@@ -138,9 +138,9 @@
  *      the size requested.  Returned physical address refers to physical
  *      location of memory.
  */
-	extern PVOID MEM_AllocPhysMem(IN ULONG cBytes,
-				      IN ULONG ulAlign,
-				      OUT ULONG *pPhysicalAddress);
+	extern void *MEM_AllocPhysMem(IN u32 cBytes,
+				      IN u32 ulAlign,
+				      OUT u32 *pPhysicalAddress);
 
 /*
  *  ======== MEM_Calloc ========
@@ -161,7 +161,7 @@
  *      The returned pointer, if not NULL, points to a valid memory block
  *      of the size requested.
  */
-	extern PVOID MEM_Calloc(IN ULONG cBytes, IN MEM_POOLATTRS type);
+	extern void *MEM_Calloc(IN u32 cBytes, IN MEM_POOLATTRS type);
 
 /*
  *  ======== MEM_Exit ========
@@ -175,7 +175,7 @@
  *  Ensures:
  *      Resources used by module are freed when cRef reaches zero.
  */
-	extern VOID MEM_Exit();
+	extern void MEM_Exit();
 
 /*
  *  ======== MEM_FlushCache ========
@@ -190,7 +190,7 @@
  *  Ensures:
  *      Cache is synchronized
  */
-	extern VOID MEM_FlushCache(PVOID pMemBuf, ULONG cBytes, INT FlushType);
+	extern void MEM_FlushCache(void *pMemBuf, u32 cBytes, s32 FlushType);
 
 /*
  *  ======== MEM_Free ========
@@ -206,7 +206,7 @@
  *      pMemBuf is no longer a valid pointer to memory.
  */
 #ifdef __KERNEL__
-	extern VOID MEM_Free(IN PVOID pMemBuf);
+	extern void MEM_Free(IN void *pMemBuf);
 #else
 #define MEM_Free(ptr) free(ptr)
 #endif
@@ -229,8 +229,8 @@
  *  Ensures:
  *      pVirtualAddress is no longer a valid pointer to memory.
  */
-	extern VOID MEM_FreePhysMem(PVOID pVirtualAddress,
-				    DWORD pPhysicalAddress, ULONG cBytes);
+	extern void MEM_FreePhysMem(void *pVirtualAddress,
+				    u32 pPhysicalAddress, u32 cBytes);
 
 /*
  *  ======== MEM_FreeObject ========
@@ -264,7 +264,7 @@
  *  Ensures:
  *      If cBytes > 0, number of pages returned > 0.
  */
-	extern INT MEM_GetNumPages(IN PVOID pAddr, IN ULONG cBytes);
+	extern s32 MEM_GetNumPages(IN void *pAddr, IN u32 cBytes);
 
 /*
  *  ======== MEM_Init ========
@@ -285,7 +285,7 @@
  *      Validate the object handle.
  *  Parameters:
  *      hObj:   Handle to object created with MEM_AllocObject().
- *      Sig:    Expected signature DWORD.
+ *      Sig:    Expected signature u32.
  *  Returns:
  *      TRUE if handle is valid; FALSE otherwise.
  *  Requires:
@@ -343,7 +343,7 @@
  *      - MEM initialized.
  *      - valid physical address for the base and size > 0
  */
-	extern VOID MEM_ExtPhysPoolInit(IN DWORD poolPhysBase,
-					IN DWORD poolSize);
+	extern void MEM_ExtPhysPoolInit(IN u32 poolPhysBase,
+					IN u32 poolSize);
 
 #endif				/* MEM_ */

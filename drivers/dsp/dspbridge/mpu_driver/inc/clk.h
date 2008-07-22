@@ -73,7 +73,7 @@
  *  Ensures:
  *      Resources used by module are freed when cRef reaches zero.
  */
-	extern VOID CLK_Exit();
+	extern void CLK_Exit();
 
 /*
  *  ======== CLK_Init ========
@@ -126,7 +126,7 @@
  *  Requires:
  *  Ensures:
  */
-	extern DSP_STATUS CLK_GetRate(IN SERVICES_ClkId clk_id, ULONG *speedMhz);
+	extern DSP_STATUS CLK_GetRate(IN SERVICES_ClkId clk_id, u32 *speedMhz);
 /*
  *  ======== CLK_Set_32KHz ========
  *  Purpose:
@@ -147,12 +147,12 @@
  *      get the reference count for the clock.
  *  Parameters:
  *  Returns:
- *      INT:        Reference Count for the clock.
+ *      s32:        Reference Count for the clock.
  *      DSP_EFAIL:  Error occured while getting the reference count of a clock.
  *  Requires:
  *  Ensures:
  */
-	extern INT CLK_Get_UseCnt(IN SERVICES_ClkId clk_id);
-/*	extern DSP_STATUS CLK_AutoIdleCtrl(IN SERVICES_ClkId clk_id,INT cmd); */
+	extern s32 CLK_Get_UseCnt(IN SERVICES_ClkId clk_id);
+/*	extern DSP_STATUS CLK_AutoIdleCtrl(IN SERVICES_ClkId clk_id,s32 cmd); */
 
 #endif				/* _SYNC_H */

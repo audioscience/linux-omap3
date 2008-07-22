@@ -27,7 +27,7 @@
 
 #define GB_NOBITS (~0)
 
-typedef Int GB_BitNum;
+typedef s32 GB_BitNum;
 struct GB_TMap;
 
 /*
@@ -36,7 +36,7 @@ struct GB_TMap;
  *  zero based.
  */
 
-extern Void GB_clear(struct GB_TMap *map, GB_BitNum bitn);
+extern void GB_clear(struct GB_TMap *map, GB_BitNum bitn);
 
 /*
  *  ======== GB_create ========
@@ -50,7 +50,7 @@ extern struct GB_TMap *GB_create(GB_BitNum len);
  *  Delete previously created bit map
  */
 
-extern Void GB_delete(struct GB_TMap *map);
+extern void GB_delete(struct GB_TMap *map);
 
 /*
  *  ======== GB_findandset ========
@@ -72,7 +72,7 @@ extern GB_BitNum GB_minclear(struct GB_TMap *map);
  *  zero based.
  */
 
-extern Void GB_set(struct GB_TMap *map, GB_BitNum bitn);
+extern void GB_set(struct GB_TMap *map, GB_BitNum bitn);
 
 /*
  *  ======== GB_test ========

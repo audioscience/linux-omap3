@@ -90,39 +90,39 @@
 
 #define CHNLIOREQS      1
 
-#define SwapWord(x)     (((DWORD)(x) >> 16) | ((DWORD)(x) << 16))
+#define SwapWord(x)     (((u32)(x) >> 16) | ((u32)(x) << 16))
 
 /*
  *  ======== DISP_OBJECT ========
  */
 struct DISP_OBJECT {
-	DWORD dwSignature; 	/* Used for object validation */
+	u32 dwSignature; 	/* Used for object validation */
 	struct DEV_OBJECT *hDevObject; 	/* Device for this processor */
 	struct WMD_DRV_INTERFACE *pIntfFxns; 	/* Function interface to WMD */
 	struct CHNL_MGR *hChnlMgr; 	/* Channel manager */
 	struct CHNL_OBJECT *hChnlToDsp;   /* Channel for commands to RMS */
 	struct CHNL_OBJECT *hChnlFromDsp;   /* Channel for replies from RMS */
-	BYTE *pBuf; 		/* Buffer for commands, replies */
-	ULONG ulBufsize; 	/* pBuf size in bytes */
-	ULONG ulBufsizeRMS; 	/* pBuf size in RMS words */
-	UINT uCharSize; 		/* Size of DSP character */
-	UINT uWordSize; 		/* Size of DSP word */
-	UINT uDataMauSize; 	/* Size of DSP Data MAU */
+	u8 *pBuf; 		/* Buffer for commands, replies */
+	u32 ulBufsize; 	/* pBuf size in bytes */
+	u32 ulBufsizeRMS; 	/* pBuf size in RMS words */
+	u32 uCharSize; 		/* Size of DSP character */
+	u32 uWordSize; 		/* Size of DSP word */
+	u32 uDataMauSize; 	/* Size of DSP Data MAU */
 };
 
-static ULONG cRefs;
+static u32 cRefs;
 
 /* Debug msgs: */
 #if GT_TRACE
 static struct GT_Mask DISP_DebugMask = { 0, 0 };
 #endif
 
-static VOID DeleteDisp(struct DISP_OBJECT *hDisp);
-static DSP_STATUS FillStreamDef(RMS_WORD *pdwBuf, UINT *ptotal, UINT offset,
-				struct NODE_STRMDEF strmDef, UINT max,
-				UINT uCharsInRMSWord);
-static DSP_STATUS SendMessage(struct DISP_OBJECT *hDisp, DWORD dwTimeout,
-			     ULONG ulBytes, OUT DWORD *pdwArg);
+static void DeleteDisp(struct DISP_OBJECT *hDisp);
+static DSP_STATUS FillStreamDef(RMS_WORD *pdwBuf, u32 *ptotal, u32 offset,
+				struct NODE_STRMDEF strmDef, u32 max,
+				u32 uCharsInRMSWord);
+static DSP_STATUS SendMessage(struct DISP_OBJECT *hDisp, u32 dwTimeout,
+			     u32 ulBytes, OUT u32 *pdwArg);
 
 /*
  *  ======== DISP_Create ========
@@ -134,10 +134,10 @@ DSP_STATUS DISP_Create(OUT struct DISP_OBJECT **phDispObject,
 {
 	struct DISP_OBJECT *pDisp;
 	struct WMD_DRV_INTERFACE *pIntfFxns;
-	ULONG ulChnlId;
+	u32 ulChnlId;
 	struct CHNL_ATTRS chnlAttrs;
 	DSP_STATUS status = DSP_SOK;
-	UINT devType;
+	u32 devType;
 
 	DBC_Require(cRefs > 0);
 	DBC_Require(phDispObject != NULL);
@@ -164,7 +164,7 @@ DSP_STATUS DISP_Create(OUT struct DISP_OBJECT **phDispObject,
 	if (DSP_SUCCEEDED(status)) {
 		status = DEV_GetChnlMgr(hDevObject, &(pDisp->hChnlMgr));
 		if (DSP_SUCCEEDED(status)) {
-			(VOID) DEV_GetIntfFxns(hDevObject, &pIntfFxns);
+			(void) DEV_GetIntfFxns(hDevObject, &pIntfFxns);
 			pDisp->pIntfFxns = pIntfFxns;
 		} else {
 			GT_1trace(DISP_DebugMask, GT_6CLASS,
@@ -248,7 +248,7 @@ func_cont:
  *  ======== DISP_Delete ========
  *  Delete the NODE Dispatcher.
  */
-VOID DISP_Delete(struct DISP_OBJECT *hDisp)
+void DISP_Delete(struct DISP_OBJECT *hDisp)
 {
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(hDisp, DISP_SIGNATURE));
@@ -265,7 +265,7 @@ VOID DISP_Delete(struct DISP_OBJECT *hDisp)
  *  ======== DISP_Exit ========
  *  Discontinue usage of DISP module.
  */
-VOID DISP_Exit(void)
+void DISP_Exit(void)
 {
 	DBC_Require(cRefs > 0);
 
@@ -308,10 +308,10 @@ BOOL DISP_Init(void)
  */
 DSP_STATUS DISP_NodeChangePriority(struct DISP_OBJECT *hDisp,
 				  struct NODE_OBJECT *hNode,
-				  ULONG ulRMSFxn, NODE_ENV nodeEnv,
-				  INT nPriority)
+				  u32 ulRMSFxn, NODE_ENV nodeEnv,
+				  s32 nPriority)
 {
-	DWORD dwArg;
+	u32 dwArg;
 	struct RMS_Command *pCommand;
 	DSP_STATUS status = DSP_SOK;
 
@@ -343,7 +343,7 @@ DSP_STATUS DISP_NodeChangePriority(struct DISP_OBJECT *hDisp,
  *  Create a node on the DSP by remotely calling the node's create function.
  */
 DSP_STATUS DISP_NodeCreate(struct DISP_OBJECT *hDisp, struct NODE_OBJECT *hNode,
-			  ULONG ulRMSFxn, ULONG ulCreateFxn,
+			  u32 ulRMSFxn, u32 ulCreateFxn,
 			  IN CONST struct NODE_CREATEARGS *pArgs,
 			  OUT NODE_ENV *pNodeEnv)
 {
@@ -353,23 +353,23 @@ DSP_STATUS DISP_NodeCreate(struct DISP_OBJECT *hDisp, struct NODE_OBJECT *hNode,
 	struct RMS_MsgArgs *pMsgArgs;
 	struct RMS_MoreTaskArgs *pMoreTaskArgs;
 	NODE_TYPE nodeType;
-	DWORD dwLength;
+	u32 dwLength;
 	RMS_WORD *pdwBuf = NULL;
-	ULONG ulBytes;
-	UINT i;
-	UINT total;
-	UINT uCharsInRMSWord;
-	INT taskArgsOffset;
-	INT sioInDefOffset;
-	INT sioOutDefOffset;
-	INT sioDefsOffset;
-	INT argsOffset = -1;
-	INT offset;
+	u32 ulBytes;
+	u32 i;
+	u32 total;
+	u32 uCharsInRMSWord;
+	s32 taskArgsOffset;
+	s32 sioInDefOffset;
+	s32 sioOutDefOffset;
+	s32 sioDefsOffset;
+	s32 argsOffset = -1;
+	s32 offset;
 	struct NODE_STRMDEF strmDef;
-	UINT max;
+	u32 max;
 	DSP_STATUS status = DSP_SOK;
 	struct DSP_NODEINFO nodeInfo;
-	UINT devType;
+	u32 devType;
 
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(hDisp, DISP_SIGNATURE));
@@ -555,8 +555,8 @@ DSP_STATUS DISP_NodeCreate(struct DISP_OBJECT *hDisp, struct NODE_OBJECT *hNode,
 			if (DSP_FAILED(status)) {
 				GT_2trace(DISP_DebugMask, GT_6CLASS,
 				      "DISP_NodeCreate: Message"
-				      " args to large\ for buffer! Message args"
-				      " size = %d, \ max = %d\n", total, max);
+				      " args to large for buffer! Message args"
+				      " size = %d, max = %d\n", total, max);
 			}
 		} else {
 			/* Args won't fit */
@@ -603,12 +603,12 @@ func_end:
  *
  */
 DSP_STATUS DISP_NodeDelete(struct DISP_OBJECT *hDisp, struct NODE_OBJECT *hNode,
-			  ULONG ulRMSFxn, ULONG ulDeleteFxn, NODE_ENV nodeEnv)
+			  u32 ulRMSFxn, u32 ulDeleteFxn, NODE_ENV nodeEnv)
 {
-	DWORD dwArg;
+	u32 dwArg;
 	struct RMS_Command *pCommand;
 	DSP_STATUS status = DSP_SOK;
-	UINT devType;
+	u32 devType;
 
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(hDisp, DISP_SIGNATURE));
@@ -668,12 +668,12 @@ DSP_STATUS DISP_NodeDelete(struct DISP_OBJECT *hDisp, struct NODE_OBJECT *hNode,
  *      that has been suspended (via DISP_NodePause()) on the DSP.
  */
 DSP_STATUS DISP_NodeRun(struct DISP_OBJECT *hDisp, struct NODE_OBJECT *hNode,
-			ULONG ulRMSFxn, ULONG ulExecuteFxn, NODE_ENV nodeEnv)
+			u32 ulRMSFxn, u32 ulExecuteFxn, NODE_ENV nodeEnv)
 {
-	DWORD dwArg;
+	u32 dwArg;
 	struct RMS_Command *pCommand;
 	DSP_STATUS status = DSP_SOK;
-	UINT devType;
+	u32 devType;
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(hDisp, DISP_SIGNATURE));
 	DBC_Require(hNode != NULL);
@@ -729,7 +729,7 @@ DSP_STATUS DISP_NodeRun(struct DISP_OBJECT *hDisp, struct NODE_OBJECT *hNode,
  *  purpose:
  *      Frees the resources allocated for the dispatcher.
  */
-static VOID DeleteDisp(struct DISP_OBJECT *hDisp)
+static void DeleteDisp(struct DISP_OBJECT *hDisp)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct WMD_DRV_INTERFACE *pIntfFxns;
@@ -771,14 +771,14 @@ static VOID DeleteDisp(struct DISP_OBJECT *hDisp)
  *  purpose:
  *      Fills stream definitions.
  */
-static DSP_STATUS FillStreamDef(RMS_WORD *pdwBuf, UINT *ptotal, UINT offset,
-				struct NODE_STRMDEF strmDef, UINT max,
-				UINT uCharsInRMSWord)
+static DSP_STATUS FillStreamDef(RMS_WORD *pdwBuf, u32 *ptotal, u32 offset,
+				struct NODE_STRMDEF strmDef, u32 max,
+				u32 uCharsInRMSWord)
 {
 	struct RMS_StrmDef *pStrmDef;
-	UINT total = *ptotal;
-	UINT uNameLen;
-	DWORD dwLength;
+	u32 total = *ptotal;
+	u32 uNameLen;
+	u32 dwLength;
 	DSP_STATUS status = DSP_SOK;
 
 	if (total + sizeof(struct RMS_StrmDef) / sizeof(RMS_WORD) >= max) {
@@ -825,19 +825,19 @@ static DSP_STATUS FillStreamDef(RMS_WORD *pdwBuf, UINT *ptotal, UINT offset,
  *  ======== SendMessage ======
  *  Send command message to RMS, get reply from RMS.
  */
-static DSP_STATUS SendMessage(struct DISP_OBJECT *hDisp, DWORD dwTimeout,
-			     ULONG ulBytes, DWORD *pdwArg)
+static DSP_STATUS SendMessage(struct DISP_OBJECT *hDisp, u32 dwTimeout,
+			     u32 ulBytes, u32 *pdwArg)
 {
 	struct WMD_DRV_INTERFACE *pIntfFxns;
 	struct CHNL_OBJECT *hChnl;
-	DWORD dwArg = 0;
-	BYTE *pBuf;
+	u32 dwArg = 0;
+	u8 *pBuf;
 	struct CHNL_IOC chnlIOC;
 	DSP_STATUS status = DSP_SOK;
 
 	DBC_Require(pdwArg != NULL);
 
-	*pdwArg = (DWORD) NULL;
+	*pdwArg = (u32) NULL;
 	pIntfFxns = hDisp->pIntfFxns;
 	hChnl = hDisp->hChnlToDsp;
 	pBuf = hDisp->pBuf;

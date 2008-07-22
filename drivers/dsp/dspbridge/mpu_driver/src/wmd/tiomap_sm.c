@@ -78,12 +78,12 @@ extern struct constraint_handle *dsp_constraint_handle;
 #ifndef DEBUG
 #define TIHELEN_INT_TIMEOUT     1
 #define LOOP_COUNT              1000000
-extern LARGE_INTEGER tiomap1510_liTicksPerSecond;	/* Timer frequency */
+extern u64 tiomap1510_liTicksPerSecond;	/* Timer frequency */
 #endif
 
 extern struct MAILBOX_CONTEXT mboxsetting;
 extern DSP_STATUS DSP_PeripheralClocks_Enable(struct WMD_DEV_CONTEXT
-					     *pDevContext, IN PVOID pArgs);
+					     *pDevContext, IN void *pArgs);
 /*
  *  ======== CHNLSM_EnableInterrupt ========
  *  purpose:
@@ -94,17 +94,17 @@ DSP_STATUS CHNLSM_EnableInterrupt(struct WMD_DEV_CONTEXT *hDevContext)
 	DSP_STATUS status = DSP_SOK;
 	HW_STATUS hwStatus;
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
-	/*WORD                wDummyRd; */
-	DWORD numMbxMsg;
-	DWORD mbxValue;
+	/*u16                wDummyRd; */
+	u32 numMbxMsg;
+	u32 mbxValue;
 	struct CFG_HOSTRES resources;
-	UINT devType;
+	u32 devType;
 	struct IO_MGR *hIOMgr;
 
 	DBG_Trace(DBG_ENTER, "CHNLSM_EnableInterrupt(0x%x)\n", pDevContext);
 
 	/* read MBX reg to clear */
-	/*wDummyRd = *(volatile WORD *)
+	/*wDummyRd = *(volatile u16 *)
 	   (pDevContext->dwMailBoxBase + MB_DSP2ARM1B_REG_OFFSET); */
 
 	/* Read the messages in the mailbox until the message queue is empty */
@@ -144,9 +144,9 @@ DSP_STATUS CHNLSM_EnableInterrupt(struct WMD_DEV_CONTEXT *hDevContext)
 	}
 	/*  Enable the interrupt */
 	/*  Clear the ITR register */
-	/* ClearBitIndex (*(volatile DWORD *)
+	/* ClearBitIndex (*(volatile u32 *)
 	   (pDevContext->dwIntAddr + INTH_IT_REG_OFFSET), DSP_MAILBOX1_INT) ;
-	   ClearBitIndex (*(volatile DWORD *)
+	   ClearBitIndex (*(volatile u32 *)
 	   ((pDevContext->dwIntAddr + INTH_IT_REG_OFFSET)
 	   + INTH_MASK_IT_REG_OFFSET), DSP_MAILBOX1_INT) ; */
 	return status;
@@ -160,14 +160,10 @@ DSP_STATUS CHNLSM_EnableInterrupt(struct WMD_DEV_CONTEXT *hDevContext)
 DSP_STATUS CHNLSM_DisableInterrupt(struct WMD_DEV_CONTEXT *hDevContext)
 {
 	DSP_STATUS status = DSP_SOK;
-	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
 	HW_STATUS hwStatus;
 	struct CFG_HOSTRES resources;
 
-	DBG_Trace(DBG_ENTER, "CHNLSM_DisableInterrupt(0x%x)\n", pDevContext);
-
-    /**(volatile DWORD *)(pDevContext->dwIntAddr + INTH_IT_REG_OFFSET +
-     *		INTH_MASK_IT_REG_OFFSET) |= (1 << DSP_MAILBOX1_INT) ;*/
+	DBG_Trace(DBG_ENTER, "CHNLSM_DisableInterrupt(0x%x)\n", hDevContext);
 
 	status = CFG_GetHostResources(
 			(struct CFG_DEVNODE *)DRV_GetFirstDevExtension(),
@@ -187,14 +183,14 @@ DSP_STATUS CHNLSM_InterruptDSP(struct WMD_DEV_CONTEXT *hDevContext)
 	DSP_STATUS status = DSP_SOK;
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
 #ifndef DEBUG
-	ULONG usCount = LOOP_COUNT;
+	u32 usCount = LOOP_COUNT;
 #endif
-	ULONG opplevel;
+	u32 opplevel;
 	HW_STATUS hwStatus;
-	UWORD32 mbxFull;
+	u32 mbxFull;
 	struct CFG_HOSTRES resources;
-	USHORT cnt = 10;
-	UWORD32 temp;
+	u16 cnt = 10;
+	u32 temp;
 	/* We are waiting indefinitely here. This needs to be fixed in the
 	 * second phase */
 	status = CFG_GetHostResources(
@@ -224,7 +220,7 @@ DSP_STATUS CHNLSM_InterruptDSP(struct WMD_DEV_CONTEXT *hDevContext)
 #endif
 #endif
 		/* Read MMU register to invoke short wakeup of DSP */
-		temp = (UWORD32) *((REG_UWORD32 *) ((UWORD32)
+		temp = (u32) *((REG_UWORD32 *) ((u32)
 		       (resources.dwDmmuBase) + 0x10));
 
 		/* Restore mailbox settings */
@@ -268,7 +264,7 @@ DSP_STATUS CHNLSM_InterruptDSP(struct WMD_DEV_CONTEXT *hDevContext)
  *      Set MBX value & send an interrupt to the DSP processor(s).
  */
 DSP_STATUS CHNLSM_InterruptDSP2(struct WMD_DEV_CONTEXT *hDevContext,
-				WORD wMbVal)
+				u16 wMbVal)
 {
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
 
@@ -289,21 +285,21 @@ void CHNLSM_DPC(struct WMD_DEV_CONTEXT *hDevContext)
  *  ======== CHNLSM_ISR ========
  */
 BOOL CHNLSM_ISR(struct WMD_DEV_CONTEXT *hDevContext, OUT BOOL *pfSchedDPC,
-		OUT WORD *pwIntrVal)
+		OUT u16 *pwIntrVal)
 {
 	BOOL fMyInterrupt = TRUE;	/*
 					 * We own the mbx and
 					 * we're not sharing it
 					 */
 	struct CFG_HOSTRES resources;
-	DWORD numMbxMsg;
-	DWORD mbxValue;
+	u32 numMbxMsg;
+	u32 mbxValue;
 	/*struct WMD_DEV_CONTEXT     * pDevContext = hDevContext; */
 
 	DBG_Trace(DBG_ENTER, "CHNLSM_ISR(0x%x)\n", hDevContext);
 
 	/* need to read it to clear interrupt */
-	/* *pwIntrVal = *(volatile WORD *) */
+	/* *pwIntrVal = *(volatile u16 *) */
 	/* (pDevContext->dwMailBoxBase + MB_DSP2ARM1B_REG_OFFSET);*/
 
 	CFG_GetHostResources(
@@ -318,7 +314,7 @@ BOOL CHNLSM_ISR(struct WMD_DEV_CONTEXT *hDevContext, OUT BOOL *pfSchedDPC,
 				 HW_MBOX_U0_ARM, HW_MBOX_INT_NEW_MSG);
 
 		DBG_Trace(DBG_LEVEL3, "Read %x from Mailbox\n", mbxValue);
-		*pwIntrVal = (WORD) mbxValue;
+		*pwIntrVal = (u16) mbxValue;
 	}
 	/* Set *pfSchedDPC to TRUE; */
 	*pfSchedDPC = TRUE;

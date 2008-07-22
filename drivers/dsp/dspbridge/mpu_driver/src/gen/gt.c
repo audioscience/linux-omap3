@@ -49,24 +49,24 @@ typedef enum {
 	GT_DIGITS
 } GT_State;
 
-String GT_1format = "%s - %d: ";
-String GT_2format = "%s - %d(%d): ";
+char *GT_1format = "%s - %d: ";
+char *GT_2format = "%s - %d(%d): ";
 
-SmBits *GT_tMask[GT_BOUND];
+unsigned char *GT_tMask[GT_BOUND];
 
 static Bool curInit = FALSE;
-static String separator;
-static SmBits tabMem[GT_BOUND][sizeof(SmBits) * GT_BOUND];
+static char *separator;
+static unsigned char tabMem[GT_BOUND][sizeof(unsigned char) * GT_BOUND];
 
-static Void error(String string);
-static Void setMask(MdInt index1, MdInt index2, Char op, SmBits mask);
+static void error(char *string);
+static void setMask(s16 index1, s16 index2, char op, unsigned char mask);
 
 /*
  *  ======== _GT_create ========
  *  purpose:
  *      Creates GT mask.
  */
-Void _GT_create(struct GT_Mask *mask, String modName)
+void _GT_create(struct GT_Mask *mask, char *modName)
 {
 	mask->modName = modName;
 	mask->flags = &(GT_tMask[modName[0] - 'A'][modName[1] - 'A']);
@@ -80,10 +80,10 @@ Void _GT_create(struct GT_Mask *mask, String modName)
 #ifdef GT_init
 #undef GT_init
 #endif
-Void GT_init(void)
+void GT_init(void)
 {
-	register SmUns index1;
-	register SmUns index2;
+	register unsigned char index1;
+	register unsigned char index2;
 
 	if (!curInit) {
 		curInit = TRUE;
@@ -106,28 +106,28 @@ Void GT_init(void)
  *      Sets the trace string format.
  */
 
-Void _GT_set(String str)
+void _GT_set(char *str)
 {
 	GT_State state;
-	String sep;
-	MdInt index1 = GT_BOUND;	/* indicates all values */
-	MdInt index2 = GT_BOUND;	/* indicates all values */
-	Char op = GT_CLEAR;
+	char *sep;
+	s16 index1 = GT_BOUND;	/* indicates all values */
+	s16 index2 = GT_BOUND;	/* indicates all values */
+	char op = GT_CLEAR;
 	Bool maskValid;
-	MdInt digit;
-	register SmBits mask = 0x0;	/* no tracing */
+	s16 digit;
+	register unsigned char mask = 0x0;	/* no tracing */
 
 	if (str == NULL)
 		return;
 
 	maskValid = FALSE;
 	state = GT_SEP;
-	while (*str != NULL) {
-		switch ((Int) state) {
-		case (Int) GT_SEP:
+	while (*str != '\0') {
+		switch ((s32) state) {
+		case (s32) GT_SEP:
 			maskValid = FALSE;
 			sep = separator;
-			while (*sep != NULL) {
+			while (*str != '\0') {
 				if (*str == *sep) {
 					str++;
 					break;
@@ -135,11 +135,11 @@ Void _GT_set(String str)
 					sep++;
 				}
 			}
-			if (*sep == NULL)
+			if (*str != '\0')
 				state = GT_FIRST;
 
 			break;
-		case (Int) GT_FIRST:
+		case (s32) GT_FIRST:
 			if (*str == GT_WILD) {
 				/* indicates all values */
 				index1 = GT_BOUND;
@@ -148,9 +148,9 @@ Void _GT_set(String str)
 				state = GT_OP;
 			} else {
 				if (*str >= 'a')
-					index1 = (MdInt) (*str - 'a');
+					index1 = (s16) (*str - 'a');
 				else
-					index1 = (MdInt) (*str - 'A');
+					index1 = (s16) (*str - 'A');
 				if ((index1 >= 0) && (index1 < GT_BOUND))
 					state = GT_SECOND;
 				else
@@ -158,16 +158,16 @@ Void _GT_set(String str)
 			}
 			str++;
 			break;
-		case (Int) GT_SECOND:
+		case (s32) GT_SECOND:
 			if (*str == GT_WILD) {
 				index2 = GT_BOUND;   /* indicates all values */
 				state = GT_OP;
 				str++;
 			} else {
 				if (*str >= 'a')
-					index2 = (MdInt) (*str - 'a');
+					index2 = (s16) (*str - 'a');
 				else
-					index2 = (MdInt) (*str - 'A');
+					index2 = (s16) (*str - 'A');
 				if ((index2 >= 0) && (index2 < GT_BOUND)) {
 					state = GT_OP;
 					str++;
@@ -176,14 +176,14 @@ Void _GT_set(String str)
 				}
 			}
 			break;
-		case (Int) GT_OP:
+		case (s32) GT_OP:
 			op = *str;
 			mask = 0x0;	/* no tracing */
 			switch (op) {
-			case (Int) GT_CLEAR:
+			case (s32) GT_CLEAR:
 				maskValid = TRUE;
-			case (Int) GT_ON:
-			case (Int) GT_OFF:
+			case (s32) GT_ON:
+			case (s32) GT_OFF:
 				state = GT_DIGITS;
 				str++;
 				break;
@@ -192,8 +192,8 @@ Void _GT_set(String str)
 				break;
 			}
 			break;
-		case (Int) GT_DIGITS:
-			digit = (MdInt) (*str - '0');
+		case (s32) GT_DIGITS:
+			digit = (s16) (*str - '0');
 			if ((digit >= 0) && (digit <= 7)) {
 				mask |= (0x01 << digit);
 				maskValid = TRUE;
@@ -222,19 +222,19 @@ Void _GT_set(String str)
  *      Prints the input string onto standard output
  */
 
-Int _GT_trace(struct GT_Mask *mask, String format, ...)
+s32 _GT_trace(struct GT_Mask *mask, char *format, ...)
 {
-	Int arg1, arg2, arg3, arg4, arg5, arg6;
+	s32 arg1, arg2, arg3, arg4, arg5, arg6;
 	va_list va;
 
 	va_start(va, format);
 
-	arg1 = va_arg(va, Int);
-	arg2 = va_arg(va, Int);
-	arg3 = va_arg(va, Int);
-	arg4 = va_arg(va, Int);
-	arg5 = va_arg(va, Int);
-	arg6 = va_arg(va, Int);
+	arg1 = va_arg(va, s32);
+	arg2 = va_arg(va, s32);
+	arg3 = va_arg(va, s32);
+	arg4 = va_arg(va, s32);
+	arg5 = va_arg(va, s32);
+	arg6 = va_arg(va, s32);
 
 	va_end(va);
 #ifdef DEBUG
@@ -256,7 +256,7 @@ Int _GT_trace(struct GT_Mask *mask, String format, ...)
  *  purpose:
  *      Prints errors onto the standard output.
  */
-static Void error(String string)
+static void error(char *string)
 {
 	(*GT->PRINTFXN)("GT: %s", string);
 }
@@ -267,20 +267,20 @@ static Void error(String string)
  *      Sets mask for the GT module.
  */
 
-static Void setMask(MdInt index1, MdInt index2, Char op, SmBits mask)
+static void setMask(s16 index1, s16 index2, char op, u8 mask)
 {
-	register MdInt index;
+	register s16 index;
 
 	if (index1 < GT_BOUND) {
 		if (index2 < GT_BOUND) {
 			switch (op) {
-			case (Int) GT_CLEAR:
+			case (s32) GT_CLEAR:
 				GT_tMask[index1][index2] = mask;
 				break;
-			case (Int) GT_ON:
+			case (s32) GT_ON:
 				GT_tMask[index1][index2] |= mask;
 				break;
-			case (Int) GT_OFF:
+			case (s32) GT_OFF:
 				GT_tMask[index1][index2] &= ~mask;
 				break;
 			default:
@@ -290,13 +290,13 @@ static Void setMask(MdInt index1, MdInt index2, Char op, SmBits mask)
 		} else {
 			for (index2--; index2 >= 0; index2--) {
 				switch (op) {
-				case (Int) GT_CLEAR:
+				case (s32) GT_CLEAR:
 					GT_tMask[index1][index2] = mask;
 					break;
-				case (Int) GT_ON:
+				case (s32) GT_ON:
 					GT_tMask[index1][index2] |= mask;
 					break;
-				case (Int) GT_OFF:
+				case (s32) GT_OFF:
 					GT_tMask[index1][index2] &= ~mask;
 					break;
 				default:
@@ -309,13 +309,13 @@ static Void setMask(MdInt index1, MdInt index2, Char op, SmBits mask)
 		for (index1--; index1 >= 0; index1--) {
 			if (index2 < GT_BOUND) {
 				switch (op) {
-				case (Int) GT_CLEAR:
+				case (s32) GT_CLEAR:
 					GT_tMask[index1][index2] = mask;
 					break;
-				case (Int) GT_ON:
+				case (s32) GT_ON:
 					GT_tMask[index1][index2] |= mask;
 					break;
-				case (Int) GT_OFF:
+				case (s32) GT_OFF:
 					GT_tMask[index1][index2] &= ~mask;
 					break;
 				default:
@@ -326,13 +326,13 @@ static Void setMask(MdInt index1, MdInt index2, Char op, SmBits mask)
 				index = GT_BOUND;
 				for (index--; index >= 0; index--) {
 					switch (op) {
-					case (Int) GT_CLEAR:
+					case (s32) GT_CLEAR:
 						GT_tMask[index1][index] = mask;
 						break;
-					case (Int) GT_ON:
+					case (s32) GT_ON:
 						GT_tMask[index1][index] |= mask;
 						break;
-					case (Int) GT_OFF:
+					case (s32) GT_OFF:
 						GT_tMask[index1][index] &=
 						    ~mask;
 						break;

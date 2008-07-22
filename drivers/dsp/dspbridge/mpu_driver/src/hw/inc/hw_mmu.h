@@ -30,6 +30,7 @@
 #ifndef __HW_MMU_H
 #define __HW_MMU_H
 
+#include <linux/types.h>
 /*
 * DEFINITION:
 *
@@ -80,70 +81,70 @@ struct HW_MMUMapAttrs_t {
  * EXPORTED FUNCTIONS
  */
 
-extern HW_STATUS HW_MMU_Enable(const UWORD32 baseAddress);
+extern HW_STATUS HW_MMU_Enable(const u32 baseAddress);
 
-extern HW_STATUS HW_MMU_Disable(const UWORD32 baseAddress);
+extern HW_STATUS HW_MMU_Disable(const u32 baseAddress);
 
-extern HW_STATUS HW_MMU_NumLockedSet(const UWORD32 baseAddress,
-					UWORD32 numLockedEntries);
+extern HW_STATUS HW_MMU_NumLockedSet(const u32 baseAddress,
+					u32 numLockedEntries);
 
-extern HW_STATUS HW_MMU_VictimNumSet(const UWORD32 baseAddress,
-					UWORD32 victimEntryNum);
+extern HW_STATUS HW_MMU_VictimNumSet(const u32 baseAddress,
+					u32 victimEntryNum);
 
 /* For MMU faults */
-extern HW_STATUS HW_MMU_EventAck(const UWORD32 baseAddress,
-				    UWORD32 irqMask);
+extern HW_STATUS HW_MMU_EventAck(const u32 baseAddress,
+				    u32 irqMask);
 
-extern HW_STATUS HW_MMU_EventDisable(const UWORD32 baseAddress,
-					UWORD32 irqMask);
+extern HW_STATUS HW_MMU_EventDisable(const u32 baseAddress,
+					u32 irqMask);
 
-extern HW_STATUS HW_MMU_EventEnable(const UWORD32 baseAddress,
-				       UWORD32 irqMask);
+extern HW_STATUS HW_MMU_EventEnable(const u32 baseAddress,
+				       u32 irqMask);
 
-extern HW_STATUS HW_MMU_EventStatus(const UWORD32 baseAddress,
-				       UWORD32 *irqMask);
+extern HW_STATUS HW_MMU_EventStatus(const u32 baseAddress,
+				       u32 *irqMask);
 
-extern HW_STATUS HW_MMU_FaultAddrRead(const UWORD32 baseAddress,
-					 UWORD32 *addr);
+extern HW_STATUS HW_MMU_FaultAddrRead(const u32 baseAddress,
+					 u32 *addr);
 
 /* Set the TT base address */
-extern HW_STATUS HW_MMU_TTBSet(const UWORD32 baseAddress,
-				  UWORD32 TTBPhysAddr);
+extern HW_STATUS HW_MMU_TTBSet(const u32 baseAddress,
+				  u32 TTBPhysAddr);
 
-extern HW_STATUS HW_MMU_TWLEnable(const UWORD32 baseAddress);
+extern HW_STATUS HW_MMU_TWLEnable(const u32 baseAddress);
 
-extern HW_STATUS HW_MMU_TWLDisable(const UWORD32 baseAddress);
+extern HW_STATUS HW_MMU_TWLDisable(const u32 baseAddress);
 
-extern HW_STATUS HW_MMU_TLBFlush(const UWORD32 baseAddress,
-				    UWORD32 virtualAddr,
-				    UWORD32 pageSize);
+extern HW_STATUS HW_MMU_TLBFlush(const u32 baseAddress,
+				    u32 virtualAddr,
+				    u32 pageSize);
 
-extern HW_STATUS HW_MMU_TLBFlushAll(const UWORD32 baseAddress);
+extern HW_STATUS HW_MMU_TLBFlushAll(const u32 baseAddress);
 
-extern HW_STATUS HW_MMU_TLBAdd(const UWORD32     baseAddress,
-				  UWORD32	   physicalAddr,
-				  UWORD32	   virtualAddr,
-				  UWORD32	   pageSize,
-				  UWORD32	    entryNum,
+extern HW_STATUS HW_MMU_TLBAdd(const u32     baseAddress,
+				  u32	   physicalAddr,
+				  u32	   virtualAddr,
+				  u32	   pageSize,
+				  u32	    entryNum,
 				  struct HW_MMUMapAttrs_t *mapAttrs,
 				  HW_SetClear_t    preservedBit,
 				  HW_SetClear_t    validBit);
 
 
 /* For PTEs */
-extern HW_STATUS HW_MMU_PteSet(const UWORD32     pgTblVa,
-				  UWORD32	   physicalAddr,
-				  UWORD32	   virtualAddr,
-				  UWORD32	   pageSize,
+extern HW_STATUS HW_MMU_PteSet(const u32     pgTblVa,
+				  u32	   physicalAddr,
+				  u32	   virtualAddr,
+				  u32	   pageSize,
 				  struct HW_MMUMapAttrs_t *mapAttrs);
 
-extern HW_STATUS HW_MMU_PteClear(const UWORD32   pgTblVa,
-				    UWORD32	 pgSize,
-				    UWORD32	 virtualAddr);
+extern HW_STATUS HW_MMU_PteClear(const u32   pgTblVa,
+				    u32	 pgSize,
+				    u32	 virtualAddr);
 
-static inline UWORD32 HW_MMU_PteAddrL1(UWORD32 L1_base, UWORD32 va)
+static inline u32 HW_MMU_PteAddrL1(u32 L1_base, u32 va)
 {
-    UWORD32 VA_31_to_20;
+    u32 VA_31_to_20;
 
     VA_31_to_20  = va >> (20 - 2); /* Left-shift by 2 here itself */
     VA_31_to_20 &= 0xFFFFFFFCUL;
@@ -152,19 +153,19 @@ static inline UWORD32 HW_MMU_PteAddrL1(UWORD32 L1_base, UWORD32 va)
     return (L1_base + VA_31_to_20);
 }
 
-static inline UWORD32 HW_MMU_PteAddrL2(UWORD32 L2_base, UWORD32 va)
+static inline u32 HW_MMU_PteAddrL2(u32 L2_base, u32 va)
 {
     return ((L2_base & 0xFFFFFC00) | ((va >> 10) & 0x3FC));
 }
 
-static inline UWORD32 HW_MMU_PteCoarseL1(UWORD32 pteVal)
+static inline u32 HW_MMU_PteCoarseL1(u32 pteVal)
 {
     return (pteVal & 0xFFFFFC00);
 }
 
-static inline UWORD32 HW_MMU_PteSizeL1(UWORD32 pteVal)
+static inline u32 HW_MMU_PteSizeL1(u32 pteVal)
 {
-    UWORD32 pteSize = 0;
+    u32 pteSize = 0;
 
     if ((pteVal & 0x3) == 0x1) {
 	/* Points to L2 PT */
@@ -181,9 +182,9 @@ static inline UWORD32 HW_MMU_PteSizeL1(UWORD32 pteVal)
     return pteSize;
 }
 
-static inline UWORD32 HW_MMU_PteSizeL2(UWORD32 pteVal)
+static inline u32 HW_MMU_PteSizeL2(u32 pteVal)
 {
-    UWORD32 pteSize = 0;
+    u32 pteSize = 0;
 
     if (pteVal & 0x2)
 	pteSize = HW_PAGE_SIZE_4KB;

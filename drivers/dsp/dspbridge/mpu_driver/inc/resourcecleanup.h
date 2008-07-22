@@ -35,11 +35,11 @@ extern DSP_STATUS DRV_RemoveAllNodeResElements(HANDLE pCtxt);
 extern DSP_STATUS DRV_ProcUpdatestate(HANDLE pCtxt,
 				      GPP_PROC_RES_STATE resState);
 
-extern DSP_STATUS DRV_ProcSetPID(HANDLE pCtxt, INT hProcess);
+extern DSP_STATUS DRV_ProcSetPID(HANDLE pCtxt, s32 hProcess);
 
 extern DSP_STATUS DRV_GetProcContext(HANDLE phProcess, HANDLE hDrvObject,
 				     HANDLE pCtxt, DSP_HNODE hNode,
-				     ULONG pMapAddr);
+				     u32 pMapAddr);
 
 extern DSP_STATUS DRV_RemoveAllResources(HANDLE pPctxt);
 
@@ -60,18 +60,18 @@ extern DSP_STATUS DRV_RemoveNodeResElement(HANDLE nodeRes, BOOL status);
 
 extern DSP_STATUS DRV_ProcNodeUpdateStatus(HANDLE nodeRes, BOOL status);
 
-extern DSP_STATUS DRV_UpdateDMMResElement(HANDLE dmmRes, ULONG pMpuAddr,
-					  UINT ulSize, ULONG pReqAddr,
-					  ULONG ppMapAddr, HANDLE hProcesso);
+extern DSP_STATUS DRV_UpdateDMMResElement(HANDLE dmmRes, u32 pMpuAddr,
+					  u32 ulSize, u32 pReqAddr,
+					  u32 ppMapAddr, HANDLE hProcesso);
 
 extern DSP_STATUS DRV_InsertDMMResElement(HANDLE dmmRes, HANDLE pCtxt);
 
-extern DSP_STATUS DRV_GetDMMResElement(UINT pMapAddr, HANDLE dmmRes,
+extern DSP_STATUS DRV_GetDMMResElement(u32 pMapAddr, HANDLE dmmRes,
 				       HANDLE pCtxt);
 
 extern DSP_STATUS DRV_RemoveDMMResElement(HANDLE dmmRes, HANDLE pCtxt);
 
-extern DSP_STATUS DRV_ProcUpdateSTRMRes(UINT uNumBufs, HANDLE STRMRes,
+extern DSP_STATUS DRV_ProcUpdateSTRMRes(u32 uNumBufs, HANDLE STRMRes,
 					HANDLE pCtxt);
 
 extern DSP_STATUS DRV_ProcInsertSTRMResElement(HANDLE hStrm, HANDLE STRMRes,
@@ -84,7 +84,7 @@ extern DSP_STATUS DRV_ProcRemoveSTRMResElement(HANDLE STRMRes, HANDLE pCtxt);
 
 extern DSP_STATUS DRV_RemoveAllSTRMResElements(HANDLE pCtxt);
 
-extern DSP_STATUS DRV_GetDSPHEAPResElement(ULONG pMapAddr, HANDLE hDSPHEAPRes,
+extern DSP_STATUS DRV_GetDSPHEAPResElement(u32 pMapAddr, HANDLE hDSPHEAPRes,
 					   HANDLE hPCtxt);
 
 extern DSP_STATUS DRV_RemoveAllDSPHEAPResElements(HANDLE hPCtxt);
@@ -92,8 +92,8 @@ extern DSP_STATUS DRV_RemoveAllDSPHEAPResElements(HANDLE hPCtxt);
 extern DSP_STATUS DRV_ProcFreeDSPHEAPRes(HANDLE hPCtxt);
 
 extern DSP_STATUS DRV_UpdateDSPHEAPResElement(HANDLE hDSPHEAPRes,
-					      ULONG pMpuAddr, ULONG ulSize,
-					      ULONG pReqAddr, ULONG pMapAddr,
+					      u32 pMpuAddr, u32 ulSize,
+					      u32 pReqAddr, u32 pMapAddr,
 					      HANDLE hProcessor);
 
 extern DSP_STATUS DRV_RemoveDSPHEAPResElement(HANDLE hDSPHEAPRes,
@@ -102,7 +102,7 @@ extern DSP_STATUS DRV_RemoveDSPHEAPResElement(HANDLE hDSPHEAPRes,
 extern DSP_STATUS DRV_InsertDSPHEAPResElement(HANDLE hDSPHEAPRes,
 					      HANDLE hPCtxt);
 
-extern DSP_STATUS DRV_ProcDisplayResInfo(BYTE *pBuf, UINT *pSize);
+extern DSP_STATUS DRV_ProcDisplayResInfo(u8 *pBuf, u32 *pSize);
 
 extern NODE_STATE NODE_GetState(HANDLE hNode);
 

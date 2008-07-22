@@ -39,8 +39,8 @@
 	/*typedef struct MGR_OBJECT *MGR_HOBJECT;*/
 
 	struct MGR_TLBENTRY {
-		ULONG ulDspVirt;	/* DSP virtual address */
-		ULONG ulGppPhys;	/* GPP physical address */
+		u32 ulDspVirt;	/* DSP virtual address */
+		u32 ulGppPhys;	/* GPP physical address */
 	} ;
 
 /*

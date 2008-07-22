@@ -47,7 +47,7 @@
  *! 24-May-2000 ag: Cleaned up debug msgs.
  *! 02-May-2000 rr: DSP_Open returns GetCallerProcess as dwOpenContext.
  *! 03-Feb-2000 rr: GT Changes.
- *! 28-Jan-2000 rr: Code Cleaned up.Type void changed to Void.
+ *! 28-Jan-2000 rr: Code Cleaned up.Type void changed to void.
  *!                 DSP_Deinit checks return values.dwCode in
  *!                 DSP_IO_CONTROL is decoded(not hard coded)
  *! 27-Jan-2000 rr: REG_EnumValue Used .EnumerateKey fxn removed.
@@ -58,7 +58,7 @@
  *!                 is Global.DevObject stores this pointer as hDevNode.
  *! 02-Dec-1999 rr: DBG_SetGT and RetailMSG conditionally included.
  *!                 Comments changed.Deinit handled.Code cleaned up.
- *!                 DSP_IOControl, Close, Deinit returns bool values.
+ *!                 DSP_IOControl, Close, Deinit returns BOOL values.
  *!                 Calls WCD_InitComplete2 for Board AutoStart.
  *! 29-Nov-1999 rr: DSP_IOControl returns the result through pBufOut.
  *!                 Global Arrays keeps track of installed devices.
@@ -132,16 +132,16 @@ struct GT_Mask curTrace;
  *  Purpose:
  *  	Allocates bridge resources. Loads a base image onto DSP, if specified.
  */
-DWORD DSP_Init(OUT DWORD *initStatus)
+u32 DSP_Init(OUT u32 *initStatus)
 {
 	char devNode[MAXREGPATHLENGTH] = "TIOMAP1510";
 	DSP_STATUS status = DSP_EFAIL;
 	DSP_STATUS status1 = DSP_SOK;
 	struct DRV_OBJECT *drvObject = NULL;
-	DWORD index = 0;
-	DWORD deviceNode;
-	DWORD deviceNodeString;
-	DWORD numProcs = 0;
+	u32 index = 0;
+	u32 deviceNode;
+	u32 deviceNodeString;
+	u32 numProcs = 0;
 
 	GT_create(&curTrace, "DD");
 
@@ -162,7 +162,7 @@ DWORD DSP_Init(OUT DWORD *initStatus)
 		  numProcs);
 	if (DSP_SUCCEEDED(status) & numProcs) {
 		/*Request Resources */
-		if (DSP_SUCCEEDED(DRV_RequestResources((DWORD)&devNode,
+		if (DSP_SUCCEEDED(DRV_RequestResources((u32)&devNode,
 		   &deviceNodeString))) {
 			/* Attempt to Start the Device */
 			if (DSP_SUCCEEDED(DEV_StartDevice(
@@ -176,8 +176,8 @@ DWORD DSP_Init(OUT DWORD *initStatus)
 			} else {
 				GT_0trace(curTrace, GT_7CLASS,
 					 "DSP_Init:DEV_StartDevice Failed\n");
-				(Void)DRV_ReleaseResources
-					((DWORD) deviceNodeString, drvObject);
+				(void)DRV_ReleaseResources
+					((u32) deviceNodeString, drvObject);
 				status = DSP_EFAIL;
 			}
 		} else {
@@ -200,13 +200,13 @@ DWORD DSP_Init(OUT DWORD *initStatus)
 		status = DSP_EFAIL;
 		for (deviceNode = DRV_GetFirstDevExtension(); deviceNode != 0;
 		    deviceNode = DRV_GetNextDevExtension(deviceNode)) {
-			(Void)DEV_RemoveDevice
+			(void)DEV_RemoveDevice
 				((struct CFG_DEVNODE *)deviceNode);
-			(Void)DRV_ReleaseResources((DWORD)deviceNode,
+			(void)DRV_ReleaseResources((u32)deviceNode,
 				drvObject);
 		}
 		/* Remove the Driver Object */
-		(Void)DRV_Destroy(drvObject);
+		(void)DRV_Destroy(drvObject);
 		drvObject = 0;
 		WCD_Exit();
 		GT_0trace(curTrace, GT_7CLASS,
@@ -219,7 +219,7 @@ func_cont:
 		 * correct one. We should not propagate that error
 		 * into the device loader.
 		 */
-		(Void)WCD_InitComplete2();
+		(void)WCD_InitComplete2();
 		GT_0trace(curTrace, GT_1CLASS, "DSP_Init Succeeded\n");
 	} else {
 		GT_0trace(curTrace, GT_7CLASS, "DSP_Init Failed\n");
@@ -228,7 +228,7 @@ func_cont:
 		  (DSP_FAILED(status) && drvObject == 0));
 	*initStatus = status;
 	/* Return the Driver Object */
-	return (DWORD)drvObject;
+	return (u32)drvObject;
 }
 
 /*
@@ -236,28 +236,28 @@ func_cont:
  *  Purpose:
  *  	Frees the resources allocated for bridge.
  */
-BOOL DSP_Deinit(DWORD deviceContext)
+BOOL DSP_Deinit(u32 deviceContext)
 {
 	BOOL retVal = TRUE;
-	DWORD deviceNode;
+	u32 deviceNode;
 	struct MGR_OBJECT *mgrObject = NULL;
 
 	GT_0trace(curTrace, GT_ENTER, "Entering DSP_Deinit \r\n");
 
 	while ((deviceNode = DRV_GetFirstDevExtension()) != 0) {
-		(Void)DEV_RemoveDevice((struct CFG_DEVNODE *)deviceNode);
+		(void)DEV_RemoveDevice((struct CFG_DEVNODE *)deviceNode);
 
-		(Void)DRV_ReleaseResources((DWORD)deviceNode,
+		(void)DRV_ReleaseResources((u32)deviceNode,
 			 (struct DRV_OBJECT *)deviceContext);
 	}
 
-	(Void) DRV_Destroy((struct DRV_OBJECT *) deviceContext);
+	(void) DRV_Destroy((struct DRV_OBJECT *) deviceContext);
 
 	/* Get the Manager Object from Registry
 	 * MGR Destroy will unload the DCD dll
 	 */
-	if (DSP_SUCCEEDED(CFG_GetObject((DWORD *)&mgrObject, REG_MGR_OBJECT)))
-		(Void)MGR_Destroy(mgrObject);
+	if (DSP_SUCCEEDED(CFG_GetObject((u32 *)&mgrObject, REG_MGR_OBJECT)))
+		(void)MGR_Destroy(mgrObject);
 
 	WCD_Exit();
 
@@ -270,7 +270,7 @@ BOOL DSP_Deinit(DWORD deviceContext)
  *  	The Calling Process handle is passed to DEV_CleanupProcesState
  *      for cleaning up of any resources used by the application
  */
-BOOL DSP_Close(DWORD dwOpenContext)
+BOOL DSP_Close(u32 dwOpenContext)
 {
 	BOOL retVal = FALSE;
 

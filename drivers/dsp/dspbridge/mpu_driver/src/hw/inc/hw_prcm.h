@@ -173,37 +173,37 @@ typedef enum HW_PWR_TransState {
 } HW_TransitionState_t;
 
 
-extern HW_STATUS HW_RST_Reset(const UWORD32 baseAddress,
+extern HW_STATUS HW_RST_Reset(const u32 baseAddress,
 				 HW_RstModule_t r);
 
-extern HW_STATUS HW_RST_UnReset(const UWORD32 baseAddress,
+extern HW_STATUS HW_RST_UnReset(const u32 baseAddress,
 				   HW_RstModule_t r);
 
-extern HW_STATUS HW_RSTCTRL_RegGet(const UWORD32 baseAddress,
+extern HW_STATUS HW_RSTCTRL_RegGet(const u32 baseAddress,
 					     HW_RstModule_t p,
-					     UWORD32 *value);
-extern HW_STATUS HW_RSTST_RegGet(const UWORD32 baseAddress,
-					   HW_RstModule_t p, UWORD32 *value);
+					     u32 *value);
+extern HW_STATUS HW_RSTST_RegGet(const u32 baseAddress,
+					   HW_RstModule_t p, u32 *value);
 
-extern HW_STATUS HW_PWR_PowerStateSet(const UWORD32 baseAddress,
+extern HW_STATUS HW_PWR_PowerStateSet(const u32 baseAddress,
 						HW_PwrModule_t p,
 						HW_PwrState_t value);
 
-extern HW_STATUS HW_CLK_SetInputClock(const UWORD32 baseAddress,
+extern HW_STATUS HW_CLK_SetInputClock(const u32 baseAddress,
 					HW_GPtimer_t gpt, HW_Clocktype_t c) ;
 
-extern HW_STATUS HW_PWR_IVA2StateGet(const UWORD32 baseAddress,
+extern HW_STATUS HW_PWR_IVA2StateGet(const u32 baseAddress,
 					HW_PwrModule_t p,
 					HW_PwrState_t *value);
 
-extern HW_STATUS HW_PWRST_IVA2RegGet(const UWORD32 baseAddress,
-					UWORD32 *value);
+extern HW_STATUS HW_PWRST_IVA2RegGet(const u32 baseAddress,
+					u32 *value);
 
-extern HW_STATUS HW_PWR_IVA2PowerStateSet(const UWORD32 baseAddress,
+extern HW_STATUS HW_PWR_IVA2PowerStateSet(const u32 baseAddress,
 					    HW_PwrModule_t p,
 					    HW_PwrState_t value);
 
-extern HW_STATUS HW_PWR_CLKCTRL_IVA2RegSet(const UWORD32 baseAddress,
+extern HW_STATUS HW_PWR_CLKCTRL_IVA2RegSet(const u32 baseAddress,
 					     HW_TransitionState_t val);
 
 #endif  /* __HW_PRCM_H */

@@ -54,8 +54,8 @@
 #include "clk.h"
 
 struct MAP_L4PERIPHERAL {
-	DWORD physAddr;
-	DWORD dspVirtAddr;
+	u32 physAddr;
+	u32 dspVirtAddr;
 } ;
 
 #define ARM_MAILBOX_START               0xfffcf000
@@ -278,38 +278,38 @@ typedef enum {
 	BPWR_SSI = 0x20
 } BPWR_ExtClockId;
 
-static const DWORD BPWR_CLKID[] = {
-	(DWORD) BPWR_GPTimer5,
-	(DWORD) BPWR_GPTimer6,
-	(DWORD) BPWR_GPTimer7,
-	(DWORD) BPWR_GPTimer8,
-	(DWORD) BPWR_WDTimer3,
-	(DWORD) BPWR_MCBSP1,
-	(DWORD) BPWR_MCBSP2,
-	(DWORD) BPWR_MCBSP3,
-	(DWORD) BPWR_MCBSP4,
-	(DWORD) BPWR_MCBSP5,
-	(DWORD) BPWR_SSI
+static const u32 BPWR_CLKID[] = {
+	(u32) BPWR_GPTimer5,
+	(u32) BPWR_GPTimer6,
+	(u32) BPWR_GPTimer7,
+	(u32) BPWR_GPTimer8,
+	(u32) BPWR_WDTimer3,
+	(u32) BPWR_MCBSP1,
+	(u32) BPWR_MCBSP2,
+	(u32) BPWR_MCBSP3,
+	(u32) BPWR_MCBSP4,
+	(u32) BPWR_MCBSP5,
+	(u32) BPWR_SSI
 };
 
 struct BPWR_Clk_t {
-	DWORD clkId;
+	u32 clkId;
 	SERVICES_ClkId funClk;
 	SERVICES_ClkId intClk;
 } ;
 
 static const struct BPWR_Clk_t BPWR_Clks[] = {
-	{(DWORD) BPWR_GPTimer5, SERVICESCLK_gpt5_fck, SERVICESCLK_gpt5_ick},
-	{(DWORD) BPWR_GPTimer6, SERVICESCLK_gpt6_fck, SERVICESCLK_gpt6_ick},
-	{(DWORD) BPWR_GPTimer7, SERVICESCLK_gpt7_fck, SERVICESCLK_gpt7_ick},
-	{(DWORD) BPWR_GPTimer8, SERVICESCLK_gpt8_fck, SERVICESCLK_gpt8_ick},
-	{(DWORD) BPWR_WDTimer3, SERVICESCLK_wdt3_fck, SERVICESCLK_wdt3_ick},
-	{(DWORD) BPWR_MCBSP1, SERVICESCLK_mcbsp1_fck, SERVICESCLK_mcbsp1_ick},
-	{(DWORD) BPWR_MCBSP2, SERVICESCLK_mcbsp2_fck, SERVICESCLK_mcbsp2_ick},
-	{(DWORD) BPWR_MCBSP3, SERVICESCLK_mcbsp3_fck, SERVICESCLK_mcbsp3_ick},
-	{(DWORD) BPWR_MCBSP4, SERVICESCLK_mcbsp4_fck, SERVICESCLK_mcbsp4_ick},
-	{(DWORD) BPWR_MCBSP5, SERVICESCLK_mcbsp5_fck, SERVICESCLK_mcbsp5_ick},
-	{(DWORD) BPWR_SSI, SERVICESCLK_ssi_fck, SERVICESCLK_ssi_ick}
+	{(u32) BPWR_GPTimer5, SERVICESCLK_gpt5_fck, SERVICESCLK_gpt5_ick},
+	{(u32) BPWR_GPTimer6, SERVICESCLK_gpt6_fck, SERVICESCLK_gpt6_ick},
+	{(u32) BPWR_GPTimer7, SERVICESCLK_gpt7_fck, SERVICESCLK_gpt7_ick},
+	{(u32) BPWR_GPTimer8, SERVICESCLK_gpt8_fck, SERVICESCLK_gpt8_ick},
+	{(u32) BPWR_WDTimer3, SERVICESCLK_wdt3_fck, SERVICESCLK_wdt3_ick},
+	{(u32) BPWR_MCBSP1, SERVICESCLK_mcbsp1_fck, SERVICESCLK_mcbsp1_ick},
+	{(u32) BPWR_MCBSP2, SERVICESCLK_mcbsp2_fck, SERVICESCLK_mcbsp2_ick},
+	{(u32) BPWR_MCBSP3, SERVICESCLK_mcbsp3_fck, SERVICESCLK_mcbsp3_ick},
+	{(u32) BPWR_MCBSP4, SERVICESCLK_mcbsp4_fck, SERVICESCLK_mcbsp4_ick},
+	{(u32) BPWR_MCBSP5, SERVICESCLK_mcbsp5_fck, SERVICESCLK_mcbsp5_ick},
+	{(u32) BPWR_SSI, SERVICESCLK_ssi_fck, SERVICESCLK_ssi_ick}
 };
 
 /* Interrupt Register Offsets */
@@ -382,24 +382,24 @@ typedef enum {
 /* This mini driver's device context: */
 struct WMD_DEV_CONTEXT {
 	struct DEV_OBJECT *hDevObject;	/* Handle to WCD device object. */
-	DWORD dwDspBaseAddr;	/* Arm's API to DSP virtual base addr */
+	u32 dwDspBaseAddr;	/* Arm's API to DSP virtual base addr */
 	/*
 	 * DSP External memory prog address as seen virtually by the OS on
 	 * the host side.
 	 */
-	DWORD dwDspExtBaseAddr;	/* See the comment above        */
-	DWORD dwAPIRegBase;	/* API memory mapped registers  */
-	DWORD dwDSPMmuBase;	/* DSP MMU Mapped registers     */
-	DWORD dwMailBoxBase;	/* Mail box mapped registers    */
-	DWORD dwAPIClkBase;	/* CLK Registers                */
-	DWORD dwDSPClkM2Base;	/* DSP Clock Module m2          */
-	DWORD dwPublicRhea;	/* Pub Rhea                     */
-	DWORD dwIntAddr;	/* MB INTR reg                  */
-	DWORD dwTCEndianism;	/* TC Endianism register        */
-	DWORD dwTestBase;	/* DSP MMU Mapped registers     */
-	DWORD dwSelfLoop;	/* Pointer to the selfloop      */
-	DWORD dwDSPStartAdd;	/* API Boot vector              */
-	DWORD dwInternalSize;	/* Internal memory size         */
+	u32 dwDspExtBaseAddr;	/* See the comment above        */
+	u32 dwAPIRegBase;	/* API memory mapped registers  */
+	u32 dwDSPMmuBase;	/* DSP MMU Mapped registers     */
+	u32 dwMailBoxBase;	/* Mail box mapped registers    */
+	u32 dwAPIClkBase;	/* CLK Registers                */
+	u32 dwDSPClkM2Base;	/* DSP Clock Module m2          */
+	u32 dwPublicRhea;	/* Pub Rhea                     */
+	u32 dwIntAddr;	/* MB INTR reg                  */
+	u32 dwTCEndianism;	/* TC Endianism register        */
+	u32 dwTestBase;	/* DSP MMU Mapped registers     */
+	u32 dwSelfLoop;	/* Pointer to the selfloop      */
+	u32 dwDSPStartAdd;	/* API Boot vector              */
+	u32 dwInternalSize;	/* Internal memory size         */
 
 	/*
 	 * Processor specific info is set when prog loaded and read from DCD.
@@ -407,17 +407,17 @@ struct WMD_DEV_CONTEXT {
 	 */
 	/* DMMU TLB entries */
 	struct WMDIOCTL_EXTPROC aTLBEntry[WMDIOCTL_NUMOFMMUTLB];
-	DWORD dwBrdState;	/* Last known board state.      */
-	ULONG ulIntMask;	/* int mask                     */
-	USHORT ioBase;	/* Board I/O base               */
-	WORD wIntrVal2Dsp;	/* MBX value to DSP. See mbx_sh.h */
-	ULONG numTLBEntries;	/* DSP MMU TLB entry counter    */
-	ULONG fixedTLBEntries;	/* Fixed DSPMMU TLB entry count */
+	u32 dwBrdState;	/* Last known board state.      */
+	u32 ulIntMask;	/* int mask                     */
+	u16 ioBase;	/* Board I/O base               */
+	u16 wIntrVal2Dsp;	/* MBX value to DSP. See mbx_sh.h */
+	u32 numTLBEntries;	/* DSP MMU TLB entry counter    */
+	u32 fixedTLBEntries;	/* Fixed DSPMMU TLB entry count */
 
 	/* TC Settings */
 	BOOL tcWordSwapOn;	/* Traffic Controller Word Swap */
 	struct PgTableAttrs *pPtAttrs;
-	UWORD32 uDspPerClks;
+	u32 uDspPerClks;
 } ;
 
 	/*
@@ -427,9 +427,9 @@ struct WMD_DEV_CONTEXT {
 	 *     a corresponding MPU physical address and size.
 	 */
 extern DSP_STATUS WMD_TLB_DspVAToMpuPA(struct WMD_DEV_CONTEXT *pDevContext,
-				       IN ULONG ulVirtAddr,
-				       OUT ULONG *ulPhysAddr,
-				       OUT ULONG *sizeTlb);
+				       IN u32 ulVirtAddr,
+				       OUT u32 *ulPhysAddr,
+				       OUT u32 *sizeTlb);
 
 #endif				/* _TIOMAP_ */
 

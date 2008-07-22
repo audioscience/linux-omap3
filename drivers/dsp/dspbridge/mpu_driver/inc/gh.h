@@ -25,12 +25,12 @@
 #ifndef GH_
 #define GH_
 
-extern struct GH_THashTab *GH_create(MdUns maxBucket, MdUns valSize,
-			    MdUns(*hash) (Ptr, MdUns), Bool(*match) (Ptr, Ptr),
-			    Void(*delete) (Ptr));
-extern Void GH_delete(struct GH_THashTab *hashTab);
-extern Void GH_exit(Void);
-extern Ptr GH_find(struct GH_THashTab *hashTab, Ptr key);
-extern Void GH_init(Void);
-extern Ptr GH_insert(struct GH_THashTab *hashTab, Ptr key, Ptr value);
+extern struct GH_THashTab *GH_create(u16 maxBucket, u16 valSize,
+		u16(*hash) (void *, u16), Bool(*match) (void *, void *),
+		void(*delete) (void *));
+extern void GH_delete(struct GH_THashTab *hashTab);
+extern void GH_exit(void);
+extern void *GH_find(struct GH_THashTab *hashTab, void *key);
+extern void GH_init(void);
+extern void *GH_insert(struct GH_THashTab *hashTab, void *key, void *value);
 #endif				/* GH_ */

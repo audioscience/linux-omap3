@@ -33,13 +33,13 @@
 #include <IPIAccInt.h>
 
 /* HW FUNCTIONS */
-HW_STATUS HW_DSPSS_BootModeSet(const UWORD32 baseAddress,
+HW_STATUS HW_DSPSS_BootModeSet(const u32 baseAddress,
 		      HW_DSPSYSC_BootMode_t bootMode,
-		      const UWORD32 bootAddress)
+		      const u32 bootAddress)
 {
 	HW_STATUS status = RET_OK;
-	UWORD32 offset = SYSC_IVA2BOOTMOD_OFFSET;
-	UWORD32 alignedBootAddr;
+	u32 offset = SYSC_IVA2BOOTMOD_OFFSET;
+	u32 alignedBootAddr;
 
 	/* if Boot mode it DIRECT BOOT, check that the bootAddress is aligned to
 	 * atleast 1K :: TODO */

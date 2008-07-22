@@ -124,7 +124,7 @@
  */
 	typedef DSP_STATUS(CDECL
 			   *WMD_BRD_SETSTATE) (struct WMD_DEV_CONTEXT
-			   *hDevContext, ULONG ulBrdState);
+			   *hDevContext, u32 ulBrdState);
 
 /*
  *  ======== WMD_BRD_Start ========
@@ -146,7 +146,7 @@
  *      else:           Board state is indeterminate.
  */
 typedef DSP_STATUS(CDECL * WMD_BRD_START) (struct WMD_DEV_CONTEXT *hDevContext,
-						   DWORD dwDSPAddr);
+						   u32 dwDSPAddr);
 
 /*
  *  ======== WMD_BRD_MemCopy ========
@@ -171,9 +171,9 @@ typedef DSP_STATUS(CDECL * WMD_BRD_START) (struct WMD_DEV_CONTEXT *hDevContext,
 	typedef DSP_STATUS(CDECL *
 			   WMD_BRD_MEMCOPY) (struct WMD_DEV_CONTEXT
 					     *hDevContext,
-					     ULONG ulDspDestAddr,
-					     ULONG ulDspSrcAddr,
-					     ULONG ulNumBytes, ULONG ulMemType);
+					     u32 ulDspDestAddr,
+					     u32 ulDspSrcAddr,
+					     u32 ulNumBytes, u32 ulMemType);
 /*
  *  ======== WMD_BRD_MemWrite ========
  *  Purpose:
@@ -196,9 +196,9 @@ typedef DSP_STATUS(CDECL * WMD_BRD_START) (struct WMD_DEV_CONTEXT *hDevContext,
  */
 	typedef DSP_STATUS(CDECL *WMD_BRD_MEMWRITE) (struct WMD_DEV_CONTEXT
 					*hDevContext,
-					IN BYTE *pHostBuf,
-					DWORD dwDSPAddr, ULONG ulNumBytes,
-					ULONG ulMemType);
+					IN u8 *pHostBuf,
+					u32 dwDSPAddr, u32 ulNumBytes,
+					u32 ulMemType);
 
 /*
  *  ======== WMD_BRD_MemMap ========
@@ -207,7 +207,7 @@ typedef DSP_STATUS(CDECL * WMD_BRD_START) (struct WMD_DEV_CONTEXT *hDevContext,
  *  Parameters:
  *      hDevContext:    Handle to mini-driver defined device info.
  *      ulMpuAddr:      MPU memory region start address.
- *      ulVirtAddr:     DSP/IVA memory region BYTE address.
+ *      ulVirtAddr:     DSP/IVA memory region u8 address.
  *      ulNumBytes:     Number of bytes to map.
  *      mapAttrs:       Mapping attributes (e.g. endianness).
  *  Returns:
@@ -218,9 +218,9 @@ typedef DSP_STATUS(CDECL * WMD_BRD_START) (struct WMD_DEV_CONTEXT *hDevContext,
  *  Ensures:
  */
 	typedef DSP_STATUS(CDECL * WMD_BRD_MEMMAP) (struct WMD_DEV_CONTEXT
-					*hDevContext, ULONG ulMpuAddr,
-					ULONG ulVirtAddr, ULONG ulNumBytes,
-					ULONG ulMapAttrs);
+					*hDevContext, u32 ulMpuAddr,
+					u32 ulVirtAddr, u32 ulNumBytes,
+					u32 ulMapAttrs);
 
 /*
  *  ======== WMD_BRD_MemUnMap ========
@@ -228,7 +228,7 @@ typedef DSP_STATUS(CDECL * WMD_BRD_START) (struct WMD_DEV_CONTEXT *hDevContext,
  *      UnMap an MPU memory region from DSP/IVA memory space
  *  Parameters:
  *      hDevContext:    Handle to mini-driver defined device info.
- *      ulVirtAddr:     DSP/IVA memory region BYTE address.
+ *      ulVirtAddr:     DSP/IVA memory region u8 address.
  *      ulNumBytes:     Number of bytes to unmap.
  *  Returns:
  *      DSP_SOK:        Success.
@@ -239,8 +239,8 @@ typedef DSP_STATUS(CDECL * WMD_BRD_START) (struct WMD_DEV_CONTEXT *hDevContext,
  */
 	typedef DSP_STATUS(CDECL * WMD_BRD_MEMUNMAP) (struct WMD_DEV_CONTEXT
 					*hDevContext,
-					ULONG ulVirtAddr,
-					ULONG ulNumBytes);
+					u32 ulVirtAddr,
+					u32 ulNumBytes);
 
 /*
  *  ======== WMD_BRD_Stop ========
@@ -302,10 +302,10 @@ typedef DSP_STATUS(CDECL * WMD_BRD_STOP) (struct WMD_DEV_CONTEXT *hDevContext);
  *  Will not write more than ulNumBytes bytes into pHostBuf.
  */
 typedef DSP_STATUS(CDECL * WMD_BRD_READ) (struct WMD_DEV_CONTEXT *hDevContext,
-						  OUT BYTE *pHostBuf,
-						  DWORD dwDSPAddr,
-						  ULONG ulNumBytes,
-						  ULONG ulMemType);
+						  OUT u8 *pHostBuf,
+						  u32 dwDSPAddr,
+						  u32 ulNumBytes,
+						  u32 ulMemType);
 
 /*
  *  ======== WMD_BRD_Write ========
@@ -328,10 +328,10 @@ typedef DSP_STATUS(CDECL * WMD_BRD_READ) (struct WMD_DEV_CONTEXT *hDevContext,
  *  Ensures:
  */
 typedef DSP_STATUS(CDECL * WMD_BRD_WRITE)(struct WMD_DEV_CONTEXT *hDevContext,
-						   IN BYTE *pHostBuf,
-						   DWORD dwDSPAddr,
-						   ULONG ulNumBytes,
-						   ULONG ulMemType);
+						   IN u8 *pHostBuf,
+						   u32 dwDSPAddr,
+						   u32 ulNumBytes,
+						   u32 ulMemType);
 
 /*
  *  ======== WMD_CHNL_Create ========
@@ -402,8 +402,8 @@ typedef DSP_STATUS(CDECL * WMD_BRD_WRITE)(struct WMD_DEV_CONTEXT *hDevContext,
  *     ulEventMask with a valid exception
  *  Ensures:
  */
-	typedef VOID (CDECL * WMD_DEH_NOTIFY)(struct DEH_MGR *hDehMgr,
-					ULONG ulEventMask, DWORD dwErrInfo);
+	typedef void (CDECL * WMD_DEH_NOTIFY)(struct DEH_MGR *hDehMgr,
+					u32 ulEventMask, u32 dwErrInfo);
 
 
 /*
@@ -453,7 +453,7 @@ typedef DSP_STATUS(CDECL * WMD_BRD_WRITE)(struct WMD_DEV_CONTEXT *hDevContext,
 						   **phChnl,
 						   struct CHNL_MGR *hChnlMgr,
 						   CHNL_MODE uMode,
-						   ULONG uChnlId,
+						   u32 uChnlId,
 						   CONST IN OPTIONAL struct
 						   CHNL_ATTRS *pAttrs);
 
@@ -515,11 +515,11 @@ typedef DSP_STATUS(CDECL * WMD_BRD_WRITE)(struct WMD_DEV_CONTEXT *hDevContext,
  */
 	typedef DSP_STATUS(CDECL * WMD_CHNL_ADDIOREQ) (struct CHNL_OBJECT
 						       *hChnl,
-						       PVOID pHostBuf,
-						       ULONG cBytes,
-						       ULONG cBufSize,
-						       OPTIONAL DWORD dwDspAddr,
-						       DWORD dwArg);
+						       void *pHostBuf,
+						       u32 cBytes,
+						       u32 cBufSize,
+						       OPTIONAL u32 dwDspAddr,
+						       u32 dwArg);
 
 /*
  *  ======== WMD_CHNL_GetIOC ========
@@ -547,7 +547,7 @@ typedef DSP_STATUS(CDECL * WMD_BRD_WRITE)(struct WMD_DEV_CONTEXT *hDevContext,
  *          state.
  */
 	typedef DSP_STATUS(CDECL * WMD_CHNL_GETIOC) (struct CHNL_OBJECT *hChnl,
-						     DWORD dwTimeOut,
+						     u32 dwTimeOut,
 						     OUT struct CHNL_IOC *pIOC);
 
 /*
@@ -589,7 +589,7 @@ typedef DSP_STATUS(CDECL * WMD_BRD_WRITE)(struct WMD_DEV_CONTEXT *hDevContext,
  *      DSP_SOK:            No I/O requests will be pending on this channel.
  */
 	typedef DSP_STATUS(CDECL * WMD_CHNL_FLUSHIO) (struct CHNL_OBJECT *hChnl,
-						      DWORD dwTimeOut);
+						      u32 dwTimeOut);
 
 /*
  *  ======== WMD_CHNL_GetInfo ========
@@ -631,7 +631,7 @@ typedef DSP_STATUS(CDECL * WMD_BRD_WRITE)(struct WMD_DEV_CONTEXT *hDevContext,
  */
 	typedef DSP_STATUS(CDECL * WMD_CHNL_GETMGRINFO) (struct CHNL_MGR
 							 *hChnlMgr,
-							 ULONG uChnlID,
+							 u32 uChnlID,
 							 OUT struct CHNL_MGRINFO
 							 *pMgrInfo);
 
@@ -662,7 +662,7 @@ typedef DSP_STATUS(CDECL * WMD_BRD_WRITE)(struct WMD_DEV_CONTEXT *hDevContext,
  *  Ensures:
  */
 	typedef DSP_STATUS(CDECL * WMD_CHNL_IDLE) (struct CHNL_OBJECT *hChnl,
-						   DWORD dwTimeOut,
+						   u32 dwTimeOut,
 						   BOOL fFlush);
 
 /*
@@ -692,8 +692,8 @@ typedef DSP_STATUS(CDECL * WMD_BRD_WRITE)(struct WMD_DEV_CONTEXT *hDevContext,
  */
 	typedef DSP_STATUS(CDECL * WMD_CHNL_REGISTERNOTIFY)
 				(struct CHNL_OBJECT *hChnl,
-				UINT uEventMask,
-				UINT uNotifyType,
+				u32 uEventMask,
+				u32 uNotifyType,
 				struct DSP_NOTIFICATION *hNotification);
 
 /*
@@ -735,7 +735,7 @@ typedef DSP_STATUS(CDECL * WMD_BRD_WRITE)(struct WMD_DEV_CONTEXT *hDevContext,
  *      structure.
  */
 	typedef DSP_STATUS(CDECL * WMD_DEV_CREATE) (OUT struct WMD_DEV_CONTEXT
-						    *phDevContext,
+						    **phDevContext,
 						    struct DEV_OBJECT
 						    *hDevObject,
 						    IN CONST struct CFG_HOSTRES
@@ -760,8 +760,8 @@ typedef DSP_STATUS(CDECL * WMD_BRD_WRITE)(struct WMD_DEV_CONTEXT *hDevContext,
  *  Ensures:
  */
 typedef DSP_STATUS(CDECL * WMD_DEV_CTRL)(struct WMD_DEV_CONTEXT *hDevContext,
-					DWORD dwCmd,
-					IN OUT PVOID pArgs);
+					u32 dwCmd,
+					IN OUT void *pArgs);
 
 /*
  *  ======== WMD_DEV_Destroy ========
@@ -834,7 +834,7 @@ typedef DSP_STATUS(CDECL * WMD_DEV_CTRL)(struct WMD_DEV_CONTEXT *hDevContext,
  */
 	typedef DSP_STATUS(CDECL * WMD_DEH_REGISTERNOTIFY)
 				(struct DEH_MGR *hDehMgr,
-				UINT uEventMask, UINT uNotifyType,
+				u32 uEventMask, u32 uNotifyType,
 				struct DSP_NOTIFICATION *hNotification);
 
 /*
@@ -977,7 +977,7 @@ typedef DSP_STATUS(CDECL * WMD_DEV_CTRL)(struct WMD_DEV_CONTEXT *hDevContext,
 	typedef DSP_STATUS(CDECL * WMD_MSG_CREATEQUEUE)
 				(struct MSG_MGR *hMsgMgr,
 				OUT struct MSG_QUEUE **phMsgQueue,
-				DWORD dwId, UINT uMaxMsgs, HANDLE h);
+				u32 dwId, u32 uMaxMsgs, HANDLE h);
 
 /*
  *  ======== WMD_MSG_Delete ========
@@ -990,7 +990,7 @@ typedef DSP_STATUS(CDECL * WMD_DEV_CTRL)(struct WMD_DEV_CONTEXT *hDevContext,
  *      Valid hMsgMgr.
  *  Ensures:
  */
-	typedef VOID(CDECL * WMD_MSG_DELETE) (struct MSG_MGR *hMsgMgr);
+	typedef void(CDECL * WMD_MSG_DELETE) (struct MSG_MGR *hMsgMgr);
 
 /*
  *  ======== WMD_MSG_DeleteQueue ========
@@ -1004,7 +1004,7 @@ typedef DSP_STATUS(CDECL * WMD_DEV_CTRL)(struct WMD_DEV_CONTEXT *hDevContext,
  *      Valid hMsgQueue.
  *  Ensures:
  */
-	typedef VOID(CDECL * WMD_MSG_DELETEQUEUE) (struct MSG_QUEUE *hMsgQueue);
+	typedef void(CDECL * WMD_MSG_DELETEQUEUE) (struct MSG_QUEUE *hMsgQueue);
 
 /*
  *  ======== WMD_MSG_Get ========
@@ -1027,7 +1027,7 @@ typedef DSP_STATUS(CDECL * WMD_DEV_CTRL)(struct WMD_DEV_CONTEXT *hDevContext,
  */
 	typedef DSP_STATUS(CDECL * WMD_MSG_GET) (struct MSG_QUEUE *hMsgQueue,
 						 struct DSP_MSG *pMsg,
-						 UINT uTimeout);
+						 u32 uTimeout);
 
 /*
  *  ======== WMD_MSG_Put ========
@@ -1050,7 +1050,7 @@ typedef DSP_STATUS(CDECL * WMD_DEV_CTRL)(struct WMD_DEV_CONTEXT *hDevContext,
  */
 	typedef DSP_STATUS(CDECL * WMD_MSG_PUT) (struct MSG_QUEUE *hMsgQueue,
 						 IN CONST struct DSP_MSG *pMsg,
-						 UINT uTimeout);
+						 u32 uTimeout);
 
 /*
  *  ======== WMD_MSG_RegisterNotify ========
@@ -1075,7 +1075,7 @@ typedef DSP_STATUS(CDECL * WMD_DEV_CTRL)(struct WMD_DEV_CONTEXT *hDevContext,
  */
 	typedef DSP_STATUS(CDECL * WMD_MSG_REGISTERNOTIFY)
 				(struct MSG_QUEUE *hMsgQueue,
-				UINT uEventMask, UINT uNotifyType,
+				u32 uEventMask, u32 uNotifyType,
 				struct DSP_NOTIFICATION *hNotification);
 
 /*
@@ -1093,8 +1093,8 @@ typedef DSP_STATUS(CDECL * WMD_DEV_CTRL)(struct WMD_DEV_CONTEXT *hDevContext,
  *      dwId != 0.
  *  Ensures:
  */
-	typedef VOID(CDECL * WMD_MSG_SETQUEUEID) (struct MSG_QUEUE *hMsgQueue,
-						  DWORD dwId);
+	typedef void(CDECL * WMD_MSG_SETQUEUEID) (struct MSG_QUEUE *hMsgQueue,
+						  u32 dwId);
 
 /*
  *  'Bridge Mini Driver (WMD) interface function table.
@@ -1114,8 +1114,8 @@ typedef DSP_STATUS(CDECL * WMD_DEV_CTRL)(struct WMD_DEV_CONTEXT *hDevContext,
  *  the WMD_CHNL_* entries must be set to NULL.
  */
 	struct WMD_DRV_INTERFACE {
-		DWORD dwWCDMajorVersion;	/* Set to WCD_MAJOR_VERSION. */
-		DWORD dwWCDMinorVersion;	/* Set to WCD_MINOR_VERSION. */
+		u32 dwWCDMajorVersion;	/* Set to WCD_MAJOR_VERSION. */
+		u32 dwWCDMinorVersion;	/* Set to WCD_MINOR_VERSION. */
 		WMD_DEV_CREATE pfnDevCreate;	/* Create device context     */
 		WMD_DEV_DESTROY pfnDevDestroy;	/* Destroy device context    */
 		WMD_DEV_CTRL pfnDevCntrl;	/* Optional vendor interface */
@@ -1188,7 +1188,7 @@ typedef DSP_STATUS(CDECL * WMD_DEV_CTRL)(struct WMD_DEV_CONTEXT *hDevContext,
  *  Details:
  *      Win95: Called during the Device_Init phase.
  */
-	VOID CDECL WMD_DRV_Entry(OUT struct WMD_DRV_INTERFACE **ppDrvInterface,
-				 IN CONST PSTR pstrWMDFileName);
+	void CDECL WMD_DRV_Entry(OUT struct WMD_DRV_INTERFACE **ppDrvInterface,
+				 IN CONST char *pstrWMDFileName);
 
 #endif				/* WMD_ */

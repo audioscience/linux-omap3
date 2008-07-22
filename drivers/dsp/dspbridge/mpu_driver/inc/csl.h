@@ -57,6 +57,8 @@
 #define CSL_
 
 #include <dspapi.h>
+#include <linux/types.h>
+
 
 /*
  *  ======== CSL_Atoi ========
@@ -71,7 +73,7 @@
  *      ptstrSrc is a valid string pointer.
  *  Ensures:
  */
-	extern INT CSL_Atoi(IN CONST char *ptstrSrc);
+	extern s32 CSL_Atoi(IN CONST char *ptstrSrc);
 
 /*
  *  ======== CSL_Exit ========
@@ -84,7 +86,7 @@
  *  Ensures:
  *      Resources acquired in CSL_Init() are freed.
  */
-	extern VOID CSL_Exit();
+	extern void CSL_Exit();
 
 /*
  *  ======== CSL_Init ========
@@ -112,15 +114,15 @@
  *  Ensures:
  *      pstrNumber will be null terminated.
  */
-	extern VOID CSL_NumToAscii(OUT PSTR pstrNumber, IN DWORD dwNum);
+	extern void CSL_NumToAscii(OUT char *pstrNumber, IN u32 dwNum);
 
 /*
  *  ======== CSL_Strcmp ========
  *  Purpose:
  *      Compare 2 ASCII strings.  Works the same way as stdio's strcmp.
  *  Parameters:
- *      pstrStr1:   String 1.
- *      pstrStr2:   String 2.
+ *      pstrStr1:   char * 1.
+ *      pstrStr2:   char * 2.
  *  Returns:
  *      A signed value that gives the results of the comparison:
  *      Zero:   String1 equals String2.
@@ -132,7 +134,7 @@
  *      pstrStr2 is valid.
  *  Ensures:
  */
-	extern LONG CSL_Strcmp(IN CONST PSTR pstrStr1, IN CONST PSTR pstrStr2);
+	extern s32 CSL_Strcmp(IN CONST char *pstrStr1, IN CONST char *pstrStr2);
 
 /*
  *  ======== CSL_Strcpyn ========
@@ -152,8 +154,8 @@
  *      Will not copy more than cMax bytes from pstrSrc into pstrDest.
  *      pstrDest will be terminated by a NULL character.
  */
-	extern PSTR CSL_Strcpyn(OUT PSTR pstrDest, IN CONST PSTR pstrSrc,
-				IN DWORD cMax);
+	extern char *CSL_Strcpyn(OUT char *pstrDest, IN CONST char *pstrSrc,
+				IN u32 cMax);
 
 /*
  *  ======== CSL_Strstr ========
@@ -170,7 +172,7 @@
  *      needle is valid.
  *  Ensures:
  */
-	extern PSTR CSL_Strstr(IN CONST PSTR haystack, IN CONST PSTR needle);
+	extern char *CSL_Strstr(IN CONST char *haystack, IN CONST char *needle);
 
 /*
  *  ======== CSL_Strlen ========
@@ -185,7 +187,7 @@
  *      pstrSrc is a valid string pointer.
  *  Ensures:
  */
-	extern DWORD CSL_Strlen(IN CONST PSTR pstrSrc);
+	extern u32 CSL_Strlen(IN CONST char *pstrSrc);
 
 /*
  *  ======== CSL_Strncat ========
@@ -202,8 +204,8 @@
  *      pszDest and pszSrc are valid pointers.
  *  Ensures:
  */
-	extern PSTR CSL_Strncat(IN PSTR pszDest,
-				IN PSTR pszSrc, IN DWORD dwSize);
+	extern char *CSL_Strncat(IN char *pszDest,
+				IN char *pszSrc, IN u32 dwSize);
 
 /*
  *  ======== CSL_Strncmp ========
@@ -211,8 +213,8 @@
  *      Compare at most n characters of two ASCII strings.  Works the same
  *      way as stdio's strncmp.
  *  Parameters:
- *      pstrStr1:   String 1.
- *      pstrStr2:   String 2.
+ *      pstrStr1:   char * 1.
+ *      pstrStr2:   char * 2.
  *      n:          Number of characters to compare.
  *  Returns:
  *      A signed value that gives the results of the comparison:
@@ -225,8 +227,8 @@
  *      pstrStr2 is valid.
  *  Ensures:
  */
-	extern LONG CSL_Strncmp(IN CONST PSTR pstrStr1,
-				IN CONST PSTR pstrStr2, IN DWORD n);
+	extern s32 CSL_Strncmp(IN CONST char *pstrStr1,
+				IN CONST char *pstrStr2, IN u32 n);
 
 /*
  *  ======== CSL_Strtok ========
@@ -236,7 +238,7 @@
  *      ptstrSrc:       pointer to string.
  *      szSeparators:   pointer to a string of seperators
  *  Returns:
- *      String
+ *      char *
  *  Requires:
  *      CSL initialized.
  *      ptstrSrc is a valid string pointer.
@@ -256,7 +258,7 @@
  *      ppstrCur:       Location to store start of string for next call to
  *                      to CSL_Strtokr.
  *  Returns:
- *      String (the token)
+ *      char * (the token)
  *  Requires:
  *      CSL initialized.
  *      szSeparators != NULL

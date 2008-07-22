@@ -40,13 +40,13 @@
 /* Cmm attributes used in CMM_Create() */
 	struct CMM_MGRATTRS {
 		/* Minimum SM allocation; default 32 bytes.  */
-		ULONG ulMinBlockSize;
+		u32 ulMinBlockSize;
 	};
 
 /* Attributes for CMM_AllocBuf() & CMM_AllocDesc() */
 	struct CMM_ATTRS {
-		ULONG ulSegId;	/*  1,2... are SM segments. 0 is not. */
-		ULONG ulAlignment;	/*  0,1,2,4....ulMinBlockSize */
+		u32 ulSegId;	/*  1,2... are SM segments. 0 is not. */
+		u32 ulAlignment;	/*  0,1,2,4....ulMinBlockSize */
 	} ;
 
 /*
@@ -74,40 +74,40 @@
  */
 
 	struct CMM_SEGINFO {
-		DWORD dwSegBasePa;	/* Start Phys address of SM segment */
+		u32 dwSegBasePa;	/* Start Phys address of SM segment */
 		/* Total size in bytes of segment: DSP+GPP */
-		ULONG ulTotalSegSize;
-		DWORD dwGPPBasePA;	/* Start Phys addr of Gpp SM seg */
-		ULONG ulGPPSize;	/* Size of Gpp SM seg in bytes */
-		DWORD dwDSPBaseVA;	/* DSP virt base byte address */
-		ULONG ulDSPSize;	/* DSP seg size in bytes */
+		u32 ulTotalSegSize;
+		u32 dwGPPBasePA;	/* Start Phys addr of Gpp SM seg */
+		u32 ulGPPSize;	/* Size of Gpp SM seg in bytes */
+		u32 dwDSPBaseVA;	/* DSP virt base byte address */
+		u32 ulDSPSize;	/* DSP seg size in bytes */
 		/* # of current GPP allocations from this segment */
-		ULONG ulInUseCnt;
-		DWORD dwSegBaseVa;	/* Start Virt address of SM seg */
+		u32 ulInUseCnt;
+		u32 dwSegBaseVa;	/* Start Virt address of SM seg */
 
 	} ;
 
 /* CMM useful information */
 	struct CMM_INFO {
 		/* # of SM segments registered with this Cmm. */
-		ULONG ulNumGPPSMSegs;
+		u32 ulNumGPPSMSegs;
 		/* Total # of allocations outstanding for CMM */
-		ULONG ulTotalInUseCnt;
+		u32 ulTotalInUseCnt;
 		/* Min SM block size allocation from CMM_Create() */
-		ULONG ulMinBlockSize;
+		u32 ulMinBlockSize;
 		/* Info per registered SM segment. */
 		struct CMM_SEGINFO segInfo[CMM_MAXGPPSEGS];
 	} ;
 
 /* XlatorCreate attributes */
 	struct CMM_XLATORATTRS {
-		ULONG ulSegId;	/* segment Id used for SM allocations */
-		DWORD dwDSPBufs;	/* # of DSP-side bufs */
-		DWORD dwDSPBufSize;	/* size of DSP-side bufs in GPP bytes */
+		u32 ulSegId;	/* segment Id used for SM allocations */
+		u32 dwDSPBufs;	/* # of DSP-side bufs */
+		u32 dwDSPBufSize;	/* size of DSP-side bufs in GPP bytes */
 		/* Vm base address alloc'd in client process context */
-		PVOID pVmBase;
+		void *pVmBase;
 		/* dwVmSize must be >= (dwMaxNumBufs * dwMaxSize) */
-		DWORD dwVmSize;
+		u32 dwVmSize;
 	} ;
 
 /*

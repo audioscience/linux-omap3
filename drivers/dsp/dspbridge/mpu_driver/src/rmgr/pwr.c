@@ -51,20 +51,20 @@
  *  ======== PWR_SleepDSP ========
  *    Send command to DSP to enter sleep state.
  */
-DSP_STATUS PWR_SleepDSP(IN CONST DWORD sleepCode, IN CONST DWORD timeout)
+DSP_STATUS PWR_SleepDSP(IN CONST u32 sleepCode, IN CONST u32 timeout)
 {
 	struct WMD_DRV_INTERFACE *pIntfFxns;
 	struct WMD_DEV_CONTEXT *dwContext;
 	DSP_STATUS status = DSP_EFAIL;
 	struct DEV_OBJECT *hDevObject = 0;
-	DWORD ioctlcode = 0;
-	DWORD arg = timeout;
+	u32 ioctlcode = 0;
+	u32 arg = timeout;
 
 	for (hDevObject = (struct DEV_OBJECT *)DRV_GetFirstDevObject();
 			  hDevObject != 0;
 			hDevObject =
 				(struct DEV_OBJECT *)DRV_GetNextDevObject
-				((DWORD)hDevObject)) {
+				((u32)hDevObject)) {
 		if (!DSP_SUCCEEDED(DEV_GetWMDContext(hDevObject,
 		   (struct WMD_DEV_CONTEXT **)&dwContext))) {
 			continue;
@@ -82,7 +82,7 @@ DSP_STATUS PWR_SleepDSP(IN CONST DWORD sleepCode, IN CONST DWORD timeout)
 
 		if (status != DSP_EINVALIDARG) {
 			status = (*pIntfFxns->pfnDevCntrl)(dwContext,
-				 ioctlcode, (PVOID)&arg);
+				 ioctlcode, (void *)&arg);
 		}
 	}
 	return status;
@@ -92,24 +92,24 @@ DSP_STATUS PWR_SleepDSP(IN CONST DWORD sleepCode, IN CONST DWORD timeout)
  *  ======== PWR_WakeDSP ========
  *    Send command to DSP to wake it from sleep.
  */
-DSP_STATUS PWR_WakeDSP(IN CONST DWORD timeout)
+DSP_STATUS PWR_WakeDSP(IN CONST u32 timeout)
 {
 	struct WMD_DRV_INTERFACE *pIntfFxns;
 	struct WMD_DEV_CONTEXT *dwContext;
 	DSP_STATUS status = DSP_EFAIL;
 	struct DEV_OBJECT *hDevObject = 0;
-	DWORD arg = timeout;
+	u32 arg = timeout;
 
 	for (hDevObject = (struct DEV_OBJECT *)DRV_GetFirstDevObject();
 	     hDevObject != 0;
 	     hDevObject = (struct DEV_OBJECT *)DRV_GetNextDevObject
-			  ((DWORD)hDevObject)) {
+			  ((u32)hDevObject)) {
 		if (DSP_SUCCEEDED(DEV_GetWMDContext(hDevObject,
 		   (struct WMD_DEV_CONTEXT **)&dwContext))) {
 			if (DSP_SUCCEEDED(DEV_GetIntfFxns(hDevObject,
 			   (struct WMD_DRV_INTERFACE **)&pIntfFxns))) {
 				status = (*pIntfFxns->pfnDevCntrl)(dwContext,
-					 WMDIOCTL_WAKEUP, (PVOID)&arg);
+					 WMDIOCTL_WAKEUP, (void *)&arg);
 			}
 		}
 	}
@@ -120,13 +120,13 @@ DSP_STATUS PWR_WakeDSP(IN CONST DWORD timeout)
  *  ======== PWR_PM_PreScale========
  *    Sends pre-notification message to DSP.
  */
-DSP_STATUS PWR_PM_PreScale(IN USHORT voltage_domain, UINT level)
+DSP_STATUS PWR_PM_PreScale(IN u16 voltage_domain, u32 level)
 {
 	struct WMD_DRV_INTERFACE *pIntfFxns;
 	struct WMD_DEV_CONTEXT *dwContext;
 	DSP_STATUS status = DSP_EFAIL;
 	struct DEV_OBJECT *hDevObject = 0;
-	UINT arg[2];
+	u32 arg[2];
 
 	arg[0] = voltage_domain;
 	arg[1] = level;
@@ -134,13 +134,13 @@ DSP_STATUS PWR_PM_PreScale(IN USHORT voltage_domain, UINT level)
 	for (hDevObject = (struct DEV_OBJECT *)DRV_GetFirstDevObject();
 	    hDevObject != 0;
 	    hDevObject = (struct DEV_OBJECT *)DRV_GetNextDevObject
-			 ((DWORD)hDevObject)) {
+			 ((u32)hDevObject)) {
 		if (DSP_SUCCEEDED(DEV_GetWMDContext(hDevObject,
 		   (struct WMD_DEV_CONTEXT **)&dwContext))) {
 			if (DSP_SUCCEEDED(DEV_GetIntfFxns(hDevObject,
 			   (struct WMD_DRV_INTERFACE **)&pIntfFxns))) {
 				status = (*pIntfFxns->pfnDevCntrl)(dwContext,
-					 WMDIOCTL_PRESCALE_NOTIFY, (PVOID)&arg);
+					WMDIOCTL_PRESCALE_NOTIFY, (void *)&arg);
 			}
 		}
 	}
@@ -151,13 +151,13 @@ DSP_STATUS PWR_PM_PreScale(IN USHORT voltage_domain, UINT level)
  *  ======== PWR_PM_PostScale========
  *    Sends post-notification message to DSP.
  */
-DSP_STATUS PWR_PM_PostScale(IN USHORT voltage_domain, UINT level)
+DSP_STATUS PWR_PM_PostScale(IN u16 voltage_domain, u32 level)
 {
 	struct WMD_DRV_INTERFACE *pIntfFxns;
 	struct WMD_DEV_CONTEXT *dwContext;
 	DSP_STATUS status = DSP_EFAIL;
 	struct DEV_OBJECT *hDevObject = 0;
-	UINT arg[2];
+	u32 arg[2];
 
 	arg[0] = voltage_domain;
 	arg[1] = level;
@@ -165,13 +165,13 @@ DSP_STATUS PWR_PM_PostScale(IN USHORT voltage_domain, UINT level)
 	for (hDevObject = (struct DEV_OBJECT *)DRV_GetFirstDevObject();
 	     hDevObject != 0;
 	     hDevObject = (struct DEV_OBJECT *)DRV_GetNextDevObject
-			  ((DWORD)hDevObject)) {
+			  ((u32)hDevObject)) {
 		if (DSP_SUCCEEDED(DEV_GetWMDContext(hDevObject,
-		   (struct WMD_DEV_CONTEXT *)&dwContext))) {
+		   (struct WMD_DEV_CONTEXT **)&dwContext))) {
 			if (DSP_SUCCEEDED(DEV_GetIntfFxns(hDevObject,
 			   (struct WMD_DRV_INTERFACE **)&pIntfFxns))) {
 				status = (*pIntfFxns->pfnDevCntrl)(dwContext,
-					WMDIOCTL_POSTSCALE_NOTIFY, (PVOID)&arg);
+				       WMDIOCTL_POSTSCALE_NOTIFY, (void *)&arg);
 			}
 		}
 	}

@@ -29,13 +29,13 @@
 
 #ifndef RMSTYPES_
 #define RMSTYPES_
-
+#include <linux/types.h>
 /*
  *  DSP-side definitions.
  */
 #include <std.h>
-typedef LgUns RMS_WORD;
-typedef Char RMS_CHAR;
-typedef LgUns RMS_STATUS;
+typedef u32 RMS_WORD;
+typedef char RMS_CHAR;
+typedef u32 RMS_STATUS;
 
 #endif				/* RMSTYPES_ */

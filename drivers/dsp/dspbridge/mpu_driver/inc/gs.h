@@ -32,33 +32,33 @@
  *  Alloc size bytes of space.  Returns pointer to space
  *  allocated, otherwise NULL.
  */
-extern Ptr GS_alloc(Uns size);
+extern void *GS_alloc(u32 size);
 
 /*
  *  ======== GS_exit ========
  *  Module exit.  Do not change to "#define GS_init()"; in
  *  some environments this operation must actually do some work!
  */
-extern Void GS_exit(Void);
+extern void GS_exit(void);
 
 /*
  *  ======== GS_free ========
  *  Free space allocated by GS_alloc() or GS_calloc().
  */
-extern Void GS_free(Ptr ptr);
+extern void GS_free(void *ptr);
 
 /*
  *  ======== GS_frees ========
  *  Free space allocated by GS_alloc() or GS_calloc() and assert that
  *  the size of the allocation is size bytes.
  */
-extern Void GS_frees(Ptr ptr, Uns size);
+extern void GS_frees(void *ptr, u32 size);
 
 /*
  *  ======== GS_init ========
  *  Module initialization.  Do not change to "#define GS_init()"; in
  *  some environments this operation must actually do some work!
  */
-extern Void GS_init(Void);
+extern void GS_init(void);
 
 #endif				/*GS_ */

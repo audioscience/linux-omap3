@@ -32,38 +32,38 @@
 #include <dbdefs.h>
 #include <dblldefs.h>
 
-	extern Void DBLL_close(struct DBLL_LibraryObj *lib);
+	extern void DBLL_close(struct DBLL_LibraryObj *lib);
 	extern DSP_STATUS DBLL_create(struct DBLL_TarObj **pTarget,
 				      struct DBLL_Attrs *pAttrs);
-	extern Void DBLL_delete(struct DBLL_TarObj *target);
-	extern Void DBLL_exit(Void);
-	extern Bool DBLL_getAddr(struct DBLL_LibraryObj *lib, String name,
+	extern void DBLL_delete(struct DBLL_TarObj *target);
+	extern void DBLL_exit(void);
+	extern Bool DBLL_getAddr(struct DBLL_LibraryObj *lib, char *name,
 				 struct DBLL_Symbol **ppSym);
-	extern Void DBLL_getAttrs(struct DBLL_TarObj *target,
+	extern void DBLL_getAttrs(struct DBLL_TarObj *target,
 				  struct DBLL_Attrs *pAttrs);
-	extern Bool DBLL_getCAddr(struct DBLL_LibraryObj *lib, String name,
+	extern Bool DBLL_getCAddr(struct DBLL_LibraryObj *lib, char *name,
 				  struct DBLL_Symbol **ppSym);
-	extern DSP_STATUS DBLL_getSect(struct DBLL_LibraryObj *lib, String name,
-				       LgUns *pAddr, LgUns *pSize);
-	extern Bool DBLL_init(Void);
+	extern DSP_STATUS DBLL_getSect(struct DBLL_LibraryObj *lib, char *name,
+				       u32 *pAddr, u32 *pSize);
+	extern Bool DBLL_init(void);
 	extern DSP_STATUS DBLL_load(struct DBLL_LibraryObj *lib,
 				    DBLL_Flags flags,
-				    struct DBLL_Attrs *attrs, LgUns *pEntry);
+				    struct DBLL_Attrs *attrs, u32 *pEntry);
 	extern DSP_STATUS DBLL_loadSect(struct DBLL_LibraryObj *lib,
-					String sectName,
+					char *sectName,
 					struct DBLL_Attrs *attrs);
-	extern DSP_STATUS DBLL_open(struct DBLL_TarObj *target, String file,
+	extern DSP_STATUS DBLL_open(struct DBLL_TarObj *target, char *file,
 				    DBLL_Flags flags,
 				    struct DBLL_LibraryObj **pLib);
 	extern DSP_STATUS DBLL_readSect(struct DBLL_LibraryObj *lib,
-					String name,
-					Char *pBuf, LgUns size);
-	extern Void DBLL_setAttrs(struct DBLL_TarObj *target,
+					char *name,
+					char *pBuf, u32 size);
+	extern void DBLL_setAttrs(struct DBLL_TarObj *target,
 				  struct DBLL_Attrs *pAttrs);
-	extern Void DBLL_unload(struct DBLL_LibraryObj *lib,
+	extern void DBLL_unload(struct DBLL_LibraryObj *lib,
 				struct DBLL_Attrs *attrs);
 	extern DSP_STATUS DBLL_unloadSect(struct DBLL_LibraryObj *lib,
-					  String sectName,
+					  char *sectName,
 					  struct DBLL_Attrs *attrs);
 
 #endif				/* DBLL_ */

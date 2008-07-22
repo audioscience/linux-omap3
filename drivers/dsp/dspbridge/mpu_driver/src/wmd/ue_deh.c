@@ -104,7 +104,7 @@ DSP_STATUS WMD_DEH_Create(OUT struct DEH_MGR **phDehMgr,
 
 		/* Create a DPC object. */
 		status = DPC_Create(&pDehMgr->hMmuFaultDpc, MMU_FaultDpc,
-				   (PVOID)pDehMgr);
+				   (void *)pDehMgr);
 		if (DSP_SUCCEEDED(status))
 			status = DEV_GetDevNode(hDevObject, &hDevNode);
 
@@ -121,7 +121,7 @@ DSP_STATUS WMD_DEH_Create(OUT struct DEH_MGR **phDehMgr,
 			/* Install ISR function for DSP MMU fault */
 			status = ISR_Install(&pDehMgr->hMmuFaultIsr,
 				 &cfgHostRes, (ISR_PROC)MMU_FaultIsr,
-				 DSP_MMUFAULT, (PVOID)pDehMgr);
+				 DSP_MMUFAULT, (void *)pDehMgr);
 		}
 	}
 	if (DSP_FAILED(status)) {
@@ -149,11 +149,11 @@ DSP_STATUS WMD_DEH_Destroy(struct DEH_MGR *hDehMgr)
 	if (MEM_IsValidHandle(pDehMgr, SIGNATURE)) {
 		/* If notification object exists, delete it */
 		if (pDehMgr->hNtfy)
-			(VOID)NTFY_Delete(pDehMgr->hNtfy);
+			(void)NTFY_Delete(pDehMgr->hNtfy);
 
 		/* Disable DSP MMU fault */
-		(VOID)ISR_Uninstall(pDehMgr->hMmuFaultIsr);
-		(VOID)DPC_Destroy(pDehMgr->hMmuFaultDpc);
+		(void)ISR_Uninstall(pDehMgr->hMmuFaultIsr);
+		(void)DPC_Destroy(pDehMgr->hMmuFaultDpc);
 		/* Deallocate the DEH manager object */
 		MEM_FreeObject(pDehMgr);
 	}
@@ -166,8 +166,8 @@ DSP_STATUS WMD_DEH_Destroy(struct DEH_MGR *hDehMgr)
  *  purpose:
  *      Registers for DEH notifications.
  */
-DSP_STATUS WMD_DEH_RegisterNotify(struct DEH_MGR *hDehMgr, UINT uEventMask,
-				 UINT uNotifyType,
+DSP_STATUS WMD_DEH_RegisterNotify(struct DEH_MGR *hDehMgr, u32 uEventMask,
+				 u32 uNotifyType,
 				 struct DSP_NOTIFICATION *hNotification)
 {
 	DSP_STATUS status = DSP_SOK;
@@ -207,12 +207,12 @@ DSP_STATUS WMD_DEH_RegisterNotify(struct DEH_MGR *hDehMgr, UINT uEventMask,
  *      There are no more than ulNumWords extra characters needed (the number of
  *      linefeeds minus the number of NULLS in the input buffer).
  */
-static DSP_STATUS PackTraceBuffer(PSTR lpBuf, ULONG nBytes, ULONG ulNumWords)
+static DSP_STATUS PackTraceBuffer(char *lpBuf, u32 nBytes, u32 ulNumWords)
 {
-	PSTR lpTmpBuf;
-	PSTR lpBufStart;
-	PSTR lpTmpStart;
-	ULONG nCnt;
+	char *lpTmpBuf;
+	char *lpBufStart;
+	char *lpTmpStart;
+	u32 nCnt;
 	char thisChar;
 	DSP_STATUS status = DSP_SOK;
 
@@ -271,14 +271,14 @@ DSP_STATUS PrintDspTraceBuffer(struct DEH_MGR *hDehMgr)
 
 	DSP_STATUS status;
 	struct COD_MANAGER *hCodMgr;
-	ULONG ulTraceEnd;
-	ULONG ulTraceBegin;
-	ULONG ulNumBytes = 0;
-	ULONG ulNumWords = 0;
-	ULONG ulWordSize = 2;
-	CONST UINT uMaxSize = 512;
-	CHAR *pszBuf;
-	WCHAR *lpszBuf;
+	u32 ulTraceEnd;
+	u32 ulTraceBegin;
+	u32 ulNumBytes = 0;
+	u32 ulNumWords = 0;
+	u32 ulWordSize = 2;
+	CONST u32 uMaxSize = 512;
+	char *pszBuf;
+	u16 *lpszBuf;
 	struct WMD_DRV_INTERFACE *pIntfFxns;
 	struct DEH_MGR *pDehMgr = (struct DEH_MGR *)hDehMgr;
 	struct DEV_OBJECT *hDevObject = ((struct WMD_DEV_CONTEXT *)
@@ -335,7 +335,7 @@ DSP_STATUS PrintDspTraceBuffer(struct DEH_MGR *hDehMgr)
 		if (pszBuf != NULL) {
 			/* Read bytes from the DSP trace buffer... */
 			status = (*pIntfFxns->pfnBrdRead)(pDehMgr->hWmdContext,
-				 pszBuf, ulTraceBegin, ulNumBytes, 0);
+				(u8 *)pszBuf, (u32)ulTraceBegin, ulNumBytes, 0);
 			if (DSP_FAILED(status)) {
 				DBG_Trace(DBG_LEVEL7, "PrintDspTraceBuffer: "
 					 "Failed to Read Trace Buffer.\n");
@@ -369,18 +369,18 @@ DSP_STATUS PrintDspTraceBuffer(struct DEH_MGR *hDehMgr)
  *  Purpose:
  *      DEH error notification function. Informs user about the error.
  */
-VOID CDECL WMD_DEH_Notify(struct DEH_MGR *hDehMgr, ULONG ulEventMask,
-			 DWORD dwErrInfo)
+void CDECL WMD_DEH_Notify(struct DEH_MGR *hDehMgr, u32 ulEventMask,
+			 u32 dwErrInfo)
 {
 	struct DEH_MGR *pDehMgr = (struct DEH_MGR *)hDehMgr;
 	struct WMD_DEV_CONTEXT *pDevContext;
 	DSP_STATUS status = DSP_SOK;
-	DWORD memPhysical = 0;
-	ULONG HW_MMU_MAX_TLB_COUNT = 31;
-	DWORD extern faultAddr;
-	DWORD sizeTlb;
+	u32 memPhysical = 0;
+	u32 HW_MMU_MAX_TLB_COUNT = 31;
+	u32 extern faultAddr;
+	u32 sizeTlb;
 	struct CFG_HOSTRES resources;
-	DWORD dummyVaAddr;
+	u32 dummyVaAddr;
 	HW_STATUS hwStatus;
 
 	status = CFG_GetHostResources(
@@ -413,16 +413,18 @@ VOID CDECL WMD_DEH_Notify(struct DEH_MGR *hDehMgr, ULONG ulEventMask,
 			printk(KERN_INFO "WMD_DEH_Notify: DSP_MMUFAULT,"
 				"errInfo = 0x%x\n", dwErrInfo);
 			printk(KERN_INFO "WMD_DEH_Notify: DSP_MMUFAULT, High "
-				"Address = 0x%x\n", pDehMgr->errInfo.dwVal1);
+				"Address = 0x%x\n",
+				(unsigned int)pDehMgr->errInfo.dwVal1);
 			printk(KERN_INFO "WMD_DEH_Notify: DSP_MMUFAULT, Low "
-				"Address = 0x%x\n", pDehMgr->errInfo.dwVal2);
+				"Address = 0x%x\n",
+				(unsigned int)pDehMgr->errInfo.dwVal2);
 			printk(KERN_INFO "WMD_DEH_Notify: DSP_MMUFAULT, fault "
-				"address = 0x%x\n", faultAddr);
-			dummyVaAddr = (ULONG)MEM_Calloc(sizeof(char) * 0x1000,
+				"address = 0x%x\n", (unsigned int)faultAddr);
+			dummyVaAddr = (u32)MEM_Calloc(sizeof(char) * 0x1000,
 					MEM_PAGED);
-			memPhysical = (ULONG)MEM_Calloc(sizeof(char) * 0x1000,
+			memPhysical = (u32)MEM_Calloc(sizeof(char) * 0x1000,
 					MEM_PAGED);
-			dummyVaAddr = PG_ALIGN_LOW((ULONG)dummyVaAddr,
+			dummyVaAddr = PG_ALIGN_LOW((u32)dummyVaAddr,
 					PG_SIZE_4K);
 			memPhysical  = VirtToPhys(dummyVaAddr);
 			DBG_Trace(DBG_LEVEL6, "WMD_DEH_Notify: DSP_MMUFAULT, "

@@ -100,25 +100,25 @@
 #define WMDIOCTL_NUMOFMMUTLB        32
 
 struct WMDIOCTL_EXTPROC {
-	ULONG ulDspVa;		/* DSP virtual address */
-	ULONG ulGppPa;		/* GPP physical address */
+	u32 ulDspVa;		/* DSP virtual address */
+	u32 ulGppPa;		/* GPP physical address */
 	/* GPP virtual address. __va does not work for ioremapped addresses */
-	ULONG ulGppVa;
-	ULONG ulSize;		/* Size of the mapped memory in bytes */
+	u32 ulGppVa;
+	u32 ulSize;		/* Size of the mapped memory in bytes */
 	HW_Endianism_t endianism;
 	HW_MMUMixedSize_t mixedMode;
 	HW_ElementSize_t elemSize;
 };
 
 struct WMDIOCTL_CHNLRW_ARGS {
-	BYTE *pHostBuf;
-	DWORD dwDSPAddr;
-	ULONG ulNumBytes;
+	u8 *pHostBuf;
+	u32 dwDSPAddr;
+	u32 ulNumBytes;
 } ;
 
 struct WMDIOCTL_INTRCOUNT_ARGS {
-	ULONG ulIntsRecvd;
-	ULONG ulIntsSent;
+	u32 ulIntsRecvd;
+	u32 ulIntsSent;
 } ;
 
 /*
@@ -128,21 +128,21 @@ struct WMDIOCTL_INTRCOUNT_ARGS {
 struct WMDIOCTL_BHW_ARGS {
 	union {
 		struct {
-			PVOID pBootRec;
+			void *pBootRec;
 		} initLdArgs;
 
 		struct {
-			DWORD dwEntry;
+			u32 dwEntry;
 		} startArgs;
 
 		struct {
-			PVOID ptr;
-			ULONG ulNwords;
+			void *ptr;
+			u32 ulNwords;
 		} recvArgs;
 
 		struct {
-			PVOID ptr;
-			ULONG ulNwords;
+			void *ptr;
+			u32 ulNwords;
 		} sendArgs;
 	} ctrlArgs;
 } ;
@@ -151,23 +151,23 @@ struct WMDIOCTL_BHW_ARGS {
 struct WMDIOCTL_GTIEVM_ARGS {
 	union {
 		struct {
-			ULONG *pMapAddr;
-			ULONG *pLength;
+			u32 *pMapAddr;
+			u32 *pLength;
 		} mapAddrArgs;
 
 		struct {
-			DWORD dwBootMask;
+			u32 dwBootMask;
 		} resetDspArgs;
 
 		struct {
-			DWORD dwMask;
+			u32 dwMask;
 		} assertSigArgs;
 
 		struct {
-			ULONG *pDeviceID;
-			ULONG *pVendorID;
-			ULONG *pClassCode;
-			ULONG *pRevID;	/* need EVM Rev for SCIF READ MEM */
+			u32 *pDeviceID;
+			u32 *pVendorID;
+			u32 *pClassCode;
+			u32 *pRevID;	/* need EVM Rev for SCIF READ MEM */
 		} evmConfigArgs;
 
 	} ctrlArgs;

@@ -78,7 +78,7 @@
  *      This routine must not affect the state of the physical PIC.
  *      (i.e.; don't send an EOI).
  */
-	typedef BOOL(CDECL * ISR_PROC) (PVOID pRefData);
+	typedef BOOL(CDECL * ISR_PROC) (void *pRefData);
 
 /*
  *  ======== ISR_Disable ========
@@ -91,7 +91,7 @@
  *  Requires:
  *  Ensures:
  */
-	extern VOID CDECL ISR_Disable(OUT UINT *pFlags);
+	extern void CDECL ISR_Disable(OUT u32 *pFlags);
 
 /*
  *  ======== ISR_Exit ========
@@ -104,7 +104,7 @@
  *  Ensures:
  *      Resources acquired in ISR_Init() are freed.
  */
-	extern VOID CDECL ISR_Exit();
+	extern void CDECL ISR_Exit();
 
 /*
  *  ======== ISR_GetStatus ========
@@ -123,7 +123,7 @@
  *  Ensures:
  */
 	extern DSP_STATUS CDECL ISR_GetStatus(IN struct ISR_IRQ *hIRQ,
-					      OUT DWORD *pdwFlags);
+					      OUT u32 *pdwFlags);
 
 /*
  *  ======== ISR_Init ========
@@ -168,8 +168,8 @@
 					    IN CONST struct CFG_HOSTRES
 					    *pHostConfig,
 					    IN ISR_PROC pfnISR,
-					    IN DWORD dwIntrType,
-					    IN PVOID pRefData);
+					    IN u32 dwIntrType,
+					    IN void *pRefData);
 
 /*
  *  ======== ISR_Restore ========
@@ -181,7 +181,7 @@
  *  Requires:
  *  Ensures:
  */
-	extern VOID CDECL ISR_Restore(IN UINT saveFlags);
+	extern void CDECL ISR_Restore(IN u32 saveFlags);
 
 /*
  *  ======== ISR_SimulateInt ========

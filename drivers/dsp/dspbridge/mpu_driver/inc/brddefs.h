@@ -26,7 +26,7 @@
  *! 22-Jul-1999 jeh Added BRD_LOADED state.
  *! 26-Mar-1997 gp: Added BRD_SYNCINIT state.
  *! 11-Dec-1996 cr: Added BRD_LASTSTATE definition.
- *! 11-Jul-1996 gp: Added missing DWORD callback argument to BRD_CALLBACK.
+ *! 11-Jul-1996 gp: Added missing u32 callback argument to BRD_CALLBACK.
  *! 10-Jun-1996 gp: Created from board.h and brd.h.
  */
 
@@ -52,7 +52,7 @@
 #define BRD_ACCEXCLUSIVE 0x80	/* exclusive ownership of board */
 #define BRD_ACCMASK    (~0x83)
 
-	typedef unsigned long BRD_STATUS;
+	typedef u32 BRD_STATUS;
 
 /* BRD Object */
 	/*typedef struct BRD_OBJECT *BRD_HOBJECT;*/

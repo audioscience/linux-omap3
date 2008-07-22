@@ -80,15 +80,15 @@
 static struct GT_Mask MEM_debugMask = { 0, 0 };	/* GT trace variable */
 #endif
 
-static ULONG cRefs;		/* module reference count */
+static u32 cRefs;		/* module reference count */
 
 static BOOL extPhysMemPoolEnabled = FALSE;
 
 struct extPhysMemPool {
-	DWORD physMemBase;
-	DWORD physMemSize;
-	DWORD virtMemBase;
-	DWORD nextPhysAllocPtr;
+	u32 physMemBase;
+	u32 physMemSize;
+	u32 virtMemBase;
+	u32 nextPhysAllocPtr;
 };
 
 struct extPhysMemPool extMemPool;
@@ -97,8 +97,8 @@ struct extPhysMemPool extMemPool;
 struct memInfo {
 	struct LST_ELEM link;		/* Must be first */
 	size_t size;
-	PVOID caller;
-	DWORD dwSignature;	/* Should be last */
+	void *caller;
+	u32 dwSignature;	/* Should be last */
 };
 
 #ifdef MEM_CHECK
@@ -119,7 +119,7 @@ struct memMan mMan;
  *  These functions are similar to LST_PutTail and LST_RemoveElem and are
  *  duplicated here to make MEM independent of LST
  */
-static inline VOID MLST_PutTail(struct LST_LIST *pList, struct LST_ELEM *pElem)
+static inline void MLST_PutTail(struct LST_LIST *pList, struct LST_ELEM *pElem)
 {
 	pElem->prev = pList->head.prev;
 	pElem->next = &pList->head;
@@ -128,7 +128,7 @@ static inline VOID MLST_PutTail(struct LST_LIST *pList, struct LST_ELEM *pElem)
 	pElem->self = pElem;
 }
 
-static inline VOID MLST_RemoveElem(struct LST_LIST *pList,
+static inline void MLST_RemoveElem(struct LST_LIST *pList,
 				   struct LST_ELEM *pCurElem)
 {
 	pCurElem->prev->next = pCurElem->next;
@@ -137,7 +137,7 @@ static inline VOID MLST_RemoveElem(struct LST_LIST *pList,
 	pCurElem->prev = NULL;
 }
 
-VOID MEM_Check(void)
+void MEM_Check(void)
 {
 	struct memInfo *pMem;
 	struct LST_ELEM *last = &mMan.lst.head;
@@ -150,11 +150,11 @@ VOID MEM_Check(void)
 		while (curr != last) {
 			pMem = (struct memInfo *)curr;
 			curr = curr->next;
-			if ((ULONG)pMem > PAGE_OFFSET &&
+			if ((u32)pMem > PAGE_OFFSET &&
 			    MEM_IsValidHandle(pMem, memInfoSign)) {
 				GT_3trace(MEM_debugMask, GT_7CLASS,
 					"%lx  %d\t [<%p>]\n",
-					(ULONG) pMem + sizeof(struct memInfo),
+					(u32) pMem + sizeof(struct memInfo),
 					pMem->size, pMem->caller);
 				MLST_RemoveElem(&mMan.lst,
 						(struct LST_ELEM *) pMem);
@@ -163,7 +163,7 @@ VOID MEM_Check(void)
 				GT_1trace(MEM_debugMask, GT_7CLASS,
 					  "Invalid allocation or "
 					  "Buffer underflow at %x\n",
-					  (ULONG)pMem +	sizeof(struct memInfo));
+					  (u32)pMem +	sizeof(struct memInfo));
 				break;
 			}
 		}
@@ -173,14 +173,14 @@ VOID MEM_Check(void)
 
 #endif
 
-VOID MEM_ExtPhysPoolInit(DWORD poolPhysBase, DWORD poolSize)
+void MEM_ExtPhysPoolInit(u32 poolPhysBase, u32 poolSize)
 {
-	DWORD poolVirtBase;
+	u32 poolVirtBase;
 
 	/* get the virtual address for the physical memory pool passed */
-	poolVirtBase = (DWORD)ioremap(poolPhysBase, poolSize);
+	poolVirtBase = (u32)ioremap(poolPhysBase, poolSize);
 
-	if ((PVOID *)poolVirtBase == NULL) {
+	if ((void **)poolVirtBase == NULL) {
 		GT_0trace(MEM_debugMask, GT_7CLASS,
 			  "[PHYS_POOL]Mapping External "
 			  "physical memory to virt failed \n");
@@ -199,7 +199,7 @@ VOID MEM_ExtPhysPoolInit(DWORD poolPhysBase, DWORD poolSize)
 	}
 }
 
-VOID MEM_ExtPhysPoolRelease(VOID)
+void MEM_ExtPhysPoolRelease(void)
 {
 	GT_0trace(MEM_debugMask, GT_1CLASS,
 		  "Releasing External memory pool \n");
@@ -215,11 +215,11 @@ VOID MEM_ExtPhysPoolRelease(VOID)
  *     Allocate physically contiguous, uncached memory from external memory pool
  */
 
-PVOID MEM_ExtPhysMemAlloc(ULONG bytes, ULONG align, OUT ULONG *pPhysAddr)
+void *MEM_ExtPhysMemAlloc(u32 bytes, u32 align, OUT u32 *pPhysAddr)
 {
-	DWORD newAllocPtr;
-	DWORD offset;
-	DWORD virtAddr;
+	u32 newAllocPtr;
+	u32 offset;
+	u32 virtAddr;
 
 	GT_2trace(MEM_debugMask, GT_1CLASS,
 		  "Ext Memory Allocation" "bytes=0x%x , "
@@ -256,7 +256,7 @@ PVOID MEM_ExtPhysMemAlloc(ULONG bytes, ULONG align, OUT ULONG *pPhysAddr)
 				  "Ext Memory Allocation succedded "
 				  "phys address=0x%x , virtaddress=0x%x \n",
 				  newAllocPtr, virtAddr);
-			return (PVOID)virtAddr;
+			return (void *)virtAddr;
 		} else {
 			*pPhysAddr = 0;
 			return NULL;
@@ -269,7 +269,7 @@ PVOID MEM_ExtPhysMemAlloc(ULONG bytes, ULONG align, OUT ULONG *pPhysAddr)
  *  Purpose:
  *      Allocate memory from the paged or non-paged pools.
  */
-PVOID MEM_Alloc(ULONG cBytes, MEM_POOLATTRS type)
+void *MEM_Alloc(u32 cBytes, MEM_POOLATTRS type)
 {
 	struct memInfo *pMem = NULL;
 
@@ -295,7 +295,7 @@ PVOID MEM_Alloc(ULONG cBytes, MEM_POOLATTRS type)
 					    (struct LST_ELEM *)pMem);
 				spin_unlock(&mMan.lock);
 
-				pMem = (PVOID)((ULONG)pMem +
+				pMem = (void *)((u32)pMem +
 					sizeof(struct memInfo));
 			}
 #endif
@@ -318,7 +318,7 @@ PVOID MEM_Alloc(ULONG cBytes, MEM_POOLATTRS type)
 					    (struct LST_ELEM *) pMem);
 				spin_unlock(&mMan.lock);
 
-				pMem = (PVOID)((ULONG)pMem +
+				pMem = (void *)((u32)pMem +
 					sizeof(struct memInfo));
 			}
 #endif
@@ -340,9 +340,9 @@ PVOID MEM_Alloc(ULONG cBytes, MEM_POOLATTRS type)
  *  Purpose:
  *      Allocate physically contiguous, uncached memory
  */
-PVOID MEM_AllocPhysMem(ULONG cBytes, ULONG ulAlign, OUT ULONG *pPhysicalAddress)
+void *MEM_AllocPhysMem(u32 cBytes, u32 ulAlign, OUT u32 *pPhysicalAddress)
 {
-	PVOID pVaMem = NULL;
+	void *pVaMem = NULL;
 	dma_addr_t paMem;
 
 	DBC_Require(cRefs > 0);
@@ -354,7 +354,7 @@ PVOID MEM_AllocPhysMem(ULONG cBytes, ULONG ulAlign, OUT ULONG *pPhysicalAddress)
 	if (cBytes > 0) {
 		if (extPhysMemPoolEnabled) {
 			pVaMem = MEM_ExtPhysMemAlloc(cBytes, ulAlign,
-						    (ULONG *)&paMem);
+						    (u32 *)&paMem);
 		} else
 			pVaMem = dma_alloc_coherent(NULL, cBytes, &paMem,
 						   GFP_ATOMIC);
@@ -375,7 +375,7 @@ PVOID MEM_AllocPhysMem(ULONG cBytes, ULONG ulAlign, OUT ULONG *pPhysicalAddress)
  *  Purpose:
  *      Allocate zero-initialized memory from the paged or non-paged pools.
  */
-PVOID MEM_Calloc(ULONG cBytes, MEM_POOLATTRS type)
+void *MEM_Calloc(u32 cBytes, MEM_POOLATTRS type)
 {
 	struct memInfo *pMem = NULL;
 
@@ -397,7 +397,7 @@ PVOID MEM_Calloc(ULONG cBytes, MEM_POOLATTRS type)
 			pMem = kmalloc(cBytes + sizeof(struct memInfo),
 				      GFP_ATOMIC);
 			if (pMem) {
-				memset((PVOID)((ULONG)pMem +
+				memset((void *)((u32)pMem +
 					sizeof(struct memInfo)), 0, cBytes);
 				pMem->size = cBytes;
 				pMem->caller = __builtin_return_address(0);
@@ -406,7 +406,7 @@ PVOID MEM_Calloc(ULONG cBytes, MEM_POOLATTRS type)
 				MLST_PutTail(&mMan.lst,
 					(struct LST_ELEM *) pMem);
 				spin_unlock(&mMan.lock);
-				pMem = (PVOID)((ULONG)pMem +
+				pMem = (void *)((u32)pMem +
 					sizeof(struct memInfo));
 			}
 #endif
@@ -423,7 +423,7 @@ PVOID MEM_Calloc(ULONG cBytes, MEM_POOLATTRS type)
 			pMem = __vmalloc(cBytes + sizeof(struct memInfo),
 				GFP_ATOMIC, PAGE_KERNEL);
 			if (pMem) {
-				memset((PVOID)((ULONG)pMem +
+				memset((void *)((u32)pMem +
 					sizeof(struct memInfo)), 0, cBytes);
 				pMem->size = cBytes;
 				pMem->caller = __builtin_return_address(0);
@@ -432,7 +432,7 @@ PVOID MEM_Calloc(ULONG cBytes, MEM_POOLATTRS type)
 				MLST_PutTail(&mMan.lst, (struct LST_ELEM *)
 					pMem);
 				spin_unlock(&mMan.lock);
-				pMem = (PVOID)((ULONG)pMem +
+				pMem = (void *)((u32)pMem +
 					sizeof(struct memInfo));
 			}
 #endif
@@ -453,7 +453,7 @@ PVOID MEM_Calloc(ULONG cBytes, MEM_POOLATTRS type)
  *  Purpose:
  *      Discontinue usage of the MEM module.
  */
-VOID MEM_Exit(void)
+void MEM_Exit(void)
 {
 	DBC_Require(cRefs > 0);
 
@@ -474,27 +474,27 @@ VOID MEM_Exit(void)
  *  Purpose:
  *      Flush cache
  */
-VOID MEM_FlushCache(PVOID pMemBuf, ULONG cBytes, INT FlushType)
+void MEM_FlushCache(void *pMemBuf, u32 cBytes, s32 FlushType)
 {
 	DBC_Require(cRefs > 0);
 
 	switch (FlushType) {
 	/* invalidate only */
 	case PROC_INVALIDATE_MEM:
-		dmac_inv_range((ULONG)pMemBuf, (ULONG)pMemBuf + cBytes - 1);
-		outer_inv_range(__pa((ULONG)pMemBuf), __pa((ULONG)pMemBuf +
+		dmac_inv_range(pMemBuf, pMemBuf + cBytes - 1);
+		outer_inv_range(__pa((u32)pMemBuf), __pa((u32)pMemBuf +
 				cBytes - 1));
 	break;
 	/* writeback only */
 	case PROC_WRITEBACK_MEM:
-		dmac_clean_range((ULONG)pMemBuf, (ULONG) pMemBuf + cBytes - 1);
-		outer_clean_range(__pa((ULONG)pMemBuf), __pa((ULONG)pMemBuf +
+		dmac_clean_range(pMemBuf, pMemBuf + cBytes - 1);
+		outer_clean_range(__pa((u32)pMemBuf), __pa((u32)pMemBuf +
 				  cBytes - 1));
 	break;
 	/* writeback and invalidate */
 	case PROC_WRITEBACK_INVALIDATE_MEM:
-		dmac_flush_range((ULONG)pMemBuf, (ULONG) pMemBuf + cBytes - 1);
-		outer_flush_range(__pa((ULONG)pMemBuf), __pa((ULONG)pMemBuf +
+		dmac_flush_range(pMemBuf, pMemBuf + cBytes - 1);
+		outer_flush_range(__pa((u32)pMemBuf), __pa((u32)pMemBuf +
 				  cBytes - 1));
 	break;
 	default:
@@ -511,10 +511,10 @@ VOID MEM_FlushCache(PVOID pMemBuf, ULONG cBytes, INT FlushType)
  *  Purpose:
  *      Free the given block of system memory.
  */
-VOID MEM_Free(IN PVOID pMemBuf)
+void MEM_Free(IN void *pMemBuf)
 {
 #ifdef MEM_CHECK
-	struct memInfo *pMem = (PVOID)((ULONG)pMemBuf - sizeof(struct memInfo));
+	struct memInfo *pMem = (void *)((u32)pMemBuf - sizeof(struct memInfo));
 #endif
 
 	DBC_Require(pMemBuf != NULL);
@@ -538,7 +538,7 @@ VOID MEM_Free(IN PVOID pMemBuf)
 				GT_1trace(MEM_debugMask, GT_7CLASS,
 					"Invalid allocation or "
 					"Buffer underflow at %x\n",
-					(ULONG) pMem + sizeof(struct memInfo));
+					(u32) pMem + sizeof(struct memInfo));
 				/*Do not try to free an invalid address*/
 				/*  kfree(pMemBuf);*/
 			}
@@ -552,8 +552,8 @@ VOID MEM_Free(IN PVOID pMemBuf)
  *  Purpose:
  *      Free the given block of physically contiguous memory.
  */
-VOID MEM_FreePhysMem(PVOID pVirtualAddress, DWORD pPhysicalAddress,
-		     ULONG cBytes)
+void MEM_FreePhysMem(void *pVirtualAddress, u32 pPhysicalAddress,
+		     u32 cBytes)
 {
 	DBC_Require(cRefs > 0);
 	DBC_Require(pVirtualAddress != NULL);

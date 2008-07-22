@@ -60,15 +60,15 @@
  * is configured by the combination of DSP MMU and SHM Memory manager in the CDB
  */
 extern DSP_STATUS ReadExtDspData(struct WMD_DEV_CONTEXT *pDevContext,
-				OUT BYTE *pbHostBuf, DWORD dwDSPAddr,
-				ULONG ulNumBytes, ULONG ulMemType);
+				OUT u8 *pbHostBuf, u32 dwDSPAddr,
+				u32 ulNumBytes, u32 ulMemType);
 
 /*
  *  ======== WriteDspData ========
  */
 extern DSP_STATUS WriteDspData(struct WMD_DEV_CONTEXT *pDevContext,
-			       OUT BYTE *pbHostBuf, DWORD dwDSPAddr,
-			       ULONG ulNumBytes, ULONG ulMemType);
+			       OUT u8 *pbHostBuf, u32 dwDSPAddr,
+			       u32 ulNumBytes, u32 ulMemType);
 
 /*
  *  ======== WriteExtDspData ========
@@ -77,19 +77,19 @@ extern DSP_STATUS WriteDspData(struct WMD_DEV_CONTEXT *pDevContext,
  *  SHM Memory manager in the CDB
  */
 extern DSP_STATUS WriteExtDspData(struct WMD_DEV_CONTEXT *pDevContext,
-				 IN BYTE *pbHostBuf, DWORD dwDSPAddr,
-				 ULONG ulNumBytes, ULONG ulMemType,
+				 IN u8 *pbHostBuf, u32 dwDSPAddr,
+				 u32 ulNumBytes, u32 ulMemType,
 				 BOOL bDynamicLoad);
 
 /*
  * ======== WriteExt32BitDspData ========
  * Writes 32 bit data to the external memory
  */
-extern inline VOID WriteExt32BitDspData(IN const
-		struct WMD_DEV_CONTEXT *pDevContext, IN DWORD dwDSPAddr,
-		IN DWORD val)
+extern inline void WriteExt32BitDspData(IN const
+		struct WMD_DEV_CONTEXT *pDevContext, IN u32 dwDSPAddr,
+		IN u32 val)
 {
-	*(DWORD *)dwDSPAddr = ((pDevContext->tcWordSwapOn) ? (((val << 16) &
+	*(u32 *)dwDSPAddr = ((pDevContext->tcWordSwapOn) ? (((val << 16) &
 			      0xFFFF0000) | ((val >> 16) & 0x0000FFFF)) : val);
 }
 
@@ -97,11 +97,11 @@ extern inline VOID WriteExt32BitDspData(IN const
  * ======== ReadExt32BitDspData ========
  * Reads 32 bit data from the external memory
  */
-extern inline DWORD ReadExt32BitDspData(IN const struct WMD_DEV_CONTEXT
-				       *pDevContext, IN DWORD dwDSPAddr)
+extern inline u32 ReadExt32BitDspData(IN const struct WMD_DEV_CONTEXT
+				       *pDevContext, IN u32 dwDSPAddr)
 {
-	DWORD retVal;
-	retVal = *(DWORD *)dwDSPAddr;
+	u32 retVal;
+	retVal = *(u32 *)dwDSPAddr;
 
 	retVal = ((pDevContext->tcWordSwapOn) ? (((retVal << 16)
 		 & 0xFFFF0000) | ((retVal >> 16) & 0x0000FFFF)) : retVal);

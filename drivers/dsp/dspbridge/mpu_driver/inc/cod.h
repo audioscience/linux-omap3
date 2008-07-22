@@ -96,23 +96,23 @@
 
 /* COD attributes */
 	 struct COD_ATTRS {
-		ULONG ulReserved;
+		u32 ulReserved;
 	} ;
 
 /*
  *  Function prototypes for writing memory to a DSP system, allocating
  *  and freeing DSP memory.
  */
-	typedef ULONG(CDECL * COD_WRITEFXN) (PVOID pPrivRef, ULONG ulDspAddr,
-					     PVOID pBuf, ULONG ulNumBytes,
-					     UINT nMemSpace);
+	typedef u32(CDECL * COD_WRITEFXN) (void *pPrivRef, u32 ulDspAddr,
+					     void *pBuf, u32 ulNumBytes,
+					     u32 nMemSpace);
 
-	typedef BOOL(CDECL * COD_ALLOCFXN) (PVOID pPrivRef, UINT space,
-					    ULONG ulNumBytes, ULONG ulAlign,
-					    ULONG *ulDspAddr, BOOL fReserved);
+	typedef BOOL(CDECL * COD_ALLOCFXN) (void *pPrivRef, u32 space,
+					    u32 ulNumBytes, u32 ulAlign,
+					    u32 *ulDspAddr, BOOL fReserved);
 
-	typedef BOOL(CDECL * COD_FREEFXN) (PVOID pPrivReg, ULONG ulDspAddr,
-					   UINT space, ULONG ulNumBytes,
+	typedef BOOL(CDECL * COD_FREEFXN) (void *pPrivReg, u32 ulDspAddr,
+					   u32 space, u32 ulNumBytes,
 					   BOOL fReserved);
 
 /*
@@ -122,8 +122,8 @@
  *  or unloading a section.
  */
 	 struct COD_LOADATTRS {
-		PVOID pWHandle;	/* Handle to pass to write fxn */
-		PVOID pAHandle;	/* Handle to pass to alloc/free fxns */
+		void *pWHandle;	/* Handle to pass to write fxn */
+		void *pAHandle;	/* Handle to pass to alloc/free fxns */
 		COD_WRITEFXN pfnWrite;
 		COD_ALLOCFXN pfnAlloc;
 		COD_FREEFXN pfnFree;
@@ -143,7 +143,7 @@
  *  Ensures:
  *
  */
-	extern VOID CDECL COD_Close(struct COD_LIBRARYOBJ *lib);
+	extern void CDECL COD_Close(struct COD_LIBRARYOBJ *lib);
 
 /*
  *  ======== COD_Create ========
@@ -170,7 +170,7 @@
  *  Ensures:
  */
 	extern DSP_STATUS CDECL COD_Create(OUT struct COD_MANAGER **phManager,
-				    PSTR pstrZLFile,
+				    char *pstrZLFile,
 				    IN OPTIONAL CONST struct COD_ATTRS *attrs);
 
 /*
@@ -186,7 +186,7 @@
  *      valid hManager.
  *  Ensures:
  */
-	extern VOID CDECL COD_Delete(struct COD_MANAGER *hManager);
+	extern void CDECL COD_Delete(struct COD_MANAGER *hManager);
 
 /*
  *  ======== COD_Exit ========
@@ -201,7 +201,7 @@
  *  Ensures:
  *      Resources acquired in COD_Init() are freed.
  */
-	extern VOID CDECL COD_Exit();
+	extern void CDECL COD_Exit();
 
 /*
  *  ======== COD_GetBaseLib ========
@@ -239,7 +239,7 @@
  *  Ensures:
  */
 	extern DSP_STATUS CDECL COD_GetBaseName(struct COD_MANAGER *hManager,
-						char *pszName, UINT uSize);
+						char *pszName, u32 uSize);
 
 /*
  *  ======== COD_GetEntry ========
@@ -257,7 +257,7 @@
  *  Ensures:
  */
 	extern DSP_STATUS CDECL COD_GetEntry(struct COD_MANAGER *hManager,
-					     ULONG *pulEntry);
+					     u32 *pulEntry);
 
 /*
  *  ======== COD_GetLoader ========
@@ -304,9 +304,9 @@
  *
  */
 	extern DSP_STATUS CDECL COD_GetSection(struct COD_LIBRARYOBJ *lib,
-					       IN PSTR pstrSect,
-					       OUT ULONG *puAddr,
-					       OUT ULONG *puLen);
+					       IN char *pstrSect,
+					       OUT u32 *puAddr,
+					       OUT u32 *puLen);
 
 /*
  *  ======== COD_GetSymValue ========
@@ -330,8 +330,8 @@
  *  Ensures:
  */
 	extern DSP_STATUS CDECL COD_GetSymValue(struct COD_MANAGER *hManager,
-						IN PSTR pstrSym,
-						OUT ULONG *pulValue);
+						IN char *pstrSym,
+						OUT u32 *pulValue);
 
 /*
  *  ======== COD_Init ========
@@ -375,8 +375,8 @@
  *  Ensures:
  */
 	extern DSP_STATUS CDECL COD_LoadBase(struct COD_MANAGER *hManager,
-					     UINT nArgc, PSTR aArgs[],
-					     COD_WRITEFXN pfnWrite, PVOID pArb,
+					     u32 nArgc, char *aArgs[],
+					     COD_WRITEFXN pfnWrite, void *pArb,
 					     char *envp[]);
 
 /*
@@ -398,7 +398,7 @@
  *
  */
 	extern DSP_STATUS CDECL COD_LoadSection(struct COD_MANAGER *hManager,
-					      IN PSTR pstrSect,
+					      IN char *pstrSect,
 					      IN struct COD_LOADATTRS *pAttrs);
 
 /*
@@ -468,9 +468,9 @@ extern DSP_STATUS COD_OpenBase(struct COD_MANAGER *hMgr, IN char *pszCoffPath,
  *      DSP_SOK:  *pstrContent stores the content of the named section.
  */
 	extern DSP_STATUS CDECL COD_ReadSection(struct COD_LIBRARYOBJ *lib,
-						IN PSTR pstrSect,
-						OUT PSTR pstrContent,
-						IN UINT cContentSize);
+						IN char *pstrSect,
+						OUT char *pstrContent,
+						IN u32 cContentSize);
 
 /*
  *  ======== COD_UnloadSection ========
@@ -490,7 +490,7 @@ extern DSP_STATUS COD_OpenBase(struct COD_MANAGER *hMgr, IN char *pszCoffPath,
  *
  */
 	extern DSP_STATUS CDECL COD_UnloadSection(struct COD_MANAGER *hManager,
-					      IN PSTR pstrSect,
+					      IN char *pstrSect,
 					      IN struct COD_LOADATTRS *pAttrs);
 
 #endif				/* COD_ */

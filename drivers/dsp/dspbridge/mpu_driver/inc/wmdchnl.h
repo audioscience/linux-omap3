@@ -49,41 +49,41 @@
 	extern DSP_STATUS WMD_CHNL_Open(OUT struct CHNL_OBJECT **phChnl,
 					struct CHNL_MGR *hChnlMgr,
 					CHNL_MODE uMode,
-					ULONG uChnlId,
+					u32 uChnlId,
 					CONST IN OPTIONAL struct CHNL_ATTRS
 					*pAttrs);
 
 	extern DSP_STATUS WMD_CHNL_Close(struct CHNL_OBJECT *hChnl);
 
 	extern DSP_STATUS WMD_CHNL_AddIOReq(struct CHNL_OBJECT *hChnl,
-					    PVOID pHostBuf,
-					    ULONG cBytes, ULONG cBufSize,
-					    OPTIONAL DWORD dwDspAddr,
-					    DWORD dwArg);
+					    void *pHostBuf,
+					    u32 cBytes, u32 cBufSize,
+					    OPTIONAL u32 dwDspAddr,
+					    u32 dwArg);
 
 	extern DSP_STATUS WMD_CHNL_GetIOC(struct CHNL_OBJECT *hChnl,
-					  DWORD dwTimeOut,
+					  u32 dwTimeOut,
 					  OUT struct CHNL_IOC *pIOC);
 
 	extern DSP_STATUS WMD_CHNL_CancelIO(struct CHNL_OBJECT *hChnl);
 
 	extern DSP_STATUS WMD_CHNL_FlushIO(struct CHNL_OBJECT *hChnl,
-					   DWORD dwTimeOut);
+					   u32 dwTimeOut);
 
 	extern DSP_STATUS WMD_CHNL_GetInfo(struct CHNL_OBJECT *hChnl,
 					   OUT struct CHNL_INFO *pInfo);
 
 	extern DSP_STATUS WMD_CHNL_GetMgrInfo(struct CHNL_MGR *hChnlMgr,
-					      ULONG uChnlID,
+					      u32 uChnlID,
 					      OUT struct CHNL_MGRINFO
 					      *pMgrInfo);
 
 	extern DSP_STATUS WMD_CHNL_Idle(struct CHNL_OBJECT *hChnl,
-					DWORD dwTimeOut, BOOL fFlush);
+					u32 dwTimeOut, BOOL fFlush);
 
 	extern DSP_STATUS WMD_CHNL_RegisterNotify(struct CHNL_OBJECT *hChnl,
-						  UINT uEventMask,
-						  UINT uNotifyType,
+						  u32 uEventMask,
+						  u32 uNotifyType,
 						  struct DSP_NOTIFICATION
 						  *hNotification);
 

@@ -55,7 +55,7 @@
 #define WCD_
 
 /* This WCD Library Version:  */
-#define WCD_MAJOR_VERSION   (DWORD)8	/* .8x - Alpha, .9x - Beta, 1.x FCS */
-#define WCD_MINOR_VERSION   (DWORD)0
+#define WCD_MAJOR_VERSION   (u32)8	/* .8x - Alpha, .9x - Beta, 1.x FCS */
+#define WCD_MINOR_VERSION   (u32)0
 
 #endif				/* WCD_ */

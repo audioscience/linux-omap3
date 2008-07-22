@@ -56,7 +56,7 @@ struct DBLL_TarObj;
  *  ======== DBLL_Flags ========
  *  Specifies whether to load code, data, or symbols
  */
-typedef Int DBLL_Flags;
+typedef s32 DBLL_Flags;
 
 /*
  *  ======== DBLL_Library ========
@@ -70,10 +70,10 @@ struct DBLL_LibraryObj;
  *  For collecting info on overlay sections
  */
 struct DBLL_SectInfo {
-	const Char *name;	/* name of section */
-	LgUns runAddr;		/* run address of section */
-	LgUns loadAddr;		/* load address of section */
-	LgUns size;		/* size of section (target MAUs) */
+	const char *name;	/* name of section */
+	u32 runAddr;		/* run address of section */
+	u32 loadAddr;		/* load address of section */
+	u32 size;		/* size of section (target MAUs) */
 	DBLL_Flags type;	/* Code, data, or BSS */
 } ;
 
@@ -82,7 +82,7 @@ struct DBLL_SectInfo {
  *  (Needed for dynamic load library)
  */
 struct DBLL_Symbol {
-	LgUns value;
+	u32 value;
 };
 
 /*
@@ -92,45 +92,45 @@ struct DBLL_Symbol {
  *  *dspAddr (or starting at *dspAddr if reserve == TRUE). Returns 0 on
  *  success, or an error code on failure.
  */
-typedef Int(*DBLL_AllocFxn) (Void *hdl, Int space, LgUns size, Uns align,
-			     LgUns *dspAddr, Int segId, Int req,
+typedef s32(*DBLL_AllocFxn) (void *hdl, s32 space, u32 size, u32 align,
+			     u32 *dspAddr, s32 segId, s32 req,
 			     Bool reserved);
 
 /*
  *  ======== DBLL_CloseFxn ========
  */
-typedef Int(*DBLL_FCloseFxn) (Void *);
+typedef s32(*DBLL_FCloseFxn) (void *);
 
 /*
  *  ======== DBLL_FreeFxn ========
  *  Free memory function.  Free, or unreserve (if reserved == TRUE) "size"
  *  bytes of memory from segment "space"
  */
-typedef Bool(*DBLL_FreeFxn) (Void *hdl, LgUns addr, Int space, LgUns size,
+typedef Bool(*DBLL_FreeFxn) (void *hdl, u32 addr, s32 space, u32 size,
 			     Bool reserved);
 
 /*
  *  ======== DBLL_FOpenFxn ========
  */
-typedef Void *(*DBLL_FOpenFxn) (const Char *, const Char *);
+typedef void *(*DBLL_FOpenFxn) (const char *, const char *);
 
 /*
  *  ======== DBLL_LogWriteFxn ========
  *  Function to call when writing data from a section, to log the info.
  *  Can be NULL if no logging is required.
  */
-typedef DSP_STATUS(*DBLL_LogWriteFxn)(Void *handle, struct DBLL_SectInfo *sect,
-				       LgUns addr, LgUns nBytes);
+typedef DSP_STATUS(*DBLL_LogWriteFxn)(void *handle, struct DBLL_SectInfo *sect,
+				       u32 addr, u32 nBytes);
 
 /*
  *  ======== DBLL_ReadFxn ========
  */
-typedef Int(*DBLL_ReadFxn) (Void *, size_t, size_t, Void *);
+typedef s32(*DBLL_ReadFxn) (void *, size_t, size_t, void *);
 
 /*
  *  ======== DBLL_SeekFxn ========
  */
-typedef Int(*DBLL_SeekFxn) (Void *, long, int);
+typedef s32(*DBLL_SeekFxn) (void *, long, int);
 
 /*
  *  ======== DBLL_SymLookup ========
@@ -146,13 +146,13 @@ typedef Int(*DBLL_SeekFxn) (Void *, long, int);
  *      TRUE:           Success (symbol was found).
  *      FALSE:          Failed to find symbol.
  */
-typedef Bool(*DBLL_SymLookup) (Void *handle, Void *pArg, Void *rmmHandle,
-			       const Char *name, struct DBLL_Symbol **sym);
+typedef Bool(*DBLL_SymLookup) (void *handle, void *pArg, void *rmmHandle,
+			       const char *name, struct DBLL_Symbol **sym);
 
 /*
  *  ======== DBLL_TellFxn ========
  */
-typedef LgInt(*DBLL_TellFxn) (Void *);
+typedef s32(*DBLL_TellFxn) (void *);
 
 /*
  *  ======== DBLL_WriteFxn ========
@@ -160,8 +160,8 @@ typedef LgInt(*DBLL_TellFxn) (Void *);
  *  starting at address "dspAddr" from the buffer "buf".  The buffer is
  *  formatted as an array of words appropriate for the DSP.
  */
-typedef Int(*DBLL_WriteFxn) (Void *hdl, LgUns dspAddr, Void *buf,
-			     LgUns n, Int mtype);
+typedef s32(*DBLL_WriteFxn) (void *hdl, u32 dspAddr, void *buf,
+			     u32 n, s32 mtype);
 
 /*
  *  ======== DBLL_Attrs ========
@@ -169,27 +169,27 @@ typedef Int(*DBLL_WriteFxn) (Void *hdl, LgUns dspAddr, Void *buf,
 struct DBLL_Attrs {
 	DBLL_AllocFxn alloc;
 	DBLL_FreeFxn free;
-	Void *rmmHandle;	/* Handle to pass to alloc, free functions */
+	void *rmmHandle;	/* Handle to pass to alloc, free functions */
 	DBLL_WriteFxn write;
-	Void *wHandle;		/* Handle to pass to write, cinit function */
+	void *wHandle;		/* Handle to pass to write, cinit function */
 	Bool baseImage;
 	DBLL_LogWriteFxn logWrite;
-	Void *logWriteHandle;
+	void *logWriteHandle;
 
 	/* Symbol matching function and handle to pass to it */
 	DBLL_SymLookup symLookup;
-	Void *symHandle;
-	Void *symArg;
+	void *symHandle;
+	void *symArg;
 
 	/*
 	 *  These file manipulation functions should be compatible with the
 	 *  "C" run time library functions of the same name.
 	 */
-	 Int(*fread) (Void *, size_t, size_t, Void *);
-	 Int(*fseek) (Void *, long, int);
-	 LgInt(*ftell) (Void *);
-	 Int(*fclose) (Void *);
-	Void *(*fopen) (const Char *, const Char *);
+	 s32(*fread) (void *, size_t, size_t, void *);
+	 s32(*fseek) (void *, long, int);
+	 s32(*ftell) (void *);
+	 s32(*fclose) (void *);
+	void *(*fopen) (const char *, const char *);
 } ;
 
 /*
@@ -203,7 +203,7 @@ struct DBLL_Attrs {
  *      Valid lib.
  *  Ensures:
  */
-typedef Void(*DBLL_CloseFxn) (struct DBLL_LibraryObj *library);
+typedef void(*DBLL_CloseFxn) (struct DBLL_LibraryObj *library);
 
 /*
  *  ======== DBLL_create ========
@@ -236,7 +236,7 @@ typedef DSP_STATUS(*DBLL_CreateFxn)(struct DBLL_TarObj **pTarget,
  *      Valid target.
  *  Ensures:
  */
-typedef Void(*DBLL_DeleteFxn) (struct DBLL_TarObj *target);
+typedef void(*DBLL_DeleteFxn) (struct DBLL_TarObj *target);
 
 /*
  *  ======== DBLL_exit ========
@@ -248,7 +248,7 @@ typedef Void(*DBLL_DeleteFxn) (struct DBLL_TarObj *target);
  *  Ensures:
  *      cRefs >= 0.
  */
-typedef Void(*DBLL_ExitFxn) (Void);
+typedef void(*DBLL_ExitFxn) (void);
 
 /*
  *  ======== DBLL_getAddr ========
@@ -267,7 +267,7 @@ typedef Void(*DBLL_ExitFxn) (Void);
  *      ppSym != NULL.
  *  Ensures:
  */
-typedef Bool(*DBLL_GetAddrFxn) (struct DBLL_LibraryObj *lib, String name,
+typedef Bool(*DBLL_GetAddrFxn) (struct DBLL_LibraryObj *lib, char *name,
 				struct DBLL_Symbol **ppSym);
 
 /*
@@ -283,7 +283,7 @@ typedef Bool(*DBLL_GetAddrFxn) (struct DBLL_LibraryObj *lib, String name,
  *      pAttrs != NULL.
  *  Ensures:
  */
-typedef Void(*DBLL_GetAttrsFxn) (struct DBLL_TarObj *target,
+typedef void(*DBLL_GetAttrsFxn) (struct DBLL_TarObj *target,
 				 struct DBLL_Attrs *attrs);
 
 /*
@@ -303,7 +303,7 @@ typedef Void(*DBLL_GetAttrsFxn) (struct DBLL_TarObj *target,
  *      ppSym != NULL.
  *  Ensures:
  */
-typedef Bool(*DBLL_GetCAddrFxn) (struct DBLL_LibraryObj *lib, String name,
+typedef Bool(*DBLL_GetCAddrFxn) (struct DBLL_LibraryObj *lib, char *name,
 				 struct DBLL_Symbol **ppSym);
 
 /*
@@ -325,8 +325,8 @@ typedef Bool(*DBLL_GetCAddrFxn) (struct DBLL_LibraryObj *lib, String name,
  *      pSize != NULL.
  *  Ensures:
  */
-typedef DSP_STATUS(*DBLL_GetSectFxn) (struct DBLL_LibraryObj *lib, String name,
-				      LgUns *addr, LgUns *size);
+typedef DSP_STATUS(*DBLL_GetSectFxn) (struct DBLL_LibraryObj *lib, char *name,
+				      u32 *addr, u32 *size);
 
 /*
  *  ======== DBLL_init ========
@@ -341,7 +341,7 @@ typedef DSP_STATUS(*DBLL_GetSectFxn) (struct DBLL_LibraryObj *lib, String name,
  *      Success:        cRefs > 0.
  *      Failure:        cRefs >= 0.
  */
-typedef Bool(*DBLL_InitFxn) (Void);
+typedef Bool(*DBLL_InitFxn) (void);
 
 /*
  *  ======== DBLL_load ========
@@ -365,7 +365,7 @@ typedef Bool(*DBLL_InitFxn) (Void);
  */
 typedef DSP_STATUS(*DBLL_LoadFxn) (struct DBLL_LibraryObj *lib,
 				   DBLL_Flags flags,
-				   struct DBLL_Attrs *attrs, LgUns *entry);
+				   struct DBLL_Attrs *attrs, u32 *entry);
 
 /*
  *  ======== DBLL_loadSect ========
@@ -387,7 +387,7 @@ typedef DSP_STATUS(*DBLL_LoadFxn) (struct DBLL_LibraryObj *lib,
  *  Ensures:
  */
 typedef DSP_STATUS(*DBLL_LoadSectFxn) (struct DBLL_LibraryObj *lib,
-				       Char *pszSectName,
+				       char *pszSectName,
 				       struct DBLL_Attrs *attrs);
 
 /*
@@ -415,7 +415,7 @@ typedef DSP_STATUS(*DBLL_LoadSectFxn) (struct DBLL_LibraryObj *lib,
  *      Success:        Valid *pLib.
  *      Failure:        *pLib == NULL.
  */
-typedef DSP_STATUS(*DBLL_OpenFxn) (struct DBLL_TarObj *target, String file,
+typedef DSP_STATUS(*DBLL_OpenFxn) (struct DBLL_TarObj *target, char *file,
 				   DBLL_Flags flags,
 				   struct DBLL_LibraryObj **pLib);
 
@@ -438,8 +438,8 @@ typedef DSP_STATUS(*DBLL_OpenFxn) (struct DBLL_TarObj *target, String file,
  *      size != 0.
  *  Ensures:
  */
-typedef DSP_STATUS(*DBLL_ReadSectFxn) (struct DBLL_LibraryObj *lib, String name,
-				       String content, LgUns uContentSize);
+typedef DSP_STATUS(*DBLL_ReadSectFxn) (struct DBLL_LibraryObj *lib, char *name,
+				       char *content, u32 uContentSize);
 
 /*
  *  ======== DBLL_setAttrs ========
@@ -454,7 +454,7 @@ typedef DSP_STATUS(*DBLL_ReadSectFxn) (struct DBLL_LibraryObj *lib, String name,
  *      pAttrs != NULL.
  *  Ensures:
  */
-typedef Void(*DBLL_SetAttrsFxn)(struct DBLL_TarObj *target,
+typedef void(*DBLL_SetAttrsFxn)(struct DBLL_TarObj *target,
 				struct DBLL_Attrs *attrs);
 
 /*
@@ -469,7 +469,7 @@ typedef Void(*DBLL_SetAttrsFxn)(struct DBLL_TarObj *target,
  *      Valid lib.
  *  Ensures:
  */
-typedef Void(*DBLL_UnloadFxn) (struct DBLL_LibraryObj *library,
+typedef void(*DBLL_UnloadFxn) (struct DBLL_LibraryObj *library,
 			       struct DBLL_Attrs *attrs);
 
 /*
@@ -490,7 +490,7 @@ typedef Void(*DBLL_UnloadFxn) (struct DBLL_LibraryObj *library,
  *  Ensures:
  */
 typedef DSP_STATUS(*DBLL_UnloadSectFxn) (struct DBLL_LibraryObj *lib,
-					 Char *pszSectName,
+					 char *pszSectName,
 					 struct DBLL_Attrs *attrs);
 
 struct DBLL_Fxns {

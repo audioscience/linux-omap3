@@ -41,16 +41,17 @@
 #define DBG_
 
 #include <dspapi.h>
+#include <linux/types.h>
 
 /* Levels of trace debug messages: */
-#define DBG_ENTER   (BYTE)(0x01)	/* Function entry point. */
-#define DBG_LEVEL1  (BYTE)(0x02)	/* Display debugging state/varibles */
-#define DBG_LEVEL2  (BYTE)(0x04)	/* Display debugging state/varibles */
-#define DBG_LEVEL3  (BYTE)(0x08)	/* Display debugging state/varibles */
-#define DBG_LEVEL4  (BYTE)(0x10)	/* Display debugging state/varibles */
-#define DBG_LEVEL5  (BYTE)(0x20)	/* Module Init, Exit */
-#define DBG_LEVEL6  (BYTE)(0x40)	/* Warn SERVICES Failures */
-#define DBG_LEVEL7  (BYTE)(0x80)	/* Warn Critical Errors */
+#define DBG_ENTER   (u8)(0x01)	/* Function entry point. */
+#define DBG_LEVEL1  (u8)(0x02)	/* Display debugging state/varibles */
+#define DBG_LEVEL2  (u8)(0x04)	/* Display debugging state/varibles */
+#define DBG_LEVEL3  (u8)(0x08)	/* Display debugging state/varibles */
+#define DBG_LEVEL4  (u8)(0x10)	/* Display debugging state/varibles */
+#define DBG_LEVEL5  (u8)(0x20)	/* Module Init, Exit */
+#define DBG_LEVEL6  (u8)(0x40)	/* Warn SERVICES Failures */
+#define DBG_LEVEL7  (u8)(0x80)	/* Warn Critical Errors */
 
 #if ((defined DEBUG) || (defined DDSP_DEBUG_PRODUCT)) && GT_TRACE
 
@@ -66,7 +67,7 @@
  *  Ensures:
  *      Resources used by module are freed when cRef reaches zero.
  */
-	extern VOID DBG_Exit();
+	extern void DBG_Exit();
 
 /*
  *  ======== DBG_Init ========
@@ -98,7 +99,7 @@
  *      Debug message is printed to debugger output window, if trace level
  *      is unmasked.
  */
-	extern DSP_STATUS DBG_Trace(IN BYTE bLevel, IN PSTR pstrFormat, ...);
+	extern DSP_STATUS DBG_Trace(IN u8 bLevel, IN char *pstrFormat, ...);
 #else
 
 #define DBG_Exit()

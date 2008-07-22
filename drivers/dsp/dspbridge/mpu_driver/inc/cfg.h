@@ -67,6 +67,7 @@
 
 #include <dspapi.h>
 #include <cfgdefs.h>
+#include <linux/types.h>
 
 /*
  *  ======== CFG_Exit ========
@@ -79,7 +80,7 @@
  *  Ensures:
  *      Resources acquired in CFG_Init() are freed.
  */
-	extern VOID CFG_Exit();
+	extern void CFG_Exit();
 
 /*
  *  ======== CFG_GetAutoStart ========
@@ -98,14 +99,14 @@
  *      DSP_SOK:        *pdwAutoStart contains autostart mask for this devnode.
  */
 	extern DSP_STATUS CFG_GetAutoStart(IN struct CFG_DEVNODE *hDevNode,
-					   OUT DWORD *pdwAutoStart);
+					   OUT u32 *pdwAutoStart);
 
 /*
  *  ======== CFG_GetCDVersion ========
  *  Purpose:
  *      Retrieves the version of the PM Class Driver.
  *  Parameters:
- *      pdwVersion: Ptr to DWORD to contain version number upon return.
+ *      pdwVersion: Ptr to u32 to contain version number upon return.
  *  Returns:
  *      DSP_SOK:    Success.  pdwVersion contains Class Driver version in
  *                  the form: 0xAABBCCDD where AABB is Major version and
@@ -117,7 +118,7 @@
  *      DSP_SOK:    Success.
  *      else:       *pdwVersion is NULL.
  */
-	extern DSP_STATUS CFG_GetCDVersion(OUT DWORD *pdwVersion);
+	extern DSP_STATUS CFG_GetCDVersion(OUT u32 *pdwVersion);
 
 /*
  *  ======== CFG_GetDevObject ========
@@ -134,11 +135,11 @@
  *  Requires:
  *      CFG initialized.
  *  Ensures:
- *      DSP_SOK:    *pdwValue is set to the retrieved DWORD.
+ *      DSP_SOK:    *pdwValue is set to the retrieved u32.
  *      else:       *pdwValue is set to 0L.
  */
 	extern DSP_STATUS CFG_GetDevObject(IN struct CFG_DEVNODE *hDevNode,
-					   OUT DWORD *pdwValue);
+					   OUT u32 *pdwValue);
 
 /*
  *  ======== CFG_GetDSPResources ========
@@ -183,8 +184,8 @@
  *                  devnode.
  */
 	extern DSP_STATUS CFG_GetExecFile(IN struct CFG_DEVNODE *hDevNode,
-					  IN ULONG cBufSize,
-					  OUT PSTR pstrExecFile);
+					  IN u32 cBufSize,
+					  OUT char *pstrExecFile);
 
 /*
  *  ======== CFG_GetHostResources ========
@@ -220,10 +221,10 @@
  *  Requires:
  *      CFG initialized.
  *  Ensures:
- *      DSP_SOK:    *pdwValue is set to the retrieved DWORD(non-Zero).
+ *      DSP_SOK:    *pdwValue is set to the retrieved u32(non-Zero).
  *      else:       *pdwValue is set to 0L.
  */
-	extern DSP_STATUS CFG_GetObject(OUT DWORD *pdwValue, DWORD dwType);
+	extern DSP_STATUS CFG_GetObject(OUT u32 *pdwValue, u32 dwType);
 
 /*
  *  ======== CFG_GetPerfValue ========
@@ -239,7 +240,7 @@
  *      pfEnablePerf != NULL;
  *  Ensures:
  */
-	extern VOID CFG_GetPerfValue(OUT BOOL *pfEnablePerf);
+	extern void CFG_GetPerfValue(OUT BOOL *pfEnablePerf);
 
 /*
  *  ======== CFG_GetWMDFileName ========
@@ -261,8 +262,8 @@
  *
  */
 	extern DSP_STATUS CFG_GetWMDFileName(IN struct CFG_DEVNODE *hDevNode,
-					     IN ULONG cBufSize,
-					     OUT PSTR pWMDFileName);
+					     IN u32 cBufSize,
+					     OUT char *pWMDFileName);
 
 /*
  *  ======== CFG_GetZLFile ========
@@ -285,8 +286,8 @@
  *                  for this devnode.
  */
 	extern DSP_STATUS CFG_GetZLFile(IN struct CFG_DEVNODE *hDevNode,
-					IN ULONG cBufSize,
-					OUT PSTR pstrZLFileName);
+					IN u32 cBufSize,
+					OUT char *pstrZLFileName);
 
 /*
  *  ======== CFG_Init ========
@@ -315,10 +316,10 @@
  *  Requires:
  *      CFG initialized.
  *  Ensures:
- *      DSP_SOK:    The Private DWORD was successfully set.
+ *      DSP_SOK:    The Private u32 was successfully set.
  */
 	extern DSP_STATUS CFG_SetDevObject(IN struct CFG_DEVNODE *hDevNode,
-					   IN DWORD dwValue);
+					   IN u32 dwValue);
 
 /*
  *  ======== CFG_SetDrvObject ========
@@ -333,10 +334,10 @@
  *  Requires:
  *      CFG initialized.
  *  Ensures:
- *      DSP_SOK:        The Private DWORD was successfully set.
+ *      DSP_SOK:        The Private u32 was successfully set.
  */
-	extern DSP_STATUS CFG_SetObject(IN DWORD dwValue, IN DWORD dwType);
+	extern DSP_STATUS CFG_SetObject(IN u32 dwValue, IN u32 dwType);
 
-	extern DSP_STATUS CFG_GetC55Procs(OUT DWORD *numProcs);
+	extern DSP_STATUS CFG_GetC55Procs(OUT u32 *numProcs);
 
 #endif				/* CFG_ */

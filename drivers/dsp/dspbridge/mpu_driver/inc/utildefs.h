@@ -43,9 +43,9 @@
 /* Platform specific important info */
 	struct UTIL_SYSINFO {
 		/* Granularity of page protection; usually 1k or 4k */
-		DWORD dwPageSize;
-		DWORD dwAllocationGranularity; /* VM granularity, usually 64K */
-		DWORD dwNumberOfProcessors;	/* Used as sanity check */
+		u32 dwPageSize;
+		u32 dwAllocationGranularity; /* VM granularity, usually 64K */
+		u32 dwNumberOfProcessors;	/* Used as sanity check */
 	} ;
 
 #endif				/* UTILDEFS_ */

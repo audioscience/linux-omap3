@@ -62,17 +62,17 @@
 /* DCD Node Properties */
 	struct DCD_NODEPROPS {
 		struct DSP_NDBPROPS ndbProps;
-		UINT uMsgSegid;
-		UINT uMsgNotifyType;
-		PSTR pstrCreatePhaseFxn;
-		PSTR pstrDeletePhaseFxn;
-		PSTR pstrExecutePhaseFxn;
-		PSTR pstrIAlgName;
+		u32 uMsgSegid;
+		u32 uMsgNotifyType;
+		char *pstrCreatePhaseFxn;
+		char *pstrDeletePhaseFxn;
+		char *pstrExecutePhaseFxn;
+		char *pstrIAlgName;
 
 		/* Dynamic load properties */
-		USHORT usLoadType;	/* Static, dynamic, overlay */
-		ULONG ulDataMemSegMask;	/* Data memory requirements */
-		ULONG ulCodeMemSegMask;	/* Code memory requirements */
+		u16 usLoadType;	/* Static, dynamic, overlay */
+		u32 ulDataMemSegMask;	/* Data memory requirements */
+		u32 ulCodeMemSegMask;	/* Code memory requirements */
 	} ;
 
 /* DCD Generic Object Type */
@@ -89,7 +89,7 @@
 /* DCD Internal Callback Type */
        typedef DSP_STATUS(CDECL * DCD_REGISTERFXN) (IN struct DSP_UUID *pUuid,
 						     IN DSP_DCDOBJTYPE objType,
-						     IN PVOID handle);
+						     IN void *handle);
 
 #endif				/* DBDCDDEF_ */
 

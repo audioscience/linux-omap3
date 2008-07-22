@@ -165,8 +165,8 @@
 struct DEV_OBJECT {
 	/* LST requires "link" to be first field!                        */
 	struct LST_ELEM link;		/* Link to next DEV_OBJECT.      */
-	UINT devType;		/* Device Type */
-	DWORD dwSignature;	/* Used for object validation.   */
+	u32 devType;		/* Device Type */
+	u32 dwSignature;	/* Used for object validation.   */
 	struct CFG_DEVNODE *hDevNode;	/* Platform specific device id   */
 	struct WMD_DEV_CONTEXT *hWmdContext;	/* WMD Context Handle        */
 	struct WMD_DRV_INTERFACE intfFxns;	/* Function interface to WMD. */
@@ -179,7 +179,7 @@ struct DEV_OBJECT {
 	struct CMM_OBJECT *hCmmMgr;	/* SM memory manager.            */
 	struct DMM_OBJECT *hDmmMgr;	/* Dynamic memory manager.       */
 	struct LDR_MODULE *hModule;	/* WMD Module handle.            */
-	ULONG uWordSize;	/* DSP word size: quick access.  */
+	u32 uWordSize;	/* DSP word size: quick access.  */
 	struct DRV_OBJECT *hDrvObject;	/* Driver Object                 */
 	struct LST_LIST *procList;	/* List of Proceeosr attached to
 				 * this device
@@ -188,7 +188,7 @@ struct DEV_OBJECT {
 } ;
 
 /*  ----------------------------------- Globals */
-static ULONG cRefs;		/* Module reference count */
+static u32 cRefs;		/* Module reference count */
 #if GT_TRACE
 static struct GT_Mask debugMask = { 0, 0 };	/* For debugging */
 #endif
@@ -206,11 +206,11 @@ static void StoreInterfaceFxns(struct WMD_DRV_INTERFACE *pDrvFxns,
  *      is passed a handle to a DEV_hObject, then calls the
  *      device's WMD_BRD_Write() function.
  */
-ULONG DEV_BrdWriteFxn(PVOID pArb, ULONG ulDspAddr, PVOID pHostBuf,
-		      ULONG ulNumBytes, UINT nMemSpace)
+u32 DEV_BrdWriteFxn(void *pArb, u32 ulDspAddr, void *pHostBuf,
+		      u32 ulNumBytes, u32 nMemSpace)
 {
 	struct DEV_OBJECT *pDevObject = (struct DEV_OBJECT *)pArb;
-	ULONG ulWritten = 0;
+	u32 ulWritten = 0;
 	DSP_STATUS status;
 
 	DBC_Require(cRefs > 0);
@@ -245,7 +245,7 @@ ULONG DEV_BrdWriteFxn(PVOID pArb, ULONG ulDspAddr, PVOID pHostBuf,
  *      PM board (device).
  */
 DSP_STATUS DEV_CreateDevice(OUT struct DEV_OBJECT **phDevObject,
-			    IN CONST PSTR pstrWMDFileName,
+			    IN CONST char *pstrWMDFileName,
 			    IN CONST struct CFG_HOSTRES *pHostConfig,
 			    IN CONST struct CFG_DSPRES *pDspConfig,
 			    struct CFG_DEVNODE *hDevNode)
@@ -255,7 +255,7 @@ DSP_STATUS DEV_CreateDevice(OUT struct DEV_OBJECT **phDevObject,
 	struct DEV_OBJECT *pDevObject = NULL;
 	struct CHNL_MGRATTRS mgrAttrs;
 	struct IO_ATTRS ioMgrAttrs;
-	ULONG uNumWindows;
+	u32 uNumWindows;
 	struct DRV_OBJECT *hDrvObject = NULL;
 	DSP_STATUS status = DSP_SOK;
 	DBC_Require(cRefs > 0);
@@ -271,7 +271,7 @@ DSP_STATUS DEV_CreateDevice(OUT struct DEV_OBJECT **phDevObject,
 		  pstrWMDFileName, pHostConfig, pDspConfig, hDevNode);
 	/*  Get the WMD interface functions*/
 	WMD_DRV_Entry(&pDrvFxns, pstrWMDFileName);
-	if (DSP_FAILED(CFG_GetObject((DWORD *) &hDrvObject, REG_DRV_OBJECT))) {
+	if (DSP_FAILED(CFG_GetObject((u32 *) &hDrvObject, REG_DRV_OBJECT))) {
 		/* don't propogate CFG errors from this PROC function */
 		GT_0trace(debugMask, GT_7CLASS,
 			  "Failed to get the DRV Object \n");
@@ -828,7 +828,7 @@ struct DEV_OBJECT *DEV_GetNext(struct DEV_OBJECT *hDevObject)
 
 	if (IsValidHandle(hDevObject)) {
 		pNextDevObject = (struct DEV_OBJECT *)
-				 DRV_GetNextDevObject((DWORD)hDevObject);
+				 DRV_GetNextDevObject((u32)hDevObject);
 	}
 	DBC_Ensure((pNextDevObject == NULL) || IsValidHandle(pNextDevObject));
 	return pNextDevObject;
@@ -837,7 +837,7 @@ struct DEV_OBJECT *DEV_GetNext(struct DEV_OBJECT *hDevObject)
 /*
  *  ========= DEV_GetMsgMgr ========
  */
-VOID CDECL DEV_GetMsgMgr(struct DEV_OBJECT *hDevObject,
+void CDECL DEV_GetMsgMgr(struct DEV_OBJECT *hDevObject,
 			OUT struct MSG_MGR **phMsgMgr)
 {
 	DBC_Require(cRefs > 0);
@@ -885,7 +885,7 @@ DSP_STATUS CDECL DEV_GetNodeManager(struct DEV_OBJECT *hDevObject,
  *  ======== DEV_GetSymbol ========
  */
 DSP_STATUS CDECL DEV_GetSymbol(struct DEV_OBJECT *hDevObject,
-			      IN CONST PSTR pstrSym, OUT ULONG *pulValue)
+			      IN CONST char *pstrSym, OUT u32 *pulValue)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct COD_MANAGER *hCodMgr;
@@ -1017,7 +1017,7 @@ BOOL CDECL DEV_Init(void)
  *  Purpose:
  *      Notify all clients of this device of a change in device status.
  */
-DSP_STATUS DEV_NotifyClients(struct DEV_OBJECT *hDevObject, ULONG ulStatus)
+DSP_STATUS DEV_NotifyClients(struct DEV_OBJECT *hDevObject, u32 ulStatus)
 {
 	DSP_STATUS status = DSP_SOK;
 
@@ -1031,7 +1031,7 @@ DSP_STATUS DEV_NotifyClients(struct DEV_OBJECT *hDevObject, ULONG ulStatus)
 		hProcObject != NULL;
 		hProcObject = (DSP_HPROCESSOR)LST_Next(pDevObject->procList,
 						(struct LST_ELEM *)hProcObject))
-		PROC_NotifyClients(hProcObject, (UINT) ulStatus);
+		PROC_NotifyClients(hProcObject, (u32) ulStatus);
 
 	return status;
 }
@@ -1049,7 +1049,7 @@ DSP_STATUS CDECL DEV_RemoveDevice(struct CFG_DEVNODE *hDevNode)
 		 "Entered DEV_RemoveDevice, hDevNode:  0x%x\n", hDevNode);
 	/* Retrieve the device object handle originaly stored with
 	 * the DevNode: */
-	status = CFG_GetDevObject(hDevNode, (DWORD *)&hDevObject);
+	status = CFG_GetDevObject(hDevNode, (u32 *)&hDevObject);
 	if (DSP_SUCCEEDED(status)) {
 		/* Remove the Processor List */
 		pDevObject = (struct DEV_OBJECT *)hDevObject;
@@ -1097,7 +1097,7 @@ DSP_STATUS DEV_SetChnlMgr(struct DEV_OBJECT *hDevObject, struct CHNL_MGR *hMgr)
  *  Purpose:
  *      Set the message manager for this device.
  */
-VOID DEV_SetMsgMgr(struct DEV_OBJECT *hDevObject, struct MSG_MGR *hMgr)
+void DEV_SetMsgMgr(struct DEV_OBJECT *hDevObject, struct MSG_MGR *hMgr)
 {
 	DBC_Require(cRefs > 0);
 	DBC_Require(IsValidHandle(hDevObject));
@@ -1145,7 +1145,7 @@ DSP_STATUS CDECL DEV_StartDevice(struct CFG_DEVNODE *hDevNode)
 					 &dspRes, hDevNode);
 		if (DSP_SUCCEEDED(status)) {
 			/* Store away the hDevObject with the DEVNODE */
-			status = CFG_SetDevObject(hDevNode, (DWORD)hDevObject);
+			status = CFG_SetDevObject(hDevNode, (u32)hDevObject);
 			if (DSP_FAILED(status)) {
 				/* Clean up */
 				GT_1trace(debugMask, GT_7CLASS,
@@ -1265,7 +1265,7 @@ static DSP_STATUS InitCodMgr(struct DEV_OBJECT *pDevObject)
  *      DSP_SOK and List is not Empty.
  */
 DSP_STATUS CDECL DEV_InsertProcObject(struct DEV_OBJECT *hDevObject,
-				     DWORD hProcObject,
+				     u32 hProcObject,
 				     OUT BOOL *pbAlreadyAttached)
 {
 	DSP_STATUS status = DSP_SOK;
@@ -1311,7 +1311,7 @@ DSP_STATUS CDECL DEV_InsertProcObject(struct DEV_OBJECT *hDevObject,
  *      List will be deleted when the DEV is destroyed.
  */
 DSP_STATUS CDECL DEV_RemoveProcObject(struct DEV_OBJECT *hDevObject,
-				     DWORD hProcObject)
+				     u32 hProcObject)
 {
 	DSP_STATUS status = DSP_EFAIL;
 	struct LST_ELEM *pCurElem;
@@ -1329,7 +1329,7 @@ DSP_STATUS CDECL DEV_RemoveProcObject(struct DEV_OBJECT *hDevObject,
 	for (pCurElem = LST_First(pDevObject->procList); pCurElem != NULL;
 	    pCurElem = LST_Next(pDevObject->procList, pCurElem)) {
 		/* If found, remove it. */
-		if ((DWORD)pCurElem == hProcObject) {
+		if ((u32)pCurElem == hProcObject) {
 			LST_RemoveElem(pDevObject->procList, pCurElem);
 			status = DSP_SOK;
 			break;
@@ -1340,7 +1340,7 @@ DSP_STATUS CDECL DEV_RemoveProcObject(struct DEV_OBJECT *hDevObject,
 	return status;
 }
 
-DSP_STATUS CDECL DEV_GetDevType(struct DEV_OBJECT *hdevObject, UINT *devType)
+DSP_STATUS CDECL DEV_GetDevType(struct DEV_OBJECT *hdevObject, u32 *devType)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct DEV_OBJECT *pDevObject = (struct DEV_OBJECT *)hdevObject;
@@ -1373,7 +1373,7 @@ DSP_STATUS CDECL DEV_GetDevType(struct DEV_OBJECT *hdevObject, UINT *devType)
 static void StoreInterfaceFxns(struct WMD_DRV_INTERFACE *pDrvFxns,
 			      OUT struct WMD_DRV_INTERFACE *pIntfFxns)
 {
-	DWORD dwWMDVersion;
+	u32 dwWMDVersion;
 
 	/* Local helper macro: */
 #define  StoreFxn(cast, pfn) \

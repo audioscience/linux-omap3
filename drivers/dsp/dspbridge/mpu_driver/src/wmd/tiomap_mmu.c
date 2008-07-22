@@ -57,8 +57,8 @@
  *  Purpose:
  *      Make DSP MMU page table entries.
  */
-void configureDspMmu(struct WMD_DEV_CONTEXT *pDevContext, DWORD dataBasePhys,
-		    DWORD dspBaseVirt, DWORD sizeInBytes, INT nEntryStart,
+void configureDspMmu(struct WMD_DEV_CONTEXT *pDevContext, u32 dataBasePhys,
+		    u32 dspBaseVirt, u32 sizeInBytes, s32 nEntryStart,
 		    HW_Endianism_t endianism, HW_ElementSize_t elemSize,
 		    HW_MMUMixedSize_t mixedSize)
 {

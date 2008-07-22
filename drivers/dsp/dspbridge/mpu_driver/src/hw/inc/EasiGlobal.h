@@ -16,6 +16,7 @@
 
 #ifndef __EASIGLOBAL_H
 #define __EASIGLOBAL_H
+#include <linux/types.h>
 
 /* ----------------------------------------------------------------------------
 * DEFINE:        READ_ONLY, WRITE_ONLY &  READ_WRITE
@@ -63,10 +64,10 @@ typedef enum _regEnum {
 * -----------------------------------------------------------------------------
 */
 struct registerPORStruct {
-    UWORD32    ID;
-    UWORD32    address;
-    UWORD32    powerOnValue;
-    UWORD32    powerOnMask;
+    u32    ID;
+    u32    address;
+    u32    powerOnValue;
+    u32    powerOnMask;
     regEnum    regType;
 } ;
 
@@ -81,12 +82,12 @@ struct registerPORStruct {
 * -----------------------------------------------------------------------------
 */
 struct registerIntegrityStruct {
-    UWORD32    ID;
-    UWORD32    address;
-    UWORD32    readMask;
-    UWORD32    powerOnValue;
-    UWORD32    includeMask;
-    UWORD8     regType;
+    u32    ID;
+    u32    address;
+    u32    readMask;
+    u32    powerOnValue;
+    u32    includeMask;
+    u8     regType;
 } ;
 
 /* ----------------------------------------------------------------------------
@@ -100,12 +101,12 @@ struct registerIntegrityStruct {
 * -----------------------------------------------------------------------------
 */
 struct registerROWOStruct {
-    UWORD32    ID;
-    UWORD32    address;
-    UWORD32    readMask;
-    UWORD32    powerOnValue;
-    UWORD32    includeMask;
-    UWORD8     regType;
+    u32    ID;
+    u32    address;
+    u32    readMask;
+    u32    powerOnValue;
+    u32    includeMask;
+    u8     regType;
 } ;
 
 /* ----------------------------------------------------------------------------
@@ -119,14 +120,14 @@ struct registerROWOStruct {
 * -----------------------------------------------------------------------------
 */
 struct registerExclusivityStruct {
-    UWORD32    ID;
-    UWORD8     IOstatus;
-    UWORD32    address;
-    UWORD32    powerOnValue;
-    UWORD32    powerOnMask;
-    UWORD32    readMask;
-    UWORD32    includeMask;
-    UWORD8     regType;
+    u32    ID;
+    u8     IOstatus;
+    u32    address;
+    u32    powerOnValue;
+    u32    powerOnMask;
+    u32    readMask;
+    u32    includeMask;
+    u8     regType;
 } ;
 
 /*
@@ -145,7 +146,7 @@ struct registerExclusivityStruct {
 *
 * -----------------------------------------------------------------------------
 */
-extern UWORD32 EASIDummy;
+extern u32 EASIDummy;
 
 /*
  * EXPORTED FUNCTIONS/MACROS

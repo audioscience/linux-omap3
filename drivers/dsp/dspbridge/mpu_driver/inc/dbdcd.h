@@ -153,7 +153,7 @@
  *      This function can be used in conjunction with DCD_GetObjectDef to
  *      retrieve object properties.
  */
-	extern DSP_STATUS DCD_EnumerateObject(IN INT cIndex,
+	extern DSP_STATUS DCD_EnumerateObject(IN s32 cIndex,
 					      IN DSP_DCDOBJTYPE objType,
 					      OUT struct DSP_UUID *pUuid);
 
@@ -167,7 +167,7 @@
  *      DCD initialized.
  *  Ensures:
  */
-	extern VOID DCD_Exit();
+	extern void DCD_Exit();
 
 /*
  *  ======== DCD_GetDepLibs ========
@@ -196,7 +196,7 @@
  */
 	extern DSP_STATUS DCD_GetDepLibs(IN struct DCD_MANAGER *hDcdMgr,
 					 IN struct DSP_UUID *pUuid,
-					 USHORT numLibs,
+					 u16 numLibs,
 					 OUT struct DSP_UUID *pDepLibUuids,
 					 OUT BOOL *pPersistentDepLibs,
 					 IN NLDR_PHASE phase);
@@ -226,8 +226,8 @@
  */
 	extern DSP_STATUS DCD_GetNumDepLibs(IN struct DCD_MANAGER *hDcdMgr,
 					    IN struct DSP_UUID *pUuid,
-					    OUT USHORT * pNumLibs,
-					    OUT USHORT * pNumPersLibs,
+					    OUT u16 *pNumLibs,
+					    OUT u16 *pNumPersLibs,
 					    IN NLDR_PHASE phase);
 
 /*
@@ -256,8 +256,8 @@
  */
 	extern DSP_STATUS DCD_GetLibraryName(IN struct DCD_MANAGER *hDcdMgr,
 					     IN struct DSP_UUID *pUuid,
-					     IN OUT PSTR pstrLibName,
-					     IN OUT DWORD *pdwSize,
+					     IN OUT char *pstrLibName,
+					     IN OUT u32 *pdwSize,
 					     IN NLDR_PHASE phase,
 					     OUT BOOL *fPhaseSplit);
 
@@ -325,7 +325,7 @@
 	extern DSP_STATUS DCD_GetObjects(IN struct DCD_MANAGER *hDcdMgr,
 					 IN char *pszCoffPath,
 					 DCD_REGISTERFXN registerFxn,
-					 PVOID handle);
+					 void *handle);
 
 /*
  *  ======== DCD_Init ========

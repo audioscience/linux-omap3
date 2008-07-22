@@ -50,13 +50,13 @@
 
 struct RegValueStruct {
 	char name[BRIDGE_MAX_NAME_SIZE];   /*  Name of a given value entry  */
-	DWORD dataSize;		/*  Size of the data  */
+	u32 dataSize;		/*  Size of the data  */
 	void *pData;		/*  Pointer to the actual data  */
 };
 
 struct RegKeyStruct {
 	/*The current number of value entries this key has*/
-	DWORD numValueEntries;
+	u32 numValueEntries;
 	/* Array of value entries */
 	struct RegValueStruct values[BRIDGE_MAX_NUM_REG_ENTRIES];
 };
@@ -76,10 +76,10 @@ static inline void printS(void *pBuf)
 {
 	int pos = 0;
 	if (*(REG_debugMask).flags & (GT_2CLASS)) {
-		while (*(BYTE *)((pBuf)+pos) >= ' ' &&
-		       *(BYTE *)((pBuf)+pos) <= '~') {
+		while (*(u8 *)((pBuf)+pos) >= ' ' &&
+		       *(u8 *)((pBuf)+pos) <= '~') {
 			GT_1trace(REG_debugMask, GT_2CLASS, "%c",
-					*(BYTE *)((pBuf) + pos++));
+					*(u8 *)((pBuf) + pos++));
 		}
 
 		GT_0trace(REG_debugMask, GT_2CLASS, "\n");
@@ -114,7 +114,7 @@ BOOL regsupInit(void)
  */
 void regsupExit(void)
 {
-	DWORD i;
+	u32 i;
 
 	/*  Make sure data has actually been allocated.  */
 	if (pRegKey == NULL) {
@@ -134,8 +134,8 @@ void regsupExit(void)
 				GT_3trace(REG_debugMask, GT_2CLASS,
 					  "E %d\t %s DATA %x ", i,
 					  pRegKey->values[i].name,
-					  *(DWORD *)pRegKey->values[i].pData);
-				printS((BYTE *)(pRegKey->values[i].pData));
+					  *(u32 *)pRegKey->values[i].pData);
+				printS((u8 *)(pRegKey->values[i].pData));
 				MEM_Free(pRegKey->values[i].pData);
 			}
 			pRegKey->values[i].pData = NULL;
@@ -156,10 +156,10 @@ void regsupExit(void)
  *  Purpose:
  *      Get the value of the entry having the given name.
  */
-DSP_STATUS regsupGetValue(char *valName, void *pBuf, DWORD *dataSize)
+DSP_STATUS regsupGetValue(char *valName, void *pBuf, u32 *dataSize)
 {
 	DSP_STATUS retVal = DSP_EFAIL;
-	DWORD i;
+	u32 i;
 
 	/*  Need to search through the entries looking for the right one.  */
 	for (i = 0; i < pRegKey->numValueEntries; i++) {
@@ -182,8 +182,8 @@ DSP_STATUS regsupGetValue(char *valName, void *pBuf, DWORD *dataSize)
 
 	if (DSP_SUCCEEDED(retVal)) {
 		GT_2trace(REG_debugMask, GT_2CLASS, "G %s DATA %x ", valName,
-			  *(DWORD *)pBuf);
-		printS((BYTE *)pBuf);
+			  *(u32 *)pBuf);
+		printS((u8 *)pBuf);
 	} else {
 		GT_1trace(REG_debugMask, GT_3CLASS, "G %s FAILED\n", valName);
 	}
@@ -196,14 +196,14 @@ DSP_STATUS regsupGetValue(char *valName, void *pBuf, DWORD *dataSize)
  *  Purpose:
  *      Sets the value of the entry having the given name.
  */
-DSP_STATUS regsupSetValue(char *valName, void *pBuf, DWORD dataSize)
+DSP_STATUS regsupSetValue(char *valName, void *pBuf, u32 dataSize)
 {
 	DSP_STATUS retVal = DSP_EFAIL;
-	DWORD i;
+	u32 i;
 
 	GT_2trace(REG_debugMask, GT_2CLASS, "S %s DATA %x ", valName,
-		  *(DWORD *)pBuf);
-	printS((BYTE *)pBuf);
+		  *(u32 *)pBuf);
+	printS((u8 *)pBuf);
 
 	/*  Need to search through the entries looking for the right one.  */
 	for (i = 0; i < pRegKey->numValueEntries; i++) {
@@ -268,14 +268,14 @@ DSP_STATUS regsupSetValue(char *valName, void *pBuf, DWORD dataSize)
  *  Purpose:
  *      Returns registry "values" and their "data" under a (sub)key.
  */
-DSP_STATUS regsupEnumValue(IN DWORD dwIndex, IN CONST PSTR pstrKey,
-			   IN OUT PSTR pstrValue, IN OUT DWORD *pdwValueSize,
-			   IN OUT PSTR pstrData, IN OUT DWORD *pdwDataSize)
+DSP_STATUS regsupEnumValue(IN u32 dwIndex, IN CONST char *pstrKey,
+			   IN OUT char *pstrValue, IN OUT u32 *pdwValueSize,
+			   IN OUT char *pstrData, IN OUT u32 *pdwDataSize)
 {
 	DSP_STATUS retVal = REG_E_INVALIDSUBKEY;
-	DWORD i;
-	DWORD dwKeyLen = CSL_Strlen(pstrKey);
-	DWORD count = 0;
+	u32 i;
+	u32 dwKeyLen = CSL_Strlen(pstrKey);
+	u32 count = 0;
 
 	/*  Need to search through the entries looking for the right one.  */
 	for (i = 0; i < pRegKey->numValueEntries; i++) {
@@ -294,8 +294,8 @@ DSP_STATUS regsupEnumValue(IN DWORD dwIndex, IN CONST PSTR pstrKey,
 				    *pdwValueSize + 1);
 			GT_3trace(REG_debugMask, GT_2CLASS,
 				  "E Key %s, Value %s, Data %x ",
-				  pstrKey, pstrValue, *(DWORD *)pstrData);
-			printS((BYTE *)pstrData);
+				  pstrKey, pstrValue, *(u32 *)pstrData);
+			printS((u8 *)pstrData);
 			/*  Set our status to good and exit.  */
 			retVal = DSP_SOK;
 			break;
@@ -311,10 +311,11 @@ DSP_STATUS regsupEnumValue(IN DWORD dwIndex, IN CONST PSTR pstrKey,
 /*
  *  ======== regsupDeleteValue ========
  */
-DSP_STATUS regsupDeleteValue(IN CONST PSTR pstrSubkey, IN CONST PSTR pstrValue)
+DSP_STATUS regsupDeleteValue(IN CONST char *pstrSubkey,
+				IN CONST char *pstrValue)
 {
 	DSP_STATUS retVal = DSP_EFAIL;
-	DWORD i;
+	u32 i;
 
 	for (i = 0; ((i < BRIDGE_MAX_NUM_REG_ENTRIES) &&
 	    (i < pRegKey->numValueEntries)); i++) {

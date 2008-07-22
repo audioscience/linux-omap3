@@ -69,7 +69,7 @@
  *      IsValid(hNtfy).
  *  Ensures:
  */
-	extern VOID NTFY_Delete(IN struct NTFY_OBJECT *hNtfy);
+	extern void NTFY_Delete(IN struct NTFY_OBJECT *hNtfy);
 
 /*
  *  ======== NTFY_Exit ========
@@ -81,7 +81,7 @@
  *      NTFY_Init() successfully called before.
  *  Ensures:
  */
-	extern VOID NTFY_Exit();
+	extern void NTFY_Exit();
 
 /*
  *  ======== NTFY_Init ========
@@ -109,8 +109,8 @@
  *      IsValid(hNtfy).
  *  Ensures:
  */
-	extern VOID NTFY_Notify(IN struct NTFY_OBJECT *hNtfy,
-				IN UINT uEventMask);
+	extern void NTFY_Notify(IN struct NTFY_OBJECT *hNtfy,
+				IN u32 uEventMask);
 
 /*
  *  ======== NTFY_Register ========
@@ -141,7 +141,7 @@
 	extern DSP_STATUS NTFY_Register(IN struct NTFY_OBJECT *hNtfy,
 					IN struct DSP_NOTIFICATION
 					*hNotification,
-					IN UINT uEventMask,
-					IN UINT uNotifyType);
+					IN u32 uEventMask,
+					IN u32 uNotifyType);
 
 #endif				/* NTFY_ */

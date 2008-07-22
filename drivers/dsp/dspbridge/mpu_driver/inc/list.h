@@ -51,6 +51,7 @@
 #define LIST_
 
 #include <dspapi.h>
+#include <linux/types.h>
 
 #define LST_IsEmpty(l)      (((l)->head.next == &(l)->head))
 
@@ -112,7 +113,7 @@
  *      chain of list elements.  Calling this function on a non-empty list
  *      will cause a memory leak.
  */
-	extern VOID LST_Delete(IN struct LST_LIST *pList);
+	extern void LST_Delete(IN struct LST_LIST *pList);
 
 /*
  *  ======== LST_Exit ========
@@ -126,7 +127,7 @@
  *  Ensures:
  *      Resources used by module are freed when cRef reaches zero.
  */
-	extern VOID LST_Exit();
+	extern void LST_Exit();
 
 /*
  *  ======== LST_First ========
@@ -204,7 +205,7 @@
  *      of a list chain -- that would break the chain.
  *
  */
-	extern VOID LST_InitElem(IN struct LST_ELEM *pListElem);
+	extern void LST_InitElem(IN struct LST_ELEM *pListElem);
 
 /*
  *  ======== LST_InsertBefore ========
@@ -222,7 +223,7 @@
  *      - pElemExisting != NULL.
  *  Ensures:
  */
-	extern VOID LST_InsertBefore(IN struct LST_LIST *pList,
+	extern void LST_InsertBefore(IN struct LST_LIST *pList,
 				     IN struct LST_ELEM *pElem,
 				     IN struct LST_ELEM *pElemExisting);
 
@@ -276,7 +277,7 @@
  *  Warning: if pElem->self is not set beforehand, LST_GetHead() will
  *      return an erroneous pointer when it is called for this element.
  */
-	extern VOID LST_PutTail(IN struct LST_LIST *pList,
+	extern void LST_PutTail(IN struct LST_LIST *pList,
 				IN struct LST_ELEM *pListElem);
 
 /*
@@ -294,7 +295,7 @@
  *      - pCurElem != NULL.
  *  Ensures:
  */
-extern VOID LST_RemoveElem(IN struct LST_LIST *pList,
+extern void LST_RemoveElem(IN struct LST_LIST *pList,
 			   IN struct LST_ELEM *pCurElem);
 
 #endif				/* LIST_ */

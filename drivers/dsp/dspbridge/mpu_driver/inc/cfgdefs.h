@@ -69,24 +69,24 @@
  *  Host resource structure.
  */
 	struct CFG_HOSTRES {
-		DWORD wNumMemWindows;	/* Set to default */
+		u32 wNumMemWindows;	/* Set to default */
 		/* This is the base.memory */
-		DWORD dwMemBase[CFG_MAXMEMREGISTERS];  /* SHM virtual address */
-		DWORD dwMemLength[CFG_MAXMEMREGISTERS]; /* Length of the Base */
-		DWORD dwMemPhys[CFG_MAXMEMREGISTERS]; /* SHM Physical address */
-		BYTE bIRQRegisters;	/* IRQ Number */
-		BYTE bIRQAttrib;	/* IRQ Attribute */
-		DWORD dwOffsetForMonitor;	/* The Shared memory starts from
+		u32 dwMemBase[CFG_MAXMEMREGISTERS];  /* SHM virtual address */
+		u32 dwMemLength[CFG_MAXMEMREGISTERS]; /* Length of the Base */
+		u32 dwMemPhys[CFG_MAXMEMREGISTERS]; /* SHM Physical address */
+		u8 bIRQRegisters;	/* IRQ Number */
+		u8 bIRQAttrib;	/* IRQ Attribute */
+		u32 dwOffsetForMonitor;	/* The Shared memory starts from
 						 * dwMemBase + this offset
 						 */
-		DWORD dwBusType;	/* Bus type for this device */
-		DWORD dwProgBase;	/* DSP ProgBase */
-		DWORD dwProgLength;	/* DSP ProgBase Length */
-		DWORD dwRegBase;	/* DSP memory mapped register base */
-		DWORD dwRegLength;	/* DSP Register Base Length */
-		DWORD ClientHandle;	/* Client Handle */
-		DWORD SocketHandle;	/* Socket and Function Pair */
-		DWORD CardInfo;	/* This will be used as a context data in
+		u32 dwBusType;	/* Bus type for this device */
+		u32 dwProgBase;	/* DSP ProgBase */
+		u32 dwProgLength;	/* DSP ProgBase Length */
+		u32 dwRegBase;	/* DSP memory mapped register base */
+		u32 dwRegLength;	/* DSP Register Base Length */
+		u32 ClientHandle;	/* Client Handle */
+		u32 SocketHandle;	/* Socket and Function Pair */
+		u32 CardInfo;	/* This will be used as a context data in
 				 * in the CardRequestIRQ
 				 */
 	/*
@@ -96,33 +96,33 @@
 	 *      dwChnlBufSize:      Size of channel buffer to send to RMS
 	 *      dwNumChnls:       Total number of channels (including reserved).
 	 */
-		DWORD dwChnlOffset;
-		DWORD dwChnlBufSize;
-		DWORD dwNumChnls;
+		u32 dwChnlOffset;
+		u32 dwChnlBufSize;
+		u32 dwNumChnls;
 
 #ifdef OMAP_3430
-		DWORD dwPrmBase;
-		DWORD dwCmBase;
-		DWORD dwPerBase;
-		DWORD dwWdTimerDspBase;
-		DWORD dwMboxBase;
-		DWORD dwDmmuBase;
-		DWORD dwDipiBase;
-		DWORD dwSysCtrlBase;
+		u32 dwPrmBase;
+		u32 dwCmBase;
+		u32 dwPerBase;
+		u32 dwWdTimerDspBase;
+		u32 dwMboxBase;
+		u32 dwDmmuBase;
+		u32 dwDipiBase;
+		u32 dwSysCtrlBase;
 #endif
 	} ;
 
 	struct CFG_DSPMEMDESC {
-		UINT uMemType;	/* Type of memory.                        */
-		ULONG ulMin;	/* Minimum amount of memory of this type. */
-		ULONG ulMax;	/* Maximum amount of memory of this type. */
+		u32 uMemType;	/* Type of memory.                        */
+		u32 ulMin;	/* Minimum amount of memory of this type. */
+		u32 ulMax;	/* Maximum amount of memory of this type. */
 	} ;
 
 	struct CFG_DSPRES {
-		UINT uChipType;	/* DSP chip type.               */
-		UINT uWordSize;	/* Number of bytes in a word    */
-		UINT cChips;	/* Number of chips.             */
-		UINT cMemTypes;	/* Types of memory.             */
+		u32 uChipType;	/* DSP chip type.               */
+		u32 uWordSize;	/* Number of bytes in a word    */
+		u32 cChips;	/* Number of chips.             */
+		u32 cMemTypes;	/* Types of memory.             */
 		struct CFG_DSPMEMDESC aMemDesc[CFG_DSPMAXMEMTYPES];
 		/* DSP Memory types */
 	} ;

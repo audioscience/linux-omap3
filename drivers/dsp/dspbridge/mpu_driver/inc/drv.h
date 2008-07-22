@@ -137,10 +137,10 @@ struct NODE_RES_OBJECT {
 /* New structure (member of process context) abstracts DMM resource info */
 struct DMM_RES_OBJECT {
 	BOOL            dmmAllocated; /* DMM status */
-	ULONG           ulMpuAddr;
-	ULONG           ulDSPAddr;
-	ULONG           ulDSPResAddr;
-	ULONG           dmmSize;
+	u32           ulMpuAddr;
+	u32           ulDSPAddr;
+	u32           ulDSPResAddr;
+	u32           dmmSize;
 	HANDLE          hProcessor;
 	struct DMM_RES_OBJECT  *next;
 } ;
@@ -148,10 +148,10 @@ struct DMM_RES_OBJECT {
 /* New structure (member of process context) abstracts DMM resource info */
 struct DSPHEAP_RES_OBJECT {
 	BOOL            heapAllocated; /* DMM status */
-	ULONG           ulMpuAddr;
-	ULONG           ulDSPAddr;
-	ULONG           ulDSPResAddr;
-	ULONG           heapSize;
+	u32           ulMpuAddr;
+	u32           ulDSPAddr;
+	u32           ulDSPResAddr;
+	u32           heapSize;
 	HANDLE          hProcessor;
 	struct DSPHEAP_RES_OBJECT  *next;
 } ;
@@ -160,8 +160,8 @@ struct DSPHEAP_RES_OBJECT {
 struct STRM_RES_OBJECT {
 	BOOL                    streamAllocated; /* Stream status */
 	DSP_HSTREAM             hStream;
-	UINT                    uNumBufs;
-	UINT                    uDir;
+	u32                    uNumBufs;
+	u32                    uDir;
 	struct STRM_RES_OBJECT         *next;
 } ;
 /* Overall Bridge process resource usage state */
@@ -176,7 +176,7 @@ struct PROCESS_CONTEXT{
 	GPP_PROC_RES_STATE       resState;
 
 	/* Process ID (Same as UNIX process ID) */
-	UINT                     pid;
+	u32                     pid;
 
 	/* Pointer to next process context
 	* (To maintain a linked list of process contexts) */
@@ -260,7 +260,7 @@ struct PROCESS_CONTEXT{
  *  Requires:
  *  Ensures:
  */
-	extern VOID DRV_Exit();
+	extern void DRV_Exit();
 
 /*
  *  ======== DRV_GetFirstDevObject ========
@@ -270,11 +270,11 @@ struct PROCESS_CONTEXT{
  *  Requires:
  *      DRV Initialized
  *  Returns:
- *      dwDevObject:  Ptr to the First Dev Object as a DWORD
+ *      dwDevObject:  Ptr to the First Dev Object as a u32
  *      0 if it fails to retrieve the First Dev Object
  *  Ensures:
  */
-	extern DWORD DRV_GetFirstDevObject();
+	extern u32 DRV_GetFirstDevObject();
 
 /*
  *  ======== DRV_GetFirstDevExtension ========
@@ -284,11 +284,11 @@ struct PROCESS_CONTEXT{
  *  Requires:
  *      DRV Initialized
  *  Returns:
- *      dwDevExtension:     Ptr to the First Device Extension as a DWORD
+ *      dwDevExtension:     Ptr to the First Device Extension as a u32
  *      0:                  Failed to Get the Device Extension
  *  Ensures:
  */
-	extern DWORD DRV_GetFirstDevExtension();
+	extern u32 DRV_GetFirstDevExtension();
 
 /*
  *  ======== DRV_GetDevObject ========
@@ -310,7 +310,7 @@ struct PROCESS_CONTEXT{
  *      DSP_SOK:        *phDevObject != NULL
  *      DSP_EFAIL:      *phDevObject = NULL
  */
-	extern DSP_STATUS DRV_GetDevObject(UINT uIndex,
+	extern DSP_STATUS DRV_GetDevObject(u32 uIndex,
 					   struct DRV_OBJECT *hDrvObject,
 					   struct DEV_OBJECT **phDevObject);
 
@@ -324,11 +324,11 @@ struct PROCESS_CONTEXT{
  *      DRV Initialized
  *      hDevObject != 0
  *  Returns:
- *      dwDevObject:    Ptr to the Next Dev Object as a DWORD
+ *      dwDevObject:    Ptr to the Next Dev Object as a u32
  *      0:              If it fail to get the next Dev Object.
  *  Ensures:
  */
-	extern DWORD DRV_GetNextDevObject(DWORD hDevObject);
+	extern u32 DRV_GetNextDevObject(u32 hDevObject);
 
 /*
  *  ======== DRV_GetNextDevExtension ========
@@ -344,7 +344,7 @@ struct PROCESS_CONTEXT{
  *      0:                  If it fail to Get the next Dev Extension
  *  Ensures:
  */
-	extern DWORD DRV_GetNextDevExtension(DWORD hDevExtension);
+	extern u32 DRV_GetNextDevExtension(u32 hDevExtension);
 
 /*
  *  ======== DRV_Init ========
@@ -415,8 +415,8 @@ struct PROCESS_CONTEXT{
  *      Resource structure is stored in the registry which will be
  *      later used by the CFG module.
  */
-	extern DSP_STATUS DRV_RequestResources(IN DWORD dwContext,
-					       OUT DWORD *pDevNodeString);
+	extern DSP_STATUS DRV_RequestResources(IN u32 dwContext,
+					       OUT u32 *pDevNodeString);
 
 /*
  *  ======== DRV_ReleaseResources ========
@@ -432,7 +432,7 @@ struct PROCESS_CONTEXT{
  *      The Resources are released based on Bus type.
  *      Resource structure is deleted from the registry
  */
-	extern DSP_STATUS DRV_ReleaseResources(IN DWORD dwContext,
+	extern DSP_STATUS DRV_ReleaseResources(IN u32 dwContext,
 					       struct DRV_OBJECT *hDrvObject);
 
 #endif				/* DRV_ */

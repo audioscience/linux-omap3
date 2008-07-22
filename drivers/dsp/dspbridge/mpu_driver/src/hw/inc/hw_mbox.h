@@ -82,9 +82,9 @@ typedef enum HW_MBOX_UserId_label {
 * DESCRIPTION:  Mailbox context settings
 */
 struct MAILBOX_CONTEXT {
-	UWORD32 sysconfig;
-	UWORD32 irqEnable0;
-	UWORD32 irqEnable1;
+	u32 sysconfig;
+	u32 irqEnable0;
+	u32 irqEnable1;
 };
 
 /*
@@ -97,7 +97,7 @@ struct MAILBOX_CONTEXT {
 * INPUTS:
 *
 *   Identifier  : baseAddress
-*   Type	: const UWORD32
+*   Type	: const u32
 *   Description : Base Address of instance of Mailbox module
 *
 *   Identifier  : mailBoxId
@@ -107,7 +107,7 @@ struct MAILBOX_CONTEXT {
 * OUTPUTS:
 *
 *   Identifier  : pReadValue
-*   Type	: UWORD32 *const
+*   Type	: u32 *const
 *   Description : Value read from MailBox
 *
 * RETURNS:
@@ -118,14 +118,14 @@ struct MAILBOX_CONTEXT {
 *		 RET_INVALID_ID      Invalid Id used
 *		 RET_EMPTY	   Mailbox empty
 *
-* PURPOSE:      : this function reads a UWORD32 from the sub module message
+* PURPOSE:      : this function reads a u32 from the sub module message
 *		 box Specified. if there are no messages in the mailbox
 *		 then and error is returned.
 */
 extern HW_STATUS HW_MBOX_MsgRead(
-		      const UWORD32	 baseAddress,
+		      const u32	 baseAddress,
 		      const HW_MBOX_Id_t   mailBoxId,
-		      UWORD32 *const	pReadValue
+		      u32 *const	pReadValue
 		  );
 
 /*
@@ -134,7 +134,7 @@ extern HW_STATUS HW_MBOX_MsgRead(
 * INPUTS:
 *
 *   Identifier  : baseAddress
-*   Type	: const UWORD32
+*   Type	: const u32
 *   Description : Base Address of instance of Mailbox module
 *
 *   Identifier  : mailBoxId
@@ -142,7 +142,7 @@ extern HW_STATUS HW_MBOX_MsgRead(
 *   Description : Mail Box Sub module Id to write
 *
 *   Identifier  : writeValue
-*   Type	: const UWORD32
+*   Type	: const u32
 *   Description : Value to write to MailBox
 *
 * RETURNS:
@@ -152,13 +152,13 @@ extern HW_STATUS HW_MBOX_MsgRead(
 *		 RET_BAD_NULL_PARAM  Address/pointer Paramater was set to 0/NULL
 *		 RET_INVALID_ID      Invalid Id used
 *
-* PURPOSE:      : this function writes a UWORD32 from the sub module message
+* PURPOSE:      : this function writes a u32 from the sub module message
 *		 box Specified.
 */
 extern HW_STATUS HW_MBOX_MsgWrite(
-		      const UWORD32	 baseAddress,
+		      const u32	 baseAddress,
 		      const HW_MBOX_Id_t   mailBoxId,
-		      const UWORD32	 writeValue
+		      const u32	 writeValue
 		  );
 
 /*
@@ -167,7 +167,7 @@ extern HW_STATUS HW_MBOX_MsgWrite(
 * INPUTS:
 *
 *   Identifier  : baseAddress
-*   Type	: const UWORD32
+*   Type	: const u32
 *   Description : Base Address of instance of Mailbox module
 *
 *   Identifier  : mailBoxId
@@ -177,7 +177,7 @@ extern HW_STATUS HW_MBOX_MsgWrite(
 * OUTPUTS:
 *
 *   Identifier  : pIsFull
-*   Type	: UWORD32 *const
+*   Type	: u32 *const
 *   Description : false means mail box not Full
 *		 true means mailbox full.
 *
@@ -191,9 +191,9 @@ extern HW_STATUS HW_MBOX_MsgWrite(
 * PURPOSE:      : this function reads the full status register for mailbox.
 */
 extern HW_STATUS HW_MBOX_IsFull(
-		      const UWORD32	 baseAddress,
+		      const u32	 baseAddress,
 		      const HW_MBOX_Id_t   mailBoxId,
-		      UWORD32 *const	pIsFull
+		      u32 *const	pIsFull
 		  );
 
 /*
@@ -202,7 +202,7 @@ extern HW_STATUS HW_MBOX_IsFull(
 * INPUTS:
 *
 *   Identifier  : baseAddress
-*   Type	: const UWORD32
+*   Type	: const u32
 *   Description : Base Address of instance of Mailbox module
 *
 *   Identifier  : mailBoxId
@@ -212,7 +212,7 @@ extern HW_STATUS HW_MBOX_IsFull(
 * OUTPUTS:
 *
 *   Identifier  : pNumMsg
-*   Type	: UWORD32 *const
+*   Type	: u32 *const
 *   Description : Number of messages in mailbox
 *
 * RETURNS:
@@ -225,9 +225,9 @@ extern HW_STATUS HW_MBOX_IsFull(
 * PURPOSE:      : this function gets number of messages in a specified mailbox.
 */
 extern HW_STATUS HW_MBOX_NumMsgGet(
-		      const UWORD32	 baseAddress,
+		      const u32	 baseAddress,
 		      const HW_MBOX_Id_t   mailBoxId,
-		      UWORD32 *const	pNumMsg
+		      u32 *const	pNumMsg
 		  );
 
 /*
@@ -236,7 +236,7 @@ extern HW_STATUS HW_MBOX_NumMsgGet(
 * INPUTS:
 *
 *   Identifier  : baseAddress
-*   Type	: const UWORD32
+*   Type	: const u32
 *		 RET_BAD_NULL_PARAM  Address/pointer Paramater was set to 0/NULL
 *
 *   Identifier  : mailBoxId
@@ -248,7 +248,7 @@ extern HW_STATUS HW_MBOX_NumMsgGet(
 *   Description : Mail box User Id to enable
 *
 *   Identifier  : enableIrq
-*   Type	: const UWORD32
+*   Type	: const u32
 *   Description : Irq value to enable
 *
 * RETURNS:
@@ -261,10 +261,10 @@ extern HW_STATUS HW_MBOX_NumMsgGet(
 * PURPOSE:      : this function enables the specified IRQ.
 */
 extern HW_STATUS HW_MBOX_EventEnable(
-		      const UWORD32	     baseAddress,
+		      const u32	     baseAddress,
 		      const HW_MBOX_Id_t       mailBoxId,
 		      const HW_MBOX_UserId_t   userId,
-		      const UWORD32	     events
+		      const u32	     events
 		  );
 
 /*
@@ -273,7 +273,7 @@ extern HW_STATUS HW_MBOX_EventEnable(
 * INPUTS:
 *
 *   Identifier  : baseAddress
-*   Type	: const UWORD32
+*   Type	: const u32
 *		 RET_BAD_NULL_PARAM  Address/pointer Paramater was set to 0/NULL
 *
 *   Identifier  : mailBoxId
@@ -285,7 +285,7 @@ extern HW_STATUS HW_MBOX_EventEnable(
 *   Description : Mail box User Id to disable
 *
 *   Identifier  : enableIrq
-*   Type	: const UWORD32
+*   Type	: const u32
 *   Description : Irq value to disable
 *
 * RETURNS:
@@ -298,10 +298,10 @@ extern HW_STATUS HW_MBOX_EventEnable(
 * PURPOSE:      : this function disables the specified IRQ.
 */
 extern HW_STATUS HW_MBOX_EventDisable(
-		      const UWORD32	     baseAddress,
+		      const u32	     baseAddress,
 		      const HW_MBOX_Id_t       mailBoxId,
 		      const HW_MBOX_UserId_t   userId,
-		      const UWORD32	     events
+		      const u32	     events
 		  );
 
 /*
@@ -310,7 +310,7 @@ extern HW_STATUS HW_MBOX_EventDisable(
 * INPUTS:
 *
 *   Identifier  : baseAddress
-*   Type	: const UWORD32
+*   Type	: const u32
 *   Description : Base Address of instance of Mailbox module
 *
 *   Identifier  : mailBoxId
@@ -322,7 +322,7 @@ extern HW_STATUS HW_MBOX_EventDisable(
 *   Description : Mail box User Id to set
 *
 *   Identifier  : irqStatus
-*   Type	: const UWORD32
+*   Type	: const u32
 *   Description : The value to write IRQ status
 *
 * OUTPUTS:
@@ -337,10 +337,10 @@ extern HW_STATUS HW_MBOX_EventDisable(
 * PURPOSE:      : this function sets the status of the specified IRQ.
 */
 extern HW_STATUS HW_MBOX_EventAck(
-		      const UWORD32	      baseAddress,
+		      const u32	      baseAddress,
 		      const HW_MBOX_Id_t	mailBoxId,
 		      const HW_MBOX_UserId_t    userId,
-		      const UWORD32	      event
+		      const u32	      event
 		  );
 
 /*
@@ -349,7 +349,7 @@ extern HW_STATUS HW_MBOX_EventAck(
 * INPUTS:
 *
 *   Identifier  : baseAddress
-*   Type	: const UWORD32
+*   Type	: const u32
 *   Description : Base Address of instance of Mailbox module
 *
 *
@@ -363,7 +363,7 @@ extern HW_STATUS HW_MBOX_EventAck(
 *
 * PURPOSE:      : this function saves the context of mailbox
 */
-extern HW_STATUS HW_MBOX_saveSettings(UWORD32    baseAddres);
+extern HW_STATUS HW_MBOX_saveSettings(u32    baseAddres);
 
 /*
 * FUNCTION      : HW_MBOX_restoreSettings
@@ -371,7 +371,7 @@ extern HW_STATUS HW_MBOX_saveSettings(UWORD32    baseAddres);
 * INPUTS:
 *
 *   Identifier  : baseAddress
-*   Type	: const UWORD32
+*   Type	: const u32
 *   Description : Base Address of instance of Mailbox module
 *
 *
@@ -385,6 +385,6 @@ extern HW_STATUS HW_MBOX_saveSettings(UWORD32    baseAddres);
 *
 * PURPOSE:      : this function restores the context of mailbox
 */
-extern HW_STATUS HW_MBOX_restoreSettings(UWORD32    baseAddres);
+extern HW_STATUS HW_MBOX_restoreSettings(u32    baseAddres);
 
 #endif  /* __MBOX_H */

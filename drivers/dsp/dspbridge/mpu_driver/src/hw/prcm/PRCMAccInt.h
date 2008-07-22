@@ -107,145 +107,145 @@
 
 /* Register offset address definitions */
 
-#define PRCM_PRCM_CLKCFG_CTRL_OFFSET        (UWORD32)(0x80)
-#define PRCM_CM_FCLKEN1_CORE_OFFSET          (UWORD32)(0x200)
-#define PRCM_CM_ICLKEN1_CORE_OFFSET          (UWORD32)(0x210)
-#define PRCM_CM_CLKSEL2_CORE_OFFSET          (UWORD32)(0x244)
-#define PRCM_CM_CLKSEL1_PLL_OFFSET           (UWORD32)(0x540)
-#define PRCM_CM_ICLKEN_DSP_OFFSET            (UWORD32)(0x810)
-#define PRCM_CM_IDLEST_DSP_OFFSET            (UWORD32)(0x820)
-#define PRCM_CM_AUTOIDLE_DSP_OFFSET          (UWORD32)(0x830)
-#define PRCM_CM_CLKSEL_DSP_OFFSET            (UWORD32)(0x840)
-#define PRCM_CM_CLKSTCTRL_DSP_OFFSET         (UWORD32)(0x848)
-#define PRCM_RM_RSTCTRL_DSP_OFFSET           (UWORD32)(0x850)
-#define PRCM_RM_RSTST_DSP_OFFSET             (UWORD32)(0x858)
-#define PRCM_PM_PWSTCTRL_DSP_OFFSET          (UWORD32)(0x8e0)
-#define PRCM_PM_PWSTST_DSP_OFFSET            (UWORD32)(0x8e4)
-#define PRCM_PM_PWSTST_IVA2_OFFSET            (UWORD32)(0xE4)
-#define PRCM_PM_PWSTCTRL_IVA2_OFFSET          (UWORD32)(0xE0)
-#define PRCM_CM_CLKSTCTRL_IVA2_OFFSET         (UWORD32)(0x48)
-#define CM_CLKSEL_PER_OFFSET                            (UWORD32)(0x40)
+#define PRCM_PRCM_CLKCFG_CTRL_OFFSET        (u32)(0x80)
+#define PRCM_CM_FCLKEN1_CORE_OFFSET          (u32)(0x200)
+#define PRCM_CM_ICLKEN1_CORE_OFFSET          (u32)(0x210)
+#define PRCM_CM_CLKSEL2_CORE_OFFSET          (u32)(0x244)
+#define PRCM_CM_CLKSEL1_PLL_OFFSET           (u32)(0x540)
+#define PRCM_CM_ICLKEN_DSP_OFFSET            (u32)(0x810)
+#define PRCM_CM_IDLEST_DSP_OFFSET            (u32)(0x820)
+#define PRCM_CM_AUTOIDLE_DSP_OFFSET          (u32)(0x830)
+#define PRCM_CM_CLKSEL_DSP_OFFSET            (u32)(0x840)
+#define PRCM_CM_CLKSTCTRL_DSP_OFFSET         (u32)(0x848)
+#define PRCM_RM_RSTCTRL_DSP_OFFSET           (u32)(0x850)
+#define PRCM_RM_RSTST_DSP_OFFSET             (u32)(0x858)
+#define PRCM_PM_PWSTCTRL_DSP_OFFSET          (u32)(0x8e0)
+#define PRCM_PM_PWSTST_DSP_OFFSET            (u32)(0x8e4)
+#define PRCM_PM_PWSTST_IVA2_OFFSET            (u32)(0xE4)
+#define PRCM_PM_PWSTCTRL_IVA2_OFFSET          (u32)(0xE0)
+#define PRCM_CM_CLKSTCTRL_IVA2_OFFSET         (u32)(0x48)
+#define CM_CLKSEL_PER_OFFSET                            (u32)(0x40)
 
 /* Bitfield mask and offset declarations */
 
-#define PRCM_PRCM_CLKCFG_CTRL_Valid_config_MASK         (UWORD32)(0x1)
-#define PRCM_PRCM_CLKCFG_CTRL_Valid_config_OFFSET       (UWORD32)(0)
+#define PRCM_PRCM_CLKCFG_CTRL_Valid_config_MASK         (u32)(0x1)
+#define PRCM_PRCM_CLKCFG_CTRL_Valid_config_OFFSET       (u32)(0)
 
-#define PRCM_CM_FCLKEN1_CORE_EN_GPT8_MASK               (UWORD32)(0x400)
-#define PRCM_CM_FCLKEN1_CORE_EN_GPT8_OFFSET             (UWORD32)(10)
+#define PRCM_CM_FCLKEN1_CORE_EN_GPT8_MASK               (u32)(0x400)
+#define PRCM_CM_FCLKEN1_CORE_EN_GPT8_OFFSET             (u32)(10)
 
-#define PRCM_CM_FCLKEN1_CORE_EN_GPT7_MASK               (UWORD32)(0x200)
-#define PRCM_CM_FCLKEN1_CORE_EN_GPT7_OFFSET             (UWORD32)(9)
+#define PRCM_CM_FCLKEN1_CORE_EN_GPT7_MASK               (u32)(0x200)
+#define PRCM_CM_FCLKEN1_CORE_EN_GPT7_OFFSET             (u32)(9)
 
-#define PRCM_CM_ICLKEN1_CORE_EN_GPT8_MASK               (UWORD32)(0x400)
-#define PRCM_CM_ICLKEN1_CORE_EN_GPT8_OFFSET             (UWORD32)(10)
+#define PRCM_CM_ICLKEN1_CORE_EN_GPT8_MASK               (u32)(0x400)
+#define PRCM_CM_ICLKEN1_CORE_EN_GPT8_OFFSET             (u32)(10)
 
-#define PRCM_CM_ICLKEN1_CORE_EN_GPT7_MASK               (UWORD32)(0x200)
-#define PRCM_CM_ICLKEN1_CORE_EN_GPT7_OFFSET             (UWORD32)(9)
+#define PRCM_CM_ICLKEN1_CORE_EN_GPT7_MASK               (u32)(0x200)
+#define PRCM_CM_ICLKEN1_CORE_EN_GPT7_OFFSET             (u32)(9)
 
-#define PRCM_CM_CLKSEL2_CORE_CLKSEL_GPT8_MASK           (UWORD32)(0xc000)
-#define PRCM_CM_CLKSEL2_CORE_CLKSEL_GPT8_OFFSET         (UWORD32)(14)
+#define PRCM_CM_CLKSEL2_CORE_CLKSEL_GPT8_MASK           (u32)(0xc000)
+#define PRCM_CM_CLKSEL2_CORE_CLKSEL_GPT8_OFFSET         (u32)(14)
 
-#define PRCM_CM_CLKSEL2_CORE_CLKSEL_GPT7_MASK           (UWORD32)(0x3000)
-#define PRCM_CM_CLKSEL2_CORE_CLKSEL_GPT7_OFFSET         (UWORD32)(12)
+#define PRCM_CM_CLKSEL2_CORE_CLKSEL_GPT7_MASK           (u32)(0x3000)
+#define PRCM_CM_CLKSEL2_CORE_CLKSEL_GPT7_OFFSET         (u32)(12)
 
-#define PRCM_CM_CLKSEL2_CORE_CLKSEL_GPT6_MASK           (UWORD32)(0xc00)
-#define PRCM_CM_CLKSEL2_CORE_CLKSEL_GPT6_OFFSET         (UWORD32)(10)
+#define PRCM_CM_CLKSEL2_CORE_CLKSEL_GPT6_MASK           (u32)(0xc00)
+#define PRCM_CM_CLKSEL2_CORE_CLKSEL_GPT6_OFFSET         (u32)(10)
 
-#define PRCM_CM_CLKSEL2_CORE_CLKSEL_GPT5_MASK           (UWORD32)(0x300)
-#define PRCM_CM_CLKSEL2_CORE_CLKSEL_GPT5_OFFSET         (UWORD32)(8)
+#define PRCM_CM_CLKSEL2_CORE_CLKSEL_GPT5_MASK           (u32)(0x300)
+#define PRCM_CM_CLKSEL2_CORE_CLKSEL_GPT5_OFFSET         (u32)(8)
 
-#define PRCM_CM_CLKSEL1_PLL_APLLs_Clkin_MASK            (UWORD32)(0x3800000)
-#define PRCM_CM_CLKSEL1_PLL_APLLs_Clkin_OFFSET          (UWORD32)(23)
+#define PRCM_CM_CLKSEL1_PLL_APLLs_Clkin_MASK            (u32)(0x3800000)
+#define PRCM_CM_CLKSEL1_PLL_APLLs_Clkin_OFFSET          (u32)(23)
 
-#define PRCM_CM_ICLKEN_DSP_EN_DSP_IPI_MASK              (UWORD32)(0x2)
-#define PRCM_CM_ICLKEN_DSP_EN_DSP_IPI_OFFSET            (UWORD32)(1)
+#define PRCM_CM_ICLKEN_DSP_EN_DSP_IPI_MASK              (u32)(0x2)
+#define PRCM_CM_ICLKEN_DSP_EN_DSP_IPI_OFFSET            (u32)(1)
 
-#define PRCM_CM_IDLEST_DSP_ST_IPI_MASK                  (UWORD32)(0x2)
-#define PRCM_CM_IDLEST_DSP_ST_IPI_OFFSET                (UWORD32)(1)
+#define PRCM_CM_IDLEST_DSP_ST_IPI_MASK                  (u32)(0x2)
+#define PRCM_CM_IDLEST_DSP_ST_IPI_OFFSET                (u32)(1)
 
-#define PRCM_CM_AUTOIDLE_DSP_AUTO_DSP_IPI_MASK          (UWORD32)(0x2)
-#define PRCM_CM_AUTOIDLE_DSP_AUTO_DSP_IPI_OFFSET        (UWORD32)(1)
+#define PRCM_CM_AUTOIDLE_DSP_AUTO_DSP_IPI_MASK          (u32)(0x2)
+#define PRCM_CM_AUTOIDLE_DSP_AUTO_DSP_IPI_OFFSET        (u32)(1)
 
-#define PRCM_CM_CLKSEL_DSP_SYNC_DSP_MASK                (UWORD32)(0x80)
-#define PRCM_CM_CLKSEL_DSP_SYNC_DSP_OFFSET              (UWORD32)(7)
+#define PRCM_CM_CLKSEL_DSP_SYNC_DSP_MASK                (u32)(0x80)
+#define PRCM_CM_CLKSEL_DSP_SYNC_DSP_OFFSET              (u32)(7)
 
-#define PRCM_CM_CLKSEL_DSP_CLKSEL_DSP_IF_MASK           (UWORD32)(0x60)
-#define PRCM_CM_CLKSEL_DSP_CLKSEL_DSP_IF_OFFSET         (UWORD32)(5)
+#define PRCM_CM_CLKSEL_DSP_CLKSEL_DSP_IF_MASK           (u32)(0x60)
+#define PRCM_CM_CLKSEL_DSP_CLKSEL_DSP_IF_OFFSET         (u32)(5)
 
-#define PRCM_CM_CLKSEL_DSP_CLKSEL_DSP_MASK              (UWORD32)(0x1f)
-#define PRCM_CM_CLKSEL_DSP_CLKSEL_DSP_OFFSET            (UWORD32)(0)
+#define PRCM_CM_CLKSEL_DSP_CLKSEL_DSP_MASK              (u32)(0x1f)
+#define PRCM_CM_CLKSEL_DSP_CLKSEL_DSP_OFFSET            (u32)(0)
 
-#define PRCM_CM_CLKSTCTRL_DSP_Autostate_DSP_MASK        (UWORD32)(0x1)
-#define PRCM_CM_CLKSTCTRL_DSP_Autostate_DSP_OFFSET      (UWORD32)(0)
+#define PRCM_CM_CLKSTCTRL_DSP_Autostate_DSP_MASK        (u32)(0x1)
+#define PRCM_CM_CLKSTCTRL_DSP_Autostate_DSP_OFFSET      (u32)(0)
 
-#define PRCM_PM_PWSTCTRL_DSP_ForceState_MASK            (UWORD32)(0x40000)
-#define PRCM_PM_PWSTCTRL_DSP_ForceState_OFFSET          (UWORD32)(18)
+#define PRCM_PM_PWSTCTRL_DSP_ForceState_MASK            (u32)(0x40000)
+#define PRCM_PM_PWSTCTRL_DSP_ForceState_OFFSET          (u32)(18)
 
-#define PRCM_PM_PWSTCTRL_DSP_PowerState_MASK            (UWORD32)(0x3)
-#define PRCM_PM_PWSTCTRL_DSP_PowerState_OFFSET          (UWORD32)(0)
+#define PRCM_PM_PWSTCTRL_DSP_PowerState_MASK            (u32)(0x3)
+#define PRCM_PM_PWSTCTRL_DSP_PowerState_OFFSET          (u32)(0)
 
-#define PRCM_PM_PWSTCTRL_IVA2_PowerState_MASK            (UWORD32)(0x3)
-#define PRCM_PM_PWSTCTRL_IVA2_PowerState_OFFSET          (UWORD32)(0)
+#define PRCM_PM_PWSTCTRL_IVA2_PowerState_MASK            (u32)(0x3)
+#define PRCM_PM_PWSTCTRL_IVA2_PowerState_OFFSET          (u32)(0)
 
-#define PRCM_PM_PWSTST_DSP_InTransition_MASK            (UWORD32)(0x100000)
-#define PRCM_PM_PWSTST_DSP_InTransition_OFFSET          (UWORD32)(20)
+#define PRCM_PM_PWSTST_DSP_InTransition_MASK            (u32)(0x100000)
+#define PRCM_PM_PWSTST_DSP_InTransition_OFFSET          (u32)(20)
 
-#define PRCM_PM_PWSTST_IVA2_InTransition_MASK            (UWORD32)(0x100000)
-#define PRCM_PM_PWSTST_IVA2_InTransition_OFFSET          (UWORD32)(20)
+#define PRCM_PM_PWSTST_IVA2_InTransition_MASK            (u32)(0x100000)
+#define PRCM_PM_PWSTST_IVA2_InTransition_OFFSET          (u32)(20)
 
-#define PRCM_PM_PWSTST_DSP_PowerStateSt_MASK            (UWORD32)(0x3)
-#define PRCM_PM_PWSTST_DSP_PowerStateSt_OFFSET          (UWORD32)(0)
+#define PRCM_PM_PWSTST_DSP_PowerStateSt_MASK            (u32)(0x3)
+#define PRCM_PM_PWSTST_DSP_PowerStateSt_OFFSET          (u32)(0)
 
-#define PRCM_PM_PWSTST_IVA2_PowerStateSt_MASK            (UWORD32)(0x3)
-#define PRCM_PM_PWSTST_IVA2_PowerStateSt_OFFSET          (UWORD32)(0)
+#define PRCM_PM_PWSTST_IVA2_PowerStateSt_MASK            (u32)(0x3)
+#define PRCM_PM_PWSTST_IVA2_PowerStateSt_OFFSET          (u32)(0)
 
-#define CM_FCLKEN_PER_OFFSET		(UWORD32)(0x0)
-#define CM_FCLKEN_PER_GPT5_OFFSET         (UWORD32)(6)
-#define CM_FCLKEN_PER_GPT5_MASK     (UWORD32)(0x40)
+#define CM_FCLKEN_PER_OFFSET		(u32)(0x0)
+#define CM_FCLKEN_PER_GPT5_OFFSET         (u32)(6)
+#define CM_FCLKEN_PER_GPT5_MASK     (u32)(0x40)
 
-#define CM_FCLKEN_PER_GPT6_OFFSET   (UWORD32)(7)
-#define CM_FCLKEN_PER_GPT6_MASK      (UWORD32)(0x80)
+#define CM_FCLKEN_PER_GPT6_OFFSET   (u32)(7)
+#define CM_FCLKEN_PER_GPT6_MASK      (u32)(0x80)
 
-#define CM_ICLKEN_PER_OFFSET		(UWORD32)(0x10)
-#define CM_ICLKEN_PER_GPT5_OFFSET  (UWORD32)(6)
-#define CM_ICLKEN_PER_GPT5_MASK     (UWORD32)(0x40)
+#define CM_ICLKEN_PER_OFFSET		(u32)(0x10)
+#define CM_ICLKEN_PER_GPT5_OFFSET  (u32)(6)
+#define CM_ICLKEN_PER_GPT5_MASK     (u32)(0x40)
 
-#define CM_ICLKEN_PER_GPT6_OFFSET  (UWORD32)(7)
-#define CM_ICLKEN_PER_GPT6_MASK     (UWORD32)(0x80)
+#define CM_ICLKEN_PER_GPT6_OFFSET  (u32)(7)
+#define CM_ICLKEN_PER_GPT6_MASK     (u32)(0x80)
 
-#define CM_CLKSEL_PER_GPT5_OFFSET   (UWORD32)(3)
-#define CM_CLKSEL_PER_GPT5_MASK      (UWORD32)(0x8)
+#define CM_CLKSEL_PER_GPT5_OFFSET   (u32)(3)
+#define CM_CLKSEL_PER_GPT5_MASK      (u32)(0x8)
 
-#define CM_CLKSEL_PER_GPT6_OFFSET   (UWORD32)(4)
-#define CM_CLKSEL_PER_GPT6_MASK       (UWORD32)(0x10)
-
-
-#define CM_FCLKEN_IVA2_OFFSET		(UWORD32)(0x0)
-#define CM_FCLKEN_IVA2_EN_MASK	(UWORD32)(0x1)
-#define CM_FCLKEN_IVA2_EN_OFFSET	(UWORD32)(0x0)
-
-#define CM_IDLEST_IVA2_OFFSET 		(UWORD32)(0x20)
-#define CM_IDLEST_IVA2_ST_IVA2_MASK (UWORD32) (0x01)
-#define CM_IDLEST_IVA2_ST_IVA2_OFFSET (UWORD32) (0x00)
-
-#define CM_FCLKEN1_CORE_OFFSET 	(UWORD32)(0xA00)
-
-#define CM_ICLKEN1_CORE_OFFSET  	(UWORD32)(0xA10)
-#define CM_ICLKEN1_CORE_EN_MAILBOXES_MASK  (UWORD32)(0x00000080)   /* bit 7 */
-#define CM_ICLKEN1_CORE_EN_MAILBOXES_OFFSET	(UWORD32)(7)
-
-#define CM_CLKSTCTRL_IVA2_OFFSET (UWORD32)(0x0)
-#define CM_CLKSTCTRL_IVA2_MASK    (UWORD32)(0x3)
+#define CM_CLKSEL_PER_GPT6_OFFSET   (u32)(4)
+#define CM_CLKSEL_PER_GPT6_MASK       (u32)(0x10)
 
 
-#define PRM_RSTCTRL_IVA2_OFFSET  	(UWORD32)(0x50)
-#define PRM_RSTCTRL_IVA2_RST1_MASK	(UWORD32)(0x1)
-#define PRM_RSTCTRL_IVA2_RST1_OFFSET	(UWORD32)(0x0)
-#define PRM_RSTCTRL_IVA2_RST2_MASK	(UWORD32)(0x2)
-#define PRM_RSTCTRL_IVA2_RST2_OFFSET	(UWORD32)(0x1)
-#define PRM_RSTCTRL_IVA2_RST3_MASK	(UWORD32)(0x4)
-#define PRM_RSTCTRL_IVA2_RST3_OFFSET	(UWORD32)(0x2)
+#define CM_FCLKEN_IVA2_OFFSET		(u32)(0x0)
+#define CM_FCLKEN_IVA2_EN_MASK	(u32)(0x1)
+#define CM_FCLKEN_IVA2_EN_OFFSET	(u32)(0x0)
+
+#define CM_IDLEST_IVA2_OFFSET 		(u32)(0x20)
+#define CM_IDLEST_IVA2_ST_IVA2_MASK (u32) (0x01)
+#define CM_IDLEST_IVA2_ST_IVA2_OFFSET (u32) (0x00)
+
+#define CM_FCLKEN1_CORE_OFFSET 	(u32)(0xA00)
+
+#define CM_ICLKEN1_CORE_OFFSET  	(u32)(0xA10)
+#define CM_ICLKEN1_CORE_EN_MAILBOXES_MASK  (u32)(0x00000080)   /* bit 7 */
+#define CM_ICLKEN1_CORE_EN_MAILBOXES_OFFSET	(u32)(7)
+
+#define CM_CLKSTCTRL_IVA2_OFFSET (u32)(0x0)
+#define CM_CLKSTCTRL_IVA2_MASK    (u32)(0x3)
+
+
+#define PRM_RSTCTRL_IVA2_OFFSET  	(u32)(0x50)
+#define PRM_RSTCTRL_IVA2_RST1_MASK	(u32)(0x1)
+#define PRM_RSTCTRL_IVA2_RST1_OFFSET	(u32)(0x0)
+#define PRM_RSTCTRL_IVA2_RST2_MASK	(u32)(0x2)
+#define PRM_RSTCTRL_IVA2_RST2_OFFSET	(u32)(0x1)
+#define PRM_RSTCTRL_IVA2_RST3_MASK	(u32)(0x4)
+#define PRM_RSTCTRL_IVA2_RST3_OFFSET	(u32)(0x2)
 
 /*****************************************************************************
 * EXPORTED TYPES

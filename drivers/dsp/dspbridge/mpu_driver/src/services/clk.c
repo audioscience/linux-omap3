@@ -56,7 +56,6 @@
 /*  ----------------------------------- Defines, Data Structures, Typedefs */
 
 typedef volatile unsigned long  REG_UWORD32;
-typedef unsigned long  	     UWORD32;
 
 #define CM_AUTOIDLE1_CORE 0x48004A30
 #define CM_AUTOIDLE1_SIZE  0x20
@@ -123,9 +122,6 @@ struct SERVICES_Clk_t {
 	const char *clk_name;
 };
 
-DWORD autoIdle1_core;
-DWORD autoIdle2_core;
-
 /* The row order of the below array needs to match with the clock enumerations
  * 'SERVICES_ClkId' provided in the header file.. any changes in the
  * enumerations needs to be fixed in the array as well
@@ -170,7 +166,7 @@ extern struct platform_device dspbridge_device;
 
 /* Generic TIMER object: */
 struct TIMER_OBJECT {
-	/* DWORD	   dwSignature;*/    /* Used for object validation. */
+	/* u32	   dwSignature;*/    /* Used for object validation. */
 	struct timer_list timer;
 };
 
@@ -180,12 +176,12 @@ static struct GT_Mask CLK_debugMask = { 0, 0 };	/* GT trace variable */
 #endif
 
 struct GPT6_configuration {
-	UWORD32 config;
-	UWORD32 tier;
-	UWORD32 twer;
-	UWORD32 tclr;
-	UWORD32 tldr;
-	UWORD32 ttgr;
+	u32 config;
+	u32 tier;
+	u32 twer;
+	u32 tclr;
+	u32 tldr;
+	u32 ttgr;
 };
 /* Shadow settings to save the GPT6 timer settings */
 struct GPT6_configuration  gpt6_config;
@@ -195,7 +191,7 @@ struct GPT6_configuration  gpt6_config;
  *  Purpose:
  *      Cleanup CLK module.
  */
-VOID CLK_Exit(void)
+void CLK_Exit(void)
 {
 	int i = 0;
 
@@ -333,7 +329,7 @@ DSP_STATUS CLK_Disable(IN SERVICES_ClkId clk_id)
 	DSP_STATUS status = DSP_SOK;
 	struct clk *pClk;
 	DBC_Require(clk_id < SERVICESCLK_NOT_DEFINED);
-	INT clkUseCnt;
+	s32 clkUseCnt;
 
 	GT_1trace(CLK_debugMask, GT_6CLASS,
 		  "CLK_Disable: CLK Id = 0x%x \n", clk_id);
@@ -373,11 +369,11 @@ DSP_STATUS CLK_Disable(IN SERVICES_ClkId clk_id)
  *
  */
 
-DSP_STATUS CLK_GetRate(IN SERVICES_ClkId clk_id, ULONG *speedKhz)
+DSP_STATUS CLK_GetRate(IN SERVICES_ClkId clk_id, u32 *speedKhz)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct clk *pClk;
-	ULONG clkSpeedHz;
+	u32 clkSpeedHz;
 
 	DBC_Require(clk_id < SERVICESCLK_NOT_DEFINED);
 	*speedKhz = 0x0;
@@ -400,11 +396,11 @@ DSP_STATUS CLK_GetRate(IN SERVICES_ClkId clk_id, ULONG *speedKhz)
 	return status;
 }
 
-INT CLK_Get_UseCnt(IN SERVICES_ClkId clk_id)
+s32 CLK_Get_UseCnt(IN SERVICES_ClkId clk_id)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct clk *pClk;
-	INT useCount = -1;
+	s32 useCount = -1;
 	DBC_Require(clk_id < SERVICESCLK_NOT_DEFINED);
 
 	pClk = SERVICES_Clks[clk_id].clk_handle;
@@ -422,7 +418,7 @@ INT CLK_Get_UseCnt(IN SERVICES_ClkId clk_id)
 
 void SSI_Clk_Prepare(BOOL FLAG)
 {
-	UWORD32 ssi_sysconfig;
+	u32 ssi_sysconfig;
 	ssi_sysconfig = __raw_readl((SSI_BASE) + 0x10);
 
 
@@ -435,91 +431,5 @@ void SSI_Clk_Prepare(BOOL FLAG)
 		 * forced idle*/
 		ssi_sysconfig = 0x1;
 	}
-	__raw_writel((UWORD32)ssi_sysconfig, SSI_BASE + 0x10);
+	__raw_writel((u32)ssi_sysconfig, SSI_BASE + 0x10);
 }
-
-
-/*
-
-DSP_STATUS CLK_AutoIdleCtrl(IN SERVICES_ClkId clk_id,INT cmd)
-{
-	DSP_STATUS status =DSP_SOK;
-	INT prcm_status =0;
-	INT prcm_cmd = 0;
-	unsigned long temp;
-
-	autoIdle1_core = (DWORD)ioremap(CM_AUTOIDLE1_CORE, CM_AUTOIDLE1_SIZE);
-	autoIdle2_core = (DWORD)ioremap(CM_AUTOIDLE2_CORE, CM_AUTOIDLE2_SIZE);
-	temp = (unsigned long) * ((volatile unsigned long  *)
-		((unsigned long) (autoIdle1_core)));
-    GT_1trace(SYNC_debugMask, GT_7CLASS,"CM_AUTOIDLE1_CORE = 0x%x \n",temp);
-	temp = (unsigned long)
-		*((volatile unsigned long *)((unsigned long)(autoIdle2_core)));
-    GT_1trace(SYNC_debugMask, GT_7CLASS, "CM_AUTOIDLE2_CORE = 0x%x \n",temp);
-
-	if(cmd == 0){
-		prcm_cmd = PRCM_DISABLE;
-	} else	{
-		prcm_cmd = PRCM_ENABLE;
-	}
-
-	switch(clk_id) {
-		case SERVICESCLK_gpt5_ick:
-		prcm_status = interface_clock_autoidle(PRCM_GPT5,prcm_cmd);
-		break;
-		case SERVICESCLK_gpt6_ick:
-		prcm_status = interface_clock_autoidle(PRCM_GPT6,prcm_cmd);
-		break;
-		case SERVICESCLK_gpt7_ick:
-		prcm_status = interface_clock_autoidle(PRCM_GPT7,prcm_cmd);
-		break;
-		case SERVICESCLK_gpt8_ick:
-		prcm_status = interface_clock_autoidle(PRCM_GPT8,prcm_cmd);
-		break;
-		case SERVICESCLK_wdt4_ick:
-		prcm_status = interface_clock_autoidle(PRCM_WDT4,prcm_cmd);
-		break;
-		case SERVICESCLK_mcbsp1_ick:
-		prcm_status = interface_clock_autoidle(PRCM_MCBSP1,prcm_cmd);
-		break;
-		case SERVICESCLK_mcbsp2_ick:
-		prcm_status = interface_clock_autoidle(PRCM_MCBSP2,prcm_cmd);
-		break;
-		case SERVICESCLK_mcbsp3_ick:
-		prcm_status = interface_clock_autoidle(PRCM_MCBSP3,prcm_cmd);
-		break;
-		case SERVICESCLK_mcbsp4_ick:
-		prcm_status = interface_clock_autoidle(PRCM_MCBSP4,prcm_cmd);
-		break;
-		case SERVICESCLK_mcbsp5_ick:
-		prcm_status = interface_clock_autoidle(PRCM_MCBSP5,prcm_cmd);
-		break;
-		case SERVICESCLK_ssi_ick:
-		prcm_status = interface_clock_autoidle(PRCM_SSI,prcm_cmd);
-		break;
-		default:
-		GT_1trace(SYNC_debugMask,GT_7CLASS,
-			  "CLK_AutoIdle: failed for CLK %s \n",
-			  SERVICES_Clks[clk_id].clk_name);
-		status = DSP_EFAIL;
-		break;
-	}
-
-	if (prcm_status){
-		status = DSP_SOK;
-	} else	{
-		status = DSP_EFAIL;
-	}
-
-	temp = (unsigned long)
-		*((volatile unsigned long *)((unsigned long)(autoIdle1_core)));
-	GT_1trace(SYNC_debugMask, GT_7CLASS,
-		  "CM_AUTOIDLE1_CORE = 0x%x \n",temp);
-	temp = (unsigned long)
-		*((volatile unsigned long *)((unsigned long)(autoIdle2_core)));
-	GT_1trace(SYNC_debugMask, GT_7CLASS,
-		  "CM_AUTOIDLE2_CORE = 0x%x \n",temp);
-	return status;
-}
-
-*/

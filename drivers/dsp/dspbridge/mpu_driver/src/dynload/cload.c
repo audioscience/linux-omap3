@@ -188,7 +188,7 @@ extern int Dynamic_Load_Module(struct Dynamic_Loader_Stream *module,
 
 		if (dl_state.myio) {
 			if ((!dl_state.dload_errcount) &&
-			   (dl_state.dfile_hdr.df_entry_secn != DN_UNDEF))
+			   (dl_state.dfile_hdr.df_entry_secn != DN_UNDEF)) {
 				if (init != NULL) {
 				if (!init->execute(init,
 				   dl_state.dfile_hdr.df_entrypt))
@@ -197,6 +197,7 @@ extern int Dynamic_Load_Module(struct Dynamic_Loader_Stream *module,
 				} else {
 					dload_error(&dl_state, "init is NULL");
 				}
+			}
 			init->release(init);
 		}
 

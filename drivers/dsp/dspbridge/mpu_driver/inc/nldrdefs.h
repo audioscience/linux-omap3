@@ -67,9 +67,9 @@
  *  Requires:
  *  Ensures:
  */
-	typedef ULONG(CDECL * NLDR_OVLYFXN) (PVOID pPrivRef, ULONG ulDspRunAddr,
-					     ULONG ulDspLoadAddr,
-					     ULONG ulNumBytes, UINT nMemSpace);
+	typedef u32(CDECL * NLDR_OVLYFXN) (void *pPrivRef, u32 ulDspRunAddr,
+					     u32 ulDspLoadAddr,
+					     u32 ulNumBytes, u32 nMemSpace);
 
 /*
  *  ======== NLDR_WRITEFXN ========
@@ -86,9 +86,9 @@
  *  Requires:
  *  Ensures:
  */
-	typedef ULONG(CDECL * NLDR_WRITEFXN) (PVOID pPrivRef,
-					      ULONG ulDspAddr, PVOID pBuf,
-					      ULONG ulNumBytes, UINT nMemSpace);
+	typedef u32(CDECL * NLDR_WRITEFXN) (void *pPrivRef,
+					      u32 ulDspAddr, void *pBuf,
+					      u32 ulNumBytes, u32 nMemSpace);
 
 /*
  *  ======== NLDR_ATTRS ========
@@ -97,8 +97,8 @@
 	struct NLDR_ATTRS {
 		NLDR_OVLYFXN pfnOvly;
 		NLDR_WRITEFXN pfnWrite;
-		USHORT usDSPWordSize;
-		USHORT usDSPMauSize;
+		u16 usDSPWordSize;
+		u16 usDSPMauSize;
 	} ;
 
 /*
@@ -141,7 +141,7 @@
  *      error:          *phNldrNode == NULL.
  */
 	typedef DSP_STATUS(*NLDR_ALLOCATEFXN) (struct NLDR_OBJECT *hNldr,
-					       PVOID pPrivRef,
+					       void *pPrivRef,
 					       IN CONST struct DCD_NODEPROPS
 					       *pNodeProps,
 					       OUT struct NLDR_NODEOBJECT
@@ -187,7 +187,7 @@
  *  Ensures:
  *	hNldr invalid
  */
-	typedef VOID(*NLDR_DELETEFXN) (struct NLDR_OBJECT *hNldr);
+	typedef void(*NLDR_DELETEFXN) (struct NLDR_OBJECT *hNldr);
 
 /*
  *  ======== NLDR_Exit ========
@@ -201,7 +201,7 @@
  *      Any resources acquired in NLDR_Init() will be freed when last NLDR
  *      client calls NLDR_Exit().
  */
-	typedef VOID(*NLDR_EXITFXN) ();
+	typedef void(*NLDR_EXITFXN) ();
 
 /*
  *  ======== NLDR_Free ========
@@ -215,7 +215,7 @@
  *      Valid hNldrNode.
  *  Ensures:
  */
-	typedef VOID(*NLDR_FREEFXN) (struct NLDR_NODEOBJECT *hNldrNode);
+	typedef void(*NLDR_FREEFXN) (struct NLDR_NODEOBJECT *hNldrNode);
 
 /*
  *  ======== NLDR_GetFxnAddr ========
@@ -238,7 +238,7 @@
  */
 	typedef DSP_STATUS(*NLDR_GETFXNADDRFXN) (struct NLDR_NODEOBJECT
 						 *hNldrNode,
-						 PSTR pstrFxn, ULONG *pulAddr);
+						 char *pstrFxn, u32 *pulAddr);
 
 /*
  *  ======== NLDR_Init ========

@@ -136,46 +136,46 @@
  *      vma - virtual memory allocator.(not used).
  */
 struct CMM_ALLOCATOR {	/* sma */
-	DWORD dwSignature;	/* SMA allocator signature SMEMSIGNATURE */
-	DWORD dwSmBase;		/* Start of physical SM block */
-	ULONG ulSmSize;		/* Size of SM block in bytes */
-	DWORD dwVmBase;		/* Start of VM block. (Dev driver context
-				 * for 'sma') */
-	DWORD dwDSPPhysAddrOffset;	/* DSP PA to GPP PA offset for this
+	u32 dwSignature;	/* SMA allocator signature SMEMSIGNATURE */
+	unsigned int dwSmBase;		/* Start of physical SM block */
+	u32 ulSmSize;		/* Size of SM block in bytes */
+	unsigned int dwVmBase;		/* Start of VM block. (Dev driver
+				 * context for 'sma') */
+	u32 dwDSPPhysAddrOffset;	/* DSP PA to GPP PA offset for this
 					 * SM space */
 	CMM_CNVTTYPE cFactor;	/* CMM_ADDTO[SUBFROM]DSPPA, _POMAPEMIF2DSPBUS */
-	DWORD dwDSPBase;	/* DSP virt base byte address */
-	ULONG ulDSPSize;	/* DSP seg size in bytes */
+	unsigned int dwDSPBase;	/* DSP virt base byte address */
+	u32 ulDSPSize;	/* DSP seg size in bytes */
 	struct CMM_OBJECT *hCmmMgr;	/* back ref to parent mgr */
 	struct LST_LIST *pFreeListHead;	/* node list of available memory */
 	struct LST_LIST *pInUseListHead;	/* node list of memory in use */
 } ;
 
 struct CMM_XLATOR {	/* Pa<->Va translator object */
-	DWORD dwSignature;	/* "CMMX" */
+	u32 dwSignature;	/* "CMMX" */
 	struct CMM_OBJECT *hCmmMgr;  /* CMM object this translator associated */
 	/*
 	 *  Client process virtual base address that corresponds to phys SM
 	 *  base address for translator's ulSegId.
 	 *  Only 1 segment ID currently supported.
 	 */
-	DWORD dwVirtBase;	/* virtual base address */
-	ULONG ulVirtSize;	/* size of virt space in bytes */
-	ULONG ulSegId;		/* Segment Id */
+	unsigned int dwVirtBase;	/* virtual base address */
+	u32 ulVirtSize;	/* size of virt space in bytes */
+	u32 ulSegId;		/* Segment Id */
 } ;
 
 /*
  * CMM Mgr
  */
 struct CMM_OBJECT {
-	DWORD dwSignature;	/* Used for object validation */
+	u32 dwSignature;	/* Used for object validation */
 	/*
 	 * Cmm Lock is used to serialize access mem manager for multi-threads.
 	 */
 	struct SYNC_CSOBJECT *hCmmLock;	/* Lock to access cmm mgr */
 	struct LST_LIST *pNodeFreeListHead;	/* Free list of memory nodes */
-	ULONG ulMinBlockSize;	/* Min SM block; default 16 bytes */
-	DWORD dwPageSize;	/* Memory Page size (1k/4k) */
+	u32 ulMinBlockSize;	/* Min SM block; default 16 bytes */
+	u32 dwPageSize;	/* Memory Page size (1k/4k) */
 	/* GPP SM segment ptrs */
 	struct CMM_ALLOCATOR *paGPPSMSegTab[CMM_MAXGPPSEGS];
 } ;
@@ -210,9 +210,9 @@ struct CMM_XLATORATTRS CMM_DFLTXLATORATTRS = {
  */
 struct CMM_MNODE {
 	struct LST_ELEM link;		/* must be 1st element */
-	DWORD dwPA;		/* Phys addr */
-	DWORD dwVA;		/* Virtual address in device process context */
-	ULONG ulSize;		/* SM block size in bytes */
+	u32 dwPA;		/* Phys addr */
+	u32 dwVA;		/* Virtual address in device process context */
+	u32 ulSize;		/* SM block size in bytes */
 	HANDLE hClientProc;	/* Process that allocated this mem block */
 } ;
 
@@ -222,20 +222,20 @@ struct CMM_MNODE {
 static struct GT_Mask CMM_debugMask = { 0, 0 };	/* GT trace variable */
 #endif
 
-static ULONG cRefs;		/* module reference count */
+static u32 cRefs;		/* module reference count */
 
 /*  ----------------------------------- Function Prototypes */
-static VOID AddToFreeList(struct CMM_ALLOCATOR *pAllocator,
+static void AddToFreeList(struct CMM_ALLOCATOR *pAllocator,
 			  struct CMM_MNODE *pNode);
 static struct CMM_ALLOCATOR *GetAllocator(struct CMM_OBJECT *pCmmMgr,
-					  ULONG ulSegId);
+					  u32 ulSegId);
 static struct CMM_MNODE *GetFreeBlock(struct CMM_ALLOCATOR *pAllocator,
-				      UINT uSize);
-static struct CMM_MNODE *GetNode(struct CMM_OBJECT *pCmmMgr, DWORD dwPA,
-				 DWORD dwVA, ULONG ulSize);
+				      u32 uSize);
+static struct CMM_MNODE *GetNode(struct CMM_OBJECT *pCmmMgr, u32 dwPA,
+				 u32 dwVA, u32 ulSize);
 /* get available slot for new allocator */
-static INT GetSlot(struct CMM_OBJECT *hCmmMgr);
-static VOID UnRegisterGPPSMSeg(struct CMM_ALLOCATOR *pSMA);
+static s32 GetSlot(struct CMM_OBJECT *hCmmMgr);
+static void UnRegisterGPPSMSeg(struct CMM_ALLOCATOR *pSMA);
 
 /*
  *  ======== CMM_CallocBuf ========
@@ -248,17 +248,17 @@ static VOID UnRegisterGPPSMSeg(struct CMM_ALLOCATOR *pSMA);
  *      the freelist; if large enough. The kept block is placed on the
  *      inUseList.
  */
-PVOID CMM_CallocBuf(struct CMM_OBJECT *hCmmMgr, UINT uSize,
-		    struct CMM_ATTRS *pAttrs, OUT PVOID *ppBufVA)
+void *CMM_CallocBuf(struct CMM_OBJECT *hCmmMgr, u32 uSize,
+		    struct CMM_ATTRS *pAttrs, OUT void **ppBufVA)
 {
 	struct CMM_OBJECT *pCmmMgr = (struct CMM_OBJECT *)hCmmMgr;
-	PVOID pBufPA = NULL;
+	void *pBufPA = NULL;
 	struct CMM_MNODE *pNode = NULL;
 	struct CMM_MNODE *pNewNode = NULL;
 	struct CMM_ALLOCATOR *pAllocator = NULL;
-	UINT uDeltaSize;
-	BYTE *pByte = NULL;
-	INT cnt;
+	u32 uDeltaSize;
+	u8 *pByte = NULL;
+	s32 cnt;
 
 	if (pAttrs == NULL)
 		pAttrs = &CMM_DFLTALCTATTRS;
@@ -284,7 +284,7 @@ PVOID CMM_CallocBuf(struct CMM_OBJECT *hCmmMgr, UINT uSize,
 				 * add to freelist */
 				pNewNode = GetNode(pCmmMgr, pNode->dwPA + uSize,
 					   pNode->dwVA + uSize,
-					   (ULONG)uDeltaSize);
+					   (u32)uDeltaSize);
 				/* leftovers go free */
 				AddToFreeList(pAllocator, pNewNode);
 				/* adjust our node's size */
@@ -294,19 +294,19 @@ PVOID CMM_CallocBuf(struct CMM_OBJECT *hCmmMgr, UINT uSize,
 			 * We'll need to free up a process's alloc'd SM if the
 			 * client process goes away.
 			 */
-			(Void)PRCS_GetCurrentHandle(&pNode->hClientProc);
+			(void)PRCS_GetCurrentHandle(&pNode->hClientProc);
 			/* put our node on InUse list */
 			LST_PutTail(pAllocator->pInUseListHead,
 				   (struct LST_ELEM *)pNode);
-			pBufPA = (PVOID)pNode->dwPA;	/* physical address */
+			pBufPA = (void *)pNode->dwPA;	/* physical address */
 			/* clear mem */
-			pByte = (BYTE *)pNode->dwVA;
-			for (cnt = 0; cnt < (INT) uSize; cnt++, pByte++)
+			pByte = (u8 *)pNode->dwVA;
+			for (cnt = 0; cnt < (s32) uSize; cnt++, pByte++)
 				*pByte = 0;
 
 			if (ppBufVA != NULL) {
 				/* Virtual address */
-				*ppBufVA = (PVOID)pNode->dwVA;
+				*ppBufVA = (void *)pNode->dwVA;
 			}
 		}
 		GT_3trace(CMM_debugMask, GT_3CLASS,
@@ -402,7 +402,7 @@ DSP_STATUS CMM_Destroy(struct CMM_OBJECT *hCmmMgr, BOOL bForce)
 	struct CMM_OBJECT *pCmmMgr = (struct CMM_OBJECT *)hCmmMgr;
 	struct CMM_INFO tempInfo;
 	DSP_STATUS status = DSP_SOK;
-	INT nSlot;
+	s32 nSlot;
 	struct CMM_MNODE *pNode;
 
 	DBC_Require(cRefs > 0);
@@ -460,7 +460,7 @@ DSP_STATUS CMM_Destroy(struct CMM_OBJECT *hCmmMgr, BOOL bForce)
  *      Discontinue usage of module; free resources when reference count
  *      reaches 0.
  */
-VOID CMM_Exit(void)
+void CMM_Exit(void)
 {
 	DBC_Require(cRefs > 0);
 
@@ -475,7 +475,7 @@ VOID CMM_Exit(void)
  *  Purpose:
  *      Free the given buffer.
  */
-DSP_STATUS CMM_FreeBuf(struct CMM_OBJECT *hCmmMgr, PVOID pBufPA, ULONG ulSegId)
+DSP_STATUS CMM_FreeBuf(struct CMM_OBJECT *hCmmMgr, void *pBufPA, u32 ulSegId)
 {
 	struct CMM_OBJECT *pCmmMgr = (struct CMM_OBJECT *)hCmmMgr;
 	DSP_STATUS status = DSP_EPOINTER;
@@ -501,7 +501,7 @@ DSP_STATUS CMM_FreeBuf(struct CMM_OBJECT *hCmmMgr, PVOID pBufPA, ULONG ulSegId)
 		pCurNode = (struct CMM_MNODE *)LST_First(pAllocator->
 			    pInUseListHead);
 		while (pCurNode) {
-			if ((DWORD)pBufPA == pCurNode->dwPA) {
+			if ((u32)pBufPA == pCurNode->dwPA) {
 				/* Found it */
 				LST_RemoveElem(pAllocator->pInUseListHead,
 					      (struct LST_ELEM *)pCurNode);
@@ -553,7 +553,7 @@ DSP_STATUS CMM_GetInfo(struct CMM_OBJECT *hCmmMgr,
 		       OUT struct CMM_INFO *pCmmInfo)
 {
 	struct CMM_OBJECT *pCmmMgr = (struct CMM_OBJECT *)hCmmMgr;
-	ULONG ulSeg;
+	u32 ulSeg;
 	DSP_STATUS status = DSP_SOK;
 	struct CMM_ALLOCATOR *pAltr;
 	struct CMM_MNODE *pCurNode = NULL;
@@ -638,17 +638,17 @@ BOOL CMM_Init(void)
  *      Register a block of SM with the CMM to be used for later GPP SM
  *      allocations.
  */
-DSP_STATUS CMM_RegisterGPPSMSeg(struct CMM_OBJECT *hCmmMgr, DWORD dwGPPBasePA,
-				ULONG ulSize, DWORD dwDSPAddrOffset,
-				CMM_CNVTTYPE cFactor, DWORD dwDSPBase,
-				ULONG ulDSPSize, ULONG *pulSegId,
-				DWORD dwGPPBaseVA)
+DSP_STATUS CMM_RegisterGPPSMSeg(struct CMM_OBJECT *hCmmMgr, u32 dwGPPBasePA,
+				u32 ulSize, u32 dwDSPAddrOffset,
+				CMM_CNVTTYPE cFactor, u32 dwDSPBase,
+				u32 ulDSPSize, u32 *pulSegId,
+				u32 dwGPPBaseVA)
 {
 	struct CMM_OBJECT *pCmmMgr = (struct CMM_OBJECT *)hCmmMgr;
 	struct CMM_ALLOCATOR *pSMA = NULL;
 	DSP_STATUS status = DSP_SOK;
 	struct CMM_MNODE *pNewNode;
-	INT nSlot;
+	s32 nSlot;
 
 	DBC_Require(ulSize > 0);
 	DBC_Require(pulSegId != NULL);
@@ -705,7 +705,7 @@ DSP_STATUS CMM_RegisterGPPSMSeg(struct CMM_OBJECT *hCmmMgr, DWORD dwGPPBasePA,
 		}
 		if (DSP_SUCCEEDED(status)) {
 			/* return the actual segment identifier */
-			*pulSegId = (ULONG) nSlot + 1;
+			*pulSegId = (u32) nSlot + 1;
 			/* create memory free list */
 			pSMA->pFreeListHead = LST_Create();
 			if (pSMA->pFreeListHead == NULL) {
@@ -765,12 +765,12 @@ func_end:
  *  Purpose:
  *      UnRegister GPP SM segments with the CMM.
  */
-DSP_STATUS CMM_UnRegisterGPPSMSeg(struct CMM_OBJECT *hCmmMgr, ULONG ulSegId)
+DSP_STATUS CMM_UnRegisterGPPSMSeg(struct CMM_OBJECT *hCmmMgr, u32 ulSegId)
 {
 	struct CMM_OBJECT *pCmmMgr = (struct CMM_OBJECT *)hCmmMgr;
 	DSP_STATUS status = DSP_SOK;
 	struct CMM_ALLOCATOR *pSMA;
-	ULONG ulId = ulSegId;
+	u32 ulId = ulSegId;
 
 	DBC_Require(ulSegId > 0);
 	if (MEM_IsValidHandle(hCmmMgr, CMMSIGNATURE)) {
@@ -816,7 +816,7 @@ DSP_STATUS CMM_UnRegisterGPPSMSeg(struct CMM_OBJECT *hCmmMgr, ULONG ulSegId)
  *  Note:
  *      This routine is always called within cmm lock crit sect.
  */
-static VOID UnRegisterGPPSMSeg(struct CMM_ALLOCATOR *pSMA)
+static void UnRegisterGPPSMSeg(struct CMM_ALLOCATOR *pSMA)
 {
 	struct CMM_MNODE *pCurNode = NULL;
 	struct CMM_MNODE *pNextNode = NULL;
@@ -831,7 +831,7 @@ static VOID UnRegisterGPPSMSeg(struct CMM_ALLOCATOR *pSMA)
 				    (struct LST_ELEM *)pCurNode);
 			LST_RemoveElem(pSMA->pFreeListHead,
 				      (struct LST_ELEM *)pCurNode);
-			MEM_Free((PVOID) pCurNode);
+			MEM_Free((void *) pCurNode);
 			/* next node. */
 			pCurNode = pNextNode;
 		}
@@ -844,14 +844,14 @@ static VOID UnRegisterGPPSMSeg(struct CMM_ALLOCATOR *pSMA)
 				    (struct LST_ELEM *)pCurNode);
 			LST_RemoveElem(pSMA->pInUseListHead,
 				      (struct LST_ELEM *)pCurNode);
-			MEM_Free((PVOID) pCurNode);
+			MEM_Free((void *) pCurNode);
 			/* next node. */
 			pCurNode = pNextNode;
 		}
 		LST_Delete(pSMA->pInUseListHead);	/* delete InUse list */
 	}
-	if ((PVOID) pSMA->dwVmBase != NULL)
-		MEM_UnmapLinearAddress((PVOID) pSMA->dwVmBase);
+	if ((void *) pSMA->dwVmBase != NULL)
+		MEM_UnmapLinearAddress((void *) pSMA->dwVmBase);
 
 	/* Free allocator itself */
 	MEM_FreeObject(pSMA);
@@ -862,9 +862,9 @@ static VOID UnRegisterGPPSMSeg(struct CMM_ALLOCATOR *pSMA)
  *  Purpose:
  *      An available slot # is returned. Returns negative on failure.
  */
-static INT GetSlot(struct CMM_OBJECT *pCmmMgr)
+static s32 GetSlot(struct CMM_OBJECT *pCmmMgr)
 {
-	INT nSlot = -1;		/* neg on failure */
+	s32 nSlot = -1;		/* neg on failure */
 	DBC_Require(pCmmMgr != NULL);
 	/* get first available slot in cmm mgr SMSegTab[] */
 	for (nSlot = 0; nSlot < CMM_MAXGPPSEGS; nSlot++) {
@@ -886,8 +886,8 @@ static INT GetSlot(struct CMM_OBJECT *pCmmMgr)
  *  Purpose:
  *      Get a memory node from freelist or create a new one.
  */
-static struct CMM_MNODE *GetNode(struct CMM_OBJECT *pCmmMgr, DWORD dwPA,
-				 DWORD dwVA, ULONG ulSize)
+static struct CMM_MNODE *GetNode(struct CMM_OBJECT *pCmmMgr, u32 dwPA,
+				 u32 dwVA, u32 ulSize)
 {
 	struct CMM_MNODE *pNode = NULL;
 
@@ -923,7 +923,7 @@ static struct CMM_MNODE *GetNode(struct CMM_OBJECT *pCmmMgr, DWORD dwPA,
  *      Put a memory node on the cmm nodelist for later use.
  *      Doesn't actually delete the node. Heap thrashing friendly.
  */
-static VOID DeleteNode(struct CMM_OBJECT *pCmmMgr, struct CMM_MNODE *pNode)
+static void DeleteNode(struct CMM_OBJECT *pCmmMgr, struct CMM_MNODE *pNode)
 {
 	DBC_Require(pNode != NULL);
 	LST_InitElem((struct LST_ELEM *) pNode);	/* init .self ptr */
@@ -937,13 +937,13 @@ static VOID DeleteNode(struct CMM_OBJECT *pCmmMgr, struct CMM_MNODE *pNode)
  *      the size.
  */
 static struct CMM_MNODE *GetFreeBlock(struct CMM_ALLOCATOR *pAllocator,
-				      UINT uSize)
+				      u32 uSize)
 {
 	if (pAllocator) {
 		struct CMM_MNODE *pCurNode = (struct CMM_MNODE *)
 					LST_First(pAllocator->pFreeListHead);
 		while (pCurNode) {
-			if (uSize <= (UINT) pCurNode->ulSize) {
+			if (uSize <= (u32) pCurNode->ulSize) {
 				LST_RemoveElem(pAllocator->pFreeListHead,
 					      (struct LST_ELEM *)pCurNode);
 				return pCurNode;
@@ -961,14 +961,14 @@ static struct CMM_MNODE *GetFreeBlock(struct CMM_ALLOCATOR *pAllocator,
  *  Purpose:
  *      Coelesce node into the freelist in ascending size order.
  */
-static VOID AddToFreeList(struct CMM_ALLOCATOR *pAllocator,
+static void AddToFreeList(struct CMM_ALLOCATOR *pAllocator,
 			  struct CMM_MNODE *pNode)
 {
 	struct CMM_MNODE *pNodePrev = NULL;
 	struct CMM_MNODE *pNodeNext = NULL;
 	struct CMM_MNODE *pCurNode;
-	DWORD dwThisPA;
-	DWORD dwNextPA;
+	u32 dwThisPA;
+	u32 dwNextPA;
 
 	DBC_Require(pNode != NULL);
 	DBC_Require(pAllocator != NULL);
@@ -1040,7 +1040,7 @@ static VOID AddToFreeList(struct CMM_ALLOCATOR *pAllocator,
  *      SegIds:  1,2,3..max.
  */
 static struct CMM_ALLOCATOR *GetAllocator(struct CMM_OBJECT *pCmmMgr,
-					  ULONG ulSegId)
+					  u32 ulSegId)
 {
 	struct CMM_ALLOCATOR *pAllocator = NULL;
 
@@ -1121,11 +1121,11 @@ DSP_STATUS CMM_XlatorDelete(struct CMM_XLATOROBJECT *hXlator, BOOL bForce)
 /*
  *  ======== CMM_XlatorAllocBuf ========
  */
-PVOID CMM_XlatorAllocBuf(struct CMM_XLATOROBJECT *hXlator, PVOID pVaBuf,
-			UINT uPaSize)
+void *CMM_XlatorAllocBuf(struct CMM_XLATOROBJECT *hXlator, void *pVaBuf,
+			u32 uPaSize)
 {
 	struct CMM_XLATOR *pXlator = (struct CMM_XLATOR *)hXlator;
-	PVOID pBuf = NULL;
+	void *pBuf = NULL;
 	struct CMM_ATTRS attrs;
 
 	DBC_Require(cRefs > 0);
@@ -1137,14 +1137,14 @@ PVOID CMM_XlatorAllocBuf(struct CMM_XLATOROBJECT *hXlator, PVOID pVaBuf,
 
 	if (MEM_IsValidHandle(pXlator, CMMXLATESIGNATURE)) {
 		attrs.ulSegId = pXlator->ulSegId;
-		*(volatile DWORD *)pVaBuf = 0;
+		*(volatile u32 *)pVaBuf = 0;
 		/* Alloc SM */
 		pBuf = CMM_CallocBuf(pXlator->hCmmMgr, uPaSize, &attrs,  NULL);
 		if (pBuf) {
 			/* convert to translator(node/strm) process Virtual
 			 * address */
-			*(volatile DWORD **)pVaBuf =
-				 (DWORD *)CMM_XlatorTranslate(hXlator,
+			*(volatile u32 **)pVaBuf =
+				 (u32 *)CMM_XlatorTranslate(hXlator,
 							      pBuf, CMM_PA2VA);
 		}
 	}
@@ -1157,11 +1157,11 @@ PVOID CMM_XlatorAllocBuf(struct CMM_XLATOROBJECT *hXlator, PVOID pVaBuf,
  *      Free the given SM buffer and descriptor.
  *      Does not free virtual memory.
  */
-DSP_STATUS CMM_XlatorFreeBuf(struct CMM_XLATOROBJECT *hXlator, PVOID pBufVa)
+DSP_STATUS CMM_XlatorFreeBuf(struct CMM_XLATOROBJECT *hXlator, void *pBufVa)
 {
 	struct CMM_XLATOR *pXlator = (struct CMM_XLATOR *)hXlator;
 	DSP_STATUS status = DSP_EFAIL;
-	PVOID pBufPa = NULL;
+	void *pBufPa = NULL;
 
 	DBC_Require(cRefs > 0);
 	DBC_Require(pBufVa != NULL);
@@ -1192,8 +1192,8 @@ DSP_STATUS CMM_XlatorFreeBuf(struct CMM_XLATOROBJECT *hXlator, PVOID pBufVa)
  *  Purpose:
  *      Set/Get translator info.
  */
-DSP_STATUS CMM_XlatorInfo(struct CMM_XLATOROBJECT *hXlator, IN OUT BYTE **pAddr,
-			 ULONG ulSize, UINT uSegId, BOOL bSetInfo)
+DSP_STATUS CMM_XlatorInfo(struct CMM_XLATOROBJECT *hXlator, IN OUT u8 **pAddr,
+			 u32 ulSize, u32 uSegId, BOOL bSetInfo)
 {
 	struct CMM_XLATOR *pXlator = (struct CMM_XLATOR *)hXlator;
 	DSP_STATUS status = DSP_SOK;
@@ -1205,14 +1205,14 @@ DSP_STATUS CMM_XlatorInfo(struct CMM_XLATOROBJECT *hXlator, IN OUT BYTE **pAddr,
 	if (MEM_IsValidHandle(pXlator, CMMXLATESIGNATURE)) {
 		if (bSetInfo) {
 			/* set translators virtual address range */
-			pXlator->dwVirtBase = (DWORD)*pAddr;
+			pXlator->dwVirtBase = (u32)*pAddr;
 			pXlator->ulVirtSize = ulSize;
 			GT_2trace(CMM_debugMask, GT_3CLASS,
 				  "pXlator->dwVirtBase %x, "
 				  "ulVirtSize %x\n", pXlator->dwVirtBase,
 				  pXlator->ulVirtSize);
 		} else {	/* return virt base address */
-			*pAddr = (BYTE *)pXlator->dwVirtBase;
+			*pAddr = (u8 *)pXlator->dwVirtBase;
 		}
 	} else {
 		status = DSP_EHANDLE;
@@ -1223,14 +1223,14 @@ DSP_STATUS CMM_XlatorInfo(struct CMM_XLATOROBJECT *hXlator, IN OUT BYTE **pAddr,
 /*
  *  ======== CMM_XlatorTranslate ========
  */
-PVOID CMM_XlatorTranslate(struct CMM_XLATOROBJECT *hXlator, PVOID pAddr,
+void *CMM_XlatorTranslate(struct CMM_XLATOROBJECT *hXlator, void *pAddr,
 			  CMM_XLATETYPE xType)
 {
-	DWORD dwAddrXlate = 0;
+	u32 dwAddrXlate = 0;
 	struct CMM_XLATOR *pXlator = (struct CMM_XLATOR *)hXlator;
 	struct CMM_OBJECT *pCmmMgr = NULL;
 	struct CMM_ALLOCATOR *pAlctr = NULL;
-	DWORD dwOffset = 0;
+	u32 dwOffset = 0;
 
 	DBC_Require(cRefs > 0);
 	DBC_Require(pAddr != NULL);
@@ -1250,7 +1250,7 @@ PVOID CMM_XlatorTranslate(struct CMM_XLATOROBJECT *hXlator, PVOID pAddr,
 	    (xType == CMM_PA2VA)) {
 		if (xType == CMM_PA2VA) {
 			/* Gpp Va = Va Base + offset */
-			dwOffset = (BYTE *)pAddr - (BYTE *)(pAlctr->dwSmBase -
+			dwOffset = (u8 *)pAddr - (u8 *)(pAlctr->dwSmBase -
 				    pAlctr->ulDSPSize);
 			dwAddrXlate = pXlator->dwVirtBase + dwOffset;
 			/* Check if translated Va base is in range */
@@ -1264,12 +1264,12 @@ PVOID CMM_XlatorTranslate(struct CMM_XLATOROBJECT *hXlator, PVOID pAddr,
 			}
 		} else {
 			/* Gpp PA =  Gpp Base + offset */
-			dwOffset = (BYTE *)pAddr - (BYTE *)pXlator->dwVirtBase;
+			dwOffset = (u8 *)pAddr - (u8 *)pXlator->dwVirtBase;
 			dwAddrXlate = pAlctr->dwSmBase - pAlctr->ulDSPSize +
 				      dwOffset;
 		}
 	} else {
-		dwAddrXlate = (DWORD)pAddr;
+		dwAddrXlate = (u32)pAddr;
 	}
 	 /*Now convert address to proper target physical address if needed*/
 	if ((xType == CMM_VA2DSPPA) || (xType == CMM_PA2DSPPA)) {
@@ -1295,5 +1295,5 @@ loop_cont:
 			  "CMM_XlatorTranslate: pAddr %x, xType"
 			  " %x, dwAddrXlate %x\n", pAddr, xType, dwAddrXlate);
 	}
-	return (PVOID)dwAddrXlate;
+	return (void *)dwAddrXlate;
 }

@@ -93,7 +93,7 @@
 #include <devdefs.h>
 
 /* Notification callback for DEV clients BRD and CHNL */
-	typedef VOID(CDECL * DEV_CALLBACK) (PVOID pArb, ULONG ulStatus);
+	typedef void(CDECL * DEV_CALLBACK) (void *pArb, u32 ulStatus);
 
 /*
  *  ======== DEV_BrdWriteFxn ========
@@ -116,10 +116,10 @@
  *      pHostBuf != NULL
  *  Ensures:
  */
-	extern ULONG CDECL DEV_BrdWriteFxn(PVOID pArb,
-					   ULONG ulDspAddr,
-					   PVOID pHostBuf,
-					   ULONG ulNumBytes, UINT nMemSpace);
+	extern u32 CDECL DEV_BrdWriteFxn(void *pArb,
+					   u32 ulDspAddr,
+					   void *pHostBuf,
+					   u32 ulNumBytes, u32 nMemSpace);
 
 /*
  *  ======== DEV_CreateDevice ========
@@ -161,7 +161,7 @@
  */
 	extern DSP_STATUS CDECL DEV_CreateDevice(OUT struct DEV_OBJECT
 						 **phDevObject,
-						 IN CONST PSTR pstrWMDFileName,
+						 IN CONST char *pstrWMDFileName,
 						 IN CONST struct CFG_HOSTRES
 						 *pHostConfig,
 						 IN CONST struct CFG_DSPRES
@@ -207,8 +207,8 @@
  */
 	extern DSP_STATUS CDECL DEV_CreateIVADevice(OUT struct DEV_OBJECT
 						    **phDevObject,
-						    IN CONST PSTR
-						    pstrWMDFileName,
+						    IN CONST char
+						    *pstrWMDFileName,
 						    IN CONST struct CFG_HOSTRES
 						    *pHostConfig,
 						    IN CONST struct CFG_DSPRES
@@ -423,7 +423,7 @@
  *      else:           *phDevNode is NULL.
  */
 	extern DSP_STATUS CDECL DEV_GetDevType(struct DEV_OBJECT *hdevObject,
-					       UINT *devType);
+					       u32 *devType);
 
 /*
  *  ======== DEV_GetFirst ========
@@ -527,7 +527,7 @@
  *      phNodeMgr != NULL.
  *  Ensures:
  */
-	extern VOID CDECL DEV_GetMsgMgr(struct DEV_OBJECT *hDevObject,
+	extern void CDECL DEV_GetMsgMgr(struct DEV_OBJECT *hDevObject,
 					OUT struct MSG_MGR **phMsgMgr);
 
 /*
@@ -576,8 +576,8 @@
  *      DSP_SOK:        *pulValue contains the symbol value;
  */
 	extern DSP_STATUS CDECL DEV_GetSymbol(struct DEV_OBJECT *hDevObject,
-					      IN CONST PSTR pstrSym,
-					      OUT ULONG *pulValue);
+					      IN CONST char *pstrSym,
+					      OUT u32 *pulValue);
 
 /*
  *  ======== DEV_GetWMDContext ========
@@ -612,7 +612,7 @@
  *  Ensures:
  *      When reference count == 0, DEV's private resources are freed.
  */
-	extern VOID CDECL DEV_Exit();
+	extern void CDECL DEV_Exit();
 
 /*
  *  ======== DEV_Init ========
@@ -670,7 +670,7 @@
  */
 	extern DSP_STATUS CDECL DEV_InsertProcObject(IN struct DEV_OBJECT
 						     *hDevObject,
-						     IN DWORD hProcObject,
+						     IN u32 hProcObject,
 						     OUT BOOL *
 						     pbAlreadyAttached);
 
@@ -699,7 +699,7 @@
  */
 	extern DSP_STATUS CDECL DEV_RemoveProcObject(struct DEV_OBJECT
 						     *hDevObject,
-						     DWORD hProcObject);
+						     u32 hProcObject);
 
 /*
  *  ======== DEV_NotifyClients ========
@@ -722,7 +722,7 @@
  *      the notifications will ever be delivered.
  */
 	extern DSP_STATUS CDECL DEV_NotifyClients(struct DEV_OBJECT *hDevObject,
-						  ULONG ulStatus);
+						  u32 ulStatus);
 
 /*
  *  ======== DEV_RegisterNotify ========
@@ -740,7 +740,7 @@
  */
 	extern DSP_STATUS CDECL DEV_RegisterNotify(struct DEV_OBJECT
 						   *hDevObject,
-						   PVOID pArb,
+						   void *pArb,
 						   DEV_CALLBACK lpCallback);
 
 /*
@@ -787,7 +787,7 @@
  *      DEV Initialized.
  *  Ensures:
  */
-	extern VOID CDECL DEV_SetMsgMgr(struct DEV_OBJECT *hDevObject,
+	extern void CDECL DEV_SetMsgMgr(struct DEV_OBJECT *hDevObject,
 					struct MSG_MGR *hMgr);
 
 /*

@@ -78,8 +78,8 @@
 	struct SYNC_ATTRS {
 		HANDLE hUserEvent;    /* Platform's User Mode synch. object. */
 		HANDLE hKernelEvent;  /* Platform's Kernel Mode sync. object. */
-		DWORD dwReserved1;	/* For future expansion.   */
-		DWORD dwReserved2;	/* For future expansion.   */
+		u32 dwReserved1;	/* For future expansion.   */
+		u32 dwReserved2;	/* For future expansion.   */
 	} ;
 
 /*
@@ -141,7 +141,7 @@
  *  Ensures:
  *      Resources used by module are freed when cRef reaches zero.
  */
-	extern VOID SYNC_Exit();
+	extern void SYNC_Exit();
 
 /*
  *  ======== SYNC_Init ========
@@ -249,7 +249,7 @@
  *      SYNC initialized
  *  Ensures
  */
-	extern DSP_STATUS SYNC_PostMessage(IN HANDLE hWindow, IN UINT uMsg);
+	extern DSP_STATUS SYNC_PostMessage(IN HANDLE hWindow, IN u32 uMsg);
 
 /*
  *  ======== SYNC_ResetEvent ========
@@ -305,7 +305,7 @@
  *  Ensures:
  */
 	extern DSP_STATUS SYNC_WaitOnEvent(IN struct SYNC_OBJECT *hEvent,
-					   IN DWORD dwTimeOut);
+					   IN u32 dwTimeOut);
 
 /*
  *  ======== SYNC_WaitOnMultipleEvents ========
@@ -334,8 +334,8 @@
  */
 	extern DSP_STATUS SYNC_WaitOnMultipleEvents(IN struct SYNC_OBJECT
 						    **hSyncEvents,
-						    IN UINT uCount,
-						    IN DWORD dwTimeout,
-						    OUT UINT *puIndex);
+						    IN u32 uCount,
+						    IN u32 dwTimeout,
+						    OUT u32 *puIndex);
 
 #endif				/* _SYNC_H */

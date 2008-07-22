@@ -22,13 +22,8 @@
 #define NULL 0
 #endif
 
-#if defined(NO_STD_LIB)
-#include "dl_stdlib.h"
-#define DL_STRCMP  DL__strcmp
-#else
-#include <string.h>
+#include <linux/string.h>
 #define DL_STRCMP  strcmp
-#endif
 
 /* maximum parenthesis nesting in relocation stack expressions */
 #define STATIC_EXPR_STK_SIZE 10

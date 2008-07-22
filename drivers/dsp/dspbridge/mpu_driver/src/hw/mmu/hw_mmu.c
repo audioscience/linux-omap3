@@ -36,6 +36,7 @@
 #include "MMURegAcM.h"
 #include <hw_defs.h>
 #include <hw_mmu.h>
+#include <linux/types.h>
 
 /*
  * LOCAL TYPES AND DEFINITIONS
@@ -70,7 +71,7 @@ typedef enum HW_MMUPageSize {
 * INPUTS:
 *
 *       Identifier      : baseAddress
-*       Type		: const UWORD32
+*       Type		: const u32
 *       Description     : Base Address of instance of MMU module
 *
 * RETURNS:
@@ -87,7 +88,7 @@ typedef enum HW_MMUPageSize {
 * METHOD:	       : Check the Input parameter and Flush a
 *			 single entry in the TLB.
 */
-static HW_STATUS MMU_FlushEntry(const UWORD32 baseAddress);
+static HW_STATUS MMU_FlushEntry(const u32 baseAddress);
 
 /*
 * FUNCTION	      : MMU_SetCAMEntry
@@ -95,25 +96,25 @@ static HW_STATUS MMU_FlushEntry(const UWORD32 baseAddress);
 * INPUTS:
 *
 *       Identifier      : baseAddress
-*       TypE		: const UWORD32
+*       TypE		: const u32
 *       Description     : Base Address of instance of MMU module
 *
 *       Identifier      : pageSize
-*       TypE		: const UWORD32
+*       TypE		: const u32
 *       Description     : It indicates the page size
 *
 *       Identifier      : preservedBit
-*       Type		: const UWORD32
+*       Type		: const u32
 *       Description     : It indicates the TLB entry is preserved entry
 *							or not
 *
 *       Identifier      : validBit
-*       Type		: const UWORD32
+*       Type		: const u32
 *       Description     : It indicates the TLB entry is valid entry or not
 *
 *
 *       Identifier      : virtualAddrTag
-*       Type	    	: const UWORD32
+*       Type	    	: const u32
 *       Description     : virtual Address
 *
 * RETURNS:
@@ -129,11 +130,11 @@ static HW_STATUS MMU_FlushEntry(const UWORD32 baseAddress);
 *
 * METHOD:	       	: Check the Input parameters and set the CAM entry.
 */
-static HW_STATUS MMU_SetCAMEntry(const UWORD32    baseAddress,
-				   const UWORD32    pageSize,
-				   const UWORD32    preservedBit,
-				   const UWORD32    validBit,
-				   const UWORD32    virtualAddrTag);
+static HW_STATUS MMU_SetCAMEntry(const u32    baseAddress,
+				   const u32    pageSize,
+				   const u32    preservedBit,
+				   const u32    validBit,
+				   const u32    virtualAddrTag);
 
 /*
 * FUNCTION	      : MMU_SetRAMEntry
@@ -141,11 +142,11 @@ static HW_STATUS MMU_SetCAMEntry(const UWORD32    baseAddress,
 * INPUTS:
 *
 *       Identifier      : baseAddress
-*       Type	    	: const UWORD32
+*       Type	    	: const u32
 *       Description     : Base Address of instance of MMU module
 *
 *       Identifier      : physicalAddr
-*       Type	    	: const UWORD32
+*       Type	    	: const u32
 *       Description     : Physical Address to which the corresponding
 *			 virtual   Address shouldpoint
 *
@@ -174,8 +175,8 @@ static HW_STATUS MMU_SetCAMEntry(const UWORD32    baseAddress,
 *
 * METHOD:	       : Check the Input parameters and set the RAM entry.
 */
-static HW_STATUS MMU_SetRAMEntry(const UWORD32	baseAddress,
-				   const UWORD32	physicalAddr,
+static HW_STATUS MMU_SetRAMEntry(const u32	baseAddress,
+				   const u32	physicalAddr,
 				   HW_Endianism_t      endianism,
 				   HW_ElementSize_t    elementSize,
 				   HW_MMUMixedSize_t   mixedSize);
@@ -185,7 +186,7 @@ static HW_STATUS MMU_SetRAMEntry(const UWORD32	baseAddress,
 * =========================================================================
 */
 
-HW_STATUS HW_MMU_Enable(const UWORD32 baseAddress)
+HW_STATUS HW_MMU_Enable(const u32 baseAddress)
 {
     HW_STATUS status = RET_OK;
 
@@ -194,7 +195,7 @@ HW_STATUS HW_MMU_Enable(const UWORD32 baseAddress)
     return status;
 }
 
-HW_STATUS HW_MMU_Disable(const UWORD32 baseAddress)
+HW_STATUS HW_MMU_Disable(const u32 baseAddress)
 {
     HW_STATUS status = RET_OK;
 
@@ -203,8 +204,8 @@ HW_STATUS HW_MMU_Disable(const UWORD32 baseAddress)
     return status;
 }
 
-HW_STATUS HW_MMU_NumLockedSet(const UWORD32 baseAddress,
-				UWORD32 numLockedEntries)
+HW_STATUS HW_MMU_NumLockedSet(const u32 baseAddress,
+				u32 numLockedEntries)
 {
     HW_STATUS status = RET_OK;
 
@@ -213,8 +214,8 @@ HW_STATUS HW_MMU_NumLockedSet(const UWORD32 baseAddress,
     return status;
 }
 
-HW_STATUS HW_MMU_VictimNumSet(const UWORD32 baseAddress,
-				UWORD32 victimEntryNum)
+HW_STATUS HW_MMU_VictimNumSet(const u32 baseAddress,
+				u32 victimEntryNum)
 {
     HW_STATUS status = RET_OK;
 
@@ -223,7 +224,7 @@ HW_STATUS HW_MMU_VictimNumSet(const UWORD32 baseAddress,
     return status;
 }
 
-HW_STATUS HW_MMU_TLBFlushAll(const UWORD32 baseAddress)
+HW_STATUS HW_MMU_TLBFlushAll(const u32 baseAddress)
 {
     HW_STATUS status = RET_OK;
 
@@ -232,7 +233,7 @@ HW_STATUS HW_MMU_TLBFlushAll(const UWORD32 baseAddress)
     return status;
 }
 
-HW_STATUS HW_MMU_EventAck(const UWORD32 baseAddress, UWORD32 irqMask)
+HW_STATUS HW_MMU_EventAck(const u32 baseAddress, u32 irqMask)
 {
     HW_STATUS status = RET_OK;
 
@@ -241,11 +242,11 @@ HW_STATUS HW_MMU_EventAck(const UWORD32 baseAddress, UWORD32 irqMask)
     return status;
 }
 
-HW_STATUS HW_MMU_EventDisable(const UWORD32 baseAddress,
-				UWORD32 irqMask)
+HW_STATUS HW_MMU_EventDisable(const u32 baseAddress,
+				u32 irqMask)
 {
     HW_STATUS status = RET_OK;
-    UWORD32 irqReg;
+    u32 irqReg;
 
     irqReg = MMUMMU_IRQENABLEReadRegister32(baseAddress);
 
@@ -254,10 +255,10 @@ HW_STATUS HW_MMU_EventDisable(const UWORD32 baseAddress,
     return status;
 }
 
-HW_STATUS HW_MMU_EventEnable(const UWORD32 baseAddress, UWORD32 irqMask)
+HW_STATUS HW_MMU_EventEnable(const u32 baseAddress, u32 irqMask)
 {
     HW_STATUS status = RET_OK;
-    UWORD32 irqReg;
+    u32 irqReg;
 
     irqReg = MMUMMU_IRQENABLEReadRegister32(baseAddress);
 
@@ -267,7 +268,7 @@ HW_STATUS HW_MMU_EventEnable(const UWORD32 baseAddress, UWORD32 irqMask)
 }
 
 
-HW_STATUS HW_MMU_EventStatus(const UWORD32 baseAddress, UWORD32 *irqMask)
+HW_STATUS HW_MMU_EventStatus(const u32 baseAddress, u32 *irqMask)
 {
     HW_STATUS status = RET_OK;
 
@@ -277,7 +278,7 @@ HW_STATUS HW_MMU_EventStatus(const UWORD32 baseAddress, UWORD32 *irqMask)
 }
 
 
-HW_STATUS HW_MMU_FaultAddrRead(const UWORD32 baseAddress, UWORD32 *addr)
+HW_STATUS HW_MMU_FaultAddrRead(const u32 baseAddress, u32 *addr)
 {
     HW_STATUS status = RET_OK;
 
@@ -291,10 +292,10 @@ HW_STATUS HW_MMU_FaultAddrRead(const UWORD32 baseAddress, UWORD32 *addr)
     return status;
 }
 
-HW_STATUS HW_MMU_TTBSet(const UWORD32 baseAddress, UWORD32 TTBPhysAddr)
+HW_STATUS HW_MMU_TTBSet(const u32 baseAddress, u32 TTBPhysAddr)
 {
     HW_STATUS status = RET_OK;
-    UWORD32 loadTTB;
+    u32 loadTTB;
 
    /*Check the input Parameters*/
    CHECK_INPUT_PARAM(baseAddress, 0, RET_BAD_NULL_PARAM,
@@ -307,7 +308,7 @@ HW_STATUS HW_MMU_TTBSet(const UWORD32 baseAddress, UWORD32 TTBPhysAddr)
    return status;
 }
 
-HW_STATUS HW_MMU_TWLEnable(const UWORD32 baseAddress)
+HW_STATUS HW_MMU_TWLEnable(const u32 baseAddress)
 {
     HW_STATUS status = RET_OK;
 
@@ -316,7 +317,7 @@ HW_STATUS HW_MMU_TWLEnable(const UWORD32 baseAddress)
     return status;
 }
 
-HW_STATUS HW_MMU_TWLDisable(const UWORD32 baseAddress)
+HW_STATUS HW_MMU_TWLDisable(const u32 baseAddress)
 {
     HW_STATUS status = RET_OK;
 
@@ -325,11 +326,11 @@ HW_STATUS HW_MMU_TWLDisable(const UWORD32 baseAddress)
     return status;
 }
 
-HW_STATUS HW_MMU_TLBFlush(const UWORD32 baseAddress, UWORD32 virtualAddr,
-			     UWORD32 pageSize)
+HW_STATUS HW_MMU_TLBFlush(const u32 baseAddress, u32 virtualAddr,
+			     u32 pageSize)
 {
     HW_STATUS status = RET_OK;
-    UWORD32 virtualAddrTag;
+    u32 virtualAddrTag;
     HW_MMUPageSize_t pgSizeBits;
 
     switch (pageSize) {
@@ -363,18 +364,18 @@ HW_STATUS HW_MMU_TLBFlush(const UWORD32 baseAddress, UWORD32 virtualAddr,
     return status;
 }
 
-HW_STATUS HW_MMU_TLBAdd(const UWORD32	baseAddress,
-			   UWORD32	      physicalAddr,
-			   UWORD32	      virtualAddr,
-			   UWORD32	      pageSize,
-			   UWORD32	      entryNum,
+HW_STATUS HW_MMU_TLBAdd(const u32	baseAddress,
+			   u32	      physicalAddr,
+			   u32	      virtualAddr,
+			   u32	      pageSize,
+			   u32	      entryNum,
 			   struct HW_MMUMapAttrs_t    *mapAttrs,
 			   HW_SetClear_t       preservedBit,
 			   HW_SetClear_t       validBit)
 {
     HW_STATUS  status = RET_OK;
-    UWORD32 lockReg;
-    UWORD32 virtualAddrTag;
+    u32 lockReg;
+    u32 virtualAddrTag;
     HW_MMUPageSize_t mmuPgSize;
 
     /*Check the input Parameters*/
@@ -435,15 +436,15 @@ HW_STATUS HW_MMU_TLBAdd(const UWORD32	baseAddress,
     return status;
 }
 
-HW_STATUS HW_MMU_PteSet(const UWORD32	pgTblVa,
-			   UWORD32	      physicalAddr,
-			   UWORD32	      virtualAddr,
-			   UWORD32	      pageSize,
+HW_STATUS HW_MMU_PteSet(const u32	pgTblVa,
+			   u32	      physicalAddr,
+			   u32	      virtualAddr,
+			   u32	      pageSize,
 			   struct HW_MMUMapAttrs_t    *mapAttrs)
 {
     HW_STATUS status = RET_OK;
-    UWORD32 pteAddr, pteVal;
-    WORD32 numEntries = 1;
+    u32 pteAddr, pteVal;
+    s32 numEntries = 1;
 
     switch (pageSize) {
     case HW_PAGE_SIZE_4KB:
@@ -501,18 +502,18 @@ HW_STATUS HW_MMU_PteSet(const UWORD32	pgTblVa,
     }
 
     while (--numEntries >= 0)
-	((UWORD32 *)pteAddr)[numEntries] = pteVal;
+	((u32 *)pteAddr)[numEntries] = pteVal;
 
     return status;
 }
 
-HW_STATUS HW_MMU_PteClear(const UWORD32  pgTblVa,
-			     UWORD32	virtualAddr,
-			     UWORD32	pgSize)
+HW_STATUS HW_MMU_PteClear(const u32  pgTblVa,
+			     u32	virtualAddr,
+			     u32	pgSize)
 {
     HW_STATUS status = RET_OK;
-    UWORD32 pteAddr;
-    WORD32 numEntries = 1;
+    u32 pteAddr;
+    s32 numEntries = 1;
 
     switch (pgSize) {
     case HW_PAGE_SIZE_4KB:
@@ -543,16 +544,16 @@ HW_STATUS HW_MMU_PteClear(const UWORD32  pgTblVa,
     }
 
     while (--numEntries >= 0)
-	((UWORD32 *)pteAddr)[numEntries] = 0;
+	((u32 *)pteAddr)[numEntries] = 0;
 
     return status;
 }
 
 /* MMU_FlushEntry */
-static HW_STATUS MMU_FlushEntry(const UWORD32 baseAddress)
+static HW_STATUS MMU_FlushEntry(const u32 baseAddress)
 {
    HW_STATUS status = RET_OK;
-   UWORD32 flushEntryData = 0x1;
+   u32 flushEntryData = 0x1;
 
    /*Check the input Parameters*/
    CHECK_INPUT_PARAM(baseAddress, 0, RET_BAD_NULL_PARAM,
@@ -565,14 +566,14 @@ static HW_STATUS MMU_FlushEntry(const UWORD32 baseAddress)
 }
 
 /* MMU_SetCAMEntry */
-static HW_STATUS MMU_SetCAMEntry(const UWORD32    baseAddress,
-				   const UWORD32    pageSize,
-				   const UWORD32    preservedBit,
-				   const UWORD32    validBit,
-				   const UWORD32    virtualAddrTag)
+static HW_STATUS MMU_SetCAMEntry(const u32    baseAddress,
+				   const u32    pageSize,
+				   const u32    preservedBit,
+				   const u32    validBit,
+				   const u32    virtualAddrTag)
 {
    HW_STATUS status = RET_OK;
-   UWORD32 mmuCamReg;
+   u32 mmuCamReg;
 
    /*Check the input Parameters*/
    CHECK_INPUT_PARAM(baseAddress, 0, RET_BAD_NULL_PARAM,
@@ -589,14 +590,14 @@ static HW_STATUS MMU_SetCAMEntry(const UWORD32    baseAddress,
 }
 
 /* MMU_SetRAMEntry */
-static HW_STATUS MMU_SetRAMEntry(const UWORD32       baseAddress,
-				   const UWORD32       physicalAddr,
+static HW_STATUS MMU_SetRAMEntry(const u32       baseAddress,
+				   const u32       physicalAddr,
 				   HW_Endianism_t     endianism,
 				   HW_ElementSize_t   elementSize,
 				   HW_MMUMixedSize_t  mixedSize)
 {
    HW_STATUS status = RET_OK;
-   UWORD32 mmuRamReg;
+   u32 mmuRamReg;
 
    /*Check the input Parameters*/
    CHECK_INPUT_PARAM(baseAddress, 0, RET_BAD_NULL_PARAM,

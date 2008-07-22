@@ -169,13 +169,13 @@
 
 /* Device IOCtl function pointer */
 struct WCD_Cmd {
-	DWORD(*fxn)(Trapped_Args *args);
-	DWORD dwIndex;
+	u32(*fxn)(Trapped_Args *args);
+	u32 dwIndex;
 } ;
 
 /*  ----------------------------------- Globals */
 struct GT_Mask WCD_debugMask = { 0, 0 };	/* Core VxD Mask */
-ULONG WCD_cRefs;
+u32 WCD_cRefs;
 
 /*
  *  Function table.
@@ -259,8 +259,8 @@ struct WCD_Cmd WCD_cmdTable[] = {
  *  Purpose:
  *      Call the (wrapper) function for the corresponding WCD IOCTL.
  */
-inline DSP_STATUS WCD_CallDevIOCtl(UINT cmd, Trapped_Args *args,
-				    DWORD *pResult)
+inline DSP_STATUS WCD_CallDevIOCtl(u32 cmd, Trapped_Args *args,
+				    u32 *pResult)
 {
 	if ((cmd < (sizeof(WCD_cmdTable) / sizeof(struct WCD_Cmd)))) {
 		/* make the fxn call via the cmd table */
@@ -274,7 +274,7 @@ inline DSP_STATUS WCD_CallDevIOCtl(UINT cmd, Trapped_Args *args,
 /*
  *  ======== WCD_Exit ========
  */
-VOID WCD_Exit(void)
+void WCD_Exit(void)
 {
 	DBC_Require(WCD_cRefs > 0);
 	WCD_cRefs--;
@@ -312,7 +312,7 @@ BOOL WCD_Init(void)
 	BOOL fMGR, fPROC, fNODE, fDISP, fNTFY, fSTRM, fRMM;
 #ifdef DEBUG
 	/* runtime check of Device IOCtl array. */
-	DWORD i;
+	u32 i;
 	for (i = 1; i < (sizeof(WCD_cmdTable) / sizeof(struct WCD_Cmd)); i++)
 		DBC_Assert(WCD_cmdTable[i - 1].dwIndex == i);
 
@@ -337,7 +337,8 @@ BOOL WCD_Init(void)
 		fIO = IO_Init();
 		fDEV = DEV_Init();
 		fCOD = COD_Init();
-		fInit = fSERVICES && fDRV && fDEV && fCHNL && fCOD && fMSG && fIO;
+		fInit = fSERVICES && fDRV && fDEV && fCHNL && fCOD &&
+			fMSG && fIO;
 		fInit = fInit && fMGR && fPROC && fRMM;
 		if (!fInit) {
 			if (fSERVICES)
@@ -412,7 +413,7 @@ DSP_STATUS WCD_InitComplete2(void)
 	DSP_STATUS status = DSP_SOK;
 	struct CFG_DEVNODE *DevNode;
 	struct DEV_OBJECT *hDevObject;
-	INT devType;
+	u32 devType;
 
 	DBC_Require(WCD_cRefs > 0);
 	GT_0trace(WCD_debugMask, GT_ENTER, "Entered WCD_InitComplete\n");
@@ -447,12 +448,12 @@ DSP_STATUS WCD_InitComplete2(void)
 /*
  * ======== MGRWRAP_EnumNode_Info ========
  */
-DWORD MGRWRAP_EnumNode_Info(Trapped_Args *args)
+u32 MGRWRAP_EnumNode_Info(Trapped_Args *args)
 {
-	BYTE *pNDBProps;
-	UINT uNumNodes;
+	u8 *pNDBProps;
+	u32 uNumNodes;
 	DSP_STATUS status = DSP_SOK;
-	UINT size = args->ARGS_MGR_ENUMNODE_INFO.uNDBPropsSize;
+	u32 size = args->ARGS_MGR_ENUMNODE_INFO.uNDBPropsSize;
 
 	GT_4trace(WCD_debugMask, GT_ENTER,
 		 "MGR_EnumNodeInfo: entered args:\n0x%x"
@@ -483,12 +484,12 @@ DWORD MGRWRAP_EnumNode_Info(Trapped_Args *args)
 /*
  * ======== MGRWRAP_EnumProc_Info ========
  */
-DWORD MGRWRAP_EnumProc_Info(Trapped_Args *args)
+u32 MGRWRAP_EnumProc_Info(Trapped_Args *args)
 {
-	BYTE *pProcessorInfo;
-	UINT uNumProcs;
+	u8 *pProcessorInfo;
+	u32 uNumProcs;
 	DSP_STATUS status = DSP_SOK;
-	UINT size = args->ARGS_MGR_ENUMPROC_INFO.uProcessorInfoSize;
+	u32 size = args->ARGS_MGR_ENUMPROC_INFO.uProcessorInfoSize;
 
 	GT_4trace(WCD_debugMask, GT_ENTER,
 		 "MGRWRAP_EnumProc_Info: entered args:\n"
@@ -522,7 +523,7 @@ DWORD MGRWRAP_EnumProc_Info(Trapped_Args *args)
 /*
  * ======== MGRWRAP_RegisterObject ========
  */
-DWORD MGRWRAP_RegisterObject(Trapped_Args *args)
+u32 MGRWRAP_RegisterObject(Trapped_Args *args)
 {
 	GT_1trace(WCD_debugMask, GT_ENTER,
 		 "MGRWRAP_RegisterObject: entered pg2hMsg "
@@ -536,7 +537,7 @@ DWORD MGRWRAP_RegisterObject(Trapped_Args *args)
 /*
  * ======== MGRWRAP_UnregisterObject ========
  */
-DWORD MGRWRAP_UnregisterObject(Trapped_Args *args)
+u32 MGRWRAP_UnregisterObject(Trapped_Args *args)
 {
 	GT_1trace(WCD_debugMask, GT_ENTER,
 		 "MGRWRAP_UnregisterObject: entered pg2hMsg"
@@ -549,13 +550,13 @@ DWORD MGRWRAP_UnregisterObject(Trapped_Args *args)
 /*
  * ======== MGRWRAP_WaitForBridgeEvents ========
  */
-DWORD MGRWRAP_WaitForBridgeEvents(Trapped_Args *args)
+u32 MGRWRAP_WaitForBridgeEvents(Trapped_Args *args)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct DSP_NOTIFICATION *aNotifications[MAX_EVENTS];
 	struct DSP_NOTIFICATION notifications[MAX_EVENTS];
-	UINT uIndex, i;
-	UINT uCount = args->ARGS_MGR_WAIT.uCount;
+	u32 uIndex, i;
+	u32 uCount = args->ARGS_MGR_WAIT.uCount;
 
 	GT_0trace(WCD_debugMask, GT_ENTER,
 		 "MGRWRAP_WaitForBridgeEvents: entered\n");
@@ -587,11 +588,11 @@ DWORD MGRWRAP_WaitForBridgeEvents(Trapped_Args *args)
 /*
  * ======== MGRWRAP_GetProcessResourceInfo ========
  */
-DWORD MGRWRAP_GetProcessResourcesInfo(Trapped_Args *args)
+u32 MGRWRAP_GetProcessResourcesInfo(Trapped_Args *args)
 {
     DSP_STATUS status = DSP_SOK;
-    UINT uSize = 0;
-    BYTE *pBuf = MEM_Alloc(8092, MEM_NONPAGED);
+    u32 uSize = 0;
+    u8 *pBuf = MEM_Alloc(8092, MEM_NONPAGED);
     status = DRV_ProcDisplayResInfo(pBuf, &uSize);
     GT_1trace(WCD_debugMask, GT_ENTER,
 	     "MGRWRAP_GetProcessResourcesInfo:uSize=%d :\n", uSize);
@@ -610,7 +611,7 @@ DWORD MGRWRAP_GetProcessResourcesInfo(Trapped_Args *args)
 /*
  * ======== PROCWRAP_Attach ========
  */
-DWORD PROCWRAP_Attach(Trapped_Args *args)
+u32 PROCWRAP_Attach(Trapped_Args *args)
 {
 	DSP_HPROCESSOR processor;
 	DSP_STATUS status = DSP_SOK;
@@ -638,10 +639,10 @@ DWORD PROCWRAP_Attach(Trapped_Args *args)
 /*
  * ======== PROCWRAP_Ctrl ========
  */
-DWORD PROCWRAP_Ctrl(Trapped_Args *args)
+u32 PROCWRAP_Ctrl(Trapped_Args *args)
 {
-	ULONG cbDataSize, *pSize = (ULONG *)args->ARGS_PROC_CTRL.pArgs;
-	BYTE *pArgs = NULL;
+	u32 cbDataSize, *pSize = (u32 *)args->ARGS_PROC_CTRL.pArgs;
+	u8 *pArgs = NULL;
 	DSP_STATUS status = DSP_SOK;
 
 	GT_3trace(WCD_debugMask, GT_ENTER,
@@ -654,7 +655,7 @@ DWORD PROCWRAP_Ctrl(Trapped_Args *args)
 		if (get_user(cbDataSize, pSize))
 			status = DSP_EFAIL;
 
-		cbDataSize += sizeof(ULONG);
+		cbDataSize += sizeof(u32);
 		if (DSP_SUCCEEDED(status)) {
 			pArgs = MEM_Alloc(cbDataSize, MEM_NONPAGED);
 			if (pArgs == NULL)
@@ -680,7 +681,7 @@ DWORD PROCWRAP_Ctrl(Trapped_Args *args)
 /*
  * ======== PROCWRAP_Detach ========
  */
-DWORD PROCWRAP_Detach(Trapped_Args *args)
+u32 PROCWRAP_Detach(Trapped_Args *args)
 {
 	GT_1trace(WCD_debugMask, GT_ENTER,
 		 "PROCWRAP_Detach: entered args\n0x%x "
@@ -691,12 +692,12 @@ DWORD PROCWRAP_Detach(Trapped_Args *args)
 /*
  * ======== PROCWRAP_EnumNode_Info ========
  */
-DWORD PROCWRAP_EnumNode_Info(Trapped_Args *args)
+u32 PROCWRAP_EnumNode_Info(Trapped_Args *args)
 {
 	DSP_STATUS status;
 	DSP_HNODE aNodeTab[MAX_NODES];
-	UINT uNumNodes;
-	UINT uAllocated;
+	u32 uNumNodes;
+	u32 uAllocated;
 
 	GT_5trace(WCD_debugMask, GT_ENTER,
 		 "PROCWRAP_EnumNode_Info:entered args:\n0x"
@@ -724,7 +725,7 @@ DWORD PROCWRAP_EnumNode_Info(Trapped_Args *args)
 /*
  * ======== PROCWRAP_FlushMemory ========
  */
-DWORD PROCWRAP_FlushMemory(Trapped_Args *args)
+u32 PROCWRAP_FlushMemory(Trapped_Args *args)
 {
 	DSP_STATUS status;
 
@@ -741,7 +742,7 @@ DWORD PROCWRAP_FlushMemory(Trapped_Args *args)
 /*
  * ======== PROCWRAP_InvalidateMemory ========
  */
-DWORD PROCWRAP_InvalidateMemory(Trapped_Args *args)
+u32 PROCWRAP_InvalidateMemory(Trapped_Args *args)
 {
 	DSP_STATUS status;
 
@@ -759,7 +760,7 @@ DWORD PROCWRAP_InvalidateMemory(Trapped_Args *args)
 /*
  * ======== PROCWRAP_EnumResources ========
  */
-DWORD PROCWRAP_EnumResources(Trapped_Args *args)
+u32 PROCWRAP_EnumResources(Trapped_Args *args)
 {
 	GT_4trace(WCD_debugMask, GT_ENTER,
 		 "PROCWRAP_EnumResources: entered args:\n"
@@ -779,7 +780,7 @@ DWORD PROCWRAP_EnumResources(Trapped_Args *args)
 /*
  * ======== PROCWRAP_GetState ========
  */
-DWORD PROCWRAP_GetState(Trapped_Args *args)
+u32 PROCWRAP_GetState(Trapped_Args *args)
 {
 	DSP_STATUS status;
 	struct DSP_PROCESSORSTATE procStatus;
@@ -794,10 +795,10 @@ DWORD PROCWRAP_GetState(Trapped_Args *args)
 /*
  * ======== PROCWRAP_GetTrace ========
  */
-DWORD PROCWRAP_GetTrace(Trapped_Args *args)
+u32 PROCWRAP_GetTrace(Trapped_Args *args)
 {
 	DSP_STATUS status;
-	BYTE *pBuf;
+	u8 *pBuf;
 
 	GT_0trace(WCD_debugMask, GT_ENTER, "PROCWRAP_GetTrace: entered\n");
 
@@ -821,18 +822,18 @@ DWORD PROCWRAP_GetTrace(Trapped_Args *args)
 /*
  * ======== PROCWRAP_Load ========
  */
-DWORD PROCWRAP_Load(Trapped_Args *args)
+u32 PROCWRAP_Load(Trapped_Args *args)
 {
-	INT i, len;
+	s32 i, len;
 	DSP_STATUS status = DSP_SOK;
-	BYTE *temp;
-	INT argc = args->ARGS_PROC_LOAD.iArgc;
-	BYTE **argv, **envp = NULL;
+	u8 *temp;
+	s32 argc = args->ARGS_PROC_LOAD.iArgc;
+	u8 **argv, **envp = NULL;
 
 	DBC_Require(argc > 0);
 	DBC_Require(argc <= MAX_LOADARGS);
 
-	argv = MEM_Alloc(argc * sizeof(BYTE *), MEM_NONPAGED);
+	argv = MEM_Alloc(argc * sizeof(u8 *), MEM_NONPAGED);
 	if (argv == NULL)
 		status = DSP_EMEMORY;
 
@@ -840,7 +841,7 @@ DWORD PROCWRAP_Load(Trapped_Args *args)
 	for (i = 0; DSP_SUCCEEDED(status) && (i < argc); i++) {
 		if (argv[i] != NULL) {
 			temp = argv[i];	/* User space pointer to argument */
-			len = strlen_user(temp);
+			len = strlen_user((char *)temp);
 			/* Kernel space pointer to argument */
 			argv[i] = MEM_Alloc(len, MEM_NONPAGED);
 			if (argv[i] == NULL) {
@@ -858,14 +859,14 @@ DWORD PROCWRAP_Load(Trapped_Args *args)
 			len++;
 			get_user(temp, args->ARGS_PROC_LOAD.aEnvp);
 		} while (temp);
-		envp = MEM_Alloc(len * sizeof(BYTE *), MEM_NONPAGED);
+		envp = MEM_Alloc(len * sizeof(u8 *), MEM_NONPAGED);
 		if (envp == NULL)
 			status = DSP_EMEMORY;
 
 		cp_fm_usr(envp, args->ARGS_PROC_LOAD.aEnvp, status, len);
 		for (i = 0; DSP_SUCCEEDED(status) && (envp[i] != NULL); i++) {
 			temp = envp[i];	/* User space pointer to argument */
-			len = strlen_user(temp);
+			len = strlen_user((char *)temp);
 			/* Kernel space pointer to argument */
 			envp[i] = MEM_Alloc(len, MEM_NONPAGED);
 			if (envp[i] == NULL) {
@@ -907,10 +908,10 @@ DWORD PROCWRAP_Load(Trapped_Args *args)
 /*
  * ======== PROCWRAP_Map ========
  */
-DWORD PROCWRAP_Map(Trapped_Args *args)
+u32 PROCWRAP_Map(Trapped_Args *args)
 {
 	DSP_STATUS status;
-	PVOID pMapAddr;
+	void *pMapAddr;
 
 	GT_0trace(WCD_debugMask, GT_ENTER, "PROCWRAP_Map: entered\n");
 	status = PROC_Map(args->ARGS_PROC_MAPMEM.hProcessor,
@@ -929,7 +930,7 @@ DWORD PROCWRAP_Map(Trapped_Args *args)
 /*
  * ======== PROCWRAP_RegisterNotify ========
  */
-DWORD PROCWRAP_RegisterNotify(Trapped_Args *args)
+u32 PROCWRAP_RegisterNotify(Trapped_Args *args)
 {
 	DSP_STATUS status;
 	struct DSP_NOTIFICATION notification;
@@ -953,10 +954,10 @@ DWORD PROCWRAP_RegisterNotify(Trapped_Args *args)
 /*
  * ======== PROCWRAP_ReserveMemory ========
  */
-DWORD PROCWRAP_ReserveMemory(Trapped_Args *args)
+u32 PROCWRAP_ReserveMemory(Trapped_Args *args)
 {
 	DSP_STATUS status;
-	PVOID pRsvAddr;
+	void *pRsvAddr;
 
 	GT_0trace(WCD_debugMask, GT_ENTER, "PROCWRAP_ReserveMemory: entered\n");
 	status = PROC_ReserveMemory(args->ARGS_PROC_RSVMEM.hProcessor,
@@ -970,7 +971,7 @@ DWORD PROCWRAP_ReserveMemory(Trapped_Args *args)
 /*
  * ======== PROCWRAP_Start ========
  */
-DWORD PROCWRAP_Start(Trapped_Args *args)
+u32 PROCWRAP_Start(Trapped_Args *args)
 {
 	GT_0trace(WCD_debugMask, GT_ENTER, "PROCWRAP_Start: entered\n");
 	return (PROC_Start(args->ARGS_PROC_START.hProcessor));
@@ -979,7 +980,7 @@ DWORD PROCWRAP_Start(Trapped_Args *args)
 /*
  * ======== PROCWRAP_UnMap ========
  */
-DWORD PROCWRAP_UnMap(Trapped_Args *args)
+u32 PROCWRAP_UnMap(Trapped_Args *args)
 {
 	DSP_STATUS status;
 
@@ -992,7 +993,7 @@ DWORD PROCWRAP_UnMap(Trapped_Args *args)
 /*
  * ======== PROCWRAP_UnReserveMemory ========
  */
-DWORD PROCWRAP_UnReserveMemory(Trapped_Args *args)
+u32 PROCWRAP_UnReserveMemory(Trapped_Args *args)
 {
 	DSP_STATUS status;
 
@@ -1006,7 +1007,7 @@ DWORD PROCWRAP_UnReserveMemory(Trapped_Args *args)
 /*
  * ======== PROCWRAP_Stop ========
  */
-DWORD
+u32
 PROCWRAP_Stop(Trapped_Args *args)
 {
 	GT_0trace(WCD_debugMask, GT_ENTER, "PROCWRAP_Stop: entered\n");
@@ -1016,13 +1017,13 @@ PROCWRAP_Stop(Trapped_Args *args)
 /*
  * ======== NODEWRAP_Allocate ========
  */
-DWORD NODEWRAP_Allocate(Trapped_Args *args)
+u32 NODEWRAP_Allocate(Trapped_Args *args)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct DSP_UUID nodeId;
-	ULONG cbDataSize;
-	ULONG *pSize = (ULONG *)args->ARGS_NODE_ALLOCATE.pArgs;
-	BYTE *pArgs = NULL;
+	u32 cbDataSize;
+	u32 *pSize = (u32 *)args->ARGS_NODE_ALLOCATE.pArgs;
+	u8 *pArgs = NULL;
 	struct DSP_NODEATTRIN attrIn, *pAttrIn = NULL;
 	struct NODE_OBJECT *hNode;
 
@@ -1033,7 +1034,7 @@ DWORD NODEWRAP_Allocate(Trapped_Args *args)
 		if (get_user(cbDataSize, pSize))
 			status = DSP_EFAIL;
 
-		cbDataSize += sizeof(ULONG);
+		cbDataSize += sizeof(u32);
 		if (DSP_SUCCEEDED(status)) {
 			pArgs = MEM_Alloc(cbDataSize, MEM_NONPAGED);
 			if (pArgs == NULL)
@@ -1066,12 +1067,12 @@ DWORD NODEWRAP_Allocate(Trapped_Args *args)
 /*
  *  ======== NODEWRAP_AllocMsgBuf ========
  */
-DWORD NODEWRAP_AllocMsgBuf(Trapped_Args *args)
+u32 NODEWRAP_AllocMsgBuf(Trapped_Args *args)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct DSP_BUFFERATTR *pAttr = NULL;
 	struct DSP_BUFFERATTR attr;
-	BYTE *pBuffer = NULL;
+	u8 *pBuffer = NULL;
 
 	if (args->ARGS_NODE_ALLOCMSGBUF.pAttr) {	/* Optional argument */
 		cp_fm_usr(&attr, args->ARGS_NODE_ALLOCMSGBUF.pAttr, status, 1);
@@ -1093,7 +1094,7 @@ DWORD NODEWRAP_AllocMsgBuf(Trapped_Args *args)
 /*
  * ======== NODEWRAP_ChangePriority ========
  */
-DWORD NODEWRAP_ChangePriority(Trapped_Args *args)
+u32 NODEWRAP_ChangePriority(Trapped_Args *args)
 {
 	GT_0trace(WCD_debugMask, GT_ENTER,
 		 "NODEWRAP_ChangePriority: entered\n");
@@ -1105,14 +1106,14 @@ DWORD NODEWRAP_ChangePriority(Trapped_Args *args)
 /*
  * ======== NODEWRAP_Connect ========
  */
-DWORD NODEWRAP_Connect(Trapped_Args *args)
+u32 NODEWRAP_Connect(Trapped_Args *args)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct DSP_STRMATTR attrs;
 	struct DSP_STRMATTR *pAttrs = NULL;
-	ULONG cbDataSize;
-	ULONG *pSize = (ULONG *)args->ARGS_NODE_CONNECT.pConnParam;
-	BYTE *pArgs = NULL;
+	u32 cbDataSize;
+	u32 *pSize = (u32 *)args->ARGS_NODE_CONNECT.pConnParam;
+	u8 *pArgs = NULL;
 
 	GT_0trace(WCD_debugMask, GT_ENTER, "NODEWRAP_Connect: entered\n");
 
@@ -1121,7 +1122,7 @@ DWORD NODEWRAP_Connect(Trapped_Args *args)
 		if (get_user(cbDataSize, pSize))
 			status = DSP_EFAIL;
 
-		cbDataSize += sizeof(ULONG);
+		cbDataSize += sizeof(u32);
 		if (DSP_SUCCEEDED(status)) {
 			pArgs = MEM_Alloc(cbDataSize, MEM_NONPAGED);
 			if (pArgs == NULL)
@@ -1153,7 +1154,7 @@ DWORD NODEWRAP_Connect(Trapped_Args *args)
 /*
  * ======== NODEWRAP_Create ========
  */
-DWORD NODEWRAP_Create(Trapped_Args *args)
+u32 NODEWRAP_Create(Trapped_Args *args)
 {
 	GT_0trace(WCD_debugMask, GT_ENTER, "NODEWRAP_Create: entered\n");
 	return (NODE_Create(args->ARGS_NODE_CREATE.hNode));
@@ -1162,7 +1163,7 @@ DWORD NODEWRAP_Create(Trapped_Args *args)
 /*
  * ======== NODEWRAP_Delete ========
  */
-DWORD NODEWRAP_Delete(Trapped_Args *args)
+u32 NODEWRAP_Delete(Trapped_Args *args)
 {
 	GT_0trace(WCD_debugMask, GT_ENTER, "NODEWRAP_Delete: entered\n");
 	return (NODE_Delete(args->ARGS_NODE_DELETE.hNode));
@@ -1171,7 +1172,7 @@ DWORD NODEWRAP_Delete(Trapped_Args *args)
 /*
  *  ======== NODEWRAP_FreeMsgBuf ========
  */
-DWORD NODEWRAP_FreeMsgBuf(Trapped_Args *args)
+u32 NODEWRAP_FreeMsgBuf(Trapped_Args *args)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct DSP_BUFFERATTR *pAttr = NULL;
@@ -1194,7 +1195,7 @@ DWORD NODEWRAP_FreeMsgBuf(Trapped_Args *args)
 /*
  * ======== NODEWRAP_GetAttr ========
  */
-DWORD NODEWRAP_GetAttr(Trapped_Args *args)
+u32 NODEWRAP_GetAttr(Trapped_Args *args)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct DSP_NODEATTR attr;
@@ -1211,7 +1212,7 @@ DWORD NODEWRAP_GetAttr(Trapped_Args *args)
 /*
  * ======== NODEWRAP_GetMessage ========
  */
-DWORD NODEWRAP_GetMessage(Trapped_Args *args)
+u32 NODEWRAP_GetMessage(Trapped_Args *args)
 {
 	DSP_STATUS status;
 	struct DSP_MSG msg;
@@ -1229,7 +1230,7 @@ DWORD NODEWRAP_GetMessage(Trapped_Args *args)
 /*
  * ======== NODEWRAP_Pause ========
  */
-DWORD NODEWRAP_Pause(Trapped_Args *args)
+u32 NODEWRAP_Pause(Trapped_Args *args)
 {
 	GT_0trace(WCD_debugMask, GT_ENTER, "NODEWRAP_Pause: entered\n");
 
@@ -1239,7 +1240,7 @@ DWORD NODEWRAP_Pause(Trapped_Args *args)
 /*
  * ======== NODEWRAP_PutMessage ========
  */
-DWORD NODEWRAP_PutMessage(Trapped_Args *args)
+u32 NODEWRAP_PutMessage(Trapped_Args *args)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct DSP_MSG msg;
@@ -1259,7 +1260,7 @@ DWORD NODEWRAP_PutMessage(Trapped_Args *args)
 /*
  * ======== NODEWRAP_RegisterNotify ========
  */
-DWORD NODEWRAP_RegisterNotify(Trapped_Args *args)
+u32 NODEWRAP_RegisterNotify(Trapped_Args *args)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct DSP_NOTIFICATION notification;
@@ -1283,7 +1284,7 @@ DWORD NODEWRAP_RegisterNotify(Trapped_Args *args)
 /*
  * ======== NODEWRAP_Run ========
  */
-DWORD NODEWRAP_Run(Trapped_Args *args)
+u32 NODEWRAP_Run(Trapped_Args *args)
 {
 	GT_0trace(WCD_debugMask, GT_ENTER, "NODEWRAP_Run: entered\n");
 
@@ -1293,7 +1294,7 @@ DWORD NODEWRAP_Run(Trapped_Args *args)
 /*
  * ======== NODEWRAP_Terminate ========
  */
-DWORD NODEWRAP_Terminate(Trapped_Args *args)
+u32 NODEWRAP_Terminate(Trapped_Args *args)
 {
 	DSP_STATUS status;
 	DSP_STATUS tempstatus;
@@ -1311,7 +1312,7 @@ DWORD NODEWRAP_Terminate(Trapped_Args *args)
 /*
  * ======== NODEWRAP_GetUUIDProps ========
  */
-DWORD NODEWRAP_GetUUIDProps(Trapped_Args *args)
+u32 NODEWRAP_GetUUIDProps(Trapped_Args *args)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct DSP_UUID nodeId;
@@ -1339,15 +1340,15 @@ DWORD NODEWRAP_GetUUIDProps(Trapped_Args *args)
 /*
  * ======== STRMWRAP_AllocateBuffer ========
  */
-DWORD STRMWRAP_AllocateBuffer(Trapped_Args *args)
+u32 STRMWRAP_AllocateBuffer(Trapped_Args *args)
 {
 	DSP_STATUS status;
-	BYTE **apBuffer = NULL;
-	ULONG uNumBufs = args->ARGS_STRM_ALLOCATEBUFFER.uNumBufs;
+	u8 **apBuffer = NULL;
+	u32 uNumBufs = args->ARGS_STRM_ALLOCATEBUFFER.uNumBufs;
 
 	DBC_Require(uNumBufs <= MAX_BUFS);
 
-	apBuffer = MEM_Alloc((uNumBufs * sizeof(BYTE *)), MEM_NONPAGED);
+	apBuffer = MEM_Alloc((uNumBufs * sizeof(u8 *)), MEM_NONPAGED);
 
 	status = STRM_AllocateBuffer(args->ARGS_STRM_ALLOCATEBUFFER.hStream,
 				     args->ARGS_STRM_ALLOCATEBUFFER.uSize,
@@ -1363,7 +1364,7 @@ DWORD STRMWRAP_AllocateBuffer(Trapped_Args *args)
 /*
  * ======== STRMWRAP_Close ========
  */
-DWORD STRMWRAP_Close(Trapped_Args *args)
+u32 STRMWRAP_Close(Trapped_Args *args)
 {
 	return (STRM_Close(args->ARGS_STRM_CLOSE.hStream));
 }
@@ -1371,15 +1372,15 @@ DWORD STRMWRAP_Close(Trapped_Args *args)
 /*
  * ======== STRMWRAP_FreeBuffer ========
  */
-DWORD STRMWRAP_FreeBuffer(Trapped_Args *args)
+u32 STRMWRAP_FreeBuffer(Trapped_Args *args)
 {
 	DSP_STATUS status = DSP_SOK;
-	BYTE **apBuffer = NULL;
-	ULONG uNumBufs = args->ARGS_STRM_FREEBUFFER.uNumBufs;
+	u8 **apBuffer = NULL;
+	u32 uNumBufs = args->ARGS_STRM_FREEBUFFER.uNumBufs;
 
 	DBC_Require(uNumBufs <= MAX_BUFS);
 
-	apBuffer = MEM_Alloc((uNumBufs * sizeof(BYTE *)), MEM_NONPAGED);
+	apBuffer = MEM_Alloc((uNumBufs * sizeof(u8 *)), MEM_NONPAGED);
 
 	cp_fm_usr(apBuffer, args->ARGS_STRM_FREEBUFFER.apBuffer, status,
 		 uNumBufs);
@@ -1399,7 +1400,7 @@ DWORD STRMWRAP_FreeBuffer(Trapped_Args *args)
 /*
  * ======== STRMWRAP_GetEventHandle ========
  */
-DWORD STRMWRAP_GetEventHandle(Trapped_Args *args)
+u32 STRMWRAP_GetEventHandle(Trapped_Args *args)
 {
 	return DSP_ENOTIMPL;
 }
@@ -1407,7 +1408,7 @@ DWORD STRMWRAP_GetEventHandle(Trapped_Args *args)
 /*
  * ======== STRMWRAP_GetInfo ========
  */
-DWORD STRMWRAP_GetInfo(Trapped_Args *args)
+u32 STRMWRAP_GetInfo(Trapped_Args *args)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct STRM_INFO strmInfo;
@@ -1432,7 +1433,7 @@ DWORD STRMWRAP_GetInfo(Trapped_Args *args)
 /*
  * ======== STRMWRAP_Idle ========
  */
-DWORD STRMWRAP_Idle(Trapped_Args *args)
+u32 STRMWRAP_Idle(Trapped_Args *args)
 {
 	return (STRM_Idle(args->ARGS_STRM_IDLE.hStream,
 			  args->ARGS_STRM_IDLE.bFlush));
@@ -1441,7 +1442,7 @@ DWORD STRMWRAP_Idle(Trapped_Args *args)
 /*
  * ======== STRMWRAP_Issue ========
  */
-DWORD STRMWRAP_Issue(Trapped_Args *args)
+u32 STRMWRAP_Issue(Trapped_Args *args)
 {
 		/* This is a user space pointer */
 	return (STRM_Issue(args->ARGS_STRM_ISSUE.hStream,
@@ -1452,7 +1453,7 @@ DWORD STRMWRAP_Issue(Trapped_Args *args)
 /*
  * ======== STRMWRAP_Open ========
  */
-DWORD STRMWRAP_Open(Trapped_Args *args)
+u32 STRMWRAP_Open(Trapped_Args *args)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct STRM_ATTR attr;
@@ -1477,13 +1478,13 @@ DWORD STRMWRAP_Open(Trapped_Args *args)
 /*
  * ======== STRMWRAP_Reclaim ========
  */
-DWORD STRMWRAP_Reclaim(Trapped_Args *args)
+u32 STRMWRAP_Reclaim(Trapped_Args *args)
 {
 	DSP_STATUS status = DSP_SOK;
-	BYTE *pBufPtr;
-	ULONG ulBytes;
-	DWORD dwArg;
-	ULONG ulBufSize;
+	u8 *pBufPtr;
+	u32 ulBytes;
+	u32 dwArg;
+	u32 ulBufSize;
 
 	status = STRM_Reclaim(args->ARGS_STRM_RECLAIM.hStream, &pBufPtr,
 			     &ulBytes, &ulBufSize, &dwArg);
@@ -1502,7 +1503,7 @@ DWORD STRMWRAP_Reclaim(Trapped_Args *args)
 /*
  * ======== STRMWRAP_RegisterNotify ========
  */
-DWORD STRMWRAP_RegisterNotify(Trapped_Args *args)
+u32 STRMWRAP_RegisterNotify(Trapped_Args *args)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct DSP_NOTIFICATION notification;
@@ -1527,9 +1528,9 @@ DWORD STRMWRAP_RegisterNotify(Trapped_Args *args)
 /*
  * ======== STRMWRAP_Select ========
  */
-DWORD STRMWRAP_Select(Trapped_Args *args)
+u32 STRMWRAP_Select(Trapped_Args *args)
 {
-	UINT mask;
+	u32 mask;
 	struct STRM_OBJECT *aStrmTab[MAX_STREAMS];
 	DSP_STATUS status = DSP_SOK;
 
@@ -1550,7 +1551,7 @@ DWORD STRMWRAP_Select(Trapped_Args *args)
 /*
  * ======== CMMWRAP_CallocBuf ========
  */
-DWORD CMMWRAP_CallocBuf(Trapped_Args *args)
+u32 CMMWRAP_CallocBuf(Trapped_Args *args)
 {
 	/* This operation is done in kernel */
 	return DSP_ENOTIMPL;
@@ -1559,7 +1560,7 @@ DWORD CMMWRAP_CallocBuf(Trapped_Args *args)
 /*
  * ======== CMMWRAP_FreeBuf ========
  */
-DWORD CMMWRAP_FreeBuf(Trapped_Args *args)
+u32 CMMWRAP_FreeBuf(Trapped_Args *args)
 {
 	/* This operation is done in kernel */
 	return DSP_ENOTIMPL;
@@ -1568,7 +1569,7 @@ DWORD CMMWRAP_FreeBuf(Trapped_Args *args)
 /*
  * ======== CMMWRAP_GetHandle ========
  */
-DWORD CMMWRAP_GetHandle(Trapped_Args *args)
+u32 CMMWRAP_GetHandle(Trapped_Args *args)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct CMM_OBJECT *hCmmMgr;
@@ -1583,7 +1584,7 @@ DWORD CMMWRAP_GetHandle(Trapped_Args *args)
 /*
  * ======== CMMWRAP_GetInfo ========
  */
-DWORD CMMWRAP_GetInfo(Trapped_Args *args)
+u32 CMMWRAP_GetInfo(Trapped_Args *args)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct CMM_INFO cmmInfo;
@@ -1598,7 +1599,7 @@ DWORD CMMWRAP_GetInfo(Trapped_Args *args)
 /*
  *  ======== MEMWRAP_Alloc ========
  */
-DWORD MEMWRAP_Alloc(Trapped_Args *args)
+u32 MEMWRAP_Alloc(Trapped_Args *args)
 {
 	return DSP_ENOTIMPL;
 
@@ -1607,7 +1608,7 @@ DWORD MEMWRAP_Alloc(Trapped_Args *args)
 /*
  *  ======== MEMWRAP_Calloc ========
  */
-DWORD MEMWRAP_Calloc(Trapped_Args *args)
+u32 MEMWRAP_Calloc(Trapped_Args *args)
 {
 	return DSP_ENOTIMPL;
 }
@@ -1615,7 +1616,7 @@ DWORD MEMWRAP_Calloc(Trapped_Args *args)
 /*
  *  ======== MEMWRAP_Free ========
  */
-DWORD MEMWRAP_Free(Trapped_Args *args)
+u32 MEMWRAP_Free(Trapped_Args *args)
 {
 	return DSP_ENOTIMPL;
 }
@@ -1623,7 +1624,7 @@ DWORD MEMWRAP_Free(Trapped_Args *args)
 /*
  *  ======== MEMWRAP_PageLock ========
  */
-DWORD MEMWRAP_PageLock(Trapped_Args *args)
+u32 MEMWRAP_PageLock(Trapped_Args *args)
 {
 	return DSP_ENOTIMPL;
 }
@@ -1631,7 +1632,7 @@ DWORD MEMWRAP_PageLock(Trapped_Args *args)
 /*
  *  ======== MEMWRAP_PageUnlock ========
  */
-DWORD MEMWRAP_PageUnlock(Trapped_Args *args)
+u32 MEMWRAP_PageUnlock(Trapped_Args *args)
 {
 	return DSP_ENOTIMPL;
 }
@@ -1639,7 +1640,7 @@ DWORD MEMWRAP_PageUnlock(Trapped_Args *args)
 /*
  * ======== UTILWRAP_TestDll ========
  */
-DWORD UTILWRAP_TestDll(Trapped_Args *args)
+u32 UTILWRAP_TestDll(Trapped_Args *args)
 {
 	return DSP_ENOTIMPL;
 }

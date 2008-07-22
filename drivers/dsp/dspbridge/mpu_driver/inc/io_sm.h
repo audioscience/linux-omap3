@@ -64,7 +64,7 @@
 #define IO_MGRSIGNATURE     0x494f4D43	/* "IOGR" */
 
 #define DSPFieldAddr(type, field, base, wordsize) \
-    ((((LONG)&(((type *)0)->field)) / wordsize) + (DWORD)base)
+    ((((s32)&(((type *)0)->field)) / wordsize) + (u32)base)
 
 /* Access can be different SM access word size (e.g. 16/32 bit words) */
 #define IO_SetValue(pContext, type, base, field, value) (base->field = value)
@@ -93,7 +93,7 @@
  *      Valid hIOMgr.
  *  Ensures:
  */
-	extern VOID IO_CancelChnl(struct IO_MGR *hIOMgr, ULONG ulChnl);
+	extern void IO_CancelChnl(struct IO_MGR *hIOMgr, u32 ulChnl);
 
 /*
  *  ======== IO_DPC ========
@@ -111,7 +111,7 @@
  *  Ensures:
  *      Non-preemptible (but interruptible).
  */
-	extern VOID IO_DPC(IN OUT PVOID pRefData);
+	extern void IO_DPC(IN OUT void *pRefData);
 
 /*
  *  ======== IO_IVADPC ========
@@ -129,7 +129,7 @@
  *  Ensures:
  *      Non-preemptible (but interruptible).
  */
-	extern VOID IO_IVADPC(IN OUT PVOID pRefData);
+	extern void IO_IVADPC(IN OUT void *pRefData);
 
 /*
  *  ======== IO_ISR ========
@@ -149,7 +149,7 @@
  *      Interrupts are disabled and EOI for this interrupt has been sent.
  *  Ensures:
  */
-	extern BOOL IO_ISR(IN PVOID pRefData);
+	extern BOOL IO_ISR(IN void *pRefData);
 
 /*
  *  ======== IO_IVAISR ========
@@ -169,7 +169,7 @@
  *      Interrupts are disabled and EOI for this interrupt has been sent.
  *  Ensures:
  */
-	extern BOOL IO_IVAISR(IN PVOID pRefData);
+	extern BOOL IO_IVAISR(IN void *pRefData);
 
 /*
  *  ======== IO_RequestChnl ========
@@ -185,9 +185,9 @@
  *      pChnl != NULL
  *  Ensures:
  */
-	extern VOID IO_RequestChnl(struct IO_MGR *hIOMgr,
+	extern void IO_RequestChnl(struct IO_MGR *hIOMgr,
 				   struct CHNL_OBJECT *pChnl,
-				   UINT iMode, OUT WORD *pwMbVal);
+				   u32 iMode, OUT u16 *pwMbVal);
 
 /*
  *  ======== IO_Schedule ========
@@ -200,7 +200,7 @@
  *      pChnl != NULL
  *  Ensures:
  */
-	extern VOID IO_Schedule(struct IO_MGR *hIOMgr);
+	extern void IO_Schedule(struct IO_MGR *hIOMgr);
 
 /*
  * DSP-DMA IO functions
@@ -225,8 +225,8 @@
  *
  *  Ensures:
  */
-	extern VOID IO_DDMAInitChnlDesc(struct IO_MGR *hIOMgr, UINT uDDMAChnlId,
-					UINT uNumDesc, PVOID pDsp);
+	extern void IO_DDMAInitChnlDesc(struct IO_MGR *hIOMgr, u32 uDDMAChnlId,
+					u32 uNumDesc, void *pDsp);
 
 /*
  *  ======== IO_DDMAClearChnlDesc ========
@@ -240,8 +240,8 @@
  *     uDDMAChnlId < DDMA_MAXDDMACHNLS
  *  Ensures:
  */
-	extern VOID IO_DDMAClearChnlDesc(struct IO_MGR *hIOMgr,
-					 UINT uDDMAChnlId);
+	extern void IO_DDMAClearChnlDesc(struct IO_MGR *hIOMgr,
+					 u32 uDDMAChnlId);
 
 /*
  *  ======== IO_DDMARequestChnl ========
@@ -259,10 +259,10 @@
  *      pChirp != NULL
  *  Ensures:
  */
-	extern VOID IO_DDMARequestChnl(struct IO_MGR *hIOMgr,
+	extern void IO_DDMARequestChnl(struct IO_MGR *hIOMgr,
 				       struct CHNL_OBJECT *pChnl,
 				       struct CHNL_IRP *pChirp,
-				       OUT WORD *pwMbVal);
+				       OUT u16 *pwMbVal);
 
 /*
  * Zero-copy IO functions
@@ -281,7 +281,7 @@
  *     hIOMgr != Null
  *  Ensures:
  */
-	extern VOID IO_DDZCInitChnlDesc(struct IO_MGR *hIOMgr, UINT uZId);
+	extern void IO_DDZCInitChnlDesc(struct IO_MGR *hIOMgr, u32 uZId);
 
 /*
  *  ======== IO_DDZCClearChnlDesc ========
@@ -296,7 +296,7 @@
  *      uChnlId < DDMA_MAXZCPYCHNLS
  *  Ensures:
  */
-	extern VOID IO_DDZCClearChnlDesc(struct IO_MGR *hIOMgr, UINT uChnlId);
+	extern void IO_DDZCClearChnlDesc(struct IO_MGR *hIOMgr, u32 uChnlId);
 
 /*
  *  ======== IO_DDZCRequestChnl ========
@@ -314,10 +314,10 @@
  *      pChirp != NULL
  *  Ensures:
  */
-	extern VOID IO_DDZCRequestChnl(struct IO_MGR *hIOMgr,
+	extern void IO_DDZCRequestChnl(struct IO_MGR *hIOMgr,
 				       struct CHNL_OBJECT *pChnl,
 				       struct CHNL_IRP *pChirp,
-				       OUT WORD *pwMbVal);
+				       OUT u16 *pwMbVal);
 
 /*
  *  ======== IO_SHMsetting ========
@@ -334,33 +334,33 @@
  *  Ensures:
  */
 	extern DSP_STATUS IO_SHMsetting(IN struct IO_MGR *hIOMgr,
-					IN SHM_DESCTYPE desc, IN PVOID pArgs);
+					IN SHM_DESCTYPE desc, IN void *pArgs);
 
 /*
  *  Misc functions for the CHNL_IO shared memory library:
  */
 
 /* Maximum channel bufsize that can be used. */
-	extern ULONG IO_BufSize(struct IO_MGR *hIOMgr);
+	extern u32 IO_BufSize(struct IO_MGR *hIOMgr);
 
-	extern ULONG IO_ReadValue(struct WMD_DEV_CONTEXT *hDevContext,
-				  DWORD dwDSPAddr);
+	extern u32 IO_ReadValue(struct WMD_DEV_CONTEXT *hDevContext,
+				  u32 dwDSPAddr);
 
-	extern VOID IO_WriteValue(struct WMD_DEV_CONTEXT *hDevContext,
-				  DWORD dwDSPAddr, DWORD dwValue);
+	extern void IO_WriteValue(struct WMD_DEV_CONTEXT *hDevContext,
+				  u32 dwDSPAddr, u32 dwValue);
 
-	extern ULONG IO_ReadValueLong(struct WMD_DEV_CONTEXT *hDevContext,
-				      DWORD dwDSPAddr);
+	extern u32 IO_ReadValueLong(struct WMD_DEV_CONTEXT *hDevContext,
+				      u32 dwDSPAddr);
 
-	extern VOID IO_WriteValueLong(struct WMD_DEV_CONTEXT *hDevContext,
-				      DWORD dwDSPAddr, DWORD dwValue);
+	extern void IO_WriteValueLong(struct WMD_DEV_CONTEXT *hDevContext,
+				      u32 dwDSPAddr, u32 dwValue);
 
-	extern VOID IO_OrSetValue(struct WMD_DEV_CONTEXT *hDevContext,
-				  DWORD dwDSPAddr, DWORD dwValue);
+	extern void IO_OrSetValue(struct WMD_DEV_CONTEXT *hDevContext,
+				  u32 dwDSPAddr, u32 dwValue);
 
-	extern VOID IO_AndSetValue(struct WMD_DEV_CONTEXT *hDevContext,
-				   DWORD dwDSPAddr, DWORD dwValue);
+	extern void IO_AndSetValue(struct WMD_DEV_CONTEXT *hDevContext,
+				   u32 dwDSPAddr, u32 dwValue);
 
-	extern VOID IO_IntrDSP2(IN struct IO_MGR *pIOMgr, IN WORD wMbVal);
+	extern void IO_IntrDSP2(IN struct IO_MGR *pIOMgr, IN u16 wMbVal);
 
 #endif				/* IOSM_ */

@@ -72,7 +72,7 @@
  *      If valid linear address is returned, be sure to call
  *      MEMRY_UnMapLinearAddress().
  */
-	extern inline PVOID MEMRY_LinearAddress(PVOID pPhyAddr, ULONG cBytes)
+	extern inline void *MEMRY_LinearAddress(void *pPhyAddr, u32 cBytes)
 	{
 		return pPhyAddr;
 	}
@@ -89,7 +89,7 @@
  *  Ensures:
  *      - pBaseAddr no longer points to a valid linear address.
  */
-	extern inline VOID MEMRY_UnMapLinearAddress(PVOID pBaseAddr)
+	extern inline void MEMRY_UnMapLinearAddress(void *pBaseAddr)
 	{
 	}
 

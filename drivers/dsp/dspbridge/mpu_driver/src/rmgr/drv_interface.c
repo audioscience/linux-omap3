@@ -111,11 +111,11 @@
 #define DRIVER_NAME  "DspBridge"
 #define DRIVER_MAJOR 0		/* Linux assigns our Major device number */
 #define DRIVER_MINOR 0		/* Linux assigns our Major device number */
-INT dsp_debug;
-INT dsp_inact_time = 5000;
+s32 dsp_debug;
+s32 dsp_inact_time = 5000;
 
 /* This is a test variable used by Bridge to test different sleep states */
-INT dsp_test_sleepstate;
+s32 dsp_test_sleepstate;
 struct bridge_dev {
 	struct cdev cdev;
 };
@@ -124,18 +124,18 @@ struct bridge_dev *bridge_device;
 
 static struct class *bridge_class;
 
-DWORD driverContext;
+u32 driverContext;
 char *GT_str;
-INT driver_major = DRIVER_MAJOR;
-INT driver_minor = DRIVER_MINOR;
+s32 driver_major = DRIVER_MAJOR;
+s32 driver_minor = DRIVER_MINOR;
 char *base_img;
 char *iva_img;
 char *num_procs = "C55=1";
-INT shm_size = 0x400000;	/* 4 MB */
-INT iva_extmem_size;	/* 0 KB */
+s32 shm_size = 0x400000;	/* 1 MB */
+s32 iva_extmem_size;	/* 0 KB */
 
-UINT phys_mempool_base = 0x87000000;
-UINT phys_mempool_size = 0x600000;
+u32 phys_mempool_base = 0x87000000;
+u32 phys_mempool_size = 0x600000;
 #if !defined(OMAP_2430) && !defined(OMAP_3430)
 BOOL tc_wordswapon = TRUE;	/* Default value is always TRUE */
 #else
@@ -165,20 +165,12 @@ int omap34xxbridge_suspend_lockout(struct omap34xx_bridge_suspend_data *s,
 
 #endif
 
-#ifndef DDSP_DEBUG_PRODUCT
-EXPORT_NO_SYMBOLS;
-#endif
-
 #ifdef DEBUG
 module_param(GT_str, charp, 0);
 MODULE_PARM_DESC(GT_str, "GT string, default = NULL");
 
 module_param(dsp_debug, int, 0);
 MODULE_PARM_DESC(dsp_debug, "Wait after loading DSP image. default = FALSE");
-#else
-#ifndef DDSP_DEBUG_PRODUCT
-EXPORT_NO_SYMBOLS;
-#endif
 #endif
 
 module_param(driver_major, int, 0);	/* Driver's major number */
@@ -196,11 +188,11 @@ MODULE_PARM_DESC(base_img, "DSP base image, default = NULL");
 module_param(shm_size, int, 0);
 MODULE_PARM_DESC(shm_size, "SHM size, default = 4 MB, minimum = 64 KB");
 
-module_param(phys_mempool_base, int, 0);
+module_param(phys_mempool_base, uint, 0);
 MODULE_PARM_DESC(phys_mempool_base,
 		"Physical memory pool base passed to driver");
 
-module_param(phys_mempool_size, int, 0);
+module_param(phys_mempool_size, uint, 0);
 MODULE_PARM_DESC(phys_mempool_size,
 		"Physical memory pool size passed to driver");
 module_param(tc_wordswapon, bool, 0);
@@ -220,7 +212,7 @@ struct file_operations bridge_fops = {
 };
 
 #ifndef DISABLE_BRIDGE_PM
-DWORD timeOut = 1000;
+u32 timeOut = 1000;
 
 static int bridge_suspend(struct platform_device *pdev, pm_message_t state);
 static int bridge_resume(struct platform_device *pdev);
@@ -228,13 +220,14 @@ static int bridge_resume(struct platform_device *pdev);
 
 static void bridge_free(struct device *dev);
 
-#if defined(OMAP_2430) || defined(OMAP_3430)
-static int
-omap34xx_bridge_probe(struct omap_dev *dev)
+static int omap34xx_bridge_probe(struct platform_device *dev);
+
+static int omap34xx_bridge_probe(struct platform_device *dev)
 {
 	return 0;
 }
 
+#if defined(OMAP_2430) || defined(OMAP_3430)
 struct platform_device omap_dspbridge_dev = {
 		.name = BRIDGE_NAME,
 		.id = -1,
@@ -249,8 +242,8 @@ struct platform_device omap_dspbridge_dev = {
 #ifndef DISABLE_BRIDGE_PM
 #ifndef DISABLE_BRIDGE_DVFS
 /* The number of OPPs supported in the system */
-INT dsp_max_opps = CO_VDD1_OPP5-2;
-UINT vdd1_dsp_freq[6][4] = {
+s32 dsp_max_opps = CO_VDD1_OPP5-2;
+u32 vdd1_dsp_freq[6][4] = {
 
 	 {0, 0, 0, 0},
 
@@ -269,17 +262,6 @@ UINT vdd1_dsp_freq[6][4] = {
 struct constraint_handle *dsp_constraint_handle;
 struct constraint_handle *mpu_constraint_handle;
 
-static int dspbridge_pre_scale(struct notifier_block *op, unsigned long level,
-				void *ptr)
-{
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
-	PWR_PM_PreScale(PRCM_VDD1, level);
-#endif
-#endif
-	return 0;
-}
-
 static int dspbridge_post_scale(struct notifier_block *op, unsigned long level,
 				void *ptr)
 {
@@ -291,11 +273,6 @@ static int dspbridge_post_scale(struct notifier_block *op, unsigned long level,
 	return 0;
 }
 
-
-static struct notifier_block omap34xxbridge_pre_scale = {
-	.notifier_call = dspbridge_pre_scale,
-	NULL,
-};
 
 static struct notifier_block omap34xxbridge_post_scale = {
 	.notifier_call = dspbridge_post_scale,
@@ -334,11 +311,11 @@ struct device dspbridge_device = {
  *     module),
  *     or when the system is booted (when included as part of the kernel image).
  */
-int __init bridge_init(void)
+static int __init bridge_init(void)
 {
 	int status;
-	DWORD initStatus;
-	DWORD temp;
+	u32 initStatus;
+	u32 temp;
 	dev_t   dev = 0 ;
 	int     result;
 
@@ -424,22 +401,22 @@ int __init bridge_init(void)
 
 	if (base_img) {
 		temp = TRUE;
-		REG_SetValue(NULL, NULL, AUTOSTART, REG_DWORD, (BYTE *)&temp,
+		REG_SetValue(NULL, NULL, AUTOSTART, REG_DWORD, (u8 *)&temp,
 			    sizeof(temp));
-		REG_SetValue(NULL, NULL, DEFEXEC, REG_SZ, base_img,
+		REG_SetValue(NULL, NULL, DEFEXEC, REG_SZ, (u8 *)base_img,
 			    CSL_Strlen(base_img) + 1);
 	} else {
 		temp = FALSE;
-		REG_SetValue(NULL, NULL, AUTOSTART, REG_DWORD, (BYTE *)&temp,
+		REG_SetValue(NULL, NULL, AUTOSTART, REG_DWORD, (u8 *)&temp,
 			    sizeof(temp));
-		REG_SetValue(NULL, NULL, DEFEXEC, REG_SZ, "\0", 2);
+		REG_SetValue(NULL, NULL, DEFEXEC, REG_SZ, (u8 *) "\0", (u32)2);
 	}
-	REG_SetValue(NULL, NULL, NUMPROCS, REG_SZ, num_procs,
+	REG_SetValue(NULL, NULL, NUMPROCS, REG_SZ, (u8 *) num_procs,
 		    CSL_Strlen(num_procs) + 1);
 
 	if (shm_size >= 0x10000) {	/* 64 KB */
 		initStatus = REG_SetValue(NULL, NULL, SHMSIZE, REG_DWORD,
-					  (BYTE *)&shm_size, sizeof(shm_size));
+					  (u8 *)&shm_size, sizeof(shm_size));
 	} else {
 		initStatus = DSP_EINVALIDARG;
 		status = -1;
@@ -451,7 +428,7 @@ int __init bridge_init(void)
 
 	if (phys_mempool_base > 0x0) {
 		initStatus = REG_SetValue(NULL, NULL, PHYSMEMPOOLBASE,
-					 REG_DWORD, (BYTE *)&phys_mempool_base,
+					 REG_DWORD, (u8 *)&phys_mempool_base,
 					 sizeof(phys_mempool_base));
 	}
 	GT_1trace(driverTrace, GT_7CLASS, "phys_mempool_base = 0x%x \n",
@@ -459,7 +436,7 @@ int __init bridge_init(void)
 
 	if (phys_mempool_size > 0x0) {
 		initStatus = REG_SetValue(NULL, NULL, PHYSMEMPOOLSIZE,
-					 REG_DWORD, (BYTE *)&phys_mempool_size,
+					 REG_DWORD, (u8 *)&phys_mempool_size,
 					 sizeof(phys_mempool_size));
 	}
 	GT_1trace(driverTrace, GT_7CLASS, "phys_mempool_size = 0x%x \n",
@@ -469,11 +446,11 @@ int __init bridge_init(void)
 	if (tc_wordswapon) {
 		GT_0trace(driverTrace, GT_7CLASS, "TC Word Swap is enabled\n");
 		REG_SetValue(NULL, NULL, TCWORDSWAP, REG_DWORD,
-			    (BYTE *)&tc_wordswapon, sizeof(tc_wordswapon));
+			    (u8 *)&tc_wordswapon, sizeof(tc_wordswapon));
 	} else {
 		GT_0trace(driverTrace, GT_7CLASS, "TC Word Swap is disabled\n");
 		REG_SetValue(NULL, NULL, TCWORDSWAP,
-			    REG_DWORD, (BYTE *)&tc_wordswapon,
+			    REG_DWORD, (u8 *)&tc_wordswapon,
 			    sizeof(tc_wordswapon));
 	}
 	if (DSP_SUCCEEDED(initStatus)) {
@@ -597,7 +574,7 @@ int bridge_open(struct inode *ip, struct file *filp)
 	struct PROCESS_CONTEXT    *pCtxtclosed = NULL;
 	struct PROCESS_CONTEXT    *pCtxttraverse = NULL;
 	struct task_struct *tsk = NULL;
-	dsp_status = CFG_GetObject((DWORD *)&hDrvObject, REG_DRV_OBJECT);
+	dsp_status = CFG_GetObject((u32 *)&hDrvObject, REG_DRV_OBJECT);
 
 	/*Checking weather task structure for all process existing
 	 * in the process context list If not removing those processes*/
@@ -648,21 +625,21 @@ int bridge_open(struct inode *ip, struct file *filp)
 			}
 			pTmp = pCtxtclosed->next;
 			DRV_RemoveProcContext(hDrvObject, pCtxtclosed,
-					      pCtxtclosed->pid);
+					      (void *)pCtxtclosed->pid);
 		} else {
 			pTmp = pCtxtclosed->next;
 		}
 		pCtxtclosed = pTmp;
 	}
 func_cont:
-	dsp_status = CFG_GetObject((DWORD *)&hDrvObject, REG_DRV_OBJECT);
+	dsp_status = CFG_GetObject((u32 *)&hDrvObject, REG_DRV_OBJECT);
 	if (DSP_SUCCEEDED(dsp_status))
 		dsp_status = DRV_InsertProcContext(hDrvObject, &pPctxt);
 
 	if (pPctxt != NULL) {
 		PRCS_GetCurrentHandle(&hProcess);
 		DRV_ProcUpdatestate(pPctxt, PROC_RES_ALLOCATED);
-		DRV_ProcSetPID(pPctxt, hProcess);
+		DRV_ProcSetPID(pPctxt, (s32) hProcess);
 	}
 #endif
 
@@ -685,7 +662,7 @@ int bridge_release(struct inode *ip, struct file *filp)
 	status = PRCS_GetCurrentHandle(&pid);
 
 	if (DSP_SUCCEEDED(status))
-		status = DSP_Close((DWORD) pid);
+		status = DSP_Close((u32) pid);
 
 
 	(status == TRUE) ? (status = 0) : (status = -1);
@@ -709,7 +686,7 @@ int bridge_ioctl(struct inode *ip, struct file *filp, unsigned int code,
 		unsigned long args)
 {
 	int status;
-	DWORD retval = DSP_SOK;
+	u32 retval = DSP_SOK;
 	Trapped_Args pBufIn;
 
 	DBC_Require(filp != 0);
@@ -752,8 +729,8 @@ int bridge_ioctl(struct inode *ip, struct file *filp, unsigned int code,
  */
 int bridge_mmap(struct file *filp, struct vm_area_struct *vma)
 {
-	ULONG offset = vma->vm_pgoff << PAGE_SHIFT;
-	ULONG status;
+	u32 offset = vma->vm_pgoff << PAGE_SHIFT;
+	u32 status;
 
 	DBC_Assert(vma->vm_start < vma->vm_end);
 
@@ -778,6 +755,7 @@ int bridge_mmap(struct file *filp, struct vm_area_struct *vma)
  * process context list*/
 DSP_STATUS DRV_RemoveAllResources(HANDLE hPCtxt)
 {
+	DSP_STATUS status = DSP_SOK;
 	struct PROCESS_CONTEXT *pCtxt = (struct PROCESS_CONTEXT *)hPCtxt;
 	if (pCtxt != NULL) {
 		/*DRV_RemoveAllDSPHEAPResElements(pCtxt);*/
@@ -786,15 +764,16 @@ DSP_STATUS DRV_RemoveAllResources(HANDLE hPCtxt)
 		DRV_RemoveAllDMMResElements(pCtxt);
 		DRV_ProcUpdatestate(pCtxt, PROC_RES_FREED);
 	}
+	return status;
 }
 #endif
 
 #ifndef DISABLE_BRIDGE_PM
 
-bridge_suspend(struct platform_device *pdev, pm_message_t state)
+static int bridge_suspend(struct platform_device *pdev, pm_message_t state)
 {
-	DWORD status = DSP_EFAIL;
-	DWORD command = PWR_EMERGENCYDEEPSLEEP;
+	u32 status = DSP_EFAIL;
+	u32 command = PWR_EMERGENCYDEEPSLEEP;
 
 	status = PWR_SleepDSP(command, timeOut);
 	if (DSP_SUCCEEDED(status)) {
@@ -805,9 +784,9 @@ bridge_suspend(struct platform_device *pdev, pm_message_t state)
 	}
 }
 
-bridge_resume(struct platform_device *pdev)
+static int bridge_resume(struct platform_device *pdev)
 {
-	DWORD status = DSP_EFAIL;
+	u32 status = DSP_EFAIL;
 
 	status = PWR_WakeDSP(timeOut);
 

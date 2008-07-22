@@ -43,7 +43,7 @@
 #include <nldrdefs.h>
 
 /* DSP address of node environment structure */
-	typedef DWORD NODE_ENV;
+	typedef u32 NODE_ENV;
 
 /*
  *  Node create structures
@@ -51,37 +51,37 @@
 
 /* Message node */
 	struct NODE_MSGARGS {
-		UINT uMaxMessages; /* Max # of simultaneous messages for node */
-		UINT uSegid;	/* Segment for allocating message buffers */
-		UINT uNotifyType;  /* Notify type (SEM_post, SWI_post, etc.) */
-		UINT uArgLength;  /* Length in 32-bit words of arg data block */
-		BYTE *pData;	/* Argument data for node */
+		u32 uMaxMessages; /* Max # of simultaneous messages for node */
+		u32 uSegid;	/* Segment for allocating message buffers */
+		u32 uNotifyType;  /* Notify type (SEM_post, SWI_post, etc.) */
+		u32 uArgLength;  /* Length in 32-bit words of arg data block */
+		u8 *pData;	/* Argument data for node */
 	} ;
 
 	struct NODE_STRMDEF {
-		UINT uBufsize;	/* Size of buffers for SIO stream */
-		UINT uNumBufs;	/* max # of buffers in SIO stream at once */
-		UINT uSegid;	/* Memory segment id to allocate buffers */
-		UINT uTimeout;	/* Timeout for blocking SIO calls */
-		UINT uAlignment;	/* Buffer alignment */
-		PSTR szDevice;	/* Device name for stream */
+		u32 uBufsize;	/* Size of buffers for SIO stream */
+		u32 uNumBufs;	/* max # of buffers in SIO stream at once */
+		u32 uSegid;	/* Memory segment id to allocate buffers */
+		u32 uTimeout;	/* Timeout for blocking SIO calls */
+		u32 uAlignment;	/* Buffer alignment */
+		char *szDevice;	/* Device name for stream */
 	} ;
 
 /* Task node */
 	struct NODE_TASKARGS {
 		struct NODE_MSGARGS msgArgs;
-		INT nPriority;
-		UINT uStackSize;
-		UINT uSysStackSize;
-		UINT uStackSeg;
-		UINT uDSPHeapResAddr;	/* DSP virtual heap address */
-		UINT uDSPHeapAddr;	/* DSP virtual heap address */
-		UINT uHeapSize;	/* Heap size */
-		UINT uGPPHeapAddr;	/* GPP virtual heap address */
-		UINT uProfileID;	/* Profile ID */
-		UINT uNumInputs;
-		UINT uNumOutputs;
-		ULONG ulDaisArg;	/* Address of iAlg object */
+		s32 nPriority;
+		u32 uStackSize;
+		u32 uSysStackSize;
+		u32 uStackSeg;
+		u32 uDSPHeapResAddr;	/* DSP virtual heap address */
+		u32 uDSPHeapAddr;	/* DSP virtual heap address */
+		u32 uHeapSize;	/* Heap size */
+		u32 uGPPHeapAddr;	/* GPP virtual heap address */
+		u32 uProfileID;	/* Profile ID */
+		u32 uNumInputs;
+		u32 uNumOutputs;
+		u32 ulDaisArg;	/* Address of iAlg object */
 		struct NODE_STRMDEF *strmInDef;
 		struct NODE_STRMDEF *strmOutDef;
 	} ;
@@ -156,8 +156,8 @@
  *  Ensures:
  */
 	extern DSP_STATUS NODE_GetChannelId(struct NODE_OBJECT *hNode,
-					    UINT uDir,
-					    UINT uIndex, OUT ULONG *pulId);
+					    u32 uDir,
+					    u32 uIndex, OUT u32 *pulId);
 
 /*
  *  ======== NODE_GetStrmMgr ========
@@ -188,7 +188,7 @@
  *      Valid hNode.
  *  Ensures:
  */
-	extern UINT NODE_GetTimeout(struct NODE_OBJECT *hNode);
+	extern u32 NODE_GetTimeout(struct NODE_OBJECT *hNode);
 
 /*
  *  ======== NODE_GetType ========
@@ -217,7 +217,7 @@
  *      Valid hNode.
  *  Ensures:
  */
-	extern VOID GetNodeInfo(struct NODE_OBJECT *hNode,
+	extern void GetNodeInfo(struct NODE_OBJECT *hNode,
 				struct DSP_NODEINFO *pNodeInfo);
 
 /*

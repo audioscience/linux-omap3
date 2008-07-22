@@ -82,37 +82,37 @@
 #define MAXOPPS 16
 
 struct oppTableEntry {
-    Uns voltage;
-    Uns frequency;
-    Uns minFreq;
-    Uns maxFreq;
+    u32 voltage;
+    u32 frequency;
+    u32 minFreq;
+    u32 maxFreq;
 } ;
 
 struct oppStruct {
- /*  Uns currDspLoad; */
-    Uns currOppPt;
-    Uns numOppPts;
- /* Uns oppNotifyStatus; */
+ /*  u32 currDspLoad; */
+    u32 currOppPt;
+    u32 numOppPts;
+ /* u32 oppNotifyStatus; */
     struct oppTableEntry oppPoint[MAXOPPS];
 } ;
 
 /* Request to MPU */
 struct oppRqstStruct {
-    Uns rqstDspFreq;
-    Uns rqstOppPt;
+    u32 rqstDspFreq;
+    u32 rqstOppPt;
 };
 
 /* Info to MPU */
 struct loadMonStruct {
-    Uns currDspLoad;
-    Uns currDspFreq;
-    Uns predDspLoad;
-    Uns predDspFreq;
+    u32 currDspLoad;
+    u32 currDspFreq;
+    u32 predDspLoad;
+    u32 predDspFreq;
 };
 
 #endif
 
-	typedef DWORD SMWORD;
+	typedef u32 SMWORD;
 
 	typedef enum {
 		SHM_CURROPP = 0,
@@ -122,19 +122,19 @@ struct loadMonStruct {
 
 /* Structure in shared between DSP and PC for communication.*/
 	struct SHM {
-		DWORD dspFreeMask;	/* Written by DSP, read by PC. */
-		DWORD hostFreeMask;	/* Written by PC, read by DSP */
+		u32 dspFreeMask;	/* Written by DSP, read by PC. */
+		u32 hostFreeMask;	/* Written by PC, read by DSP */
 
-		DWORD inputFull;	/* Input channel has unread data. */
-		DWORD inputId;	/* Channel for which input is available. */
-		DWORD inputSize;	/* Size of data block (in DSP words). */
+		u32 inputFull;	/* Input channel has unread data. */
+		u32 inputId;	/* Channel for which input is available. */
+		u32 inputSize;	/* Size of data block (in DSP words). */
 
-		DWORD outputFull;	/* Output channel has unread data. */
-		DWORD outputId;	/* Channel for which output is available. */
-		DWORD outputSize;	/* Size of data block (in DSP words). */
+		u32 outputFull;	/* Output channel has unread data. */
+		u32 outputId;	/* Channel for which output is available. */
+		u32 outputSize;	/* Size of data block (in DSP words). */
 
-		DWORD arg;	/* Arg for Issue/Reclaim (23 bits for 55x). */
-		DWORD resvd;	/* Keep structure size even for 32-bit DSPs */
+		u32 arg;	/* Arg for Issue/Reclaim (23 bits for 55x). */
+		u32 resvd;	/* Keep structure size even for 32-bit DSPs */
 
 #ifdef OMAP_3430
 		/* Operating Point structure */
@@ -144,13 +144,13 @@ struct loadMonStruct {
 		/* load monitor information structure*/
 		struct loadMonStruct loadMonInfo;
 		char dummy[184];             /* padding to 256 byte boundary */
-		Uns shm_dbg_var[64];         /* shared memory debug variables */
+		u32 shm_dbg_var[64];         /* shared memory debug variables */
 #endif
 	} ;
 
 	/* Channel Manager: only one created per board: */
 	struct CHNL_MGR {
-		DWORD dwSignature;	/* Used for object validation */
+		u32 dwSignature;	/* Used for object validation */
 		/* Function interface to WMD */
 		struct WMD_DRV_INTERFACE *pIntfFxns;
 		struct IO_MGR *hIOMgr;	/* IO manager */
@@ -158,15 +158,15 @@ struct loadMonStruct {
 		struct DEV_OBJECT *hDevObject;
 
 		/* These fields initialized in WMD_CHNL_Create():    */
-		DWORD dwOutputMask; /* Host output channels w/ full buffers */
-		DWORD dwLastOutput;	/* Last output channel fired from DPC */
+		u32 dwOutputMask; /* Host output channels w/ full buffers */
+		u32 dwLastOutput;	/* Last output channel fired from DPC */
 		/* Critical section object handle */
 		struct SYNC_CSOBJECT *hCSObj;
-		ULONG uWordSize;	/* Size in bytes of DSP word */
-		ULONG cChannels;	/* Total number of channels */
-		ULONG cOpenChannels;	/* Total number of open channels */
+		u32 uWordSize;	/* Size in bytes of DSP word */
+		u32 cChannels;	/* Total number of channels */
+		u32 cOpenChannels;	/* Total number of open channels */
 		struct CHNL_OBJECT **apChannel;	/* Array of channels */
-		DWORD dwType;	/* Type of channel class library */
+		u32 dwType;	/* Type of channel class library */
 		/* If no SHM syms, return for CHNL_Open */
 		DSP_STATUS chnlOpenStatus;
 	} ;
@@ -176,12 +176,12 @@ struct loadMonStruct {
  *     up to CHNL_MAXCHANNELS + CHNL_MAXDDMACHNLS per board.
  */
 	struct CHNL_OBJECT {
-		DWORD dwSignature;	/* Used for object validation */
+		u32 dwSignature;	/* Used for object validation */
 		/* Pointer back to channel manager */
 		struct CHNL_MGR *pChnlMgr;
-		ULONG uId;	/* Channel id */
-		DWORD dwState;	/* Current channel state */
-		ULONG uMode;	/* Chnl mode and attributes */
+		u32 uId;	/* Channel id */
+		u32 dwState;	/* Current channel state */
+		u32 uMode;	/* Chnl mode and attributes */
 		/* Chnl I/O completion event (user mode) */
 		HANDLE hUserEvent;
 		/* Abstract syncronization object */
@@ -189,35 +189,35 @@ struct loadMonStruct {
 		/* Name of Sync event */
 		char szEventName[SYNC_MAXNAMELENGTH + 1];
 		HANDLE hProcess;	/* Process which created this channel */
-		ULONG pCBArg;	/* Argument to use with callback */
+		u32 pCBArg;	/* Argument to use with callback */
 		struct LST_LIST *pIORequests;	/* List of IOR's to driver */
-		LONG cIOCs;	/* Number of IOC's in queue */
-		LONG cIOReqs;	/* Number of IORequests in queue */
-		LONG cChirps;	/* Initial number of free Irps */
+		s32 cIOCs;	/* Number of IOC's in queue */
+		s32 cIOReqs;	/* Number of IORequests in queue */
+		s32 cChirps;	/* Initial number of free Irps */
 		/* List of IOC's from driver */
 		struct LST_LIST *pIOCompletions;
 		struct LST_LIST *pFreeList;	/* List of free Irps */
 		struct NTFY_OBJECT *hNtfy;
-		ULONG cBytesMoved;	/* Total number of bytes transfered */
+		u32 cBytesMoved;	/* Total number of bytes transfered */
 
 		/* For DSP-DMA */
 
 		/* Type of chnl transport:CHNL_[PCPY][DDMA] */
-		ULONG uChnlType;
+		u32 uChnlType;
 	} ;
 
 /* I/O Request/completion packet: */
 	struct CHNL_IRP {
 		struct LST_ELEM link;	/* Link to next CHIRP in queue. */
 		/* Buffer to be filled/emptied. (User)   */
-		BYTE *pHostUserBuf;
+		u8 *pHostUserBuf;
 		/* Buffer to be filled/emptied. (System) */
-		BYTE *pHostSysBuf;
-		DWORD dwArg;	/* Issue/Reclaim argument.               */
-		ULONG uDspAddr;	/* Transfer address on DSP side.         */
-		ULONG cBytes;	/* Bytes transferred.                    */
-		ULONG cBufSize;	/* Actual buffer size when allocated.    */
-		DWORD status;	/* Status of IO completion.              */
+		u8 *pHostSysBuf;
+		u32 dwArg;	/* Issue/Reclaim argument.               */
+		u32 uDspAddr;	/* Transfer address on DSP side.         */
+		u32 cBytes;	/* Bytes transferred.                    */
+		u32 cBufSize;	/* Actual buffer size when allocated.    */
+		u32 status;	/* Status of IO completion.              */
 	} ;
 
 #endif				/* _CHNL_SM_ */

@@ -27,9 +27,7 @@
  *! 23-Nov-2002 gp: Purpose -> Description in file header.
  *! 13-Feb-2001 kc: Name changed from ddsptype.h dbtype.h.
  *! 09-Oct-2000 jeh Added CHARACTER.
- *! 14-Sep-2000 jeh Moved PSTRING from dspdefs.h to dbtype.h. Define
- *!                 DEF_WINCE_ so PSTRING gets defined.
- *! 11-Aug-2000 ag: Added 'typedef void VOID'.
+ *! 11-Aug-2000 ag: Added 'typedef void void'.
  *! 08-Apr-2000 ww: Cloned.
  */
 
@@ -86,46 +84,19 @@
 /*============================================================================*/
 /*  Basic Type definitions (with Prefixes for Hungarian notation)             */
 /*============================================================================*/
-typedef unsigned char BYTE;	/* b    */
 
-typedef unsigned short WORD;	/* w    */
-typedef unsigned long DWORD;	/* dw   */
 
-typedef char CHAR;		/* ch   */ /* Not used for linux */
-typedef int INT;		/* n    */
-typedef long LONG;		/* l    */
 
-typedef unsigned short USHORT;	/* us   */
-typedef unsigned int UINT;	/* u    */
-typedef unsigned long ULONG;	/* ul   */
 
-typedef char *PSTR;		/* pstr */
 
 #ifndef OMAPBRIDGE_TYPES
 #define OMAPBRIDGE_TYPES
-
-typedef unsigned char UCHAR;	/* uch  */
 typedef int BOOL;		/* f    */
-
 typedef volatile unsigned short REG_UWORD16;
-
 #endif
 
-#ifndef VOID
-#define VOID void
-#endif
+typedef void *HANDLE;		/* h    */
 
-typedef VOID *PVOID;		/* p    */
-typedef PVOID HANDLE;		/* h    */
-
-typedef unsigned short WCHAR;	/* wch  */
-
-typedef char TCHAR; /* Not used for linux */
-
-typedef char *PSTRING;		/* Generic character string type */
-typedef char CHARACTER;
-
-typedef long long LARGE_INTEGER;
 #define TEXT(x) x
 
 #define CDECL

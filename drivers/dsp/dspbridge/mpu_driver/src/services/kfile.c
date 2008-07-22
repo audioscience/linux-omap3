@@ -69,12 +69,12 @@
 
 /* The KFILE_FileObj abstracts the true file handle from a KFILE handle. */
 struct KFILE_FileObj {
-    DWORD dwSignature;
+    u32 dwSignature;
     __kernel_pid_t owner_pid;	/* PID of process that opened this file */
     char 	*fileName  ;
     Bool          isOpen    ;
-    UINT        size      ;
-    UINT        curPos    ;
+    u32        size      ;
+    u32        curPos    ;
     long 	  hInternal;		/* internal handle of file */
     struct file *fileDesc;
 
@@ -90,10 +90,10 @@ static struct GT_Mask KFILE_debugMask = { 0, 0 };	/* Debug mask */
  *  Purpose:
  *      This function closes a file's stream.
  */
-INT KFILE_Close(struct KFILE_FileObj *hFile)
+s32 KFILE_Close(struct KFILE_FileObj *hFile)
 {
-	INT cRetVal = 0;	/* 0 indicates success */
-	INT fRetVal = 0;
+	s32 cRetVal = 0;	/* 0 indicates success */
+	s32 fRetVal = 0;
 	__kernel_pid_t curr_pid;
 
 	GT_1trace(KFILE_debugMask, GT_ENTER, "KFILE_Close: hFile 0x%x\n",
@@ -103,7 +103,7 @@ INT KFILE_Close(struct KFILE_FileObj *hFile)
 	if (MEM_IsValidHandle(hFile, SIGNATURE)) {
 		/* Close file only if opened by the same process (id). Otherwise
 		 * Linux closes all open file handles when process exits.*/
-		PRCS_GetCurrentHandle((VOID **)&curr_pid);
+		PRCS_GetCurrentHandle((void **)&curr_pid);
 
 		fRetVal = filp_close(hFile->fileDesc, NULL) ;
 		if (fRetVal) {
@@ -127,7 +127,7 @@ INT KFILE_Close(struct KFILE_FileObj *hFile)
  *      Decrement reference count, and free resources when reference count
  *      is 0.
  */
-VOID KFILE_Exit(void)
+void KFILE_Exit(void)
 {
 	GT_0trace(KFILE_debugMask, GT_5CLASS, "KFILE_Exit\n");
 }
@@ -183,7 +183,7 @@ struct KFILE_FileObj *KFILE_Open(CONST char *pszFileName, CONST char *pszMode)
 			hFile->size = fileDesc->f_op->llseek(fileDesc, 0,
 							    SEEK_END);
 			fileDesc->f_op->llseek(fileDesc, 0, SEEK_SET);
-			PRCS_GetCurrentHandle((VOID **) &hFile->owner_pid);
+			PRCS_GetCurrentHandle((void **) &hFile->owner_pid);
 			status = DSP_SOK;
 		}
 		set_fs(fs);
@@ -205,11 +205,11 @@ struct KFILE_FileObj *KFILE_Open(CONST char *pszFileName, CONST char *pszMode)
  *  Purpose:
  *      Reads a specified number of bytes into a buffer.
  */
-INT
-KFILE_Read(VOID *pBuffer, INT cSize, INT cCount, struct KFILE_FileObj *hFile)
+s32
+KFILE_Read(void *pBuffer, s32 cSize, s32 cCount, struct KFILE_FileObj *hFile)
 {
-	DWORD dwBytesRead = 0;
-	INT cRetVal = 0;
+	u32 dwBytesRead = 0;
+	s32 cRetVal = 0;
 	mm_segment_t fs;
 
 	DBC_Require(pBuffer != NULL);
@@ -232,7 +232,7 @@ KFILE_Read(VOID *pBuffer, INT cSize, INT cCount, struct KFILE_FileObj *hFile)
 				cRetVal = dwBytesRead / cSize;
 				hFile->curPos += dwBytesRead;
 				DBC_Assert((dwBytesRead / cSize) <= \
-					  (UINT)cCount);
+					  (u32)cCount);
 			} else {
 				cRetVal = E_KFILE_ERROR;
 				GT_0trace(KFILE_debugMask, GT_6CLASS,
@@ -258,10 +258,10 @@ KFILE_Read(VOID *pBuffer, INT cSize, INT cCount, struct KFILE_FileObj *hFile)
  *      Sets the file position indicator. NOTE:  we don't support seeking
  *      beyond the boundaries of a file.
  */
-INT KFILE_Seek(struct KFILE_FileObj *hFile, LONG lOffset, INT cOrigin)
+s32 KFILE_Seek(struct KFILE_FileObj *hFile, s32 lOffset, s32 cOrigin)
 {
-	INT cRetVal = 0;	/* 0 for success */
-	DWORD dwCurPos = 0;
+	s32 cRetVal = 0;	/* 0 for success */
+	u32 dwCurPos = 0;
 
 	struct file *fileDesc = NULL;
 
@@ -312,10 +312,10 @@ INT KFILE_Seek(struct KFILE_FileObj *hFile, LONG lOffset, INT cOrigin)
  *	    consider 64 bit long file size, which implies a 4GB file limit
  *      (2 to 32 power).
  */
-LONG KFILE_Tell(struct KFILE_FileObj *hFile)
+s32 KFILE_Tell(struct KFILE_FileObj *hFile)
 {
-	DWORD dwCurPos = 0;
-	LONG lRetVal = E_KFILE_ERROR;
+	u32 dwCurPos = 0;
+	s32 lRetVal = E_KFILE_ERROR;
 
 	GT_1trace(KFILE_debugMask, GT_ENTER, "KFILE_Tell: hFile 0x%x\n", hFile);
 

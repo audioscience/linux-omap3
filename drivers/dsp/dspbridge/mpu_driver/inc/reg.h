@@ -52,6 +52,7 @@
 #define _REG_H
 
 #include <dspapi.h>
+#include <linux/types.h>
 
 /*  ------------------------- Defines, Data Structures, Typedefs for Linux */
 #ifndef UNDER_CE
@@ -94,8 +95,8 @@
  *  Details:
  */
 	extern DSP_STATUS REG_DeleteValue(OPTIONAL IN HANDLE *phKey,
-					  IN CONST PSTR pstrSubkey,
-					  IN CONST PSTR pstrValue);
+					  IN CONST char *pstrSubkey,
+					  IN CONST char *pstrValue);
 
 /*
  *  ======== REG_EnumKey ========
@@ -126,9 +127,9 @@
  *      - CSL_Strlen(pstrSubkey) is < REG_MAXREGPATHLENGTH
  */
 	extern DSP_STATUS REG_EnumKey(OPTIONAL IN HANDLE *phKey,
-				      IN DWORD dwIndex, IN CONST PSTR pstrKey,
-				      IN OUT PSTR pstrSubkey,
-				      IN OUT DWORD *pdwValueSize);
+				      IN u32 dwIndex, IN CONST char *pstrKey,
+				      IN OUT char *pstrSubkey,
+				      IN OUT u32 *pdwValueSize);
 
 /*
  *  ======== REG_EnumValue ========
@@ -159,12 +160,12 @@
  *  Ensures:
  */
 	extern DSP_STATUS REG_EnumValue(IN HANDLE *phKey,
-					IN DWORD dwIndex,
-					IN CONST PSTR pstrKey,
-					IN OUT PSTR pstrValue,
-					IN OUT DWORD *pdwValueSize,
-					IN OUT PSTR pstrData,
-					IN OUT DWORD *pdwDataSize);
+					IN u32 dwIndex,
+					IN CONST char *pstrKey,
+					IN OUT char *pstrValue,
+					IN OUT u32 *pdwValueSize,
+					IN OUT char *pstrData,
+					IN OUT u32 *pdwDataSize);
 
 /*
  *  ======== REG_Exit ========
@@ -178,7 +179,7 @@
  *  Ensures:
  *      Resources used by module are freed when cRef reaches zero.
  */
-	extern VOID REG_Exit();
+	extern void REG_Exit();
 
 /*
  *  ======== REG_GetValue ========
@@ -206,10 +207,10 @@
  *  Ensures:
  */
 	extern DSP_STATUS REG_GetValue(OPTIONAL IN HANDLE *phKey,
-				       IN CONST PSTR pstrSubkey,
-				       IN CONST PSTR pstrEntry,
-				       OUT BYTE *pbValue,
-				       IN OUT DWORD *pdwValueSize);
+				       IN CONST char *pstrSubkey,
+				       IN CONST char *pstrEntry,
+				       OUT u8 *pbValue,
+				       IN OUT u32 *pdwValueSize);
 
 /*
  *  ======== REG_Init ========
@@ -249,9 +250,9 @@
  *  Ensures:
  */
 	extern DSP_STATUS REG_SetValue(OPTIONAL IN HANDLE *phKey,
-				       IN CONST PSTR pstrSubKey,
-				       IN CONST PSTR pstrEntry,
-				       IN CONST DWORD dwType,
-				       IN BYTE *pbValue, IN DWORD dwValueSize);
+				       IN CONST char *pstrSubKey,
+				       IN CONST char *pstrEntry,
+				       IN CONST u32 dwType,
+				       IN u8 *pbValue, IN u32 dwValueSize);
 
 #endif				/* _REG_H */

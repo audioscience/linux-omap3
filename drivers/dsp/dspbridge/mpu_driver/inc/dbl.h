@@ -45,7 +45,7 @@
  *      Valid lib.
  *  Ensures:
  */
-	extern Void DBL_close(struct DBL_LibraryObj *lib);
+	extern void DBL_close(struct DBL_LibraryObj *lib);
 
 /*
  *  ======== DBL_create ========
@@ -79,7 +79,7 @@
  *      Valid target.
  *  Ensures:
  */
-	extern Void DBL_delete(struct DBL_TargetObj *target);
+	extern void DBL_delete(struct DBL_TargetObj *target);
 
 /*
  *  ======== DBL_exit ========
@@ -91,7 +91,7 @@
  *  Ensures:
  *      cRefs >= 0.
  */
-	extern Void DBL_exit(Void);
+	extern void DBL_exit(void);
 
 /*
  *  ======== DBL_getAddr ========
@@ -110,7 +110,7 @@
  *      pAddr != NULL.
  *  Ensures:
  */
-	extern Bool DBL_getAddr(struct DBL_LibraryObj *lib, String name,
+	extern Bool DBL_getAddr(struct DBL_LibraryObj *lib, char *name,
 				struct DBL_Symbol **ppSym);
 
 /*
@@ -126,7 +126,7 @@
  *      pAttrs != NULL.
  *  Ensures:
  */
-	extern Void DBL_getAttrs(struct DBL_TargetObj *target,
+	extern void DBL_getAttrs(struct DBL_TargetObj *target,
 				 struct DBL_Attrs *pAttrs);
 
 /*
@@ -146,7 +146,7 @@
  *      pAddr != NULL.
  *  Ensures:
  */
-	extern Bool DBL_getCAddr(struct DBL_LibraryObj *lib, String name,
+	extern Bool DBL_getCAddr(struct DBL_LibraryObj *lib, char *name,
 				 struct DBL_Symbol **ppSym);
 
 /*
@@ -165,7 +165,7 @@
  *      pEntry != NULL.
  *  Ensures:
  */
-	extern Bool DBL_getEntry(struct DBL_LibraryObj *lib, LgUns *pEntry);
+	extern Bool DBL_getEntry(struct DBL_LibraryObj *lib, u32 *pEntry);
 
 /*
  *  ======== DBL_getSect ========
@@ -186,8 +186,8 @@
  *      pSize != NULL.
  *  Ensures:
  */
-	extern DSP_STATUS DBL_getSect(struct DBL_LibraryObj *lib, String name,
-				      LgUns *pAddr, LgUns *pSize);
+	extern DSP_STATUS DBL_getSect(struct DBL_LibraryObj *lib, char *name,
+				      u32 *pAddr, u32 *pSize);
 
 /*
  *  ======== DBL_init ========
@@ -202,7 +202,7 @@
  *      Success:        cRefs > 0.
  *      Failure:        cRefs >= 0.
  */
-	extern Bool DBL_init(Void);
+	extern Bool DBL_init(void);
 
 /*
  *  ======== DBL_load ========
@@ -225,7 +225,7 @@
  *  Ensures:
  */
 	extern DSP_STATUS DBL_load(struct DBL_LibraryObj *lib, DBL_Flags flags,
-				   struct DBL_Attrs *attrs, LgUns *pEntry);
+				   struct DBL_Attrs *attrs, u32 *pEntry);
 
 /*
  *  ======== DBL_loadSect ========
@@ -246,7 +246,7 @@
  *  Ensures:
  */
 	extern DSP_STATUS DBL_loadSect(struct DBL_LibraryObj *lib,
-				       String sectName,
+				       char *sectName,
 				       struct DBL_Attrs *attrs);
 
 /*
@@ -274,7 +274,7 @@
  *      Success:        Valid *pLib.
  *      Failure:        *pLib == NULL.
  */
-	extern DSP_STATUS DBL_open(struct DBL_TargetObj *target, String file,
+	extern DSP_STATUS DBL_open(struct DBL_TargetObj *target, char *file,
 				   DBL_Flags flags,
 				   struct DBL_LibraryObj **pLib);
 
@@ -297,8 +297,8 @@
  *      size != 0.
  *  Ensures:
  */
-	extern DSP_STATUS DBL_readSect(struct DBL_LibraryObj *lib, String name,
-				       Char * pBuf, LgUns size);
+	extern DSP_STATUS DBL_readSect(struct DBL_LibraryObj *lib, char *name,
+				       char *pBuf, u32 size);
 
 /*
  *  ======== DBL_setAttrs ========
@@ -313,7 +313,7 @@
  *      pAttrs != NULL.
  *  Ensures:
  */
-	extern Void DBL_setAttrs(struct DBL_TargetObj *target,
+	extern void DBL_setAttrs(struct DBL_TargetObj *target,
 				 struct DBL_Attrs *pAttrs);
 
 /*
@@ -328,7 +328,7 @@
  *      Valid lib.
  *  Ensures:
  */
-	extern Void DBL_unload(struct DBL_LibraryObj *lib,
+	extern void DBL_unload(struct DBL_LibraryObj *lib,
 			       struct DBL_Attrs *attrs);
 
 /*
@@ -348,7 +348,7 @@
  *  Ensures:
  */
 	extern DSP_STATUS DBL_unloadSect(struct DBL_LibraryObj *lib,
-					 String sectName,
+					 char *sectName,
 					 struct DBL_Attrs *attrs);
 
 #endif				/* DBL_ */

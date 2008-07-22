@@ -38,21 +38,21 @@ extern void regsupExit(void);
 /*
  *  ======== regsupDeleteValue ========
  */
-extern DSP_STATUS regsupDeleteValue(IN CONST PSTR pstrSubkey,
-				    IN CONST PSTR pstrValue);
+extern DSP_STATUS regsupDeleteValue(IN CONST char *pstrSubkey,
+				    IN CONST char *pstrValue);
 /*  Get the value of the entry having the given name.  Returns DSP_SOK  */
 /*  if an entry was found and the value retrieved.  Returns DSP_EFAIL
  *  otherwise.*/
-extern DSP_STATUS regsupGetValue(char *valName, void *pBuf, DWORD *dataSize);
+extern DSP_STATUS regsupGetValue(char *valName, void *pBuf, u32 *dataSize);
 
 /*  Sets the value of the entry having the given name.  Returns DSP_SOK  */
 /*  if an entry was found and the value set.  Returns DSP_EFAIL otherwise.  */
-extern DSP_STATUS regsupSetValue(char *valName, void *pBuf, DWORD dataSize);
+extern DSP_STATUS regsupSetValue(char *valName, void *pBuf, u32 dataSize);
 
 /*  Returns registry "values" and their "data" under a (sub)key. */
-extern DSP_STATUS regsupEnumValue(IN DWORD dwIndex, IN CONST PSTR pstrKey,
-			IN OUT PSTR pstrValue, IN OUT DWORD *pdwValueSize,
-			IN OUT PSTR pstrData, IN OUT DWORD *pdwDataSize);
+extern DSP_STATUS regsupEnumValue(IN u32 dwIndex, IN CONST char *pstrKey,
+			IN OUT char *pstrValue, IN OUT u32 *pdwValueSize,
+			IN OUT char *pstrData, IN OUT u32 *pdwDataSize);
 
 #endif
 

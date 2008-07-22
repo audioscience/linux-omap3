@@ -105,11 +105,11 @@
  */
 struct OvlyHdr {
 	struct DBOF_OvlySectHdr dbofHdr;
-	Char *pName; 		/* Name of overlay section */
-	MdUns createRef; 	/* Reference count for create phase */
-	MdUns deleteRef; 	/* Reference count for delete phase */
-	MdUns executeRef; 	/* Execute phase ref count */
-	MdUns otherRef; 		/* Unspecified phase ref count */
+	char *pName; 		/* Name of overlay section */
+	u16 createRef; 	/* Reference count for create phase */
+	u16 deleteRef; 	/* Reference count for delete phase */
+	u16 executeRef; 	/* Execute phase ref count */
+	u16 otherRef; 		/* Unspecified phase ref count */
 } ;
 
 /*
@@ -125,7 +125,7 @@ struct OvlyData {
  */
 struct Symbol {
 	struct DBL_Symbol sym;
-	Char *pSymName;
+	char *pSymName;
 };
 
 /*
@@ -133,27 +133,27 @@ struct Symbol {
  */
 struct DCDSect {
 	struct DBOF_DCDSectHdr sectHdr;
-	Char *pData;
+	char *pData;
 } ;
 
 /*
  *  ======== DBL_TargetObj ========
  */
 struct DBL_TargetObj {
-	LgUns dwSignature; 	/* For object validation */
+	u32 dwSignature; 	/* For object validation */
 	struct DBL_Attrs dblAttrs; 	/* file read, write, etc. functions */
-	Char *pBuf; 		/* Load buffer */
+	char *pBuf; 		/* Load buffer */
 };
 
 /*
  *  ======== TargetInfo ========
  */
 struct TargetInfo {
-	MdUns dspType; 		/* eg, C54TARG, C55TARG */
-	LgUns magic; 		/* COFF magic number, identifies target type */
-	MdUns wordSize; 	/* Size of a DSP word */
-	MdUns mauSize; 		/* Size of minimum addressable unit */
-	MdUns charSize; 	/* For C55x, mausize = 1, but charsize = 2 */
+	u16 dspType; 		/* eg, C54TARG, C55TARG */
+	u32 magic; 		/* COFF magic number, identifies target type */
+	u16 wordSize; 	/* Size of a DSP word */
+	u16 mauSize; 		/* Size of minimum addressable unit */
+	u16 charSize; 	/* For C55x, mausize = 1, but charsize = 2 */
 } ;
 
 /*
@@ -161,15 +161,15 @@ struct TargetInfo {
  *  Represents a library loaded on a target.
  */
 struct DBL_LibraryObj {
-	LgUns dwSignature; 	/* For object validation */
+	u32 dwSignature; 	/* For object validation */
 	struct DBL_TargetObj *pTarget; 	/* Target for this library */
 	struct KFILE_FileObj *file; 	/* DBOF file handle */
 	Bool byteSwapped; 	/* Are bytes swapped? */
 	struct DBOF_FileHdr fileHdr; 	/* Header of DBOF file */
-	MdUns nSymbols; 		/* Number of DSP/Bridge symbols */
+	u16 nSymbols; 		/* Number of DSP/Bridge symbols */
 	struct Symbol *symbols; 	/* Table of DSP/Bridge symbols */
-	MdUns nDCDSects; 	/* Number of DCD sections */
-	MdUns nOvlySects; 	/* Number of overlay nodes */
+	u16 nDCDSects; 	/* Number of DCD sections */
+	u16 nOvlySects; 	/* Number of overlay nodes */
 	struct DCDSect *dcdSects; 	/* DCD section data */
 	struct OvlyData **ppOvlyData; 	/* Array of overlay section data */
 	struct TargetInfo *pTargetInfo; 	/* Entry in targetTab[] below */
@@ -179,9 +179,9 @@ struct DBL_LibraryObj {
 static struct GT_Mask DBL_debugMask = { 0, 0 }; 	/* GT trace variable */
 #endif
 
-static LgUns cRefs; 		/* module reference count */
+static u32 cRefs; 		/* module reference count */
 
-static LgUns magicTab[NUMTARGS] = { C54MAGIC, C55MAGIC };
+static u32 magicTab[NUMTARGS] = { C54MAGIC, C55MAGIC };
 
 static struct TargetInfo targetTab[] = {
 	/* targ     magic       wordsize    mausize    charsize */
@@ -189,8 +189,8 @@ static struct TargetInfo targetTab[] = {
 	{C55TARG, C55MAGIC, 2, 1, 2}, 	/* C55  */
 };
 
-static Void freeSects(struct DBL_TargetObj *dbl, struct OvlyData *pOvlyData,
-		     Int offset, Int nSects);
+static void freeSects(struct DBL_TargetObj *dbl, struct OvlyData *pOvlyData,
+		     s32 offset, s32 nSects);
 static DSP_STATUS loadSect(struct DBL_TargetObj *dbl,
 			  struct DBL_LibraryObj *pdblLib);
 static DSP_STATUS readDCDSects(struct DBL_TargetObj *dbl,
@@ -207,10 +207,10 @@ static DSP_STATUS readSymbols(struct DBL_TargetObj *dbl,
  *  Purpose:
  *  	Close library opened with DBL_open.
  */
-Void DBL_close(struct DBL_LibraryObj *lib)
+void DBL_close(struct DBL_LibraryObj *lib)
 {
 	struct DBL_LibraryObj *pdblLib = (struct DBL_LibraryObj *)lib;
-	MdUns i;
+	u16 i;
 
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(pdblLib, DBL_LIBSIGNATURE));
@@ -310,7 +310,7 @@ DSP_STATUS DBL_create(struct DBL_TargetObj **pTarget, struct DBL_Attrs *pAttrs)
  *  Purpose:
  *  	Delete target object and free resources for any loaded libraries.
  */
-Void DBL_delete(struct DBL_TargetObj *target)
+void DBL_delete(struct DBL_TargetObj *target)
 {
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(target, DBL_TARGSIGNATURE));
@@ -329,7 +329,7 @@ Void DBL_delete(struct DBL_TargetObj *target)
  *  Purpose
  *  	Discontinue usage of DBL module.
  */
-Void DBL_exit()
+void DBL_exit()
 {
 	DBC_Require(cRefs > 0);
 	cRefs--;
@@ -343,12 +343,12 @@ Void DBL_exit()
  *  Purpose:
  *  	Get address of name in the specified library.
  */
-Bool DBL_getAddr(struct DBL_LibraryObj *lib, String name,
+Bool DBL_getAddr(struct DBL_LibraryObj *lib, char *name,
 		struct DBL_Symbol **ppSym)
 {
 	Bool retVal = FALSE;
 	struct Symbol *symbol;
-	MdUns i;
+	u16 i;
 
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(lib, DBL_LIBSIGNATURE));
@@ -375,7 +375,7 @@ Bool DBL_getAddr(struct DBL_LibraryObj *lib, String name,
  *  Purpose:
  *  	Retrieve the attributes of the target.
  */
-Void DBL_getAttrs(struct DBL_TargetObj *target, struct DBL_Attrs *pAttrs)
+void DBL_getAttrs(struct DBL_TargetObj *target, struct DBL_Attrs *pAttrs)
 {
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(target, DBL_TARGSIGNATURE));
@@ -390,12 +390,12 @@ Void DBL_getAttrs(struct DBL_TargetObj *target, struct DBL_Attrs *pAttrs)
  *  Purpose:
  *  	Get address of "C" name in the specified library.
  */
-Bool DBL_getCAddr(struct DBL_LibraryObj *lib, String name,
+Bool DBL_getCAddr(struct DBL_LibraryObj *lib, char *name,
 		 struct DBL_Symbol **ppSym)
 {
 	Bool retVal = FALSE;
 	struct Symbol *symbol;
-	MdUns i;
+	u16 i;
 
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(lib, DBL_LIBSIGNATURE));
@@ -425,7 +425,7 @@ Bool DBL_getCAddr(struct DBL_LibraryObj *lib, String name,
  *  	Get program entry point.
  *
  */
-Bool DBL_getEntry(struct DBL_LibraryObj *lib, LgUns *pEntry)
+Bool DBL_getEntry(struct DBL_LibraryObj *lib, u32 *pEntry)
 {
 	struct DBL_LibraryObj *pdblLib = (struct DBL_LibraryObj *)lib;
 
@@ -445,11 +445,11 @@ Bool DBL_getEntry(struct DBL_LibraryObj *lib, LgUns *pEntry)
  *  Purpose:
  *  	Get address and size of a named section.
  */
-DSP_STATUS DBL_getSect(struct DBL_LibraryObj *lib, String name, LgUns *pAddr,
-		      LgUns *pSize)
+DSP_STATUS DBL_getSect(struct DBL_LibraryObj *lib, char *name, u32 *pAddr,
+		      u32 *pSize)
 {
 	struct DBL_LibraryObj *pdblLib = (struct DBL_LibraryObj *)lib;
-	MdUns i;
+	u16 i;
 	DSP_STATUS status = DSP_ENOSECT;
 
 	DBC_Require(cRefs > 0);
@@ -501,7 +501,7 @@ DSP_STATUS DBL_getSect(struct DBL_LibraryObj *lib, String name, LgUns *pAddr,
  *  Purpose:
  *  	Initialize DBL module.
  */
-Bool DBL_init(Void)
+Bool DBL_init(void)
 {
 	Bool retVal = TRUE;
 
@@ -532,12 +532,12 @@ Bool DBL_init(Void)
  *  	on the target.
  */
 DSP_STATUS DBL_load(struct DBL_LibraryObj *lib, DBL_Flags flags,
-		   struct DBL_Attrs *attrs, LgUns *pEntry)
+		   struct DBL_Attrs *attrs, u32 *pEntry)
 {
 	struct DBL_LibraryObj *pdblLib = (struct DBL_LibraryObj *)lib;
 	struct DBL_TargetObj *dbl;
-	MdUns i;
-	MdUns nSects;
+	u16 i;
+	u16 nSects;
 	DSP_STATUS status = DSP_EFAIL;
 
 	DBC_Require(cRefs > 0);
@@ -574,25 +574,25 @@ DSP_STATUS DBL_load(struct DBL_LibraryObj *lib, DBL_Flags flags,
  *  Purpose:
  *  	Load a named section from an library (for overlay support).
  */
-DSP_STATUS DBL_loadSect(struct DBL_LibraryObj *lib, String sectName,
+DSP_STATUS DBL_loadSect(struct DBL_LibraryObj *lib, char *sectName,
 			struct DBL_Attrs *attrs)
 {
 	struct DBL_TargetObj *dbl;
-	Int i;
-	Int phase;
-	Int offset = -1;
-	Int nSects = -1;
-	Int allocdSects = 0;
-	LgUns loadAddr;
-	LgUns runAddr;
-	LgUns size;
-	LgUns space;
-	LgUns ulBytes;
-	MdUns mauSize;
-	MdUns wordSize;
-	MdUns *phaseRef = NULL;
-	MdUns *otherRef = NULL;
-	Char *name = NULL;
+	s32 i;
+	s32 phase;
+	s32 offset = -1;
+	s32 nSects = -1;
+	s32 allocdSects = 0;
+	u32 loadAddr;
+	u32 runAddr;
+	u32 size;
+	u32 space;
+	u32 ulBytes;
+	u16 mauSize;
+	u16 wordSize;
+	u16 *phaseRef = NULL;
+	u16 *otherRef = NULL;
+	char *name = NULL;
 	struct OvlyData *pOvlyData;
 	DSP_STATUS status = DSP_ENOSECT;
 
@@ -698,7 +698,7 @@ DSP_STATUS DBL_loadSect(struct DBL_LibraryObj *lib, String sectName,
 					runAddr /= (wordSize / mauSize);
 					ulBytes = size * mauSize;
 					if ((*attrs->write)(attrs->wHandle,
-					   runAddr, (Void *)loadAddr, ulBytes,
+					   runAddr, (void *)loadAddr, ulBytes,
 					   space) != ulBytes) {
 						GT_0trace(DBL_debugMask,
 							GT_6CLASS,
@@ -731,12 +731,12 @@ DSP_STATUS DBL_loadSect(struct DBL_LibraryObj *lib, String sectName,
  *  	DBL_open() returns a library handle that can be used to
  *  	load/unload the symbols/code/data via DBL_load()/DBL_unload().
  */
-DSP_STATUS DBL_open(struct DBL_TargetObj *target, String file, DBL_Flags flags,
+DSP_STATUS DBL_open(struct DBL_TargetObj *target, char *file, DBL_Flags flags,
 		   struct DBL_LibraryObj **pLib)
 {
 	struct DBL_LibraryObj *pdblLib = NULL;
-	MdUns nSymbols;
-	MdUns nDCDSects;
+	u16 nSymbols;
+	u16 nDCDSects;
 	DSP_STATUS status = DSP_SOK;
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(target, DBL_TARGSIGNATURE));
@@ -829,13 +829,13 @@ DSP_STATUS DBL_open(struct DBL_TargetObj *target, String file, DBL_Flags flags,
  *  Purpose:
  *  	Read COFF section into a character buffer.
  */
-DSP_STATUS DBL_readSect(struct DBL_LibraryObj *lib, String name, Char *pContent,
-			LgUns size)
+DSP_STATUS DBL_readSect(struct DBL_LibraryObj *lib, char *name, char *pContent,
+			u32 size)
 {
 	struct DBL_LibraryObj *pdblLib = (struct DBL_LibraryObj *)lib;
-	MdUns i;
-	LgUns mauSize;
-	LgUns max;
+	u16 i;
+	u32 mauSize;
+	u32 max;
 	DSP_STATUS status = DSP_ENOSECT;
 
 	DBC_Require(cRefs > 0);
@@ -868,7 +868,7 @@ DSP_STATUS DBL_readSect(struct DBL_LibraryObj *lib, String name, Char *pContent,
  *  Purpose:
  *  	Set the attributes of the target.
  */
-Void DBL_setAttrs(struct DBL_TargetObj *target, struct DBL_Attrs *pAttrs)
+void DBL_setAttrs(struct DBL_TargetObj *target, struct DBL_Attrs *pAttrs)
 {
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(target, DBL_TARGSIGNATURE));
@@ -885,7 +885,7 @@ Void DBL_setAttrs(struct DBL_TargetObj *target, struct DBL_Attrs *pAttrs)
  *  Purpose:
  *  	Remove the symbols/code/data corresponding to the library lib.
  */
-Void DBL_unload(struct DBL_LibraryObj *lib, struct DBL_Attrs *attrs)
+void DBL_unload(struct DBL_LibraryObj *lib, struct DBL_Attrs *attrs)
 {
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(lib, DBL_LIBSIGNATURE));
@@ -900,17 +900,17 @@ Void DBL_unload(struct DBL_LibraryObj *lib, struct DBL_Attrs *attrs)
  *  Purpose:
  *  	Unload a named section from an library (for overlay support).
  */
-DSP_STATUS DBL_unloadSect(struct DBL_LibraryObj *lib, String sectName,
+DSP_STATUS DBL_unloadSect(struct DBL_LibraryObj *lib, char *sectName,
 			  struct DBL_Attrs *attrs)
 {
 	struct DBL_TargetObj *dbl;
-	Int i;
-	Int phase;
-	Int offset = -1;
-	Int nSects = -1;
-	MdUns *phaseRef = NULL;
-	MdUns *otherRef = NULL;
-	Char *pName = NULL;
+	s32 i;
+	s32 phase;
+	s32 offset = -1;
+	s32 nSects = -1;
+	u16 *phaseRef = NULL;
+	u16 *otherRef = NULL;
+	char *pName = NULL;
 	struct OvlyData *pOvlyData;
 	DSP_STATUS status = DSP_ENOSECT;
 
@@ -991,13 +991,13 @@ DSP_STATUS DBL_unloadSect(struct DBL_LibraryObj *lib, String sectName,
  *  Purpose:
  *  	Free section
  */
-static Void freeSects(struct DBL_TargetObj *dbl, struct OvlyData *pOvlyData,
-		     Int offset, Int nSects)
+static void freeSects(struct DBL_TargetObj *dbl, struct OvlyData *pOvlyData,
+		     s32 offset, s32 nSects)
 {
-	LgUns runAddr;
-	LgUns size;
-	LgUns space;
-	Int i;
+	u32 runAddr;
+	u32 size;
+	u32 space;
+	s32 i;
 
 	for (i = 0; i < nSects; i++) {
 		runAddr = pOvlyData->data[offset + i].runAddr;
@@ -1023,15 +1023,15 @@ static DSP_STATUS loadSect(struct DBL_TargetObj *dbl,
 			  struct DBL_LibraryObj *pdblLib)
 {
 	struct DBOF_SectHdr sectHdr;
-	Char *pBuf;
+	char *pBuf;
 	struct KFILE_FileObj *file;
-	LgUns space;
-	LgUns addr;
-	LgUns total;
-	LgUns nWords = 0;
-	LgUns nBytes = 0;
-	MdUns mauSize;
-	LgUns bufSize;
+	u32 space;
+	u32 addr;
+	u32 total;
+	u32 nWords = 0;
+	u32 nBytes = 0;
+	u16 mauSize;
+	u32 bufSize;
 	DSP_STATUS status = DSP_SOK;
 
 	file = pdblLib->file;
@@ -1091,9 +1091,9 @@ static DSP_STATUS readDCDSects(struct DBL_TargetObj *dbl,
 	struct DBOF_DCDSectHdr *pSectHdr;
 	struct DCDSect *pSect;
 	struct KFILE_FileObj *file;
-	MdUns nSects;
-	MdUns i;
-	MdUns mauSize;
+	u16 nSects;
+	u16 i;
+	u16 mauSize;
 	DSP_STATUS status = DSP_SOK;
 
 	file = pdblLib->file;
@@ -1113,7 +1113,7 @@ static DSP_STATUS readDCDSects(struct DBL_TargetObj *dbl,
 		if (pdblLib->byteSwapped)
 			pSectHdr->size = SWAPLONG(pSectHdr->size);
 
-		pSect->pData = (Char *)MEM_Calloc(pSectHdr->size *
+		pSect->pData = (char *)MEM_Calloc(pSectHdr->size *
 				mauSize, MEM_PAGED);
 		if (pSect->pData == NULL) {
 			GT_2trace(DBL_debugMask, GT_6CLASS,
@@ -1145,9 +1145,9 @@ static DSP_STATUS readHeader(struct DBL_TargetObj *dbl,
 			    struct DBL_LibraryObj *pdblLib)
 {
 	struct KFILE_FileObj *file;
-	Int i;
+	s32 i;
 	struct DBOF_FileHdr *pHdr;
-	LgUns swapMagic;
+	u32 swapMagic;
 	DSP_STATUS status = DSP_SOK;
 
 	pdblLib->byteSwapped = FALSE;
@@ -1217,11 +1217,11 @@ static DSP_STATUS readOvlySects(struct DBL_TargetObj *dbl,
 	struct DBOF_OvlySectHdr hdr;
 	struct DBOF_OvlySectData *pData;
 	struct OvlyData *pOvlyData;
-	Char *pName;
+	char *pName;
 	struct KFILE_FileObj *file;
-	MdUns i, j;
-	MdUns nSects;
-	MdUns n;
+	u16 i, j;
+	u16 nSects;
+	u16 n;
 	DSP_STATUS status = DSP_SOK;
 
 	pdblLib->nOvlySects = nSects = pdblLib->fileHdr.numOvlySects;
@@ -1278,7 +1278,7 @@ static DSP_STATUS readOvlySects(struct DBL_TargetObj *dbl,
 			pOvlyData->hdr.dbofHdr = hdr;
 			pdblLib->ppOvlyData[i] = pOvlyData;
 			/* Allocate memory for section name */
-			pName = (Char *)MEM_Calloc(hdr.nameLen + 1, MEM_PAGED);
+			pName = (char *)MEM_Calloc(hdr.nameLen + 1, MEM_PAGED);
 			if (pName == NULL) {
 				GT_0trace(DBL_debugMask, GT_7CLASS,
 					 "Failed to allocatate ovlyay"
@@ -1288,7 +1288,7 @@ static DSP_STATUS readOvlySects(struct DBL_TargetObj *dbl,
 			}
 			pOvlyData->hdr.pName = pName;
 			/* Read the overlay section name */
-			if ((*dbl->dblAttrs.fread)(pName, sizeof(Char),
+			if ((*dbl->dblAttrs.fread)(pName, sizeof(char),
 			   hdr.nameLen, file) != hdr.nameLen) {
 				GT_0trace(DBL_debugMask, GT_7CLASS,
 					 "readOvlySects: Unable to "
@@ -1334,10 +1334,10 @@ static DSP_STATUS readSymbols(struct DBL_TargetObj *dbl,
 {
 	struct DBOF_SymbolHdr symHdr;
 	struct KFILE_FileObj *file;
-	MdUns i;
-	MdUns nSymbols;
-	MdUns len;
-	Char *pName = NULL;
+	u16 i;
+	u16 nSymbols;
+	u16 len;
+	char *pName = NULL;
 	DSP_STATUS status = DSP_SOK;
 
 	file = pdblLib->file;
@@ -1359,7 +1359,7 @@ static DSP_STATUS readSymbols(struct DBL_TargetObj *dbl,
 		}
 		/* Allocate buffer for symbol name */
 		len = symHdr.nameLen;
-		pName = (Char *)MEM_Calloc(len + 1, MEM_PAGED);
+		pName = (char *)MEM_Calloc(len + 1, MEM_PAGED);
 		if (pName == NULL) {
 			GT_0trace(DBL_debugMask, GT_6CLASS,
 				 "Memory allocation failed\n");
@@ -1369,7 +1369,7 @@ static DSP_STATUS readSymbols(struct DBL_TargetObj *dbl,
 		pdblLib->symbols[i].pSymName = pName;
 		pdblLib->symbols[i].sym.value = symHdr.value;
 		/* Read symbol name */
-		if ((*dbl->dblAttrs.fread) (pName, sizeof(Char), len, file) !=
+		if ((*dbl->dblAttrs.fread) (pName, sizeof(char), len, file) !=
 		   len) {
 			GT_0trace(DBL_debugMask, GT_6CLASS,
 				 "Failed to read symbol value\n");

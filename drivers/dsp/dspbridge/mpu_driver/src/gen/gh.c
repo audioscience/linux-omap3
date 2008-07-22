@@ -21,6 +21,8 @@
 
 #include <std.h>
 
+#include <linux/types.h>
+
 #include <gs.h>
 
 #include <gh.h>
@@ -28,34 +30,34 @@
 /*typedef struct Elem Elem;*/
 struct Elem {
 	struct Elem *next;
-	Byte data[1];
+	u8 data[1];
 };
 
 /*typedef Elem *ElemPtr;*/
 
 struct GH_THashTab {
-	MdUns maxBucket;
-	MdUns valSize;
+	u16 maxBucket;
+	u16 valSize;
 	struct Elem **buckets;
-	 MdUns(*hash) (Ptr, MdUns);
-	 Bool(*match) (Ptr, Ptr);
-	 Void(*delete) (Ptr);
+	 u16(*hash) (void *, u16);
+	 Bool(*match) (void *, void *);
+	 void(*delete) (void *);
 };
 
-static Void nop(Ptr p);
-static Int curInit;
-static Void myfree(Ptr ptr, Int size);
+static void nop(void *p);
+static s32 curInit;
+static void myfree(void *ptr, s32 size);
 
 /*
  *  ======== GH_create ========
  */
 
-struct GH_THashTab *GH_create(MdUns maxBucket, MdUns valSize,
-			      MdUns(*hash)(Ptr, MdUns), Bool(*match)(Ptr, Ptr),
-			      Void(*delete)(Ptr))
+struct GH_THashTab *GH_create(u16 maxBucket, u16 valSize,
+		u16(*hash)(void *, u16), Bool(*match)(void *, void *),
+		void(*delete)(void *))
 {
 	struct GH_THashTab *hashTab;
-	MdUns i;
+	u16 i;
 	hashTab = (struct GH_THashTab *)GS_alloc(sizeof(struct GH_THashTab));
 	if (hashTab == NULL)
 		return NULL;
@@ -81,10 +83,10 @@ struct GH_THashTab *GH_create(MdUns maxBucket, MdUns valSize,
 /*
  *  ======== GH_delete ========
  */
-Void GH_delete(struct GH_THashTab *hashTab)
+void GH_delete(struct GH_THashTab *hashTab)
 {
 	struct Elem *elem, *next;
-	MdUns i;
+	u16 i;
 
 	if (hashTab != NULL) {
 		if (hashTab->buckets != NULL) {
@@ -110,7 +112,7 @@ Void GH_delete(struct GH_THashTab *hashTab)
  *  ======== GH_exit ========
  */
 
-Void GH_exit(Void)
+void GH_exit(void)
 {
 	if (curInit-- == 1)
 		GS_exit();
@@ -121,7 +123,7 @@ Void GH_exit(Void)
  *  ======== GH_find ========
  */
 
-Ptr GH_find(struct GH_THashTab *hashTab, Ptr key)
+void *GH_find(struct GH_THashTab *hashTab, void *key)
 {
 	struct Elem *elem;
 
@@ -139,7 +141,7 @@ Ptr GH_find(struct GH_THashTab *hashTab, Ptr key)
  *  ======== GH_init ========
  */
 
-Void GH_init(Void)
+void GH_init(void)
 {
 	if (curInit++ == 0)
 		GS_init();
@@ -149,18 +151,18 @@ Void GH_init(Void)
  *  ======== GH_insert ========
  */
 
-Ptr GH_insert(struct GH_THashTab *hashTab, Ptr key, Ptr value)
+void *GH_insert(struct GH_THashTab *hashTab, void *key, void *value)
 {
 	struct Elem *elem;
-	MdUns i;
-	Char *src, *dst;
+	u16 i;
+	char *src, *dst;
 
 	elem = (struct Elem *)GS_alloc(sizeof(struct Elem) - 1 +
 		hashTab->valSize);
 	if (elem != NULL) {
 
-		dst = (Char *)elem->data;
-		src = (Char *)value;
+		dst = (char *)elem->data;
+		src = (char *)value;
 		for (i = 0; i < hashTab->valSize; i++)
 			*dst++ = *src++;
 
@@ -178,7 +180,7 @@ Ptr GH_insert(struct GH_THashTab *hashTab, Ptr key, Ptr value)
  *  ======== nop ========
  */
 /* ARGSUSED */
-static Void nop(Ptr p)
+static void nop(void *p)
 {
 	p = p;			/* stifle compiler warning */
 }
@@ -186,8 +188,8 @@ static Void nop(Ptr p)
 /*
  *  ======== myfree ========
  */
-static Void
-myfree(Ptr ptr, Int size)
+static void
+myfree(void *ptr, s32 size)
 {
 	GS_free(ptr);
 }

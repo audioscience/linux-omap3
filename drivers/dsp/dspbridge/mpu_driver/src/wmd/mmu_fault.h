@@ -34,14 +34,14 @@
  *  Purpose:
  *      Deferred procedure call to handle DSP MMU fault.
  */
-	VOID MMU_FaultDpc(IN PVOID pRefData);
+	void MMU_FaultDpc(IN void *pRefData);
 
 /*
  *  ======== MMU_FaultIsr ========
  *  Purpose:
  *      ISR to be triggered by a DSP MMU fault interrupt.
  */
-	VOID MMU_FaultIsr(IN PVOID pRefData);
+	void MMU_FaultIsr(IN void *pRefData);
 
 /*
  *  ========PrintDspTraceBuffer ========

@@ -44,8 +44,8 @@
  *  DSP address + segid
  */
 struct RMM_Addr {
-	LgUns addr;
-	Int segid;
+	u32 addr;
+	s32 segid;
 } ;
 
 /*
@@ -53,10 +53,10 @@ struct RMM_Addr {
  *  Memory segment on the DSP available for remote allocations.
  */
 struct RMM_Segment {
-	LgUns base;		/* Base of the segment */
-	LgUns length;		/* Size of the segment (target MAUs) */
-	Int space;		/* Code or data */
-	LgUns number;		/* Number of Allocated Blocks */
+	u32 base;		/* Base of the segment */
+	u32 length;		/* Size of the segment (target MAUs) */
+	s32 space;		/* Code or data */
+	u32 number;		/* Number of Allocated Blocks */
 } ;
 
 /*
@@ -92,8 +92,8 @@ struct RMM_TargetObj;
  *      reserve || target->numSegs > 0.
  *  Ensures:
  */
-extern DSP_STATUS RMM_alloc(struct RMM_TargetObj *target, Uns segid, LgUns size,
-			    Uns align, LgUns *dspAdr, Bool reserve);
+extern DSP_STATUS RMM_alloc(struct RMM_TargetObj *target, u32 segid, u32 size,
+			    u32 align, u32 *dspAdr, Bool reserve);
 
 /*
  *  ======== RMM_create ========
@@ -117,7 +117,7 @@ extern DSP_STATUS RMM_alloc(struct RMM_TargetObj *target, Uns segid, LgUns size,
  *      Failure:        *pTarget == NULL.
  */
 extern DSP_STATUS RMM_create(struct RMM_TargetObj **pTarget,
-			     struct RMM_Segment segTab[], Uns numSegs);
+			     struct RMM_Segment segTab[], u32 numSegs);
 
 /*
  *  ======== RMM_delete ========
@@ -131,7 +131,7 @@ extern DSP_STATUS RMM_create(struct RMM_TargetObj **pTarget,
  *      Valid target.
  *  Ensures:
  */
-extern Void RMM_delete(struct RMM_TargetObj *target);
+extern void RMM_delete(struct RMM_TargetObj *target);
 
 /*
  *  ======== RMM_exit ========
@@ -143,7 +143,7 @@ extern Void RMM_delete(struct RMM_TargetObj *target);
  *      RMM_init successfully called.
  *  Ensures:
  */
-extern Void RMM_exit(Void);
+extern void RMM_exit(void);
 
 /*
  *  ======== RMM_free ========
@@ -163,8 +163,8 @@ extern Void RMM_exit(Void);
  *      reserve || [dspAddr, dspAddr + size] is a valid memory range.
  *  Ensures:
  */
-extern Bool RMM_free(struct RMM_TargetObj *target, Uns segid, LgUns dspAddr,
-		     LgUns size, Bool reserved);
+extern Bool RMM_free(struct RMM_TargetObj *target, u32 segid, u32 dspAddr,
+		     u32 size, Bool reserved);
 
 /*
  *  ======== RMM_init ========
@@ -177,7 +177,7 @@ extern Bool RMM_free(struct RMM_TargetObj *target, Uns segid, LgUns dspAddr,
  *  Requires:
  *  Ensures:
  */
-extern Bool RMM_init(Void);
+extern Bool RMM_init(void);
 
 /*
  *  ======== RMM_stat ========

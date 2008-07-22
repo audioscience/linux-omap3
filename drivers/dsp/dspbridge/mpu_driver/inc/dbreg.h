@@ -72,7 +72,7 @@
 #define DSPPROCTYPE_C64		6410
 #define IVAPROCTYPE_ARM7	470
 /* registry */
-#define DEVNODESTRING    "DevNode"	/* DWORD devnode */
+#define DEVNODESTRING    "DevNode"	/* u32 devnode */
 #define CONFIG           "Software\\TexasInstruments\\DirectDSP\\Config"
 #define DRVOBJECT        "DrvObject"
 #define MGROBJECT        "MgrObject"

@@ -101,15 +101,15 @@
 /* Channel info.  */
 	 struct CHNL_INFO {
 		struct CHNL_MGR *hChnlMgr;	/* Owning channel manager.   */
-		ULONG dwID;	/* Channel ID.                            */
+		u32 dwID;	/* Channel ID.                            */
 		HANDLE hEvent;	/* Channel I/O completion event.          */
 		/*Abstraction of I/O completion event.*/
 		struct SYNC_OBJECT *hSyncEvent;
-		DWORD dwMode;	/* Channel mode.                          */
-		DWORD dwState;	/* Current channel state.                 */
-		ULONG cPosition;	/* Total bytes transferred.        */
-		UINT cIOCs;	/* Number of IOCs in queue.               */
-		UINT cIOReqs;	/* Number of IO Requests in queue.        */
+		u32 dwMode;	/* Channel mode.                          */
+		u32 dwState;	/* Current channel state.                 */
+		u32 cPosition;	/* Total bytes transferred.        */
+		u32 cIOCs;	/* Number of IOCs in queue.               */
+		u32 cIOReqs;	/* Number of IO Requests in queue.        */
 		HANDLE hProcess;	/* Process owning this channel.     */
 		/*
 		 * Name of channel I/O completion event. Not required in Linux
@@ -119,18 +119,18 @@
 
 /* Channel manager info: */
 	struct CHNL_MGRINFO {
-		DWORD dwType;	/* Type of channel class library.         */
+		u32 dwType;	/* Type of channel class library.         */
 		/* Channel handle, given the channel id. */
 		struct CHNL_OBJECT *hChnl;
-		ULONG cOpenChannels;	/* Number of open channels.     */
-		ULONG cChannels;	/* total # of chnls supported */
+		u32 cOpenChannels;	/* Number of open channels.     */
+		u32 cChannels;	/* total # of chnls supported */
 	} ;
 
 /* Channel Manager Attrs: */
 	struct CHNL_MGRATTRS {
 		/* Max number of channels this manager can use. */
-		ULONG cChannels;
-		UINT uWordSize;	/* DSP Word size.                       */
+		u32 cChannels;
+		u32 uWordSize;	/* DSP Word size.                       */
 	} ;
 
 #endif				/* CHNLPRIV_ */

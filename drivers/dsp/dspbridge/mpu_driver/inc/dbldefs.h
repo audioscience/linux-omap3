@@ -64,17 +64,17 @@ typedef unsigned int size_t;
  *  ======== DBL_Flags ========
  *  Specifies whether to load code, data, or symbols
  */
-typedef Int DBL_Flags;
+typedef s32 DBL_Flags;
 
 /*
  *  ======== DBL_SectInfo ========
  *  For collecting info on overlay sections
  */
 struct DBL_SectInfo {
-	const Char *name;	/* name of section */
-	LgUns runAddr;		/* run address of section */
-	LgUns loadAddr;		/* load address of section */
-	LgUns size;		/* size of section (target MAUs) */
+	const char *name;	/* name of section */
+	u32 runAddr;		/* run address of section */
+	u32 loadAddr;		/* load address of section */
+	u32 size;		/* size of section (target MAUs) */
 	DBL_Flags type;		/* Code, data, or BSS */
 } ;
 
@@ -83,7 +83,7 @@ struct DBL_SectInfo {
  *  (Needed for dynamic load library)
  */
  struct DBL_Symbol {
-	LgUns value;
+	u32 value;
 };
 
 /*
@@ -93,8 +93,8 @@ struct DBL_SectInfo {
  *  *dspAddr (or starting at *dspAddr if reserve == TRUE). Returns 0 on
  *  success, or an error code on failure.
  */
-typedef Int(*DBL_AllocFxn) (Void *hdl, Int space, LgUns size, Uns align,
-			    LgUns *dspAddr, Int segId, Int req, Bool reserved);
+typedef s32(*DBL_AllocFxn) (void *hdl, s32 space, u32 size, u32 align,
+			    u32 *dspAddr, s32 segId, s32 req, Bool reserved);
 
 /*
  *  ======== DBL_CinitFxn ========
@@ -114,44 +114,44 @@ typedef Int(*DBL_AllocFxn) (Void *hdl, Int space, LgUns size, Uns align,
  *  the .cinit section must have already been written, or on the host,
  *  in which case we need to use the data in buf.
  */
-typedef Int(*DBL_CinitFxn) (Void *hdl, LgUns dspAddr, Void *buf,
-			    LgUns nBytes, Int mtype);
+typedef s32(*DBL_CinitFxn) (void *hdl, u32 dspAddr, void *buf,
+			    u32 nBytes, s32 mtype);
 
 /*
  *  ======== DBL_CloseFxn ========
  */
-typedef Int(*DBL_FCloseFxn) (Void *);
+typedef s32(*DBL_FCloseFxn) (void *);
 
 /*
  *  ======== DBL_FreeFxn ========
  *  Free memory function.  Free, or unreserve (if reserved == TRUE) "size"
  *  bytes of memory from segment "space"
  */
-typedef Bool(*DBL_FreeFxn) (Void *hdl, LgUns addr, Int space, LgUns size,
+typedef Bool(*DBL_FreeFxn) (void *hdl, u32 addr, s32 space, u32 size,
 			    Bool reserved);
 
 /*
  *  ======== DBL_FOpenFxn ========
  */
-typedef Void *(*DBL_FOpenFxn) (const Char *, const Char *);
+typedef void *(*DBL_FOpenFxn) (const char *, const char *);
 
 /*
  *  ======== DBL_LogWriteFxn ========
  *  Function to call when writing data from a section, to log the info.
  *  Can be NULL if no logging is required.
  */
-typedef DSP_STATUS(*DBL_LogWriteFxn) (Void *handle, struct DBL_SectInfo *sect,
-				      LgUns addr, LgUns nBytes);
+typedef DSP_STATUS(*DBL_LogWriteFxn) (void *handle, struct DBL_SectInfo *sect,
+				      u32 addr, u32 nBytes);
 
 /*
  *  ======== DBL_ReadFxn ========
  */
-typedef Int(*DBL_ReadFxn) (Void *, size_t, size_t, Void *);
+typedef s32(*DBL_ReadFxn) (void *, size_t, size_t, void *);
 
 /*
  *  ======== DBL_SeekFxn ========
  */
-typedef Int(*DBL_SeekFxn) (Void *, long, int);
+typedef s32(*DBL_SeekFxn) (void *, long, int);
 
 /*
  *  ======== DBL_SymLookup ========
@@ -167,13 +167,13 @@ typedef Int(*DBL_SeekFxn) (Void *, long, int);
  *      TRUE:           Success (symbol was found).
  *      FALSE:          Failed to find symbol.
  */
-typedef Bool(*DBL_SymLookup) (Void *handle, Void *pArg, Void *rmmHandle,
-			      const Char *name, struct DBL_Symbol **sym);
+typedef Bool(*DBL_SymLookup) (void *handle, void *pArg, void *rmmHandle,
+			      const char *name, struct DBL_Symbol **sym);
 
 /*
  *  ======== DBL_TellFxn ========
  */
-typedef LgInt(*DBL_TellFxn) (Void *);
+typedef s32(*DBL_TellFxn) (void *);
 
 /*
  *  ======== DBL_WriteFxn ========
@@ -181,8 +181,8 @@ typedef LgInt(*DBL_TellFxn) (Void *);
  *  starting at address "dspAddr" from the buffer "buf".  The buffer is
  *  formatted as an array of words appropriate for the DSP.
  */
-typedef Int(*DBL_WriteFxn) (Void *hdl, LgUns dspAddr, Void *buf,
-			    LgUns n, Int mtype);
+typedef s32(*DBL_WriteFxn) (void *hdl, u32 dspAddr, void *buf,
+			    u32 n, s32 mtype);
 
 /*
  *  ======== DBL_Attrs ========
@@ -190,27 +190,27 @@ typedef Int(*DBL_WriteFxn) (Void *hdl, LgUns dspAddr, Void *buf,
 struct DBL_Attrs {
 	DBL_AllocFxn alloc;
 	DBL_FreeFxn free;
-	Void *rmmHandle;	/* Handle to pass to alloc, free functions */
+	void *rmmHandle;	/* Handle to pass to alloc, free functions */
 	DBL_WriteFxn write;
-	Void *wHandle;		/* Handle to pass to write, cinit function */
+	void *wHandle;		/* Handle to pass to write, cinit function */
 
 	DBL_LogWriteFxn logWrite;
-	Void *logWriteHandle;
+	void *logWriteHandle;
 
 	/* Symbol matching function and handle to pass to it */
 	DBL_SymLookup symLookup;
-	Void *symHandle;
-	Void *symArg;
+	void *symHandle;
+	void *symArg;
 
 	/*
 	 *  These file manipulation functions should be compatible with the
 	 *  "C" run time library functions of the same name.
 	 */
-	 Int(*fread) (Void *, size_t, size_t, Void *);
-	 Int(*fseek) (Void *, long, int);
-	 LgInt(*ftell) (Void *);
-	 Int(*fclose) (Void *);
-	Void *(*fopen) (const Char *, const Char *);
+	 s32(*fread) (void *, size_t, size_t, void *);
+	 s32(*fseek) (void *, long, int);
+	 s32(*ftell) (void *);
+	 s32(*fclose) (void *);
+	void *(*fopen) (const char *, const char *);
 } ;
 
 /*
@@ -224,7 +224,7 @@ struct DBL_Attrs {
  *      Valid lib.
  *  Ensures:
  */
-typedef Void(*DBL_CloseFxn) (struct DBL_LibraryObj *library);
+typedef void(*DBL_CloseFxn) (struct DBL_LibraryObj *library);
 
 /*
  *  ======== DBL_create ========
@@ -257,7 +257,7 @@ typedef DSP_STATUS(*DBL_CreateFxn) (struct DBL_TargetObj **pTarget,
  *      Valid target.
  *  Ensures:
  */
-typedef Void(*DBL_DeleteFxn) (struct DBL_TargetObj *target);
+typedef void(*DBL_DeleteFxn) (struct DBL_TargetObj *target);
 
 /*
  *  ======== DBL_exit ========
@@ -269,7 +269,7 @@ typedef Void(*DBL_DeleteFxn) (struct DBL_TargetObj *target);
  *  Ensures:
  *      cRefs >= 0.
  */
-typedef Void(*DBL_ExitFxn) (Void);
+typedef void(*DBL_ExitFxn) (void);
 
 /*
  *  ======== DBL_getAddr ========
@@ -288,7 +288,7 @@ typedef Void(*DBL_ExitFxn) (Void);
  *      ppSym != NULL.
  *  Ensures:
  */
-typedef Bool(*DBL_GetAddrFxn) (struct DBL_LibraryObj *lib, String name,
+typedef Bool(*DBL_GetAddrFxn) (struct DBL_LibraryObj *lib, char *name,
 			       struct DBL_Symbol **ppSym);
 
 /*
@@ -304,7 +304,7 @@ typedef Bool(*DBL_GetAddrFxn) (struct DBL_LibraryObj *lib, String name,
  *      pAttrs != NULL.
  *  Ensures:
  */
-typedef Void(*DBL_GetAttrsFxn) (struct DBL_TargetObj *target,
+typedef void(*DBL_GetAttrsFxn) (struct DBL_TargetObj *target,
 				struct DBL_Attrs *attrs);
 
 /*
@@ -324,7 +324,7 @@ typedef Void(*DBL_GetAttrsFxn) (struct DBL_TargetObj *target,
  *      ppSym != NULL.
  *  Ensures:
  */
-typedef Bool(*DBL_GetCAddrFxn) (struct DBL_LibraryObj *lib, String name,
+typedef Bool(*DBL_GetCAddrFxn) (struct DBL_LibraryObj *lib, char *name,
 				struct DBL_Symbol **ppSym);
 
 /*
@@ -346,8 +346,8 @@ typedef Bool(*DBL_GetCAddrFxn) (struct DBL_LibraryObj *lib, String name,
  *      pSize != NULL.
  *  Ensures:
  */
-typedef DSP_STATUS(*DBL_GetSectFxn) (struct DBL_LibraryObj *lib, String name,
-				     LgUns *addr, LgUns *size);
+typedef DSP_STATUS(*DBL_GetSectFxn) (struct DBL_LibraryObj *lib, char *name,
+				     u32 *addr, u32 *size);
 
 /*
  *  ======== DBL_init ========
@@ -362,7 +362,7 @@ typedef DSP_STATUS(*DBL_GetSectFxn) (struct DBL_LibraryObj *lib, String name,
  *      Success:        cRefs > 0.
  *      Failure:        cRefs >= 0.
  */
-typedef Bool(*DBL_InitFxn) (Void);
+typedef Bool(*DBL_InitFxn) (void);
 
 /*
  *  ======== DBL_load ========
@@ -385,7 +385,7 @@ typedef Bool(*DBL_InitFxn) (Void);
  *  Ensures:
  */
 typedef DSP_STATUS(*DBL_LoadFxn) (struct DBL_LibraryObj *lib, DBL_Flags flags,
-				  struct DBL_Attrs *attrs, LgUns *entry);
+				  struct DBL_Attrs *attrs, u32 *entry);
 
 /*
  *  ======== DBL_loadSect ========
@@ -407,7 +407,7 @@ typedef DSP_STATUS(*DBL_LoadFxn) (struct DBL_LibraryObj *lib, DBL_Flags flags,
  *  Ensures:
  */
 typedef DSP_STATUS(*DBL_LoadSectFxn) (struct DBL_LibraryObj *lib,
-				      Char *pszSectName,
+				      char *pszSectName,
 				      struct DBL_Attrs *attrs);
 
 /*
@@ -435,7 +435,7 @@ typedef DSP_STATUS(*DBL_LoadSectFxn) (struct DBL_LibraryObj *lib,
  *      Success:        Valid *pLib.
  *      Failure:        *pLib == NULL.
  */
-typedef DSP_STATUS(*DBL_OpenFxn) (struct DBL_TargetObj *target, String file,
+typedef DSP_STATUS(*DBL_OpenFxn) (struct DBL_TargetObj *target, char *file,
 				  DBL_Flags flags,
 				  struct DBL_LibraryObj **pLib);
 
@@ -458,8 +458,8 @@ typedef DSP_STATUS(*DBL_OpenFxn) (struct DBL_TargetObj *target, String file,
  *      size != 0.
  *  Ensures:
  */
-typedef DSP_STATUS(*DBL_ReadSectFxn) (struct DBL_LibraryObj *lib, String name,
-				      String content, LgUns uContentSize);
+typedef DSP_STATUS(*DBL_ReadSectFxn) (struct DBL_LibraryObj *lib, char *name,
+				      char *content, u32 uContentSize);
 
 /*
  *  ======== DBL_setAttrs ========
@@ -474,7 +474,7 @@ typedef DSP_STATUS(*DBL_ReadSectFxn) (struct DBL_LibraryObj *lib, String name,
  *      pAttrs != NULL.
  *  Ensures:
  */
-typedef Void(*DBL_SetAttrsFxn) (struct DBL_TargetObj *target,
+typedef void(*DBL_SetAttrsFxn) (struct DBL_TargetObj *target,
 				struct DBL_Attrs *attrs);
 
 /*
@@ -489,7 +489,7 @@ typedef Void(*DBL_SetAttrsFxn) (struct DBL_TargetObj *target,
  *      Valid lib.
  *  Ensures:
  */
-typedef Void(*DBL_UnloadFxn) (struct DBL_LibraryObj *library,
+typedef void(*DBL_UnloadFxn) (struct DBL_LibraryObj *library,
 			      struct DBL_Attrs *attrs);
 
 /*
@@ -510,7 +510,7 @@ typedef Void(*DBL_UnloadFxn) (struct DBL_LibraryObj *library,
  *  Ensures:
  */
 typedef DSP_STATUS(*DBL_UnloadSectFxn) (struct DBL_LibraryObj *lib,
-					Char *pszSectName,
+					char *pszSectName,
 					struct DBL_Attrs *attrs);
 
 struct DBL_Fxns {

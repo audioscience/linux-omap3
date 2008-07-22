@@ -68,16 +68,16 @@
 
 /* The DPC object, passed to our priority event callback routine: */
 struct DPC_OBJECT {
-	DWORD dwSignature;	/* Used for object validation.   */
-	PVOID pRefData;		/* Argument for client's DPC.    */
+	u32 dwSignature;	/* Used for object validation.   */
+	void *pRefData;		/* Argument for client's DPC.    */
 	DPC_PROC pfnDPC;	/* Client's DPC.                 */
-	ULONG numRequested;	/* Number of requested DPC's.      */
-	ULONG numScheduled;	/* Number of executed DPC's.      */
+	u32 numRequested;	/* Number of requested DPC's.      */
+	u32 numScheduled;	/* Number of executed DPC's.      */
 	struct tasklet_struct dpc_tasklet;
 
 #ifdef DEBUG
-	DWORD cEntryCount;	/* Number of times DPC reentered. */
-	ULONG numRequestedMax;	/* Keep track of max pending DPC's. */
+	u32 cEntryCount;	/* Number of times DPC reentered. */
+	u32 numRequestedMax;	/* Keep track of max pending DPC's. */
 #endif
 
 	spinlock_t dpc_lock;
@@ -89,7 +89,7 @@ static struct GT_Mask DPC_DebugMask = { 0, 0 };	/* DPC Debug Mask */
 #endif
 
 /*  ----------------------------------- Function Prototypes */
-static VOID DPC_DeferredProcedure(IN ULONG pDeferredContext);
+static void DPC_DeferredProcedure(IN u32 pDeferredContext);
 
 /*
  *  ======== DPC_Create ========
@@ -98,7 +98,7 @@ static VOID DPC_DeferredProcedure(IN ULONG pDeferredContext);
  *      scheduled for a call with client reference data.
  */
 DSP_STATUS DPC_Create(OUT struct DPC_OBJECT **phDPC, DPC_PROC pfnDPC,
-		      PVOID pRefData)
+		      void *pRefData)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct DPC_OBJECT *pDPCObject = NULL;
@@ -112,7 +112,7 @@ DSP_STATUS DPC_Create(OUT struct DPC_OBJECT **phDPC, DPC_PROC pfnDPC,
 		if (pDPCObject != NULL) {
 			tasklet_init(&pDPCObject->dpc_tasklet,
 				     DPC_DeferredProcedure,
-				     (ULONG) pDPCObject);
+				     (u32) pDPCObject);
 			/* Fill out our DPC Object: */
 			pDPCObject->pRefData = pRefData;
 			pDPCObject->pfnDPC = pfnDPC;
@@ -176,7 +176,7 @@ DSP_STATUS DPC_Destroy(struct DPC_OBJECT *hDPC)
  *  Purpose:
  *      Discontinue usage of the DPC module.
  */
-VOID DPC_Exit(void)
+void DPC_Exit(void)
 {
 	GT_0trace(DPC_DebugMask, GT_5CLASS, "Entered DPC_Exit\n");
 }
@@ -205,7 +205,7 @@ DSP_STATUS DPC_Schedule(struct DPC_OBJECT *hDPC)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct DPC_OBJECT *pDPCObject = (struct DPC_OBJECT *)hDPC;
-	ULONG flags;
+	u32 flags;
 
 	GT_1trace(DPC_DebugMask, GT_ENTER, "DPC_Schedule hDPC %x\n", hDPC);
 	if (MEM_IsValidHandle(hDPC, SIGNATURE)) {
@@ -244,12 +244,12 @@ DSP_STATUS DPC_Schedule(struct DPC_OBJECT *hDPC)
  *      Main DPC routine.  This is called by host OS DPC callback
  *      mechanism with interrupts enabled.
  */
-static VOID DPC_DeferredProcedure(IN ULONG pDeferredContext)
+static void DPC_DeferredProcedure(IN u32 pDeferredContext)
 {
 	struct DPC_OBJECT *pDPCObject = (struct DPC_OBJECT *)pDeferredContext;
 	/* read numRequested in local variable */
-	ULONG requested;
-	ULONG serviced;
+	u32 requested;
+	u32 serviced;
 
 	DBC_Require(pDPCObject != NULL);
 	requested = pDPCObject->numRequested;

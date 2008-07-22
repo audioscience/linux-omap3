@@ -92,88 +92,88 @@
 /* Forward Declarations: */
 static DSP_STATUS WMD_BRD_Monitor(struct WMD_DEV_CONTEXT *pDevContext);
 static DSP_STATUS WMD_BRD_Read(struct WMD_DEV_CONTEXT *pDevContext,
-			OUT BYTE *pbHostBuf,
-			DWORD dwDSPAddr, ULONG ulNumBytes, ULONG ulMemType);
+			OUT u8 *pbHostBuf,
+			u32 dwDSPAddr, u32 ulNumBytes, u32 ulMemType);
 static DSP_STATUS WMD_BRD_Start(struct WMD_DEV_CONTEXT *pDevContext,
-			DWORD dwDSPAddr);
+			u32 dwDSPAddr);
 static DSP_STATUS WMD_BRD_Status(struct WMD_DEV_CONTEXT *pDevContext,
 			OUT BRD_STATUS *pdwState);
 static DSP_STATUS WMD_BRD_Stop(struct WMD_DEV_CONTEXT *pDevContext);
 static DSP_STATUS WMD_BRD_Write(struct WMD_DEV_CONTEXT *pDevContext,
-			IN BYTE *pbHostBuf,
-			DWORD dwDSPAddr, ULONG ulNumBytes, ULONG ulMemType);
+			IN u8 *pbHostBuf,
+			u32 dwDSPAddr, u32 ulNumBytes, u32 ulMemType);
 static DSP_STATUS WMD_BRD_SetState(struct WMD_DEV_CONTEXT *hDevContext,
-			ULONG ulBrdState);
+			u32 ulBrdState);
 static DSP_STATUS WMD_BRD_MemCopy(struct WMD_DEV_CONTEXT *hDevContext,
-			ULONG ulDspDestAddr, ULONG ulDspSrcAddr,
-			ULONG ulNumBytes, ULONG ulMemType);
+			u32 ulDspDestAddr, u32 ulDspSrcAddr,
+			u32 ulNumBytes, u32 ulMemType);
 static DSP_STATUS WMD_BRD_MemWrite(struct WMD_DEV_CONTEXT *pDevContext,
-			IN BYTE *pbHostBuf, DWORD dwDSPAddr,
-			ULONG ulNumBytes, ULONG ulMemType);
+			IN u8 *pbHostBuf, u32 dwDSPAddr,
+			u32 ulNumBytes, u32 ulMemType);
 static DSP_STATUS WMD_BRD_MemMap(struct WMD_DEV_CONTEXT *hDevContext,
-			ULONG ulMpuAddr, ULONG ulVirtAddr, ULONG ulNumBytes,
-			ULONG ulMapAttr);
+			u32 ulMpuAddr, u32 ulVirtAddr, u32 ulNumBytes,
+			u32 ulMapAttr);
 static DSP_STATUS WMD_BRD_MemUnMap(struct WMD_DEV_CONTEXT *hDevContext,
-			ULONG ulVirtAddr, ULONG ulNumBytes);
+			u32 ulVirtAddr, u32 ulNumBytes);
 static DSP_STATUS WMD_DEV_Create(OUT struct WMD_DEV_CONTEXT **ppDevContext,
 			struct DEV_OBJECT *hDevObject,
 			IN CONST struct CFG_HOSTRES *pConfig,
 			IN CONST struct CFG_DSPRES *pDspConfig);
-static DSP_STATUS WMD_DEV_Ctrl(struct WMD_DEV_CONTEXT *pDevContext, DWORD dwCmd,
-			IN OUT PVOID pArgs);
+static DSP_STATUS WMD_DEV_Ctrl(struct WMD_DEV_CONTEXT *pDevContext, u32 dwCmd,
+			IN OUT void *pArgs);
 static DSP_STATUS WMD_DEV_Destroy(struct WMD_DEV_CONTEXT *pDevContext);
-static DSP_STATUS TIOMAP_VirtToPhysical(struct mm_struct *mm, ULONG ulMpuAddr,
-			ULONG ulNumBytes, ULONG *numOfTableEntries,
-			ULONG *physicalAddrTable);
-static DSP_STATUS PteUpdate(struct WMD_DEV_CONTEXT *hDevContext, ULONG pa,
-			ULONG va, ULONG size,
+static DSP_STATUS TIOMAP_VirtToPhysical(struct mm_struct *mm, u32 ulMpuAddr,
+			u32 ulNumBytes, u32 *numOfTableEntries,
+			u32 *physicalAddrTable);
+static DSP_STATUS PteUpdate(struct WMD_DEV_CONTEXT *hDevContext, u32 pa,
+			u32 va, u32 size,
 			struct HW_MMUMapAttrs_t *mapAttrs);
-static DSP_STATUS PteSet(struct PgTableAttrs *pt, ULONG pa, ULONG va,
-			ULONG size, struct HW_MMUMapAttrs_t *attrs);
+static DSP_STATUS PteSet(struct PgTableAttrs *pt, u32 pa, u32 va,
+			u32 size, struct HW_MMUMapAttrs_t *attrs);
 static DSP_STATUS MemMapVmalloc(struct WMD_DEV_CONTEXT *hDevContext,
-			ULONG ulMpuAddr, ULONG ulVirtAddr,
-			ULONG ulNumBytes, ULONG ulMapAttr);
-static DSP_STATUS run_IdleBoot(UWORD32 prcm_base, UWORD32 cm_base,
-			UWORD32 sysctrl_base);
-void GetHWRegs(UWORD32 prcm_base, UWORD32 cm_base);
+			u32 ulMpuAddr, u32 ulVirtAddr,
+			u32 ulNumBytes, u32 ulMapAttr);
+static DSP_STATUS run_IdleBoot(u32 prcm_base, u32 cm_base,
+			u32 sysctrl_base);
+void GetHWRegs(u32 prcm_base, u32 cm_base);
 
 /*  ----------------------------------- Globals */
 #ifndef DEBUG
-LARGE_INTEGER tiomap1510_liTicksPerSecond;	/* Timer frequency */
+u64 tiomap1510_liTicksPerSecond;	/* Timer frequency */
 #endif
 
 /* Attributes of L2 page tables for DSP MMU */
 struct PageInfo {
-	ULONG numEntries;	/* Number of valid PTEs in the L2 PT */
+	u32 numEntries;	/* Number of valid PTEs in the L2 PT */
 } ;
 
 /* Attributes used to manage the DSP MMU page tables */
 struct PgTableAttrs {
 	struct SYNC_CSOBJECT *hCSObj;	/* Critical section object handle */
 
-	ULONG L1BasePa;		/* Physical address of the L1 PT */
-	ULONG L1BaseVa;		/* Virtual  address of the L1 PT */
-	ULONG L1size;		/* Size of the L1 PT */
-	ULONG L1TblAllocPa;
+	u32 L1BasePa;		/* Physical address of the L1 PT */
+	u32 L1BaseVa;		/* Virtual  address of the L1 PT */
+	u32 L1size;		/* Size of the L1 PT */
+	u32 L1TblAllocPa;
 	/* Physical address of Allocated mem for L1 table. May not be aligned */
-	ULONG L1TblAllocVa;
+	u32 L1TblAllocVa;
 	/* Virtual address of Allocated mem for L1 table. May not be aligned */
-	ULONG L1TblAllocSz;
+	u32 L1TblAllocSz;
 	/* Size of consistent memory allocated for L1 table.
 	 * May not be aligned */
 
-	ULONG L2BasePa;		/* Physical address of the L2 PT */
-	ULONG L2BaseVa;		/* Virtual  address of the L2 PT */
-	ULONG L2size;		/* Size of the L2 PT */
-	ULONG L2TblAllocPa;
+	u32 L2BasePa;		/* Physical address of the L2 PT */
+	u32 L2BaseVa;		/* Virtual  address of the L2 PT */
+	u32 L2size;		/* Size of the L2 PT */
+	u32 L2TblAllocPa;
 	/* Physical address of Allocated mem for L2 table. May not be aligned */
-	ULONG L2TblAllocVa;
+	u32 L2TblAllocVa;
 	/* Virtual address of Allocated mem for L2 table. May not be aligned */
-	ULONG L2TblAllocSz;
+	u32 L2TblAllocSz;
 	/* Size of consistent memory allocated for L2 table.
 	 * May not be aligned */
 
-	ULONG L2NumPages;	/* Number of allocated L2 PT */
+	u32 L2NumPages;	/* Number of allocated L2 PT */
 	struct PageInfo *pgInfo;  /* Array [L2NumPages] of L2 PT info structs */
 } ;
 
@@ -181,10 +181,7 @@ struct PgTableAttrs {
  *  If dsp_debug is TRUE, do not branch to the DSP entry point and wait for DSP
  *  to boot
  */
-extern INT dsp_debug;
-
-static spinlock_t regLock;
-static ULONG    intFlags;
+extern s32 dsp_debug;
 
 
 /*
@@ -247,8 +244,8 @@ static struct WMD_DRV_INTERFACE drvInterfaceFxns = {
  *  purpose:
  *      Mini Driver entry point.
  */
-VOID CDECL WMD_DRV_Entry(OUT struct WMD_DRV_INTERFACE **ppDrvInterface,
-	      IN CONST PSTR pstrWMDFileName)
+void CDECL WMD_DRV_Entry(OUT struct WMD_DRV_INTERFACE **ppDrvInterface,
+	      IN CONST char *pstrWMDFileName)
 {
 
 	DBC_Require(pstrWMDFileName != NULL);
@@ -279,8 +276,7 @@ static DSP_STATUS WMD_BRD_Monitor(struct WMD_DEV_CONTEXT *hDevContext)
 	DSP_STATUS status = DSP_SOK;
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
 	struct CFG_HOSTRES resources;
-	UWORD32 temp;
-	HW_STATUS hwStatus;
+	u32 temp;
 	HW_PwrState_t    pwrState;
 
 	DBG_Trace(DBG_ENTER, "Board in the monitor state  \n");
@@ -329,15 +325,15 @@ error_return:
  *      Reads buffers for DSP memory.
  */
 static DSP_STATUS WMD_BRD_Read(struct WMD_DEV_CONTEXT *hDevContext,
-			       OUT BYTE *pbHostBuf, DWORD dwDSPAddr,
-			       ULONG ulNumBytes, ULONG ulMemType)
+			       OUT u8 *pbHostBuf, u32 dwDSPAddr,
+			       u32 ulNumBytes, u32 ulMemType)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
-	/*ULONG	   i;
+	/*u32	   i;
 	 USHORT	  wTemp; */
-	ULONG offset;
-	DWORD dspBaseAddr = hDevContext->dwDspBaseAddr;
+	u32 offset;
+	u32 dspBaseAddr = hDevContext->dwDspBaseAddr;
 
 	DBG_Trace(DBG_ENTER, "WMD_BRD_Read, pDevContext: 0x%x\n\t\tpbHostBuf:"
 		  " 0x%x\n\t\tdwDSPAddr:  0x%x\n\t\tulNumBytes:  0x%x\n\t\t"
@@ -372,7 +368,7 @@ static DSP_STATUS WMD_BRD_Read(struct WMD_DEV_CONTEXT *hDevContext,
  *      This routine updates the Board status.
  */
 static DSP_STATUS WMD_BRD_SetState(struct WMD_DEV_CONTEXT *hDevContext,
-				   ULONG ulBrdState)
+				   u32 ulBrdState)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
@@ -394,30 +390,29 @@ static DSP_STATUS WMD_BRD_SetState(struct WMD_DEV_CONTEXT *hDevContext,
  *  b) DSP_RST2 is released.
  */
 static DSP_STATUS WMD_BRD_Start(struct WMD_DEV_CONTEXT *hDevContext,
-				DWORD dwDSPAddr)
+				u32 dwDSPAddr)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
-	DWORD dwSyncAddr = 0;
-	ULONG ulShmBase;	/* Gpp Phys SM base addr(byte) */
-	ULONG ulShmBaseVirt;	/* Dsp Virt SM base addr */
-	ULONG ulTLBBaseVirt;	/* Base of MMU TLB entry */
-	ULONG ulShmOffsetVirt;	/* offset of ulShmBaseVirt
+	u32 dwSyncAddr = 0;
+	u32 ulShmBase;	/* Gpp Phys SM base addr(byte) */
+	u32 ulShmBaseVirt;	/* Dsp Virt SM base addr */
+	u32 ulTLBBaseVirt;	/* Base of MMU TLB entry */
+	u32 ulShmOffsetVirt;	/* offset of ulShmBaseVirt
 	* from ulTLBBaseVirt */
-	INT iEntryNdx;
-	INT itmpEntryNdx = 0;	/* DSP-MMU TLB entry base address */
-	HW_STATUS hwStatus;
+	s32 iEntryNdx;
+	s32 itmpEntryNdx = 0;	/* DSP-MMU TLB entry base address */
 	struct CFG_HOSTRES resources;
-	UWORD32 temp;
-	ULONG ulDspClkRate;
-	ULONG ulDspClkAddr;
-	ULONG ulBiosGpTimer;
-	UWORD32 uClkCmd;
+	u32 temp;
+	u32 ulDspClkRate;
+	u32 ulDspClkAddr;
+	u32 ulBiosGpTimer;
+	u32 uClkCmd;
 	struct IO_MGR *hIOMgr;
-	ULONG ulLoadMonitorTimer;
-	UWORD32 extClkId = 0;
-	UWORD32 tmpIndex;
-	UWORD32 clkIdIndex = MBX_PM_MAX_RESOURCES;
+	u32 ulLoadMonitorTimer;
+	u32 extClkId = 0;
+	u32 tmpIndex;
+	u32 clkIdIndex = MBX_PM_MAX_RESOURCES;
 
 	DBG_Trace(DBG_ENTER, "Entering WMD_BRD_Start:\n hDevContext: 0x%x\n\t "
 			     "dwDSPAddr: 0x%x\n", hDevContext, dwDSPAddr);
@@ -426,7 +421,7 @@ static DSP_STATUS WMD_BRD_Start(struct WMD_DEV_CONTEXT *hDevContext,
 	 * last dsp base image was loaded. The first entry is always
 	 * SHMMEM base. */
 	/* Get SHM_BEG - convert to byte address */
-	(Void) DEV_GetSymbol(pDevContext->hDevObject, SHMBASENAME,
+	(void) DEV_GetSymbol(pDevContext->hDevObject, SHMBASENAME,
 			     &ulShmBaseVirt);
 	ulShmBaseVirt *= DSPWORDSIZE;
 	DBC_Assert(ulShmBaseVirt != 0);
@@ -446,7 +441,7 @@ static DSP_STATUS WMD_BRD_Start(struct WMD_DEV_CONTEXT *hDevContext,
 		DBG_Trace(DBG_LEVEL6, "WMD_BRD_Start: Illegal SM base\n");
 		status = DSP_EFAIL;
 	} else
-		*((volatile DWORD *)dwSyncAddr) = 0xffffffff;
+		*((volatile u32 *)dwSyncAddr) = 0xffffffff;
 
 	if (DSP_SUCCEEDED(status)) {
 		status = CFG_GetHostResources(
@@ -523,21 +518,21 @@ static DSP_STATUS WMD_BRD_Start(struct WMD_DEV_CONTEXT *hDevContext,
 		HW_MMU_TWLEnable(resources.dwDmmuBase);
 		/* Enable the SmartIdle and AutoIdle bit for MMU_SYSCONFIG */
 
-		temp = (UWORD32) *((REG_UWORD32 *)
-				((UWORD32) (resources.dwDmmuBase) + 0x10));
+		temp = (u32) *((REG_UWORD32 *)
+				((u32) (resources.dwDmmuBase) + 0x10));
 		temp = (temp & 0xFFFFFFEF) | 0x11;
-		*((REG_UWORD32 *) ((UWORD32) (resources.dwDmmuBase) + 0x10)) =
-			(UWORD32) temp;
+		*((REG_UWORD32 *) ((u32) (resources.dwDmmuBase) + 0x10)) =
+			(u32) temp;
 
 		/* Let the DSP MMU run */
 		HW_MMU_Enable(resources.dwDmmuBase);
 
 		/* Enable the BIOS clock  */
-		(Void)DEV_GetSymbol(pDevContext->hDevObject,
+		(void)DEV_GetSymbol(pDevContext->hDevObject,
 					BRIDGEINIT_BIOSGPTIMER,
 				     &ulBiosGpTimer);
 		DBG_Trace(DBG_LEVEL7, "BIOS GPTimer : 0x%x\n", ulBiosGpTimer);
-		(Void)DEV_GetSymbol(pDevContext->hDevObject,
+		(void)DEV_GetSymbol(pDevContext->hDevObject,
 				BRIDGEINIT_LOADMON_GPTIMER,
 				     &ulLoadMonitorTimer);
 		DBG_Trace(DBG_LEVEL7, "Load Monitor Timer : 0x%x\n",
@@ -629,21 +624,23 @@ static DSP_STATUS WMD_BRD_Start(struct WMD_DEV_CONTEXT *hDevContext,
 
 	if (DSP_SUCCEEDED(status)) {
 		/* Set the DSP clock rate */
-		(Void)DEV_GetSymbol(pDevContext->hDevObject,
+		(void)DEV_GetSymbol(pDevContext->hDevObject,
 					"_BRIDGEINIT_DSP_FREQ", &ulDspClkAddr);
 		DBG_Trace(DBG_LEVEL5, "WMD_BRD_Start: _BRIDGE_DSP_FREQ Addr:"
 				"0x%x \n", ulDspClkAddr);
 		if ((unsigned int *)ulDspClkAddr != NULL) {
 			/* Get the clock rate */
-			status = CLK_GetRate(SERVICESCLK_iva2_ck, &ulDspClkRate);
+			status = CLK_GetRate(SERVICESCLK_iva2_ck,
+					&ulDspClkRate);
 			DBG_Trace(DBG_LEVEL5,
 				 "WMD_BRD_Start: DSP clock rate (KHZ): 0x%x \n",
 				 ulDspClkRate);
-			(VOID)WMD_BRD_Write(pDevContext, (BYTE *)&ulDspClkRate,
-				 ulDspClkAddr, sizeof(ULONG), 0);
+			(void)WMD_BRD_Write(pDevContext, (u8 *)&ulDspClkRate,
+				 ulDspClkAddr, sizeof(u32), 0);
 		}
-		/* Enable Mailbox events and also drain any pending stale messages */
-		(Void)CHNLSM_EnableInterrupt(pDevContext);
+		/* Enable Mailbox events and also drain any pending
+		 * stale messages */
+		(void)CHNLSM_EnableInterrupt(pDevContext);
 	}
 
 	if (DSP_SUCCEEDED(status)) {
@@ -673,7 +670,7 @@ static DSP_STATUS WMD_BRD_Start(struct WMD_DEV_CONTEXT *hDevContext,
 		DBG_Trace(DBG_LEVEL7, "DSP c_int00 Address =  0x%x \n",
 				dwDSPAddr);
 		if (dsp_debug)
-			while (*((volatile WORD *)dwSyncAddr)) ;
+			while (*((volatile u16 *)dwSyncAddr)) ;
 	}
 
 	if (DSP_SUCCEEDED(status)) {
@@ -692,12 +689,12 @@ static DSP_STATUS WMD_BRD_Start(struct WMD_DEV_CONTEXT *hDevContext,
 			/* Write the synchronization bit to indicate the
 			 * completion of OPP table update to DSP
 			 */
-			*((volatile ULONG *)dwSyncAddr) = 0XCAFECAFE;
+			*((volatile u32 *)dwSyncAddr) = 0XCAFECAFE;
 		}
 		if (DSP_SUCCEEDED(status)) {
 			/* update board state */
 			pDevContext->dwBrdState = BRD_RUNNING;
-			/* (Void)CHNLSM_EnableInterrupt(pDevContext);*/
+			/* (void)CHNLSM_EnableInterrupt(pDevContext);*/
 			DBG_Trace(DBG_LEVEL7, "Device Started \n ");
 		} else {
 			pDevContext->dwBrdState = BRD_UNKNOWN;
@@ -721,7 +718,7 @@ static DSP_STATUS WMD_BRD_Stop(struct WMD_DEV_CONTEXT *hDevContext)
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
 	struct CFG_HOSTRES resources;
 	struct PgTableAttrs *pPtAttrs;
-	UWORD32 dspPwrState;
+	u32 dspPwrState;
 	HW_PwrState_t pwrState;
 	DSP_STATUS clk_status;
 
@@ -729,7 +726,7 @@ static DSP_STATUS WMD_BRD_Stop(struct WMD_DEV_CONTEXT *hDevContext)
 		  hDevContext);
 
 	/* Disable the mail box interrupts */
-	(VOID)CHNLSM_DisableInterrupt(pDevContext);
+	(void)CHNLSM_DisableInterrupt(pDevContext);
 
 	if (pDevContext->dwBrdState == BRD_STOPPED)
 		return status;
@@ -759,7 +756,7 @@ static DSP_STATUS WMD_BRD_Stop(struct WMD_DEV_CONTEXT *hDevContext)
 		run_IdleBoot(resources.dwPrmBase, resources.dwCmBase,
 			     resources.dwSysCtrlBase);
 
-	     udelay(50);
+		udelay(50);
 
 		clk_status = CLK_Disable(SERVICESCLK_iva2_ck);
 		if (!DSP_SUCCEEDED(clk_status)) {
@@ -786,9 +783,6 @@ static DSP_STATUS WMD_BRD_Stop(struct WMD_DEV_CONTEXT *hDevContext)
 		}
 	}
 	udelay(10);
-
-
-error_return:
 	/* Release the Ext Base virtual Address as the next DSP Program
 	 * may have a different load address */
 	if (pDevContext->dwDspExtBaseAddr)
@@ -799,9 +793,9 @@ error_return:
 	/* This is a good place to clear the MMU page tables as well */
 	if (pDevContext->pPtAttrs) {
 		pPtAttrs = pDevContext->pPtAttrs;
-		memset((BYTE *) pPtAttrs->L1BaseVa, 0x00, pPtAttrs->L1size);
-		memset((BYTE *) pPtAttrs->L2BaseVa, 0x00, pPtAttrs->L2size);
-		memset((BYTE *) pPtAttrs->pgInfo, 0x00,
+		memset((u8 *) pPtAttrs->L1BaseVa, 0x00, pPtAttrs->L1size);
+		memset((u8 *) pPtAttrs->L2BaseVa, 0x00, pPtAttrs->L2size);
+		memset((u8 *) pPtAttrs->pgInfo, 0x00,
 		       (pPtAttrs->L2NumPages * sizeof(struct PageInfo)));
 	}
 
@@ -831,7 +825,7 @@ static DSP_STATUS WMD_BRD_Delete(struct WMD_DEV_CONTEXT *hDevContext)
 		  hDevContext);
 
 	/* Disable the mail box interrupts */
-	(VOID) CHNLSM_DisableInterrupt(pDevContext);
+	(void) CHNLSM_DisableInterrupt(pDevContext);
 
 	if (pDevContext->dwBrdState == BRD_STOPPED)
 		return status;
@@ -854,7 +848,6 @@ static DSP_STATUS WMD_BRD_Delete(struct WMD_DEV_CONTEXT *hDevContext)
 		DBG_Trace(DBG_LEVEL6, "\n WMD_BRD_Stop: CLK_Disable failed for"
 			  " iva2_fck\n");
 	}
-error_return:
 	/* Release the Ext Base virtual Address as the next DSP Program
 	 * may have a different load address */
 	if (pDevContext->dwDspExtBaseAddr)
@@ -865,9 +858,9 @@ error_return:
 	/* This is a good place to clear the MMU page tables as well */
 	if (pDevContext->pPtAttrs) {
 		pPtAttrs = pDevContext->pPtAttrs;
-		memset((BYTE *)pPtAttrs->L1BaseVa, 0x00, pPtAttrs->L1size);
-		memset((BYTE *)pPtAttrs->L2BaseVa, 0x00, pPtAttrs->L2size);
-		memset((BYTE *)pPtAttrs->pgInfo, 0x00,
+		memset((u8 *)pPtAttrs->L1BaseVa, 0x00, pPtAttrs->L1size);
+		memset((u8 *)pPtAttrs->L2BaseVa, 0x00, pPtAttrs->L2size);
+		memset((u8 *)pPtAttrs->pgInfo, 0x00,
 			(pPtAttrs->L2NumPages * sizeof(struct PageInfo)));
 	}
 	DBG_Trace(DBG_LEVEL6, "WMD_BRD_Stop - End ****** \n");
@@ -881,7 +874,7 @@ error_return:
  *      Returns the board status.
  */
 static DSP_STATUS WMD_BRD_Status(struct WMD_DEV_CONTEXT *hDevContext,
-				 OUT DWORD *pdwState)
+				 OUT BRD_STATUS *pdwState)
 {
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
 	*pdwState = pDevContext->dwBrdState;
@@ -894,13 +887,12 @@ static DSP_STATUS WMD_BRD_Status(struct WMD_DEV_CONTEXT *hDevContext,
  *      Copies the buffers to DSP internal or external memory.
  */
 static DSP_STATUS WMD_BRD_Write(struct WMD_DEV_CONTEXT *hDevContext,
-				IN BYTE *pbHostBuf, DWORD dwDSPAddr,
-				ULONG ulNumBytes, ULONG ulMemType)
+				IN u8 *pbHostBuf, u32 dwDSPAddr,
+				u32 ulNumBytes, u32 ulMemType)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
-	ULONG offset = 0;
-	DWORD dwDspBaseAddrTmp = pDevContext->dwDspBaseAddr;
+
 	/*HW_STATUS hwStatus; struct CFG_HOSTRES resources; */
 	DBG_Trace(DBG_ENTER, "WMD_BRD_Write, pDevContext: 0x%x\n\t\t "
 		 "pbHostBuf: 0x%x\n\t\tdwDSPAddr: 0x%x\n\t\tulNumBytes: "
@@ -923,7 +915,7 @@ static DSP_STATUS WMD_BRD_Write(struct WMD_DEV_CONTEXT *hDevContext,
 
 /*	memcpy((void *) (dwDspBaseAddrTmp + offset), pbHostBuf, ulNumBytes); */
 	DBG_Trace(DBG_ENTER, "WMD_BRD_Write, memcopy :  DspLogicAddr=0x%x \n",
-			dwDspBaseAddrTmp + offset);
+			pDevContext->dwDspBaseAddr);
 	return status;
 }
 
@@ -939,14 +931,14 @@ static DSP_STATUS WMD_DEV_Create(OUT struct WMD_DEV_CONTEXT **ppDevContext,
 {
 	DSP_STATUS status = DSP_SOK;
 	struct WMD_DEV_CONTEXT *pDevContext = NULL;
-	INT iEntryNdx;
-	INT tcWordSwap;
-	DWORD tcWordSwapSize = sizeof(tcWordSwap);
+	s32 iEntryNdx;
+	s32 tcWordSwap;
+	u32 tcWordSwapSize = sizeof(tcWordSwap);
 	struct CFG_HOSTRES resources;
 	struct PgTableAttrs *pPtAttrs;
-	ULONG   pg_tbl_pa;
-	ULONG   pg_tbl_va;
-	ULONG   align_size;
+	u32   pg_tbl_pa;
+	u32   pg_tbl_va;
+	u32   align_size;
 
 	DBG_Trace(DBG_ENTER, "WMD_DEV_Create, ppDevContext: 0x%x\n\t\t "
 		  "hDevObject: 0x%x\n\t\tpConfig: 0x%x\n\t\tpDspConfig: 0x%x\n",
@@ -967,8 +959,8 @@ static DSP_STATUS WMD_DEV_Create(OUT struct WMD_DEV_CONTEXT **ppDevContext,
 		goto func_end;
 	}
 
-	pDevContext->dwDSPStartAdd = (DWORD)OMAP_GEM_BASE;
-	pDevContext->dwSelfLoop = (DWORD)NULL;
+	pDevContext->dwDSPStartAdd = (u32)OMAP_GEM_BASE;
+	pDevContext->dwSelfLoop = (u32)NULL;
 	pDevContext->uDspPerClks = 0;
 	pDevContext->dwInternalSize = OMAP_DSP_SIZE;
 	/*  Clear dev context MMU table entries.
@@ -978,7 +970,7 @@ static DSP_STATUS WMD_DEV_Create(OUT struct WMD_DEV_CONTEXT **ppDevContext,
 			pDevContext->aTLBEntry[iEntryNdx].ulDspVa = 0;
 	}
 	pDevContext->numTLBEntries = 0;
-	pDevContext->dwDspBaseAddr = (DWORD)MEM_LinearAddress((PVOID)
+	pDevContext->dwDspBaseAddr = (u32)MEM_LinearAddress((void *)
 			(pConfig->dwMemBase[3]), pConfig->dwMemLength[3]);
 	if (!pDevContext->dwDspBaseAddr) {
 		status = DSP_EFAIL;
@@ -994,15 +986,15 @@ static DSP_STATUS WMD_DEV_Create(OUT struct WMD_DEV_CONTEXT **ppDevContext,
 		align_size = pPtAttrs->L1size;
 		/* Align sizes are expected to be power of 2 */
 		 /* we like to get aligned on L1 table size */
-	pg_tbl_va = (ULONG)MEM_AllocPhysMem(pPtAttrs->L1size,
+	pg_tbl_va = (u32)MEM_AllocPhysMem(pPtAttrs->L1size,
 		    align_size, &pg_tbl_pa);
 	/* Check if the PA is aligned for us */
 	if ((pg_tbl_pa) & (align_size-1)) {
 			/* PA not aligned to page table size ,
 	     * try with more allocation and align */
-	    MEM_FreePhysMem(pg_tbl_va, pg_tbl_pa, pPtAttrs->L1size);
+	    MEM_FreePhysMem((void *)pg_tbl_va, pg_tbl_pa, pPtAttrs->L1size);
 			/* we like to get aligned on L1 table size */
-	    pg_tbl_va = (ULONG) MEM_AllocPhysMem((pPtAttrs->L1size)*2,
+	    pg_tbl_va = (u32) MEM_AllocPhysMem((pPtAttrs->L1size)*2,
 			 align_size, &pg_tbl_pa);
 	    /* We should be able to get aligned table now */
 	    pPtAttrs->L1TblAllocPa = pg_tbl_pa;
@@ -1022,7 +1014,7 @@ static DSP_STATUS WMD_DEV_Create(OUT struct WMD_DEV_CONTEXT **ppDevContext,
 	    pPtAttrs->L1BaseVa = pg_tbl_va;
 	}
 	if (pPtAttrs->L1BaseVa) {
-			memset((BYTE *)pPtAttrs->L1BaseVa, 0x00,
+			memset((u8 *)pPtAttrs->L1BaseVa, 0x00,
 			pPtAttrs->L1size);
 	}
 		/* number of L2 page tables = DMM pool used + SHMMEM +EXTMEM +
@@ -1030,9 +1022,9 @@ static DSP_STATUS WMD_DEV_Create(OUT struct WMD_DEV_CONTEXT **ppDevContext,
 		pPtAttrs->L2NumPages = ((DMMPOOLSIZE >> 20) + 6);
 		pPtAttrs->L2size = HW_MMU_COARSE_PAGE_SIZE *
 				   pPtAttrs->L2NumPages;
-		align_size = 4; /* Make it DWORD aligned  */
+		align_size = 4; /* Make it u32 aligned  */
 		/* we like to get aligned on L1 table size */
-		pg_tbl_va = (ULONG)MEM_AllocPhysMem(pPtAttrs->L2size,
+		pg_tbl_va = (u32)MEM_AllocPhysMem(pPtAttrs->L2size,
 			    align_size, &pg_tbl_pa);
 	pPtAttrs->L2TblAllocPa = pg_tbl_pa;
 	pPtAttrs->L2TblAllocVa = pg_tbl_va;
@@ -1040,7 +1032,7 @@ static DSP_STATUS WMD_DEV_Create(OUT struct WMD_DEV_CONTEXT **ppDevContext,
 	pPtAttrs->L2BasePa = pg_tbl_pa;
 	pPtAttrs->L2BaseVa = pg_tbl_va;
 	if (pPtAttrs->L2BaseVa) {
-			memset((BYTE *)pPtAttrs->L2BaseVa, 0x00,
+			memset((u8 *)pPtAttrs->L2BaseVa, 0x00,
 			pPtAttrs->L2size);
 	}
 	pPtAttrs->pgInfo = MEM_Calloc(pPtAttrs->L2NumPages *
@@ -1067,9 +1059,9 @@ static DSP_STATUS WMD_DEV_Create(OUT struct WMD_DEV_CONTEXT **ppDevContext,
 		/*pDevContext->dwTCEndianism = OMAP_ENDIANISM; */
 		/* default to Proc-copy */
 		pDevContext->wIntrVal2Dsp = MBX_PCPY_CLASS;
-		/* Retrieve the TC WORD SWAP Option */
+		/* Retrieve the TC u16 SWAP Option */
 		status = REG_GetValue(NULL, CURRENTCONFIG, TCWORDSWAP,
-				     (BYTE *)&tcWordSwap, &tcWordSwapSize);
+				     (u8 *)&tcWordSwap, &tcWordSwapSize);
 		/* Save the value */
 		pDevContext->tcWordSwapOn = tcWordSwap;
 	}
@@ -1106,12 +1098,12 @@ static DSP_STATUS WMD_DEV_Create(OUT struct WMD_DEV_CONTEXT **ppDevContext,
 				MEM_Free(pPtAttrs->pgInfo);
 
 			if (pPtAttrs->L2TblAllocVa) {
-				MEM_FreePhysMem((PVOID)pPtAttrs->L2TblAllocVa,
+				MEM_FreePhysMem((void *)pPtAttrs->L2TblAllocVa,
 						pPtAttrs->L2TblAllocPa,
 						pPtAttrs->L2TblAllocSz);
 			}
 			if (pPtAttrs->L1TblAllocVa) {
-				MEM_FreePhysMem((PVOID)pPtAttrs->L1TblAllocVa,
+				MEM_FreePhysMem((void *)pPtAttrs->L1TblAllocVa,
 						pPtAttrs->L1TblAllocPa,
 						pPtAttrs->L1TblAllocSz);
 			}
@@ -1134,12 +1126,12 @@ func_end:
  *  purpose:
  *      Receives device specific commands.
  */
-static DSP_STATUS WMD_DEV_Ctrl(struct WMD_DEV_CONTEXT *pDevContext, DWORD dwCmd,
-				IN OUT PVOID pArgs)
+static DSP_STATUS WMD_DEV_Ctrl(struct WMD_DEV_CONTEXT *pDevContext, u32 dwCmd,
+				IN OUT void *pArgs)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct WMDIOCTL_EXTPROC *paExtProc = (struct WMDIOCTL_EXTPROC *)pArgs;
-	INT ndx;
+	s32 ndx;
 
 	DBG_Trace(DBG_ENTER, "WMD_DEV_Ctrl, pDevContext:  0x%x\n\t\t dwCmd:  "
 		  "0x%x\n\t\tpArgs:  0x%x\n", pDevContext, dwCmd, pArgs);
@@ -1223,12 +1215,12 @@ static DSP_STATUS WMD_DEV_Destroy(struct WMD_DEV_CONTEXT *hDevContext)
 			MEM_Free(pPtAttrs->pgInfo);
 
 		if (pPtAttrs->L2TblAllocVa) {
-			MEM_FreePhysMem((PVOID)pPtAttrs->L2TblAllocVa,
+			MEM_FreePhysMem((void *)pPtAttrs->L2TblAllocVa,
 					pPtAttrs->L2TblAllocPa, pPtAttrs->
 					L2TblAllocSz);
 		}
 		if (pPtAttrs->L1TblAllocVa) {
-			MEM_FreePhysMem((PVOID)pPtAttrs->L1TblAllocVa,
+			MEM_FreePhysMem((void *)pPtAttrs->L1TblAllocVa,
 					pPtAttrs->L1TblAllocPa, pPtAttrs->
 					L1TblAllocSz);
 		}
@@ -1237,20 +1229,20 @@ static DSP_STATUS WMD_DEV_Destroy(struct WMD_DEV_CONTEXT *hDevContext)
 
 	}
 	/* Free the driver's device context: */
-	MEM_Free((PVOID) hDevContext);
+	MEM_Free((void *) hDevContext);
 	return status;
 }
 
 static DSP_STATUS WMD_BRD_MemCopy(struct WMD_DEV_CONTEXT *hDevContext,
-				  ULONG ulDspDestAddr, ULONG ulDspSrcAddr,
-				  ULONG ulNumBytes, ULONG ulMemType)
+				  u32 ulDspDestAddr, u32 ulDspSrcAddr,
+				  u32 ulNumBytes, u32 ulMemType)
 {
 	DSP_STATUS status = DSP_SOK;
-	DWORD srcAddr = ulDspSrcAddr;
-	DWORD destAddr = ulDspDestAddr;
-	ULONG copyBytes = 0;
-	ULONG totalBytes = ulNumBytes;
-	BYTE hostBuf[BUFFERSIZE];
+	u32 srcAddr = ulDspSrcAddr;
+	u32 destAddr = ulDspDestAddr;
+	u32 copyBytes = 0;
+	u32 totalBytes = ulNumBytes;
+	u8 hostBuf[BUFFERSIZE];
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
 	while ((totalBytes > 0) && DSP_SUCCEEDED(status)) {
 		copyBytes = totalBytes > BUFFERSIZE ? BUFFERSIZE : totalBytes;
@@ -1278,13 +1270,13 @@ static DSP_STATUS WMD_BRD_MemCopy(struct WMD_DEV_CONTEXT *hDevContext,
 
 /* Mem Write does not halt the DSP to write unlike WMD_BRD_Write */
 static DSP_STATUS WMD_BRD_MemWrite(struct WMD_DEV_CONTEXT *hDevContext,
-				   IN BYTE *pbHostBuf, DWORD dwDSPAddr,
-				   ULONG ulNumBytes, ULONG ulMemType)
+				   IN u8 *pbHostBuf, u32 dwDSPAddr,
+				   u32 ulNumBytes, u32 ulMemType)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
-	ULONG ulRemainBytes = 0;
-	ULONG ulBytes = 0;
+	u32 ulRemainBytes = 0;
+	u32 ulBytes = 0;
 	ulRemainBytes = ulNumBytes;
 	while (ulRemainBytes > 0 && DSP_SUCCEEDED(status)) {
 		ulBytes =
@@ -1299,7 +1291,7 @@ static DSP_STATUS WMD_BRD_MemWrite(struct WMD_DEV_CONTEXT *hDevContext,
 		}
 		ulRemainBytes -= ulBytes;
 		dwDSPAddr += ulBytes;
-		/* (BYTE *) pbHostBuf += ulBytes;*/
+		/* (u8 *) pbHostBuf += ulBytes;*/
 		pbHostBuf = pbHostBuf + ulBytes;
 	}
 	return status;
@@ -1316,16 +1308,16 @@ static DSP_STATUS WMD_BRD_MemWrite(struct WMD_DEV_CONTEXT *hDevContext,
  *  TODO: Disable MMU while updating the page tables (but that'll stall DSP)
  */
 static DSP_STATUS WMD_BRD_MemMap(struct WMD_DEV_CONTEXT *hDevContext,
-				 ULONG ulMpuAddr, ULONG ulVirtAddr,
-				 ULONG ulNumBytes, ULONG ulMapAttr)
+				 u32 ulMpuAddr, u32 ulVirtAddr,
+				 u32 ulNumBytes, u32 ulMapAttr)
 {
-	ULONG attrs;
+	u32 attrs;
 	DSP_STATUS status = DSP_SOK;
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
 	struct HW_MMUMapAttrs_t hwAttrs;
-	ULONG numOfActualTabEntries;
-	ULONG temp = 0;
-	ULONG *pPhysAddrPageTbl;
+	u32 numOfActualTabEntries;
+	u32 temp = 0;
+	u32 *pPhysAddrPageTbl;
 
 	DBG_Trace(DBG_ENTER, "> WMD_BRD_MemMap hDevContext %x, pa %x, va %x, "
 		 "size %x, ulMapAttr %x\n", hDevContext, ulMpuAddr, ulVirtAddr,
@@ -1474,20 +1466,20 @@ func_cont:
  *      we clear consecutive PTEs until we unmap all the bytes
  */
 static DSP_STATUS WMD_BRD_MemUnMap(struct WMD_DEV_CONTEXT *hDevContext,
-				   ULONG ulVirtAddr, ULONG ulNumBytes)
+				   u32 ulVirtAddr, u32 ulNumBytes)
 {
-	ULONG L1BaseVa;
-	ULONG L2BaseVa;
-	ULONG L2BasePa;
-	ULONG L2PageNum;
-	ULONG pteVal;
-	ULONG pteSize;
-	ULONG pteCount;
-	ULONG pteAddrL1;
-	ULONG pteAddrL2 = 0;
-	ULONG remBytes;
-	ULONG remBytesL2;
-	ULONG vaCurr;
+	u32 L1BaseVa;
+	u32 L2BaseVa;
+	u32 L2BasePa;
+	u32 L2PageNum;
+	u32 pteVal;
+	u32 pteSize;
+	u32 pteCount;
+	u32 pteAddrL1;
+	u32 pteAddrL2 = 0;
+	u32 remBytes;
+	u32 remBytesL2;
+	u32 vaCurr;
 	DSP_STATUS status = DSP_SOK;
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
 	struct PgTableAttrs *pt = pDevContext->pPtAttrs;
@@ -1503,10 +1495,10 @@ static DSP_STATUS WMD_BRD_MemUnMap(struct WMD_DEV_CONTEXT *hDevContext,
 		  "vaCurr %x remBytes %x\n", L1BaseVa, pteAddrL1,
 		  vaCurr, remBytes);
 	while (remBytes && (DSP_SUCCEEDED(status))) {
-		ULONG vaCurrOrig = vaCurr;
+		u32 vaCurrOrig = vaCurr;
 		/* Find whether the L1 PTE points to a valid L2 PT */
 		pteAddrL1 = HW_MMU_PteAddrL1(L1BaseVa, vaCurr);
-		pteVal = *(ULONG *)pteAddrL1;
+		pteVal = *(u32 *)pteAddrL1;
 		pteSize = HW_MMU_PteSizeL1(pteVal);
 		if (pteSize == HW_MMU_COARSE_PAGE_SIZE) {
 			/* Get the L2 PA from the L1 PTE, and find
@@ -1522,7 +1514,7 @@ static DSP_STATUS WMD_BRD_MemUnMap(struct WMD_DEV_CONTEXT *hDevContext,
 			pteAddrL2 = HW_MMU_PteAddrL2(L2BaseVa, vaCurr);
 			pteCount = pteAddrL2 & (HW_MMU_COARSE_PAGE_SIZE - 1);
 			pteCount = (HW_MMU_COARSE_PAGE_SIZE - pteCount) /
-				    sizeof(ULONG);
+				    sizeof(u32);
 			if (remBytes < (pteCount * PG_SIZE_4K))
 				pteCount = remBytes / PG_SIZE_4K;
 
@@ -1537,7 +1529,7 @@ static DSP_STATUS WMD_BRD_MemUnMap(struct WMD_DEV_CONTEXT *hDevContext,
 			 * entry. Similar checking is done for L1 PTEs too
 			 * below */
 			while (remBytesL2 && (DSP_SUCCEEDED(status))) {
-				pteVal = *(ULONG *)pteAddrL2;
+				pteVal = *(u32 *)pteAddrL2;
 				pteSize = HW_MMU_PteSizeL2(pteVal);
 				/* vaCurr aligned to pteSize? */
 				if ((pteSize != 0) && (remBytesL2 >= pteSize) &&
@@ -1547,7 +1539,7 @@ static DSP_STATUS WMD_BRD_MemUnMap(struct WMD_DEV_CONTEXT *hDevContext,
 					remBytesL2 -= pteSize;
 					vaCurr += pteSize;
 					pteAddrL2 += (pteSize >> 12) *
-						      sizeof(ULONG);
+						      sizeof(u32);
 				} else {
 					status = DSP_EFAIL;
 				}
@@ -1598,24 +1590,24 @@ static DSP_STATUS WMD_BRD_MemUnMap(struct WMD_DEV_CONTEXT *hDevContext,
  * 		This function builds the array with virtual to physical
  *	    address translation
  */
-static DSP_STATUS TIOMAP_VirtToPhysical(struct mm_struct *mm, ULONG ulMpuAddr,
-					ULONG ulNumBytes,
-					ULONG *numOfTableEntries,
-					ULONG *physicalAddrTable)
+static DSP_STATUS TIOMAP_VirtToPhysical(struct mm_struct *mm, u32 ulMpuAddr,
+					u32 ulNumBytes,
+					u32 *numOfTableEntries,
+					u32 *physicalAddrTable)
 {
-	ULONG pAddr;
-	ULONG chunkSz;
+	u32 pAddr;
+	u32 chunkSz;
 	DSP_STATUS status = DSP_SOK;
-	volatile ULONG pteVal;
-	ULONG pteSize;
+	volatile u32 pteVal;
+	u32 pteSize;
 	pgd_t *pgd;
 	pmd_t *pmd;
 	volatile pte_t *ptep;
-	ULONG numEntries = 0;
-	ULONG numof4KPages = 0;
-	ULONG phyEntryCounter = 0;
-	ULONG temp = 0;
-	ULONG numUsrPgs;
+	u32 numEntries = 0;
+	u32 numof4KPages = 0;
+	u32 phyEntryCounter = 0;
+	u32 temp = 0;
+	u32 numUsrPgs;
 	struct task_struct *curr_task = current;
 
 	DBG_Trace(DBG_ENTER, "TIOMAP_VirtToPhysical: START:ulMpuAddr=%x, "
@@ -1629,7 +1621,7 @@ static DSP_STATUS TIOMAP_VirtToPhysical(struct mm_struct *mm, ULONG ulMpuAddr,
 		/* Read the pointer to first level page table entry */
 		pgd = pgd_offset(mm, ulMpuAddr);
 		/* Read the value in the first level page table entry */
-		pteVal = *(ULONG *)pgd;
+		pteVal = *(u32 *)pgd;
 		/* Find the page size that is pointed by the first level page
 		 * table entry */
 		pteSize = HW_MMU_PteSizeL1(pteVal); /* update 16 or 1 */
@@ -1649,7 +1641,7 @@ static DSP_STATUS TIOMAP_VirtToPhysical(struct mm_struct *mm, ULONG ulMpuAddr,
 			/* Read the pointer to first level page table entry */
 			pgd = pgd_offset(mm, ulMpuAddr);
 			/* Read the value in the first level page table entry*/
-			pteVal = *(ULONG *)pgd;
+			pteVal = *(u32 *)pgd;
 			/* Find the page size that is pointed by the first level
 			 * page table entry
 			 */
@@ -1668,7 +1660,7 @@ static DSP_STATUS TIOMAP_VirtToPhysical(struct mm_struct *mm, ULONG ulMpuAddr,
 				ptep = ptep+numEntries;
 				/* Read the value of second level page table
 				 * entry */
-				pteVal = *(ULONG *)ptep;
+				pteVal = *(u32 *)ptep;
 				/* Find the size of page the second level
 				 * table entry is pointing */
 				/* update 64 or 4 */
@@ -1703,7 +1695,7 @@ static DSP_STATUS TIOMAP_VirtToPhysical(struct mm_struct *mm, ULONG ulMpuAddr,
 					up_read(&mm->mmap_sem);
 					/* Read the value of second level page
 					 * table  entry */
-					pteVal = *(ULONG *)ptep;
+					pteVal = *(u32 *)ptep;
 					/* Find the size of page the second
 					 * level table entry is pointing */
 					pteSize = HW_MMU_PteSizeL2(pteVal);
@@ -1711,7 +1703,7 @@ static DSP_STATUS TIOMAP_VirtToPhysical(struct mm_struct *mm, ULONG ulMpuAddr,
 				DBG_Trace(DBG_LEVEL4, "TIOMAP_VirtToPhysical:"
 					"*pmd=%x, *pgd=%x, ptep = %x, pteVal="
 					" %x, pteSize=%x\n", *pmd,
-					*(ULONG *)pgd, (ULONG)ptep, pteVal,
+					*(u32 *)pgd, (u32)ptep, pteVal,
 					pteSize);
 
 				/* Extract the physical Addresses */
@@ -1831,18 +1823,18 @@ static DSP_STATUS TIOMAP_VirtToPhysical(struct mm_struct *mm, ULONG ulMpuAddr,
  *      This function calculates the optimum page-aligned addresses and sizes
  *      Caller must pass page-aligned values
  */
-static DSP_STATUS PteUpdate(struct WMD_DEV_CONTEXT *hDevContext, ULONG pa,
-			    ULONG va, ULONG size,
+static DSP_STATUS PteUpdate(struct WMD_DEV_CONTEXT *hDevContext, u32 pa,
+			    u32 va, u32 size,
 			    struct HW_MMUMapAttrs_t *mapAttrs)
 {
-	ULONG i;
-	ULONG allBits;
-	ULONG paCurr = pa;
-	ULONG vaCurr = va;
-	ULONG numBytes = size;
+	u32 i;
+	u32 allBits;
+	u32 paCurr = pa;
+	u32 vaCurr = va;
+	u32 numBytes = size;
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
 	DSP_STATUS status = DSP_SOK;
-	ULONG pgSize[] = { HW_PAGE_SIZE_16MB, HW_PAGE_SIZE_1MB,
+	u32 pgSize[] = { HW_PAGE_SIZE_16MB, HW_PAGE_SIZE_1MB,
 			   HW_PAGE_SIZE_64KB, HW_PAGE_SIZE_4KB };
 	DBG_Trace(DBG_ENTER, "> PteUpdate hDevContext %x, pa %x, va %x, "
 		 "size %x, mapAttrs %x\n", hDevContext, pa, va, size, mapAttrs);
@@ -1879,21 +1871,21 @@ static DSP_STATUS PteUpdate(struct WMD_DEV_CONTEXT *hDevContext, ULONG pa,
  *      This function calculates PTE address (MPU virtual) to be updated
  *      It also manages the L2 page tables
  */
-static DSP_STATUS PteSet(struct PgTableAttrs *pt, ULONG pa, ULONG va,
-			 ULONG size, struct HW_MMUMapAttrs_t *attrs)
+static DSP_STATUS PteSet(struct PgTableAttrs *pt, u32 pa, u32 va,
+			 u32 size, struct HW_MMUMapAttrs_t *attrs)
 {
-	ULONG i;
-	ULONG pteVal;
-	ULONG pteAddrL1;
-	ULONG pteSize;
-	ULONG pgTblVa;      /* Base address of the PT that will be updated */
-	ULONG L1BaseVa;
+	u32 i;
+	u32 pteVal;
+	u32 pteAddrL1;
+	u32 pteSize;
+	u32 pgTblVa;      /* Base address of the PT that will be updated */
+	u32 L1BaseVa;
 	 /* Compiler warns that the next three variables might be used
 	 * uninitialized in this function. Doesn't seem so. Working around,
 	 * anyways.  */
-	ULONG L2BaseVa = 0;
-	ULONG L2BasePa = 0;
-	ULONG L2PageNum = 0;
+	u32 L2BaseVa = 0;
+	u32 L2BasePa = 0;
+	u32 L2PageNum = 0;
 	DSP_STATUS status = DSP_SOK;
 	DBG_Trace(DBG_ENTER, "> PteSet pPgTableAttrs %x, pa %x, va %x, "
 		 "size %x, attrs %x\n", pt, pa, va, size, attrs);
@@ -1903,7 +1895,7 @@ static DSP_STATUS PteSet(struct PgTableAttrs *pt, ULONG pa, ULONG va,
 		/* Find whether the L1 PTE points to a valid L2 PT */
 		pteAddrL1 = HW_MMU_PteAddrL1(L1BaseVa, va);
 		if (pteAddrL1 <= (pt->L1BaseVa + pt->L1size)) {
-			pteVal = *(ULONG *)pteAddrL1;
+			pteVal = *(u32 *)pteAddrL1;
 			pteSize = HW_MMU_PteSizeL1(pteVal);
 		} else {
 			return DSP_EFAIL;
@@ -1968,10 +1960,10 @@ static DSP_STATUS PteSet(struct PgTableAttrs *pt, ULONG pa, ULONG va,
 
 /* Memory map kernel VA -- memory allocated with vmalloc */
 static DSP_STATUS MemMapVmalloc(struct WMD_DEV_CONTEXT *hDevContext,
-				ULONG ulMpuAddr, ULONG ulVirtAddr,
-				ULONG ulNumBytes, ULONG ulMapAttr)
+				u32 ulMpuAddr, u32 ulVirtAddr,
+				u32 ulNumBytes, u32 ulMapAttr)
 {
-	ULONG attrs = ulMapAttr;
+	u32 attrs = ulMapAttr;
 	DSP_STATUS status = DSP_SOK;
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
 	struct HW_MMUMapAttrs_t hwAttrs;
@@ -2012,12 +2004,12 @@ static DSP_STATUS MemMapVmalloc(struct WMD_DEV_CONTEXT *hDevContext,
 	 /* Do Kernel va to pa translation.
 	 * Combine physically contiguous regions to reduce TLBs.
 	 * Pass the translated pa to PteUpdate.  */
-	ULONG i;
-	ULONG paCurr;
-	ULONG paNext;
-	ULONG vaCurr;
-	ULONG sizeCurr;
-	ULONG numPages = ulNumBytes / PAGE_SIZE; /* PAGE_SIZE = OS page size */
+	u32 i;
+	u32 paCurr;
+	u32 paNext;
+	u32 vaCurr;
+	u32 sizeCurr;
+	u32 numPages = ulNumBytes / PAGE_SIZE; /* PAGE_SIZE = OS page size */
 	if (!DSP_SUCCEEDED(status))
 		goto func_cont;
 
@@ -2072,16 +2064,16 @@ func_cont:
 	return status;
 }
 
-static DSP_STATUS run_IdleBoot(UWORD32 prm_base, UWORD32 cm_base,
-			       UWORD32 sysctrl_base)
+static DSP_STATUS run_IdleBoot(u32 prm_base, u32 cm_base,
+			       u32 sysctrl_base)
 {
-	UWORD32 temp;
+	u32 temp;
 	DSP_STATUS status = DSP_SOK;
 	DSP_STATUS clk_status = DSP_SOK;
 	HW_PwrState_t    pwrState;
 
 	/* Read PM_PWSTST_IVA2 */
-	/*temp = (UWORD32) * ((REG_UWORD32 *) ((UWORD32) (prm_base) + 0xE4));*/
+	/*temp = (u32) * ((REG_UWORD32 *) ((u32) (prm_base) + 0xE4));*/
 	HW_PWRST_IVA2RegGet(prm_base, &temp);
 	 if ((temp & 0x03) != 0x03 || (temp & 0x03) != 0x02) {
 		/* IVA2 is not in ON state */
@@ -2101,12 +2093,12 @@ static DSP_STATUS run_IdleBoot(UWORD32 prm_base, UWORD32 cm_base,
 	}
 	udelay(10);
 	/* Assert IVA2-RST1 and IVA2-RST2  */
-	*((REG_UWORD32 *)((UWORD32)(prm_base) + 0x50)) = (UWORD32)0x07;
+	*((REG_UWORD32 *)((u32)(prm_base) + 0x50)) = (u32)0x07;
 	udelay(30);
 	/* set the SYSC for Idle Boot */
-	*((REG_UWORD32 *)((UWORD32)(sysctrl_base) + 0x404)) = (UWORD32)0x01;
-	/* *((REG_UWORD32*)((UWORD32)(sysctrl_base) + 0x400)) =
-	 * 			(UWORD32)0x007E0000;*/
+	*((REG_UWORD32 *)((u32)(sysctrl_base) + 0x404)) = (u32)0x01;
+	/* *((REG_UWORD32*)((u32)(sysctrl_base) + 0x400)) =
+	 * 			(u32)0x007E0000;*/
 	clk_status = CLK_Enable(SERVICESCLK_iva2_ck);
 	if (!DSP_SUCCEEDED(clk_status)) {
 		DBG_Trace(DBG_LEVEL6, "CLK_Enable failed for clk = 0x%x \n",
@@ -2115,36 +2107,36 @@ static DSP_STATUS run_IdleBoot(UWORD32 prm_base, UWORD32 cm_base,
 	udelay(20);
 	GetHWRegs(prm_base, cm_base);
 	/* Release Reset1 and Reset2 */
-	*((REG_UWORD32 *)((UWORD32)(prm_base) + 0x50)) = (UWORD32)0x05;
+	*((REG_UWORD32 *)((u32)(prm_base) + 0x50)) = (u32)0x05;
 	udelay(20);
-	*((REG_UWORD32 *)((UWORD32)(prm_base) + 0x50)) = (UWORD32)0x04;
+	*((REG_UWORD32 *)((u32)(prm_base) + 0x50)) = (u32)0x04;
 	udelay(30);
 	return status;
 }
 
 
-void GetHWRegs(UWORD32 prm_base, UWORD32 cm_base)
+void GetHWRegs(u32 prm_base, u32 cm_base)
 {
-	UWORD32 temp;
-       temp = (UWORD32)*((REG_UWORD32 *)((UWORD32)(cm_base) + 0x00));
+	u32 temp;
+       temp = (u32)*((REG_UWORD32 *)((u32)(cm_base) + 0x00));
 	   DBG_Trace(DBG_LEVEL6, "CM_FCLKEN_IVA2 = 0x%x \n", temp);
-       temp = (UWORD32)*((REG_UWORD32 *)((UWORD32)(cm_base) + 0x10));
+       temp = (u32)*((REG_UWORD32 *)((u32)(cm_base) + 0x10));
 	   DBG_Trace(DBG_LEVEL6, "CM_ICLKEN1_IVA2 = 0x%x \n", temp);
-       temp = (UWORD32)*((REG_UWORD32 *)((UWORD32)(cm_base) + 0x20));
+       temp = (u32)*((REG_UWORD32 *)((u32)(cm_base) + 0x20));
 	   DBG_Trace(DBG_LEVEL6, "CM_IDLEST_IVA2 = 0x%x \n", temp);
-       temp = (UWORD32)*((REG_UWORD32 *)((UWORD32)(cm_base) + 0x48));
+       temp = (u32)*((REG_UWORD32 *)((u32)(cm_base) + 0x48));
 	   DBG_Trace(DBG_LEVEL6, "CM_CLKSTCTRL_IVA2 = 0x%x \n", temp);
-       temp = (UWORD32)*((REG_UWORD32 *)((UWORD32)(cm_base) + 0x4c));
+       temp = (u32)*((REG_UWORD32 *)((u32)(cm_base) + 0x4c));
 	   DBG_Trace(DBG_LEVEL6, "CM_CLKSTST_IVA2 = 0x%x \n", temp);
-       temp = (UWORD32)*((REG_UWORD32 *)((UWORD32)(prm_base) + 0x50));
+       temp = (u32)*((REG_UWORD32 *)((u32)(prm_base) + 0x50));
 	   DBG_Trace(DBG_LEVEL6, "RM_RSTCTRL_IVA2 = 0x%x \n", temp);
-       temp = (UWORD32)*((REG_UWORD32 *)((UWORD32)(prm_base) + 0x58));
+       temp = (u32)*((REG_UWORD32 *)((u32)(prm_base) + 0x58));
 	   DBG_Trace(DBG_LEVEL6, "RM_RSTST_IVA2 = 0x%x \n", temp);
-       temp = (UWORD32)*((REG_UWORD32 *)((UWORD32)(prm_base) + 0xE0));
+       temp = (u32)*((REG_UWORD32 *)((u32)(prm_base) + 0xE0));
 	   DBG_Trace(DBG_LEVEL6, "PM_PWSTCTRL_IVA2 = 0x%x \n", temp);
-       temp = (UWORD32)*((REG_UWORD32 *)((UWORD32)(prm_base) + 0xE4));
+       temp = (u32)*((REG_UWORD32 *)((u32)(prm_base) + 0xE4));
 	   DBG_Trace(DBG_LEVEL6, "PM_PWSTST_IVA2 = 0x%x \n", temp);
-       temp = (UWORD32)*((REG_UWORD32 *)((UWORD32)(cm_base) + 0xA10));
+       temp = (u32)*((REG_UWORD32 *)((u32)(cm_base) + 0xA10));
 	   DBG_Trace(DBG_LEVEL6, "CM_ICLKEN1_CORE = 0x%x \n", temp);
 }
 

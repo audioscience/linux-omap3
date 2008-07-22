@@ -43,74 +43,74 @@
  *  ======== DBOF_FileHdr ========
  */
 	struct DBOF_FileHdr {
-		LgUns magic;	/* COFF magic number */
-		LgUns entry;	/* Program entry point */
-		MdUns numSymbols;	/* Number of bridge symbols */
-		MdUns numDCDSects;	/* Number of DCD sections */
-		MdUns numSects;	/* Number of sections to load */
-		MdUns numOvlySects;	/* Number of overlay sections */
-		LgUns symOffset;	/* Offset in file to symbols */
-		LgUns dcdSectOffset;	/* Offset to DCD sections */
-		LgUns loadSectOffset;	/* Offset to loadable sections */
-		LgUns ovlySectOffset;	/* Offset to overlay data */
-		MdUns version;	/* DBOF version number */
-		MdUns resvd;	/* Reserved for future use */
+		u32 magic;	/* COFF magic number */
+		u32 entry;	/* Program entry point */
+		u16 numSymbols;	/* Number of bridge symbols */
+		u16 numDCDSects;	/* Number of DCD sections */
+		u16 numSects;	/* Number of sections to load */
+		u16 numOvlySects;	/* Number of overlay sections */
+		u32 symOffset;	/* Offset in file to symbols */
+		u32 dcdSectOffset;	/* Offset to DCD sections */
+		u32 loadSectOffset;	/* Offset to loadable sections */
+		u32 ovlySectOffset;	/* Offset to overlay data */
+		u16 version;	/* DBOF version number */
+		u16 resvd;	/* Reserved for future use */
 	} ;
 
 /*
  *  ======== DBOF_DCDSectHdr ========
  */
 	struct DBOF_DCDSectHdr {
-		LgUns size;	/* Sect size (target MAUs) */
-		Char name[DBOF_DCDSECTNAMELEN];	/* DCD section name */
+		u32 size;	/* Sect size (target MAUs) */
+		char name[DBOF_DCDSECTNAMELEN];	/* DCD section name */
 	} ;
 
 /*
  *  ======== DBOF_OvlySectHdr ========
  */
 	struct DBOF_OvlySectHdr {
-		MdUns nameLen;	/* Length of section name */
-		MdUns numCreateSects;	/* # of sects loaded for create phase */
-		MdUns numDeleteSects;	/* # of sects loaded for delete phase */
-		MdUns numExecuteSects; /* # of sects loaded for execute phase */
+		u16 nameLen;	/* Length of section name */
+		u16 numCreateSects;	/* # of sects loaded for create phase */
+		u16 numDeleteSects;	/* # of sects loaded for delete phase */
+		u16 numExecuteSects; /* # of sects loaded for execute phase */
 
 		/*
 		 *  Number of sections where load/unload phase is not specified.
 		 *  These sections will be loaded when create phase sects are
 		 *  loaded, and unloaded when the delete phase is unloaded.
 		 */
-		MdUns numOtherSects;
-		MdUns resvd;	/* Reserved for future use */
+		u16 numOtherSects;
+		u16 resvd;	/* Reserved for future use */
 	};
 
 /*
  *  ======== DBOF_OvlySectData ========
  */
 	struct DBOF_OvlySectData {
-		LgUns loadAddr;	/* Section load address */
-		LgUns runAddr;	/* Section run address */
-		LgUns size;	/* Section size (target MAUs) */
-		MdUns page;	/* Memory page number */
-		MdUns resvd;	/* Reserved */
+		u32 loadAddr;	/* Section load address */
+		u32 runAddr;	/* Section run address */
+		u32 size;	/* Section size (target MAUs) */
+		u16 page;	/* Memory page number */
+		u16 resvd;	/* Reserved */
 	} ;
 
 /*
  *  ======== DBOF_SectHdr ========
  */
 	struct DBOF_SectHdr {
-		LgUns addr;	/* Section address */
-		LgUns size;	/* Section size (target MAUs) */
-		MdUns page;	/* Page number */
-		MdUns resvd;	/* Reserved for future use */
+		u32 addr;	/* Section address */
+		u32 size;	/* Section size (target MAUs) */
+		u16 page;	/* Page number */
+		u16 resvd;	/* Reserved for future use */
 	} ;
 
 /*
  *  ======== DBOF_SymbolHdr ========
  */
 	struct DBOF_SymbolHdr {
-		LgUns value;	/* Symbol value */
-		MdUns nameLen;	/* Length of symbol name */
-		MdUns resvd;	/* Reserved for future use */
+		u32 value;	/* Symbol value */
+		u16 nameLen;	/* Length of symbol name */
+		u16 resvd;	/* Reserved for future use */
 	} ;
 
 #endif				/* DBOF_ */

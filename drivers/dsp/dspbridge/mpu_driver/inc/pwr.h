@@ -65,8 +65,8 @@
  *      DSP_EFAIL:          General failure, unable to send sleep command to
  *                          the DSP.
  */
-	extern DSP_STATUS PWR_SleepDSP(IN CONST DWORD sleepCode,
-				       IN CONST DWORD timeout);
+	extern DSP_STATUS PWR_SleepDSP(IN CONST u32 sleepCode,
+				       IN CONST u32 timeout);
 
 /*
  *  ======== PWR_WakeDSP ========
@@ -87,7 +87,7 @@
  *      DSP_EFAIL:          General failure, unable to send wake command to
  *                          the DSP.
  */
-	extern DSP_STATUS PWR_WakeDSP(IN CONST DWORD timeout);
+	extern DSP_STATUS PWR_WakeDSP(IN CONST u32 timeout);
 
 /*
  *  ======== PWR_PM_PreScale ========
@@ -105,7 +105,7 @@
  *      DSP_EFAIL:          General failure, unable to send wake command to
  *                          the DSP.
  */
-	extern DSP_STATUS PWR_PM_PreScale(IN USHORT voltage_domain, UINT level);
+	extern DSP_STATUS PWR_PM_PreScale(IN u16 voltage_domain, u32 level);
 
 /*
  *  ======== PWR_PM_PostScale ========
@@ -123,7 +123,7 @@
  *      DSP_EFAIL:          General failure, unable to send wake command to
  *                          the DSP.
  */
-	extern DSP_STATUS PWR_PM_PostScale(IN USHORT voltage_domain,
-					   UINT level);
+	extern DSP_STATUS PWR_PM_PostScale(IN u16 voltage_domain,
+					   u32 level);
 
 #endif				/* PWR_ */

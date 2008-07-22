@@ -95,17 +95,17 @@
 #include <chnl.h>
 
 /*  ----------------------------------- Globals */
-static ULONG cRefs;
+static u32 cRefs;
 #if GT_TRACE
 static struct GT_Mask CHNL_DebugMask = { 0, 0 };	/* WCD CHNL Mask */
 #endif
 
 /*  ----------------------------------- Function Prototypes */
 static DSP_STATUS GetNumOpenChannels(struct CHNL_MGR *hChnlMgr,
-				    OUT ULONG *pcOpenChannels);
+				    OUT u32 *pcOpenChannels);
 
 static DSP_STATUS GetNumChannels(struct CHNL_MGR *hChnlMgr,
-				 OUT ULONG *pcChannels);
+				 OUT u32 *pcChannels);
 
 /*
  *  ======== CHNL_Close ========
@@ -148,11 +148,11 @@ DSP_STATUS CHNL_Close(struct CHNL_OBJECT *hChnl)
  */
 DSP_STATUS CHNL_CloseOrphans(struct CHNL_MGR *hChnlMgr, HANDLE hProcess)
 {
-	ULONG uChnlID;
+	u32 uChnlID;
 	DSP_STATUS status = DSP_SFALSE;
 	HANDLE hProc;
-	ULONG cOpenChannels;
-	ULONG cTotalChnls;
+	u32 cOpenChannels;
+	u32 cTotalChnls;
 	struct CHNL_OBJECT *hChnl;
 
 	DBC_Require(cRefs > 0);
@@ -326,7 +326,7 @@ void CHNL_Exit(void)
  *  Purpose:
  *      Retrieve the channel handle given the logical ID and channel manager.
  */
-DSP_STATUS CHNL_GetHandle(struct CHNL_MGR *hChnlMgr, ULONG uChnlID,
+DSP_STATUS CHNL_GetHandle(struct CHNL_MGR *hChnlMgr, u32 uChnlID,
 			  OUT struct CHNL_OBJECT **phChnl)
 {
 	DSP_STATUS status = DSP_SOK;
@@ -445,7 +445,7 @@ BOOL CHNL_Init(void)
  *                      if pcOpenChannels != NULL.
  */
 static DSP_STATUS GetNumOpenChannels(struct CHNL_MGR *hChnlMgr,
-				     OUT ULONG *pcOpenChannels)
+				     OUT u32 *pcOpenChannels)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct CHNL_MGR_ *pChnlMgr = (struct CHNL_MGR_ *)hChnlMgr;
@@ -488,7 +488,7 @@ static DSP_STATUS GetNumOpenChannels(struct CHNL_MGR *hChnlMgr,
  *                      if pcOpenChannels != NULL.
  */
 static DSP_STATUS GetNumChannels(struct CHNL_MGR *hChnlMgr,
-				 OUT ULONG *pcChannels)
+				 OUT u32 *pcChannels)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct CHNL_MGR_ *pChnlMgr = (struct CHNL_MGR_ *)hChnlMgr;

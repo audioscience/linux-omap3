@@ -85,19 +85,19 @@ BOOL DBG_Init(void)
  *      Output a trace message to the debugger, if the given trace level
  *      is unmasked.
  */
-DSP_STATUS DBG_Trace(BYTE bLevel, PSTR pstrFormat, ...)
+DSP_STATUS DBG_Trace(u8 bLevel, char *pstrFormat, ...)
 {
-	INT arg1, arg2, arg3, arg4, arg5, arg6;
+	s32 arg1, arg2, arg3, arg4, arg5, arg6;
 	va_list va;
 
 	va_start(va, pstrFormat);
 
-	arg1 = va_arg(va, INT);
-	arg2 = va_arg(va, INT);
-	arg3 = va_arg(va, INT);
-	arg4 = va_arg(va, INT);
-	arg5 = va_arg(va, INT);
-	arg6 = va_arg(va, INT);
+	arg1 = va_arg(va, s32);
+	arg2 = va_arg(va, s32);
+	arg3 = va_arg(va, s32);
+	arg4 = va_arg(va, s32);
+	arg5 = va_arg(va, s32);
+	arg6 = va_arg(va, s32);
 
 	va_end(va);
 
@@ -112,7 +112,7 @@ DSP_STATUS DBG_Trace(BYTE bLevel, PSTR pstrFormat, ...)
  *  Purpose:
  *      Discontinue usage of the DBG module.
  */
-VOID DBG_Exit(void)
+void DBG_Exit(void)
 {
 	GT_0trace(DBG_debugMask, GT_5CLASS, "DBG_Exit\n");
 }

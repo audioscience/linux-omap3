@@ -45,7 +45,7 @@
  *! 20-Sep-1999 ag:  Removed call to GT_set().
  *! 04-Jun-1997 cr:  Added validation of argc/argv pair in COD_LoadBase, as it
  *!		     is a requirement to ZL_loadArgs.
- *! 31-May-1997 cr:  Changed COD_LoadBase argc value from UINT to int, added
+ *! 31-May-1997 cr:  Changed COD_LoadBase argc value from u32 to int, added
  *!	       DSP_ENOTIMPL return value to COD_Create when attrs != NULL.
  *! 29-May-1997 cr:  Added debugging support.
  *! 24-Oct-1996 gp:  Added COD_GetSection().
@@ -93,12 +93,12 @@ struct COD_MANAGER {
 	struct DBLL_TarObj *target;
 	struct DBLL_LibraryObj *baseLib;
 	BOOL fLoaded;		/* Base library loaded? */
-	ULONG ulEntry;
+	u32 ulEntry;
 	struct LDR_MODULE *hDll;
 	struct DBLL_Fxns fxns;
 	struct DBLL_Attrs attrs;
 	char szZLFile[COD_MAXPATHLENGTH];
-	ULONG ulMagic;
+	u32 ulMagic;
 } ;
 
 /*
@@ -109,7 +109,7 @@ struct COD_LIBRARYOBJ {
 	struct COD_MANAGER *hCodMgr;
 } ;
 
-static ULONG cRefs = 0L;
+static u32 cRefs = 0L;
 
 #if GT_TRACE
 static struct GT_Mask COD_debugMask = { 0, 0 };
@@ -139,7 +139,7 @@ static BOOL NoOp();
 /*
  *  ======== COD_Close ========
  */
-VOID CDECL COD_Close(struct COD_LIBRARYOBJ *lib)
+void CDECL COD_Close(struct COD_LIBRARYOBJ *lib)
 {
 	struct COD_MANAGER *hMgr;
 
@@ -162,7 +162,7 @@ VOID CDECL COD_Close(struct COD_LIBRARYOBJ *lib)
  *      dynamically loaded object files.
  *
  */
-DSP_STATUS COD_Create(OUT struct COD_MANAGER **phMgr, PSTR pstrDummyFile,
+DSP_STATUS COD_Create(OUT struct COD_MANAGER **phMgr, char *pstrDummyFile,
 		     IN OPTIONAL CONST struct COD_ATTRS *attrs)
 {
 	struct COD_MANAGER *hMgrNew;
@@ -238,7 +238,7 @@ DSP_STATUS COD_Create(OUT struct COD_MANAGER **phMgr, PSTR pstrDummyFile,
  *  Purpose:
  *      Delete a code manager object.
  */
-VOID COD_Delete(struct COD_MANAGER *hMgr)
+void COD_Delete(struct COD_MANAGER *hMgr)
 {
 	DBC_Require(cRefs > 0);
 	DBC_Require(IsValid(hMgr));
@@ -264,7 +264,7 @@ VOID COD_Delete(struct COD_MANAGER *hMgr)
  *      Discontinue usage of the COD module.
  *
  */
-VOID COD_Exit(void)
+void COD_Exit(void)
 {
 	DBC_Require(cRefs > 0);
 
@@ -299,7 +299,7 @@ DSP_STATUS CDECL COD_GetBaseLib(struct COD_MANAGER *hManager,
  *  ======== COD_GetBaseName ========
  */
 DSP_STATUS CDECL COD_GetBaseName(struct COD_MANAGER *hManager, char *pszName,
-				UINT uSize)
+				u32 uSize)
 {
 	DSP_STATUS status = DSP_SOK;
 
@@ -321,7 +321,7 @@ DSP_STATUS CDECL COD_GetBaseName(struct COD_MANAGER *hManager, char *pszName,
  *      Retrieve the entry point of a loaded DSP program image
  *
  */
-DSP_STATUS COD_GetEntry(struct COD_MANAGER *hManager, ULONG *pulEntry)
+DSP_STATUS COD_GetEntry(struct COD_MANAGER *hManager, u32 *pulEntry)
 {
 	DBC_Require(cRefs > 0);
 	DBC_Require(IsValid(hManager));
@@ -360,8 +360,8 @@ DSP_STATUS CDECL COD_GetLoader(struct COD_MANAGER *hManager,
  *      Retrieve the starting address and length of a section in the COFF file
  *      given the section name.
  */
-DSP_STATUS COD_GetSection(struct COD_LIBRARYOBJ *lib, IN PSTR pstrSect,
-			  OUT ULONG *puAddr, OUT ULONG *puLen)
+DSP_STATUS COD_GetSection(struct COD_LIBRARYOBJ *lib, IN char *pstrSect,
+			  OUT u32 *puAddr, OUT u32 *puLen)
 {
 	struct COD_MANAGER *hManager;
 	DSP_STATUS status = DSP_SOK;
@@ -407,8 +407,8 @@ DSP_STATUS COD_GetSection(struct COD_LIBRARYOBJ *lib, IN PSTR pstrSect,
  *      C symbol.
  *
  */
-DSP_STATUS COD_GetSymValue(struct COD_MANAGER *hMgr, PSTR pstrSym,
-			   ULONG *pulValue)
+DSP_STATUS COD_GetSymValue(struct COD_MANAGER *hMgr, char *pstrSym,
+			   u32 *pulValue)
 {
 	struct DBLL_Symbol *pSym;
 
@@ -481,14 +481,14 @@ BOOL COD_Init(void)
  *      recalculated to reflect this.  In this way, we can support NULL
  *      terminating aArgs arrays, if nArgc is very large.
  */
-DSP_STATUS COD_LoadBase(struct COD_MANAGER *hMgr, UINT nArgc, PSTR aArgs[],
-			COD_WRITEFXN pfnWrite, PVOID pArb, char *envp[])
+DSP_STATUS COD_LoadBase(struct COD_MANAGER *hMgr, u32 nArgc, char *aArgs[],
+			COD_WRITEFXN pfnWrite, void *pArb, char *envp[])
 {
 	DBLL_Flags flags;
 	struct DBLL_Attrs saveAttrs;
 	struct DBLL_Attrs newAttrs;
 	DSP_STATUS status;
-	UINT i;
+	u32 i;
 
 	DBC_Require(cRefs > 0);
 	DBC_Require(IsValid(hMgr));
@@ -639,8 +639,8 @@ DSP_STATUS COD_OpenBase(struct COD_MANAGER *hMgr, IN char *pszCoffPath,
  *  Purpose:
  *      Retrieve the content of a code section given the section name.
  */
-DSP_STATUS COD_ReadSection(struct COD_LIBRARYOBJ *lib, IN PSTR pstrSect,
-			   OUT PSTR pstrContent, IN UINT cContentSize)
+DSP_STATUS COD_ReadSection(struct COD_LIBRARYOBJ *lib, IN char *pstrSect,
+			   OUT char *pstrContent, IN u32 cContentSize)
 {
 	DSP_STATUS status = DSP_SOK;
 

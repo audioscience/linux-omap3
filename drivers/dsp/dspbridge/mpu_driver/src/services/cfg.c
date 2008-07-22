@@ -72,9 +72,7 @@
  *! 19-Jul-1999 a0216266: Stubbed from cfgnt.c.
  */
 
-/*  ----------------------------------- Host OS */
-#include <stdio.h>
-#include <string.h>
+#include <linux/types.h>
 
 /*  ----------------------------------- DSP/BIOS Bridge */
 #include <std.h>
@@ -112,7 +110,7 @@ static struct GT_Mask CFG_debugMask = { 0, 0 };	/* CFG debug Mask           */
  *  Purpose:
  *      Discontinue usage of the CFG module.
  */
-VOID CFG_Exit(void)
+void CFG_Exit(void)
 {
 	GT_0trace(CFG_debugMask, GT_5CLASS, "Entered CFG_Exit\n");
 }
@@ -123,10 +121,10 @@ VOID CFG_Exit(void)
  *      Retreive the autostart mask, if any, for this board.
  */
 DSP_STATUS CFG_GetAutoStart(struct CFG_DEVNODE *hDevNode,
-			    OUT DWORD *pdwAutoStart)
+			    OUT u32 *pdwAutoStart)
 {
 	DSP_STATUS status = DSP_SOK;
-	DWORD dwBufSize;
+	u32 dwBufSize;
 	GT_2trace(CFG_debugMask, GT_ENTER,
 		  "Entered CFG_GetAutoStart: \n\thDevNode:"
 		  "0x%x\n\tpdwAutoStart: 0x%x\n", hDevNode, pdwAutoStart);
@@ -137,7 +135,7 @@ DSP_STATUS CFG_GetAutoStart(struct CFG_DEVNODE *hDevNode,
 		status = CFG_E_INVALIDPOINTER;
 	if (DSP_SUCCEEDED(status)) {
 		status = REG_GetValue(NULL, (char *)hDevNode, AUTOSTART,
-				     (BYTE *)pdwAutoStart, &dwBufSize);
+				     (u8 *)pdwAutoStart, &dwBufSize);
 		if (DSP_FAILED(status))
 			status = CFG_E_RESOURCENOTAVAIL;
 	}
@@ -161,10 +159,10 @@ DSP_STATUS CFG_GetAutoStart(struct CFG_DEVNODE *hDevNode,
  *  Purpose:
  *      Retrieve the Device Object handle for a given devnode.
  */
-DSP_STATUS CFG_GetDevObject(struct CFG_DEVNODE *hDevNode, OUT DWORD *pdwValue)
+DSP_STATUS CFG_GetDevObject(struct CFG_DEVNODE *hDevNode, OUT u32 *pdwValue)
 {
 	DSP_STATUS status = DSP_SOK;
-	DWORD dwBufSize;
+	u32 dwBufSize;
 	GT_2trace(CFG_debugMask, GT_ENTER, "Entered CFG_GetDevObject, args: "
 		 "\n\thDevNode: 0x%x\n\tpdwValue: 0x%x\n", hDevNode,
 		 *pdwValue);
@@ -185,7 +183,7 @@ DSP_STATUS CFG_GetDevObject(struct CFG_DEVNODE *hDevNode, OUT DWORD *pdwValue)
 				  "Registry \n");
 			status = REG_GetValue(NULL, (char *)hDevNode,
 					      "DEVICE_DSP",
-					      (BYTE *)pdwValue, &dwBufSize);
+					      (u8 *)pdwValue, &dwBufSize);
 		} else {
 			GT_0trace(CFG_debugMask, GT_6CLASS,
 				  "Failed to Identify the Device to Fetch \n");
@@ -213,7 +211,7 @@ DSP_STATUS CFG_GetDSPResources(struct CFG_DEVNODE *hDevNode,
 			       OUT struct CFG_DSPRES *pDSPResTable)
 {
 	DSP_STATUS status = DSP_SOK;	/* return value */
-	DWORD dwResSize;
+	u32 dwResSize;
 	GT_2trace(CFG_debugMask, GT_ENTER,
 		  "Entered CFG_GetDSPResources, args: "
 		  "\n\thDevNode:  0x%x\n\tpDSPResTable:  0x%x\n",
@@ -224,7 +222,7 @@ DSP_STATUS CFG_GetDSPResources(struct CFG_DEVNODE *hDevNode,
 		status = CFG_E_INVALIDPOINTER;
 	} else {
 		status = REG_GetValue(NULL, CONFIG, DSPRESOURCES,
-				     (BYTE *)pDSPResTable,
+				     (u8 *)pDSPResTable,
 				     &dwResSize);
 	}
 	if (DSP_SUCCEEDED(status)) {
@@ -251,11 +249,11 @@ DSP_STATUS CFG_GetDSPResources(struct CFG_DEVNODE *hDevNode,
  *  Purpose:
  *      Retreive the default executable, if any, for this board.
  */
-DSP_STATUS CFG_GetExecFile(struct CFG_DEVNODE *hDevNode, ULONG ulBufSize,
-			   OUT PSTR pstrExecFile)
+DSP_STATUS CFG_GetExecFile(struct CFG_DEVNODE *hDevNode, u32 ulBufSize,
+			   OUT char *pstrExecFile)
 {
 	DSP_STATUS status = DSP_SOK;
-	ULONG cExecSize = ulBufSize;
+	u32 cExecSize = ulBufSize;
 	GT_3trace(CFG_debugMask, GT_ENTER,
 		  "Entered CFG_GetExecFile:\n\tthDevNode: "
 		  "0x%x\n\tulBufSize: 0x%x\n\tpstrExecFile: 0x%x\n", hDevNode,
@@ -268,7 +266,7 @@ DSP_STATUS CFG_GetExecFile(struct CFG_DEVNODE *hDevNode, ULONG ulBufSize,
 
 	if (DSP_SUCCEEDED(status)) {
 		status = REG_GetValue(NULL, (char *)hDevNode, DEFEXEC,
-				     (BYTE *)pstrExecFile, &cExecSize);
+				     (u8 *)pstrExecFile, &cExecSize);
 		if (DSP_FAILED(status))
 			status = CFG_E_RESOURCENOTAVAIL;
 		else if (cExecSize > ulBufSize)
@@ -300,7 +298,7 @@ DSP_STATUS CFG_GetHostResources(struct CFG_DEVNODE *hDevNode,
 				OUT struct CFG_HOSTRES *pHostResTable)
 {
 	DSP_STATUS status = DSP_SOK;
-	DWORD dwBufSize;
+	u32 dwBufSize;
 	GT_2trace(CFG_debugMask, GT_ENTER,
 		  "Entered CFG_GetHostResources, args:\n\t"
 		  "pHostResTable:  0x%x\n\thDevNode:  0x%x\n",
@@ -315,7 +313,7 @@ DSP_STATUS CFG_GetHostResources(struct CFG_DEVNODE *hDevNode,
 		dwBufSize = sizeof(struct CFG_HOSTRES);
 		if (DSP_FAILED(REG_GetValue(NULL, (char *)hDevNode,
 			       CURRENTCONFIG,
-			      (BYTE *)pHostResTable, &dwBufSize))) {
+			      (u8 *)pHostResTable, &dwBufSize))) {
 			status = CFG_E_RESOURCENOTAVAIL;
 		}
 	}
@@ -336,10 +334,10 @@ DSP_STATUS CFG_GetHostResources(struct CFG_DEVNODE *hDevNode,
  *  Purpose:
  *      Retrieve the Object handle from the Registry
  */
-DSP_STATUS CFG_GetObject(OUT DWORD *pdwValue, DWORD dwType)
+DSP_STATUS CFG_GetObject(OUT u32 *pdwValue, u32 dwType)
 {
 	DSP_STATUS status = DSP_EINVALIDARG;
-	DWORD dwBufSize;
+	u32 dwBufSize;
 	DBC_Require(pdwValue != NULL);
 	GT_1trace(CFG_debugMask, GT_ENTER,
 		 "Entered CFG_GetObject, args:pdwValue: "
@@ -348,12 +346,12 @@ DSP_STATUS CFG_GetObject(OUT DWORD *pdwValue, DWORD dwType)
 	switch (dwType) {
 	case (REG_DRV_OBJECT):
 		status = REG_GetValue(NULL, CONFIG, DRVOBJECT,
-				     (BYTE *)pdwValue,
+				     (u8 *)pdwValue,
 				     &dwBufSize);
 		break;
 	case (REG_MGR_OBJECT):
 		status = REG_GetValue(NULL, CONFIG, MGROBJECT,
-				     (BYTE *)pdwValue,
+				     (u8 *)pdwValue,
 				     &dwBufSize);
 		break;
 	default:
@@ -393,7 +391,7 @@ BOOL CFG_Init(void)
 	dspResources.aMemDesc[0].ulMin = 0;
 	dspResources.aMemDesc[0].ulMax = 0;
 	if (DSP_SUCCEEDED(REG_SetValue(NULL, CONFIG, DSPRESOURCES, REG_BINARY,
-			 (BYTE *)&dspResources, sizeof(struct CFG_DSPRES)))) {
+			 (u8 *)&dspResources, sizeof(struct CFG_DSPRES)))) {
 		GT_0trace(CFG_debugMask, GT_5CLASS,
 			  "Initialized DSP resources in "
 			  "Registry \n");
@@ -409,10 +407,10 @@ BOOL CFG_Init(void)
  *  Purpose:
  *      Store the Device Object handle and devNode pointer for a given devnode.
  */
-DSP_STATUS CFG_SetDevObject(struct CFG_DEVNODE *hDevNode, DWORD dwValue)
+DSP_STATUS CFG_SetDevObject(struct CFG_DEVNODE *hDevNode, u32 dwValue)
 {
 	DSP_STATUS status = DSP_SOK;
-	DWORD dwBuffSize;
+	u32 dwBuffSize;
 	GT_2trace(CFG_debugMask, GT_ENTER,
 		  "Entered CFG_SetDevObject, args: \n\t"
 		  "hDevNode: 0x%x\n\tdwValue: 0x%x\n", hDevNode, dwValue);
@@ -428,12 +426,12 @@ DSP_STATUS CFG_SetDevObject(struct CFG_DEVNODE *hDevNode, DWORD dwValue)
 				  "Registering the DSP Device \n");
 			status = REG_SetValue(NULL, (char *)hDevNode,
 				  "DEVICE_DSP", REG_DWORD,\
-				  (BYTE *)&dwValue, dwBuffSize);
+				  (u8 *)&dwValue, dwBuffSize);
 			if (DSP_SUCCEEDED(status)) {
 				dwBuffSize = sizeof(hDevNode);
 				status = REG_SetValue(NULL,
 					  (char *)hDevNode, "DEVNODESTRING_DSP",
-					  REG_DWORD, (BYTE *)&hDevNode,
+					  REG_DWORD, (u8 *)&hDevNode,
 					  dwBuffSize);
 			}
 		} else {
@@ -458,10 +456,10 @@ DSP_STATUS CFG_SetDevObject(struct CFG_DEVNODE *hDevNode, DWORD dwValue)
  *  Purpose:
  *      Store the Driver Object handle
  */
-DSP_STATUS CFG_SetObject(DWORD dwValue, DWORD dwType)
+DSP_STATUS CFG_SetObject(u32 dwValue, u32 dwType)
 {
 	DSP_STATUS status = DSP_EINVALIDARG;
-	DWORD dwBuffSize;
+	u32 dwBuffSize;
 	GT_1trace(CFG_debugMask, GT_ENTER,
 		  "Entered CFG_SetObject, args: dwValue: "
 		  "0x%x\n", dwValue);
@@ -469,11 +467,11 @@ DSP_STATUS CFG_SetObject(DWORD dwValue, DWORD dwType)
 	switch (dwType) {
 	case (REG_DRV_OBJECT):
 		status = REG_SetValue(NULL, CONFIG, DRVOBJECT, REG_DWORD,
-			 (BYTE *)&dwValue, dwBuffSize);
+			 (u8 *)&dwValue, dwBuffSize);
 		break;
 	case (REG_MGR_OBJECT):
 		status = REG_SetValue(NULL, CONFIG, MGROBJECT, REG_DWORD,
-			 (BYTE *) &dwValue, dwBuffSize);
+			 (u8 *) &dwValue, dwBuffSize);
 		break;
 	default:
 		break;
@@ -494,7 +492,7 @@ DSP_STATUS CFG_SetObject(DWORD dwValue, DWORD dwType)
  * Get the number of configured C55 processors
  */
 
-DSP_STATUS CFG_GetC55Procs(OUT DWORD *numProcs)
+DSP_STATUS CFG_GetC55Procs(OUT u32 *numProcs)
 {
 	DSP_STATUS status = DSP_SOK;
 

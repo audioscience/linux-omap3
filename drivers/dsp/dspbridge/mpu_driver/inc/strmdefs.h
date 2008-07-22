@@ -38,18 +38,18 @@
 
 	struct STRM_ATTR {
 		HANDLE hUserEvent;
-		PSTR pstrEventName;
-		PVOID pVirtBase;	/* Process virtual base address of
+		char *pstrEventName;
+		void *pVirtBase;	/* Process virtual base address of
 					 * mapped SM */
-		ULONG ulVirtSize;	/* Size of virtual space in bytes */
+		u32 ulVirtSize;	/* Size of virtual space in bytes */
 		struct DSP_STREAMATTRIN *pStreamAttrIn;
 	} ;
 
 	struct STRM_INFO {
 		DSP_STRMMODE lMode;	/* transport mode of
 					 * stream(DMA, ZEROCOPY..) */
-		UINT uSegment;	/* Segment strm allocs from. 0 is local mem */
-		PVOID pVirtBase;	/* "      " Stream'process virt base */
+		u32 uSegment;	/* Segment strm allocs from. 0 is local mem */
+		void *pVirtBase;	/* "      " Stream'process virt base */
 		struct DSP_STREAMINFO *pUser;	/* User's stream information
 						 * returned */
 	} ;

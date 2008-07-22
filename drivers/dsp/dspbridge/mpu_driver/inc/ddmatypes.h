@@ -29,8 +29,8 @@
 #define DDMATYPES_
 
 /* DSP-side definitions */
-typedef LgUns DDMA_DWORD;
-typedef Uns DDMA_WORD;
-typedef LgUns DDMA_STATUS;
+typedef u32 DDMA_DWORD;
+typedef u32 DDMA_WORD;
+typedef u32 DDMA_STATUS;
 
 #endif				/* DDMATYPES_ */

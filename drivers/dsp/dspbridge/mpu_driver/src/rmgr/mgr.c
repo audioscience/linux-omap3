@@ -68,7 +68,7 @@
 #define SIGNATURE               0x5f52474d	/* "MGR_" (in reverse) */
 
 struct MGR_OBJECT {
-	DWORD dwSignature;
+	u32 dwSignature;
 	struct DCD_MANAGER *hDcdMgr;	/* Proc/Node data manager */
 };
 
@@ -77,7 +77,7 @@ struct MGR_OBJECT {
 static struct GT_Mask MGR_DebugMask = { 0, 0 };
 #endif
 
-static ULONG cRefs;
+static u32 cRefs;
 
 /*
  *  ========= MGR_Create =========
@@ -100,7 +100,7 @@ DSP_STATUS MGR_Create(OUT struct MGR_OBJECT **phMgrObject,
 		if (DSP_SUCCEEDED(DCD_CreateManager(ZLDLLNAME,
 		   &pMgrObject->hDcdMgr))) {
 			/* If succeeded store the handle in the MGR Object */
-			if (DSP_SUCCEEDED(CFG_SetObject((DWORD)pMgrObject,
+			if (DSP_SUCCEEDED(CFG_SetObject((u32)pMgrObject,
 			   REG_MGR_OBJECT))) {
 				*phMgrObject = pMgrObject;
 				GT_0trace(MGR_DebugMask, GT_1CLASS,
@@ -154,7 +154,7 @@ DSP_STATUS MGR_Destroy(struct MGR_OBJECT *hMgrObject)
 
 	MEM_FreeObject(pMgrObject);
 	/* Update the Registry with NULL for MGR Object */
-	(Void)CFG_SetObject(0, REG_MGR_OBJECT);
+	(void)CFG_SetObject(0, REG_MGR_OBJECT);
 
 	GT_2trace(MGR_DebugMask, GT_ENTER,
 		 "Exiting MGR_Destroy: hMgrObject: 0x%x\t"
@@ -172,14 +172,14 @@ DSP_STATUS MGR_Destroy(struct MGR_OBJECT *hMgrObject)
  *      Enumerate and get configuration information about nodes configured
  *      in the node database.
  */
-DSP_STATUS MGR_EnumNodeInfo(UINT uNode, OUT struct DSP_NDBPROPS *pNDBProps,
-			   UINT uNDBPropsSize, OUT UINT *puNumNodes)
+DSP_STATUS MGR_EnumNodeInfo(u32 uNode, OUT struct DSP_NDBPROPS *pNDBProps,
+			   u32 uNDBPropsSize, OUT u32 *puNumNodes)
 {
 	DSP_STATUS status = DSP_SOK;
 	DSP_STATUS status1 = DSP_SOK;
 	struct DSP_UUID Uuid, uTempUuid;
-	UINT uTempIndex = 0;
-	UINT uNodeIndex = 0;
+	u32 uTempIndex = 0;
+	u32 uNodeIndex = 0;
 	struct DCD_GENERICOBJ GenObj;
 	struct MGR_OBJECT *pMgrObject = NULL;
 
@@ -194,7 +194,7 @@ DSP_STATUS MGR_EnumNodeInfo(UINT uNode, OUT struct DSP_NDBPROPS *pNDBProps,
 		 uNDBPropsSize, puNumNodes);
 	*puNumNodes = 0;
 	/* Get The Manager Object from the Registry */
-	if (!DSP_SUCCEEDED(CFG_GetObject((DWORD *)&pMgrObject,
+	if (!DSP_SUCCEEDED(CFG_GetObject((u32 *)&pMgrObject,
 	   REG_MGR_OBJECT))) {
 		GT_0trace(MGR_DebugMask, GT_7CLASS,
 			 "Manager_EnumNodeInfo:Failed To Get"
@@ -260,22 +260,22 @@ func_cont:
  *      Enumerate and get configuration information about available
  *      DSP processors.
  */
-DSP_STATUS MGR_EnumProcessorInfo(UINT uProcessor,
+DSP_STATUS MGR_EnumProcessorInfo(u32 uProcessor,
 				OUT struct DSP_PROCESSORINFO *pProcessorInfo,
-				UINT uProcessorInfoSize, OUT UINT *puNumProcs)
+				u32 uProcessorInfoSize, OUT u32 *puNumProcs)
 {
 	DSP_STATUS status = DSP_SOK;
 	DSP_STATUS status1 = DSP_SOK;
 	DSP_STATUS status2 = DSP_SOK;
 	struct DSP_UUID uTempUuid;
-	UINT uTempIndex = 0;
-	UINT uProcIndex = 0;
+	u32 uTempIndex = 0;
+	u32 uProcIndex = 0;
 	struct DCD_GENERICOBJ GenObj;
 	struct MGR_OBJECT *pMgrObject = NULL;
 	struct MGR_PROCESSOREXTINFO *pExtInfo;
 	struct DEV_OBJECT *hDevObject;
 	struct DRV_OBJECT *hDrvObject;
-	INT devType;
+	s32 devType;
 	struct CFG_DEVNODE *devNode;
 	struct CFG_DSPRES chipResources;
 	BOOL procDetect = FALSE;
@@ -291,11 +291,11 @@ DSP_STATUS MGR_EnumProcessorInfo(UINT uProcessor,
 		 "uProcessorInfoSize: 0x%x\tpuNumProcs: 0x%x\n", uProcessor,
 		 pProcessorInfo, uProcessorInfoSize, puNumProcs);
 	*puNumProcs = 0;
-	status = CFG_GetObject((DWORD *)&hDrvObject, REG_DRV_OBJECT);
+	status = CFG_GetObject((u32 *)&hDrvObject, REG_DRV_OBJECT);
 	if (DSP_SUCCEEDED(status)) {
 		status = DRV_GetDevObject(uProcessor, hDrvObject, &hDevObject);
 		if (DSP_SUCCEEDED(status)) {
-			status = DEV_GetDevType(hDevObject, &devType);
+			status = DEV_GetDevType(hDevObject, (u32 *) &devType);
 			status = DEV_GetDevNode(hDevObject, &devNode);
 			if (devType == DSP_UNIT) {
 				status = CFG_GetDSPResources(devNode,
@@ -316,7 +316,7 @@ DSP_STATUS MGR_EnumProcessorInfo(UINT uProcessor,
 		goto func_end;
 
 	/* Get The Manager Object from the Registry */
-	if (!DSP_SUCCEEDED(CFG_GetObject((DWORD *)&pMgrObject,
+	if (!DSP_SUCCEEDED(CFG_GetObject((u32 *)&pMgrObject,
 	   REG_MGR_OBJECT))) {
 		GT_0trace(MGR_DebugMask, GT_7CLASS,
 			 "Manager_EnumProcessorInfo: "
@@ -415,7 +415,7 @@ void CDECL MGR_Exit(void)
  *      Retrieves the MGR handle. Accessor Function.
  */
 DSP_STATUS MGR_GetDCDHandle(struct MGR_OBJECT *hMGRHandle,
-			   OUT DWORD *phDCDHandle)
+			   OUT u32 *phDCDHandle)
 {
 	DSP_STATUS status = DSP_EFAIL;
 	struct MGR_OBJECT *pMgrObject = (struct MGR_OBJECT *)hMGRHandle;
@@ -423,13 +423,13 @@ DSP_STATUS MGR_GetDCDHandle(struct MGR_OBJECT *hMGRHandle,
 	DBC_Require(cRefs > 0);
 	DBC_Require(phDCDHandle != NULL);
 
-	*phDCDHandle = (DWORD)NULL;
+	*phDCDHandle = (u32)NULL;
 	if (MEM_IsValidHandle(pMgrObject, SIGNATURE)) {
-		*phDCDHandle = (DWORD) pMgrObject->hDcdMgr;
+		*phDCDHandle = (u32) pMgrObject->hDcdMgr;
 		status = DSP_SOK;
 	}
-	DBC_Ensure((DSP_SUCCEEDED(status) && *phDCDHandle != (DWORD)NULL) ||
-		  (DSP_FAILED(status) && *phDCDHandle == (DWORD)NULL));
+	DBC_Ensure((DSP_SUCCEEDED(status) && *phDCDHandle != (u32)NULL) ||
+		  (DSP_FAILED(status) && *phDCDHandle == (u32)NULL));
 
 	return status;
 }
@@ -478,11 +478,11 @@ BOOL CDECL MGR_Init(void)
  *      Block on any Bridge event(s)
  */
 DSP_STATUS MGR_WaitForBridgeEvents(struct DSP_NOTIFICATION **aNotifications,
-				  UINT uCount, OUT UINT *puIndex, UINT uTimeout)
+				  u32 uCount, OUT u32 *puIndex, u32 uTimeout)
 {
 	DSP_STATUS status;
 	struct SYNC_OBJECT *hSyncEvents[MAX_EVENTS];
-	UINT i;
+	u32 i;
 
 	DBC_Require(uCount < MAX_EVENTS);
 

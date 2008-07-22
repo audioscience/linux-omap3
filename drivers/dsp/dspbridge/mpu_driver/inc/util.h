@@ -69,7 +69,7 @@
  *      UTIL initialized.
  *  Ensures:
  */
-	extern DWORD UTIL_CDTestDll(IN INT cArgc, IN char **ppArgv);
+	extern u32 UTIL_CDTestDll(IN s32 cArgc, IN char **ppArgv);
 
 /*
  *  ======== UTIL_CmdLineToArgs ========
@@ -77,9 +77,9 @@
  *      This function re-creates C-style cmd line argc & argv from WinMain()
  *      cmd line args.
  *  Parameters:
- *      CHAR *pszProgName   - The name of the program currently being executed.
- *      CHAR *argv[]        - The argument vector.
- *      CHAR *pCmdLine      - The pointer to the command line.
+ *      s8 *pszProgName   - The name of the program currently being executed.
+ *      s8 *argv[]        - The argument vector.
+ *      s8 *pCmdLine      - The pointer to the command line.
  *      BOOL fHasProgName   - Indicats whether a program name is supplied.
  *  Returns:
  *      Returns the number of arguments found.
@@ -87,7 +87,7 @@
  *      UTIL initialized.
  *  Ensures:
  */
-	extern INT UTIL_CmdLineToArgs(IN char *pszProgName,
+	extern s32 UTIL_CmdLineToArgs(IN char *pszProgName,
 				      IN char *argv[UTIL_MAXARGVS],
 				      IN char *pCmdLine, IN BOOL fHasProgName);
 
@@ -103,7 +103,7 @@
  *  Ensures:
  *      Resources used by module are freed when cRef reaches zero.
  */
-	extern inline VOID UTIL_Exit(void)
+	extern inline void UTIL_Exit(void)
 	{
 	}
 /*
@@ -146,7 +146,7 @@
  *      independent of the processor speed. This is acheived by the
  *      OEM functions QueryPerformanceCounter and QueryPerformanceFrequency.
  *  Parameters:
- *      DWORD   Number of Micro seconds to busy wait
+ *      u32   Number of Micro seconds to busy wait
  *  Returns:
  *          Nothing
  *  Requires:
@@ -156,7 +156,7 @@
  *      case, it is a blocking call there will be a context switching
  *      hence it may not represent the absolute busy wait time.
  */
-	extern inline VOID UTIL_Wait(IN DWORD dwMicroSeconds)
+	extern inline void UTIL_Wait(IN u32 dwMicroSeconds)
 	{
 		if (dwMicroSeconds / 1000 <= 1) {
 			/* <= 1 millisecond delay */

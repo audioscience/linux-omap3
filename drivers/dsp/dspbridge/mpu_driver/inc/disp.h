@@ -92,7 +92,7 @@
  *  Ensures:
  *      hDispObject is invalid.
  */
-	extern VOID DISP_Delete(struct DISP_OBJECT *hDispObject);
+	extern void DISP_Delete(struct DISP_OBJECT *hDispObject);
 
 /*
  *  ======== DISP_Exit ========
@@ -142,9 +142,9 @@
 	extern DSP_STATUS DISP_NodeChangePriority(struct DISP_OBJECT
 						  *hDispObject,
 						  struct NODE_OBJECT *hNode,
-						  ULONG ulFxnAddr,
+						  u32 ulFxnAddr,
 						  NODE_ENV nodeEnv,
-						  INT nPriority);
+						  s32 nPriority);
 
 /*
  *  ======== DISP_NodeCreate ========
@@ -176,8 +176,8 @@
  */
 	extern DSP_STATUS DISP_NodeCreate(struct DISP_OBJECT *hDispObject,
 					  struct NODE_OBJECT *hNode,
-					  ULONG ulFxnAddr,
-					  ULONG ulCreateFxn,
+					  u32 ulFxnAddr,
+					  u32 ulCreateFxn,
 					  IN CONST struct NODE_CREATEARGS
 					  *pArgs,
 					  OUT NODE_ENV *pNodeEnv);
@@ -204,8 +204,8 @@
  */
 	extern DSP_STATUS DISP_NodeDelete(struct DISP_OBJECT *hDispObject,
 					  struct NODE_OBJECT *hNode,
-					  ULONG ulFxnAddr,
-					  ULONG ulDeleteFxn, NODE_ENV nodeEnv);
+					  u32 ulFxnAddr,
+					  u32 ulDeleteFxn, NODE_ENV nodeEnv);
 
 /*
  *  ======== DISP_NodeRun ========
@@ -230,7 +230,7 @@
  */
 	extern DSP_STATUS DISP_NodeRun(struct DISP_OBJECT *hDispObject,
 				       struct NODE_OBJECT *hNode,
-				       ULONG ulFxnAddr,
-				       ULONG ulExecuteFxn, NODE_ENV nodeEnv);
+				       u32 ulFxnAddr,
+				       u32 ulExecuteFxn, NODE_ENV nodeEnv);
 
 #endif				/* DISP_ */
