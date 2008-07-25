@@ -570,12 +570,6 @@ static int vidioc_streamon(struct file *file, void *fh, enum v4l2_buf_type i)
 		goto out;
 	}
 
-	rval = vidioc_int_init(vdev->vdev_sensor);
-	if (rval) {
-		dev_dbg(vdev->cam->dev, "vidioc_int_init failed\n");
-		goto out;
-	}
-
 	cam->dma_notify = 1;
 	isp_sgdma_init();
 	rval = videobuf_streamon(&ofh->vbq);
