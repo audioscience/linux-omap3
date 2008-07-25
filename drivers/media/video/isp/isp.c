@@ -30,6 +30,7 @@
 #include <asm/arch/io.h>
 #include <linux/device.h>
 #include <linux/videodev2.h>
+#include <media/v4l2-int-device.h>
 
 #include "isp.h"
 #include "ispmmu.h"
@@ -37,6 +38,7 @@
 #include "ispccdc.h"
 #include "isph3a.h"
 #include "isphist.h"
+#include "isp_af.h"
 #include "isppreview.h"
 #include "ispresizer.h"
 
@@ -123,9 +125,9 @@ static struct vcontrol {
  * CBK_LSC_ISR).
  */
 static struct ispirq {
-	isp_callback_t isp_callbk[9];
-	isp_vbq_callback_ptr isp_callbk_arg1[9];
-	void *isp_callbk_arg2[9];
+	isp_callback_t isp_callbk[10];
+	isp_vbq_callback_ptr isp_callbk_arg1[10];
+	void *isp_callbk_arg2[10];
 } ispirq_obj;
 
 /**
@@ -390,6 +392,12 @@ int isp_set_callback(enum isp_callback_type type, isp_callback_t callback,
 					IRQ0ENABLE_H3A_AWB_DONE_IRQ,
 					ISP_IRQ0ENABLE);
 		break;
+	case CBK_H3A_AF_DONE:
+		omap_writel(IRQ0ENABLE_H3A_AF_DONE_IRQ, ISP_IRQ0STATUS);
+		omap_writel(omap_readl(ISP_IRQ0ENABLE)|
+				IRQ0ENABLE_H3A_AF_DONE_IRQ,
+				ISP_IRQ0ENABLE);
+		break;
 	case CBK_HIST_DONE:
 		omap_writel(IRQ0ENABLE_HIST_DONE_IRQ, ISP_IRQ0STATUS);
 		omap_writel(omap_readl(ISP_IRQ0ENABLE) |
@@ -466,6 +474,10 @@ int isp_unset_callback(enum isp_callback_type type)
 		omap_writel((omap_readl(ISP_IRQ0ENABLE)) &
 						~IRQ0ENABLE_H3A_AWB_DONE_IRQ,
 						ISP_IRQ0ENABLE);
+		break;
+	case CBK_H3A_AF_DONE:
+		omap_writel((omap_readl(ISP_IRQ0ENABLE))&
+				(~IRQ0ENABLE_H3A_AF_DONE_IRQ), ISP_IRQ0ENABLE);
 		break;
 	case CBK_HIST_DONE:
 		omap_writel((omap_readl(ISP_IRQ0ENABLE)) &
@@ -980,6 +992,14 @@ static irqreturn_t omap34xx_isp_isr(int irq, void *ispirq_disp)
 			irqdis->isp_callbk[CBK_HS_VS](HS_VS,
 				irqdis->isp_callbk_arg1[CBK_HS_VS],
 				irqdis->isp_callbk_arg2[CBK_HS_VS]);
+		is_irqhandled = 1;
+	}
+
+	if ((irqstatus & H3A_AF_DONE) == H3A_AF_DONE) {
+		if (irqdis->isp_callbk[CBK_H3A_AF_DONE])
+			irqdis->isp_callbk[CBK_H3A_AF_DONE](H3A_AF_DONE,
+				irqdis->isp_callbk_arg1[CBK_H3A_AF_DONE],
+				irqdis->isp_callbk_arg2[CBK_H3A_AF_DONE]);
 		is_irqhandled = 1;
 	}
 
@@ -1591,49 +1611,46 @@ int isp_handle_private(int cmd, void *arg)
 	case VIDIOC_PRIVATE_ISP_PRV_CFG:
 		rval = omap34xx_isp_preview_config(arg);
 		break;
-	case VIDIOC_PRIVATE_ISP_AEWB_CFG:
-		if (!arg)
-			rval = -EFAULT;
-		else {
-			struct isph3a_aewb_config *params;
-			params = (struct isph3a_aewb_config *) arg;
-			rval = isph3a_aewb_configure(params);
+	case VIDIOC_PRIVATE_ISP_AEWB_CFG: {
+		struct isph3a_aewb_config *params;
+		params = (struct isph3a_aewb_config *) arg;
+		rval = isph3a_aewb_configure(params);
 		}
 		break;
-	case VIDIOC_PRIVATE_ISP_AEWB_REQ:
-		if (!arg)
-			rval = -EFAULT;
-		else {
-			struct isph3a_aewb_data *data;
-			data = (struct isph3a_aewb_data *) arg;
-			rval = isph3a_aewb_request_statistics(data);
+	case VIDIOC_PRIVATE_ISP_AEWB_REQ: {
+		struct isph3a_aewb_data *data;
+		data = (struct isph3a_aewb_data *) arg;
+		rval = isph3a_aewb_request_statistics(data);
 		}
 		break;
-	case VIDIOC_PRIVATE_ISP_HIST_CFG:
-	if (!arg)
-			rval = -EFAULT;
-		else {
-			struct isp_hist_config *params;
-
-			params = (struct isp_hist_config *) arg;
-			rval = isp_hist_configure(params);
+	case VIDIOC_PRIVATE_ISP_HIST_CFG: {
+		struct isp_hist_config *params;
+		params = (struct isp_hist_config *) arg;
+		rval = isp_hist_configure(params);
 		}
 		break;
-	case VIDIOC_PRIVATE_ISP_HIST_REQ:
-	if (!arg)
-			rval = -EFAULT;
-		else {
-			struct isp_hist_data *data;
-
-			data = (struct isp_hist_data *) arg;
-			rval = isp_hist_request_statistics(data);
+	case VIDIOC_PRIVATE_ISP_HIST_REQ: {
+		struct isp_hist_data *data;
+		data = (struct isp_hist_data *) arg;
+		rval = isp_hist_request_statistics(data);
 		}
 		break;
+	case VIDIOC_PRIVATE_ISP_AF_CFG: {
+		struct af_configuration *params;
+		params = (struct af_configuration *) arg;
+		rval = isp_af_configure(params);
+		}
+	break;
+	case VIDIOC_PRIVATE_ISP_AF_REQ: {
+		struct isp_af_data *data;
+		data = (struct isp_af_data *) arg;
+		rval = isp_af_request_statistics(data);
+		}
+	break;
 	default:
 		rval = -EINVAL;
 		break;
 	}
-
 	return rval;
 }
 

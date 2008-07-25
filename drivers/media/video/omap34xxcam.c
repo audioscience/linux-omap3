@@ -33,6 +33,7 @@
 #include "isp/ispreg.h"
 #include "isp/ispccdc.h"
 #include "isp/isph3a.h"
+#include "isp/isp_af.h"
 #include "isp/isphist.h"
 #include "isp/isppreview.h"
 #include "isp/ispresizer.h"
@@ -730,6 +731,9 @@ static int vidioc_g_ctrl(struct file *file, void *fh, struct v4l2_control *a)
 		/* If control not supported on ISP, try sensor */
 		if (rval)
 			rval = vidioc_int_g_ctrl(vdev->vdev_sensor, a);
+		/* If control not supported on sensor, try lens */
+		if (rval)
+			rval = vidioc_int_g_ctrl(vdev->vdev_lens, a);
 	}
 	mutex_unlock(&vdev->mutex);
 
@@ -764,6 +768,9 @@ static int vidioc_s_ctrl(struct file *file, void *fh, struct v4l2_control *a)
 		/* If control not supported on ISP, try sensor */
 		if (rval)
 			rval = vidioc_int_s_ctrl(vdev->vdev_sensor, a);
+		/* If control not supported on sensor, try lens */
+		if (rval)
+			rval = vidioc_int_s_ctrl(vdev->vdev_lens, a);
 	}
 	mutex_unlock(&vdev->mutex);
 
@@ -978,9 +985,32 @@ static int vidioc_default(struct file *file, void *fh, int cmd, void *arg)
 					goto out;
 			}
 		}
-		default:
-			rval = isp_handle_private(cmd, arg);
+		break;
+		case VIDIOC_PRIVATE_ISP_AF_CFG: {
+			/* Need to update lens first */
+			struct isp_af_data *data;
+			struct v4l2_control vc;
+
+			data = (struct isp_af_data *) arg;
+			if (data->update & LENS_DESIRED_POSITION) {
+				vc.id = V4L2_CID_FOCUS_ABSOLUTE;
+				vc.value = data->desired_lens_direction;
+				rval = vidioc_int_s_ctrl(vdev->vdev_lens, &vc);
+				if (rval)
+					goto out;
+			}
+			if (data->update & REQUEST_STATISTICS) {
+				vc.id = V4L2_CID_FOCUS_ABSOLUTE;
+				rval = vidioc_int_g_ctrl(vdev->vdev_lens, &vc);
+				if (rval)
+					goto out;
+				data->xtrastats.lens_position = vc.value;
+			}
 		}
+		break;
+		}
+
+		rval = isp_handle_private(cmd, arg);
 	}
 out:
 	mutex_unlock(&vdev->mutex);
@@ -1280,7 +1310,6 @@ static int omap34xxcam_device_register(struct v4l2_int_device *s)
 
 	/* Are we the first slave? */
 	if (vdev->slaves == 0) {
-
 		/* initialize the video_device struct */
 		vfd = vdev->vfd = video_device_alloc();
 		if (!vfd) {
