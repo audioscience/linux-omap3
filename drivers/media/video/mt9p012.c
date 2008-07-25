@@ -63,9 +63,6 @@ const static struct v4l2_fmtdesc mt9p012_formats[] = {
 /* Enters soft standby, all settings are maintained */
 const static struct mt9p012_reg stream_off_list[] = {
 	{.length = MT9P012_8BIT, .reg = REG_MODE_SELECT, .val = 0x00},
-	/* Worst case: 10 fps, frame time = 100 ms. We need to wait until
-		frame ends. */
-	{.length = MT9P012_TOK_DELAY, .reg = 0x00, .val = 100},
 	{.length = MT9P012_TOK_TERM, .reg = 0, .val = 0}
 };
 
@@ -1343,10 +1340,16 @@ static int ioctl_s_power(struct v4l2_int_device *s, enum v4l2_power on)
 		return rval;	
 	}
 
-	if (on != V4L2_POWER_OFF)
-		isp_set_xclk(p.u.bt656.clock_curr, MT9P012_USE_XCLKA);
-	else
+	if (((on == V4L2_POWER_OFF) || (on == V4L2_POWER_STANDBY))
+		&& (sensor->state == SENSOR_DETECTED))
+		mt9p012_write_regs(c, stream_off_list);
+
+
+	if ((on != V4L2_POWER_ON) && (on != V4L2_POWER_RESUME))
 		isp_set_xclk(0, MT9P012_USE_XCLKA);
+	else
+		isp_set_xclk(p.u.bt656.clock_curr, MT9P012_USE_XCLKA);
+
 
 	rval = sensor->pdata->power_set(on);
 	if (rval < 0) {
@@ -1355,7 +1358,10 @@ static int ioctl_s_power(struct v4l2_int_device *s, enum v4l2_power on)
 		isp_set_xclk(0, MT9P012_USE_XCLKA);
 		return rval;
 	}
-		
+
+	if ((on == V4L2_POWER_RESUME) && (sensor->state == SENSOR_DETECTED))
+		mt9p012_configure(s);
+
 	if ((on == V4L2_POWER_ON) && (sensor->state == SENSOR_NOT_DETECTED)) {
 		rval = mt9p012_detect(c);
 		if (rval < 0) {
@@ -1381,7 +1387,7 @@ static int ioctl_s_power(struct v4l2_int_device *s, enum v4l2_power on)
  */
 static int ioctl_init(struct v4l2_int_device *s)
 {
-	return mt9p012_configure(s);
+	return 0;
 }
 
 /**

@@ -44,6 +44,7 @@
 #include <linux/i2c/twl4030-rtc.h>
 #include <media/v4l2-int-device.h>
 #include <../drivers/media/video/mt9p012.h>
+#include <../drivers/media/video/dw9710.h>
 #include <../drivers/media/video/omap34xxcam.h>
 #include <../drivers/media/video/isp/ispreg.h>
 #include "ti-compat.h"
@@ -722,7 +723,33 @@ static struct mt9p012_platform_data sdp3430_mt9p012_platform_data = {
 	.ifparm         = mt9p012_ifparm,
 };
 
+static int dw9710_lens_power_set(enum v4l2_power power)
+{
+
+	return 0;
+}
+
+static int dw9710_lens_set_prv_data(void *priv)
+{
+	struct omap34xxcam_hw_config *hwc = priv;
+
+	hwc->dev_index = 0;
+	hwc->dev_minor = 0;
+	hwc->dev_type = OMAP34XXCAM_SLAVE_LENS;
+
+	return 0;
+}
+
+static struct dw9710_platform_data sdp3430_dw9710_platform_data = {
+	.power_set      = dw9710_lens_power_set,
+	.priv_data_set  = dw9710_lens_set_prv_data,
+};
+
 static struct i2c_board_info __initdata sdp3430_i2c_board_info[] = {
+	{
+		I2C_BOARD_INFO(DW9710_NAME,  DW9710_AF_I2C_ADDR),
+		.platform_data = &sdp3430_dw9710_platform_data,
+	},
 	{
 		I2C_BOARD_INFO("mt9p012", MT9P012_I2C_ADDR),
 		.platform_data = &sdp3430_mt9p012_platform_data,

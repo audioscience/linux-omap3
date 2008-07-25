@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
-# Linux kernel version: 2.6.26-rc8-omap1
-# Wed Jul  2 15:14:25 2008
+# Linux kernel version: 2.6.26-omap1
+# Thu Jul 24 12:50:10 2008
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y

@@ -42,9 +42,9 @@
 #define VIDIOC_PRIVATE_ISP_HIST_REQ \
 	_IOWR('V', BASE_VIDIOC_PRIVATE + 7, struct isp_hist_data)
 #define VIDIOC_PRIVATE_ISP_AF_CFG \
-	_IO('V', BASE_VIDIOC_PRIVATE + 8)
+	_IOWR('V', BASE_VIDIOC_PRIVATE + 8, struct af_configuration)
 #define VIDIOC_PRIVATE_ISP_AF_REQ \
-	_IO('V', BASE_VIDIOC_PRIVATE + 9)
+	_IOWR('V', BASE_VIDIOC_PRIVATE + 9, struct isp_af_data)
 
 #define ISP_TOK_TERM		0xFFFFFFFF	/*
 						 * terminating token for ISP
@@ -95,6 +95,7 @@ enum isp_irqevents {
 	CCDC_VD2 = 0x400,
 	CCDC_ERR = 0x800,
 	H3A_AWB_DONE = 0x2000,
+	H3A_AF_DONE = 0x1000,
 	HIST_DONE = 0x10000,
 	PREV_DONE = 0x100000,
 	LSC_DONE = 0x20000,
@@ -116,7 +117,8 @@ enum isp_callback_type {
 	CBK_H3A_AWB_DONE,
 	CBK_HIST_DONE,
 	CBK_HS_VS,
-	CBK_LSC_ISR
+	CBK_LSC_ISR,
+	CBK_H3A_AF_DONE
 };
 
 /**

@@ -33,6 +33,7 @@
 #include "isp/ispreg.h"
 #include "isp/ispccdc.h"
 #include "isp/isph3a.h"
+#include "isp/isp_af.h"
 #include "isp/isphist.h"
 #include "isp/isppreview.h"
 #include "isp/ispresizer.h"
@@ -409,11 +410,13 @@ static int vidioc_s_fmt_cap(struct file *file, void *fh, struct v4l2_format *f)
 	/* Negotiate with OMAP3 ISP */
 	rval = isp_s_fmt_cap(pix, &pix_tmp);
 out:
+	if (!rval)
+		ofh->pix = pix_tmp;
 	mutex_unlock(&vdev->mutex);
 
 	if (!rval) {
 		mutex_lock(&ofh->vbq.vb_lock);
-		*pix = ofh->pix = pix_tmp;
+		*pix = pix_tmp;
 		mutex_unlock(&ofh->vbq.vb_lock);
 	}
 
@@ -570,12 +573,6 @@ static int vidioc_streamon(struct file *file, void *fh, enum v4l2_buf_type i)
 		goto out;
 	}
 
-	rval = vidioc_int_init(vdev->vdev_sensor);
-	if (rval) {
-		dev_dbg(vdev->cam->dev, "vidioc_int_init failed\n");
-		goto out;
-	}
-
 	cam->dma_notify = 1;
 	isp_sgdma_init();
 	rval = videobuf_streamon(&ofh->vbq);
@@ -606,15 +603,16 @@ static int vidioc_streamoff(struct file *file, void *fh, enum v4l2_buf_type i)
 	struct videobuf_queue *q = &ofh->vbq;
 	int rval;
 
+	mutex_lock(&vdev->mutex);
+
 	isp_stop();
 	rval = videobuf_streamoff(q);
-	if (!rval) {
-		mutex_lock(&vdev->mutex);
+	if (!rval)
 		vdev->streaming = NULL;
-		mutex_unlock(&vdev->mutex);
-	}
 
 	omap34xxcam_slave_power_set(vdev, V4L2_POWER_STANDBY);
+
+	mutex_unlock(&vdev->mutex);
 
 	return rval;
 }
@@ -733,6 +731,9 @@ static int vidioc_g_ctrl(struct file *file, void *fh, struct v4l2_control *a)
 		/* If control not supported on ISP, try sensor */
 		if (rval)
 			rval = vidioc_int_g_ctrl(vdev->vdev_sensor, a);
+		/* If control not supported on sensor, try lens */
+		if (rval)
+			rval = vidioc_int_g_ctrl(vdev->vdev_lens, a);
 	}
 	mutex_unlock(&vdev->mutex);
 
@@ -767,6 +768,9 @@ static int vidioc_s_ctrl(struct file *file, void *fh, struct v4l2_control *a)
 		/* If control not supported on ISP, try sensor */
 		if (rval)
 			rval = vidioc_int_s_ctrl(vdev->vdev_sensor, a);
+		/* If control not supported on sensor, try lens */
+		if (rval)
+			rval = vidioc_int_s_ctrl(vdev->vdev_lens, a);
 	}
 	mutex_unlock(&vdev->mutex);
 
@@ -857,6 +861,8 @@ static int vidioc_cropcap(struct file *file, void *fh, struct v4l2_cropcap *a)
 	struct v4l2_cropcap *cropcap = a;
 	int rval;
 
+	mutex_lock(&vdev->mutex);
+
 	if (vdev->vdev_sensor_config.sensor_isp) {
 		rval = vidioc_int_cropcap(vdev->vdev_sensor, a);
 	} else {
@@ -868,6 +874,9 @@ static int vidioc_cropcap(struct file *file, void *fh, struct v4l2_cropcap *a)
 		cropcap->pixelaspect.denominator = 1;
 		rval = 0;
 	}
+
+	mutex_unlock(&vdev->mutex);
+
 	return rval;
 }
 
@@ -886,10 +895,14 @@ static int vidioc_g_crop(struct file *file, void *fh, struct v4l2_crop *a)
 	struct omap34xxcam_videodev *vdev = ofh->vdev;
 	int rval = 0;
 
+	mutex_lock(&vdev->mutex);
+
 	if (vdev->vdev_sensor_config.sensor_isp)
 		rval = vidioc_int_g_crop(vdev->vdev_sensor, a);
 	else
 		rval = isp_g_crop(a);
+
+	mutex_unlock(&vdev->mutex);
 
 	return rval;
 }
@@ -910,11 +923,97 @@ static int vidioc_s_crop(struct file *file, void *fh, struct v4l2_crop *a)
 	struct v4l2_pix_format *pix = &ofh->pix;
 	int rval = 0;
 
+	mutex_lock(&vdev->mutex);
+
 	if (vdev->vdev_sensor_config.sensor_isp)
 		rval = vidioc_int_s_crop(vdev->vdev_sensor, a);
 	else
 		rval = isp_s_crop(a, pix);
 
+	mutex_unlock(&vdev->mutex);
+
+	return rval;
+}
+
+/**
+ * vidioc_default - private IOCTL handler
+ * @file: ptr. to system file structure
+ * @fh: ptr to hold address of omap34xxcam_fh struct (per-filehandle data)
+ * @cmd: ioctl cmd value
+ * @arg: ioctl arg value
+ *
+ * If the sensor being used is a "smart sensor", this request is returned to
+ * caller with -EINVAL err code.  Otherwise if the control id is the private
+ * VIDIOC_PRIVATE_ISP_AEWB_REQ to update the analog gain or exposure,
+ * then this request is forwared directly to the sensor to incorporate the
+ * feedback. The request is then passed on to the ISP private IOCTL handler,
+ * isp_handle_private()
+ */
+static int vidioc_default(struct file *file, void *fh, int cmd, void *arg)
+{
+	struct omap34xxcam_fh *ofh = file->private_data;
+	struct omap34xxcam_videodev *vdev = ofh->vdev;
+	int rval;
+
+	mutex_lock(&vdev->mutex);
+
+	if (vdev->vdev_sensor_config.sensor_isp) {
+		rval = -EINVAL;
+	} else {
+		switch (cmd) {
+		case VIDIOC_PRIVATE_ISP_AEWB_REQ:
+		{
+			/* Need to update sensor first */
+			struct isph3a_aewb_data *data;
+			struct v4l2_control vc;
+
+			data = (struct isph3a_aewb_data *) arg;
+			if (data->update & SET_EXPOSURE) {
+				vc.id = V4L2_CID_EXPOSURE;
+				vc.value = data->shutter;
+				rval = vidioc_int_s_ctrl(vdev->vdev_sensor,
+							 &vc);
+				if (rval)
+					goto out;
+			}
+			if (data->update & SET_ANALOG_GAIN) {
+				vc.id = V4L2_CID_GAIN;
+				vc.value = data->gain;
+				rval = vidioc_int_s_ctrl(vdev->vdev_sensor,
+							 &vc);
+				if (rval)
+					goto out;
+			}
+		}
+		break;
+		case VIDIOC_PRIVATE_ISP_AF_CFG: {
+			/* Need to update lens first */
+			struct isp_af_data *data;
+			struct v4l2_control vc;
+
+			data = (struct isp_af_data *) arg;
+			if (data->update & LENS_DESIRED_POSITION) {
+				vc.id = V4L2_CID_FOCUS_ABSOLUTE;
+				vc.value = data->desired_lens_direction;
+				rval = vidioc_int_s_ctrl(vdev->vdev_lens, &vc);
+				if (rval)
+					goto out;
+			}
+			if (data->update & REQUEST_STATISTICS) {
+				vc.id = V4L2_CID_FOCUS_ABSOLUTE;
+				rval = vidioc_int_g_ctrl(vdev->vdev_lens, &vc);
+				if (rval)
+					goto out;
+				data->xtrastats.lens_position = vc.value;
+			}
+		}
+		break;
+		}
+
+		rval = isp_handle_private(cmd, arg);
+	}
+out:
+	mutex_unlock(&vdev->mutex);
 	return rval;
 }
 
@@ -923,6 +1022,12 @@ static int vidioc_s_crop(struct file *file, void *fh, struct v4l2_crop *a)
  * File operations.
  *
  */
+
+static long omap34xxcam_unlocked_ioctl(struct file *file, unsigned int cmd,
+				       unsigned long arg)
+{
+	return (long)video_ioctl2(file->f_dentry->d_inode, file, cmd, arg);
+}
 
 /**
  * omap34xxcam_poll - file operations poll handler
@@ -1022,19 +1127,13 @@ static int omap34xxcam_open(struct inode *inode, struct file *file)
 	if (atomic_inc_return(&vdev->users) == 1) {
 		isp_get();
 		isp_open();
-		if (omap34xxcam_slave_power_set(vdev, V4L2_POWER_ON)) {
-			mutex_unlock(&vdev->mutex);
-			goto out_try_module_get;
-		}
-		if (omap34xxcam_slave_power_set(vdev, V4L2_POWER_STANDBY)) {
-			mutex_unlock(&vdev->mutex);
-			goto out_try_module_get;
-		}
+		if (omap34xxcam_slave_power_set(vdev, V4L2_POWER_ON))
+			goto out_slave_power_set_standby;
+		if (omap34xxcam_slave_power_set(vdev, V4L2_POWER_STANDBY))
+			goto out_slave_power_set_standby;
 	}
 
-	mutex_unlock(&vdev->mutex);
 	fh->vdev = vdev;
-	mutex_lock(&vdev->mutex);
 
 	/* FIXME: Check that we have sensor now... */
 	if (vdev->vdev_sensor_config.sensor_isp)
@@ -1057,13 +1156,17 @@ static int omap34xxcam_open(struct inode *inode, struct file *file)
 
 	return 0;
 
+out_slave_power_set_standby:
+	omap34xxcam_slave_power_set(vdev, V4L2_POWER_OFF);
+	isp_close();
+	isp_put();
+	mutex_unlock(&vdev->mutex);
+
 out_try_module_get:
 	for (i--; i >= 0; i--)
 		if (vdev->slave[i])
 			module_put(vdev->slave[i]->module);
 
-	isp_close();
-	isp_put();
 	kfree(fh);
 
 	return -ENODEV;
@@ -1112,84 +1215,6 @@ static int omap34xxcam_release(struct inode *inode, struct file *file)
 	kfree(fh);
 
 	return 0;
-}
-
-/**
- * omap34xxcam_handle_private - private IOCTL handler
- * @inode: ptr. to system inode structure
- * @file: ptr. to system file structure
- * @fh: ptr to hold address of omap34xxcam_fh struct (per-filehandle data)
- * @cmd: ioctl cmd value
- * @arg: ioctl arg value
- *
- * If the sensor being used is a "smart sensor", this request is returned to
- * caller with -EINVAL err code.  Otherwise if the control id is the private
- * VIDIOC_PRIVATE_ISP_AEWB_REQ to update the analog gain or exposure,
- * then this request is forwared directly to the sensor to incorporate the
- * feedback. The request is then passed on to the ISP private IOCTL handler,
- * isp_handle_private()
- */
-static int omap34xxcam_handle_private(struct file *file, void *fh,
-							int cmd, void *arg)
-{
-	struct omap34xxcam_fh *ofh = file->private_data;
-	struct omap34xxcam_videodev *vdev = ofh->vdev;
-	int rval;
-
-	mutex_lock(&vdev->mutex);
-
-	if (vdev->vdev_sensor_config.sensor_isp) {
-		rval = -EINVAL;
-	} else {
-		switch (cmd) {
-		case VIDIOC_PRIVATE_ISP_AEWB_REQ:
-		{
-			/* Need to update sensor first */
-			struct isph3a_aewb_data *data;
-			struct v4l2_control vc;
-
-			data = (struct isph3a_aewb_data *) arg;
-			if (data->update & SET_EXPOSURE) {
-				vc.id = V4L2_CID_EXPOSURE;
-				vc.value = data->shutter;
-				rval = vidioc_int_s_ctrl(vdev->vdev_sensor,
-							 &vc);
-				if (rval)
-					goto out;
-			}
-			if (data->update & SET_ANALOG_GAIN) {
-				vc.id = V4L2_CID_GAIN;
-				vc.value = data->gain;
-				rval = vidioc_int_s_ctrl(vdev->vdev_sensor,
-							 &vc);
-				if (rval)
-					goto out;
-			}
-		}
-		default:
-			rval = isp_handle_private(cmd, arg);
-		}
-	}
-out:
-	mutex_unlock(&vdev->mutex);
-	return rval;
-}
-
-/**
- * omap34xxcam_unlocked_ioctl - unlocked (unserialized) IOCTL handler
- * @file: ptr. to system file structure
- * @cmd: ioctl cmd value
- * @arg: ioctl arg value
- *
- * Unlocked (unserialized) ioctl handler for the camera driver.
- * Checks if the IOCTL is in the private ioctl range, and if so
- * calls the local private ioctl handler omap34xxcam_handle_private(),
- * otherwise it calls the V4L2 provided ioctl handler (video_ioctl2).
- */
-static long omap34xxcam_unlocked_ioctl(struct file *file, unsigned int cmd,
-							unsigned long arg)
-{
-	return (long)video_ioctl2(file->f_dentry->d_inode, file, cmd, arg);
 }
 
 static struct file_operations omap34xxcam_fops = {
@@ -1285,7 +1310,6 @@ static int omap34xxcam_device_register(struct v4l2_int_device *s)
 
 	/* Are we the first slave? */
 	if (vdev->slaves == 0) {
-
 		/* initialize the video_device struct */
 		vfd = vdev->vfd = video_device_alloc();
 		if (!vfd) {
@@ -1323,7 +1347,7 @@ static int omap34xxcam_device_register(struct v4l2_int_device *s)
 		vfd->vidioc_cropcap	 = vidioc_cropcap;
 		vfd->vidioc_g_crop	 = vidioc_g_crop;
 		vfd->vidioc_s_crop	 = vidioc_s_crop;
-		vfd->vidioc_default	 = omap34xxcam_handle_private;
+		vfd->vidioc_default	 = vidioc_default;
 
 		if (video_register_device(vfd, VFL_TYPE_GRABBER,
 					  hwc.dev_minor) < 0) {

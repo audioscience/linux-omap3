@@ -298,6 +298,11 @@ config VIDEO_MT9P012
 	  MT9P012 camera.  It is currently working with the TI OMAP3
 	  camera controller.
 
+config VIDEO_AF_DW9710
+	tristate "Auto Focus driver coil DW9710"
+	depends on I2C && VIDEO_V4L2
+	default y
+
 config VIDEO_SAA7110
 	tristate "Philips SAA7110 video decoder"
 	depends on VIDEO_V4L1 && I2C
