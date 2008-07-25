@@ -409,11 +409,13 @@ static int vidioc_s_fmt_cap(struct file *file, void *fh, struct v4l2_format *f)
 	/* Negotiate with OMAP3 ISP */
 	rval = isp_s_fmt_cap(pix, &pix_tmp);
 out:
+	if (!rval)
+		ofh->pix = pix_tmp;
 	mutex_unlock(&vdev->mutex);
 
 	if (!rval) {
 		mutex_lock(&ofh->vbq.vb_lock);
-		*pix = ofh->pix = pix_tmp;
+		*pix = pix_tmp;
 		mutex_unlock(&ofh->vbq.vb_lock);
 	}
 
@@ -600,15 +602,16 @@ static int vidioc_streamoff(struct file *file, void *fh, enum v4l2_buf_type i)
 	struct videobuf_queue *q = &ofh->vbq;
 	int rval;
 
+	mutex_lock(&vdev->mutex);
+
 	isp_stop();
 	rval = videobuf_streamoff(q);
-	if (!rval) {
-		mutex_lock(&vdev->mutex);
+	if (!rval)
 		vdev->streaming = NULL;
-		mutex_unlock(&vdev->mutex);
-	}
 
 	omap34xxcam_slave_power_set(vdev, V4L2_POWER_STANDBY);
+
+	mutex_unlock(&vdev->mutex);
 
 	return rval;
 }
@@ -851,6 +854,8 @@ static int vidioc_cropcap(struct file *file, void *fh, struct v4l2_cropcap *a)
 	struct v4l2_cropcap *cropcap = a;
 	int rval;
 
+	mutex_lock(&vdev->mutex);
+
 	if (vdev->vdev_sensor_config.sensor_isp) {
 		rval = vidioc_int_cropcap(vdev->vdev_sensor, a);
 	} else {
@@ -862,6 +867,9 @@ static int vidioc_cropcap(struct file *file, void *fh, struct v4l2_cropcap *a)
 		cropcap->pixelaspect.denominator = 1;
 		rval = 0;
 	}
+
+	mutex_unlock(&vdev->mutex);
+
 	return rval;
 }
 
@@ -880,10 +888,14 @@ static int vidioc_g_crop(struct file *file, void *fh, struct v4l2_crop *a)
 	struct omap34xxcam_videodev *vdev = ofh->vdev;
 	int rval = 0;
 
+	mutex_lock(&vdev->mutex);
+
 	if (vdev->vdev_sensor_config.sensor_isp)
 		rval = vidioc_int_g_crop(vdev->vdev_sensor, a);
 	else
 		rval = isp_g_crop(a);
+
+	mutex_unlock(&vdev->mutex);
 
 	return rval;
 }
@@ -904,10 +916,14 @@ static int vidioc_s_crop(struct file *file, void *fh, struct v4l2_crop *a)
 	struct v4l2_pix_format *pix = &ofh->pix;
 	int rval = 0;
 
+	mutex_lock(&vdev->mutex);
+
 	if (vdev->vdev_sensor_config.sensor_isp)
 		rval = vidioc_int_s_crop(vdev->vdev_sensor, a);
 	else
 		rval = isp_s_crop(a, pix);
+
+	mutex_unlock(&vdev->mutex);
 
 	return rval;
 }
@@ -1091,9 +1107,7 @@ static int omap34xxcam_open(struct inode *inode, struct file *file)
 		}
 	}
 
-	mutex_unlock(&vdev->mutex);
 	fh->vdev = vdev;
-	mutex_lock(&vdev->mutex);
 
 	/* FIXME: Check that we have sensor now... */
 	if (vdev->vdev_sensor_config.sensor_isp)
