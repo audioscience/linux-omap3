@@ -28,7 +28,8 @@
 
 #define DRIVER_NAME  "dw9710"
 
-static int dw9710_probe(struct i2c_client *client);
+static int
+dw9710_probe(struct i2c_client *client, const struct i2c_device_id *id);
 static int __exit dw9710_remove(struct i2c_client *client);
 
 struct dw9710_device {
@@ -41,6 +42,12 @@ struct dw9710_device {
 	int state;
 };
 
+static const struct i2c_device_id dw9710_id[] = {
+	{ DW9710_NAME, 0 },
+	{ }
+};
+MODULE_DEVICE_TABLE(i2c, dw9710_id);
+
 static struct i2c_driver dw9710_i2c_driver = {
 	.driver = {
 		.name = DW9710_NAME,
@@ -48,6 +55,7 @@ static struct i2c_driver dw9710_i2c_driver = {
 	},
 	.probe = dw9710_probe,
 	.remove = __exit_p(dw9710_remove),
+	.id_table = dw9710_id,
 };
 
 static struct dw9710_device dw9710 = {
@@ -486,10 +494,13 @@ static struct v4l2_int_device dw9710_int_device = {
  *
  * Returns 0 if successful, or -EBUSY if unable to get client attached data.
  **/
-static int dw9710_probe(struct i2c_client *client)
+static int
+dw9710_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	struct dw9710_device *lens = &dw9710;
 	int err;
+
+	dev_info(&client->dev, "dw9710 probe called....\n");
 
 	if (i2c_get_clientdata(client)) {
 		printk(KERN_ERR " DTA BUSY %s\n", client->name);
