@@ -1097,14 +1097,10 @@ static int omap34xxcam_open(struct inode *inode, struct file *file)
 	if (atomic_inc_return(&vdev->users) == 1) {
 		isp_get();
 		isp_open();
-		if (omap34xxcam_slave_power_set(vdev, V4L2_POWER_ON)) {
-			mutex_unlock(&vdev->mutex);
-			goto out_try_module_get;
-		}
-		if (omap34xxcam_slave_power_set(vdev, V4L2_POWER_STANDBY)) {
-			mutex_unlock(&vdev->mutex);
-			goto out_try_module_get;
-		}
+		if (omap34xxcam_slave_power_set(vdev, V4L2_POWER_ON))
+			goto out_slave_power_set_standby;
+		if (omap34xxcam_slave_power_set(vdev, V4L2_POWER_STANDBY))
+			goto out_slave_power_set_standby;
 	}
 
 	fh->vdev = vdev;
@@ -1130,13 +1126,17 @@ static int omap34xxcam_open(struct inode *inode, struct file *file)
 
 	return 0;
 
+out_slave_power_set_standby:
+	omap34xxcam_slave_power_set(vdev, V4L2_POWER_OFF);
+	isp_close();
+	isp_put();
+	mutex_unlock(&vdev->mutex);
+
 out_try_module_get:
 	for (i--; i >= 0; i--)
 		if (vdev->slave[i])
 			module_put(vdev->slave[i]->module);
 
-	isp_close();
-	isp_put();
 	kfree(fh);
 
 	return -ENODEV;
