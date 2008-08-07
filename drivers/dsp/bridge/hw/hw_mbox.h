@@ -26,33 +26,15 @@
 #ifndef __MBOX_H
 #define __MBOX_H
 
-/*
-* DEFINITION:
-*
-* DESCRIPTION:  Bitmasks for Mailbox interrupt sources
-*/
-
+/* Bitmasks for Mailbox interrupt sources */
 #define HW_MBOX_INT_NEW_MSG    0x1
 #define HW_MBOX_INT_NOT_FULL   0x2
 #define HW_MBOX_INT_ALL	0x3
 
-/*
-* DEFINITION:   HW_MBOX_MAX_NUM_MESSAGES
-*
-* DESCRIPTION:  Maximum number of messages that mailbox can hald at a time.
-*/
-
+/* Maximum number of messages that mailbox can hald at a time. */
 #define HW_MBOX_MAX_NUM_MESSAGES   4
 
-/*
- * EXPORTED TYPES
- */
-
-/*
-* TYPE:	 HW_MBOX_Id_t
-*
-* DESCRIPTION:  Enumerated Type used to specify Mail Box Sub Module Id Number
-*/
+/* HW_MBOX_Id_t: Enumerated Type used to specify Mailbox Sub Module Id Number */
 typedef enum HW_MBOX_Id_label {
     HW_MBOX_ID_0,
     HW_MBOX_ID_1,
@@ -63,11 +45,7 @@ typedef enum HW_MBOX_Id_label {
 
 } HW_MBOX_Id_t, *pHW_MBOX_Id_t;
 
-/*
-* TYPE:	 HW_MBOX_UserId_t
-*
-* DESCRIPTION:  Enumerated Type used to specify Mail box User Id
-*/
+/* HW_MBOX_UserId_t:  Enumerated Type used to specify Mail box User Id */
 typedef enum HW_MBOX_UserId_label {
     HW_MBOX_U0_ARM,
     HW_MBOX_U1_DSP1,
@@ -76,20 +54,12 @@ typedef enum HW_MBOX_UserId_label {
 
 } HW_MBOX_UserId_t, *pHW_MBOX_UserId_t;
 
-/*
-* TYPE:	 MAILBOX_CONTEXT
-*
-* DESCRIPTION:  Mailbox context settings
-*/
+/* Mailbox context settings */
 struct MAILBOX_CONTEXT {
 	u32 sysconfig;
 	u32 irqEnable0;
 	u32 irqEnable1;
 };
-
-/*
- * EXPORTED FUNCTIONS
- */
 
 /*
 * FUNCTION      : HW_MBOX_MsgRead

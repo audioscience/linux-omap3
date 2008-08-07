@@ -42,9 +42,7 @@
 
 /* DLDR Objects: */
 	struct DLDR_OBJECT;
-	/*typedef struct DLDR_OBJECT *DLDR_HOBJECT;*/
 	struct DLDR_NODEOBJECT;
-	/*typedef struct DLDR_NODEOBJECT *DLDR_HNODE;*/
 
 /*
  *  ======== DLDR_LOADTYPE ========

@@ -218,7 +218,7 @@ void dload_relocate(struct dload_state *dlthis, TgtAU_t *data,
 			reloc_amt = (RFV_SYM(reloc_info) == ROP_SYMD) ?
 			  dlthis->delta_runaddr : dlthis->image_secn->run_addr;
 	}	/* relocation uses a symbol reference */
-	/* * Handle stack adjustment */
+	/* Handle stack adjustment */
 	val = 0;
 	top = RFV_STK(reloc_info);
 	if (top) {
@@ -234,7 +234,7 @@ void dload_relocate(struct dload_state *dlthis, TgtAU_t *data,
 		dlthis->relstkidx = top;
 		stackp = &dlthis->relstk[top];
 	}
-	/* * Derive field position and size, if we need them */
+	/* Derive field position and size, if we need them */
 	if (reloc_info & ROP_RW) {	/* read or write action in our future */
 		fieldsz = RFV_WIDTH(reloc_action);
 		if (fieldsz) {	/* field info from table */
@@ -269,7 +269,7 @@ void dload_relocate(struct dload_state *dlthis, TgtAU_t *data,
 		scale = RFV_SCALE(reloc_info);
 #endif
 	}
-	/* * read the object value from the current image, if so ordered */
+	/* read the object value from the current image, if so ordered */
 	if (reloc_info & ROP_R) {    /* relocation reads current image value */
 		val = dload_unpack(dlthis, data, fieldsz, offset,
 		      RFV_SIGN(reloc_info));
@@ -277,7 +277,7 @@ void dload_relocate(struct dload_state *dlthis, TgtAU_t *data,
 		val <<= scale;
 #endif
 	}
-	/* * perform the necessary arithmetic */
+	/* perform the necessary arithmetic */
 	switch (RFV_ACTION(reloc_action)) {	/* relocation actions */
 	case RACT_VAL:
 		break;

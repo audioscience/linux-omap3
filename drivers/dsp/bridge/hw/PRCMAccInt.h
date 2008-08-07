@@ -247,13 +247,8 @@
 #define PRM_RSTCTRL_IVA2_RST3_MASK	(u32)(0x4)
 #define PRM_RSTCTRL_IVA2_RST3_OFFSET	(u32)(0x2)
 
-/*****************************************************************************
-* EXPORTED TYPES
-******************************************************************************
-*/
 
-/* The following type definitions represent the enumerated values for each
- * bitfield */
+/* The following represent the enumerated values for each bitfield */
 
 enum PRCMPRCM_CLKCFG_CTRLValid_configE {
     PRCMPRCM_CLKCFG_CTRLValid_configUpdated = 0x0000,

@@ -26,11 +26,11 @@
  *!		    Moved endianness and element size to generic hw_defs.h
  *! 16 Feb 2003 sb: Initial version
  */
+
 #ifndef __HW_DSPSS_H
 #define __HW_DSPSS_H
 #include <linux/types.h>
 
-/* EXPORTED TYPES */
 	enum HW_DSPSYSC_BootMode_t {
 		HW_DSPSYSC_DIRECTBOOT = 0x0,
 		HW_DSPSYSC_IDLEBOOT = 0x1,
@@ -41,7 +41,6 @@
 
 #define HW_DSP_IDLEBOOT_ADDR   0x007E0000
 
-/* EXPORTED FUNCTIONS */
 	extern HW_STATUS HW_DSPSS_BootModeSet(const u32 baseAddress,
 					enum HW_DSPSYSC_BootMode_t bootMode,
 					const u32 bootAddress);

@@ -193,7 +193,7 @@ static struct GT_Mask PROC_DebugMask = { 0, 0 };	/* WCD MGR Mask */
 #endif
 
 static u32 cRefs;
-/*static char     *g_pszLastCoff = NULL;*/
+
 #ifndef DISABLE_BRIDGE_PM
 #ifndef DISABLE_BRIDGE_DVFS
 extern struct constraint_handle *mpu_constraint_handle;
@@ -356,21 +356,6 @@ PROC_Attach(u32 uProcessor, OPTIONAL CONST struct DSP_PROCESSORATTRIN *pAttrIn,
 			 "storage for notification \n");
 		MEM_FreeObject(pProcObject);
 	}
-	/*
-	 *  Ensure that
-	 *      1)  DSP_EFAIL, and *phProcessor == NULL, OR
-	 *      2)  Success and *phProcessor is a Valid Processor handle OR
-	 *      3)  DSP_SALREADYATTACHED and *phProcessor is a Valid Processor.
-	 */
-/*	DBC_Ensure((status == DSP_EFAIL && *phProcessor == NULL) ||
-		   (DSP_SUCCEEDED(status) &&
-		    MEM_IsValidHandle(pProcObject, PROC_SIGNATURE)) ||
-		   (status == DSP_SALREADYATTACHED &&
-		    MEM_IsValidHandle(pProcObject, PROC_SIGNATURE)));
-
-	GT_2trace(PROC_DebugMask, GT_ENTER, "Exiting PROC_Attach, results:\n\t"
-		  "status:  0x%x\n\thProcessor: 0x%x\n", status,
-		  *phProcessor); 					*/
 func_end:
 #ifndef RES_CLEANUP_DISABLE
 	if (!DSP_SUCCEEDED(status))
@@ -986,10 +971,8 @@ BOOL CDECL PROC_Init(void)
 	if (cRefs == 0) {
 		/* Set the Trace mask */
 		DBC_Assert(!PROC_DebugMask.flags);
-		GT_create(&PROC_DebugMask, "PR");	/* "PR" for Processor */
+		GT_create(&PROC_DebugMask, "PR");  /* "PR" for Processor */
 
-		/* Initialize globals */
-		/*g_pszLastCoff = NULL; */
 	}
 
 	if (fRetval)
@@ -1158,7 +1141,7 @@ DSP_STATUS PROC_Load(DSP_HPROCESSOR hProcessor, IN CONST s32 iArgc,
 				pProcObject->g_pszLastCoff = MEM_Calloc(
 					(CSL_Strlen((char *)aArgv[0]) + 1),
 					MEM_PAGED);
-				/*If memory allocated, save COFF file name*/
+				/* If memory allocated, save COFF file name*/
 				if (pProcObject->g_pszLastCoff) {
 					CSL_Strcpyn(pProcObject->g_pszLastCoff,
 						(char *)aArgv[0],
@@ -1171,7 +1154,7 @@ DSP_STATUS PROC_Load(DSP_HPROCESSOR hProcessor, IN CONST s32 iArgc,
 	/* Update shared memory address and size */
 	if (DSP_SUCCEEDED(status)) {
 		/*  Create the message manager. This must be done
-		 *  *  before calling the IOOnLoaded function.  */
+		 *  before calling the IOOnLoaded function.  */
 		DEV_GetMsgMgr(pProcObject->hDevObject, &hMsgMgr);
 		if (!hMsgMgr) {
 			status = MSG_Create(&hMsgMgr, pProcObject->hDevObject,

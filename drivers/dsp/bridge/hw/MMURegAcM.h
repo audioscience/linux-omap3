@@ -32,9 +32,6 @@
       RD_MEM_32_VOLATILE((baseAddress)+MMU_MMU_SYSCONFIG_OFFSET))
 
 
-/********************************************************************/
-
-
 #define MMUMMU_SYSCONFIGIdleModeWrite32(baseAddress, value)\
 {\
     const u32 offset = MMU_MMU_SYSCONFIG_OFFSET;\
@@ -47,9 +44,6 @@
     newValue |= data;\
     WR_MEM_32_VOLATILE(baseAddress+offset, newValue);\
 }
-
-
-/********************************************************************/
 
 
 #define MMUMMU_SYSCONFIGAutoIdleWrite32(baseAddress, value)\
@@ -66,16 +60,9 @@
 }
 
 
-
-/********************************************************************/
-
-
 #define MMUMMU_IRQSTATUSReadRegister32(baseAddress)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_MMUMMU_IRQSTATUSReadRegister32),\
       RD_MEM_32_VOLATILE((baseAddress)+MMU_MMU_IRQSTATUS_OFFSET))
-
-
-/********************************************************************/
 
 
 #define MMUMMU_IRQSTATUSWriteRegister32(baseAddress, value)\
@@ -87,15 +74,9 @@
 }
 
 
-/********************************************************************/
-
-
 #define MMUMMU_IRQENABLEReadRegister32(baseAddress)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_MMUMMU_IRQENABLEReadRegister32),\
       RD_MEM_32_VOLATILE((baseAddress)+MMU_MMU_IRQENABLE_OFFSET))
-
-
-/********************************************************************/
 
 
 #define MMUMMU_IRQENABLEWriteRegister32(baseAddress, value)\
@@ -107,9 +88,6 @@
 }
 
 
-/********************************************************************/
-
-
 #define MMUMMU_WALKING_STTWLRunningRead32(baseAddress)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_MMUMMU_WALKING_STTWLRunningRead32),\
       (((RD_MEM_32_VOLATILE(((baseAddress)+(MMU_MMU_WALKING_ST_OFFSET))))\
@@ -117,17 +95,11 @@
       MMU_MMU_WALKING_ST_TWLRunning_OFFSET))
 
 
-/********************************************************************/
-
-
 #define MMUMMU_CNTLTWLEnableRead32(baseAddress)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_MMUMMU_CNTLTWLEnableRead32),\
       (((RD_MEM_32_VOLATILE(((baseAddress)+(MMU_MMU_CNTL_OFFSET)))) &\
       MMU_MMU_CNTL_TWLEnable_MASK) >>\
       MMU_MMU_CNTL_TWLEnable_OFFSET))
-
-
-/********************************************************************/
 
 
 #define MMUMMU_CNTLTWLEnableWrite32(baseAddress, value)\
@@ -144,9 +116,6 @@
 }
 
 
-/********************************************************************/
-
-
 #define MMUMMU_CNTLMMUEnableWrite32(baseAddress, value)\
 {\
     const u32 offset = MMU_MMU_CNTL_OFFSET;\
@@ -161,15 +130,9 @@
 }
 
 
-/********************************************************************/
-
-
 #define MMUMMU_FAULT_ADReadRegister32(baseAddress)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_MMUMMU_FAULT_ADReadRegister32),\
       RD_MEM_32_VOLATILE((baseAddress)+MMU_MMU_FAULT_AD_OFFSET))
-
-
-/********************************************************************/
 
 
 #define MMUMMU_TTBWriteRegister32(baseAddress, value)\
@@ -181,15 +144,9 @@
 }
 
 
-/********************************************************************/
-
-
 #define MMUMMU_LOCKReadRegister32(baseAddress)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_MMUMMU_LOCKReadRegister32),\
       RD_MEM_32_VOLATILE((baseAddress)+MMU_MMU_LOCK_OFFSET))
-
-
-/********************************************************************/
 
 
 #define MMUMMU_LOCKWriteRegister32(baseAddress, value)\
@@ -201,17 +158,11 @@
 }
 
 
-/********************************************************************/
-
-
 #define MMUMMU_LOCKBaseValueRead32(baseAddress)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_MMUMMU_LOCKBaseValueRead32),\
       (((RD_MEM_32_VOLATILE(((baseAddress)+(MMU_MMU_LOCK_OFFSET)))) &\
       MMU_MMU_LOCK_BaseValue_MASK) >>\
       MMU_MMU_LOCK_BaseValue_OFFSET))
-
-
-/********************************************************************/
 
 
 #define MMUMMU_LOCKBaseValueWrite32(baseAddress, value)\
@@ -228,17 +179,11 @@
 }
 
 
-/********************************************************************/
-
-
 #define MMUMMU_LOCKCurrentVictimRead32(baseAddress)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_MMUMMU_LOCKCurrentVictimRead32),\
       (((RD_MEM_32_VOLATILE(((baseAddress)+(MMU_MMU_LOCK_OFFSET)))) &\
       MMU_MMU_LOCK_CurrentVictim_MASK) >>\
       MMU_MMU_LOCK_CurrentVictim_OFFSET))
-
-
-/********************************************************************/
 
 
 #define MMUMMU_LOCKCurrentVictimWrite32(baseAddress, value)\
@@ -255,9 +200,6 @@
 }
 
 
-/********************************************************************/
-
-
 #define MMUMMU_LOCKCurrentVictimSet32(var, value)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_MMUMMU_LOCKCurrentVictimSet32),\
       (((var) & ~(MMU_MMU_LOCK_CurrentVictim_MASK)) |\
@@ -265,15 +207,9 @@
       MMU_MMU_LOCK_CurrentVictim_MASK)))
 
 
-/********************************************************************/
-
-
 #define MMUMMU_LD_TLBReadRegister32(baseAddress)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_MMUMMU_LD_TLBReadRegister32),\
       RD_MEM_32_VOLATILE((baseAddress)+MMU_MMU_LD_TLB_OFFSET))
-
-
-/********************************************************************/
 
 
 #define MMUMMU_LD_TLBWriteRegister32(baseAddress, value)\
@@ -285,9 +221,6 @@
 }
 
 
-/********************************************************************/
-
-
 #define MMUMMU_CAMWriteRegister32(baseAddress, value)\
 {\
     const u32 offset = MMU_MMU_CAM_OFFSET;\
@@ -297,9 +230,6 @@
 }
 
 
-/********************************************************************/
-
-
 #define MMUMMU_RAMWriteRegister32(baseAddress, value)\
 {\
     const u32 offset = MMU_MMU_RAM_OFFSET;\
@@ -307,9 +237,6 @@
     _DEBUG_LEVEL_1_EASI(EASIL1_MMUMMU_RAMWriteRegister32);\
     WR_MEM_32_VOLATILE((baseAddress)+offset, newValue);\
 }
-
-
-/********************************************************************/
 
 
 #define MMUMMU_GFLUSHGlobalFlushWrite32(baseAddress, value)\
@@ -326,9 +253,6 @@
 }
 
 
-/********************************************************************/
-
-
 #define MMUMMU_FLUSH_ENTRYWriteRegister32(baseAddress, value)\
 {\
     const u32 offset = MMU_MMU_FLUSH_ENTRY_OFFSET;\
@@ -337,8 +261,6 @@
     WR_MEM_32_VOLATILE((baseAddress)+offset, newValue);\
 }
 
-
-/********************************************************************/
 
 #endif	/* USE_LEVEL_1_MACROS */
 

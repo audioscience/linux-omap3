@@ -62,7 +62,6 @@
 #define CFG_DEFAULT_NUM_WINDOWS 1	/* We support only one window. */
 
 /* A platform-related device handle: */
-	/*typedef struct CFG_DEVNODE *CFG_HDEVNODE;*/
 	struct CFG_DEVNODE;
 
 /*
@@ -77,8 +76,7 @@
 		u8 bIRQRegisters;	/* IRQ Number */
 		u8 bIRQAttrib;	/* IRQ Attribute */
 		u32 dwOffsetForMonitor;	/* The Shared memory starts from
-						 * dwMemBase + this offset
-						 */
+					 * dwMemBase + this offset */
 		u32 dwBusType;	/* Bus type for this device */
 		u32 dwProgBase;	/* DSP ProgBase */
 		u32 dwProgLength;	/* DSP ProgBase Length */
@@ -87,8 +85,7 @@
 		u32 ClientHandle;	/* Client Handle */
 		u32 SocketHandle;	/* Socket and Function Pair */
 		u32 CardInfo;	/* This will be used as a context data in
-				 * in the CardRequestIRQ
-				 */
+				 * in the CardRequestIRQ */
 	/*
 	 *  Info needed by NODE for allocating channels to communicate with RMS:
 	 *      dwChnlOffset:       Offset of RMS channels. Lower channels are

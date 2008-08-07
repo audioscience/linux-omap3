@@ -206,15 +206,11 @@
  *      unloaded, and sets *phDevObject to NULL.
  */
 	extern DSP_STATUS CDECL DEV_CreateIVADevice(OUT struct DEV_OBJECT
-						    **phDevObject,
-						    IN CONST char
-						    *pstrWMDFileName,
-						    IN CONST struct CFG_HOSTRES
-						    *pHostConfig,
-						    IN CONST struct CFG_DSPRES
-						    *pDspConfig,
-						    struct CFG_DEVNODE
-						    *hDevNode);
+				**phDevObject,
+				IN CONST char *pstrWMDFileName,
+				IN CONST struct CFG_HOSTRES *pHostConfig,
+				IN CONST struct CFG_DSPRES *pDspConfig,
+				struct CFG_DEVNODE *hDevNode);
 
 /*
  *  ======== DEV_Create2 ========
@@ -401,8 +397,7 @@
  *      else:           *phDevNode is NULL.
  */
 	extern DSP_STATUS CDECL DEV_GetDevNode(struct DEV_OBJECT *hDevObject,
-					       OUT struct CFG_DEVNODE
-					       **phDevNode);
+					OUT struct CFG_DEVNODE **phDevNode);
 
 /*
  *  ======== DEV_GetDevType ========
@@ -464,8 +459,7 @@
  *      else:           *ppIntfFxns is NULL.
  */
 	extern DSP_STATUS CDECL DEV_GetIntfFxns(struct DEV_OBJECT *hDevObject,
-						OUT struct WMD_DRV_INTERFACE
-						**ppIntfFxns);
+				OUT struct WMD_DRV_INTERFACE **ppIntfFxns);
 
 /*
  *  ======== DEV_GetIOMgr ========
@@ -550,9 +544,8 @@
  *      else:           *phNodeMgr is NULL.
  */
 	extern DSP_STATUS CDECL DEV_GetNodeManager(struct DEV_OBJECT
-						   *hDevObject,
-						   OUT struct NODE_MGR
-						   **phNodeMgr);
+					*hDevObject,
+					OUT struct NODE_MGR **phNodeMgr);
 
 /*
  *  ======== DEV_GetSymbol ========
@@ -597,8 +590,7 @@
  *      else:           *phWmdContext is NULL;
  */
 	extern DSP_STATUS CDECL DEV_GetWMDContext(struct DEV_OBJECT *hDevObject,
-						  OUT struct WMD_DEV_CONTEXT
-						  **phWmdContext);
+				OUT struct WMD_DEV_CONTEXT **phWmdContext);
 
 /*
  *  ======== DEV_Exit ========
@@ -669,10 +661,9 @@
  *      If it is False, there are already processors attached.
  */
 	extern DSP_STATUS CDECL DEV_InsertProcObject(IN struct DEV_OBJECT
-						     *hDevObject,
-						     IN u32 hProcObject,
-						     OUT BOOL *
-						     pbAlreadyAttached);
+						*hDevObject,
+						IN u32 hProcObject,
+						OUT BOOL *pbAlreadyAttached);
 
 /*
  *  ======== DEV_RemoveProcObject ========

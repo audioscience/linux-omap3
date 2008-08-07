@@ -31,6 +31,5 @@
 
 /* WCD Device Object */
 	struct DEV_OBJECT;
-	/*typedef struct DEV_OBJECT *DEV_HOBJECT;*/
 
 #endif				/* DEVDEFS_ */

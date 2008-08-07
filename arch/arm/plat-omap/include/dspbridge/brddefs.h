@@ -49,7 +49,6 @@
 	typedef u32 BRD_STATUS;
 
 /* BRD Object */
-	/*typedef struct BRD_OBJECT *BRD_HOBJECT;*/
 	struct BRD_OBJECT;
 
 #endif				/* BRDDEFS_ */

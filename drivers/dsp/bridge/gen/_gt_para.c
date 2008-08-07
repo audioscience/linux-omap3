@@ -63,8 +63,7 @@ struct GT_Config *GT = &_GT_params;
 /*
  *  ======== GT_nop ========
  */
-static s32
-GT_nop(void)
+static s32 GT_nop(void)
 {
 	return 0;
 }
@@ -74,8 +73,7 @@ GT_nop(void)
  *  purpose:
  *      Prints error onto the standard output.
  */
-static void
-error(char *fmt, ...)
+static void error(char *fmt, ...)
 {
 	s32 arg1, arg2, arg3, arg4, arg5, arg6;
 

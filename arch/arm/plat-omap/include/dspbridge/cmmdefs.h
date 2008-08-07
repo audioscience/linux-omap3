@@ -130,8 +130,6 @@
 	} ;
 
 	struct CMM_OBJECT;
-	/*typedef struct CMM_OBJECT *CMM_HMGR;*/
 	struct CMM_XLATOROBJECT;
-	/*typedef struct CMM_XLATOROBJECT *CMM_HXLATOR;*/
 
 #endif				/* CMMDEFS_ */

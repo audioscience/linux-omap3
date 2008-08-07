@@ -30,7 +30,6 @@
 
 /* RM PROC Object */
 	struct PROC_OBJECT;
-	/*typedef struct PROC_OBJECT *PROC_HOBJECT;*/
 
 #endif				/* PROCPRIV_ */
 

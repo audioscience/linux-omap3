@@ -35,7 +35,6 @@
 #include <dbdefs.h>
 
 	struct DMM_OBJECT;
-	/*typedef struct DMM_OBJECT *DMM_HMGR;*/
 
 /* DMM attributes used in DMM_Create() */
 	struct DMM_MGRATTRS {

@@ -63,7 +63,6 @@ struct RMM_Segment {
  *  ======== RMM_Target ========
  */
 struct RMM_TargetObj;
-/*typedef struct RMM_TargetObj *RMM_Target;*/
 
 /*
  *  ======== RMM_alloc ========

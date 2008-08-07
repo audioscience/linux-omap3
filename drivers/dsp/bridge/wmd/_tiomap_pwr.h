@@ -32,8 +32,6 @@
 #define PWR_WAIT_USECS          500
 #define PWR_WAIT_MSECS          50
 
-/* Function prototypes */
-
 /*
  * ======== WakeDSP =========
  * Wakes up the DSP from DeepSleep
@@ -60,25 +58,21 @@ extern DSP_STATUS DSPPeripheralClkCtrl(struct WMD_DEV_CONTEXT *pDevContext,
 				       IN void *pArgs);
 /*
  *  ======== handle_hibernation_fromDSP ========
- *  purpose:
  *  	Handle Hibernation requested from DSP
  */
 DSP_STATUS handle_hibernation_fromDSP(struct WMD_DEV_CONTEXT *pDevContext);
 /*
  *  ======== PostScale_DSP ========
- *  purpose:
  *  	Handle Post Scale notification to DSP
  */
 DSP_STATUS PostScale_DSP(struct WMD_DEV_CONTEXT *pDevContext, IN void *pArgs);
 /*
  *  ======== PreScale_DSP ========
- *  purpose:
  *  	Handle Pre Scale notification to DSP
  */
 DSP_STATUS PreScale_DSP(struct WMD_DEV_CONTEXT *pDevContext, IN void *pArgs);
 /*
  *  ======== handle_constraints_set ========
- *  purpose:
  *  	Handle constraints request from DSP
  */
 DSP_STATUS handle_constraints_set(struct WMD_DEV_CONTEXT *pDevContext,

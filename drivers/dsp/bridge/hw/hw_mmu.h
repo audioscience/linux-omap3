@@ -31,46 +31,27 @@
 #define __HW_MMU_H
 
 #include <linux/types.h>
-/*
-* DEFINITION:
-*
-* DESCRIPTION:  Bitmasks for interrupt sources
-*/
+
+/* Bitmasks for interrupt sources */
 #define HW_MMU_TRANSLATION_FAULT   0x2
 #define HW_MMU_ALL_INTERRUPTS      0x1F
 
 #define HW_MMU_COARSE_PAGE_SIZE 0x400
 
-/*
- * EXPORTED TYPES
- */
-
-/*
-* TYPE:	 HW_MMUMixedSize_t
-*
-* DESCRIPTION:  Enumerated Type used to specify whether to follow CPU/TLB
-* 		Element size
-*/
+/* HW_MMUMixedSize_t:  Enumerated Type used to specify whether to follow
+			CPU/TLB Element size */
 enum HW_MMUMixedSize_t {
 	HW_MMU_TLBES,
 	HW_MMU_CPUES
 
 } ;
 
-/*
-* TYPE:	 HW_MMUMapAttrs_t
-*
-* DESCRIPTION:  Struct containing MMU mapping attributes
-*/
+/* HW_MMUMapAttrs_t:  Struct containing MMU mapping attributes */
 struct HW_MMUMapAttrs_t {
 	enum HW_Endianism_t     endianism;
 	enum HW_ElementSize_t   elementSize;
 	enum HW_MMUMixedSize_t  mixedSize;
 } ;
-
-/*
- * EXPORTED FUNCTIONS
- */
 
 extern HW_STATUS HW_MMU_Enable(const u32 baseAddress);
 

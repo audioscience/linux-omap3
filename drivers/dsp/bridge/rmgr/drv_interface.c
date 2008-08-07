@@ -50,7 +50,6 @@
 #include <linux/platform_device.h>
 #include <linux/pm.h>
 
-
 #ifdef MODULE
 #include <linux/module.h>
 #endif
@@ -131,7 +130,7 @@ s32 driver_minor = DRIVER_MINOR;
 char *base_img;
 char *iva_img;
 char *num_procs = "C55=1";
-s32 shm_size = 0x400000;	/* 1 MB */
+s32 shm_size = 0x400000;	/* 4 MB */
 s32 iva_extmem_size;	/* 0 KB */
 
 u32 phys_mempool_base = 0x87000000;
@@ -305,12 +304,10 @@ struct device dspbridge_device = {
 	.driver = &bridge_driver_ldm.driver,
 };
 #endif
-/*
- * Purpose:
- *     Initialization routine. Executed when the driver is loaded (as a kernel
- *     module),
- *     or when the system is booted (when included as part of the kernel image).
- */
+
+/* Initialization routine. Executed when the driver is loaded (as a kernel
+ * module), or when the system is booted (when included as part of the kernel
+ * image). */
 static int __init bridge_init(void)
 {
 	int status;
@@ -363,9 +360,6 @@ static int __init bridge_init(void)
 
 	device_create(bridge_class, NULL, MKDEV(driver_major,
 			   driver_minor), "DspBridge");
-
-       /*printk("Registered driver major = %d , minor = %d \n", driver_major,
-					driver_minor);*/
 
 	GT_init();
 	GT_create(&driverTrace, "LD");
@@ -486,14 +480,11 @@ static int __init bridge_init(void)
 	return status;
 }
 
-/*
- * Purpose:
- *  This function is invoked during unlinking of the bridge module from the
- *  kernel.  *  Bridge resources are freed in this function.
- */
+/*  This function is invoked during unlinking of the bridge module from the
+ *  kernel. Bridge resources are freed in this function. */
 static void __exit bridge_exit(void)
 {
-	dev_t   devno;
+	dev_t devno;
 	BOOL ret;
 	GT_0trace(driverTrace, GT_ENTER, "-> driver_exit\n");
 
@@ -557,9 +548,8 @@ static void __exit bridge_exit(void)
 	}
 }
 
-/*
- * Purpose: This function is called when an application opens handle to the
- * bridge *  driver.  */
+/* This function is called when an application opens handle to the
+ * bridge driver. */
 
 int bridge_open(struct inode *ip, struct file *filp)
 {
@@ -576,7 +566,7 @@ int bridge_open(struct inode *ip, struct file *filp)
 	struct task_struct *tsk = NULL;
 	dsp_status = CFG_GetObject((u32 *)&hDrvObject, REG_DRV_OBJECT);
 
-	/*Checking weather task structure for all process existing
+	/* Checking weather task structure for all process existing
 	 * in the process context list If not removing those processes*/
 	if (!DSP_SUCCEEDED(dsp_status))
 		goto func_cont;
@@ -584,11 +574,9 @@ int bridge_open(struct inode *ip, struct file *filp)
 	DRV_GetProcCtxtList(&pCtxtclosed, hDrvObject);
 	while (pCtxtclosed != NULL) {
 		tsk = find_task_by_vpid(pCtxtclosed->pid);
-		/*if ((tsk == NULL) || (tsk->exit_state == 16))*/
+
 		if ((tsk == NULL) || (tsk->exit_state == EXIT_ZOMBIE)) {
-			/* || (tsk->exit_state == EXIT_DEAD)*/
-			/*printk("***Task structure not existing for */
-			/* process***%d\n", pCtxtclosed->pid);*/
+
 			GT_1trace(driverTrace, GT_5CLASS,
 				 "***Task structure not existing for "
 				 "process***%d\n", pCtxtclosed->pid);
@@ -647,11 +635,8 @@ func_cont:
 	return status;
 }
 
-/*
- * Purpose:
- *  This function is called when an application closes handle to the bridge
- *  driver.
- */
+/* This function is called when an application closes handle to the bridge
+ * driver. */
 int bridge_release(struct inode *ip, struct file *filp)
 {
 	int status;
@@ -678,10 +663,7 @@ static void bridge_free(struct device *dev)
 }
 
 
-/*
- * Purpose:
- *  This function provides IO interface to the bridge driver.
- */
+/* This function provides IO interface to the bridge driver. */
 int bridge_ioctl(struct inode *ip, struct file *filp, unsigned int code,
 		unsigned long args)
 {
@@ -723,10 +705,7 @@ int bridge_ioctl(struct inode *ip, struct file *filp, unsigned int code,
 	return status;
 }
 
-/*
- * Purpose:
- *  This function maps kernel space memory to user space memory.
- */
+/* This function maps kernel space memory to user space memory. */
 int bridge_mmap(struct file *filp, struct vm_area_struct *vma)
 {
 	u32 offset = vma->vm_pgoff << PAGE_SHIFT;
@@ -751,14 +730,13 @@ int bridge_mmap(struct file *filp, struct vm_area_struct *vma)
 }
 
 #ifndef RES_CLEANUP_DISABLE
-/*To remove all process resources before removing the process from the
+/* To remove all process resources before removing the process from the
  * process context list*/
 DSP_STATUS DRV_RemoveAllResources(HANDLE hPCtxt)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct PROCESS_CONTEXT *pCtxt = (struct PROCESS_CONTEXT *)hPCtxt;
 	if (pCtxt != NULL) {
-		/*DRV_RemoveAllDSPHEAPResElements(pCtxt);*/
 		DRV_RemoveAllSTRMResElements(pCtxt);
 		DRV_RemoveAllNodeResElements(pCtxt);
 		DRV_RemoveAllDMMResElements(pCtxt);
@@ -801,10 +779,7 @@ static int bridge_resume(struct platform_device *pdev)
 }
 
 #endif
-/*
- * Purpose:
- *  Bridge driver initialization and de-initialization functions
- */
+/* Bridge driver initialization and de-initialization functions */
 module_init(bridge_init);
 module_exit(bridge_exit);
 

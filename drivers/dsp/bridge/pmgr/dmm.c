@@ -86,14 +86,12 @@
 	(((struct MapPage *)(a) - pVirtualMappingTable) * PG_SIZE_4K +\
 	dynMemMapBeg)
 #define DMM_ADDR_TO_INDEX(a) (((a) - dynMemMapBeg) / PG_SIZE_4K)
-/*
- * DMM Mgr
- */
+
+/* DMM Mgr */
 struct DMM_OBJECT {
 	u32 dwSignature;	/* Used for object validation */
-	/*
-	 * Dmm Lock is used to serialize access mem manager for multi-threads.
-	 */
+	/* Dmm Lock is used to serialize access mem manager for
+	 * multi-threads. */
 	struct SYNC_CSOBJECT *hDmmLock;	/* Lock to access dmm mgr */
 };
 
@@ -168,8 +166,7 @@ DSP_STATUS DMM_CreateTables(struct DMM_OBJECT *hDmmMgr, u32 addr, u32 size)
 				    "pPhysicalAddrTable failed\n");
 			} else {
 			/* On successful allocation,
-			* all entries are zero ('free')
-			*/
+			* all entries are zero ('free') */
 			iFreeRegion = 0;
 			iFreeSize = TableSize*PG_SIZE_4K;
 			pVirtualMappingTable[0].RegionSize = TableSize;
@@ -584,8 +581,7 @@ struct MapPage *GetFreeRegion(u32 aSize)
 		return currRegion;
 	if (aSize > iFreeSize) {
 		/* Find the largest free region
-		* (coalesce during the traversal)
-		*/
+		* (coalesce during the traversal) */
 		while (i < TableSize) {
 			RegionSize = pVirtualMappingTable[i].RegionSize;
 			nextI = i+RegionSize;

@@ -135,7 +135,6 @@ DSP_STATUS MGR_Create(OUT struct MGR_OBJECT **phMgrObject,
 
 /*
  *  ========= MGR_Destroy =========
- *  purpose:
  *     This function is invoked during bridge driver unloading.Frees MGR object.
  */
 DSP_STATUS MGR_Destroy(struct MGR_OBJECT *hMgrObject)
@@ -168,7 +167,6 @@ DSP_STATUS MGR_Destroy(struct MGR_OBJECT *hMgrObject)
 
 /*
  *  ======== MGR_EnumNodeInfo ========
- *  Purpose:
  *      Enumerate and get configuration information about nodes configured
  *      in the node database.
  */
@@ -256,7 +254,6 @@ func_cont:
 
 /*
  *  ======== MGR_EnumProcessorInfo ========
- *  Purpose:
  *      Enumerate and get configuration information about available
  *      DSP processors.
  */
@@ -349,7 +346,7 @@ DSP_STATUS MGR_EnumProcessorInfo(u32 uProcessor,
 					sizeof(struct MGR_PROCESSOREXTINFO)) {
 				*pProcessorInfo = GenObj.objData.procObj;
 			} else {
-				/*  extended info */
+				/* extended info */
 				pExtInfo = (struct MGR_PROCESSOREXTINFO *)
 						pProcessorInfo;
 				*pExtInfo = GenObj.objData.extProcObj;
@@ -393,7 +390,6 @@ func_end:
 
 /*
  *  ======== MGR_Exit ========
- *  Purpose:
  *      Decrement reference count, and free resources when reference count is
  *      0.
  */
@@ -411,7 +407,6 @@ void CDECL MGR_Exit(void)
 
 /*
  *  ======== MGR_GetDCDHandle ========
- *  Purpose:
  *      Retrieves the MGR handle. Accessor Function.
  */
 DSP_STATUS MGR_GetDCDHandle(struct MGR_OBJECT *hMGRHandle,
@@ -436,7 +431,6 @@ DSP_STATUS MGR_GetDCDHandle(struct MGR_OBJECT *hMGRHandle,
 
 /*
  *  ======== MGR_Init ========
- *  Purpose:
  *      Initialize MGR's private state, keeping a reference count on each call.
  */
 BOOL CDECL MGR_Init(void)
@@ -474,7 +468,6 @@ BOOL CDECL MGR_Init(void)
 
 /*
  *  ======== MGR_WaitForBridgeEvents ========
- *  Purpose:
  *      Block on any Bridge event(s)
  */
 DSP_STATUS MGR_WaitForBridgeEvents(struct DSP_NOTIFICATION **aNotifications,

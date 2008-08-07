@@ -86,7 +86,6 @@ extern DSP_STATUS DSP_PeripheralClocks_Enable(struct WMD_DEV_CONTEXT
 					     *pDevContext, IN void *pArgs);
 /*
  *  ======== CHNLSM_EnableInterrupt ========
- *  purpose:
  *      Enables interrupts from DSP.
  */
 DSP_STATUS CHNLSM_EnableInterrupt(struct WMD_DEV_CONTEXT *hDevContext)
@@ -94,7 +93,6 @@ DSP_STATUS CHNLSM_EnableInterrupt(struct WMD_DEV_CONTEXT *hDevContext)
 	DSP_STATUS status = DSP_SOK;
 	HW_STATUS hwStatus;
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
-	/*u16                wDummyRd; */
 	u32 numMbxMsg;
 	u32 mbxValue;
 	struct CFG_HOSTRES resources;
@@ -102,10 +100,6 @@ DSP_STATUS CHNLSM_EnableInterrupt(struct WMD_DEV_CONTEXT *hDevContext)
 	struct IO_MGR *hIOMgr;
 
 	DBG_Trace(DBG_ENTER, "CHNLSM_EnableInterrupt(0x%x)\n", pDevContext);
-
-	/* read MBX reg to clear */
-	/*wDummyRd = *(volatile u16 *)
-	   (pDevContext->dwMailBoxBase + MB_DSP2ARM1B_REG_OFFSET); */
 
 	/* Read the messages in the mailbox until the message queue is empty */
 
@@ -142,19 +136,12 @@ DSP_STATUS CHNLSM_EnableInterrupt(struct WMD_DEV_CONTEXT *hDevContext)
 						 MBOX_ARM,
 						 HW_MBOX_INT_NEW_MSG);
 	}
-	/*  Enable the interrupt */
-	/*  Clear the ITR register */
-	/* ClearBitIndex (*(volatile u32 *)
-	   (pDevContext->dwIntAddr + INTH_IT_REG_OFFSET), DSP_MAILBOX1_INT) ;
-	   ClearBitIndex (*(volatile u32 *)
-	   ((pDevContext->dwIntAddr + INTH_IT_REG_OFFSET)
-	   + INTH_MASK_IT_REG_OFFSET), DSP_MAILBOX1_INT) ; */
+
 	return status;
 }
 
 /*
  *  ======== CHNLSM_DisableInterrupt ========
- *  purpose:
  *      Disables interrupts from DSP.
  */
 DSP_STATUS CHNLSM_DisableInterrupt(struct WMD_DEV_CONTEXT *hDevContext)
@@ -175,7 +162,6 @@ DSP_STATUS CHNLSM_DisableInterrupt(struct WMD_DEV_CONTEXT *hDevContext)
 
 /*
  *  ======== CHNLSM_InterruptDSP ========
- *  Purpose:
  *      Send an interrupt to the DSP processor(s).
  */
 DSP_STATUS CHNLSM_InterruptDSP(struct WMD_DEV_CONTEXT *hDevContext)
@@ -264,7 +250,6 @@ DSP_STATUS CHNLSM_InterruptDSP(struct WMD_DEV_CONTEXT *hDevContext)
 
 /*
  *  ======== CHNLSM_InterruptDSP2 ========
- *  Purpose:
  *      Set MBX value & send an interrupt to the DSP processor(s).
  */
 DSP_STATUS CHNLSM_InterruptDSP2(struct WMD_DEV_CONTEXT *hDevContext,
@@ -298,13 +283,8 @@ BOOL CHNLSM_ISR(struct WMD_DEV_CONTEXT *hDevContext, OUT BOOL *pfSchedDPC,
 	struct CFG_HOSTRES resources;
 	u32 numMbxMsg;
 	u32 mbxValue;
-	/*struct WMD_DEV_CONTEXT     * pDevContext = hDevContext; */
 
 	DBG_Trace(DBG_ENTER, "CHNLSM_ISR(0x%x)\n", hDevContext);
-
-	/* need to read it to clear interrupt */
-	/* *pwIntrVal = *(volatile u16 *) */
-	/* (pDevContext->dwMailBoxBase + MB_DSP2ARM1B_REG_OFFSET);*/
 
 	CFG_GetHostResources(
 		(struct CFG_DEVNODE *)DRV_GetFirstDevExtension(), &resources);

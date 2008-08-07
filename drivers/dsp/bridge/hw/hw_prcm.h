@@ -27,11 +27,7 @@
 #ifndef __HW_PRCM_H
 #define __HW_PRCM_H
 
-/*
-* TYPE:	 HW_ClkModule
-*
-* DESCRIPTION:  Enumerated Type used to specify the clock domain
-*/
+/* HW_ClkModule:  Enumerated Type used to specify the clock domain */
 
 enum HW_ClkModule_t {
 /* DSP Domain */
@@ -63,11 +59,7 @@ enum HW_ClkSubsys_t {
     HW_CLK_IVASS
 } ;
 
-/*
-* TYPE:	 HW_GPtimers
-*
-* DESCRIPTION:  General purpose timers
-*/
+/* HW_GPtimers:  General purpose timers */
 enum HW_GPtimer_t {
     HW_GPT5 = 5,
     HW_GPT6 = 6,
@@ -76,22 +68,14 @@ enum HW_GPtimer_t {
 } ;
 
 
-/*
-* TYPE:	 GP timers Input clock type
-*
-* DESCRIPTION:  General purpose timers
-*/
+/* GP timers Input clock type:  General purpose timers */
 enum HW_Clocktype_t {
     HW_CLK_32KHz = 0,
     HW_CLK_SYS   = 1,
     HW_CLK_EXT   = 2
 } ;
 
-/*
-* TYPE:	 HW_ClkDiv
-*
-* DESCRIPTION:  Clock divisors
-*/
+/* HW_ClkDiv:  Clock divisors */
 enum HW_ClkDiv_t {
     HW_CLK_DIV_1 = 0x1,
     HW_CLK_DIV_2 = 0x2,
@@ -102,23 +86,14 @@ enum HW_ClkDiv_t {
     HW_CLK_DIV_12 = 0xC
 } ;
 
-/*
-* TYPE:	 HW_RstModule
-*
-* DESCRIPTION:  Enumerated Type used to specify the module to be reset
-*/
+/* HW_RstModule:  Enumerated Type used to specify the module to be reset */
 enum HW_RstModule_t {
     HW_RST1_IVA2,  /* Reset the DSP */
     HW_RST2_IVA2,  /* Reset MMU and LEON HWa */
     HW_RST3_IVA2   /* Reset LEON sequencer */
 } ;
 
-/*
-* TYPE:	 HW_PwrModule
-*
-* DESCRIPTION:  Enumerated Type used to specify the power domain
-*/
-
+/* HW_PwrModule:  Enumerated Type used to specify the power domain */
 enum HW_PwrModule_t {
 /* Domains */
     HW_PWR_DOMAIN_CORE,

@@ -129,7 +129,6 @@ struct GT_Mask curTrace;
 
 /*
  *  ======== DSP_Init ========
- *  Purpose:
  *  	Allocates bridge resources. Loads a base image onto DSP, if specified.
  */
 u32 DSP_Init(OUT u32 *initStatus)
@@ -161,7 +160,7 @@ u32 DSP_Init(OUT u32 *initStatus)
 	GT_1trace(curTrace, GT_5CLASS, "DSP_Init:C55 procs configured = %d\n",
 		  numProcs);
 	if (DSP_SUCCEEDED(status) & numProcs) {
-		/*Request Resources */
+		/* Request Resources */
 		if (DSP_SUCCEEDED(DRV_RequestResources((u32)&devNode,
 		   &deviceNodeString))) {
 			/* Attempt to Start the Device */
@@ -191,12 +190,10 @@ u32 DSP_Init(OUT u32 *initStatus)
 	if (DSP_FAILED(status) || DSP_FAILED(status1)) {
 		/* irrespective of the status of DEV_RemoveDevice
 		 * we conitinue unloading. Get the Driver Object
-		 * iterate through and remove
-		 */
+		 * iterate through and remove */
 		/* We end up here possibly by status1. Reset
 		 * the status to E_FAIL to avoid going through
-		 * WCD_InitComplete2.
-		 */
+		 * WCD_InitComplete2. */
 		status = DSP_EFAIL;
 		for (deviceNode = DRV_GetFirstDevExtension(); deviceNode != 0;
 		    deviceNode = DRV_GetNextDevExtension(deviceNode)) {
@@ -217,8 +214,7 @@ func_cont:
 	if (DSP_SUCCEEDED(status)) {
 		/* BRD_AutoStart could fail if the dsp execuetable is not the
 		 * correct one. We should not propagate that error
-		 * into the device loader.
-		 */
+		 * into the device loader. */
 		(void)WCD_InitComplete2();
 		GT_0trace(curTrace, GT_1CLASS, "DSP_Init Succeeded\n");
 	} else {
@@ -233,7 +229,6 @@ func_cont:
 
 /*
  *  ======== DSP_Deinit ========
- *  Purpose:
  *  	Frees the resources allocated for bridge.
  */
 BOOL DSP_Deinit(u32 deviceContext)
@@ -254,8 +249,7 @@ BOOL DSP_Deinit(u32 deviceContext)
 	(void) DRV_Destroy((struct DRV_OBJECT *) deviceContext);
 
 	/* Get the Manager Object from Registry
-	 * MGR Destroy will unload the DCD dll
-	 */
+	 * MGR Destroy will unload the DCD dll */
 	if (DSP_SUCCEEDED(CFG_GetObject((u32 *)&mgrObject, REG_MGR_OBJECT)))
 		(void)MGR_Destroy(mgrObject);
 
@@ -266,7 +260,6 @@ BOOL DSP_Deinit(u32 deviceContext)
 
 /*
  *  ======== DSP_Close ========
- *  Purpose:
  *  	The Calling Process handle is passed to DEV_CleanupProcesState
  *      for cleaning up of any resources used by the application
  */

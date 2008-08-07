@@ -88,11 +88,9 @@
 
 /* COD code manager handle */
 	struct COD_MANAGER;
-	/*typedef struct COD_MANAGER *COD_HMANAGER;*/
 
 /* COD library handle */
 	struct COD_LIBRARYOBJ;
-	/*typedef struct COD_LIBRARYOBJ *COD_LIBRARY;*/
 
 /* COD attributes */
 	 struct COD_ATTRS {

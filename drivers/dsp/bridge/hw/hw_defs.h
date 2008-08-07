@@ -36,49 +36,25 @@
 #define HW_PAGE_SIZE_1MB   0x100000
 #define HW_PAGE_SIZE_16MB  0x1000000
 
-/* ----------------------------------------------------------------------------
-* TYPE:         HW_STATUS
-*
-* DESCRIPTION:  return type for HW API
-*
-* -----------------------------------------------------------------------------
-*/
+/* HW_STATUS:  return type for HW API */
 typedef long HW_STATUS;
 
-/* ----------------------------------------------------------------------------
-* TYPE:         HW_SetClear_t
-*
-* DESCRIPTION:  Enumerated Type used to set and clear any bit
-*
-* -----------------------------------------------------------------------------
-*/
+/* HW_SetClear_t:  Enumerated Type used to set and clear any bit */
 enum HW_SetClear_t {
     HW_CLEAR,
     HW_SET
 } ;
 
-/* ----------------------------------------------------------------------------
-* TYPE:         HW_Endianism_t
-*
-* DESCRIPTION:  Enumerated Type used to specify the endianism
-*               Do NOT change these values. They are used as bit fields.
-*
-* -----------------------------------------------------------------------------
-*/
+/* HW_Endianism_t:  Enumerated Type used to specify the endianism
+ *		Do NOT change these values. They are used as bit fields. */
 enum HW_Endianism_t {
     HW_LITTLE_ENDIAN,
     HW_BIG_ENDIAN
 
 } ;
 
-/* ----------------------------------------------------------------------------
-* TYPE:         HW_ElementSize_t
-*
-* DESCRIPTION:  Enumerated Type used to specify the element size
-*               Do NOT change these values. They are used as bit fields.
-*
-* -----------------------------------------------------------------------------
-*/
+/* HW_ElementSize_t:  Enumerated Type used to specify the element size
+ *		Do NOT change these values. They are used as bit fields. */
 enum HW_ElementSize_t {
     HW_ELEM_SIZE_8BIT,
     HW_ELEM_SIZE_16BIT,
@@ -87,13 +63,7 @@ enum HW_ElementSize_t {
 
 } ;
 
-/* ----------------------------------------------------------------------------
-* TYPE:         HW_IdleMode_t
-*
-* DESCRIPTION:  Enumerated Type used to specify Idle modes
-*
-* -----------------------------------------------------------------------------
-*/
+/* HW_IdleMode_t:  Enumerated Type used to specify Idle modes */
 	enum HW_IdleMode_t {
 		HW_FORCE_IDLE,
 		HW_NO_IDLE,

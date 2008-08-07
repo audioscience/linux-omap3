@@ -32,9 +32,8 @@
 #define STRM_MAXEVTNAMELEN      32
 
 	struct STRM_MGR;
-	/*typedef struct STRM_MGR *STRM_HMGR;*/
+
 	struct STRM_OBJECT;
-	/*typedef struct STRM_OBJECT *STRM_HOBJECT;*/
 
 	struct STRM_ATTR {
 		HANDLE hUserEvent;

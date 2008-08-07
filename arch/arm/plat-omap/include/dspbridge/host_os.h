@@ -54,13 +54,11 @@
 #include <linux/ioport.h>
 #include <linux/platform_device.h>
 #include <dbtype.h>
-/* #include <asm/arch/bus.h> */
 
 #if defined(OMAP_2430) || defined(OMAP_3430)
 #include <asm/arch/clock.h>
 #ifdef OMAP_3430
 #include <linux/clk.h>
-/*  #include <asm-arm/hardware/clock.h> */
 #endif
 #endif
 

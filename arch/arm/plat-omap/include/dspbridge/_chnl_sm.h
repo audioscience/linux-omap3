@@ -89,10 +89,8 @@ struct oppTableEntry {
 } ;
 
 struct oppStruct {
- /*  u32 currDspLoad; */
     u32 currOppPt;
     u32 numOppPts;
- /* u32 oppNotifyStatus; */
     struct oppTableEntry oppPoint[MAXOPPS];
 } ;
 

@@ -188,10 +188,6 @@
 #define MBX_PM_OPP_CHNG(OPP) (MBX_PM_CLASS | MBX_PM_TYPE_OPP_PRECHNG | (OPP))
 #define MBX_PM_RET (MBX_PM_CLASS | MBX_PM_TYPE_PWR_CHNG | 0x0006)
 #define MBX_PM_HIB (MBX_PM_CLASS | MBX_PM_TYPE_PWR_CHNG | 0x0002)
-/* #define MBX_PM_OPP_PRECHNG((O), (N))  (MBX_PM_CLASS | \
-	   MBX_PM_TYPE_OPP_PRECHNG | ((O)<<4) | (N)) */
-/* #define MBX_PM_OPP_POSTCHNG((P), (C))  (MBX_PM_CLASS | \
-	   MBX_PM_TYPE_OPP_POSTCHNG | ((P)<<4) | (C)) */
 #define MBX_PM_OPP_1 0
 #define MBX_PM_OPP_2 1
 #define MBX_PM_OPP_3 2

@@ -27,13 +27,10 @@
 
 #include <gh.h>
 
-/*typedef struct Elem Elem;*/
 struct Elem {
 	struct Elem *next;
 	u8 data[1];
 };
-
-/*typedef Elem *ElemPtr;*/
 
 struct GH_THashTab {
 	u16 maxBucket;
@@ -188,8 +185,7 @@ static void nop(void *p)
 /*
  *  ======== myfree ========
  */
-static void
-myfree(void *ptr, s32 size)
+static void myfree(void *ptr, s32 size)
 {
 	GS_free(ptr);
 }

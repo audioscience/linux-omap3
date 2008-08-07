@@ -67,10 +67,6 @@
 #define CHNL_IsIOCancelled(ioc) (ioc.status & CHNL_IOCSTATCANCEL)
 #define CHNL_IsTimedOut(ioc)    (ioc.status & CHNL_IOCSTATTIMEOUT)
 
-/* CHNL Objects: */
-	/*typedef struct CHNL_MGR *CHNL_HMGR;*/
-	/*typedef struct CHNL_OBJECT *CHNL_HOBJECT;*/
-
 /* CHNL types: */
 	typedef u32 CHNL_MODE;	/* Channel transfer mode.         */
 

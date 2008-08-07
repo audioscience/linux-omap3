@@ -74,7 +74,6 @@ struct HW_MMUMapAttrs_t  mapAttrs = { HW_LITTLE_ENDIAN, HW_ELEM_SIZE_16BIT,
 #define VirtToPhys(x)       ((x) - PAGE_OFFSET + PHYS_OFFSET)
 /*
  *  ======== WMD_DEH_Create ========
- *  purpose:
  *      Creates DEH manager object.
  */
 DSP_STATUS WMD_DEH_Create(OUT struct DEH_MGR **phDehMgr,
@@ -137,7 +136,6 @@ DSP_STATUS WMD_DEH_Create(OUT struct DEH_MGR **phDehMgr,
 
 /*
  *  ======== WMD_DEH_Destroy ========
- *  purpose:
  *      Destroys DEH manager object.
  */
 DSP_STATUS WMD_DEH_Destroy(struct DEH_MGR *hDehMgr)
@@ -163,7 +161,6 @@ DSP_STATUS WMD_DEH_Destroy(struct DEH_MGR *hDehMgr)
 
 /*
  *  ======== WMD_DEH_RegisterNotify ========
- *  purpose:
  *      Registers for DEH notifications.
  */
 DSP_STATUS WMD_DEH_RegisterNotify(struct DEH_MGR *hDehMgr, u32 uEventMask,
@@ -187,7 +184,6 @@ DSP_STATUS WMD_DEH_RegisterNotify(struct DEH_MGR *hDehMgr, u32 uEventMask,
 
 /*
  *  ======== PackTraceBuffer ========
- *  Purpose:
  *      Removes extra nulls from the trace buffer returned from the DSP.
  *      Works even on buffers that already are packed (null removed); but has
  *      one bug in that case -- loses the last character (replaces with '\0').
@@ -257,7 +253,6 @@ static DSP_STATUS PackTraceBuffer(char *lpBuf, u32 nBytes, u32 ulNumWords)
 
 /*
  *  ======== PrintDspTraceBuffer ========
- *  Purpose:
  *      Prints the trace buffer returned from the DSP (if DBG_Trace is enabled).
  *  Parameters:
  *    hDehMgr:          Handle to DEH manager object
@@ -351,8 +346,6 @@ DSP_STATUS PrintDspTraceBuffer(struct DEH_MGR *hDehMgr)
 				DBG_Trace(DBG_LEVEL1, "PrintDspTraceBuffer: "
 					 "before pack and unpack.\n");
 				PackTraceBuffer(pszBuf, ulNumBytes, ulNumWords);
-				/*CSL_AnsiToWchar(lpszBuf, pszBuf,
-				 * ulNumBytes * 2);*/
 				DBG_Trace(DBG_LEVEL7, "DSP Trace Buffer:\n%s\n",
 					 pszBuf);
 			}
@@ -371,7 +364,6 @@ DSP_STATUS PrintDspTraceBuffer(struct DEH_MGR *hDehMgr)
 
 /*
  *  ======== WMD_DEH_Notify ========
- *  Purpose:
  *      DEH error notification function. Informs user about the error.
  */
 void CDECL WMD_DEH_Notify(struct DEH_MGR *hDehMgr, u32 ulEventMask,
@@ -482,7 +474,6 @@ void CDECL WMD_DEH_Notify(struct DEH_MGR *hDehMgr, u32 ulEventMask,
 
 /*
  *  ======== WMD_DEH_GetInfo ========
- *  purpose:
  *      Retrieves error information.
  */
 DSP_STATUS WMD_DEH_GetInfo(struct DEH_MGR *hDehMgr,

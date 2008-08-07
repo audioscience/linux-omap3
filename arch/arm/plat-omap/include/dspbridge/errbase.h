@@ -183,7 +183,7 @@
  * found in the COFF file. */
 #define DSP_ESYMBOL                 (DSP_EBASE + 0x1c)
 
-/* UUID not found in registry.                                                */
+/* UUID not found in registry.  */
 #define DSP_EUUID                   (DSP_EBASE + 0x1d)
 
 /* Unable to read content of DCD data section ; this is typically caused by

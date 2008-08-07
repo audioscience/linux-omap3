@@ -29,18 +29,12 @@
  *! 16 Feb 2003 sb: Initial version
  */
 
-/*
- * PROJECT SPECIFIC INCLUDE FILES
- */
 #include <GlobalTypes.h>
 #include "MMURegAcM.h"
 #include <hw_defs.h>
 #include <hw_mmu.h>
 #include <linux/types.h>
 
-/*
- * LOCAL TYPES AND DEFINITIONS
- */
 #define MMU_BASE_VAL_MASK	0xFC00
 #define MMU_PAGE_MAX	     3
 #define MMU_ELEMENTSIZE_MAX      3
@@ -54,10 +48,7 @@
 
 #define MMU_LOAD_TLB	0x00000001
 
-/*
- * TYPE:	 HW_MMUPageSize_t
- * DESCRIPTION:  Enumerated Type used to specify the MMU Page Size(SLSS)
- */
+/* HW_MMUPageSize_t:  Enumerated Type used to specify the MMU Page Size(SLSS) */
 enum HW_MMUPageSize_t {
     HW_MMU_SECTION,
     HW_MMU_LARGE_PAGE,
@@ -181,10 +172,7 @@ static HW_STATUS MMU_SetRAMEntry(const u32	baseAddress,
 				   enum HW_ElementSize_t    elementSize,
 				   enum HW_MMUMixedSize_t   mixedSize);
 
-/* =========================================================================
-* HW FUNCTIONS
-* =========================================================================
-*/
+/* HW FUNCTIONS */
 
 HW_STATUS HW_MMU_Enable(const u32 baseAddress)
 {

@@ -785,9 +785,7 @@ DSP_STATUS NLDR_GetFxnAddr(struct NLDR_NODEOBJECT *hNldrNode, char *pstrFxn,
 		 hNldrNode, pstrFxn, pulAddr);
 
 	hNldr = hNldrNode->pNldr;
-	/*
-	 *  Called from NODE_Create(), NODE_Delete(), or NODE_Run().
-	 */
+	/* Called from NODE_Create(), NODE_Delete(), or NODE_Run(). */
 	if (hNldrNode->fDynamic && *hNldrNode->pfPhaseSplit) {
 		switch (hNldrNode->phase) {
 		case NLDR_CREATE:
@@ -1051,10 +1049,9 @@ static DSP_STATUS AddOvlyInfo(void *handle, struct DBLL_SectInfo *sectInfo,
 	if (!(i < hNldr->nOvlyNodes))
 		goto func_end;
 
-	for (pch = pSectName + 1; *pch && *pch != seps; pch++) {
-		/* Determine which phase
-		 * this section belongs to */
-	}
+	/* Determine which phase this section belongs to */
+	for (pch = pSectName + 1; *pch && *pch != seps; pch++)
+		;;
 
 	if (*pch) {
 		pch++;	/* Skip over the ':' */
@@ -1726,7 +1723,6 @@ static DSP_STATUS RemoteAlloc(void **pRef, u16 space, u32 size,
 		if (space == DBLL_CODE)
 			memPhaseBit++;
 
-		/*segid = hNode->segId[memPhaseBit];*/
 		if (memPhaseBit < MAXFLAGS)
 			segid = hNode->segId[memPhaseBit];
 

@@ -50,7 +50,6 @@ typedef unsigned int size_t;
  *
  */
 struct DBLL_TarObj;
-/*typedef struct DBLL_TarObj *DBLL_Target;*/
 
 /*
  *  ======== DBLL_Flags ========
@@ -63,7 +62,6 @@ typedef s32 DBLL_Flags;
  *
  */
 struct DBLL_LibraryObj;
-/*typedef struct DBLL_LibraryObj *DBLL_Library;*/
 
 /*
  *  ======== DBLL_SectInfo ========

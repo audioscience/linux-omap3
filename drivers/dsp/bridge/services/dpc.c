@@ -229,7 +229,6 @@ DSP_STATUS DPC_Schedule(struct DPC_OBJECT *hDPC)
 	 *  ISR, which will complete all requests and make numRequested equal
 	 * to numScheduled, firing this assertion. This happens only when
 	 * DPC is being scheduled in process context */
-	/* DBC_Assert(pDPCObject->numRequested != pDPCObject->numScheduled);*/
 	} else {
 		GT_0trace(DPC_DebugMask, GT_6CLASS,
 			  "DPC_Schedule: DSP_EHANDLE\n");

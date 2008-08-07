@@ -49,25 +49,25 @@ typedef u32 URVALUE;
  * Reorder maps explained (?)
  *
  * The doff file format defines a 32-bit pattern used to determine the
-   byte order
- * of an image being read.  That value is BYTE_RESHUFFLE_VALUE == 0x00010203
+ * byte order of an image being read.  That value is
+ * BYTE_RESHUFFLE_VALUE == 0x00010203
  * For purposes of the reorder routine, we would rather have the all-is-OK
-   for 32-bits pattern be 0x03020100.  This first macro makes the
-   translation from doff file header value to MAP value: */
+ * for 32-bits pattern be 0x03020100.  This first macro makes the
+ * translation from doff file header value to MAP value: */
 #define REORDER_MAP(rawmap) ((rawmap) ^ 0x3030303)
 /* This translation is made in dload_headers.  Thereafter, the all-is-OK
-   value for the maps stored in dlthis is REORDER_MAP(BYTE_RESHUFFLE_VALUE).
+ * value for the maps stored in dlthis is REORDER_MAP(BYTE_RESHUFFLE_VALUE).
  * But sadly, not all bits of the doff file are 32-bit integers.
-   The notable
- * exceptions are strings and image bits.  Strings obey host byte order: */
+ * The notable exceptions are strings and image bits.
+ * Strings obey host byte order: */
 #if defined(_BIG_ENDIAN)
 #define HOST_BYTE_ORDER(cookedmap) ((cookedmap) ^ 0x3030303)
 #else
 #define HOST_BYTE_ORDER(cookedmap) (cookedmap)
 #endif
 /* Target bits consist of target AUs (could be bytes, or 16-bits,
-   or 32-bits) stored as an array in host order.  A target order
-   map is defined by: */
+ * or 32-bits) stored as an array in host order.  A target order
+ * map is defined by: */
 #if !defined(_BIG_ENDIAN) || TARGET_AU_BITS > 16
 #define TARGET_ORDER(cookedmap) (cookedmap)
 #elif TARGET_AU_BITS > 8

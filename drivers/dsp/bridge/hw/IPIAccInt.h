@@ -17,17 +17,13 @@
 #ifndef _IPI_ACC_INT_H
 #define _IPI_ACC_INT_H
 
-/* EXPORTED DEFINITIONS */
-
 /* Bitfield mask and offset declarations */
-
 #define SYSC_IVA2BOOTMOD_OFFSET                   0x404
 #define SYSC_IVA2BOOTADDR_OFFSET                0x400
 #define SYSC_IVA2BOOTADDR_MASK                 0xfffffc00
 
-/* EXPORTED TYPES */
 
-/* The following type defs represent the enumerated values for each bitfield */
+/* The following represent the enumerated values for each bitfield */
 
 enum IPIIPI_SYSCONFIGAutoIdleE {
 	IPIIPI_SYSCONFIGAutoIdleclkfree = 0x0000,

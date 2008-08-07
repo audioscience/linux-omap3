@@ -53,7 +53,6 @@
 
 /* Interrupt Object handle: */
 	struct ISR_IRQ;
-	/*typedef struct ISR_IRQ *ISR_HIRQ;*/
 
 /* ISR install type (private) */
 #define ISR_MAILBOX1            0x00000080	/* Arbitrary value */

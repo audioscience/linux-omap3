@@ -32,7 +32,6 @@
 
 /* IO Objects: */
 	struct IO_MGR;
-	/*typedef struct IO_MGR *IO_HMGR; */
 
 /* IO manager attributes: */
 	struct IO_ATTRS {

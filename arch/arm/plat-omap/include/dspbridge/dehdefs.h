@@ -14,7 +14,6 @@
  * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-
 /*
  *  ======== dehdefs.h ========
  *  Purpose:
@@ -34,7 +33,6 @@
 
 /* DEH object manager */
 	struct DEH_MGR;
-	/*typedef struct DEH_MGR *DEH_HMGR;*/
 
 /* Magic code used to determine if DSP signaled exception. */
 #define DEH_BASE        MBX_DEH_BASE

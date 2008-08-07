@@ -60,13 +60,9 @@
 		struct LST_ELEM *self;
 	} ;
 
-	/*typedef LST_ELEM *LST_PELEM;*/
-
 	struct LST_LIST {
 		struct LST_ELEM head;
 	} ;
-
-	/*typedef LST_LIST *LST_PLIST;*/
 
 /*
  *  ======== LST_Create ========

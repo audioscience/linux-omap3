@@ -27,45 +27,37 @@
 #ifndef __GLOBALTYPES_H
 #define __GLOBALTYPES_H
 
-/* ----------------------------------------------------------------------------
-* Definition: TRUE, FALSE
-*
-* DESCRIPTION:  Boolean Definitions
-*
-* -----------------------------------------------------------------------------
-*/
+/*
+ * Definition: TRUE, FALSE
+ *
+ * DESCRIPTION:  Boolean Definitions
+ */
 #ifndef TRUE
 #define FALSE	0
 #define TRUE	(!(FALSE))
 #endif
 
-/* ----------------------------------------------------------------------------
-* Definition: NULL
-*
-* DESCRIPTION:  Invalid pointer
-*
-* -----------------------------------------------------------------------------
-*/
+/*
+ * Definition: NULL
+ *
+ * DESCRIPTION:  Invalid pointer
+ */
 #ifndef NULL
 #define NULL	(void *)0
 #endif
 
-/* ----------------------------------------------------------------------------
-* Definition: RET_CODE_BASE
-*
-* DESCRIPTION:  Base value for return code offsets
-*
-* -----------------------------------------------------------------------------
-*/
+/*
+ * Definition: RET_CODE_BASE
+ *
+ * DESCRIPTION:  Base value for return code offsets
+ */
 #define RET_CODE_BASE	0
 
-/* ----------------------------------------------------------------------------
-* Definition: *BIT_OFFSET
-*
-* DESCRIPTION:  offset in bytes from start of 32-bit word.
-*
-* -----------------------------------------------------------------------------
-*/
+/*
+ * Definition: *BIT_OFFSET
+ *
+ * DESCRIPTION:  offset in bytes from start of 32-bit word.
+ */
 #define LOWER_16BIT_OFFSET	  0
 #define UPPER_16BIT_OFFSET	  2
 
@@ -77,13 +69,11 @@
 #define LOWER_8BIT_OF16_OFFSET      0
 #define UPPER_8BIT_OF16_OFFSET      1
 
-/* ----------------------------------------------------------------------------
-* Definition: *BIT_SHIFT
-*
-* DESCRIPTION:  offset in bits from start of 32-bit word.
-*
-* -----------------------------------------------------------------------------
-*/
+/*
+ * Definition: *BIT_SHIFT
+ *
+ * DESCRIPTION:  offset in bits from start of 32-bit word.
+ */
 #define LOWER_16BIT_SHIFT	  0
 #define UPPER_16BIT_SHIFT	  16
 
@@ -96,63 +86,49 @@
 #define UPPER_8BIT_OF16_SHIFT      8
 
 
-/* ----------------------------------------------------------------------------
-* Definition: LOWER_16BIT_MASK
-*
-* DESCRIPTION:  16 bit mask used for inclusion of lower 16 bits i.e. mask out
-*	       the upper 16 bits
-*
-* -----------------------------------------------------------------------------
-*/
+/*
+ * Definition: LOWER_16BIT_MASK
+ *
+ * DESCRIPTION: 16 bit mask used for inclusion of lower 16 bits i.e. mask out
+ *		the upper 16 bits
+ */
 #define LOWER_16BIT_MASK	0x0000FFFF
 
 
-/* ----------------------------------------------------------------------------
-* Definition: LOWER_8BIT_MASK
-*
-* DESCRIPTION:  8 bit masks used for inclusion of 8 bits i.e. mask out
-*	       the upper 16 bits
-*
-* -----------------------------------------------------------------------------
-*/
+/*
+ * Definition: LOWER_8BIT_MASK
+ *
+ * DESCRIPTION: 8 bit masks used for inclusion of 8 bits i.e. mask out
+ *		the upper 16 bits
+ */
 #define LOWER_8BIT_MASK	   0x000000FF
 
-/* ----------------------------------------------------------------------------
-* Definition: RETURN_32BITS_FROM_16LOWER_AND_16UPPER(lower16Bits, upper16Bits)
-*
-* DESCRIPTION:  Returns a 32 bit value given a 16 bit lower value and a 16
-*	       bit upper value
-*
-* -----------------------------------------------------------------------------
-*/
+/*
+ * Definition: RETURN_32BITS_FROM_16LOWER_AND_16UPPER(lower16Bits, upper16Bits)
+ *
+ * DESCRIPTION: Returns a 32 bit value given a 16 bit lower value and a 16
+ *		bit upper value
+ */
 #define RETURN_32BITS_FROM_16LOWER_AND_16UPPER(lower16Bits,upper16Bits)\
     (((((u32)lower16Bits)  & LOWER_16BIT_MASK)) | \
      (((((u32)upper16Bits) & LOWER_16BIT_MASK) << UPPER_16BIT_SHIFT)))
 
-
-/* ----------------------------------------------------------------------------
-* Definition: RETURN_16BITS_FROM_8LOWER_AND_8UPPER(lower16Bits, upper16Bits)
-*
-* DESCRIPTION:  Returns a 16 bit value given a 8 bit lower value and a 8
-*	       bit upper value
-*
-* -----------------------------------------------------------------------------
-*/
+/*
+ * Definition: RETURN_16BITS_FROM_8LOWER_AND_8UPPER(lower16Bits, upper16Bits)
+ *
+ * DESCRIPTION:  Returns a 16 bit value given a 8 bit lower value and a 8
+ *	       bit upper value
+ */
 #define RETURN_16BITS_FROM_8LOWER_AND_8UPPER(lower8Bits,upper8Bits)\
     (((((u32)lower8Bits)  & LOWER_8BIT_MASK)) | \
      (((((u32)upper8Bits) & LOWER_8BIT_MASK) << UPPER_8BIT_OF16_SHIFT)))
 
-/* ----------------------------------------------------------------------------
-* Definition: RETURN_32BITS_FROM_4_8BIT_VALUES(
-*				       lower8Bits,
-					lowerMiddle8Bits,
-					lowerUpper8Bits,
-					upper8Bits)
-*
-* DESCRIPTION:  Returns a 32 bit value given four 8 bit values
-*
-* -----------------------------------------------------------------------------
-*/
+/*
+ * Definition: RETURN_32BITS_FROM_4_8BIT_VALUES(lower8Bits, lowerMiddle8Bits,
+ * 					lowerUpper8Bits, upper8Bits)
+ *
+ * DESCRIPTION:  Returns a 32 bit value given four 8 bit values
+ */
 #define RETURN_32BITS_FROM_4_8BIT_VALUES(lower8Bits, lowerMiddle8Bits,\
 	lowerUpper8Bits, upper8Bits)\
 	(((((u32)lower8Bits) & LOWER_8BIT_MASK)) | \
@@ -163,164 +139,104 @@
 	(((((u32)upper8Bits) & LOWER_8BIT_MASK) <<\
 		UPPER_8BIT_SHIFT)))
 
-/* ----------------------------------------------------------------------------
-* Definition: READ_LOWER_16BITS_OF_32(value32bits)
-*
-* DESCRIPTION:  Returns a 16 lower bits of 32bit value
-*
-* -----------------------------------------------------------------------------
-*/
+/*
+ * Definition: READ_LOWER_16BITS_OF_32(value32bits)
+ *
+ * DESCRIPTION:  Returns a 16 lower bits of 32bit value
+ */
 #define READ_LOWER_16BITS_OF_32(value32bits)\
     ((u16)((u32)(value32bits) & LOWER_16BIT_MASK))
 
-/* ----------------------------------------------------------------------------
-* Definition: READ_UPPER_16BITS_OF_32(value32bits)
-*
-* DESCRIPTION:  Returns a 16 lower bits of 32bit value
-*
-* -----------------------------------------------------------------------------
-*/
+/*
+ * Definition: READ_UPPER_16BITS_OF_32(value32bits)
+ *
+ * DESCRIPTION:  Returns a 16 lower bits of 32bit value
+ */
 #define READ_UPPER_16BITS_OF_32(value32bits)\
 	(((u16)((u32)(value32bits) >> UPPER_16BIT_SHIFT)) &\
 	LOWER_16BIT_MASK)
 
 
-/* ----------------------------------------------------------------------------
-* Definition: READ_LOWER_8BITS_OF_32(value32bits)
-*
-* DESCRIPTION:  Returns a 8 lower bits of 32bit value
-*
-* -----------------------------------------------------------------------------
-*/
+/*
+ * Definition: READ_LOWER_8BITS_OF_32(value32bits)
+ *
+ * DESCRIPTION:  Returns a 8 lower bits of 32bit value
+ */
 #define READ_LOWER_8BITS_OF_32(value32bits)\
     ((u8)((u32)(value32bits) & LOWER_8BIT_MASK))
 
-/* ----------------------------------------------------------------------------
-* Definition: READ_LOWER_MIDDLE_8BITS_OF_32(value32bits)
-*
-* DESCRIPTION:  Returns a 8 lower middle bits of 32bit value
-*
-* -----------------------------------------------------------------------------
-*/
+/*
+ * Definition: READ_LOWER_MIDDLE_8BITS_OF_32(value32bits)
+ *
+ * DESCRIPTION:  Returns a 8 lower middle bits of 32bit value
+ */
 #define READ_LOWER_MIDDLE_8BITS_OF_32(value32bits)\
 	(((u8)((u32)(value32bits) >> LOWER_MIDDLE_8BIT_SHIFT)) &\
 	LOWER_8BIT_MASK)
 
-/* ----------------------------------------------------------------------------
-* Definition: READ_LOWER_MIDDLE_8BITS_OF_32(value32bits)
-*
-* DESCRIPTION:  Returns a 8 lower middle bits of 32bit value
-*
-* -----------------------------------------------------------------------------
-*/
+/*
+ * Definition: READ_LOWER_MIDDLE_8BITS_OF_32(value32bits)
+ *
+ * DESCRIPTION:  Returns a 8 lower middle bits of 32bit value
+ */
 #define READ_UPPER_MIDDLE_8BITS_OF_32(value32bits)\
 	(((u8)((u32)(value32bits) >> LOWER_MIDDLE_8BIT_SHIFT)) &\
 	LOWER_8BIT_MASK)
 
-/* ----------------------------------------------------------------------------
-* Definition: READ_UPPER_8BITS_OF_32(value32bits)
-*
-* DESCRIPTION:  Returns a 8 upper bits of 32bit value
-*
-* -----------------------------------------------------------------------------
-*/
+/*
+ * Definition: READ_UPPER_8BITS_OF_32(value32bits)
+ *
+ * DESCRIPTION:  Returns a 8 upper bits of 32bit value
+ */
 #define READ_UPPER_8BITS_OF_32(value32bits)\
     (((u8)((u32)(value32bits) >> UPPER_8BIT_SHIFT)) & LOWER_8BIT_MASK)
 
 
-/* ----------------------------------------------------------------------------
-* Definition: READ_LOWER_8BITS_OF_16(value16bits)
-*
-* DESCRIPTION:  Returns a 8 lower bits of 16bit value
-*
-* -----------------------------------------------------------------------------
-*/
+/*
+ * Definition: READ_LOWER_8BITS_OF_16(value16bits)
+ *
+ * DESCRIPTION:  Returns a 8 lower bits of 16bit value
+ */
 #define READ_LOWER_8BITS_OF_16(value16bits)\
     ((u8)((u16)(value16bits) & LOWER_8BIT_MASK))
 
-/* ----------------------------------------------------------------------------
-* Definition: READ_UPPER_8BITS_OF_16(value32bits)
-*
-* DESCRIPTION:  Returns a 8 upper bits of 16bit value
-*
-* -----------------------------------------------------------------------------
-*/
+/*
+ * Definition: READ_UPPER_8BITS_OF_16(value32bits)
+ *
+ * DESCRIPTION:  Returns a 8 upper bits of 16bit value
+ */
 #define READ_UPPER_8BITS_OF_16(value16bits)\
     (((u8)((u32)(value16bits) >> UPPER_8BIT_SHIFT)) & LOWER_8BIT_MASK)
 
-/* ============================================================================
-* EXPORTED TYPES
-* =============================================================================
-*/
-
-/* ----------------------------------------------------------------------------
-*
-* DESCRIPTION:  8 bit tpyes
-*
-* -----------------------------------------------------------------------------
-*/
+/* 8 bit tpyes */
 typedef signed   char  WORD8;
 
-/* ----------------------------------------------------------------------------
-* TYPE: UWORD16
-*
-* DESCRIPTION:  16 bit tpyes
-*
-* -----------------------------------------------------------------------------
-*/
+/* UWORD16:  16 bit tpyes */
 
 
-/* ----------------------------------------------------------------------------
-* TYPE: REG_UWORD8, REG_WORD8
-*
-* DESCRIPTION: 8 bit register types.
-*
-* -----------------------------------------------------------------------------
-*/
+/* REG_UWORD8, REG_WORD8: 8 bit register types */
 typedef volatile unsigned char  REG_UWORD8;
 typedef volatile signed   char  REG_WORD8;
 
-/* ----------------------------------------------------------------------------
-* TYPE: REG_UWORD16, REG_WORD16
-*
-* DESCRIPTION: 16 bit register types.
-*
-* -----------------------------------------------------------------------------
-*/
+/* REG_UWORD16, REG_WORD16: 16 bit register types */
 #ifndef OMAPBRIDGE_TYPES
 typedef volatile unsigned short REG_UWORD16;
 #endif
 typedef volatile	  short REG_WORD16;
 
-/* ----------------------------------------------------------------------------
-* TYPE: REG_UWORD32, REG_WORD32
-*
-* DESCRIPTION: 32 bit register types.
-*
-* -----------------------------------------------------------------------------
-*/
+/* REG_UWORD32, REG_WORD32: 32 bit register types */
 typedef volatile unsigned long  REG_UWORD32;
 
-/* ----------------------------------------------------------------------------
-* TYPE: FLOAT
-*
-* DESCRIPTION: Type to be used for floating point calculation. Note that
-*	      floating point calculation is very CPU expensive, and you should
-*	      only  use if you absolutely need this.
-*
-* -----------------------------------------------------------------------------
-*/
+/* FLOAT
+ *
+ * Type to be used for floating point calculation. Note that floating point
+ * calculation is very CPU expensive, and you should only  use if you
+ * absolutely need this. */
 #ifndef OMAPBRIDGE_TYPES
 typedef float  FLOAT;
 #endif
 
-/* ----------------------------------------------------------------------------
-* TYPE: boolean_t
-*
-* DESCRIPTION:  Boolean Type True, False
-*
-* -----------------------------------------------------------------------------
-*/
+/* boolean_t:  Boolean Type True, False */
 #ifndef OMAPBRIDGE_TYPES
 typedef enum boolean_label {
     False = 0,
@@ -329,14 +245,7 @@ typedef enum boolean_label {
 
 #endif
 
-
-/* ----------------------------------------------------------------------------
-* TYPE: ReturnCode_t
-*
-* DESCRIPTION:  Return codes to be returned by all library functions
-*
-* -----------------------------------------------------------------------------
-*/
+/* ReturnCode_t:  Return codes to be returned by all library functions */
 typedef enum ReturnCode_label {
     RET_OK = 0,
     RET_FAIL = -1,
@@ -353,86 +262,56 @@ typedef enum ReturnCode_label {
     RET_NUM_RET_CODES     /* this should ALWAYS be LAST entry */
 } ReturnCode_t, *pReturnCode_t;
 
-
-/* ============================================================================
-* EXPORTED VARIABLES
-* =============================================================================
-*/
-
-
-/* ============================================================================
-* EXPORTED FUNCTIONS/MACROS
-* =============================================================================
-*/
-
-/* ----------------------------------------------------------------------------
-* MACRO: RD_MEM_8, WR_MEM_8
-*
-* DESCRIPTION:  32 bit memory access macros
-*
-* -----------------------------------------------------------------------------
-*/
+/* MACRO: RD_MEM_8, WR_MEM_8
+ *
+ * DESCRIPTION:  32 bit memory access macros
+ */
 #define RD_MEM_8(addr)	((u8)(*((u8 *)(addr))))
 #define WR_MEM_8(addr, data)	(*((u8 *)(addr)) = (u8)(data))
 
-/* ----------------------------------------------------------------------------
-* MACRO: RD_MEM_8_VOLATILE, WR_MEM_8_VOLATILE
-*
-* DESCRIPTION:  8 bit register access macros
-*
-* -----------------------------------------------------------------------------
-*/
+/* MACRO: RD_MEM_8_VOLATILE, WR_MEM_8_VOLATILE
+ *
+ * DESCRIPTION:  8 bit register access macros
+ */
 #define RD_MEM_8_VOLATILE(addr)	((u8)(*((REG_UWORD8 *)(addr))))
 #define WR_MEM_8_VOLATILE(addr, data) (*((REG_UWORD8 *)(addr)) = (u8)(data))
 
 
-/* ----------------------------------------------------------------------------
-* MACRO: RD_MEM_16, WR_MEM_16
-*
-* DESCRIPTION:  16 bit memory access macros
-*
-* -----------------------------------------------------------------------------
-*/
+/*
+ * MACRO: RD_MEM_16, WR_MEM_16
+ *
+ * DESCRIPTION:  16 bit memory access macros
+ */
 #define RD_MEM_16(addr)	((u16)(*((u16 *)(addr))))
 #define WR_MEM_16(addr, data)	(*((u16 *)(addr)) = (u16)(data))
 
-/* ----------------------------------------------------------------------------
-* MACRO: RD_MEM_16_VOLATILE, WR_MEM_16_VOLATILE
-*
-* DESCRIPTION:  16 bit register access macros
-*
-* -----------------------------------------------------------------------------
-*/
+/*
+ * MACRO: RD_MEM_16_VOLATILE, WR_MEM_16_VOLATILE
+ *
+ * DESCRIPTION:  16 bit register access macros
+ */
 #define RD_MEM_16_VOLATILE(addr)	((u16)(*((REG_UWORD16 *)(addr))))
 #define WR_MEM_16_VOLATILE(addr, data)	(*((REG_UWORD16 *)(addr)) =\
 					(u16)(data))
 
-/* ----------------------------------------------------------------------------
-* MACRO: RD_MEM_32, WR_MEM_32
-*
-* DESCRIPTION:  32 bit memory access macros
-*
-* -----------------------------------------------------------------------------
-*/
+/*
+ * MACRO: RD_MEM_32, WR_MEM_32
+ *
+ * DESCRIPTION:  32 bit memory access macros
+ */
 #define RD_MEM_32(addr)	((u32)(*((u32 *)(addr))))
 #define WR_MEM_32(addr, data)	(*((u32 *)(addr)) = (u32)(data))
 
-/* ----------------------------------------------------------------------------
-* MACRO: RD_MEM_32_VOLATILE, WR_MEM_32_VOLATILE
-*
-* DESCRIPTION:  32 bit register access macros
-*
-* -----------------------------------------------------------------------------
-*/
+/*
+ * MACRO: RD_MEM_32_VOLATILE, WR_MEM_32_VOLATILE
+ *
+ * DESCRIPTION:  32 bit register access macros
+ */
 #define RD_MEM_32_VOLATILE(addr)	((u32)(*((REG_UWORD32 *)(addr))))
 #define WR_MEM_32_VOLATILE(addr, data)	(*((REG_UWORD32 *)(addr)) =\
 					(u32)(data))
 
-
-/* ----------------------------------------------------------------------------
-* Not sure if this all belongs here.
-* -----------------------------------------------------------------------------
-*/
+/* Not sure if this all belongs here */
 
 #define CHECK_RETURN_VALUE(actualValue, expectedValue,  returnCodeIfMismatch,\
 	spyCodeIfMisMatch)

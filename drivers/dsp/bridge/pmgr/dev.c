@@ -182,8 +182,7 @@ struct DEV_OBJECT {
 	u32 uWordSize;	/* DSP word size: quick access.  */
 	struct DRV_OBJECT *hDrvObject;	/* Driver Object                 */
 	struct LST_LIST *procList;	/* List of Proceeosr attached to
-				 * this device
-				 */
+				 * this device  */
 	struct NODE_MGR *hNodeMgr;
 } ;
 
