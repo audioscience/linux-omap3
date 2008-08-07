@@ -45,22 +45,6 @@ typedef unsigned int size_t;
 #endif
 
 /*
- *  ======== DBL_Target ========
- *  A target may have one or more libraries of symbols/code/data loaded
- *  onto it, where a library is simply the symbols/code/data contained
- *  in a COFF file.
- */
-/*typedef struct DBL_TargetObj *DBL_Target;*/
-
-/*
- *  ======== DBL_Library ========
- *  A library handle is returned by DBL_Open() and is passed to DBL_load()
- *  to load symbols/code/data, and to DBL_unload(), to remove the
- *  symbols/code/data loaded by DBL_load().
- */
-/*typedef struct DBL_LibraryObj *DBL_Library;*/
-
-/*
  *  ======== DBL_Flags ========
  *  Specifies whether to load code, data, or symbols
  */
@@ -82,7 +66,7 @@ struct DBL_SectInfo {
  *  ======== DBL_Symbol ========
  *  (Needed for dynamic load library)
  */
- struct DBL_Symbol {
+struct DBL_Symbol {
 	u32 value;
 };
 
@@ -206,10 +190,10 @@ struct DBL_Attrs {
 	 *  These file manipulation functions should be compatible with the
 	 *  "C" run time library functions of the same name.
 	 */
-	 s32(*fread) (void *, size_t, size_t, void *);
-	 s32(*fseek) (void *, long, int);
-	 s32(*ftell) (void *);
-	 s32(*fclose) (void *);
+	s32(*fread) (void *, size_t, size_t, void *);
+	s32(*fseek) (void *, long, int);
+	s32(*ftell) (void *);
+	s32(*fclose) (void *);
 	void *(*fopen) (const char *, const char *);
 } ;
 

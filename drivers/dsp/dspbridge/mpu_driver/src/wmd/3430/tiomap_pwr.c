@@ -80,7 +80,6 @@ DSP_STATUS DSP_PeripheralClocks_Enable(struct WMD_DEV_CONTEXT *pDevContext,
 
 /*
  *  ======== handle_constraints_set ========
- *  purpose:
  *  	Sets new DSP constraint
  */
 DSP_STATUS handle_constraints_set(struct WMD_DEV_CONTEXT *pDevContext,
@@ -111,7 +110,6 @@ DSP_STATUS handle_constraints_set(struct WMD_DEV_CONTEXT *pDevContext,
 
 /*
  *  ======== handle_hibernation_fromDSP ========
- *  purpose:
  *  	Handle Hibernation requested from DSP
  */
 DSP_STATUS handle_hibernation_fromDSP(struct WMD_DEV_CONTEXT *pDevContext)
@@ -192,7 +190,6 @@ DSP_STATUS handle_hibernation_fromDSP(struct WMD_DEV_CONTEXT *pDevContext)
 }
 /*
  *  ======== SleepDSP ========
- *  purpose:
  *  	Put DSP in low power consuming state.
  */
 DSP_STATUS SleepDSP(struct WMD_DEV_CONTEXT *pDevContext, IN u32 dwCmd,
@@ -288,7 +285,6 @@ DSP_STATUS SleepDSP(struct WMD_DEV_CONTEXT *pDevContext, IN u32 dwCmd,
 
 /*
  *  ======== WakeDSP ========
- *  purpose:
  *  	Wake up DSP from sleep.
  */
 DSP_STATUS WakeDSP(struct WMD_DEV_CONTEXT *pDevContext, IN void *pArgs)
@@ -336,7 +332,6 @@ DSP_STATUS WakeDSP(struct WMD_DEV_CONTEXT *pDevContext, IN void *pArgs)
 
 /*
  *  ======== DSPPeripheralClkCtrl ========
- *  purpose:
  *  	Enable/Disable the DSP peripheral clocks as needed..
  */
 DSP_STATUS DSPPeripheralClkCtrl(struct WMD_DEV_CONTEXT *pDevContext,
@@ -420,7 +415,6 @@ DSP_STATUS DSPPeripheralClkCtrl(struct WMD_DEV_CONTEXT *pDevContext,
 
 /*
  *  ========PreScale_DSP========
- *  purpose:
  *  Sends prescale notification to DSP
  *
  */
@@ -460,7 +454,6 @@ DSP_STATUS PreScale_DSP(struct WMD_DEV_CONTEXT *pDevContext, IN void *pArgs)
 
 /*
  *  ========PostScale_DSP========
- *  purpose:
  *  Sends postscale notification to DSP
  *
  */
@@ -510,7 +503,6 @@ DSP_STATUS PostScale_DSP(struct WMD_DEV_CONTEXT *pDevContext, IN void *pArgs)
 
 /*
  *  ========DSP_PeripheralClocks_Disable========
- *  purpose:
  *  Disables all the peripheral clocks that were requested by DSP
  */
 DSP_STATUS DSP_PeripheralClocks_Disable(struct WMD_DEV_CONTEXT *pDevContext,
@@ -543,7 +535,6 @@ DSP_STATUS DSP_PeripheralClocks_Disable(struct WMD_DEV_CONTEXT *pDevContext,
 
 /*
  *  ========DSP_PeripheralClocks_Enable========
- *  purpose:
  *  Enables all the peripheral clocks that were requested by DSP
  */
 DSP_STATUS DSP_PeripheralClocks_Enable(struct WMD_DEV_CONTEXT *pDevContext,

@@ -159,7 +159,6 @@ static DSP_STATUS SearchFreeChannel(struct CHNL_MGR *pChnlMgr,
 
 /*
  *  ======== WMD_CHNL_AddIOReq ========
- *  Purpose:
  *      Enqueue an I/O request for data transfer on a channel to the DSP.
  *      The direction (mode) is specified in the channel object. Note the DSP
  *      address is specified for channels opened in direct I/O mode.
@@ -312,7 +311,6 @@ func_cont:
 
 /*
  *  ======== WMD_CHNL_CancelIO ========
- *  Purpose:
  *      Return all I/O requests to the client which have not yet been
  *      transferred.  The channel's I/O completion object is
  *      signalled, and all the I/O requests are queued as IOC's, with the
@@ -447,7 +445,6 @@ func_cont:
 
 /*
  *  ======== WMD_CHNL_Create ========
- *  Purpose:
  *      Create a channel manager object, responsible for opening new channels
  *      and closing old ones for a given board.
  */
@@ -643,7 +640,6 @@ DSP_STATUS WMD_CHNL_GetInfo(struct CHNL_OBJECT *hChnl,
 
 /*
  *  ======== WMD_CHNL_GetIOC ========
- *  Purpose:
  *      Optionally wait for I/O completion on a channel.  Dequeue an I/O
  *      completion record, which contains information about the completed
  *      I/O request.
@@ -804,7 +800,6 @@ func_end:
 
 /*
  *  ======== WMD_CHNL_GetMgrInfo ========
- *  Purpose:
  *      Retrieve information related to the channel manager.
  */
 DSP_STATUS WMD_CHNL_GetMgrInfo(struct CHNL_MGR *hChnlMgr, u32 uChnlID,
@@ -838,7 +833,6 @@ DSP_STATUS WMD_CHNL_GetMgrInfo(struct CHNL_MGR *hChnlMgr, u32 uChnlID,
 
 /*
  *  ======== WMD_CHNL_Idle ========
- *  purpose:
  *      Idles a particular channel.
  */
 DSP_STATUS WMD_CHNL_Idle(struct CHNL_OBJECT *hChnl, u32 dwTimeOut,
@@ -857,7 +851,6 @@ DSP_STATUS WMD_CHNL_Idle(struct CHNL_OBJECT *hChnl, u32 dwTimeOut,
 		/* Wait for IO completions, up to the specified timeout: */
 		status = WMD_CHNL_FlushIO(hChnl, dwTimeOut);
 	} else {
-
 		status = WMD_CHNL_CancelIO(hChnl);
 
 		/* Reset the byte count and put channel back in ready state. */
@@ -870,7 +863,6 @@ DSP_STATUS WMD_CHNL_Idle(struct CHNL_OBJECT *hChnl, u32 dwTimeOut,
 
 /*
  *  ======== WMD_CHNL_Open ========
- *  Purpose:
  *      Open a new half-duplex channel to the DSP board.
  */
 DSP_STATUS WMD_CHNL_Open(OUT struct CHNL_OBJECT **phChnl,
@@ -1000,7 +992,6 @@ func_end:
 
 /*
  *  ======== WMD_CHNL_RegisterNotify ========
- *  purpose:
  *      Registers for events on a particular channel.
  */
 DSP_STATUS WMD_CHNL_RegisterNotify(struct CHNL_OBJECT *hChnl, u32 uEventMask,
@@ -1070,7 +1061,6 @@ static void FreeChirpList(struct LST_LIST *pChirpList)
 
 /*
  *  ======== MakeNewChirp ========
- *  Purpose:
  *      Allocate the memory for a new channel IRP.
  */
 static struct CHNL_IRP *MakeNewChirp(void)
@@ -1089,7 +1079,6 @@ static struct CHNL_IRP *MakeNewChirp(void)
 
 /*
  *  ======== SearchFreeChannel ========
- *  Purpose:
  *      Search for a free channel slot in the array of channel pointers.
  */
 static DSP_STATUS SearchFreeChannel(struct CHNL_MGR *pChnlMgr,

@@ -70,8 +70,6 @@
  *  Requires:
  *  Ensures:
  */
-
-/* extern __inline DSP_STATUS WCD_CallDevIOCtl(unsigned int cmd, */
 	extern DSP_STATUS WCD_CallDevIOCtl(unsigned int cmd,
 					   union Trapped_Args *args,
 					   u32 *pResult);
@@ -185,13 +183,5 @@
 	extern u32 CMMWRAP_FreeBuf(union Trapped_Args *args);
 	extern u32 CMMWRAP_GetHandle(union Trapped_Args *args);
 	extern u32 CMMWRAP_GetInfo(union Trapped_Args *args);
-
-	extern u32 MEMWRAP_Alloc(union Trapped_Args *args);
-	extern u32 MEMWRAP_Calloc(union Trapped_Args *args);
-	extern u32 MEMWRAP_Free(union Trapped_Args *args);
-	extern u32 MEMWRAP_PageLock(union Trapped_Args *args);
-	extern u32 MEMWRAP_PageUnlock(union Trapped_Args *args);
-
-	extern u32 UTILWRAP_TestDll(union Trapped_Args *args);
 
 #endif				/* _WCD_ */

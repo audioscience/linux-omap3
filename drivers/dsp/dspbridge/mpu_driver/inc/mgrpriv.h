@@ -36,7 +36,6 @@
 
 /* RM MGR Object */
 	struct MGR_OBJECT;
-	/*typedef struct MGR_OBJECT *MGR_HOBJECT;*/
 
 	struct MGR_TLBENTRY {
 		u32 ulDspVirt;	/* DSP virtual address */
@@ -52,6 +51,5 @@
 		/* private dsp mmu entries */
 		struct MGR_TLBENTRY tyTlb[MGR_MAXTLBENTRIES];
 	} ;
-	/*MGR_PROCESSOREXTINFO, *MGR_HPROCESSOREXTINFO;*/
 
 #endif				/* MGRPRIV_ */

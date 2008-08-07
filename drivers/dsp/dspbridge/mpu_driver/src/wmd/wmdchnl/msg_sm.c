@@ -75,7 +75,6 @@ static void FreeMsgList(struct LST_LIST *msgList);
 
 /*
  *  ======== WMD_MSG_Create ========
- *  Purpose:
  *      Create an object to manage message queues. Only one of these objects
  *      can exist per device object.
  */
@@ -131,7 +130,6 @@ DSP_STATUS WMD_MSG_Create(OUT struct MSG_MGR **phMsgMgr,
 
 /*
  *  ======== WMD_MSG_CreateQueue ========
- *  Purpose:
  *      Create a MSG_QUEUE for sending/receiving messages to/from a node
  *      on the DSP.
  */
@@ -220,7 +218,6 @@ func_end:
 
 /*
  *  ======== WMD_MSG_Delete ========
- *  Purpose:
  *      Delete a MSG manager allocated in WMD_MSG_Create().
  */
 void WMD_MSG_Delete(struct MSG_MGR *hMsgMgr)
@@ -232,7 +229,6 @@ void WMD_MSG_Delete(struct MSG_MGR *hMsgMgr)
 
 /*
  *  ======== WMD_MSG_DeleteQueue ========
- *  Purpose:
  *      Delete a MSG queue allocated in WMD_MSG_CreateQueue.
  */
 void WMD_MSG_DeleteQueue(struct MSG_QUEUE *hMsgQueue)
@@ -264,7 +260,6 @@ void WMD_MSG_DeleteQueue(struct MSG_QUEUE *hMsgQueue)
 
 /*
  *  ======== WMD_MSG_Get ========
- *  Purpose:
  *      Get a message from a MSG queue.
  */
 DSP_STATUS WMD_MSG_Get(struct MSG_QUEUE *hMsgQueue,
@@ -352,7 +347,6 @@ DSP_STATUS WMD_MSG_Get(struct MSG_QUEUE *hMsgQueue,
 
 /*
  *  ======== WMD_MSG_Put ========
- *  Purpose:
  *      Put a message onto a MSG queue.
  */
 DSP_STATUS WMD_MSG_Put(struct MSG_QUEUE *hMsgQueue,
@@ -496,7 +490,6 @@ void WMD_MSG_SetQueueId(struct MSG_QUEUE *hMsgQueue, u32 dwId)
 
 /*
  *  ======== AddNewMsg ========
- *  Purpose:
  *      Must be called in message manager critical section.
  */
 static DSP_STATUS AddNewMsg(struct LST_LIST *msgList)

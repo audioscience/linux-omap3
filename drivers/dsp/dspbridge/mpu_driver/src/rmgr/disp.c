@@ -505,7 +505,6 @@ DSP_STATUS DISP_NodeCreate(struct DISP_OBJECT *hDisp, struct NODE_OBJECT *hNode,
 				 nodeInfo.uExecutionPriority,
 				 taskArgs.nPriority);
 			pMoreTaskArgs->priority = nodeInfo.uExecutionPriority;
-			/* taskArgs.nPriority;  */
 			pMoreTaskArgs->stackSize = taskArgs.uStackSize;
 			pMoreTaskArgs->sysstackSize = taskArgs.uSysStackSize;
 			pMoreTaskArgs->stackSeg = taskArgs.uStackSeg;
@@ -811,7 +810,7 @@ static DSP_STATUS FillStreamDef(RMS_WORD *pdwBuf, u32 *ptotal, u32 offset,
 			 *  extend to completely fill this word.
 			 */
 			pdwBuf[total + uNameLen - 1] = 0;
-	    /** TODO USE SERVICES **/
+			/** TODO USE SERVICES **/
 			memcpy(pdwBuf + total, strmDef.szDevice, dwLength);
 			total += uNameLen;
 			*ptotal = total;

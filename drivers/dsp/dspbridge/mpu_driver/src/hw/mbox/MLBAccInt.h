@@ -48,7 +48,6 @@
 #define EASIL1_MLBMAILBOX_IRQENABLE___0_3WriteRegister32   \
 						(MLB_BASE_EASIL1 + 193)
 
-
 /* Register set MAILBOX_MESSAGE___REGSET_0_15 address offset, bank address
  * increment and number of banks */
 

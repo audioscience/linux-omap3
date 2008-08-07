@@ -78,7 +78,6 @@
 
 /* Handle to mini-driver's private device context.  */
 	struct WMD_DEV_CONTEXT;
-	/*typedef struct WMD_DEV_CONTEXT *WMD_DEV_HCONTEXT;*/
 
 /*---------------------------------------------------------------------------*/
 /* 'Bridge MINI DRIVER FUNCTION TYPES                                        */
@@ -145,8 +144,8 @@
  *                      Interrupts to the PC are enabled.
  *      else:           Board state is indeterminate.
  */
-typedef DSP_STATUS(CDECL *WMD_BRD_START) (struct WMD_DEV_CONTEXT *hDevContext,
-						   u32 dwDSPAddr);
+	typedef DSP_STATUS(CDECL *WMD_BRD_START) (struct WMD_DEV_CONTEXT
+						*hDevContext, u32 dwDSPAddr);
 
 /*
  *  ======== WMD_BRD_MemCopy ========
@@ -258,7 +257,8 @@ typedef DSP_STATUS(CDECL *WMD_BRD_START) (struct WMD_DEV_CONTEXT *hDevContext,
  *                      Interrupts to the PC are disabled.
  *      else:           Board state is indeterminate.
  */
-typedef DSP_STATUS(CDECL *WMD_BRD_STOP) (struct WMD_DEV_CONTEXT *hDevContext);
+	typedef DSP_STATUS(CDECL *WMD_BRD_STOP) (struct WMD_DEV_CONTEXT
+					*hDevContext);
 
 /*
  *  ======== WMD_BRD_Status ========

@@ -42,7 +42,6 @@
 #define DPC_
 
 	struct DPC_OBJECT;
-	/*typedef struct DPC_OBJECT *DPC_HOBJECT;*/
 
 /*
  *  ======== DPC_PROC ========

@@ -259,7 +259,6 @@ extern struct constraint_handle *dsp_constraint_handle;
 #endif
 /*
  *  ======== WMD_IO_Create ========
- *  Purpose:
  *      Create an IO manager object.
  */
 DSP_STATUS WMD_IO_Create(OUT struct IO_MGR **phIOMgr,
@@ -269,7 +268,6 @@ DSP_STATUS WMD_IO_Create(OUT struct IO_MGR **phIOMgr,
 	DSP_STATUS status = DSP_SOK;
 	struct IO_MGR *pIOMgr = NULL;
 	struct SHM *pSharedMem = NULL;
-	/*   u32	       uSMLength = 0L; */
 	struct WMD_DEV_CONTEXT *hWmdContext = NULL;
 	struct CFG_HOSTRES hostRes;
 	struct CFG_DEVNODE *hDevNode;
@@ -383,9 +381,7 @@ DSP_STATUS WMD_IO_Destroy(struct IO_MGR *hIOMgr)
 		if (hIOMgr->pMsg)
 			MEM_Free(hIOMgr->pMsg);
 #endif
-		/* Set hIOMgr to NULL in device object. */
-		/* DEV_SetChnlMgr(pIOMgr->hDevObject, NULL); */
-		SYNC_DeleteCS(hIOMgr->hCSObj); 	/*Leak Fix.*/
+		SYNC_DeleteCS(hIOMgr->hCSObj); 	/* Leak Fix. */
 		/* Free this IO manager object: */
 		MEM_FreeObject(hIOMgr);
 	} else {
@@ -541,12 +537,9 @@ func_cont1:
 		ulDspVa = hIOMgr->extProcInfo.tyTlb[0].ulDspVirt;
 		ulSegSize = (ulShm0End - ulDspVa) * hIOMgr->uWordSize;
 		ulSeg1Size = (ulExtEnd - ulDynExtBase) * hIOMgr->uWordSize;
-		/* why do we need a 64K alignment? Is 4K alignment sufficient */
-		/* ulSeg1Size =(ulSeg1Size + 0xFFFF)&(~0xFFFFUL); 64K align*/
 		ulSeg1Size = (ulSeg1Size + 0xFFF) & (~0xFFFUL); /* 4K align*/
 		ulSegSize = (ulSegSize + 0xFFFF) & (~0xFFFFUL); /* 64K align*/
-		/*ulSegSize = (ulSegSize + 0xFFF) & (~0xFFFUL);   4K align*/
-		 ulPadSize = ulPageAlignSize - ((ulGppPa + ulSeg1Size) %
+		ulPadSize = ulPageAlignSize - ((ulGppPa + ulSeg1Size) %
 			     ulPageAlignSize);
 			if (ulPadSize == ulPageAlignSize)
 				ulPadSize = 0x0;
@@ -725,7 +718,6 @@ func_cont:
 	mapAttrs = 0x00000000;
 	mapAttrs = DSP_MAPLITTLEENDIAN;
 	mapAttrs |= DSP_MAPPHYSICALADDR;
-    /*mapAttrs |= DSP_MAPMIXEDELEMSIZE; */
 	mapAttrs |= DSP_MAPELEMSIZE32;
 	/* Map the L4 peripherals */
 	{
@@ -884,7 +876,6 @@ func_cont:
 
 /*
  *  ======== IO_BufSize ========
- *  purpose:
  *      Size of shared memory I/O channel.
  */
 u32 IO_BufSize(struct IO_MGR *hIOMgr)
@@ -896,7 +887,6 @@ u32 IO_BufSize(struct IO_MGR *hIOMgr)
 
 /*
  *  ======== IO_CancelChnl ========
- *  Purpose:
  *      Cancel IO on a given PCPY channel.
  */
 void IO_CancelChnl(struct IO_MGR *hIOMgr, u32 ulChnl)
@@ -916,7 +906,6 @@ void IO_CancelChnl(struct IO_MGR *hIOMgr, u32 ulChnl)
 
 /*
  *  ======== IO_DispatchChnl ========
- *  Purpose:
  *      Proc-copy chanl dispatch.
  */
 static void IO_DispatchChnl(IN struct IO_MGR *pIOMgr,
@@ -936,7 +925,6 @@ static void IO_DispatchChnl(IN struct IO_MGR *pIOMgr,
 
 /*
  *  ======== IO_DispatchMsg ========
- *  purpose:
  *      Performs I/O dispatch on message queues.
  */
 static void IO_DispatchMsg(IN struct IO_MGR *pIOMgr, struct MSG_MGR *hMsgMgr)
@@ -952,7 +940,6 @@ static void IO_DispatchMsg(IN struct IO_MGR *pIOMgr, struct MSG_MGR *hMsgMgr)
 
 /*
  *  ======== IO_DispatchPM ========
- *  purpose:
  *      Performs I/O dispatch on PM related messages from DSP
  */
 static void IO_DispatchPM(IN struct IO_MGR *pIOMgr)
@@ -1014,7 +1001,6 @@ static void IO_DispatchPM(IN struct IO_MGR *pIOMgr)
 
 /*
  *  ======== IO_DPC ========
- *  Purpose:
  *      Deferred procedure call for shared memory channel driver ISR.  Carries
  *      out the dispatch of I/O as a non-preemptible event.It can only be
  *      pre-empted      by an ISR.
@@ -1041,15 +1027,11 @@ void IO_DPC(IN OUT void *pRefData)
 	}
 	/* Call WMD's DPC: */
 	IO_CALLDPC(pIOMgr->hWmdContext);
-	/*(void)SYNC_EnterCS(pChnlMgr->hCSObj); */ /* Dispatch I/O: */
 	IO_DispatchChnl(pIOMgr, NULL, IO_SERVICE);
-	/*(void)SYNC_LeaveCS(pChnlMgr->hCSObj); */
 #ifdef CHNL_MESSAGES
 	if (pMsgMgr) {
 		DBC_Require(MEM_IsValidHandle(pMsgMgr, MSGMGR_SIGNATURE));
-		/* Protect Message queues *//*SYNC_EnterCS(pMsgMgr->hSyncCS); */
 		IO_DispatchMsg(pIOMgr, pMsgMgr);
-		/*SYNC_LeaveCS(pMsgMgr->hSyncCS); */
 	}
 #endif
 #ifndef DSP_TRACEBUF_DISABLED
@@ -1068,7 +1050,6 @@ void IO_DPC(IN OUT void *pRefData)
 
 /*
  *  ======== IO_ISR ========
- *  Purpose:
  *      Main interrupt handler for the shared memory IO manager.
  *      Calls the WMD's CHNL_ISR to determine if this interrupt is ours, then
  *      schedules a DPC to dispatch I/O.
@@ -1131,7 +1112,6 @@ void IO_RequestChnl(struct IO_MGR *pIOMgr, struct CHNL_OBJECT *pChnl,
 		/* Indicate to the DSP we have a buffer available for input: */
 		IO_OrValue(pIOMgr->hWmdContext, struct SHM, sm, hostFreeMask,
 			  (1 << pChnl->uId));
-		/* Interrupt DSP:  *//* IO_InterruptDSP(pIOMgr->hWmdContext); */
 		*pwMbVal = MBX_PCPY_CLASS;
 	} else if (iMode == IO_OUTPUT) {
 		/*  This assertion fails if CHNL_AddIOReq() was called on a
@@ -1148,7 +1128,6 @@ void IO_RequestChnl(struct IO_MGR *pIOMgr, struct CHNL_OBJECT *pChnl,
 
 /*
  *  ======== IO_Schedule ========
- *  Purpose:
  *      Schedule DPC for IO.
  */
 void IO_Schedule(struct IO_MGR *pIOMgr)
@@ -1160,7 +1139,6 @@ void IO_Schedule(struct IO_MGR *pIOMgr)
 
 /*
  *  ======== FindReadyOutput ========
- *  Purpose:
  *      Search for a host output channel which is ready to send.  If this is
  *      called as a result of servicing the DPC, then implement a round
  *      robin search; otherwise, this was called by a client thread (via
@@ -1198,7 +1176,6 @@ static u32 FindReadyOutput(struct CHNL_MGR *pChnlMgr,
 
 /*
  *  ======== InputChnl ========
- *  Purpose:
  *      Dispatch a buffer on an input channel.
  */
 static void InputChnl(struct IO_MGR *pIOMgr, struct CHNL_OBJECT *pChnl,
@@ -1217,7 +1194,6 @@ static void InputChnl(struct IO_MGR *pIOMgr, struct CHNL_OBJECT *pChnl,
 	pChnlMgr = pIOMgr->hChnlMgr;
 
 	DBG_Trace(DBG_LEVEL3, "> InputChnl\n");
-	/*  DBC_Require(sm->inputSize || !sm->inputFull); */
 
 	/* Attempt to perform input.... */
 	if (!IO_GetValue(pIOMgr->hWmdContext, struct SHM, sm, inputFull))
@@ -1311,7 +1287,6 @@ func_end:
 
 /*
  *  ======== InputMsg ========
- *  purpose:
  *      Copies messages from shared memory to the message queues.
  */
 static void InputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR *hMsgMgr)
@@ -1337,8 +1312,6 @@ static void InputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR *hMsgMgr)
 	pMsgInput = pIOMgr->pMsgInput;
 	for (i = 0; i < uMsgs; i++) {
 		/* Read the next message */
-		/*ulBytes = ReadData(pIOMgr->hWmdContext, &msg, pMsgInput,
-		   sizeof(struct MSG_DSPMSG)); */
 		addr = (u32)&(((struct MSG_DSPMSG *)pMsgInput)->msg.dwCmd);
 		msg.msg.dwCmd = ReadExt32BitDspData(pIOMgr->hWmdContext, addr);
 		addr = (u32)&(((struct MSG_DSPMSG *)pMsgInput)->msg.dwArg1);
@@ -1520,7 +1493,6 @@ func_end:
 }
 /*
  *  ======== OutputMsg ========
- *  purpose:
  *      Copies messages from the message queues to the shared memory.
  */
 static void OutputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR *hMsgMgr)
@@ -1548,17 +1520,6 @@ static void OutputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR *hMsgMgr)
 			pMsg = (struct MSG_FRAME *)LST_GetHead(hMsgMgr->
 				msgUsedList);
 			DBC_Assert(pMsg != NULL);
-			/* Swap words before writing out */
-			/*pMsg->msgData.msg.dwCmd = ExtWrite32BitDspData
-			 * (pIOMgr->hDevObject, pMsg->msgData.msg.dwCmd);
-			 * pMsg->msgData.msg.dwArg1 = ExtWrite32BitDspData
-			 *  	(pMsg->msgData.msg.dwArg1);
-			 * pMsg->msgData.msg.dwArg2 = ExtWrite32BitDspData
-			 *	(pMsg->msgData.msg.dwArg2);
-			 * pMsg->msgData.dwId = ExtWrite32BitDspData(pMsg->
-			 *  	msgData.dwId);
-			 * ulBytes = WriteData(pIOMgr->hWmdContext, pMsgOutput,
-			 *&pMsg->msgData, sizeof(struct MSG_DSPMSG)); */
 			if (pMsg != NULL) {
 				val = (pMsg->msgData).dwId;
 				addr = (u32)&(((struct MSG_DSPMSG *)
@@ -1675,7 +1636,7 @@ static DSP_STATUS registerSHMSegs(struct IO_MGR *hIOMgr,
 		ulDSPSize = (ulShm0_RsrvdStart - ulShm0_Base) * hIOMgr->
 			uWordSize;
 		DBC_Assert(ulDSPSize > 0);
-		 /*  First TLB entry reserved for Bridge SM use.*/
+		/*  First TLB entry reserved for Bridge SM use.*/
 		ulGppPhys = hIOMgr->extProcInfo.tyTlb[0].ulGppPhys;
 		/* get size in bytes */
 		ulDspVirt = hIOMgr->extProcInfo.tyTlb[0].ulDspVirt * hIOMgr->
@@ -1714,7 +1675,6 @@ static DSP_STATUS registerSHMSegs(struct IO_MGR *hIOMgr,
 
 /*
  *  ======== ReadData ========
- *  purpose:
  *      Copies buffers from the shared memory to the host buffer.
  */
 static u32 ReadData(struct WMD_DEV_CONTEXT *hDevContext, void *pDest,
@@ -1726,7 +1686,6 @@ static u32 ReadData(struct WMD_DEV_CONTEXT *hDevContext, void *pDest,
 
 /*
  *  ======== WriteData ========
- *  purpose:
  *      Copies buffers from the host side buffer to the shared memory.
  */
 static u32 WriteData(struct WMD_DEV_CONTEXT *hDevContext, void *pDest,
@@ -1736,9 +1695,7 @@ static u32 WriteData(struct WMD_DEV_CONTEXT *hDevContext, void *pDest,
 	return uSize;
 }
 
-/*****************************************************************************
- * ZCPY IO routines.
- *****************************************************************************/
+/* ZCPY IO routines. */
 void IO_IntrDSP2(IN struct IO_MGR *pIOMgr, IN u16 wMbVal)
 {
 	IO_InterruptDSP2(pIOMgr->hWmdContext, wMbVal);
@@ -1746,7 +1703,6 @@ void IO_IntrDSP2(IN struct IO_MGR *pIOMgr, IN u16 wMbVal)
 
 /*
  *  ======== IO_SHMcontrol ========
- *  Purpose:
  *      Sets the requested SHM setting.
  */
 DSP_STATUS IO_SHMsetting(IN struct IO_MGR *hIOMgr, IN enum SHM_DESCTYPE desc,
@@ -1814,7 +1770,6 @@ DSP_STATUS IO_SHMsetting(IN struct IO_MGR *hIOMgr, IN enum SHM_DESCTYPE desc,
 
 /*
  *  ======== WMD_IO_GetProcLoad ========
- *  Purpose:
  *      Gets the Processor's Load information
  */
 DSP_STATUS WMD_IO_GetProcLoad(IN struct IO_MGR *hIOMgr,

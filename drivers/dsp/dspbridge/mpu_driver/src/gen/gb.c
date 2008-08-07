@@ -38,7 +38,6 @@
 
 #define LGSIZE  32		/* number of bits in a LgUns */
 
-/*typedef struct GB_TMap GB_TMap;*/
 typedef GB_BitNum GB_WordNum;
 
 struct GB_TMap {

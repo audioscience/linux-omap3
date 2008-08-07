@@ -35,8 +35,6 @@
 
 /* NODE Objects: */
 	struct NODE_MGR;
-	/*typedef struct NODE_MGR *NODE_HMGR;*/
 	struct NODE_OBJECT;
-	/*typedef struct NODE_OBJECT *NODE_HOBJECT;*/
 
 #endif				/* NODEDEFS_ */

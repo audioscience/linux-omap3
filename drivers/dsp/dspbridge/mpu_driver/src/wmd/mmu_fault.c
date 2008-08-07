@@ -66,7 +66,6 @@ static BOOL MMU_CheckIfFault(struct WMD_DEV_CONTEXT *pDevContext);
 
 /*
  *  ======== MMU_FaultDpc ========
- *  Purpose:
  *      Deferred procedure call to handle DSP MMU fault.
  */
 void MMU_FaultDpc(IN void *pRefData)
@@ -84,7 +83,6 @@ void MMU_FaultDpc(IN void *pRefData)
 
 /*
  *  ======== MMU_FaultIsr ========
- *  Purpose:
  *      ISR to be triggered by a DSP MMU fault interrupt.
  */
 void MMU_FaultIsr(IN void *pRefData)
@@ -145,9 +143,7 @@ void MMU_FaultIsr(IN void *pRefData)
 
 /*
  *  ======== MMU_CheckIfFault ========
- *  Purpose:
  *      Check to see if MMU Fault is valid TLB miss from DSP
- *
  *  Note: This function is called from an ISR
  */
 static BOOL MMU_CheckIfFault(struct WMD_DEV_CONTEXT *pDevContext)

@@ -99,8 +99,7 @@ struct GT_Mask {
  *  ======== GT_assert ========
  */
 /* ARGSUSED */
-void
-GT_assert(struct GT_Mask mask, s32 expr)
+void GT_assert(struct GT_Mask mask, s32 expr)
 {
 }
 
@@ -108,8 +107,7 @@ GT_assert(struct GT_Mask mask, s32 expr)
  *  ======== GT_config ========
  */
 /* ARGSUSED */
-void
-GT_config(struct GT_Config config)
+void GT_config(struct GT_Config config)
 {
 }
 
@@ -117,8 +115,7 @@ GT_config(struct GT_Config config)
  *  ======== GT_create ========
  */
 /* ARGSUSED */
-void
-GT_create(struct GT_Mask *mask /* OUT */ , char *modName)
+void GT_create(struct GT_Mask *mask, char *modName)
 {
 }
 
@@ -132,8 +129,7 @@ GT_create(struct GT_Mask *mask /* OUT */ , char *modName)
  *          "in module XX_mod, executing line %u\n", GT_curLine());
  */
 /* ARGSUSED */
-u16
-GT_curLine(void)
+u16 GT_curLine(void)
 {
 	return (u16)NULL;
 }
@@ -142,8 +138,7 @@ GT_curLine(void)
  *  ======== GT_exit ========
  */
 /* ARGSUSED */
-void
-GT_exit(void)
+void GT_exit(void)
 {
 }
 
@@ -151,8 +146,7 @@ GT_exit(void)
  *  ======== GT_init ========
  */
 /* ARGSUSED */
-void
-GT_init(void)
+void GT_init(void)
 {
 }
 
@@ -160,8 +154,7 @@ GT_init(void)
  *  ======== GT_query ========
  */
 /* ARGSUSED */
-Bool
-GT_query(struct GT_Mask mask, u8 class)
+Bool GT_query(struct GT_Mask mask, u8 class)
 {
 	return FALSE;
 }
@@ -172,8 +165,7 @@ GT_query(struct GT_Mask mask, u8 class)
  */
 
 /* ARGSUSED */
-void
-GT_set(char *settings)
+void GT_set(char *settings)
 {
 }
 
@@ -183,50 +175,42 @@ GT_set(char *settings)
  */
 
 /* ARGSUSED */
-void
-GT_setprintf(Fxn fxn)
+void GT_setprintf(Fxn fxn)
 {
 }
 
 /* ARGSUSED */
-void
-GT_0trace(struct GT_Mask mask, u8 class, char *format)
+void GT_0trace(struct GT_Mask mask, u8 class, char *format)
 {
 }
 
 /* ARGSUSED */
-void
-GT_1trace(struct GT_Mask mask, u8 class, char *format, ...)
+void GT_1trace(struct GT_Mask mask, u8 class, char *format, ...)
 {
 }
 
 /* ARGSUSED */
-void
-GT_2trace(struct GT_Mask mask, u8 class, char *format, ...)
+void GT_2trace(struct GT_Mask mask, u8 class, char *format, ...)
 {
 }
 
 /* ARGSUSED */
-void
-GT_3trace(struct GT_Mask mask, u8 class, char *format, ...)
+void GT_3trace(struct GT_Mask mask, u8 class, char *format, ...)
 {
 }
 
 /* ARGSUSED */
-void
-GT_4trace(struct GT_Mask mask, u8 class, char *format, ...)
+void GT_4trace(struct GT_Mask mask, u8 class, char *format, ...)
 {
 }
 
 /* ARGSUSED */
-void
-GT_5trace(struct GT_Mask mask, u8 class, char *format, ...)
+void GT_5trace(struct GT_Mask mask, u8 class, char *format, ...)
 {
 }
 
 /* ARGSUSED */
-void
-GT_6trace(struct GT_Mask mask, u8 class, char *format, ...)
+void GT_6trace(struct GT_Mask mask, u8 class, char *format, ...)
 {
 }
 

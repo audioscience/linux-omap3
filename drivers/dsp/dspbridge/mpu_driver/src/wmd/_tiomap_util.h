@@ -35,8 +35,6 @@
 /*  Time delay for HOM->SAM transition. */
 #define  WAIT_SAM   1000000	/* in usec (1000 millisec) */
 
-/* Function prototypes */
-
 /*
  *  ======== WaitForStart ========
  *  Wait for the singal from DSP that it has started, or time out.

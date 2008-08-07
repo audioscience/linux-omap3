@@ -30,6 +30,5 @@
 
 /* WCD Driver Object */
 	struct DRV_OBJECT;
-	/*typedef struct DRV_OBJECT *DRV_HOBJECT;*/
 
 #endif				/* DRVDEFS_ */

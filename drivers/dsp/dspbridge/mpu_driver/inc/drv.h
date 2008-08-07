@@ -71,8 +71,7 @@
 #ifdef OMAP_3430
 
 /* Provide the DSP Internal memory windows that can be accessed from L3 address
- * space
- */
+ * space */
 
 #define OMAP_GEM_BASE   0x107F8000
 #define OMAP_DSP_SIZE   0x00720000
@@ -108,10 +107,6 @@
 
 #define OMAP_MBOX_BASE 0x48094000
 #define OMAP_MBOX_SIZE 0x1000
-
-/* Do we have a WDT for DSP? */
-/* #define OMAP_WDTIMER_DSP_BASE 0x48026000 */
-/* #define OMAP_WDTIMER_DSP_SIZE 0x2000 */
 
 #define OMAP_DMMU_BASE 0x5D000000
 #define OMAP_DMMU_SIZE 0x1000

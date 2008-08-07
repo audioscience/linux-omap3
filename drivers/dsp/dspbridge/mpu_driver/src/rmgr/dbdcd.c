@@ -505,7 +505,7 @@ DSP_STATUS DCD_GetObjectDef(IN struct DCD_MANAGER *hDcdMgr,
 	DBC_Assert(dwKeyLen < REG_MAXREGPATHLENGTH);
 	/* Create proper REG key; concatenate DCD_REGKEY with objType. */
 	CSL_Strcpyn(szRegKey, DCD_REGKEY, CSL_Strlen(DCD_REGKEY) + 1);
-	/*CSL_Strncat(szRegKey, "_\0", 2);*/
+
 	if ((CSL_Strlen(szRegKey) + CSL_Strlen("_\0")) < REG_MAXREGPATHLENGTH)
 		CSL_Strncat(szRegKey, "_\0", 2);
 	else
@@ -516,7 +516,7 @@ DSP_STATUS DCD_GetObjectDef(IN struct DCD_MANAGER *hDcdMgr,
 		status = DSP_EFAIL;
 	} else {
 		status = DSP_SOK;
-		/*CSL_Strncat(szRegKey, szObjType, CSL_Strlen(szObjType) + 1);*/
+
 		if ((CSL_Strlen(szRegKey) + CSL_Strlen(szObjType)) <
 		   REG_MAXREGPATHLENGTH) {
 			CSL_Strncat(szRegKey, szObjType,
@@ -526,7 +526,7 @@ DSP_STATUS DCD_GetObjectDef(IN struct DCD_MANAGER *hDcdMgr,
 		}
 		/* Create UUID value to set in registry. */
 		UUID_UuidToString(pObjUuid, szUuid, MAXUUIDLEN);
-		/*CSL_Strncat(szRegKey, szUuid, MAXUUIDLEN);*/
+
 		if ((CSL_Strlen(szRegKey) + MAXUUIDLEN) <
 		   REG_MAXREGPATHLENGTH) {
 			CSL_Strncat(szRegKey, szUuid, MAXUUIDLEN);
@@ -558,8 +558,7 @@ DSP_STATUS DCD_GetObjectDef(IN struct DCD_MANAGER *hDcdMgr,
 	DBC_Assert((CSL_Strlen(szUuid) + 1) < sizeof(szSectName));
 	/* Create section name based on node UUID. A period is
 	 * pre-pended to the UUID string to form the section name.
-	 * I.e. ".24BC8D90_BB45_11d4_B756_006008BDB66F"
-	 */
+	 * I.e. ".24BC8D90_BB45_11d4_B756_006008BDB66F" */
 	CSL_Strcpyn(szSectName, ".", 2);
 	CSL_Strncat(szSectName, szUuid, CSL_Strlen(szUuid));
 	/* Get section information. */
@@ -574,7 +573,7 @@ DSP_STATUS DCD_GetObjectDef(IN struct DCD_MANAGER *hDcdMgr,
 	pszCoffBuf = MEM_Calloc(ulLen + 4, MEM_PAGED);
 #ifdef _DB_TIOMAP
 	pTempCoffBuf = MEM_Calloc(ulLen + 4, MEM_PAGED);
-	/*if (CSL_Strncmp("./iva", szRegData, 5) != 0)        */
+
 	if (CSL_Strstr(szRegData, "iva") == NULL) {
 		/* Locate section by objectID and read its content. */
 		status = COD_ReadSection(lib, szSectName, pszCoffBuf, ulLen);
@@ -588,7 +587,6 @@ DSP_STATUS DCD_GetObjectDef(IN struct DCD_MANAGER *hDcdMgr,
 #endif
 	if (DSP_SUCCEEDED(status)) {
 		/* Compres DSP buffer to conform to PC format. */
-		/*if (CSL_Strncmp("./iva", szRegData, 5) != 0)        */
 		if (CSL_Strstr(szRegData, "iva") == NULL) {
 			CompressBuf(pszCoffBuf, ulLen, DSPWORDSIZE);
 		} else {
@@ -672,7 +670,6 @@ DSP_STATUS DCD_GetObjects(IN struct DCD_MANAGER *hDcdMgr, IN char *pszCoffPath,
 	pszCoffBuf = MEM_Calloc(ulLen + 4, MEM_PAGED);
 #ifdef _DB_TIOMAP
 	pTempCoffBuf = MEM_Calloc(ulLen + 4, MEM_PAGED);
-	/*if (CSL_Strncmp("./iva", pszCoffPath, 5) != 0)        */
 	if (strstr(pszCoffPath, "iva") == NULL) {
 		/* Locate section by objectID and read its content. */
 		status = COD_ReadSection(lib, DCD_REGISTER_SECTION,
@@ -689,7 +686,6 @@ DSP_STATUS DCD_GetObjects(IN struct DCD_MANAGER *hDcdMgr, IN char *pszCoffPath,
 		/* Compress DSP buffer to conform to PC format. */
 		GT_0trace(curTrace, GT_4CLASS,
 			 "Successfully read section !!\n");
-		/* if (CSL_Strncmp("./iva", pszCoffPath, 5) != 0) */
 		if (strstr(pszCoffPath, "iva") == NULL) {
 			CompressBuf(pszCoffBuf, ulLen, DSPWORDSIZE);
 		} else {
@@ -1168,10 +1164,9 @@ static DSP_STATUS GetAttrsFromBuf(char *pszBuf, u32 ulBufSize,
 
 		/* acName */
 		cLen = strlen(token);
-		if (cLen > DSP_MAXNAMELEN - 1) {
+		if (cLen > DSP_MAXNAMELEN - 1)
 			cLen = DSP_MAXNAMELEN - 1;
-			/* status = DSP_EFAIL? */
-		}
+
 		CSL_Strcpyn(pGenObj->objData.nodeObj.ndbProps.acName,
 			   token, cLen);
 		pGenObj->objData.nodeObj.ndbProps.acName[cLen] = '\0';
@@ -1375,9 +1370,7 @@ static DSP_STATUS GetAttrsFromBuf(char *pszBuf, u32 ulBufSize,
 		pGenObj->objData.procObj.nNodeMaxPriority = Atoi(token);
 
 #ifdef _DB_TIOMAP
-		/*
-		 * Proc object may contain additional(extended) attributes.
-		 */
+		/* Proc object may contain additional(extended) attributes. */
 		/* attr must match proc.hxx */
 		for (iEntry = 0; iEntry < 7; iEntry++) {
 			token = CSL_Strtokr(NULL, seps, &pszCur);
@@ -1509,10 +1502,8 @@ static DSP_STATUS GetDepLibInfo(IN struct DCD_MANAGER *hDcdMgr,
 	GT_1trace(curTrace, GT_ENTER, "DCD_GetNumDepLibs: hDcdMgr 0x%x\n",
 		 hDcdMgr);
 
-	/*
-	 *  Initialize to 0 dependent libraries, if only counting number of
-	 *  dependent libraries
-	 */
+	/*  Initialize to 0 dependent libraries, if only counting number of
+	 *  dependent libraries */
 	if (!fGetUuids) {
 		*pNumLibs = 0;
 		*pNumPersLibs = 0;

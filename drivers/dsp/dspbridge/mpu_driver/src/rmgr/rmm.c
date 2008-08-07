@@ -146,13 +146,12 @@ DSP_STATUS RMM_alloc(struct RMM_TargetObj *target, u32 segid, u32 size,
 		}
 		goto func_end;
 	}
-	/* *  An overlay section - See if block is already in use. If not,
-	 *  insert into the list in ascending address size.  */
+	/* An overlay section - See if block is already in use. If not,
+	 * insert into the list in ascending address size.  */
 	addr = *dspAddr;
 	sect = (struct RMM_OvlySect *)LST_First(target->ovlyList);
 	/*  Find place to insert new list element. List is sorted from
-	 *  smallest to largest address.
-	 */
+	 *  smallest to largest address. */
 	while (sect != NULL) {
 		if (addr <= sect->addr) {
 			/* Check for overlap with sect */

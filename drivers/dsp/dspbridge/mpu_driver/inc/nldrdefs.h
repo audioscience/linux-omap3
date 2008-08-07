@@ -35,9 +35,7 @@
 #define NLDR_MAXPATHLENGTH       255
 /* NLDR Objects: */
 	struct  NLDR_OBJECT;
-	/*typedef struct NLDR_OBJECT *NLDR_HOBJECT;*/
 	struct NLDR_NODEOBJECT;
-	/*typedef struct NLDR_NODEOBJECT *NLDR_HNODE;*/
 
 /*
  *  ======== NLDR_LOADTYPE ========

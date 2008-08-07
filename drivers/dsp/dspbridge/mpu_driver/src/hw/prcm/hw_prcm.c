@@ -24,43 +24,30 @@
  *! 16 Feb 2003 sb: Initial version
  */
 
-/*
-* PROJECT SPECIFIC INCLUDE FILES
-*/
 #include <GlobalTypes.h>
 #include "PRCMRegAcM.h"
 #include <hw_defs.h>
 #include <hw_prcm.h>
 
-/*
-* LOCAL FUNCTIONS PROTOTYPES
-*/
 static HW_STATUS HW_RST_WriteVal(const u32 baseAddress,
 				    enum HW_RstModule_t r,
 				    enum HW_SetClear_t val);
 
-/*
-* EXPORTED FUNCTIONS
-*/
-
 HW_STATUS HW_RST_Reset(const u32 baseAddress, enum HW_RstModule_t r)
 {
-    return HW_RST_WriteVal(baseAddress, r, HW_SET);
+	return HW_RST_WriteVal(baseAddress, r, HW_SET);
 }
 
 HW_STATUS HW_RST_UnReset(const u32 baseAddress, enum HW_RstModule_t r)
 {
-    return HW_RST_WriteVal(baseAddress, r, HW_CLEAR);
+	return HW_RST_WriteVal(baseAddress, r, HW_CLEAR);
 }
 
-/*
-* LOCAL FUNCTIONS
-*/
 static HW_STATUS HW_RST_WriteVal(const u32 baseAddress,
 				    enum HW_RstModule_t r,
 				    enum HW_SetClear_t val)
 {
-    HW_STATUS status = RET_OK;
+	HW_STATUS status = RET_OK;
 
 	switch (r) {
 	case HW_RST1_IVA2:
@@ -75,8 +62,8 @@ static HW_STATUS HW_RST_WriteVal(const u32 baseAddress,
 	default:
 	    status = RET_FAIL;
 	    break;
-    }
-    return status;
+	}
+	return status;
 }
 
 HW_STATUS HW_PWR_IVA2StateGet(const u32 baseAddress, enum HW_PwrModule_t p,
@@ -151,7 +138,7 @@ HW_STATUS HW_PWR_IVA2PowerStateSet(const u32 baseAddress,
 HW_STATUS HW_PWR_CLKCTRL_IVA2RegSet(const u32 baseAddress,
 				      enum HW_TransitionState_t val)
 {
-       HW_STATUS status = RET_OK;
+	HW_STATUS status = RET_OK;
 
 	PRCMCM_CLKSTCTRL_IVA2WriteRegister32(baseAddress, val);
 

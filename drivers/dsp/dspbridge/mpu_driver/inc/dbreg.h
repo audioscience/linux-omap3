@@ -83,8 +83,7 @@
 
 /* MiniDriver related definitions */
 /* The following definitions are under "Drivers\\DirectDSP\\Device\\XXX "
- * Where XXX is the device or board name
- */
+ * Where XXX is the device or board name */
 
 #define WMDFILENAME      "MiniDriver"	/* WMD entry name */
 #define CHIPTYPE         "ChipType"	/* Chip type */

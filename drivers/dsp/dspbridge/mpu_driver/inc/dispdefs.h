@@ -30,7 +30,6 @@
 #define DISPDEFS_
 
 	struct DISP_OBJECT;
-	/*typedef struct DISP_OBJECT *DISP_HOBJECT;*/
 
 /* Node Dispatcher attributes */
 	struct DISP_ATTRS {

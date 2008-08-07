@@ -195,67 +195,40 @@ static const struct MAP_L4PERIPHERAL L4PeripheralTable[] = {
 	{L4_PERIPHERAL_PRM, DSPVA_PERIPHERAL_PRM},
 	{L4_PERIPHERAL_CM, DSPVA_PERIPHERAL_CM},
 	{L4_PERIPHERAL_PER, DSPVA_PERIPHERAL_PER},
-/*	{L4_PERIPHERAL_SDMA, DSPVA_PERIPHERAL_SDMA},*/
 	{PM_GRPSEL_BASE, DSPVA_GRPSEL_BASE},
 	{L4_PERIPHERAL_NULL, DSPVA_PERIPHERAL_NULL}
 };
 
-/* ============================================================================
+/*
+ *   15         10                  0
+ *   ---------------------------------
+ *  |0|0|1|0|0|0|c|c|c|i|i|i|i|i|i|i|
+ *  ---------------------------------
+ *  |  (class)  | (module specific) |
+ *
+ *  where  c -> Externel Clock Command: Clk & Autoidle Disable/Enable
+ *  i -> External Clock ID Timers 5,6,7,8, McBSP1,2 and WDT3
+ */
 
-   15         10                  0
-   ---------------------------------
-   |0|0|1|0|0|0|c|c|c|i|i|i|i|i|i|i|
-   ---------------------------------
-   |  (class)  | (module specific) |
-
-   where  c -> Externel Clock Command: Clk & Autoidle Disable/Enable
-   i -> External Clock ID Timers 5,6,7,8, McBSP1,2 and WDT3
-
-   ========================================================================== */
-
-/* ============================================================================
-   name    MBX_PM_CLK_IDMASK
-
-  desc    DSP External clock id mask.
- ===========================================================================*/
+/* MBX_PM_CLK_IDMASK: DSP External clock id mask. */
 #define MBX_PM_CLK_IDMASK   0x7F
 
-/* ============================================================================
- name    MBX_PM_CLK_CMDSHIFT
-
- desc    DSP External clock command shift.
- =========================================================================== */
+/* MBX_PM_CLK_CMDSHIFT: DSP External clock command shift. */
 #define MBX_PM_CLK_CMDSHIFT 7
 
-/* ============================================================================
- name    MBX_PM_CLK_CMDMASK
-
- desc    DSP External clock command mask.
- =========================================================================== */
+/* MBX_PM_CLK_CMDMASK: DSP External clock command mask. */
 #define MBX_PM_CLK_CMDMASK 7
 
-/* ============================================================================
-  name    MBX_PM_MAX_RESOURCES
-
-  desc    CORE 1 Clock resources.
- =========================================================================== */
+/* MBX_PM_MAX_RESOURCES: CORE 1 Clock resources. */
 #define MBX_CORE1_RESOURCES 7
 
-/* ============================================================================
- name    MBX_PM_MAX_RESOURCES
-
- desc    CORE 2 Clock Resources.
- =========================================================================== */
+/* MBX_PM_MAX_RESOURCES: CORE 2 Clock Resources. */
 #define MBX_CORE2_RESOURCES 1
 
-/* ============================================================================
- name    MBX_PM_MAX_RESOURCES
-
-  desc    TOTAL Clock Reosurces.
- =========================================================================== */
+/* MBX_PM_MAX_RESOURCES: TOTAL Clock Reosurces. */
 #define MBX_PM_MAX_RESOURCES 11
 
-/*  Power Management Commands*/
+/*  Power Management Commands */
 enum BPWR_ExtClockCmd {
 	BPWR_DisableClock = 0,
 	BPWR_EnableClock,
@@ -263,7 +236,7 @@ enum BPWR_ExtClockCmd {
 	BPWR_EnableAutoIdle
 } ;
 
-/* OMAP242x specific resources*/
+/* OMAP242x specific resources */
 enum BPWR_ExtClockId {
 	BPWR_GPTimer5 = 0x10,
 	BPWR_GPTimer6,
@@ -318,10 +291,9 @@ static const struct BPWR_Clk_t BPWR_Clks[] = {
 
 #define   DSP_MAILBOX1_INT              10
 
-/*  ----------------------------------------------------
- *  INTH_InterruptKind_t                               -
- *  Identify the kind of interrupt: either FIQ/IRQ   -
- *  ----------------------------------------------------
+/*
+ *  INTH_InterruptKind_t
+ *  Identify the kind of interrupt: either FIQ/IRQ
  */
 enum INTH_InterruptKind_t {
 	INTH_IRQ = 0,
@@ -333,9 +305,8 @@ enum INTH_SensitiveEdge_t {
 	LOW_LEVEL_SENSITIVE = 1
 } ;
 
-/*  ------------------------------------------------------
- *  Bit definition of  Interrupt  Level  Registers       -
- *  ------------------------------------------------------
+/*
+ *  Bit definition of  Interrupt  Level  Registers
  */
 
 /* Mail Box defines */
@@ -353,9 +324,6 @@ enum INTH_SensitiveEdge_t {
 #define MBOX_DSP2ARM HW_MBOX_ID_1
 #define MBOX_ARM HW_MBOX_U0_ARM
 #define MBOX_DSP HW_MBOX_U1_DSP1
-
-/* Moved to dbtypes.h */
-/*typedef volatile unsigned short REG_UWORD16 ;*/
 
 #define ENABLE                          TRUE
 #define DISABLE                         FALSE
@@ -376,9 +344,6 @@ enum INTH_SensitiveEdge_t {
 	} while (0);
 
 #define ClearBitIndex(reg, index)   (reg &= ~(1 << (index)))
-
-/* Attributes used to manage the DSP MMU page tables */
-/*typedef struct PgTableAttrs *pPgTableAttrs;*/
 
 /* This mini driver's device context: */
 struct WMD_DEV_CONTEXT {
@@ -423,7 +388,6 @@ struct WMD_DEV_CONTEXT {
 
 	/*
 	 * ======== WMD_TLB_DspVAToMpuPA ========
-	 * Purpose:
 	 *     Given a DSP virtual address, traverse the page table and return
 	 *     a corresponding MPU physical address and size.
 	 */

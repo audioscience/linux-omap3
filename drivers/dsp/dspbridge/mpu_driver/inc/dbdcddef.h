@@ -57,7 +57,6 @@
 
 /* DCD Manager Object */
 	struct DCD_MANAGER;
-	/*typedef struct DCD_MANAGER *DCD_HMANAGER;*/
 
 /* DCD Node Properties */
 	struct DCD_NODEPROPS {

@@ -169,7 +169,6 @@
 #define MaxOutputs(h) ((h)->dcdProps.objData.nodeObj.ndbProps.uNumOutputStreams)
 
 #define NODE_GetPriority(h) ((h)->nPriority)
-/* #define NODE_GetState(h) ((h)->nState) */
 #define NODE_SetPriority(hNode, nPriority) ((hNode)->nPriority = nPriority)
 #define NODE_SetState(hNode, state) ((hNode)->nState = state)
 
@@ -324,9 +323,7 @@ struct NODE_OBJECT {
 
 } ;
 
-/*
- * Default buffer attributes
- */
+/* Default buffer attributes */
 struct DSP_BUFFERATTR NODE_DFLTBUFATTRS = {
 	0, 			/* cbStruct */
 	1, 			/* uSegment */
@@ -356,16 +353,12 @@ static CDECL u32 Ovly(void *pPrivRef, u32 ulDspRunAddr, u32 ulDspLoadAddr,
 static CDECL u32 Write(void *pPrivRef, u32 ulDspAddr, void *pBuf,
 			u32 ulNumBytes, u32 nMemSpace);
 #if GT_TRACE
-static struct GT_Mask NODE_debugMask = { 0, 0 };	/* GT trace variable */
+static struct GT_Mask NODE_debugMask = { 0, 0 };  /* GT trace variable */
 #endif
 
 static u32 cRefs;		/* module reference count */
 
-/*static u32 nodeId = 1;*/
-
-/*
- * Dynamic loader functions.
- */
+/* Dynamic loader functions. */
 static struct NLDR_FXNS nldrFxns = {
 	NLDR_Allocate,
 	NLDR_Create,
@@ -412,7 +405,7 @@ DSP_STATUS NODE_Allocate(struct PROC_OBJECT *hProcessor,
 	u32 uNumStreams;
 	struct WMD_DRV_INTERFACE *pIntfFxns;
 	DSP_STATUS status = DSP_SOK;
-	struct CMM_OBJECT *hCmmMgr = NULL;	/* Shared memory manager hndl */
+	struct CMM_OBJECT *hCmmMgr = NULL; /* Shared memory manager hndl */
 	u32 procId;
 	char *label;
 	u32 pulValue;
@@ -1494,7 +1487,6 @@ DSP_STATUS NODE_CreateMgr(OUT struct NODE_MGR **phNodeMgr,
 	char *szZLFile = "";
 	struct NLDR_ATTRS nldrAttrs;
 	DSP_STATUS status = DSP_SOK;
-	/*COD_HMANAGER    hCodMgr; */
 	u32 devType;
 	DBC_Require(cRefs > 0);
 	DBC_Require(phNodeMgr != NULL);
@@ -2221,7 +2213,6 @@ CDECL void NODE_OnExit(struct NODE_OBJECT *hNode, s32 nStatus)
 {
 	DBC_Assert(MEM_IsValidHandle(hNode, NODE_SIGNATURE));
 	/* Set node state to done */
-	/*    (void)SYNC_EnterCS(hNode->hNodeMgr->hSync); */
 	NODE_SetState(hNode, NODE_DONE);
 	hNode->nExitStatus = nStatus;
 	if (hNode->fLoaded && hNode->fPhaseSplit) {
@@ -2229,7 +2220,6 @@ CDECL void NODE_OnExit(struct NODE_OBJECT *hNode, s32 nStatus)
 							 NLDR_EXECUTE);
 		hNode->fLoaded = FALSE;
 	}
-	/*(void)SYNC_LeaveCS(hNode->hNodeMgr->hSync); */
 	/* Unblock call to NODE_Terminate */
 	(void) SYNC_SetEvent(hNode->hSyncDone);
 	/* Notify clients */
@@ -2472,8 +2462,7 @@ DSP_STATUS NODE_Run(struct NODE_OBJECT *hNode)
 	DSP_STATUS status = DSP_SOK;
 	u32 procId;
 	struct WMD_DRV_INTERFACE *pIntfFxns;
-	/*u32	    uTimeout = 0x1000;
-	   struct DSP_MSG	 msg; */
+
 	DBC_Require(cRefs > 0);
 	GT_1trace(NODE_debugMask, GT_ENTER, "NODE_Run: hNode: 0x%x\n", hNode);
 	if (!MEM_IsValidHandle(hNode, NODE_SIGNATURE)) {
@@ -2534,7 +2523,6 @@ DSP_STATUS NODE_Run(struct NODE_OBJECT *hNode)
 					     ulExecuteFxn, hNode->nodeEnv);
 		}
 	} else if (state == NODE_PAUSED) {
-		/* state == NODE_PAUSED */
 		ulFxnAddr = hNodeMgr->ulFxnAddrs[RMSCHANGENODEPRIORITY];
 		status = DISP_NodeChangePriority(hNodeMgr->hDisp, hNode,
 						ulFxnAddr, hNode->nodeEnv,
@@ -2577,7 +2565,6 @@ DSP_STATUS NODE_Terminate(struct NODE_OBJECT *hNode, OUT DSP_STATUS *pStatus)
 	enum NODE_STATE state;
 	struct DSP_MSG msg, killmsg;
 	DSP_STATUS status = DSP_SOK;
-	/*u32		uTimeout = 0x1000; */
 	u32 procId, killTimeOut;
 	struct DEH_MGR *hDehMgr;
 

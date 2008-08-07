@@ -14,8 +14,6 @@
  * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
-
-
 #include "header.h"
 
 #include "module_list.h"
@@ -52,7 +50,6 @@ static const char E_READSTRM[] = { "Error reading %s from input stream" };
 static const char E_ALLOC[] = { "Syms->Allocate( %d ) failed" };
 static const char E_TGTALLOC[] =
     { "Target memory allocate failed, section %s size " FMT_UI32 };
-/*static const char E_SEEK[]    = {"Set file position to %d failed"};*/
 static const char E_INITFAIL[] = { "%s to target address " FMT_UI32 " failed" };
 static const char E_DLVWRITE[] = { "Write to DLLview list failed" };
 static const char E_ICONNECT[] = { "Connect call to init interface failed" };

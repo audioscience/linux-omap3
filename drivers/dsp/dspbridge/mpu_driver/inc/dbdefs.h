@@ -206,7 +206,6 @@
 		u8 ucData5;
 		u8 ucData6[6];
 	};
-	/*DSP_UUID, *DSP_HUUID;*/
 
 /* DCD types */
 	enum DSP_DCDOBJTYPE {
@@ -291,7 +290,7 @@
 	} ;
 
 /* Memory Segment Status Values */
-	 struct DSP_MEMSTAT {
+	struct DSP_MEMSTAT {
 		u32 ulSize;
 		u32 ulTotalFreeSize;
 		u32 ulLenMaxFreeBlock;
@@ -325,7 +324,6 @@
 		u32 cbData;
 		u8 cData[1];
 	} ;
-	/*DSP_CBDATA, *DSP_HCBDATA;*/
 
 /* The DSP_MSG structure */
 	struct DSP_MSG {
@@ -333,7 +331,6 @@
 		u32 dwArg1;
 		u32 dwArg2;
 	} ;
-	/*DSP_MSG, *DSP_HMSG;*/
 
 /* The DSP_RESOURCEREQMTS structure for node's resource requirements  */
 	struct DSP_RESOURCEREQMTS {
@@ -347,7 +344,6 @@
 		u32 uAvgExectionTime;
 		u32 uMinimumPeriod;
 	} ;
-	/*DSP_RESOURCEREQMTS, *DSP_HRESOURCEREQMTS;*/
 
 /*
  * The DSP_STREAMCONNECT structure describes a stream connection
@@ -361,13 +357,11 @@
 		struct DSP_UUID uiConnectedNodeID;
 		u32 uConnectedNodeStreamIndex;
 	} ;
-	/*DSP_STREAMCONNECT, *DSP_HSTREAMCONNECT;*/
 
 #if defined(OMAP_2430) || defined(OMAP_3430)
 	struct DSP_NODEPROFS {
 		u32 ulHeapSize;
 	} ;
-	/*DSP_NODEPROFS, *DSP_HNODEPROFS;*/
 #endif
 
 /* The DSP_NDBPROPS structure reports the attributes of a node */
@@ -391,7 +385,6 @@
 		struct DSP_NODEPROFS aProfiles[MAX_PROFILES];
 		u32 uStackSegName; /* Stack Segment Name */
 	} ;
-	/*DSP_NDBPROPS, *DSP_HNDBPROPS;*/
 
 	/* The DSP_NODEATTRIN structure describes the attributes of a
 	 * node client */
@@ -404,7 +397,6 @@
 		u32    uHeapSize;
 		void *pGPPVirtAddr; /* Reserved, for Bridge Internal use only */
 	} ;
-	/*DSP_NODEATTRIN, *DSP_HNODEATTRIN;*/
 
 	/* The DSP_NODEINFO structure is used to retrieve information
 	 * about a node */
@@ -418,7 +410,6 @@
 		struct DSP_STREAMCONNECT scStreamConnection[16];
 		u32 uNodeEnv;
 	} ;
-	/*DSP_NODEINFO, *DSP_HNODEINFO;*/
 
 	/* The DSP_NODEATTR structure describes the attributes of a node */
 	struct DSP_NODEATTR {
@@ -428,7 +419,6 @@
 		u32 uOutputs;
 		struct DSP_NODEINFO iNodeInfo;
 	} ;
-	/*DSP_NODEATTR, *DSP_HNODEATTR;*/
 
 /*
  *  Notification type: either the name of an opened event, or an event or
@@ -438,14 +428,12 @@
 		char *psName;
 		HANDLE handle;
 	} ;
-	/*DSP_NOTIFICATION, *DSP_HNOTIFICATION;*/
 
 /* The DSP_PROCESSORATTRIN structure describes the attributes of a processor */
 	struct DSP_PROCESSORATTRIN{
 		u32 cbStruct;
 		u32 uTimeout;
 	} ;
-	/*DSP_PROCESSORATTRIN, *DSP_HPROCESSORATTRIN;*/
 
 	enum chipTypes {
 		DSPTYPE_55 = 6,
@@ -469,7 +457,6 @@
 		s32 nNodeMinPriority;
 		s32 nNodeMaxPriority;
 	} ;
-	/*DSP_PROCESSORINFO, *DSP_HPROCESSORINFO;*/
 
 /* Error information of last DSP exception signalled to the GPP */
 	struct DSP_ERRORINFO {
@@ -478,7 +465,6 @@
 		u32 dwVal2;
 		u32 dwVal3;
 	} ;
-	/*DSP_ERRORINFO;*/
 
 /* The DSP_PROCESSORSTATE structure describes the state of a DSP processor */
 	struct DSP_PROCESSORSTATE {
@@ -486,7 +472,6 @@
 		enum DSP_PROCSTATE iState;
 		struct DSP_ERRORINFO errInfo;
 	} ;
-	/*DSP_PROCESSORSTATE, *DSP_HPROCESSORSTATE;*/
 
 /*
  * The DSP_RESOURCEINFO structure is used to retrieve information about a
@@ -501,7 +486,6 @@
 			struct DSP_PROCLOADSTAT procLoadStat;
 		} result;
 	} ;
-	/*DSP_RESOURCEINFO, *DSP_HRESOURCEINFO;*/
 
 /*
  * The DSP_STREAMATTRIN structure describes the attributes of a stream,
@@ -518,7 +502,6 @@
 		u32 uDMAChnlId;
 		u32 uDMAPriority;
 	} ;
-	/*DSP_STREAMATTRIN, *DSP_HSTREAMATTRIN;*/
 
 /* The DSP_BUFFERATTR structure describes the attributes of a data buffer */
 	struct DSP_BUFFERATTR {
@@ -526,7 +509,6 @@
 		u32 uSegment;
 		u32 uAlignment;
 	} ;
-	/*DSP_BUFFERATTR, *DSP_HBUFFERATTR;*/
 
 /*
  *  The DSP_STREAMINFO structure is used to retrieve information
@@ -540,7 +522,6 @@
 		HANDLE hSyncObjectHandle;
 		enum DSP_STREAMSTATE ssStreamState;
 	} ;
-	/*DSP_STREAMINFO, *DSP_HSTREAMINFO;*/
 
 /* DMM MAP attributes
 It is a bit mask with each bit value indicating a specific attribute

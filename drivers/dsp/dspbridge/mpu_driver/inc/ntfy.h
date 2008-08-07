@@ -38,7 +38,6 @@
 #define NTFY_
 
 	struct NTFY_OBJECT;
-	/*typedef struct NTFY_OBJECT *NTFY_HOBJECT;*/
 
 /*
  *  ======== NTFY_Create ========

@@ -31,21 +31,18 @@
 
 /*
  *  ======== MMU_FaultDpc ========
- *  Purpose:
  *      Deferred procedure call to handle DSP MMU fault.
  */
 	void MMU_FaultDpc(IN void *pRefData);
 
 /*
  *  ======== MMU_FaultIsr ========
- *  Purpose:
  *      ISR to be triggered by a DSP MMU fault interrupt.
  */
 	void MMU_FaultIsr(IN void *pRefData);
 
 /*
  *  ========PrintDspTraceBuffer ========
- *  Purpose:
  *      Print DSP tracebuffer.
  */
 

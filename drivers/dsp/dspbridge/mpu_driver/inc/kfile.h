@@ -61,7 +61,6 @@
 #define KFILE_SEEK_END          0x02	/* seek from end of file */
 
 	struct KFILE_FileObj;
-	/*typedef struct KFILE_FileObj *KFILE_HANDLE;*/
 
 /*
  *  ======== KFILE_Close ========

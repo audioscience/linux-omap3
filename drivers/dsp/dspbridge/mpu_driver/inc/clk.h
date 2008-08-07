@@ -27,7 +27,6 @@
 #define _CLK_H
 
 	/* Generic TIMER object: */
-	/*typedef struct TIMER_OBJECT *TIMER_HOBJECT;*/
 	struct TIMER_OBJECT;
 	enum SERVICES_ClkId {
 		SERVICESCLK_iva2_ck = 0,
@@ -152,6 +151,5 @@
  *  Ensures:
  */
 	extern s32 CLK_Get_UseCnt(IN enum SERVICES_ClkId clk_id);
-/*	extern DSP_STATUS CLK_AutoIdleCtrl(IN SERVICES_ClkId clk_id,s32 cmd); */
 
 #endif				/* _SYNC_H */

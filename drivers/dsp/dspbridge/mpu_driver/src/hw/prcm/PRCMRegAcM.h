@@ -40,18 +40,15 @@
 }
 
 
-/********************************************************************/
-
 #define CM_FCLKEN_PERReadRegister32(baseAddress)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_PRCMCM_FCLKEN1_COREReadRegister32),\
       RD_MEM_32_VOLATILE(((u32)(baseAddress))+CM_FCLKEN_PER_OFFSET))
+
 
 #define CM_ICLKEN_PERReadRegister32(baseAddress)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_PRCMCM_FCLKEN1_COREReadRegister32),\
       RD_MEM_32_VOLATILE(((u32)(baseAddress))+CM_ICLKEN_PER_OFFSET))
 
-
-/********************************************************************/
 
 #define CM_FCLKEN_PER_GPT5WriteRegister32(baseAddress,value)\
 {\
@@ -67,7 +64,6 @@
     WR_MEM_32_VOLATILE(((u32)(baseAddress))+offset, newValue);\
 }
 
-/********************************************************************/
 
 #define CM_FCLKEN_PER_GPT6WriteRegister32(baseAddress,value)\
 {\
@@ -84,8 +80,6 @@
 }
 
 
-/********************************************************************/
-
 #define CM_ICLKEN_PER_GPT5WriteRegister32(baseAddress,value)\
 {\
     const u32 offset = CM_ICLKEN_PER_OFFSET;\
@@ -100,7 +94,6 @@
     WR_MEM_32_VOLATILE(((u32)(baseAddress))+offset, newValue);\
 }
 
-/********************************************************************/
 
 #define CM_ICLKEN_PER_GPT6WriteRegister32(baseAddress,value)\
 {\
@@ -117,13 +110,10 @@
 }
 
 
-/********************************************************************/
-
 #define CM_FCLKEN1_COREReadRegister32(baseAddress)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_PRCMCM_FCLKEN1_COREReadRegister32),\
       RD_MEM_32_VOLATILE(((u32)(baseAddress))+CM_FCLKEN1_CORE_OFFSET))
 
-/********************************************************************/
 
 #define PRCMCM_FCLKEN1_COREEN_GPT8Write32(baseAddress,value)\
 {\
@@ -138,9 +128,6 @@
     newValue |= data;\
     WR_MEM_32_VOLATILE((u32)(baseAddress)+offset, newValue);\
 }
-
-
-/********************************************************************/
 
 
 #define PRCMCM_FCLKEN1_COREEN_GPT7Write32(baseAddress,value)\
@@ -158,15 +145,9 @@
 }
 
 
-/********************************************************************/
-
-
 #define CM_ICLKEN1_COREReadRegister32(baseAddress)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_PRCMCM_ICLKEN1_COREReadRegister32),\
       RD_MEM_32_VOLATILE(((u32)(baseAddress))+CM_ICLKEN1_CORE_OFFSET))
-
-
-/********************************************************************/
 
 
 #define  CM_ICLKEN1_COREEN_MAILBOXESWrite32(baseAddress, value)\
@@ -184,9 +165,6 @@
 }
 
 
-/********************************************************************/
-
-
 #define PRCMCM_ICLKEN1_COREEN_GPT8Write32(baseAddress, value)\
 {\
     const u32 offset = PRCM_CM_ICLKEN1_CORE_OFFSET;\
@@ -200,9 +178,6 @@
     newValue |= data;\
     WR_MEM_32_VOLATILE((u32)(baseAddress)+offset, newValue);\
 }
-
-
-/********************************************************************/
 
 
 #define PRCMCM_ICLKEN1_COREEN_GPT7Write32(baseAddress, value)\
@@ -220,9 +195,6 @@
 }
 
 
-/********************************************************************/
-
-
 #define PRCMCM_CLKSEL2_CORECLKSEL_GPT8Write32k32(baseAddress)\
 {\
     const u32 offset = PRCM_CM_CLKSEL2_CORE_OFFSET;\
@@ -234,9 +206,6 @@
     data |= newValue;\
     WR_MEM_32_VOLATILE((u32)(baseAddress)+offset, data);\
 }
-
-
-/********************************************************************/
 
 
 #define PRCMCM_CLKSEL2_CORECLKSEL_GPT8WriteSys32(baseAddress)\
@@ -252,9 +221,6 @@
 }
 
 
-/********************************************************************/
-
-
 #define PRCMCM_CLKSEL2_CORECLKSEL_GPT8WriteExt32(baseAddress)\
 {\
     const u32 offset = PRCM_CM_CLKSEL2_CORE_OFFSET;\
@@ -266,9 +232,6 @@
     data |= newValue;\
     WR_MEM_32_VOLATILE((u32)(baseAddress)+offset, data);\
 }
-
-
-/********************************************************************/
 
 
 #define PRCMCM_CLKSEL2_CORECLKSEL_GPT7Write32k32(baseAddress)\
@@ -284,9 +247,6 @@
 }
 
 
-/********************************************************************/
-
-
 #define PRCMCM_CLKSEL2_CORECLKSEL_GPT7WriteSys32(baseAddress)\
 {\
     const u32 offset = PRCM_CM_CLKSEL2_CORE_OFFSET;\
@@ -298,9 +258,6 @@
     data |= newValue;\
     WR_MEM_32_VOLATILE((u32)(baseAddress)+offset, data);\
 }
-
-
-/********************************************************************/
 
 
 #define PRCMCM_CLKSEL2_CORECLKSEL_GPT7WriteExt32(baseAddress)\
@@ -316,8 +273,6 @@
 }
 
 
-/********************************************************************/
-
 #define PRCMCM_CLKSEL2_CORECLKSEL_GPT6WriteSys32(baseAddress)\
 {\
     const u32 offset = PRCM_CM_CLKSEL2_CORE_OFFSET;\
@@ -329,9 +284,6 @@
     data |= newValue;\
     WR_MEM_32_VOLATILE((u32)(baseAddress)+offset, data);\
 }
-
-
-/********************************************************************/
 
 
 #define PRCMCM_CLKSEL2_CORECLKSEL_GPT6WriteExt32(baseAddress)\
@@ -347,9 +299,6 @@
 }
 
 
-/********************************************************************/
-
-
 #define CM_CLKSEL_PER_GPT5Write32k32(baseAddress)\
 {\
     const u32 offset = CM_CLKSEL_PER_OFFSET;\
@@ -361,8 +310,6 @@
     data |= newValue;\
     WR_MEM_32_VOLATILE((u32)(baseAddress)+offset, data);\
 }
-
-/********************************************************************/
 
 
 #define CM_CLKSEL_PER_GPT6Write32k32(baseAddress)\
@@ -376,8 +323,6 @@
     data |= newValue;\
     WR_MEM_32_VOLATILE((u32)(baseAddress)+offset, data);\
 }
-
-/********************************************************************/
 
 
 #define PRCMCM_CLKSEL2_CORECLKSEL_GPT5WriteSys32(baseAddress)\
@@ -393,9 +338,6 @@
 }
 
 
-/********************************************************************/
-
-
 #define PRCMCM_CLKSEL2_CORECLKSEL_GPT5WriteExt32(baseAddress)\
 {\
     const u32 offset = PRCM_CM_CLKSEL2_CORE_OFFSET;\
@@ -409,18 +351,12 @@
 }
 
 
-/********************************************************************/
-
-
 #define PRCMCM_CLKSEL1_PLLAPLLs_ClkinRead32(baseAddress)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_PRCMCM_CLKSEL1_PLLAPLLs_ClkinRead32),\
       (((RD_MEM_32_VOLATILE((((u32)(baseAddress))+\
 	(PRCM_CM_CLKSEL1_PLL_OFFSET)))) &\
       PRCM_CM_CLKSEL1_PLL_APLLs_Clkin_MASK) >>\
       PRCM_CM_CLKSEL1_PLL_APLLs_Clkin_OFFSET))
-
-
-/********************************************************************/
 
 
 #define CM_FCLKEN_IVA2EN_DSPWrite32(baseAddress,value)\
@@ -438,9 +374,6 @@
 }
 
 
-/********************************************************************/
-
-
 #define PRCMCM_ICLKEN_DSPEN_DSP_IPIWrite32(baseAddress, value)\
 {\
     const u32 offset = PRCM_CM_ICLKEN_DSP_OFFSET;\
@@ -456,15 +389,9 @@
 }
 
 
-/********************************************************************/
-
-
 #define PRCMCM_IDLEST_DSPReadRegister32(baseAddress)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_PRCMCM_IDLEST_DSPReadRegister32),\
       RD_MEM_32_VOLATILE(((u32)(baseAddress))+PRCM_CM_IDLEST_DSP_OFFSET))
-
-
-/********************************************************************/
 
 
 #define PRCMCM_IDLEST_DSPST_IPIRead32(baseAddress)\
@@ -474,8 +401,6 @@
       PRCM_CM_IDLEST_DSP_ST_IPI_MASK) >>\
       PRCM_CM_IDLEST_DSP_ST_IPI_OFFSET))
 
-/********************************************************************/
-
 
 #define PRM_IDLEST_IVA2ST_IVA2Read32(baseAddress)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_PRCMCM_IDLEST_DSPST_DSPRead32),\
@@ -483,9 +408,6 @@
 	  (CM_IDLEST_IVA2_OFFSET)))) &\
       CM_IDLEST_IVA2_ST_IVA2_MASK) >>\
       CM_IDLEST_IVA2_ST_IVA2_OFFSET))
-
-
-/********************************************************************/
 
 
 #define PRCMCM_AUTOIDLE_DSPAUTO_DSP_IPIWrite32(baseAddress, value)\
@@ -503,9 +425,6 @@
 }
 
 
-/********************************************************************/
-
-
 #define PRCMCM_CLKSEL_DSPSYNC_DSPWrite32(baseAddress,value)\
 {\
     const u32 offset = PRCM_CM_CLKSEL_DSP_OFFSET;\
@@ -519,9 +438,6 @@
     newValue |= data;\
     WR_MEM_32_VOLATILE((u32)(baseAddress)+offset, newValue);\
 }
-
-
-/********************************************************************/
 
 
 #define PRCMCM_CLKSEL_DSPCLKSEL_DSP_IFWrite32(baseAddress, value)\
@@ -539,9 +455,6 @@
 }
 
 
-/********************************************************************/
-
-
 #define PRCMCM_CLKSEL_DSPCLKSEL_DSPWrite32(baseAddress, value)\
 {\
     const u32 offset = PRCM_CM_CLKSEL_DSP_OFFSET;\
@@ -555,9 +468,6 @@
     newValue |= data;\
     WR_MEM_32_VOLATILE((u32)(baseAddress)+offset, newValue);\
 }
-
-
-/********************************************************************/
 
 
 #define PRCMCM_CLKSTCTRL_IVA2WriteRegister32(baseAddress, value)\
@@ -575,18 +485,12 @@
 }
 
 
-/********************************************************************/
-
-
 #define PRCMCM_CLKSTCTRL_DSPAutostate_DSPRead32(baseAddress)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_PRCMCM_CLKSTCTRL_DSPAutostate_DSPRead32),\
       (((RD_MEM_32_VOLATILE((((u32)(baseAddress))+\
 	(PRCM_CM_CLKSTCTRL_DSP_OFFSET)))) &\
       PRCM_CM_CLKSTCTRL_DSP_Autostate_DSP_MASK) >>\
       PRCM_CM_CLKSTCTRL_DSP_Autostate_DSP_OFFSET))
-
-
-/********************************************************************/
 
 
 #define PRCMCM_CLKSTCTRL_DSPAutostate_DSPWrite32(baseAddress, value)\
@@ -604,15 +508,9 @@
 }
 
 
-/********************************************************************/
-
-
 #define PRCMRM_RSTCTRL_DSPReadRegister32(baseAddress)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_PRCMRM_RSTCTRL_DSPReadRegister32),\
       RD_MEM_32_VOLATILE(((u32)(baseAddress))+PRCM_RM_RSTCTRL_DSP_OFFSET))
-
-
-/********************************************************************/
 
 
 #define PRM_RSTCTRL_IVA2RST1_DSPWrite32(baseAddress,value)\
@@ -628,6 +526,8 @@
     newValue |= data;\
     WR_MEM_32_VOLATILE((u32)(baseAddress)+offset, newValue);\
 }
+
+
 #define PRM_RSTCTRL_IVA2RST2_DSPWrite32(baseAddress,value)\
 {\
     const u32 offset = PRM_RSTCTRL_IVA2_OFFSET;\
@@ -641,6 +541,8 @@
     newValue |= data;\
     WR_MEM_32_VOLATILE((u32)(baseAddress)+offset, newValue);\
 }
+
+
 #define PRM_RSTCTRL_IVA2RST3_DSPWrite32(baseAddress,value)\
 {\
     const u32 offset = PRM_RSTCTRL_IVA2_OFFSET;\
@@ -655,15 +557,10 @@
     WR_MEM_32_VOLATILE((u32)(baseAddress)+offset, newValue);\
 }
 
-/********************************************************************/
-
 
 #define PRCMRM_RSTST_DSPReadRegister32(baseAddress)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_PRCMRM_RSTST_DSPReadRegister32),\
       RD_MEM_32_VOLATILE(((u32)(baseAddress))+PRCM_RM_RSTST_DSP_OFFSET))
-
-
-/********************************************************************/
 
 
 #define PRCMRM_RSTST_DSPWriteRegister32(baseAddress,value)\
@@ -673,9 +570,6 @@
     _DEBUG_LEVEL_1_EASI(EASIL1_PRCMRM_RSTST_DSPWriteRegister32);\
     WR_MEM_32_VOLATILE(((u32)(baseAddress))+offset, newValue);\
 }
-
-
-/********************************************************************/
 
 
 #define PRCMPM_PWSTCTRL_DSPForceStateWrite32(baseAddress, value)\
@@ -693,9 +587,6 @@
 }
 
 
-/********************************************************************/
-
-
 #define PRCMPM_PWSTCTRL_IVA2PowerStateWriteON32(baseAddress)\
 {\
     const u32 offset = PRCM_PM_PWSTCTRL_IVA2_OFFSET;\
@@ -707,9 +598,6 @@
     data |= newValue;\
     WR_MEM_32_VOLATILE((u32)(baseAddress)+offset, data);\
 }
-
-
-/********************************************************************/
 
 
 #define PRCMPM_PWSTCTRL_IVA2PowerStateWriteOFF32(baseAddress)\
@@ -725,9 +613,6 @@
 }
 
 
-/********************************************************************/
-
-
 #define PRCMPM_PWSTCTRL_DSPPowerStateWriteRET32(baseAddress)\
 {\
     const u32 offset = PRCM_PM_PWSTCTRL_DSP_OFFSET;\
@@ -741,23 +626,14 @@
 }
 
 
-/********************************************************************/
-
-
 #define PRCMPM_PWSTST_DSPReadRegister32(baseAddress)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_PRCMPM_PWSTST_DSPReadRegister32),\
       RD_MEM_32_VOLATILE(((u32)(baseAddress))+PRCM_PM_PWSTST_DSP_OFFSET))
 
 
-/********************************************************************/
-
-
 #define PRCMPM_PWSTST_IVA2ReadRegister32(baseAddress)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_PRCMPM_PWSTST_IVA2ReadRegister32),\
       RD_MEM_32_VOLATILE(((u32)(baseAddress))+PRCM_PM_PWSTST_IVA2_OFFSET))
-
-
-/********************************************************************/
 
 
 #define PRCMPM_PWSTST_DSPInTransitionRead32(baseAddress)\
@@ -766,8 +642,6 @@
 	(PRCM_PM_PWSTST_DSP_OFFSET)))) &\
       PRCM_PM_PWSTST_DSP_InTransition_MASK) >>\
       PRCM_PM_PWSTST_DSP_InTransition_OFFSET))
-
-/********************************************************************/
 
 
 #define PRCMPM_PWSTST_IVA2InTransitionRead32(baseAddress)\
@@ -778,15 +652,10 @@
       PRCM_PM_PWSTST_IVA2_InTransition_OFFSET))
 
 
-/********************************************************************/
-
-
 #define PRCMPM_PWSTST_DSPPowerStateStGet32(var)\
     (_DEBUG_LEVEL_1_EASI(EASIL1_PRCMPM_PWSTST_DSPPowerStateStGet32),\
       (u32)((((u32)(var)) & PRCM_PM_PWSTST_DSP_PowerStateSt_MASK) >>\
 	PRCM_PM_PWSTST_DSP_PowerStateSt_OFFSET))
-
-/********************************************************************/
 
 
 #define PRCMPM_PWSTST_IVA2PowerStateStGet32(var)\
@@ -794,8 +663,6 @@
       (u32)((((u32)(var)) & PRCM_PM_PWSTST_IVA2_PowerStateSt_MASK) >>\
       PRCM_PM_PWSTST_IVA2_PowerStateSt_OFFSET))
 
-
-/********************************************************************/
 
 #endif  /* USE_LEVEL_1_MACROS */
 

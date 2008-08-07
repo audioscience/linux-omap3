@@ -539,8 +539,6 @@ void MEM_Free(IN void *pMemBuf)
 					"Invalid allocation or "
 					"Buffer underflow at %x\n",
 					(u32) pMem + sizeof(struct memInfo));
-				/*Do not try to free an invalid address*/
-				/*  kfree(pMemBuf);*/
 			}
 		}
 #endif

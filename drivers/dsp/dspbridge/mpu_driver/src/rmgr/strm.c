@@ -840,7 +840,7 @@ DSP_STATUS STRM_Reclaim(struct STRM_OBJECT *hStrm, OUT u8 **pBufPtr,
 
 			}
 		}
-		/* * Translate zerocopy buffer if channel not canceled.  */
+		/* Translate zerocopy buffer if channel not canceled. */
 		if (DSP_SUCCEEDED(status) && (!CHNL_IsIOCancelled(chnlIOC)) &&
 		   (hStrm->lMode == STRMMODE_ZEROCOPY)) {
 			/*

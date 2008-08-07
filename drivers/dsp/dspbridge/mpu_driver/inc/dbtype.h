@@ -85,10 +85,6 @@
 /*  Basic Type definitions (with Prefixes for Hungarian notation)             */
 /*============================================================================*/
 
-
-
-
-
 #ifndef OMAPBRIDGE_TYPES
 #define OMAPBRIDGE_TYPES
 typedef int BOOL;		/* f    */

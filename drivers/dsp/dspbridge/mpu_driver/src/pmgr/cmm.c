@@ -165,9 +165,7 @@ struct CMM_XLATOR {	/* Pa<->Va translator object */
 	u32 ulSegId;		/* Segment Id */
 } ;
 
-/*
- * CMM Mgr
- */
+/* CMM Mgr */
 struct CMM_OBJECT {
 	u32 dwSignature;	/* Used for object validation */
 	/*
@@ -181,23 +179,17 @@ struct CMM_OBJECT {
 	struct CMM_ALLOCATOR *paGPPSMSegTab[CMM_MAXGPPSEGS];
 } ;
 
-/*
- * Default CMM Mgr attributes
- */
+/* Default CMM Mgr attributes */
 static struct CMM_MGRATTRS CMM_DFLTMGRATTRS = {
 	16	/* ulMinBlockSize, min block size(bytes) allocated by cmm mgr */
 };
 
-/*
- * Default allocation attributes
- */
+/* Default allocation attributes */
 static struct CMM_ATTRS CMM_DFLTALCTATTRS = {
 	1			/* ulSegId, default segment Id for allocator */
 };
 
-/*
- * Address translator default attrs
- */
+/* Address translator default attrs */
 struct CMM_XLATORATTRS CMM_DFLTXLATORATTRS = {
 	1,	/* ulSegId, does not have to match CMM_DFLTALCTATTRS ulSegId */
 	0,			/* dwDSPBufs */
@@ -206,9 +198,7 @@ struct CMM_XLATORATTRS CMM_DFLTXLATORATTRS = {
 	0,			/* dwVmSize */
 };
 
-/*
- * SM node representing a block of memory.
- */
+/* SM node representing a block of memory. */
 struct CMM_MNODE {
 	struct LST_ELEM link;		/* must be 1st element */
 	u32 dwPA;		/* Phys addr */

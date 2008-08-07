@@ -69,8 +69,7 @@ struct SERVICES_Clk_t {
 
 /* The row order of the below array needs to match with the clock enumerations
  * 'SERVICES_ClkId' provided in the header file.. any changes in the
- * enumerations needs to be fixed in the array as well
- */
+ * enumerations needs to be fixed in the array as well */
 static struct SERVICES_Clk_t SERVICES_Clks[] = {
 	{NULL, "iva2_ck"},
 	{NULL, "mailboxes_ick"},
@@ -103,7 +102,6 @@ static struct SERVICES_Clk_t SERVICES_Clks[] = {
 
 
 #ifndef DISABLE_BRIDGE_PM
-/*extern struct device dspbridge_device;*/
 extern struct platform_device dspbridge_device;
 #endif
 
@@ -111,7 +109,6 @@ extern struct platform_device dspbridge_device;
 
 /* Generic TIMER object: */
 struct TIMER_OBJECT {
-	/* u32	   dwSignature;*/    /* Used for object validation. */
 	struct timer_list timer;
 };
 

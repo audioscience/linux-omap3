@@ -64,7 +64,6 @@ BOOL bSymbolsReloaded = TRUE;
 
 /*
  *  ======== ReadExtDspData ========
- *  purpose:
  *      Copies DSP external memory buffers to the host side buffers.
  */
 DSP_STATUS ReadExtDspData(struct WMD_DEV_CONTEXT *hDevContext,
@@ -148,8 +147,7 @@ DSP_STATUS ReadExtDspData(struct WMD_DEV_CONTEXT *hDevContext,
 		DBC_Assert(ulExtEnd != 0);
 
 	/* Trace buffer is right after the SHM SEG0,
-	*  so set the base address to SHMBASE
-	*/
+	*  so set the base address to SHMBASE */
 		if (bTraceRead) {
 			ulExtBase = ulShmBaseVirt;
 			ulExtEnd = ulTraceSecEnd;
@@ -185,8 +183,7 @@ DSP_STATUS ReadExtDspData(struct WMD_DEV_CONTEXT *hDevContext,
 						dwExtProgVirtMem;
 
 	/* This dwDspExtBaseAddr will get cleared only when the board is
-	* stopped.
-	*/
+	* stopped. */
 				if (!pDevContext->dwDspExtBaseAddr) {
 					status = DSP_EFAIL;
 					DBG_Trace(DBG_LEVEL7, "ReadExtDspData: "

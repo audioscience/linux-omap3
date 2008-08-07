@@ -25,31 +25,24 @@
  * Dynamic Loader
  *
  * The function of the dynamic loader is to load a "module" containing
- * instructions
- * for a "target" processor into that processor.  In the process it assigns
- * memory
- * for the module, resolves symbol references made by the module, and remembers
- * symbols defined by the module.
+ * instructions for a "target" processor into that processor.  In the process
+ * it assigns memory for the module, resolves symbol references made by the
+ * module, and remembers symbols defined by the module.
  *
  * The dynamic loader is parameterized for a particular system by 4 classes
- * that supply
- * the module and system specific functions it requires
+ * that supply the module and system specific functions it requires
  */
 	/* The read functions for the module image to be loaded */
 	struct Dynamic_Loader_Stream;
-	/*typedef struct Dynamic_Loader_Stream Dynamic_Loader_Stream;*/
 
 	/* This class defines "host" symbol and support functions */
 	struct Dynamic_Loader_Sym;
-	/*typedef struct Dynamic_Loader_Sym Dynamic_Loader_Sym;*/
 
 	/* This class defines the allocator for "target" memory */
 	struct Dynamic_Loader_Allocate;
-	/*typedef struct Dynamic_Loader_Allocate Dynamic_Loader_Allocate;*/
 
 	/* This class defines the copy-into-target-memory functions */
 	struct Dynamic_Loader_Initialize;
-	/*typedef struct Dynamic_Loader_Initialize Dynamic_Loader_Initialize;*/
 
 /*
  * Option flags to modify the behavior of module loading
