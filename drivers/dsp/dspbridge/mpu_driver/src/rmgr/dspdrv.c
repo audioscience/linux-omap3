@@ -135,12 +135,10 @@ u32 DSP_Init(OUT u32 *initStatus)
 {
 	char devNode[MAXREGPATHLENGTH] = "TIOMAP1510";
 	DSP_STATUS status = DSP_EFAIL;
-	DSP_STATUS status1 = DSP_SOK;
 	struct DRV_OBJECT *drvObject = NULL;
 	u32 index = 0;
 	u32 deviceNode;
 	u32 deviceNodeString;
-	u32 numProcs = 0;
 
 	GT_create(&curTrace, "DD");
 
@@ -156,43 +154,37 @@ u32 DSP_Init(OUT u32 *initStatus)
 		goto func_cont;
 	}		/* End DRV_Create */
 	GT_0trace(curTrace, GT_5CLASS, "DSP_Init:DRV Created \r\n");
-	status = CFG_GetC55Procs(&numProcs);
-	GT_1trace(curTrace, GT_5CLASS, "DSP_Init:C55 procs configured = %d\n",
-		  numProcs);
-	if (DSP_SUCCEEDED(status) & numProcs) {
-		/* Request Resources */
-		if (DSP_SUCCEEDED(DRV_RequestResources((u32)&devNode,
-		   &deviceNodeString))) {
-			/* Attempt to Start the Device */
-			if (DSP_SUCCEEDED(DEV_StartDevice(
-			   (struct CFG_DEVNODE *)deviceNodeString))) {
-				/* Retreive the DevObject from the Registry */
-				GT_2trace(curTrace, GT_1CLASS,
-					 "DSP_Init Succeeded for Device1:"
-					 "%d: value: %x\n", index,
-					 deviceNodeString);
-				status = DSP_SOK;
-			} else {
-				GT_0trace(curTrace, GT_7CLASS,
-					 "DSP_Init:DEV_StartDevice Failed\n");
-				(void)DRV_ReleaseResources
-					((u32) deviceNodeString, drvObject);
-				status = DSP_EFAIL;
-			}
+
+	/* Request Resources */
+	if (DSP_SUCCEEDED(DRV_RequestResources((u32)&devNode,
+	   &deviceNodeString))) {
+		/* Attempt to Start the Device */
+		if (DSP_SUCCEEDED(DEV_StartDevice(
+		   (struct CFG_DEVNODE *)deviceNodeString))) {
+			/* Retreive the DevObject from the Registry */
+			GT_2trace(curTrace, GT_1CLASS,
+				 "DSP_Init Succeeded for Device1:"
+				 "%d: value: %x\n", index, deviceNodeString);
+			status = DSP_SOK;
 		} else {
 			GT_0trace(curTrace, GT_7CLASS,
-				 "DSP_Init:DRV_RequestResources Failed \r\n");
+				 "DSP_Init:DEV_StartDevice Failed\n");
+			(void)DRV_ReleaseResources
+				((u32) deviceNodeString, drvObject);
 			status = DSP_EFAIL;
-		}	/* DRV_RequestResources */
-		index++;
-	}
+		}
+	} else {
+		GT_0trace(curTrace, GT_7CLASS,
+			 "DSP_Init:DRV_RequestResources Failed \r\n");
+		status = DSP_EFAIL;
+	}	/* DRV_RequestResources */
+	index++;
+
 	/* Unwind whatever was loaded */
-	if (DSP_FAILED(status) || DSP_FAILED(status1)) {
-		/* irrespective of the status of DEV_RemoveDevice
-		 * we conitinue unloading. Get the Driver Object
-		 * iterate through and remove */
-		/* We end up here possibly by status1. Reset
-		 * the status to E_FAIL to avoid going through
+	if (DSP_FAILED(status)) {
+		/* irrespective of the status of DEV_RemoveDevice we conitinue
+		 * unloading. Get the Driver Object iterate through and remove.
+		 * Reset the status to E_FAIL to avoid going through
 		 * WCD_InitComplete2. */
 		status = DSP_EFAIL;
 		for (deviceNode = DRV_GetFirstDevExtension(); deviceNode != 0;
