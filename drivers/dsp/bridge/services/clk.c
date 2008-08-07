@@ -269,9 +269,9 @@ DSP_STATUS CLK_Disable(IN enum SERVICES_ClkId clk_id)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct clk *pClk;
-	DBC_Require(clk_id < SERVICESCLK_NOT_DEFINED);
 	s32 clkUseCnt;
 
+	DBC_Require(clk_id < SERVICESCLK_NOT_DEFINED);
 	GT_1trace(CLK_debugMask, GT_6CLASS,
 		  "CLK_Disable: CLK Id = 0x%x \n", clk_id);
 

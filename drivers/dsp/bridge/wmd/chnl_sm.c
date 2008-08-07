@@ -653,7 +653,7 @@ DSP_STATUS WMD_CHNL_GetIOC(struct CHNL_OBJECT *hChnl, u32 dwTimeOut,
 	struct CHNL_IRP *pChirp;
 	DSP_STATUS statSync;
 	bool fDequeueIOC = true;
-	struct CHNL_IOC ioc;
+	struct CHNL_IOC ioc = { NULL, 0, 0, 0, 0 };
 	u8 *pHostSysBuf = NULL;
 
 	DBG_Trace(DBG_ENTER, "> WMD_CHNL_GetIOC pChnl %p CHNL_IsOutput %x "

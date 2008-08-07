@@ -115,24 +115,6 @@
 	extern void IO_DPC(IN OUT void *pRefData);
 
 /*
- *  ======== IO_IVADPC ========
- *  Purpose:
- *      Deferred procedure call for shared memory channel driver ISR.  Carries
- *      out the dispatch of I/O.
- *  Parameters:
- *      pRefData:   Pointer to reference data registered via a call to
- *                  DPC_Create().
- *  Returns:
- *  Requires:
- *      Must not block.
- *      Must not acquire resources.
- *      All data touched must be locked in memory if running in kernel mode.
- *  Ensures:
- *      Non-preemptible (but interruptible).
- */
-	extern void IO_IVADPC(IN OUT void *pRefData);
-
-/*
  *  ======== IO_ISR ========
  *  Purpose:
  *      Main interrupt handler for the shared memory WMD channel manager.
@@ -151,26 +133,6 @@
  *  Ensures:
  */
 	extern bool IO_ISR(IN void *pRefData);
-
-/*
- *  ======== IO_IVAISR ========
- *  Purpose:
- *      Main interrupt handler for the shared memory WMD channel manager.
- *      Calls the WMD's CHNLSM_ISR to determine if this interrupt is ours, then
- *      schedules a DPC to dispatch I/O..
- *  Parameters:
- *      pRefData:   Pointer to the channel manager object for this board.
- *                  Set in an initial call to ISR_Install().
- *  Returns:
- *      TRUE if interrupt handled; FALSE otherwise.
- *  Requires:
- *      Must be in locked memory if executing in kernel mode.
- *      Must only call functions which are in locked memory if Kernel mode.
- *      Must only call asynchronous services.
- *      Interrupts are disabled and EOI for this interrupt has been sent.
- *  Ensures:
- */
-	extern BOOL IO_IVAISR(IN void *pRefData);
 
 /*
  *  ======== IO_RequestChnl ========

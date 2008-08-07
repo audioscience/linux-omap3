@@ -143,7 +143,7 @@ DSP_STATUS REG_GetValue(OPTIONAL IN HANDLE *phKey, IN CONST char *pstrSubkey,
 	/*  We need to use regsup calls...  */
 	/*  ...for now we don't need the key handle or  */
 	/*  the subkey, all we need is the value to lookup.  */
-	if (regsupGetValue(pstrValue, pbData, pdwDataSize) == DSP_SOK)
+	if (regsupGetValue((char *)pstrValue, pbData, pdwDataSize) == DSP_SOK)
 		status = DSP_SOK;
 	else
 		status = DSP_EFAIL;
@@ -186,7 +186,7 @@ DSP_STATUS REG_SetValue(OPTIONAL IN HANDLE *phKey, IN CONST char *pstrSubkey,
 	/*  We need to use regsup calls...  */
 	/*  ...for now we don't need the key handle or  */
 	/*  the subkey, all we need is the value to lookup.  */
-	if (regsupSetValue(pstrValue, pbData, dwDataSize) == DSP_SOK)
+	if (regsupSetValue((char *)pstrValue, pbData, dwDataSize) == DSP_SOK)
 		status = DSP_SOK;
 	else
 		status = DSP_EFAIL;

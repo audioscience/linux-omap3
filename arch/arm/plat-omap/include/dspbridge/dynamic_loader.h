@@ -18,7 +18,7 @@
 
 #ifndef _DYNAMIC_LOADER_H_
 #define _DYNAMIC_LOADER_H_
-#include <stdarg.h>
+#include <linux/kernel.h>
 #include <linux/types.h>
 
 /*

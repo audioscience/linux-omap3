@@ -54,7 +54,7 @@ extern DSP_STATUS DRV_ProcNodeUpdateHeapStatus(HANDLE nodeRes, int status);
 
 extern DSP_STATUS DRV_ProcNodeUpdateStreamStatus(HANDLE nodeRes, int status);
 
-extern DSP_STATUS DRV_RemoveNodeResElement(HANDLE nodeRes, int status);
+extern DSP_STATUS DRV_RemoveNodeResElement(HANDLE nodeRes, HANDLE status);
 
 extern DSP_STATUS DRV_ProcNodeUpdateStatus(HANDLE nodeRes, int status);
 

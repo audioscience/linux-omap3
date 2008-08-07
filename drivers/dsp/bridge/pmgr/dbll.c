@@ -1481,7 +1481,7 @@ static int writeMem(struct Dynamic_Loader_Initialize *this, void *buf,
 	struct DBLL_LibraryObj *lib;
 	struct DBLL_SectInfo sectInfo;
 	u32 memType;
-	bool retVal;
+	bool retVal = true;
 
 	DBC_Require(this != NULL);
 	lib = pInit->lib;
@@ -1529,7 +1529,7 @@ static int fillMem(struct Dynamic_Loader_Initialize *this, LDR_ADDR addr,
 	    memory. This is a trick to just get the start address, there is no
 	    writing taking place with this Writemem
 	*/
-	if ((lib->pTarget->attrs.write) != NoOp)
+	if ((lib->pTarget->attrs.write) != (DBLL_WriteFxn)NoOp)
 		writeMem(this, &pBuf, addr, info, 0);
 	if (pBuf)
 		memset(pBuf, val, nBytes);

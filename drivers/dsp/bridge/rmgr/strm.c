@@ -392,14 +392,14 @@ DSP_STATUS STRM_FreeBuffer(struct STRM_OBJECT *hStrm, u8 **apBuffer,
 			  u32 uNumBufs)
 {
 	DSP_STATUS status = DSP_SOK;
-	u32 i;
+	u32 i = 0;
 
 	#ifndef RES_CLEANUP_DISABLE
 	DSP_STATUS res_status = DSP_SOK;
 	HANDLE	     hProcess;
 	HANDLE	     pCtxt = NULL;
 	HANDLE	     hDrvObject;
-	HANDLE 		    hSTRMRes;
+	HANDLE 		    hSTRMRes = NULL;
 	#endif
 	DBC_Require(cRefs > 0);
 	DBC_Require(apBuffer != NULL);

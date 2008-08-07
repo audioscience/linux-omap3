@@ -87,7 +87,6 @@
 
 #ifndef OMAPBRIDGE_TYPES
 #define OMAPBRIDGE_TYPES
-typedef int BOOL;		/* f    */
 typedef volatile unsigned short REG_UWORD16;
 #endif
 

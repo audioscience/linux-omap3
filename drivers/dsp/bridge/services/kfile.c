@@ -51,7 +51,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <gp.h>
 #include <gt.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
@@ -177,7 +176,7 @@ struct KFILE_FileObj *KFILE_Open(CONST char *pszFileName, CONST char *pszMode)
 			status = DSP_EFILE;
 		} else {
 			hFile->fileDesc = fileDesc;
-			hFile->fileName = pszFileName;
+			hFile->fileName = (char *)pszFileName;
 			hFile->isOpen	   = true;
 			hFile->curPos   = 0;
 			hFile->size = fileDesc->f_op->llseek(fileDesc, 0,

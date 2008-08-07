@@ -165,14 +165,18 @@ static const u8 C60_Scale[SCALE_MASK+1] = {
 void dload_relocate(struct dload_state *dlthis, TgtAU_t *data,
 		    struct reloc_record_t *rp)
 {
-	RVALUE val, reloc_amt;
-	unsigned fieldsz = 0, offset = 0, reloc_info, reloc_action;
-	register int rx;
+	RVALUE val = 0;
+	RVALUE reloc_amt = 0;
+	unsigned int fieldsz = 0;
+	unsigned int offset = 0;
+	unsigned int reloc_info = 0;
+	unsigned int reloc_action = 0;
+	register int rx = 0;
 	RVALUE    *stackp = NULL;
 	int top;
 	struct Local_Symbol *svp = NULL;
 #ifdef RFV_SCALE
-	unsigned scale;
+	unsigned int scale = 0;
 #endif
 
 	rx = HASH_FUNC(rp->r_type);
@@ -400,20 +404,6 @@ void dload_relocate(struct dload_state *dlthis, TgtAU_t *data,
 				"Unaligned reference in %s offset " FMT_UI32,
 				dlthis->image_secn->name,
 				rp->r_vaddr + dlthis->image_offset);
-		break;
-#endif
-#if TMS470
-	case RACT_PCR23T:
-		/* ARM encodes Thumb long-branch as two 16-bit branches,
-		 * first containing 11 MSBs, second containing 11 LSBs of
-		 * a 23-bit short-aligned field */
-		if (rp->r_symndx == -1)
-			reloc_amt = 0;
-		val += dload_unpack(dlthis, data + sizeof(uint16_t)/
-		       sizeof(TgtAU_t), 11, 0, ROP_UNS) << 1;	/* grab LSBs */
-		val += reloc_amt - dlthis->delta_runaddr;
-		dload_repack(dlthis, val >> 1, data + sizeof(uint16_t)/
-		       sizeof(TgtAU_t), 11, 0, ROP_UNS);       /* store LSBs */
 		break;
 #endif
 	}	/* relocation actions */

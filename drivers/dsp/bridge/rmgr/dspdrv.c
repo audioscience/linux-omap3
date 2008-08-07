@@ -101,7 +101,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <gp.h>
 #include <gt.h>
 
 /*  ----------------------------------- OS Adaptation Layer */

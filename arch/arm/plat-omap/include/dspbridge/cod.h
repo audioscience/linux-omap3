@@ -105,13 +105,13 @@
 					     void *pBuf, u32 ulNumBytes,
 					     u32 nMemSpace);
 
-	typedef BOOL(CDECL *COD_ALLOCFXN) (void *pPrivRef, u32 space,
+	typedef bool(CDECL *COD_ALLOCFXN) (void *pPrivRef, u32 space,
 					    u32 ulNumBytes, u32 ulAlign,
-					    u32 *ulDspAddr, BOOL fReserved);
+					    u32 *ulDspAddr, bool fReserved);
 
-	typedef BOOL(CDECL *COD_FREEFXN) (void *pPrivReg, u32 ulDspAddr,
+	typedef bool(CDECL *COD_FREEFXN) (void *pPrivReg, u32 ulDspAddr,
 					   u32 space, u32 ulNumBytes,
-					   BOOL fReserved);
+					   bool fReserved);
 
 /*
  *  ======== COD_LOADATTRS ========

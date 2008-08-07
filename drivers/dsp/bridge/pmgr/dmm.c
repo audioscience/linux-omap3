@@ -121,7 +121,6 @@ static u32  TableSize;/* The size of virtual and physical pages tables */
 static struct MapPage *GetRegion(u32 addr);
 static struct MapPage *GetFreeRegion(u32 aSize);
 static struct MapPage *GetMappedRegion(u32 aAddr);
-static u32 *GetPhysicalAddrTable(void);
 
 /*  ======== DMM_CreateTables ========
  *  Purpose:

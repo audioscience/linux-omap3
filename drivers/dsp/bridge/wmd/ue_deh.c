@@ -201,12 +201,11 @@ DSP_STATUS WMD_DEH_RegisterNotify(struct DEH_MGR *hDehMgr, u32 uEventMask,
  *      There are no more than ulNumWords extra characters needed (the number of
  *      linefeeds minus the number of NULLS in the input buffer).
  */
+#if ((defined DEBUG) || (defined DDSP_DEBUG_PRODUCT))\
+	&& GT_TRACE
 static DSP_STATUS PackTraceBuffer(char *lpBuf, u32 nBytes, u32 ulNumWords)
 {
 	DSP_STATUS status = DSP_SOK;
-
-#if ((defined DEBUG) || (defined DDSP_DEBUG_PRODUCT))\
-	&& GT_TRACE
 
 	char *lpTmpBuf;
 	char *lpBufStart;
@@ -247,9 +246,10 @@ static DSP_STATUS PackTraceBuffer(char *lpBuf, u32 nBytes, u32 ulNumWords)
 		lpBufStart[nBytes - 1] = '\0';
 		MEM_Free(lpTmpStart);
 	}
-#endif
+
 	return status;
 }
+#endif	   /* ((defined DEBUG) || (defined DDSP_DEBUG_PRODUCT)) && GT_TRACE */
 
 /*
  *  ======== PrintDspTraceBuffer ========
@@ -375,7 +375,6 @@ void CDECL WMD_DEH_Notify(struct DEH_MGR *hDehMgr, u32 ulEventMask,
 	u32 memPhysical = 0;
 	u32 HW_MMU_MAX_TLB_COUNT = 31;
 	u32 extern faultAddr;
-	u32 sizeTlb;
 	struct CFG_HOSTRES resources;
 	u32 dummyVaAddr;
 	HW_STATUS hwStatus;

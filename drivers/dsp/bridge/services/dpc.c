@@ -54,7 +54,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <gp.h>
 #include <gt.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
@@ -89,7 +88,7 @@ static struct GT_Mask DPC_DebugMask = { 0, 0 };	/* DPC Debug Mask */
 #endif
 
 /*  ----------------------------------- Function Prototypes */
-static void DPC_DeferredProcedure(IN u32 pDeferredContext);
+static void DPC_DeferredProcedure(IN unsigned long pDeferredContext);
 
 /*
  *  ======== DPC_Create ========
@@ -244,7 +243,7 @@ DSP_STATUS DPC_Schedule(struct DPC_OBJECT *hDPC)
  *      Main DPC routine.  This is called by host OS DPC callback
  *      mechanism with interrupts enabled.
  */
-static void DPC_DeferredProcedure(IN u32 pDeferredContext)
+static void DPC_DeferredProcedure(IN unsigned long pDeferredContext)
 {
 	struct DPC_OBJECT *pDPCObject = (struct DPC_OBJECT *)pDeferredContext;
 	/* read numRequested in local variable */
