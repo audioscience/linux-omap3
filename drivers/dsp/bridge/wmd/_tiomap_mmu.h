@@ -33,57 +33,6 @@
 
 #include "_tiomap.h"
 
-#define ARM_DSP_MMU_START               0xfffed200
-#define ARM_DSP_MMU_LENGTH              0xff
-
-/* Size in bytes of DSP MMU PAGES */
-#define TIHEL_SMALLPAGESIZE             0x1000	/* 4Kb  */
-#define TIHEL_LARGEPAGESIZE             0x10000	/* 64Kb */
-#define TIHEL_SECTION                   0x100000	/* 1Mb  */
-
-/* DSP MMU related */
-#define CNTL_REG_OFFSET                 0x08
-#define MMU_FAULT_AD_H_REG_OFFSET       0x0c
-#define MMU_FAULT_AD_L_REG_OFFSET       0x10
-#define MMU_F_ST_REG_OFFSET             0x14
-#define MMU_IT_ACK_REG_OFFSET           0x18
-#define LOCK_REG_OFFSET                 0x24
-#define LD_TLB_REG_OFFSET               0x28
-#define CAM_H_REG_OFFSET                0x2C
-#define CAM_L_REG_OFFSET                0x30
-#define RAM_H_REG_OFFSET                0x34
-#define RAM_L_REG_OFFSET                0x38
-#define FLUSH_ENTRY_REG_OFFSET          0x40
-
-#define MMU_IT_ACK_MASK                 0x01
-
-/* Control Register */
-#define RESET_SW_MMU_MASK               0x0001
-#define MMU_ENABLE_MASK                 0x0002
-#define WTL_ENABLE_MASK                 0x0004
-#define STREAMING_BUFF_EN_MASK          0x0010
-#define ENDIANISM_EN_MASK               0x0020
-#define BURST_16MNGT_EN_MASK            0x0040
-
-enum SLST_t {
-	SECTION = 0,
-	LARGE_PAGE = 1,
-	SMALL_PAGE = 2,
-	TINY_PAGE = 3
-} ;
-
-enum PRESERVED_t {
-	ENTRY_NOT_PRESERVED = 0,
-	ENTRY_PRESERVED = 1
-} ;
-
-enum AP_t {
-	NOT_ACCESSIBLE = 0,
-	READ_ONLY = 2,
-	FULL_ACCESS = 3
-} ;
-
-/* Function prototypes */
 /*
  *  ======== configureDspMmu ========
  *

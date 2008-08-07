@@ -52,7 +52,6 @@
 
 #include <linux/delay.h>
 #include <linux/sched.h>
-#include <dspapi.h>
 
 #include <utildefs.h>
 

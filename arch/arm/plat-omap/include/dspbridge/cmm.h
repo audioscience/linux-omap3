@@ -68,7 +68,6 @@
 #define CMM_
 
 #include <devdefs.h>
-#include <dspapi.h>
 
 #include <cmmdefs.h>
 

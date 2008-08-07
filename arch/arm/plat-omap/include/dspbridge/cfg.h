@@ -65,7 +65,6 @@
 #ifndef CFG_
 #define CFG_
 
-#include <dspapi.h>
 #include <cfgdefs.h>
 #include <linux/types.h>
 

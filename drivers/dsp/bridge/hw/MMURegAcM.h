@@ -21,7 +21,6 @@
 #include <GlobalTypes.h>
 
 #include <EasiGlobal.h>
-#include <EasiBase.h>
 
 #include "MMUAccInt.h"
 

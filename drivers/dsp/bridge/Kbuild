@@ -7,8 +7,8 @@ libservices = services/csl.o services/mem.o services/list.o services/dpc.o \
 		services/regsup.o services/prcs.o services/ntfy.o \
 		services/dbg.o services/services.o
 libwmd = wmd/chnl_sm.o wmd/msg_sm.o wmd/io_sm.o wmd/tiomap3430.o \
-		wmd/tiomap3430_pwr.o wmd/tiomap_mmu.o wmd/tiomap_sm.o \
-		wmd/tiomap_io.o wmd/tiomap_util.o wmd/mmu_fault.o wmd/ue_deh.o
+		wmd/tiomap3430_pwr.o wmd/tiomap_sm.o wmd/tiomap_io.o \
+		wmd/mmu_fault.o wmd/ue_deh.o
 libpmgr = pmgr/chnl.o pmgr/io.o pmgr/msg.o pmgr/cod.o pmgr/dev.o pmgr/wcd.o \
 		pmgr/dmm.o pmgr/cmm.o pmgr/dbll.o
 librmgr = rmgr/dbdcd.o rmgr/disp.o rmgr/drv.o rmgr/mgr.o rmgr/node.o \

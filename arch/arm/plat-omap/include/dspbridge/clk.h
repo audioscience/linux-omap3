@@ -26,8 +26,6 @@
 #ifndef _CLK_H
 #define _CLK_H
 
-#include <dspapi.h>
-
 	/* Generic TIMER object: */
 	/*typedef struct TIMER_OBJECT *TIMER_HOBJECT;*/
 	struct TIMER_OBJECT;

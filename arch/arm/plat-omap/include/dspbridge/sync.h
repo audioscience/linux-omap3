@@ -55,8 +55,6 @@
 #ifndef _SYNC_H
 #define _SYNC_H
 
-#include <dspapi.h>
-
 /* Special timeout value indicating an infinite wait: */
 #define SYNC_INFINITE  0xffffffff
 
