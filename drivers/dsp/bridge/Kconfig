@@ -29,4 +29,7 @@ config BRIDGE_PM
 	DSP Bridge employs power management techniques to save dynamic and
 	static power consumption of the IVA sub system.
 
+config BRIDGE_DEBUG
+       bool "DSP Bridge Debug Support"
+
 endif

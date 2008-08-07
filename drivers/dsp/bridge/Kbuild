@@ -31,7 +31,7 @@ ccflags-y = -DDISABLE_BRIDGE_PM
 endif
 
 # Debug
-ifeq ($(CONFIG_DEBUG_KERNEL),y)
+ifeq ($(CONFIG_BRIDGE_DEBUG),y)
 ccflags-y += -DGT_TRACE -DDEBUG
 endif
 
