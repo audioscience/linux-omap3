@@ -194,12 +194,15 @@ char *CSL_Strcpyn(OUT char *pstrDest, IN CONST char *pstrSrc, u32 cMax)
 u32 CSL_Strlen(IN CONST char *pstrSrc)
 {
 	CONST char *pStr = pstrSrc;
+	u32 retVal;
 
 	DBC_Require(pstrSrc);
 
-	while (*pStr++) ;
+	while (*pStr++)
+		;;
 
-	return ((u32) (pStr - pstrSrc - 1));
+	retVal = (u32) (pStr - pstrSrc - 1);
+	return retVal;
 }
 
 /*

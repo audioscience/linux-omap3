@@ -194,7 +194,7 @@ extern Bool RMM_init(void);
  *      segid < target->numSegs
  *  Ensures:
  */
-extern Bool RMM_stat(struct RMM_TargetObj *target, DSP_MEMTYPE segid,
+extern Bool RMM_stat(struct RMM_TargetObj *target, enum DSP_MEMTYPE segid,
 		     struct DSP_MEMSTAT *pMemStatBuf);
 
 #endif				/* RMM_ */

@@ -66,7 +66,6 @@
 #define STD_
 
 #include <linux/types.h>
-#include <asm/types.h>
 
 /*
  *  ======== _TI_ ========
@@ -117,11 +116,9 @@
  *  *Bits - unsigned type (bit-maps)
  */
 
-
 /*
  *  Aliases for standard C types
  */
-
 
 #if defined(_80_)
 typedef int Bool;		/* boolean */
@@ -130,7 +127,6 @@ typedef long Bool;		/* boolean to match Windows boolean def */
 #else
 typedef u16 Bool;		/* boolean */
 #endif
-
 
 typedef s32(*Fxn) ();		/* generic function type */
 

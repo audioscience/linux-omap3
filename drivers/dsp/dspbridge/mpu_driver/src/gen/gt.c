@@ -41,13 +41,13 @@
 #define GT_ON		'+'
 #define GT_OFF		'-'
 
-typedef enum {
+enum GT_State {
 	GT_SEP,
 	GT_FIRST,
 	GT_SECOND,
 	GT_OP,
 	GT_DIGITS
-} GT_State;
+} ;
 
 char *GT_1format = "%s - %d: ";
 char *GT_2format = "%s - %d(%d): ";
@@ -108,7 +108,7 @@ void GT_init(void)
 
 void _GT_set(char *str)
 {
-	GT_State state;
+	enum GT_State state;
 	char *sep;
 	s16 index1 = GT_BOUND;	/* indicates all values */
 	s16 index2 = GT_BOUND;	/* indicates all values */

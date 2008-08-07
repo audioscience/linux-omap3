@@ -47,11 +47,11 @@
 *
 * -----------------------------------------------------------------------------
 */
-typedef enum _regEnum {
+enum regEnum {
     ACC_32BIT,
     ACC_16BIT,
     ACC_8BIT
-} regEnum;
+} ;
 
 /* ----------------------------------------------------------------------------
 * TYPE:        registerPORStruct
@@ -68,7 +68,7 @@ struct registerPORStruct {
     u32    address;
     u32    powerOnValue;
     u32    powerOnMask;
-    regEnum    regType;
+    enum regEnum    regType;
 } ;
 
 /* ----------------------------------------------------------------------------

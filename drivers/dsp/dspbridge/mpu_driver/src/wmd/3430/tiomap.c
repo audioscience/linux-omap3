@@ -277,7 +277,7 @@ static DSP_STATUS WMD_BRD_Monitor(struct WMD_DEV_CONTEXT *hDevContext)
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
 	struct CFG_HOSTRES resources;
 	u32 temp;
-	HW_PwrState_t    pwrState;
+	enum HW_PwrState_t    pwrState;
 
 	DBG_Trace(DBG_ENTER, "Board in the monitor state  \n");
 	status = CFG_GetHostResources(
@@ -631,7 +631,7 @@ static DSP_STATUS WMD_BRD_Start(struct WMD_DEV_CONTEXT *hDevContext,
 		if ((unsigned int *)ulDspClkAddr != NULL) {
 			/* Get the clock rate */
 			status = CLK_GetRate(SERVICESCLK_iva2_ck,
-					&ulDspClkRate);
+				 &ulDspClkRate);
 			DBG_Trace(DBG_LEVEL5,
 				 "WMD_BRD_Start: DSP clock rate (KHZ): 0x%x \n",
 				 ulDspClkRate);
@@ -670,7 +670,8 @@ static DSP_STATUS WMD_BRD_Start(struct WMD_DEV_CONTEXT *hDevContext,
 		DBG_Trace(DBG_LEVEL7, "DSP c_int00 Address =  0x%x \n",
 				dwDSPAddr);
 		if (dsp_debug)
-			while (*((volatile u16 *)dwSyncAddr)) ;
+			while (*((volatile u16 *)dwSyncAddr))
+				;;
 	}
 
 	if (DSP_SUCCEEDED(status)) {
@@ -719,7 +720,7 @@ static DSP_STATUS WMD_BRD_Stop(struct WMD_DEV_CONTEXT *hDevContext)
 	struct CFG_HOSTRES resources;
 	struct PgTableAttrs *pPtAttrs;
 	u32 dspPwrState;
-	HW_PwrState_t pwrState;
+	enum HW_PwrState_t pwrState;
 	DSP_STATUS clk_status;
 
 	DBG_Trace(DBG_ENTER, "Entering WMD_BRD_Stop:\nhDevContext: 0x%x\n",
@@ -1337,7 +1338,7 @@ static DSP_STATUS WMD_BRD_MemMap(struct WMD_DEV_CONTEXT *hDevContext,
 	else
 		hwAttrs.endianism = HW_LITTLE_ENDIAN;
 
-	hwAttrs.mixedSize = (HW_MMUMixedSize_t)
+	hwAttrs.mixedSize = (enum HW_MMUMixedSize_t)
 			     ((attrs & DSP_MAPMIXEDELEMSIZE) >> 2);
 	/* Ignore elementSize if mixedSize is enabled */
 	if (hwAttrs.mixedSize == 0) {
@@ -1568,9 +1569,9 @@ static DSP_STATUS WMD_BRD_MemUnMap(struct WMD_DEV_CONTEXT *hDevContext,
 			/* pteSize = 1 MB or 16 MB */
 			if ((pteSize != 0) && (remBytes >= pteSize) &&
 			   !(vaCurr & (pteSize - 1))) {
-			HW_MMU_PteClear(L1BaseVa, vaCurr, pteSize);
-			remBytes -= pteSize;
-			vaCurr += pteSize;
+				HW_MMU_PteClear(L1BaseVa, vaCurr, pteSize);
+				remBytes -= pteSize;
+				vaCurr += pteSize;
 		} else {
 			status = DSP_EFAIL;
 		}
@@ -1909,18 +1910,19 @@ static DSP_STATUS PteSet(struct PgTableAttrs *pt, u32 pa, u32 va,
 			L2PageNum = (L2BasePa - pt->L2BasePa) /
 				    HW_MMU_COARSE_PAGE_SIZE;
 		} else if (pteSize == 0) {
-			 /* L1 PTE is invalid. Allocate a L2 PT and
+			/* L1 PTE is invalid. Allocate a L2 PT and
 			 * point the L1 PTE to it */
 			/* Find a free L2 PT. */
 			for (i = 0; (i < pt->L2NumPages) &&
-			    (pt->pgInfo[i].numEntries != 0); i++);
+			    (pt->pgInfo[i].numEntries != 0); i++)
+				;;
 			if (i < pt->L2NumPages) {
 				L2PageNum = i;
 				L2BasePa = pt->L2BasePa + (L2PageNum *
 					   HW_MMU_COARSE_PAGE_SIZE);
 				L2BaseVa = pt->L2BaseVa + (L2PageNum *
 					   HW_MMU_COARSE_PAGE_SIZE);
-				 /* Endianness attributes are ignored for
+				/* Endianness attributes are ignored for
 				 * HW_MMU_COARSE_PAGE_SIZE */
 				status = HW_MMU_PteSet(L1BaseVa, L2BasePa, va,
 					 HW_MMU_COARSE_PAGE_SIZE, attrs);
@@ -1977,7 +1979,7 @@ static DSP_STATUS MemMapVmalloc(struct WMD_DEV_CONTEXT *hDevContext,
 	else
 		hwAttrs.endianism = HW_LITTLE_ENDIAN;
 
-	hwAttrs.mixedSize = (HW_MMUMixedSize_t)
+	hwAttrs.mixedSize = (enum HW_MMUMixedSize_t)
 			     ((attrs & DSP_MAPMIXEDELEMSIZE) >> 2);
 	/* Ignore elementSize if mixedSize is enabled */
 	if (hwAttrs.mixedSize == 0) {
@@ -2018,11 +2020,11 @@ static DSP_STATUS MemMapVmalloc(struct WMD_DEV_CONTEXT *hDevContext,
 	pPage[0] = vmalloc_to_page((void *)vaCurr);
 	paNext = page_to_phys(pPage[0]);
 	while (DSP_SUCCEEDED(status) && (i < numPages)) {
-		 /* Reuse paNext from the previous iteraion to avoid
+		/* Reuse paNext from the previous iteraion to avoid
 		 * an extra va2pa call */
 		paCurr = paNext;
 		sizeCurr = PAGE_SIZE;
-		 /* If the next page is physically contiguous,
+		/* If the next page is physically contiguous,
 		 * map it with the current one by increasing
 		 * the size of the region to be mapped */
 		while (++i < numPages) {
@@ -2070,7 +2072,7 @@ static DSP_STATUS run_IdleBoot(u32 prm_base, u32 cm_base,
 	u32 temp;
 	DSP_STATUS status = DSP_SOK;
 	DSP_STATUS clk_status = DSP_SOK;
-	HW_PwrState_t    pwrState;
+	enum HW_PwrState_t    pwrState;
 
 	/* Read PM_PWSTST_IVA2 */
 	/*temp = (u32) * ((REG_UWORD32 *) ((u32) (prm_base) + 0xE4));*/

@@ -78,7 +78,7 @@
  *      This routine must not affect the state of the physical PIC.
  *      (i.e.; don't send an EOI).
  */
-	typedef BOOL(CDECL * ISR_PROC) (void *pRefData);
+	typedef BOOL(CDECL *ISR_PROC) (void *pRefData);
 
 /*
  *  ======== ISR_Disable ========

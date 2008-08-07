@@ -143,7 +143,8 @@ struct CMM_ALLOCATOR {	/* sma */
 				 * context for 'sma') */
 	u32 dwDSPPhysAddrOffset;	/* DSP PA to GPP PA offset for this
 					 * SM space */
-	CMM_CNVTTYPE cFactor;	/* CMM_ADDTO[SUBFROM]DSPPA, _POMAPEMIF2DSPBUS */
+	/* CMM_ADDTO[SUBFROM]DSPPA, _POMAPEMIF2DSPBUS */
+	enum CMM_CNVTTYPE cFactor;
 	unsigned int dwDSPBase;	/* DSP virt base byte address */
 	u32 ulDSPSize;	/* DSP seg size in bytes */
 	struct CMM_OBJECT *hCmmMgr;	/* back ref to parent mgr */
@@ -640,7 +641,7 @@ BOOL CMM_Init(void)
  */
 DSP_STATUS CMM_RegisterGPPSMSeg(struct CMM_OBJECT *hCmmMgr, u32 dwGPPBasePA,
 				u32 ulSize, u32 dwDSPAddrOffset,
-				CMM_CNVTTYPE cFactor, u32 dwDSPBase,
+				enum CMM_CNVTTYPE cFactor, u32 dwDSPBase,
 				u32 ulDSPSize, u32 *pulSegId,
 				u32 dwGPPBaseVA)
 {
@@ -1168,14 +1169,14 @@ DSP_STATUS CMM_XlatorFreeBuf(struct CMM_XLATOROBJECT *hXlator, void *pBufVa)
 	DBC_Require(pXlator->ulSegId > 0);
 
 	if (MEM_IsValidHandle(pXlator, CMMXLATESIGNATURE)) {
-		 /* convert Va to Pa so we can free it. */
+		/* convert Va to Pa so we can free it. */
 		pBufPa = CMM_XlatorTranslate(hXlator, pBufVa, CMM_VA2PA);
 		if (pBufPa) {
 			status = CMM_FreeBuf(pXlator->hCmmMgr, pBufPa,
 					     pXlator->ulSegId);
 			if (DSP_FAILED(status)) {
-				 /* Uh oh, this shouldn't happen. Descriptor
-				  * gone! */
+				/* Uh oh, this shouldn't happen. Descriptor
+				 * gone! */
 				GT_2trace(CMM_debugMask, GT_7CLASS,
 					"Cannot free DMA/ZCPY buffer"
 					"not allocated by MPU. PA %x, VA %x\n",
@@ -1224,7 +1225,7 @@ DSP_STATUS CMM_XlatorInfo(struct CMM_XLATOROBJECT *hXlator, IN OUT u8 **pAddr,
  *  ======== CMM_XlatorTranslate ========
  */
 void *CMM_XlatorTranslate(struct CMM_XLATOROBJECT *hXlator, void *pAddr,
-			  CMM_XLATETYPE xType)
+			  enum CMM_XLATETYPE xType)
 {
 	u32 dwAddrXlate = 0;
 	struct CMM_XLATOR *pXlator = (struct CMM_XLATOR *)hXlator;

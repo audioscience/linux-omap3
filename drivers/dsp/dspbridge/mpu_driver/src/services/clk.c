@@ -252,7 +252,7 @@ BOOL CLK_Init(void)
  *      Enable Clock .
  *
 */
-DSP_STATUS CLK_Enable(IN SERVICES_ClkId clk_id)
+DSP_STATUS CLK_Enable(IN enum SERVICES_ClkId clk_id)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct clk *pClk;
@@ -293,12 +293,12 @@ DSP_STATUS CLK_Enable(IN SERVICES_ClkId clk_id)
  *      To Set parent of a clock to 32KHz.
  */
 
-DSP_STATUS CLK_Set_32KHz(IN SERVICES_ClkId clk_id)
+DSP_STATUS CLK_Set_32KHz(IN enum SERVICES_ClkId clk_id)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct clk *pClk;
-	struct   clk *pClkParent;
-	SERVICES_ClkId sys_32k_id = SERVICESCLK_sys_32k_ck;
+	struct clk *pClkParent;
+	enum SERVICES_ClkId sys_32k_id = SERVICESCLK_sys_32k_ck;
 	pClkParent =  SERVICES_Clks[sys_32k_id].clk_handle;
 
 	DBC_Require(clk_id < SERVICESCLK_NOT_DEFINED);
@@ -306,12 +306,11 @@ DSP_STATUS CLK_Set_32KHz(IN SERVICES_ClkId clk_id)
 		  "setting to 32KHz \n", clk_id);
 	pClk = SERVICES_Clks[clk_id].clk_handle;
 	if (pClk) {
-		if (clk_set_parent(pClk, pClkParent) == 0x0) {
-		} else {
+		if (!(clk_set_parent(pClk, pClkParent) == 0x0)) {
 			GT_1trace(CLK_debugMask, GT_7CLASS,
-				  "CLK_Set_32KHz: Failed to "
-				  "set to 32KHz %s \n",
-				  SERVICES_Clks[clk_id].clk_name);
+				 "CLK_Set_32KHz: Failed to "
+				 "set to 32KHz %s \n",
+				 SERVICES_Clks[clk_id].clk_name);
 			status = DSP_EFAIL;
 		}
 	}
@@ -324,7 +323,7 @@ DSP_STATUS CLK_Set_32KHz(IN SERVICES_ClkId clk_id)
  *      Disable the clock.
  *
 */
-DSP_STATUS CLK_Disable(IN SERVICES_ClkId clk_id)
+DSP_STATUS CLK_Disable(IN enum SERVICES_ClkId clk_id)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct clk *pClk;
@@ -369,7 +368,7 @@ DSP_STATUS CLK_Disable(IN SERVICES_ClkId clk_id)
  *
  */
 
-DSP_STATUS CLK_GetRate(IN SERVICES_ClkId clk_id, u32 *speedKhz)
+DSP_STATUS CLK_GetRate(IN enum SERVICES_ClkId clk_id, u32 *speedKhz)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct clk *pClk;
@@ -396,7 +395,7 @@ DSP_STATUS CLK_GetRate(IN SERVICES_ClkId clk_id, u32 *speedKhz)
 	return status;
 }
 
-s32 CLK_Get_UseCnt(IN SERVICES_ClkId clk_id)
+s32 CLK_Get_UseCnt(IN enum SERVICES_ClkId clk_id)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct clk *pClk;

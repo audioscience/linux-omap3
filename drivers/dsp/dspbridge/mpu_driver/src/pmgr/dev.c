@@ -1212,7 +1212,11 @@ static DSP_STATUS FxnNotImplemented(int arg, ...)
  */
 static BOOL IsValidHandle(struct DEV_OBJECT *hObj)
 {
-	return ((hObj != NULL) && (hObj->dwSignature == SIGNATURE));
+	BOOL retVal;
+
+	retVal = (hObj != NULL) && (hObj->dwSignature == SIGNATURE);
+
+	return retVal;
 }
 
 /*
@@ -1377,7 +1381,7 @@ static void StoreInterfaceFxns(struct WMD_DRV_INTERFACE *pDrvFxns,
 
 	/* Local helper macro: */
 #define  StoreFxn(cast, pfn) \
-    (pIntfFxns->pfn = ((pDrvFxns->pfn != NULL)? pDrvFxns->pfn: \
+    (pIntfFxns->pfn = ((pDrvFxns->pfn != NULL) ? pDrvFxns->pfn : \
     (cast)FxnNotImplemented))
 
 	DBC_Require(pIntfFxns != NULL);

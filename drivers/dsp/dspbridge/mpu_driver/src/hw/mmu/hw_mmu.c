@@ -58,12 +58,12 @@
  * TYPE:	 HW_MMUPageSize_t
  * DESCRIPTION:  Enumerated Type used to specify the MMU Page Size(SLSS)
  */
-typedef enum HW_MMUPageSize {
+enum HW_MMUPageSize_t {
     HW_MMU_SECTION,
     HW_MMU_LARGE_PAGE,
     HW_MMU_SMALL_PAGE,
     HW_MMU_SUPERSECTION
-} HW_MMUPageSize_t;
+} ;
 
 /*
 * FUNCTION	      : MMU_FlushEntry
@@ -177,9 +177,9 @@ static HW_STATUS MMU_SetCAMEntry(const u32    baseAddress,
 */
 static HW_STATUS MMU_SetRAMEntry(const u32	baseAddress,
 				   const u32	physicalAddr,
-				   HW_Endianism_t      endianism,
-				   HW_ElementSize_t    elementSize,
-				   HW_MMUMixedSize_t   mixedSize);
+				   enum HW_Endianism_t      endianism,
+				   enum HW_ElementSize_t    elementSize,
+				   enum HW_MMUMixedSize_t   mixedSize);
 
 /* =========================================================================
 * HW FUNCTIONS
@@ -331,7 +331,7 @@ HW_STATUS HW_MMU_TLBFlush(const u32 baseAddress, u32 virtualAddr,
 {
     HW_STATUS status = RET_OK;
     u32 virtualAddrTag;
-    HW_MMUPageSize_t pgSizeBits;
+    enum HW_MMUPageSize_t pgSizeBits;
 
     switch (pageSize) {
     case HW_PAGE_SIZE_4KB:
@@ -370,13 +370,13 @@ HW_STATUS HW_MMU_TLBAdd(const u32	baseAddress,
 			   u32	      pageSize,
 			   u32	      entryNum,
 			   struct HW_MMUMapAttrs_t    *mapAttrs,
-			   HW_SetClear_t       preservedBit,
-			   HW_SetClear_t       validBit)
+			   enum HW_SetClear_t       preservedBit,
+			   enum HW_SetClear_t       validBit)
 {
     HW_STATUS  status = RET_OK;
     u32 lockReg;
     u32 virtualAddrTag;
-    HW_MMUPageSize_t mmuPgSize;
+    enum HW_MMUPageSize_t mmuPgSize;
 
     /*Check the input Parameters*/
     CHECK_INPUT_PARAM(baseAddress, 0, RET_BAD_NULL_PARAM,
@@ -592,9 +592,9 @@ static HW_STATUS MMU_SetCAMEntry(const u32    baseAddress,
 /* MMU_SetRAMEntry */
 static HW_STATUS MMU_SetRAMEntry(const u32       baseAddress,
 				   const u32       physicalAddr,
-				   HW_Endianism_t     endianism,
-				   HW_ElementSize_t   elementSize,
-				   HW_MMUMixedSize_t  mixedSize)
+				   enum HW_Endianism_t     endianism,
+				   enum HW_ElementSize_t   elementSize,
+				   enum HW_MMUMixedSize_t  mixedSize)
 {
    HW_STATUS status = RET_OK;
    u32 mmuRamReg;

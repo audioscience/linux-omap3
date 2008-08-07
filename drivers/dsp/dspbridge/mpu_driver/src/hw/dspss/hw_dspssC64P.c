@@ -34,15 +34,15 @@
 
 /* HW FUNCTIONS */
 HW_STATUS HW_DSPSS_BootModeSet(const u32 baseAddress,
-		      HW_DSPSYSC_BootMode_t bootMode,
+		      enum HW_DSPSYSC_BootMode_t bootMode,
 		      const u32 bootAddress)
 {
 	HW_STATUS status = RET_OK;
 	u32 offset = SYSC_IVA2BOOTMOD_OFFSET;
 	u32 alignedBootAddr;
 
-	/* if Boot mode it DIRECT BOOT, check that the bootAddress is aligned to
-	 * atleast 1K :: TODO */
+	/* if Boot mode it DIRECT BOOT, check that the bootAddress is
+	 * aligned to atleast 1K :: TODO */
 	WR_MEM_32_VOLATILE((baseAddress) + offset, bootMode);
 
 	offset = SYSC_IVA2BOOTADDR_OFFSET;

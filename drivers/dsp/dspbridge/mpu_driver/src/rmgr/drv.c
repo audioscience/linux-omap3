@@ -142,7 +142,7 @@ struct DRV_OBJECT {
  *  This is the Device Extension. Named with the Prefix
  *  DRV_ since it is living in this module
  */
- struct DRV_EXT {
+struct DRV_EXT {
 	struct LST_ELEM link;
 	char szString[MAXREGPATHLENGTH];
 };
@@ -166,14 +166,14 @@ static DSP_STATUS RequestBridgeResourcesDSP(u32 dwContext, BOOL fRequest);
 
 static DSP_STATUS PrintProcessInformation(void);
 
-extern NODE_STATE NODE_GetState(HANDLE hNode);
+extern enum NODE_STATE NODE_GetState(HANDLE hNode);
 
 /* Get the process context list from driver object */
 
 
 /* Set the Process ID
 */
-DSP_STATUS    DRV_ProcSetPID(HANDLE hPCtxt,  s32 hProcess)
+DSP_STATUS DRV_ProcSetPID(HANDLE hPCtxt, s32 hProcess)
 {
 	struct PROCESS_CONTEXT *pCtxt = (struct PROCESS_CONTEXT *)hPCtxt;
 	DSP_STATUS      status = DSP_SOK;
@@ -186,34 +186,34 @@ DSP_STATUS    DRV_ProcSetPID(HANDLE hPCtxt,  s32 hProcess)
 
 
 /*Getting the head of the process context list */
-DSP_STATUS 	DRV_GetProcCtxtList(struct PROCESS_CONTEXT **pPctxt,
-				   struct DRV_OBJECT *hDrvObject)
+DSP_STATUS DRV_GetProcCtxtList(struct PROCESS_CONTEXT **pPctxt,
+				struct DRV_OBJECT *hDrvObject)
 {
-    DSP_STATUS      status = DSP_SOK;
-    struct DRV_OBJECT      *pDrvObject = (struct DRV_OBJECT *)hDrvObject;
+	DSP_STATUS status = DSP_SOK;
+	struct DRV_OBJECT *pDrvObject = (struct DRV_OBJECT *)hDrvObject;
 
-    DBC_Assert(hDrvObject != NULL);
-    GT_2trace(curTrace, GT_ENTER,
-	     "DRV_GetProcCtxtList: 2 *pPctxt:%x, pDrvObject"
-	     ":%x", *pPctxt, pDrvObject);
-    *pPctxt = pDrvObject->procCtxtList;
-    GT_2trace(curTrace, GT_ENTER,
-	     "DRV_GetProcCtxtList: 3 *pPctxt:%x, pDrvObject"
-	     ":%x", *pPctxt, pDrvObject);
-     return status;
+	DBC_Assert(hDrvObject != NULL);
+	GT_2trace(curTrace, GT_ENTER,
+		"DRV_GetProcCtxtList: 2 *pPctxt:%x, pDrvObject"
+		":%x", *pPctxt, pDrvObject);
+	*pPctxt = pDrvObject->procCtxtList;
+	GT_2trace(curTrace, GT_ENTER,
+		"DRV_GetProcCtxtList: 3 *pPctxt:%x, pDrvObject"
+		":%x", *pPctxt, pDrvObject);
+	return status;
 }
 
 
 
 /* Get a particular process context based * on process handle (phProcess) */
-DSP_STATUS 	DRV_GetProcContext(u32 phProcess,
-				  struct DRV_OBJECT *hDrvObject,
-				  HANDLE hPCtxt, DSP_HNODE hNode,
-				  u32 pMapAddr)
+DSP_STATUS DRV_GetProcContext(u32 phProcess,
+				struct DRV_OBJECT *hDrvObject,
+				HANDLE hPCtxt, DSP_HNODE hNode,
+				u32 pMapAddr)
 {
 	struct PROCESS_CONTEXT **pCtxt = (struct PROCESS_CONTEXT **)hPCtxt;
-	DSP_STATUS  status = DSP_SOK;
-	struct PROCESS_CONTEXT    *pCtxtList = NULL;
+	DSP_STATUS status = DSP_SOK;
+	struct PROCESS_CONTEXT *pCtxtList = NULL;
 	struct DRV_OBJECT *pDrvObject = (struct DRV_OBJECT *)hDrvObject;
 	struct NODE_RES_OBJECT *pTempNode2 = NULL;
 	struct NODE_RES_OBJECT *pTempNode = NULL;
@@ -234,7 +234,7 @@ DSP_STATUS 	DRV_GetProcContext(u32 phProcess,
 			while ((pCtxtList != NULL) && (pCtxtFound == FALSE)) {
 				pTempNode = pCtxtList->pNodeList;
 				while ((pTempNode != NULL) &&
-				     (pTempNode->hNode != hNode)) {
+				      (pTempNode->hNode != hNode)) {
 					pTempNode2 = pTempNode;
 					pTempNode = pTempNode->next;
 				}
@@ -277,8 +277,7 @@ DSP_STATUS 	DRV_GetProcContext(u32 phProcess,
 /* Add a new process context to
  * process context list
 */
-DSP_STATUS 	DRV_InsertProcContext(struct DRV_OBJECT *hDrVObject,
-				     HANDLE hPCtxt)
+DSP_STATUS DRV_InsertProcContext(struct DRV_OBJECT *hDrVObject, HANDLE hPCtxt)
 {
 	GT_0trace(curTrace, GT_ENTER, "\n In DRV_InsertProcContext\n");
 	struct PROCESS_CONTEXT **pCtxt = (struct PROCESS_CONTEXT **)hPCtxt;
@@ -315,7 +314,7 @@ DSP_STATUS 	DRV_InsertProcContext(struct DRV_OBJECT *hDrVObject,
 
 /* Delete a process context from
  * process resource context list */
-DSP_STATUS 	DRV_RemoveProcContext(struct DRV_OBJECT *hDRVObject,
+DSP_STATUS DRV_RemoveProcContext(struct DRV_OBJECT *hDRVObject,
 				     HANDLE hPCtxt, HANDLE hProcess)
 {
 	DSP_STATUS      status = DSP_SOK;
@@ -323,32 +322,32 @@ DSP_STATUS 	DRV_RemoveProcContext(struct DRV_OBJECT *hDRVObject,
 	struct PROCESS_CONTEXT    *pTmp = NULL;
 	struct PROCESS_CONTEXT    *pCtxtList = NULL;
 
-   DBC_Assert(hDRVObject != NULL);
-   DRV_GetProcContext((u32)hProcess, hDRVObject, &pCtxt2, NULL, 0);
+	DBC_Assert(hDRVObject != NULL);
+	DRV_GetProcContext((u32)hProcess, hDRVObject, &pCtxt2, NULL, 0);
 
-   GT_0trace(curTrace, GT_ENTER, "DRV_RemoveProcContext: 12");
-   DRV_GetProcCtxtList(&pCtxtList, hDRVObject);
-   GT_0trace(curTrace, GT_ENTER, "DRV_RemoveProcContext: 13");
-   pTmp = pCtxtList;
-   while ((pCtxtList != NULL) && (pCtxtList != pCtxt2)) {
-	   pTmp = pCtxtList;
-	   pCtxtList = pCtxtList->next;
-	   GT_0trace(curTrace, GT_ENTER, "DRV_RemoveProcContext: 2");
-   }
-   GT_0trace(curTrace, GT_ENTER, "DRV_RemoveProcContext: 3");
-   if (hDRVObject->procCtxtList == pCtxt2)
-	   hDRVObject->procCtxtList = pCtxt2->next;
+	GT_0trace(curTrace, GT_ENTER, "DRV_RemoveProcContext: 12");
+	DRV_GetProcCtxtList(&pCtxtList, hDRVObject);
+	GT_0trace(curTrace, GT_ENTER, "DRV_RemoveProcContext: 13");
+	pTmp = pCtxtList;
+	while ((pCtxtList != NULL) && (pCtxtList != pCtxt2)) {
+		pTmp = pCtxtList;
+		pCtxtList = pCtxtList->next;
+		GT_0trace(curTrace, GT_ENTER,
+			 "DRV_RemoveProcContext: 2");
+	}
+	GT_0trace(curTrace, GT_ENTER, "DRV_RemoveProcContext: 3");
+	if (hDRVObject->procCtxtList == pCtxt2)
+		hDRVObject->procCtxtList = pCtxt2->next;
 
+	if (pCtxtList == NULL)
+		return DSP_ENOTFOUND;
+	else if (pTmp->next != NULL)
+		pTmp->next = pTmp->next->next;
 
-   if (pCtxtList == NULL)
-	   return DSP_ENOTFOUND;
-   else if (pTmp->next != NULL)
-	   pTmp->next = pTmp->next->next;
+	MEM_Free(pCtxt2);
+	GT_0trace(curTrace, GT_ENTER, "DRV_RemoveProcContext: 7");
 
-   MEM_Free(pCtxt2);
-   GT_0trace(curTrace, GT_ENTER, "DRV_RemoveProcContext: 7");
-
-   return status;
+	return status;
 }
 
 
@@ -356,7 +355,7 @@ DSP_STATUS 	DRV_RemoveProcContext(struct DRV_OBJECT *hDRVObject,
 
 /* Update the state of process context
 */
-DSP_STATUS   DRV_ProcUpdatestate(HANDLE hPCtxt, GPP_PROC_RES_STATE status)
+DSP_STATUS DRV_ProcUpdatestate(HANDLE hPCtxt, enum GPP_PROC_RES_STATE status)
 {
 	struct PROCESS_CONTEXT *pCtxt = (struct PROCESS_CONTEXT *)hPCtxt;
 	DSP_STATUS      status1 = DSP_SOK;
@@ -373,7 +372,7 @@ DSP_STATUS   DRV_ProcUpdatestate(HANDLE hPCtxt, GPP_PROC_RES_STATE status)
 
 /* Allocate and add a node resource element
 * This function is called from .Node_Allocate.  */
-DSP_STATUS 	DRV_InsertNodeResElement(HANDLE hNode, HANDLE hNodeRes,
+DSP_STATUS DRV_InsertNodeResElement(HANDLE hNode, HANDLE hNodeRes,
 					HANDLE hPCtxt)
 {
 	struct NODE_RES_OBJECT **pNodeRes = (struct NODE_RES_OBJECT **)hNodeRes;
@@ -410,7 +409,7 @@ DSP_STATUS 	DRV_InsertNodeResElement(HANDLE hNode, HANDLE hNodeRes,
 
 /* Release all Node resources and its context
 * This is called from .Node_Delete.  */
-DSP_STATUS 	DRV_RemoveNodeResElement(HANDLE hNodeRes, HANDLE hPCtxt)
+DSP_STATUS DRV_RemoveNodeResElement(HANDLE hNodeRes, HANDLE hPCtxt)
 {
 	struct NODE_RES_OBJECT *pNodeRes = (struct NODE_RES_OBJECT *)hNodeRes;
 	struct PROCESS_CONTEXT *pCtxt = (struct PROCESS_CONTEXT *)hPCtxt;
@@ -437,7 +436,7 @@ DSP_STATUS 	DRV_RemoveNodeResElement(HANDLE hNodeRes, HANDLE hPCtxt)
 }
 
 /* Actual Node De-Allocation */
-DSP_STATUS 	DRV_ProcFreeNodeRes(HANDLE hPCtxt)
+DSP_STATUS DRV_ProcFreeNodeRes(HANDLE hPCtxt)
 {
 	struct PROCESS_CONTEXT *pCtxt = (struct PROCESS_CONTEXT *)hPCtxt;
 	DSP_STATUS status = DSP_SOK;
@@ -647,17 +646,17 @@ DSP_STATUS DRV_GetDMMResElement(u32 pMapAddr, HANDLE hDMMRes, HANDLE hPCtxt)
 /* Update Node allocation status */
 void DRV_ProcNodeUpdateStatus(HANDLE hNodeRes, BOOL status)
 {
-     struct NODE_RES_OBJECT *pNodeRes = (struct NODE_RES_OBJECT *)hNodeRes;
-     DBC_Assert(hNodeRes != NULL);
-     pNodeRes->nodeAllocated = status;
+	struct NODE_RES_OBJECT *pNodeRes = (struct NODE_RES_OBJECT *)hNodeRes;
+	DBC_Assert(hNodeRes != NULL);
+	pNodeRes->nodeAllocated = status;
 }
 
 /* Update Node Heap status */
 void DRV_ProcNodeUpdateHeapStatus(HANDLE hNodeRes, BOOL status)
 {
-     struct NODE_RES_OBJECT *pNodeRes = (struct NODE_RES_OBJECT *)hNodeRes;
-     DBC_Assert(hNodeRes != NULL);
-     pNodeRes->heapAllocated = status;
+	struct NODE_RES_OBJECT *pNodeRes = (struct NODE_RES_OBJECT *)hNodeRes;
+	DBC_Assert(hNodeRes != NULL);
+	pNodeRes->heapAllocated = status;
 }
 
 /* Release all Node resources and its context

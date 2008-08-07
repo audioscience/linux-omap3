@@ -122,9 +122,9 @@
 #endif
 
 #ifndef RES_CLEANUP_DISABLE
-/**************************************************************************/
-/******************** GPP PROCESS CLEANUP Data structures *****************/
-/**************************************************************************/
+
+/* GPP PROCESS CLEANUP Data structures */
+
 /* New structure (member of process context) abstracts NODE resource info */
 struct NODE_RES_OBJECT {
 	DSP_HNODE       hNode;
@@ -164,38 +164,39 @@ struct STRM_RES_OBJECT {
 	u32                    uDir;
 	struct STRM_RES_OBJECT         *next;
 } ;
+
 /* Overall Bridge process resource usage state */
-typedef enum {
+enum GPP_PROC_RES_STATE {
 	PROC_RES_ALLOCATED,
 	PROC_RES_FREED
-} GPP_PROC_RES_STATE;
+} ;
 
 /* Process Context */
 struct PROCESS_CONTEXT{
 	/* Process State */
-	GPP_PROC_RES_STATE       resState;
+	enum GPP_PROC_RES_STATE resState;
 
 	/* Process ID (Same as UNIX process ID) */
-	u32                     pid;
+	u32 pid;
 
 	/* Pointer to next process context
 	* (To maintain a linked list of process contexts) */
-	struct PROCESS_CONTEXT         *next;
+	struct PROCESS_CONTEXT *next;
 
 	/* Processor info to which the process is related */
-	DSP_HPROCESSOR           hProcessor;
+	DSP_HPROCESSOR hProcessor;
 
 	/* DSP Node resources */
-	struct NODE_RES_OBJECT          *pNodeList;
+	struct NODE_RES_OBJECT *pNodeList;
 
 	/* DMM resources */
-	struct DMM_RES_OBJECT          *pDMMList;
+	struct DMM_RES_OBJECT *pDMMList;
 
 	/* DSP Heap resources */
-	struct DSPHEAP_RES_OBJECT          *pDSPHEAPList;
+	struct DSPHEAP_RES_OBJECT *pDSPHEAPList;
 
 	/* Stream resources */
-	struct STRM_RES_OBJECT         *pSTRMList;
+	struct STRM_RES_OBJECT *pSTRMList;
 } ;
 #endif
 

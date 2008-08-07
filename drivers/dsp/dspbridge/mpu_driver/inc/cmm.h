@@ -261,7 +261,7 @@
 					       unsigned int dwGPPBasePA,
 					       u32 ulSize,
 					       u32 dwDSPAddrOffset,
-					       CMM_CNVTTYPE cFactor,
+					       enum CMM_CNVTTYPE cFactor,
 					       unsigned int dwDSPBase,
 					       u32 ulDSPSize,
 					       u32 *pulSegId,
@@ -415,6 +415,6 @@
  *
  */
 	extern void *CMM_XlatorTranslate(struct CMM_XLATOROBJECT *hXlator,
-					 void *pAddr, CMM_XLATETYPE xType);
+					 void *pAddr, enum CMM_XLATETYPE xType);
 
 #endif				/* CMM_ */

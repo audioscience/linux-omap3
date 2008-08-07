@@ -129,9 +129,9 @@ struct STRM_MGR {
 	u32 uNumBufs;		/* Max # of bufs allowed in stream */
 	u32 uNBufsInStrm;	/* Current # of bufs in stream */
 	u32 ulNBytes;		/* bytes transferred since idled */
-	DSP_STREAMSTATE strmState;	/* STREAM_IDLE, STREAM_READY, ... */
+	enum DSP_STREAMSTATE strmState;	/* STREAM_IDLE, STREAM_READY, ... */
 	HANDLE hUserEvent;	/* Saved for STRM_GetInfo() */
-	DSP_STRMMODE lMode;	/* STRMMODE_[PROCCOPY][ZEROCOPY]... */
+	enum DSP_STRMMODE lMode;	/* STRMMODE_[PROCCOPY][ZEROCOPY]... */
 	u32 uDMAChnlId;	/* DMA chnl id */
 	u32 uDMAPriority;	/* DMA priority:DMAPRI_[LOW][HIGH] */
 	u32 uSegment;		/* >0 is SM segment.=0 is local heap */
@@ -271,29 +271,28 @@ DSP_STATUS STRM_Close(struct STRM_OBJECT *hStrm)
 		}
 	}
 #ifndef RES_CLEANUP_DISABLE
-     if (!DSP_SUCCEEDED(status))
-		 goto func_end;
+	if (!DSP_SUCCEEDED(status))
+		goto func_end;
 
-	 /* Update the node and stream resource status */
-	 PRCS_GetCurrentHandle(&hProcess);
-	 res_status = CFG_GetObject((u32 *)&hDrvObject, REG_DRV_OBJECT);
-	 if (!DSP_SUCCEEDED(res_status))
-		 goto func_end;
+	/* Update the node and stream resource status */
+	PRCS_GetCurrentHandle(&hProcess);
+	res_status = CFG_GetObject((u32 *)&hDrvObject, REG_DRV_OBJECT);
+	if (!DSP_SUCCEEDED(res_status))
+		goto func_end;
 
-	 DRV_GetProcContext(hProcess, hDrvObject, &pCtxt, NULL, 0);
-	 if (pCtxt != NULL) {
-		 if (DRV_GetSTRMResElement(hStrm, &hSTRMRes, pCtxt) !=
-		    DSP_ENOTFOUND) {
-			 DRV_ProcRemoveSTRMResElement(hSTRMRes, pCtxt);
-		 }
-	 }
+	DRV_GetProcContext(hProcess, hDrvObject, &pCtxt, NULL, 0);
+	if (pCtxt != NULL) {
+		if (DRV_GetSTRMResElement(hStrm, &hSTRMRes, pCtxt) !=
+		   DSP_ENOTFOUND) {
+			DRV_ProcRemoveSTRMResElement(hSTRMRes, pCtxt);
+		}
+	}
 func_end:
 #endif
 	DBC_Ensure(status == DSP_SOK || status == DSP_EHANDLE ||
 		  status == DSP_EPENDING || status == DSP_EFAIL);
 
 	return status;
-
 }
 
 /*

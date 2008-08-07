@@ -41,7 +41,7 @@
 	struct CMM_MGRATTRS {
 		/* Minimum SM allocation; default 32 bytes.  */
 		u32 ulMinBlockSize;
-	};
+	} ;
 
 /* Attributes for CMM_AllocBuf() & CMM_AllocDesc() */
 	struct CMM_ATTRS {
@@ -55,12 +55,12 @@
  *  For typical platforms:
  *      converted Address = PaDSP + ( cFactor * addressToConvert).
  */
-	typedef enum {
+	enum CMM_CNVTTYPE {
 		CMM_SUBFROMDSPPA = -1,
 		/* PreOMAP is special case: not simple offset */
 		CMM_POMAPEMIF2DSPBUS = 0,
 		CMM_ADDTODSPPA = 1
-	} CMM_CNVTTYPE;
+	} ;
 
 #define CMM_DEFLTDSPADDROFFSET  0
 #define CMM_DEFLTCONVFACTOR     CMM_POMAPEMIF2DSPBUS /* PreOMAP DSPBUS<->EMIF */
@@ -113,21 +113,21 @@
 /*
  * Cmm translation types. Use to map SM addresses to process context.
  */
-	typedef enum {
+	enum CMM_XLATETYPE {
 		CMM_VA2PA = 0,	/* Virtual to GPP physical address xlation */
 		CMM_PA2VA = 1,	/* GPP Physical to virtual  */
 		CMM_VA2DSPPA = 2,	/* Va to DSP Pa  */
 		CMM_PA2DSPPA = 3,	/* GPP Pa to DSP Pa */
 		CMM_DSPPA2PA = 4,	/* DSP Pa to GPP Pa */
-	} CMM_XLATETYPE;
+	} ;
 
 /*
  *  Used to "map" between device process virt addr and dsp addr.
  */
-	typedef enum {
+	enum CMM_KERNMAPTYPE {
 		CMM_KERNVA2DSP = 0, /* Device process context to dsp address. */
 		CMM_DSP2KERNVA = 1, /* Dsp address to device process context. */
-	} CMM_KERNMAPTYPE;
+	} ;
 
 	struct CMM_OBJECT;
 	/*typedef struct CMM_OBJECT *CMM_HMGR;*/

@@ -197,8 +197,8 @@ DSP_STATUS WMD_MSG_CreateQueue(struct MSG_MGR *hMsgMgr,
 			}
 		}
 		if (DSP_FAILED(status)) {
-			 /*  Stay inside CS to prevent others from taking any
-			  *  of the newly allocated message frames.  */
+			/*  Stay inside CS to prevent others from taking any
+			 *  of the newly allocated message frames.  */
 			DeleteMsgQueue(pMsgQ, uNumAllocated);
 		} else {
 			LST_PutTail(hMsgMgr->queueList,
@@ -306,9 +306,9 @@ DSP_STATUS WMD_MSG_Get(struct MSG_QUEUE *hMsgQueue,
 	/* Exit critical section */
 	(void)SYNC_LeaveCS(hMsgMgr->hSyncCS);
 	if (DSP_SUCCEEDED(status) && !fGotMsg) {
-		 /*  Wait til message is available, timeout, or done. We don't
-		  *  have to schedule the DPC, since the DSP will send messages
-		  *  when they are available.  */
+		/*  Wait til message is available, timeout, or done. We don't
+		 *  have to schedule the DPC, since the DSP will send messages
+		 *  when they are available.  */
 		hSyncs[0] = hMsgQueue->hSyncEvent;
 		hSyncs[1] = hMsgQueue->hSyncDone;
 		status = SYNC_WaitOnMultipleEvents(hSyncs, 2, uTimeout,
@@ -467,7 +467,7 @@ DSP_STATUS WMD_MSG_RegisterNotify(struct MSG_QUEUE *hMsgQueue, u32 uEventMask,
 			      uNotifyType);
 
 	if (status == DSP_EVALUE) {
-		 /*  Not registered. Ok, since we couldn't have known. Node
+		/*  Not registered. Ok, since we couldn't have known. Node
 		 *  notifications are split between node state change handled
 		 *  by NODE, and message ready handled by MSG.  */
 		status = DSP_SOK;

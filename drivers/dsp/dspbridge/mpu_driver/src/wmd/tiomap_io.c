@@ -112,7 +112,7 @@ DSP_STATUS ReadExtDspData(struct WMD_DEV_CONTEXT *hDevContext,
 		if ((dwDSPAddr <= ulTraceSecEnd) &&
 			(dwDSPAddr >= ulTraceSecBeg)) {
 			DBG_Trace(DBG_LEVEL5, "Reading from DSP Trace"
-					"section 0x%x \n", dwDSPAddr);
+				 "section 0x%x \n", dwDSPAddr);
 			bTraceRead = TRUE;
 		}
 	}
@@ -159,7 +159,7 @@ DSP_STATUS ReadExtDspData(struct WMD_DEV_CONTEXT *hDevContext,
 		DBC_Assert(ulExtEnd > ulExtBase);
 
 		if (ulExtEnd < ulExtBase)
-		status = DSP_EFAIL;
+			status = DSP_EFAIL;
 
 		if (DSP_SUCCEEDED(status)) {
 			ulTLBBaseVirt =
@@ -314,7 +314,7 @@ DSP_STATUS WriteExtDspData(struct WMD_DEV_CONTEXT *pDevContext,
 		DBC_Assert(ulShmBaseVirt != 0);
 		if (bDynamicLoad) {
 			if (DSP_SUCCEEDED(retVal)) {
-				 if (bSymbolsReloaded)
+				if (bSymbolsReloaded)
 					retVal = DEV_GetSymbol(pDevContext->
 						hDevObject, DYNEXTBASE,
 						&ulExtBase);

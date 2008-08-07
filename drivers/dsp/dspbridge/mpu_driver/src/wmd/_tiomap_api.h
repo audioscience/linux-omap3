@@ -64,22 +64,22 @@
 #define API_ENDIANISM_POSBIT            16
 #define API_ACCESS_PRIORITY_POSBIT      18
 
-typedef enum {
+enum API_HighFreq_t {
 	API_HIGH_FREQ_LOW = 0,
 	API_HIGH_FREQ_HIGH = 1
-} API_HighFreq_t;
+} ;
 
-typedef enum {
+enum API_TimeoutEn_t {
 	API_TIMEOUT_DIS = 0,
 	API_TIMEOUT_EN = 1
-} API_TimeoutEn_t;
+} ;
 
-typedef enum {
+enum API_ApiErrEn_t {
 	API_API_ERR_DIS = 0,
 	API_API_ERR_EN = 1
-} API_ApiErrEn_t;
+} ;
 
-typedef enum {
+enum API_AccessFactor_t {
 	API_ACCESS_FACTOR_0 = 0,
 	API_ACCESS_FACTOR_1,
 	API_ACCESS_FACTOR_2,
@@ -96,36 +96,36 @@ typedef enum {
 	API_ACCESS_FACTOR_13,
 	API_ACCESS_FACTOR_14,
 	API_ACCESS_FACTOR_15
-} API_AccessFactor_t;
+} ;
 
-typedef enum {
+enum API_Timeout_t {
 	API_TIMEOUT_MIN = 0,
 	API_TIMEOUT_MAX = 255
-} API_Timeout_t;
+} ;
 
-typedef enum {
+enum API_Endianism_t {
 	API_ENDIANISM_NO_CONVERT = 0,
 	API_ENDIANISM_CONVERT_ALL_ACCESS = 2,
 	API_ENDIANISM_CONVERT_API_MEM_ONLY = 3
-} API_Endianism_t;
+} ;
 
-typedef enum {
+enum API_AccessPriority_t {
 	API_ACCESS_PRIORITY_ARM_DMA_HSAB = 0,
 	API_ACCESS_PRIORITY_ARM_HSAB_DMA,
 	API_ACCESS_PRIORITY_DMA_ARM_HSAB,
 	API_ACCESS_PRIORITY_HSAB_ARM_DMA,
 	API_ACCESS_PRIORITY_DMA_HSAB_ARM,
 	API_ACCESS_PRIORITY_HSAB_DMA_ARM
-} API_AccessPriority_t;
+} ;
 
-typedef enum {
+enum API_DSPBootMode_t {
 	API_DSP_BOOT_INTERNAL = 5,
 	API_DSP_BOOT_EXTERNAL = 4,
 	API_DSP_BOOT_EMIF16 = 3,
 	API_DSP_BOOT_IDLE = 2,
 	API_DSP_BOOT_PSEUDO_EXT = 1,
 	API_DSP_BOOT_MPNMC = 0
-} API_DSPBootMode_t;
+} ;
 
 /* Function prototypes */
 
@@ -144,7 +144,7 @@ extern void setAPIsize(struct WMD_DEV_CONTEXT *pDevContext, u16 size);
  *  SARAM location 0x10000 byte address.
  */
 extern void setDspBootModeAPI(struct WMD_DEV_CONTEXT *pDevContext,
-			      API_DSPBootMode_t dsp_boot_mode);
+			      enum API_DSPBootMode_t dsp_boot_mode);
 
 /*
  *  ======== setAPI ========
@@ -158,13 +158,13 @@ extern void setDspBootModeAPI(struct WMD_DEV_CONTEXT *pDevContext,
  *      -   Set it to high frequency mode
  */
 extern void setAPI(struct WMD_DEV_CONTEXT *pDevContext,
-		   API_HighFreq_t high_freq,
-		   API_TimeoutEn_t timeout_en,
-		   API_ApiErrEn_t api_err_en,
-		   API_AccessFactor_t access_factor,
-		   API_Timeout_t timeout,
-		   API_Endianism_t endianism,
-		   API_AccessPriority_t access_priority);
+		   enum API_HighFreq_t high_freq,
+		   enum API_TimeoutEn_t timeout_en,
+		   enum API_ApiErrEn_t api_err_en,
+		   enum API_AccessFactor_t access_factor,
+		   enum API_Timeout_t timeout,
+		   enum API_Endianism_t endianism,
+		   enum API_AccessPriority_t access_priority);
 
 /*
  *  ======== setupAPI ========

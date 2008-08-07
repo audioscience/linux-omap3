@@ -125,6 +125,7 @@ GB_BitNum GB_findandset(struct GB_TMap *map)
  */
 GB_BitNum GB_minclear(struct GB_TMap *map)
 {
+	GB_BitNum bit_location = 0;
 	GB_BitNum bitAcc = 0;
 	GB_WordNum i;
 	GB_BitNum bit;
@@ -136,8 +137,10 @@ GB_BitNum GB_minclear(struct GB_TMap *map)
 				if (bitAcc == map->len)
 					return GB_NOBITS;
 
-				if (~*word & (1L << bit))
-					return (i * LGSIZE + bit);
+				if (~*word & (1L << bit)) {
+					bit_location = i * LGSIZE + bit;
+					return bit_location;
+				}
 
 			}
 		} else {
@@ -170,11 +173,13 @@ void GB_set(struct GB_TMap *map, GB_BitNum bitn)
 
 Bool GB_test(struct GB_TMap *map, GB_BitNum bitn)
 {
+	Bool state;
 	u32 mask;
 	u32 word;
 
 	mask = 1L << (bitn % LGSIZE);
 	word = map->words[bitn / LGSIZE];
+	state = word & mask ? TRUE : FALSE;
 
-	return (word & mask ? TRUE : FALSE);
+	return state;
 }

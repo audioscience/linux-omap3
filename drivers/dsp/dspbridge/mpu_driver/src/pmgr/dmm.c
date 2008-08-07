@@ -105,10 +105,10 @@ static struct GT_Mask DMM_debugMask = { 0, 0 };	/* GT trace variable */
 
 static u32 cRefs;		/* module reference count */
 struct MapPage {
-	u32   RegionSize : 15;
-	u32   MappedSize : 15;
-	u32   bReserved : 1;
-	u32   bMapped : 1;
+	u32   RegionSize:15;
+	u32   MappedSize:15;
+	u32   bReserved:1;
+	u32   bMapped:1;
 };
 
 /*  Create the free list */
@@ -162,9 +162,10 @@ DSP_STATUS DMM_CreateTables(struct DMM_OBJECT *hDmmMgr, u32 addr, u32 size)
 			"memory for pPhysicalAddrTable=%d entries\n",
 			TableSize);
 			if (pPhysicalAddrTable == NULL) {
-			status = DSP_EMEMORY;
-			GT_0trace(DMM_debugMask, GT_7CLASS, "DMM_CreateTables:"
-			"Memory allocation for pPhysicalAddrTable failed\n");
+				status = DSP_EMEMORY;
+				GT_0trace(DMM_debugMask, GT_7CLASS,
+				    "DMM_CreateTables: Memory allocation for "
+				    "pPhysicalAddrTable failed\n");
 			} else {
 			/* On successful allocation,
 			* all entries are zero ('free')
@@ -512,7 +513,7 @@ DSP_STATUS DMM_UnReserveMemory(struct DMM_OBJECT *hDmmMgr, u32 rsvAddr)
 		status = DSP_ENOTFOUND;
 
 	if (DSP_SUCCEEDED(status)) {
-	/* Free all the mapped pages for this reserved region */
+		/* Free all the mapped pages for this reserved region */
 		i = 0;
 		while (i < chunk->RegionSize) {
 			if (chunk[i].bMapped) {

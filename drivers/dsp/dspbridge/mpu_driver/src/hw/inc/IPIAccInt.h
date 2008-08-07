@@ -17,10 +17,6 @@
 #ifndef _IPI_ACC_INT_H
 #define _IPI_ACC_INT_H
 
-#if defined(__cplusplus)
-extern "C" {
-#endif				/* defined(__cplusplus) */
-
 /* EXPORTED DEFINITIONS */
 
 /* Bitfield mask and offset declarations */
@@ -33,21 +29,17 @@ extern "C" {
 
 /* The following type defs represent the enumerated values for each bitfield */
 
-typedef enum {
+enum IPIIPI_SYSCONFIGAutoIdleE {
 	IPIIPI_SYSCONFIGAutoIdleclkfree = 0x0000,
 	IPIIPI_SYSCONFIGAutoIdleautoclkgate = 0x0001
-} IPIIPI_SYSCONFIGAutoIdleE;
+} ;
 
-typedef enum {
+enum IPIIPI_ENTRYElemSizeValueE {
 	IPIIPI_ENTRYElemSizeValueElemSz8b = 0x0000,
 	IPIIPI_ENTRYElemSizeValueElemSz16b = 0x0001,
 	IPIIPI_ENTRYElemSizeValueElemSz32b = 0x0002,
 	IPIIPI_ENTRYElemSizeValueReserved = 0x0003
-} IPIIPI_ENTRYElemSizeValueE;
+} ;
 
-
-#if defined(__cplusplus)
-}				/* End of C++ extern block */
-#endif				/* defined(__cplusplus) */
 #endif				/* _IPI_ACC_INT_H */
 /* EOF */

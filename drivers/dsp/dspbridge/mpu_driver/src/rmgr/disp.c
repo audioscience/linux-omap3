@@ -352,7 +352,7 @@ DSP_STATUS DISP_NodeCreate(struct DISP_OBJECT *hDisp, struct NODE_OBJECT *hNode,
 	struct RMS_Command *pCommand;
 	struct RMS_MsgArgs *pMsgArgs;
 	struct RMS_MoreTaskArgs *pMoreTaskArgs;
-	NODE_TYPE nodeType;
+	enum NODE_TYPE nodeType;
 	u32 dwLength;
 	RMS_WORD *pdwBuf = NULL;
 	u32 ulBytes;
@@ -711,10 +711,10 @@ DSP_STATUS DISP_NodeRun(struct DISP_OBJECT *hDisp, struct NODE_OBJECT *hNode,
 				 */
 				status = (((RMS_WORD *)(hDisp->pBuf))[0]);
 				if (DSP_FAILED(status)) {
-				GT_1trace(DISP_DebugMask, GT_6CLASS,
-				     "DISP_NodeRun, "
-				     "DSP-side Node Execute failed: 0x%x\n",
-				     status);
+					GT_1trace(DISP_DebugMask, GT_6CLASS,
+						"DISP_NodeRun, DSP-side Node "
+						"Execute failed: 0x%x\n",
+						status);
 		}
 		}
 

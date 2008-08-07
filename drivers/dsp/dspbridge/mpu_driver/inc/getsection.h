@@ -79,8 +79,8 @@ typedef unsigned int size_t;
  */
 	extern int DLOAD_GetSectionInfo(DLOAD_module_info minfo,
 					const char *sectionName,
-					const struct LDR_SECTION_INFO **
-					const sectionInfo);
+					const struct LDR_SECTION_INFO
+					** const sectionInfo);
 
 /*
  * Procedure DLOAD_GetSection

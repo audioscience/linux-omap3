@@ -184,8 +184,6 @@ DSP_STATUS WMD_DEH_RegisterNotify(struct DEH_MGR *hDehMgr, u32 uEventMask,
 	return status;
 }
 
-#if ((defined DEBUG) || (defined DDSP_DEBUG_PRODUCT))\
-	&& GT_TRACE
 
 /*
  *  ======== PackTraceBuffer ========
@@ -209,12 +207,16 @@ DSP_STATUS WMD_DEH_RegisterNotify(struct DEH_MGR *hDehMgr, u32 uEventMask,
  */
 static DSP_STATUS PackTraceBuffer(char *lpBuf, u32 nBytes, u32 ulNumWords)
 {
+	DSP_STATUS status = DSP_SOK;
+
+#if ((defined DEBUG) || (defined DDSP_DEBUG_PRODUCT))\
+	&& GT_TRACE
+
 	char *lpTmpBuf;
 	char *lpBufStart;
 	char *lpTmpStart;
 	u32 nCnt;
 	char thisChar;
-	DSP_STATUS status = DSP_SOK;
 
 	/* tmp workspace, 1 KB longer than input buf */
 	lpTmpBuf = MEM_Calloc((nBytes + ulNumWords), MEM_PAGED);
@@ -249,6 +251,7 @@ static DSP_STATUS PackTraceBuffer(char *lpBuf, u32 nBytes, u32 ulNumWords)
 		lpBufStart[nBytes - 1] = '\0';
 		MEM_Free(lpTmpStart);
 	}
+#endif
 	return status;
 }
 
@@ -267,9 +270,11 @@ static DSP_STATUS PackTraceBuffer(char *lpBuf, u32 nBytes, u32 ulNumWords)
  */
 DSP_STATUS PrintDspTraceBuffer(struct DEH_MGR *hDehMgr)
 {
-	DBG_Trace(DBG_LEVEL1, "PrintDspTraceBuffer: Entered\n");
+	DSP_STATUS status = DSP_SOK;
 
-	DSP_STATUS status;
+#if ((defined DEBUG) || (defined DDSP_DEBUG_PRODUCT))\
+	&& GT_TRACE
+
 	struct COD_MANAGER *hCodMgr;
 	u32 ulTraceEnd;
 	u32 ulTraceBegin;
@@ -335,7 +340,8 @@ DSP_STATUS PrintDspTraceBuffer(struct DEH_MGR *hDehMgr)
 		if (pszBuf != NULL) {
 			/* Read bytes from the DSP trace buffer... */
 			status = (*pIntfFxns->pfnBrdRead)(pDehMgr->hWmdContext,
-				(u8 *)pszBuf, (u32)ulTraceBegin, ulNumBytes, 0);
+				 (u8 *)pszBuf, (u32)ulTraceBegin,
+				 ulNumBytes, 0);
 			if (DSP_FAILED(status)) {
 				DBG_Trace(DBG_LEVEL7, "PrintDspTraceBuffer: "
 					 "Failed to Read Trace Buffer.\n");
@@ -358,11 +364,10 @@ DSP_STATUS PrintDspTraceBuffer(struct DEH_MGR *hDehMgr)
 			status = DSP_EMEMORY;
 		}
 	}
+#endif
 	return status;
 }
 
-
-#endif	/* #if ((defined DEBUG) || (defined DDSP_DEBUG_PRODUCT)) && GT_TRACE */
 
 /*
  *  ======== WMD_DEH_Notify ========
@@ -409,6 +414,7 @@ void CDECL WMD_DEH_Notify(struct DEH_MGR *hDehMgr, u32 ulEventMask,
 		case DSP_MMUFAULT:
 			/* MMU fault routine should have set err info
 			 * structure */
+			pDevContext = (struct WMD_DEV_CONTEXT *)pDehMgr->hWmdContext;
 			pDehMgr->errInfo.dwErrMask = DSP_MMUFAULT;
 			printk(KERN_INFO "WMD_DEH_Notify: DSP_MMUFAULT,"
 				"errInfo = 0x%x\n", dwErrInfo);
@@ -430,16 +436,17 @@ void CDECL WMD_DEH_Notify(struct DEH_MGR *hDehMgr, u32 ulEventMask,
 			DBG_Trace(DBG_LEVEL6, "WMD_DEH_Notify: DSP_MMUFAULT, "
 				 "mem Physical= 0x%x\n", memPhysical);
 			/* Reset the dynamic mmu index to fixed count if it
-			 * exceeds 31. So that the dynmmuindex is always between
-			 * the range of standard/fixed entries and 31.  */
+			 * exceeds 31. So that the dynmmuindex is always
+			 * between the range of standard/fixed entries
+			 * and 31.  */
 			if (pDevContext->numTLBEntries >
 			   HW_MMU_MAX_TLB_COUNT) {
 				pDevContext->numTLBEntries = pDevContext->
 					fixedTLBEntries;
 			}
 			DBG_Trace(DBG_LEVEL6, "Adding TLB Entry %d: VA: 0x%x, "
-				 "PA: 0x%x, Len: 0x%x\n", pDevContext->
-				numTLBEntries, faultAddr, memPhysical, sizeTlb);
+				 "PA: 0x%x\n", pDevContext->
+				numTLBEntries, faultAddr, memPhysical);
 			if (DSP_SUCCEEDED(status)) {
 				hwStatus = HW_MMU_TLBAdd(resources.dwDmmuBase,
 					memPhysical, faultAddr,

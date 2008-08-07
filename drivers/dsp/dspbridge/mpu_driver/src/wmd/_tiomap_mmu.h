@@ -65,23 +65,23 @@
 #define ENDIANISM_EN_MASK               0x0020
 #define BURST_16MNGT_EN_MASK            0x0040
 
-typedef enum {
+enum SLST_t {
 	SECTION = 0,
 	LARGE_PAGE = 1,
 	SMALL_PAGE = 2,
 	TINY_PAGE = 3
-} SLST_t;
+} ;
 
-typedef enum {
+enum PRESERVED_t {
 	ENTRY_NOT_PRESERVED = 0,
 	ENTRY_PRESERVED = 1
-} PRESERVED_t;
+} ;
 
-typedef enum {
+enum AP_t {
 	NOT_ACCESSIBLE = 0,
 	READ_ONLY = 2,
 	FULL_ACCESS = 3
-} AP_t;
+} ;
 
 /* Function prototypes */
 /*
@@ -97,8 +97,8 @@ extern void configureDspMmu(struct WMD_DEV_CONTEXT *pDevContext,
 			    u32 dspBaseVirt,
 			    u32 sizeInBytes,
 			    s32 nEntryStart,
-			    HW_Endianism_t endianism,
-			    HW_ElementSize_t elemSize,
-			    HW_MMUMixedSize_t mixedSize);
+			    enum HW_Endianism_t endianism,
+			    enum HW_ElementSize_t elemSize,
+			    enum HW_MMUMixedSize_t mixedSize);
 
 #endif				/* _TIOMAP_MMU_ */

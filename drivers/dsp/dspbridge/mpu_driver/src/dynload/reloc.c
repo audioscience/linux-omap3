@@ -320,7 +320,8 @@ void dload_relocate(struct dload_state *dlthis, TgtAU_t *data,
 		if (stackp != NULL)
 			val = *stackp - val;
 		break;
-	case RACT_NEG:  val = -val;
+	case RACT_NEG:
+		val = -val;
 		break;
 	case RACT_MPY:
 		if (stackp != NULL)
@@ -371,10 +372,10 @@ void dload_relocate(struct dload_state *dlthis, TgtAU_t *data,
 	case RACT_C6SECT:
 		/* actually needed address of secn containing symbol */
 		if (svp != NULL) {
-		if (rp->r_symndx >= 0)
-			if (svp->secnn > 0)
-				reloc_amt = dlthis->ldr_sections
-					    [svp->secnn-1].run_addr;
+			if (rp->r_symndx >= 0)
+				if (svp->secnn > 0)
+					reloc_amt = dlthis->ldr_sections
+						[svp->secnn-1].run_addr;
 		}
 	/* !!! FALL THRU !!! */
 	case RACT_C6BASE:
@@ -430,10 +431,11 @@ void dload_relocate(struct dload_state *dlthis, TgtAU_t *data,
 		val >>= scale;
 #endif
 		if (dload_repack(dlthis, val, data, fieldsz, offset,
-		 RFV_SIGN(reloc_info))) {
-		 dload_error(dlthis, "Relocation value " FMT_UI32 " overflows "
-		 "%d bits in %s offset " FMT_UI32, val, fieldsz,
-		 dlthis->image_secn->name, dlthis->image_offset + rp->r_vaddr);
+		   RFV_SIGN(reloc_info))) {
+			dload_error(dlthis, "Relocation value " FMT_UI32
+			    " overflows %d bits in %s offset " FMT_UI32, val,
+			    fieldsz, dlthis->image_secn->name,
+			    dlthis->image_offset + rp->r_vaddr);
 		}
 	} else if (top)
 		*stackp = val;

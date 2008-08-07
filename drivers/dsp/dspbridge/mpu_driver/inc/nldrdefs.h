@@ -43,11 +43,11 @@
  *  ======== NLDR_LOADTYPE ========
  *  Load types for a node. Must match values in node.h55.
  */
-	typedef enum NLDR_LOADTYPE {
+	enum NLDR_LOADTYPE {
 		NLDR_STATICLOAD,	/* Linked in base image, not overlay */
 		NLDR_DYNAMICLOAD,	/* Dynamically loaded node */
 		NLDR_OVLYLOAD	/* Linked in base image, overlay node */
-	} NLDR_LOADTYPE;
+	} ;
 
 /*
  *  ======== NLDR_OVLYFXN ========
@@ -67,7 +67,7 @@
  *  Requires:
  *  Ensures:
  */
-	typedef u32(CDECL * NLDR_OVLYFXN) (void *pPrivRef, u32 ulDspRunAddr,
+	typedef u32(CDECL *NLDR_OVLYFXN) (void *pPrivRef, u32 ulDspRunAddr,
 					     u32 ulDspLoadAddr,
 					     u32 ulNumBytes, u32 nMemSpace);
 
@@ -86,7 +86,7 @@
  *  Requires:
  *  Ensures:
  */
-	typedef u32(CDECL * NLDR_WRITEFXN) (void *pPrivRef,
+	typedef u32(CDECL *NLDR_WRITEFXN) (void *pPrivRef,
 					      u32 ulDspAddr, void *pBuf,
 					      u32 ulNumBytes, u32 nMemSpace);
 
@@ -105,12 +105,12 @@
  *  ======== NLDR_PHASE ========
  *  Indicates node create, delete, or execute phase function.
  */
-	typedef enum {
+	enum NLDR_PHASE {
 		NLDR_CREATE,
 		NLDR_DELETE,
 		NLDR_EXECUTE,
 		NLDR_NOPHASE
-	} NLDR_PHASE;
+	} ;
 
 /*
  *  Typedefs of loader functions imported from a DLL, or defined in a
@@ -271,7 +271,7 @@
  *  Ensures:
  */
 	typedef DSP_STATUS(*NLDR_LOADFXN) (struct NLDR_NODEOBJECT *hNldrNode,
-					   NLDR_PHASE phase);
+					   enum NLDR_PHASE phase);
 
 /*
  *  ======== NLDR_Unload ========
@@ -289,7 +289,7 @@
  *  Ensures:
  */
 	typedef DSP_STATUS(*NLDR_UNLOADFXN) (struct NLDR_NODEOBJECT *hNldrNode,
-					     NLDR_PHASE phase);
+					     enum NLDR_PHASE phase);
 
 /*
  *  ======== NLDR_FXNS ========

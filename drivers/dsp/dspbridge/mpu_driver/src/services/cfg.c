@@ -72,8 +72,6 @@
  *! 19-Jul-1999 a0216266: Stubbed from cfgnt.c.
  */
 
-#include <linux/types.h>
-
 /*  ----------------------------------- DSP/BIOS Bridge */
 #include <std.h>
 #include <dbdefs.h>

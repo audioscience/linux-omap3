@@ -46,7 +46,7 @@
 	} ;
 
 	struct STRM_INFO {
-		DSP_STRMMODE lMode;	/* transport mode of
+		enum DSP_STRMMODE lMode;	/* transport mode of
 					 * stream(DMA, ZEROCOPY..) */
 		u32 uSegment;	/* Segment strm allocs from. 0 is local mem */
 		void *pVirtBase;	/* "      " Stream'process virt base */

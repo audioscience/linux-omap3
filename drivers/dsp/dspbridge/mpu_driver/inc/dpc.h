@@ -61,7 +61,7 @@
  *      However, the DPC may take hardware interrupts during execution.
  *      Interrupts to the processor are enabled.
  */
-	typedef void(CDECL * DPC_PROC) (void *pRefData);
+	typedef void(CDECL *DPC_PROC) (void *pRefData);
 
 /*
  *  ======== DPC_Cancel ========

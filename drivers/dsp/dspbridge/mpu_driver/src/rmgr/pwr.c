@@ -140,7 +140,8 @@ DSP_STATUS PWR_PM_PreScale(IN u16 voltage_domain, u32 level)
 			if (DSP_SUCCEEDED(DEV_GetIntfFxns(hDevObject,
 			   (struct WMD_DRV_INTERFACE **)&pIntfFxns))) {
 				status = (*pIntfFxns->pfnDevCntrl)(dwContext,
-					WMDIOCTL_PRESCALE_NOTIFY, (void *)&arg);
+					 WMDIOCTL_PRESCALE_NOTIFY,
+					 (void *)&arg);
 			}
 		}
 	}
@@ -171,7 +172,8 @@ DSP_STATUS PWR_PM_PostScale(IN u16 voltage_domain, u32 level)
 			if (DSP_SUCCEEDED(DEV_GetIntfFxns(hDevObject,
 			   (struct WMD_DRV_INTERFACE **)&pIntfFxns))) {
 				status = (*pIntfFxns->pfnDevCntrl)(dwContext,
-				       WMDIOCTL_POSTSCALE_NOTIFY, (void *)&arg);
+					WMDIOCTL_POSTSCALE_NOTIFY,
+					(void *)&arg);
 			}
 		}
 	}

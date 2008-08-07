@@ -687,9 +687,9 @@ DSP_STATUS WMD_CHNL_GetIOC(struct CHNL_OBJECT *hChnl, u32 dwTimeOut,
 			ioc.status |= CHNL_IOCSTATTIMEOUT;
 			fDequeueIOC = FALSE;
 		} else if (statSync == DSP_EFAIL) {
-			 /* This can occur when the user mode thread is
-			  * aborted (^C), or when _VWIN32_WaitSingleObject()
-			  * fails due to unkown causes.  */
+			/* This can occur when the user mode thread is
+			 * aborted (^C), or when _VWIN32_WaitSingleObject()
+			 * fails due to unkown causes.  */
 			/* Even though Wait failed, there may be something in
 			 * the Q: */
 			if (LST_IsEmpty(pChnl->pIOCompletions)) {
@@ -734,7 +734,7 @@ DSP_STATUS WMD_CHNL_GetIOC(struct CHNL_OBJECT *hChnl, u32 dwTimeOut,
 	}
 	/* Ensure invariant: If any IOC's are queued for this channel... */
 	if (!LST_IsEmpty(pChnl->pIOCompletions)) {
-		 /*  Since DSPStream_Reclaim() does not take a timeout
+		/*  Since DSPStream_Reclaim() does not take a timeout
 		 *  parameter, we pass the stream's timeout value to
 		 *  WMD_CHNL_GetIOC. We cannot determine whether or not
 		 *  we have waited in User mode. Since the stream's timeout

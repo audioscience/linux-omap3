@@ -154,7 +154,7 @@
  *      retrieve object properties.
  */
 	extern DSP_STATUS DCD_EnumerateObject(IN s32 cIndex,
-					      IN DSP_DCDOBJTYPE objType,
+					      IN enum DSP_DCDOBJTYPE objType,
 					      OUT struct DSP_UUID *pUuid);
 
 /*
@@ -199,7 +199,7 @@
 					 u16 numLibs,
 					 OUT struct DSP_UUID *pDepLibUuids,
 					 OUT BOOL *pPersistentDepLibs,
-					 IN NLDR_PHASE phase);
+					 IN enum NLDR_PHASE phase);
 
 /*
  *  ======== DCD_GetNumDepLibs ========
@@ -228,7 +228,7 @@
 					    IN struct DSP_UUID *pUuid,
 					    OUT u16 *pNumLibs,
 					    OUT u16 *pNumPersLibs,
-					    IN NLDR_PHASE phase);
+					    IN enum NLDR_PHASE phase);
 
 /*
  *  ======== DCD_GetLibraryName ========
@@ -258,7 +258,7 @@
 					     IN struct DSP_UUID *pUuid,
 					     IN OUT char *pstrLibName,
 					     IN OUT u32 *pdwSize,
-					     IN NLDR_PHASE phase,
+					     IN enum NLDR_PHASE phase,
 					     OUT BOOL *fPhaseSplit);
 
 /*
@@ -290,7 +290,7 @@
  */
 	extern DSP_STATUS DCD_GetObjectDef(IN struct DCD_MANAGER *hDcdMgr,
 					   IN struct DSP_UUID *pObjUuid,
-					   IN DSP_DCDOBJTYPE objType,
+					   IN enum DSP_DCDOBJTYPE objType,
 					   OUT struct DCD_GENERICOBJ *pObjDef);
 
 /*
@@ -360,7 +360,7 @@
  *  Ensures:
  */
 	extern DSP_STATUS DCD_RegisterObject(IN struct DSP_UUID *pUuid,
-					     IN DSP_DCDOBJTYPE objType,
+					     IN enum DSP_DCDOBJTYPE objType,
 					     IN char *pszPathName);
 
 /*
@@ -382,6 +382,6 @@
  *  Ensures:
  */
 	extern DSP_STATUS DCD_UnregisterObject(IN struct DSP_UUID *pUuid,
-					       IN DSP_DCDOBJTYPE objType);
+					       IN enum DSP_DCDOBJTYPE objType);
 
 #endif				/* _DBDCD_H */

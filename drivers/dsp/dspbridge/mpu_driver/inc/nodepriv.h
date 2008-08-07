@@ -106,19 +106,19 @@
  *  Clean up when Node Manager uses only one critical section.
  *  ~~~~~~~~~~~~~~
  */
-	typedef enum {
+	enum NODE_TYPE {
 		_NODE_DEVICE = NODE_DEVICE,
 		_NODE_TASK = NODE_TASK,
 		_NODE_DAISSOCKET = NODE_DAISSOCKET,
 		_NODE_MESSAGE = NODE_MESSAGE,
 		NODE_GPP
-	} NODE_TYPE;
+	} ;
 
 /*
  *  ======== NODE_STATE ========
  *  Internal node states.
  */
-	typedef enum {
+	enum NODE_STATE {
 		_NODE_ALLOCATED = NODE_ALLOCATED,
 		_NODE_CREATED = NODE_CREATED,
 		_NODE_RUNNING = NODE_RUNNING,
@@ -129,7 +129,7 @@
 		NODE_PAUSING,
 		NODE_TERMINATING,
 		NODE_DELETING,
-	} NODE_STATE;
+	} ;
 
 /*
  *  ======== NODE_GetChannelId ========
@@ -202,7 +202,7 @@
  *      Valid hNode.
  *  Ensures:
  */
-	extern NODE_TYPE NODE_GetType(struct NODE_OBJECT *hNode);
+	extern enum NODE_TYPE NODE_GetType(struct NODE_OBJECT *hNode);
 
 /*
  *  ======== GetNodeInfo ========
@@ -232,6 +232,6 @@
  *      Valid hNode.
  *  Ensures:
  */
-	extern NLDR_LOADTYPE NODE_GetLoadType(struct NODE_OBJECT *hNode);
+	extern enum NLDR_LOADTYPE NODE_GetLoadType(struct NODE_OBJECT *hNode);
 
 #endif				/* NODEPRIV_ */
