@@ -337,6 +337,4 @@
  */
 	extern DSP_STATUS CFG_SetObject(IN u32 dwValue, IN u32 dwType);
 
-	extern DSP_STATUS CFG_GetC55Procs(OUT u32 *numProcs);
-
 #endif				/* CFG_ */

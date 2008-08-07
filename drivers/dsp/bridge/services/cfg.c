@@ -483,19 +483,3 @@ DSP_STATUS CFG_SetObject(u32 dwValue, u32 dwType)
 #endif
 	return status;
 }
-
-/*
- * ===========CFG_GetC55Procs ============
- * Purpose:
- * Get the number of configured C55 processors
- */
-
-DSP_STATUS CFG_GetC55Procs(OUT u32 *numProcs)
-{
-	DSP_STATUS status = DSP_SOK;
-
-	*numProcs = 0;
-	*numProcs = 1;
-	return status;
-}
-
