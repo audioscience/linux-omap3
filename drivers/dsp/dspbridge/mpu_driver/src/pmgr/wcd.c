@@ -243,15 +243,7 @@ struct WCD_Cmd WCD_cmdTable[] = {
 	{CMMWRAP_CallocBuf, CMD_CMM_ALLOCBUF_OFFSET},
 	{CMMWRAP_FreeBuf, CMD_CMM_FREEBUF_OFFSET},
 	{CMMWRAP_GetHandle, CMD_CMM_GETHANDLE_OFFSET},
-	{CMMWRAP_GetInfo, CMD_CMM_GETINFO_OFFSET},
-	/* MEM module: */
-	{MEMWRAP_Alloc, CMD_MEM_ALLOC_OFFSET},
-	{MEMWRAP_Calloc, CMD_MEM_CALLOC_OFFSET},
-	{MEMWRAP_Free, CMD_MEM_FREE_OFFSET},
-	{MEMWRAP_PageLock, CMD_MEM_PAGELOCK_OFFSET},
-	{MEMWRAP_PageUnlock, CMD_MEM_PAGEUNLOCK_OFFSET},
-	/* UTIL module */
-	{UTILWRAP_TestDll, CMD_UTIL_TESTDLL_OFFSET},  /* for PM test harness */
+	{CMMWRAP_GetInfo, CMD_CMM_GETINFO_OFFSET}
 };
 
 /*
@@ -1647,53 +1639,3 @@ u32 CMMWRAP_GetInfo(union Trapped_Args *args)
 
 	return status;
 }
-
-/*
- *  ======== MEMWRAP_Alloc ========
- */
-u32 MEMWRAP_Alloc(union Trapped_Args *args)
-{
-	return DSP_ENOTIMPL;
-
-}
-
-/*
- *  ======== MEMWRAP_Calloc ========
- */
-u32 MEMWRAP_Calloc(union Trapped_Args *args)
-{
-	return DSP_ENOTIMPL;
-}
-
-/*
- *  ======== MEMWRAP_Free ========
- */
-u32 MEMWRAP_Free(union Trapped_Args *args)
-{
-	return DSP_ENOTIMPL;
-}
-
-/*
- *  ======== MEMWRAP_PageLock ========
- */
-u32 MEMWRAP_PageLock(union Trapped_Args *args)
-{
-	return DSP_ENOTIMPL;
-}
-
-/*
- *  ======== MEMWRAP_PageUnlock ========
- */
-u32 MEMWRAP_PageUnlock(union Trapped_Args *args)
-{
-	return DSP_ENOTIMPL;
-}
-
-/*
- * ======== UTILWRAP_TestDll ========
- */
-u32 UTILWRAP_TestDll(union Trapped_Args *args)
-{
-	return DSP_ENOTIMPL;
-}
-

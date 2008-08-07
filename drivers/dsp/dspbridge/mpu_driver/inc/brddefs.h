@@ -46,12 +46,6 @@
 #define BRD_RETENTION     0x8       /* Retention mode */
 #define BRD_DSP_HIBERNATION     0x9       /* DSP initiated hibernation */
 
-/* platform access options */
-#define BRD_ACCMODIFY    0x1	/* modify the board's state */
-#define BRD_ACCSTATUS    0x2	/* monitor changes in board status */
-#define BRD_ACCEXCLUSIVE 0x80	/* exclusive ownership of board */
-#define BRD_ACCMASK    (~0x83)
-
 	typedef u32 BRD_STATUS;
 
 /* BRD Object */

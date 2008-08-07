@@ -36,11 +36,7 @@
 *
 * DESCRIPTION:  Bitmasks for interrupt sources
 */
-#define HW_MMU_TLB_MISS	    0x1
 #define HW_MMU_TRANSLATION_FAULT   0x2
-#define HW_MMU_EMU_MISS	    0x4
-#define HW_MMU_TABLE_WALK_FAULT    0x8
-#define HW_MMU_MULTI_HIT_FAULT     0x10
 #define HW_MMU_ALL_INTERRUPTS      0x1F
 
 #define HW_MMU_COARSE_PAGE_SIZE 0x400

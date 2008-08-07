@@ -791,27 +791,6 @@
 					struct MSG_MGR *hMgr);
 
 /*
- *  ======== DEV_SetLockOwner ========
- *  Purpose:
- *      Sets the lock owner to a particular board interface.
- *  Parameters:
- *      hDevObject:     Handle to device object created with
- *                      DEV_CreateDevice().
- *      hBrdObject:     Board interface which owns exclusive modify access to
- *                      the board.
- *  Returns:
- *      DSP_SOK:        Success.
- *      DSP_EHANDLE:    hDevObject was invalid.
- *  Requires:
- *      DEV Initialized.
- *  Ensures:
- *      DSP_SOK: Device lock is set.  Only this registered board interface
- *      can alter the device state.
- */
-	extern DSP_STATUS CDECL DEV_SetLockOwner(struct DEV_OBJECT *hDevObject,
-						 struct BRD_OBJECT *hBrdObject);
-
-/*
  *  ======== DEV_StartDevice ========
  *  Purpose:
  *      Initializes the new device with the WinBRIDGE environment.  This
@@ -828,24 +807,5 @@
  *  Ensures:
  */
 	extern DSP_STATUS CDECL DEV_StartDevice(struct CFG_DEVNODE *hDevNode);
-
-/*
- *  ======== DEV_StartIVADevice ========
- *  Purpose:
- *      Initializes the new device with the WinBRIDGE environment.  This
- *      involves querying CM for allocated resources, querying the registry
- *      for necessary IVA resources, and using
- *      this information to create a WinBRIDGE device object.
- *  Parameters:
- *      hDevNode:       Device node as it is known to OS.
- *  Returns:
- *      DSP_SOK:        If success;
- *      <error code>    Otherwise.
- *  Requires:
- *      DEV initialized.
- *  Ensures:
- */
-	extern DSP_STATUS CDECL DEV_StartIVADevice(struct CFG_DEVNODE*
-						   hDevNode);
 
 #endif				/* DEV_ */

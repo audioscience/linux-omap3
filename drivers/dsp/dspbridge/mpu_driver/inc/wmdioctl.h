@@ -47,7 +47,6 @@
 
 /* Any IOCTLS at or above this value are reserved for standard WMD interfaces.*/
 #define WMDIOCTL_RESERVEDBASE       0x8000
-#define WMDIOCTL_BIOSSCOPEBASE      (WMDIOCTL_RESERVEDBASE + 0x100)
 
 #define WMDIOCTL_CHNLREAD           (WMDIOCTL_RESERVEDBASE + 0x10)
 #define WMDIOCTL_CHNLWRITE          (WMDIOCTL_RESERVEDBASE + 0x20)
@@ -67,34 +66,12 @@
 #define WMDIOCTL_WAKEUP             (WMDIOCTL_PWRCONTROL + 0x2)
 #define WMDIOCTL_PWRENABLE          (WMDIOCTL_PWRCONTROL + 0x3)
 #define WMDIOCTL_PWRDISABLE         (WMDIOCTL_PWRCONTROL + 0x4)
-#define WMDIOCTL_INACTTIMER_START   (WMDIOCTL_PWRCONTROL + 0x5)
-#define WMDIOCTL_INACTTIMER_STOP    (WMDIOCTL_PWRCONTROL + 0x6)
 #define WMDIOCTL_CLK_CTRL		    (WMDIOCTL_PWRCONTROL + 0x7)
 #define WMDIOCTL_PWR_HIBERNATE (WMDIOCTL_PWRCONTROL + 0x8) /*DSP Initiated
 							    * Hibernate*/
 #define WMDIOCTL_PRESCALE_NOTIFY (WMDIOCTL_PWRCONTROL + 0x9)
 #define WMDIOCTL_POSTSCALE_NOTIFY (WMDIOCTL_PWRCONTROL + 0xA)
 #define WMDIOCTL_CONSTRAINT_REQUEST (WMDIOCTL_PWRCONTROL + 0xB)
-
-
-/* These ioctls are reserved for BIOS/SPOX Scope */
-#define WMDIOCTL_START              (WMDIOCTL_BIOSSCOPEBASE + 0x0)
-#define WMDIOCTL_RECV               (WMDIOCTL_BIOSSCOPEBASE + 0x1)
-#define WMDIOCTL_SEND               (WMDIOCTL_BIOSSCOPEBASE + 0x2)
-#define WMDIOCTL_INITLD             (WMDIOCTL_BIOSSCOPEBASE + 0x3)
-
-/*
- * The following ioctls are currently used by the TIEVM6x board.
- */
-#define WMDIOCTL_JTAGSELECT         (WMDIOCTL_BIOSSCOPEBASE + 0x4)
-#define WMDIOCTL_MAPTBC             (WMDIOCTL_BIOSSCOPEBASE + 0x5)
-#define WMDIOCTL_UNMAPTBC           (WMDIOCTL_BIOSSCOPEBASE + 0x6)
-#define WMDIOCTL_GETCONFIGURATION   (WMDIOCTL_BIOSSCOPEBASE + 0x7)
-#define WMDIOCTL_ENBLEXTMEM         (WMDIOCTL_BIOSSCOPEBASE + 0x8)
-#define WMDIOCTL_ASSERTSIG          (WMDIOCTL_BIOSSCOPEBASE + 0x9)
-#define WMDIOCTL_RESETDSP           (WMDIOCTL_BIOSSCOPEBASE + 0xA)
-#define WMDIOCTL_UNRESETDSP         (WMDIOCTL_BIOSSCOPEBASE + 0xB)
-#define WMDIOCTL_INITIALIZECARD     (WMDIOCTL_BIOSSCOPEBASE + 0xC)
 
 /* Number of actual DSP-MMU TLB entrries */
 #define WMDIOCTL_NUMOFMMUTLB        32
@@ -109,69 +86,6 @@ struct WMDIOCTL_EXTPROC {
 	enum HW_MMUMixedSize_t mixedMode;
 	enum HW_ElementSize_t elemSize;
 };
-
-struct WMDIOCTL_CHNLRW_ARGS {
-	u8 *pHostBuf;
-	u32 dwDSPAddr;
-	u32 ulNumBytes;
-} ;
-
-struct WMDIOCTL_INTRCOUNT_ARGS {
-	u32 ulIntsRecvd;
-	u32 ulIntsSent;
-} ;
-
-/*
- *  These ioctl args allow scope to communicate with a WinConnex board
- *  through a BHW driver.
- */
-struct WMDIOCTL_BHW_ARGS {
-	union {
-		struct {
-			void *pBootRec;
-		} initLdArgs;
-
-		struct {
-			u32 dwEntry;
-		} startArgs;
-
-		struct {
-			void *ptr;
-			u32 ulNwords;
-		} recvArgs;
-
-		struct {
-			void *ptr;
-			u32 ulNwords;
-		} sendArgs;
-	} ctrlArgs;
-} ;
-
-/* EVM 6x specific GTI support ioctl args*/
-struct WMDIOCTL_GTIEVM_ARGS {
-	union {
-		struct {
-			u32 *pMapAddr;
-			u32 *pLength;
-		} mapAddrArgs;
-
-		struct {
-			u32 dwBootMask;
-		} resetDspArgs;
-
-		struct {
-			u32 dwMask;
-		} assertSigArgs;
-
-		struct {
-			u32 *pDeviceID;
-			u32 *pVendorID;
-			u32 *pClassCode;
-			u32 *pRevID;	/* need EVM Rev for SCIF READ MEM */
-		} evmConfigArgs;
-
-	} ctrlArgs;
-} ;
 
 #endif				/* WMDIOCTL_ */
 
