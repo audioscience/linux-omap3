@@ -136,9 +136,9 @@ s32 iva_extmem_size;	/* 0 KB */
 u32 phys_mempool_base = 0x87000000;
 u32 phys_mempool_size = 0x600000;
 #if !defined(OMAP_2430) && !defined(OMAP_3430)
-BOOL tc_wordswapon = TRUE;	/* Default value is always TRUE */
+int tc_wordswapon = 1;	/* Default value is always TRUE */
 #else
-BOOL tc_wordswapon = FALSE;	/* Default value is always TRUE */
+int tc_wordswapon = 0;	/* Default value is always TRUE */
 #endif
 
 
@@ -169,7 +169,7 @@ module_param(GT_str, charp, 0);
 MODULE_PARM_DESC(GT_str, "GT string, default = NULL");
 
 module_param(dsp_debug, int, 0);
-MODULE_PARM_DESC(dsp_debug, "Wait after loading DSP image. default = FALSE");
+MODULE_PARM_DESC(dsp_debug, "Wait after loading DSP image. default = false");
 #endif
 
 module_param(driver_major, int, 0);	/* Driver's major number */
@@ -194,8 +194,8 @@ MODULE_PARM_DESC(phys_mempool_base,
 module_param(phys_mempool_size, uint, 0);
 MODULE_PARM_DESC(phys_mempool_size,
 		"Physical memory pool size passed to driver");
-module_param(tc_wordswapon, bool, 0);
-MODULE_PARM_DESC(tc_wordswapon, "TC Word Swap Option. default = TRUE");
+module_param(tc_wordswapon, int, 0);
+MODULE_PARM_DESC(tc_wordswapon, "TC Word Swap Option. default = 0");
 
 MODULE_AUTHOR("Texas Instruments");
 MODULE_LICENSE("GPL");
@@ -390,17 +390,17 @@ static int __init bridge_init(void)
 
 	SERVICES_Init();
 
-	/*  Autostart flag.  This should be set to TRUE if the DSP image should
+	/*  Autostart flag.  This should be set to true if the DSP image should
 	 *  be loaded and run during bridge module initialization  */
 
 	if (base_img) {
-		temp = TRUE;
+		temp = true;
 		REG_SetValue(NULL, NULL, AUTOSTART, REG_DWORD, (u8 *)&temp,
 			    sizeof(temp));
 		REG_SetValue(NULL, NULL, DEFEXEC, REG_SZ, (u8 *)base_img,
 			    CSL_Strlen(base_img) + 1);
 	} else {
-		temp = FALSE;
+		temp = false;
 		REG_SetValue(NULL, NULL, AUTOSTART, REG_DWORD, (u8 *)&temp,
 			    sizeof(temp));
 		REG_SetValue(NULL, NULL, DEFEXEC, REG_SZ, (u8 *) "\0", (u32)2);
@@ -485,7 +485,7 @@ static int __init bridge_init(void)
 static void __exit bridge_exit(void)
 {
 	dev_t devno;
-	BOOL ret;
+	bool ret;
 	GT_0trace(driverTrace, GT_ENTER, "-> driver_exit\n");
 
 #ifndef DISABLE_BRIDGE_PM
@@ -529,7 +529,7 @@ static void __exit bridge_exit(void)
 		ret = DSP_Deinit(driverContext);
 		driverContext = 0;
 
-		DBC_Assert(ret == TRUE);
+		DBC_Assert(ret == true);
 	}
 	SERVICES_Exit();
 	GT_exit();
@@ -650,7 +650,7 @@ int bridge_release(struct inode *ip, struct file *filp)
 		status = DSP_Close((u32) pid);
 
 
-	(status == TRUE) ? (status = 0) : (status = -1);
+	(status == true) ? (status = 0) : (status = -1);
 
 	GT_0trace(driverTrace, GT_ENTER, " <- driver_release\n");
 

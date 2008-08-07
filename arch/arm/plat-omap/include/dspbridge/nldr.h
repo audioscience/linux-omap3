@@ -55,7 +55,7 @@
 					IN CONST struct DCD_NODEPROPS
 					*pNodeProps,
 					OUT struct NLDR_NODEOBJECT **phNldrNode,
-					IN BOOL *pfPhaseSplit);
+					IN bool *pfPhaseSplit);
 
 	extern DSP_STATUS NLDR_Create(OUT struct NLDR_OBJECT **phNldr,
 				      struct DEV_OBJECT *hDevObject,
@@ -72,7 +72,7 @@
 					     OUT struct RMM_TargetObj
 					     **phRmmMgr);
 
-	extern BOOL NLDR_Init(void);
+	extern bool NLDR_Init(void);
 	extern DSP_STATUS NLDR_Load(struct NLDR_NODEOBJECT *hNldrNode,
 				    enum NLDR_PHASE phase);
 	extern DSP_STATUS NLDR_Unload(struct NLDR_NODEOBJECT *hNldrNode,

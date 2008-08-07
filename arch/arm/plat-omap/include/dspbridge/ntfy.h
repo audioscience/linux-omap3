@@ -91,7 +91,7 @@
  *      TRUE if initialization succeeded, FALSE otherwise.
  *  Ensures:
  */
-	extern BOOL NTFY_Init();
+	extern bool NTFY_Init();
 
 /*
  *  ======== NTFY_Notify ========

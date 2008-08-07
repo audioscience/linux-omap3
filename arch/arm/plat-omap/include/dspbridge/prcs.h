@@ -96,6 +96,6 @@
  *  Ensures:
  *      PRCS initialized.
  */
-	extern BOOL PRCS_Init();
+	extern bool PRCS_Init();
 
 #endif				/* _PRCS_H */

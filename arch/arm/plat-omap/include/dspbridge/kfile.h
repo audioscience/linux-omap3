@@ -103,7 +103,7 @@
  *  Ensures:
  *      KFILE initialized.
  */
-	extern BOOL KFILE_Init();
+	extern bool KFILE_Init();
 
 /*
  *  ======== KFILE_Open ========

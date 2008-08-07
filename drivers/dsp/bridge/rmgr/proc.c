@@ -177,7 +177,7 @@ struct PROC_OBJECT {
 	u32 uTimeout;		/* Time out count */
 	enum DSP_PROCSTATE sState;	/* Processor state */
 	u32 ulUnit;		/* DDSP unit number */
-	BOOL bIsAlreadyAttached;	/*
+	bool bIsAlreadyAttached;	/*
 					 * True if the Device below has
 					 * GPP Client attached
 					 */
@@ -962,9 +962,9 @@ DSP_STATUS PROC_GetTrace(DSP_HPROCESSOR hProcessor, u8 *pBuf, u32 uMaxSize)
  *  Purpose:
  *      Initialize PROC's private state, keeping a reference count on each call
  */
-BOOL CDECL PROC_Init(void)
+bool CDECL PROC_Init(void)
 {
-	BOOL fRetval = TRUE;
+	bool fRetval = true;
 
 	DBC_Require(cRefs >= 0);
 

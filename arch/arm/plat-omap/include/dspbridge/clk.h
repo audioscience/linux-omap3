@@ -83,7 +83,7 @@
  *  Ensures:
  *      CLK initialized.
  */
-	extern BOOL CLK_Init();
+	extern bool CLK_Init();
 
 
 /*
@@ -137,7 +137,7 @@
  *  Ensures:
  */
 	extern DSP_STATUS CLK_Set_32KHz(IN enum SERVICES_ClkId clk_id);
-	extern void SSI_Clk_Prepare(BOOL FLAG);
+	extern void SSI_Clk_Prepare(bool FLAG);
 
 /*
  *  ======== CLK_Get_RefCnt ========

@@ -68,6 +68,7 @@
 #ifndef MEM_
 #define MEM_
 
+#include <host_os.h>
 #include <memdefs.h>
 
 /*
@@ -267,7 +268,7 @@
  *  Ensures:
  *      MEM initialized.
  */
-	extern BOOL MEM_Init();
+	extern bool MEM_Init();
 
 /*
  *  ======== MEM_IsValidHandle ========

@@ -79,7 +79,7 @@
  *      s8 *pszProgName   - The name of the program currently being executed.
  *      s8 *argv[]        - The argument vector.
  *      s8 *pCmdLine      - The pointer to the command line.
- *      BOOL fHasProgName   - Indicats whether a program name is supplied.
+ *      bool fHasProgName   - Indicats whether a program name is supplied.
  *  Returns:
  *      Returns the number of arguments found.
  *  Requires:
@@ -88,7 +88,7 @@
  */
 	extern s32 UTIL_CmdLineToArgs(IN char *pszProgName,
 				      IN char *argv[UTIL_MAXARGVS],
-				      IN char *pCmdLine, IN BOOL fHasProgName);
+				      IN char *pCmdLine, IN bool fHasProgName);
 
 /*
  *  ======== UTIL_Exit ========
@@ -133,9 +133,9 @@
  *  Ensures:
  *      UTIL initialized.
  */
-	extern inline BOOL UTIL_Init(void)
+	extern inline bool UTIL_Init(void)
 	{
-		return TRUE;
+		return true;
 	}
 
 /*

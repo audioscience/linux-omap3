@@ -124,7 +124,7 @@ static DSP_STATUS GetDepLibInfo(IN struct DCD_MANAGER *hDcdMgr,
 				IN OUT u16 *pNumLibs,
 				OPTIONAL OUT u16 *pNumPersLibs,
 				OPTIONAL OUT struct DSP_UUID *pDepLibUuids,
-				OPTIONAL OUT BOOL *pPersistentDepLibs,
+				OPTIONAL OUT bool *pPersistentDepLibs,
 				IN enum NLDR_PHASE phase);
 
 /*
@@ -411,7 +411,7 @@ void DCD_Exit(void)
 DSP_STATUS DCD_GetDepLibs(IN struct DCD_MANAGER *hDcdMgr,
 			 IN struct DSP_UUID *pUuid,
 			 u16 numLibs, OUT struct DSP_UUID *pDepLibUuids,
-			 OUT BOOL *pPersistentDepLibs, IN enum NLDR_PHASE phase)
+			 OUT bool *pPersistentDepLibs, IN enum NLDR_PHASE phase)
 {
 	DSP_STATUS status = DSP_SOK;
 
@@ -754,7 +754,7 @@ func_end:
 DSP_STATUS DCD_GetLibraryName(IN struct DCD_MANAGER *hDcdMgr,
 			     IN struct DSP_UUID *pUuid,
 			     IN OUT char *pstrLibName, IN OUT u32 *pdwSize,
-			     enum NLDR_PHASE phase, OUT BOOL *fPhaseSplit)
+			     enum NLDR_PHASE phase, OUT bool *fPhaseSplit)
 {
 	char szRegKey[REG_MAXREGPATHLENGTH];
 	char szUuid[MAXUUIDLEN];
@@ -803,7 +803,7 @@ DSP_STATUS DCD_GetLibraryName(IN struct DCD_MANAGER *hDcdMgr,
 		break;
 	default:
 		status = -1;
-		DBC_Assert(FALSE);
+		DBC_Assert(false);
 	}
 	if (status == -1) {
 		status = DSP_EFAIL;
@@ -833,7 +833,7 @@ DSP_STATUS DCD_GetLibraryName(IN struct DCD_MANAGER *hDcdMgr,
 	/* If can't find, phases might be registered as generic LIBRARYTYPE */
 	if (DSP_FAILED(status) && phase != NLDR_NOPHASE) {
 		if (fPhaseSplit)
-			*fPhaseSplit = FALSE;
+			*fPhaseSplit = false;
 
 		CSL_Strcpyn(szRegKey, DCD_REGKEY, CSL_Strlen(DCD_REGKEY) + 1);
 		if ((CSL_Strlen(szRegKey) + CSL_Strlen("_\0")) <
@@ -869,12 +869,12 @@ DSP_STATUS DCD_GetLibraryName(IN struct DCD_MANAGER *hDcdMgr,
  *  Purpose:
  *      Initialize the DCD module.
  */
-BOOL DCD_Init(void)
+bool DCD_Init(void)
 {
-	BOOL fInitMEM;
-	BOOL fInitREG;
-	BOOL fInitCOD;
-	BOOL fInit = TRUE;
+	bool fInitMEM;
+	bool fInitREG;
+	bool fInitCOD;
+	bool fInit = true;
 
 	DBC_Require(cRefs >= 0);
 
@@ -888,7 +888,7 @@ BOOL DCD_Init(void)
 		fInitCOD = COD_Init();
 		fInitREG = REG_Init();
 		if (!fInitMEM || !fInitCOD || !fInitREG) {
-			fInit = FALSE;
+			fInit = false;
 			GT_0trace(curTrace, GT_6CLASS, "DCD_Init failed\n");
 			/* Exit initialized modules. */
 			if (fInitMEM)
@@ -1473,7 +1473,7 @@ static DSP_STATUS GetDepLibInfo(IN struct DCD_MANAGER *hDcdMgr,
 				IN OUT u16 *pNumLibs,
 				OPTIONAL OUT u16 *pNumPersLibs,
 				OPTIONAL OUT struct DSP_UUID *pDepLibUuids,
-				OPTIONAL OUT BOOL *pPersistentDepLibs,
+				OPTIONAL OUT bool *pPersistentDepLibs,
 				enum NLDR_PHASE phase)
 {
 	struct DCD_MANAGER *pDcdMgr = hDcdMgr;	/* pointer to DCD manager */
@@ -1489,7 +1489,7 @@ static DSP_STATUS GetDepLibInfo(IN struct DCD_MANAGER *hDcdMgr,
 	u32 dwDataSize = COD_MAXPATHLENGTH;
 	char seps[] = ", ";
 	char *pToken = NULL;
-	BOOL fGetUuids = (pDepLibUuids != NULL);
+	bool fGetUuids = (pDepLibUuids != NULL);
 	u16 nDepLibs = 0;
 	DSP_STATUS status = DSP_SOK;
 

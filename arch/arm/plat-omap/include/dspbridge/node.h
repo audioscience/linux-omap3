@@ -464,7 +464,7 @@
  *      TRUE if initialization succeeded, FALSE otherwise.
  *  Ensures:
  */
-	extern BOOL NODE_Init();
+	extern bool NODE_Init();
 
 /*
  *  ======== NODE_OnExit ========

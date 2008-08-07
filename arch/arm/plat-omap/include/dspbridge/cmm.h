@@ -70,6 +70,7 @@
 #include <devdefs.h>
 
 #include <cmmdefs.h>
+#include <host_os.h>
 
 /*
  *  ======== CMM_CallocBuf ========
@@ -140,7 +141,7 @@
  *  Ensures:
  *      Memory resources used by Cmm Mgr are freed.
  */
-	extern DSP_STATUS CMM_Destroy(struct CMM_OBJECT *hCmmMgr, BOOL bForce);
+	extern DSP_STATUS CMM_Destroy(struct CMM_OBJECT *hCmmMgr, bool bForce);
 
 /*
  *  ======== CMM_Exit ========
@@ -226,7 +227,7 @@
  *  Ensures:
  *      CMM initialized.
  */
-	extern BOOL CMM_Init();
+	extern bool CMM_Init();
 
 /*
  *  ======== CMM_RegisterGPPSMSeg ========
@@ -348,7 +349,7 @@
  *
  */
 	extern DSP_STATUS CMM_XlatorDelete(struct CMM_XLATOROBJECT *hXlator,
-					   BOOL bForce);
+					   bool bForce);
 
 /*
  *  ======== CMM_XlatorFreeBuf ========
@@ -393,7 +394,7 @@
 	extern DSP_STATUS CMM_XlatorInfo(struct CMM_XLATOROBJECT *hXlator,
 					 IN OUT u8 **pAddr,
 					 u32 ulSize, u32 uSegId,
-					 BOOL bSetInfo);
+					 bool bSetInfo);
 
 /*
  *  ======== CMM_XlatorTranslate ========

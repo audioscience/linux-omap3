@@ -162,13 +162,13 @@ struct LST_ELEM *LST_GetHead(struct LST_LIST *pList)
  *  Purpose:
  *      Initialize LST module private state.
  */
-BOOL LST_Init(void)
+bool LST_Init(void)
 {
 	GT_create(&LST_debugMask, "LS");	/* LS for LSt module */
 
 	GT_0trace(LST_debugMask, GT_5CLASS, "LST_Init\n");
 
-	return TRUE;
+	return true;
 }
 
 /*

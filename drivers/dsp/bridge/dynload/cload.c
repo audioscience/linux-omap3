@@ -148,7 +148,7 @@ extern int Dynamic_Load_Module(struct Dynamic_Loader_Stream *module,
 		dl_state.mysym = syms;
 		dload_headers(&dl_state);
 		if (!dl_state.dload_errcount)
-			dload_strings(&dl_state, FALSE);
+			dload_strings(&dl_state, false);
 		if (!dl_state.dload_errcount)
 			dload_sections(&dl_state);
 
@@ -261,7 +261,7 @@ Dynamic_Open_Module(struct Dynamic_Loader_Stream *module,
 		dl_state.mysym = syms;
 		dload_headers(&dl_state);
 		if (!dl_state.dload_errcount)
-			dload_strings(&dl_state, FALSE);
+			dload_strings(&dl_state, false);
 		if (!dl_state.dload_errcount)
 			dload_sections(&dl_state);
 
@@ -313,7 +313,6 @@ Dynamic_Open_Module(struct Dynamic_Loader_Stream *module,
 
 	return dl_state.dload_errcount;
 }			       /* DLOAD_File */
-
 
 /*************************************************************************
  * Procedure dload_headers
@@ -945,7 +944,7 @@ static void cload_cinit(struct dload_state *dlthis,
 	struct LDR_SECTION_INFO cinit_info;
 
 	/*  PROCESS ALL THE INITIALIZATION RECORDS IN THE BUFFER.  */
-	while (TRUE) {
+	while (true) {
 		left = pktend - pktp;
 		switch (dlthis->cinit_state) {
 		case CI_count:	/* count field */
@@ -1108,7 +1107,7 @@ static void dload_data(struct dload_state *dlthis)
 	struct doff_scnhdr_t *sptr = dlthis->sect_hdrs;
 	struct LDR_SECTION_INFO *lptr = dlthis->ldr_sections;
 #ifdef OPT_ZERO_COPY_LOADER
-	boolean bZeroCopy = FALSE;
+	boolean bZeroCopy = false;
 #endif
 	u8 *pDest;
 
@@ -1118,7 +1117,7 @@ static void dload_data(struct dload_state *dlthis)
 	} ibuf;
 
 	/* Indicates whether CINIT processing has occurred */
-	boolean cinit_processed = FALSE;
+	boolean cinit_processed = false;
 
 	/* Loop through the sections and load them one at a time.
 	 */
@@ -1165,7 +1164,7 @@ static void dload_data(struct dload_state *dlthis)
 				}
 				pDest = ibuf.bufr;
 #ifdef OPT_ZERO_COPY_LOADER
-				bZeroCopy = FALSE;
+				bZeroCopy = false;
 				if (DLOAD_SECT_TYPE(sptr) != DLOAD_CINIT) {
 					dlthis->myio->writemem(dlthis->myio,
 						&pDest, lptr->load_addr +
@@ -1222,7 +1221,7 @@ static void dload_data(struct dload_state *dlthis)
 				/* stuff the result into target memory */
 				if (DLOAD_SECT_TYPE(sptr) == DLOAD_CINIT) {
 					cload_cinit(dlthis, &ibuf.ipacket);
-					cinit_processed = TRUE;
+					cinit_processed = true;
 				} else {
 #ifdef OPT_ZERO_COPY_LOADER
 				    if (!bZeroCopy) {

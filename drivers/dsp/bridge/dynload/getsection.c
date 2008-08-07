@@ -183,7 +183,7 @@ DLOAD_module_info DLOAD_module_open(struct Dynamic_Loader_Stream *module,
 	dload_headers(dlthis);
 
 	if (!dlthis->dload_errcount)
-		dload_strings(dlthis, TRUE);
+		dload_strings(dlthis, true);
 
 	/* skip ahead past the unread portion of the string table */
 	sec_start = sizeof(struct doff_filehdr_t) +
@@ -235,7 +235,7 @@ DLOAD_module_info DLOAD_module_open(struct Dynamic_Loader_Stream *module,
  * the provided struct LDR_SECTION_INFO pointer.
  *
  * Returns:
- *	TRUE for success, FALSE for section not found
+ *	true for success, false for section not found
  **************************************************************************/
 int DLOAD_GetSectionInfo(DLOAD_module_info minfo, const char *sectionName,
 		     const struct LDR_SECTION_INFO **const sectionInfo)
@@ -246,17 +246,17 @@ int DLOAD_GetSectionInfo(DLOAD_module_info minfo, const char *sectionName,
 
 	dlthis = (struct dload_state *)minfo;
 	if (!dlthis)
-		return FALSE;
+		return false;
 
 	for (sec = 0; sec < dlthis->dfile_hdr.df_no_scns; sec++) {
 		shp = DOFFSEC_IS_LDRSEC(&dlthis->sect_hdrs[sec]);
 		if (strcmp(sectionName, shp->name) == 0) {
 			*sectionInfo = shp;
-			return TRUE;
+			return true;
 		}
 	}
 
-	return FALSE;
+	return false;
 }
 
 #define IPH_SIZE (sizeof(struct image_packet_t) - sizeof(u32))
@@ -276,7 +276,7 @@ int DLOAD_GetSectionInfo(DLOAD_module_info minfo, const char *sectionName,
  * supplied buffer.
  *
  * Returns:
- *	TRUE for success, FALSE for section not found
+ *	true for success, false for section not found
  **************************************************************************/
 int DLOAD_GetSection(DLOAD_module_info minfo,
 		 const struct LDR_SECTION_INFO *sectionInfo, void *sectionData)
@@ -292,16 +292,16 @@ int DLOAD_GetSection(DLOAD_module_info minfo,
 
 	dlthis = (struct dload_state *)minfo;
 	if (!dlthis)
-		return FALSE;
+		return false;
 	sptr = LDRSEC_IS_DOFFSEC(sectionInfo);
 	if (sptr == NULL)
-		return FALSE;
+		return false;
 
 	/* skip ahead to the start of the first packet */
 	pos = BYTE_TO_HOST(DOFF_ALIGN((u32) sptr->ds_first_pkt_offset));
 	if (dlthis->strm->set_file_posn(dlthis->strm, pos) != 0) {
 		dload_error(dlthis, E_SEEK, pos);
-		return FALSE;
+		return false;
 	}
 
 	nip = sptr->ds_nipacks;
@@ -310,7 +310,7 @@ int DLOAD_GetSection(DLOAD_module_info minfo,
 		if (dlthis->strm->
 		    read_buffer(dlthis->strm, &ipacket, IPH_SIZE) != IPH_SIZE) {
 			dload_error(dlthis, E_READSTRM, "image packet");
-			return FALSE;
+			return false;
 		}
 		/* reorder the header if need be */
 		if (dlthis->reorder_map)
@@ -322,12 +322,12 @@ int DLOAD_GetSection(DLOAD_module_info minfo,
 		ipsize = BYTE_TO_HOST(DOFF_ALIGN(ipacket.i_packet_size));
 		if (ipsize > BYTE_TO_HOST(IMAGE_PACKET_SIZE)) {
 			dload_error(dlthis, E_ISIZ, ipsize);
-			return FALSE;
+			return false;
 		}
 		if (dlthis->strm->read_buffer
 		    (dlthis->strm, dest, ipsize) != ipsize) {
 			dload_error(dlthis, E_READSTRM, "image packet");
-			return FALSE;
+			return false;
 		}
 		/* reorder the bytes if need be */
 #if !defined(_BIG_ENDIAN) || (TARGET_AU_BITS > 16)
@@ -358,19 +358,19 @@ int DLOAD_GetSection(DLOAD_module_info minfo,
 		 * only.     */
 		if (ipacket.i_num_relocs != 0) {
 			dload_error(dlthis, E_RELOC, ipsize);
-			return FALSE;
+			return false;
 		}
 
 		if (~checks) {
 			dload_error(dlthis, E_CHECKSUM, "image packet");
-			return FALSE;
+			return false;
 		}
 
 		/*Advance destination ptr by the size of the just-read packet*/
 		dest += ipsize;
 	}
 
-	return TRUE;
+	return true;
 }
 
 /***************************************************************************

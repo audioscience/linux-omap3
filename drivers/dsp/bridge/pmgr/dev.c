@@ -195,7 +195,7 @@ static struct GT_Mask debugMask = { 0, 0 };	/* For debugging */
 /*  ----------------------------------- Function Prototypes */
 static DSP_STATUS FxnNotImplemented(int arg, ...);
 static DSP_STATUS InitCodMgr(struct DEV_OBJECT *pDevObject);
-static BOOL IsValidHandle(struct DEV_OBJECT *hObj);
+static bool IsValidHandle(struct DEV_OBJECT *hObj);
 static void StoreInterfaceFxns(struct WMD_DRV_INTERFACE *pDrvFxns,
 			       OUT struct WMD_DRV_INTERFACE *pIntfFxns);
 /*
@@ -522,7 +522,7 @@ DSP_STATUS DEV_DestroyDevice(struct DEV_OBJECT *hDevObject)
 			(pDevObject->hDehMgr);
 		}
 		if (pDevObject->hCmmMgr)
-			CMM_Destroy(pDevObject->hCmmMgr, TRUE);
+			CMM_Destroy(pDevObject->hCmmMgr, true);
 
 		if (pDevObject->hDmmMgr)
 			DMM_Destroy(pDevObject->hDmmMgr);
@@ -973,9 +973,9 @@ void CDECL DEV_Exit(void)
  *  Purpose:
  *      Initialize DEV's private state, keeping a reference count on each call.
  */
-BOOL CDECL DEV_Init(void)
+bool CDECL DEV_Init(void)
 {
-	BOOL fCmm, fDmm, fRetval = TRUE;
+	bool fCmm, fDmm, fRetval = true;
 
 	DBC_Require(cRefs >= 0);
 
@@ -1205,13 +1205,13 @@ static DSP_STATUS FxnNotImplemented(int arg, ...)
  *      hDevObject:     Handle to device object created with
  *                      DEV_CreateDevice().
  *  Returns:
- *      TRUE if handle is valid; FALSE otherwise.
+ *      true if handle is valid; false otherwise.
  *  Requires:
  *  Ensures:
  */
-static BOOL IsValidHandle(struct DEV_OBJECT *hObj)
+static bool IsValidHandle(struct DEV_OBJECT *hObj)
 {
-	BOOL retVal;
+	bool retVal;
 
 	retVal = (hObj != NULL) && (hObj->dwSignature == SIGNATURE);
 
@@ -1255,7 +1255,7 @@ static DSP_STATUS InitCodMgr(struct DEV_OBJECT *pDevObject)
  *  Parameters:
  *      pProcObject:        Ptr to ProcObject to insert.
  *      pDevObject:         Ptr to Dev Object where the list is.
-  *     pbAlreadyAttached:  Ptr to return the BOOL
+  *     pbAlreadyAttached:  Ptr to return the bool
  *  Returns:
  *      DSP_SOK:           If successful.
  *  Requires:
@@ -1269,7 +1269,7 @@ static DSP_STATUS InitCodMgr(struct DEV_OBJECT *pDevObject)
  */
 DSP_STATUS CDECL DEV_InsertProcObject(struct DEV_OBJECT *hDevObject,
 				     u32 hProcObject,
-				     OUT BOOL *pbAlreadyAttached)
+				     OUT bool *pbAlreadyAttached)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct DEV_OBJECT *pDevObject = (struct DEV_OBJECT *)hDevObject;
@@ -1283,7 +1283,7 @@ DSP_STATUS CDECL DEV_InsertProcObject(struct DEV_OBJECT *hDevObject,
 	DBC_Require(pDevObject->procList != NULL);
 	DBC_Require(pbAlreadyAttached != NULL);
 	if (!LST_IsEmpty(pDevObject->procList))
-		*pbAlreadyAttached = TRUE;
+		*pbAlreadyAttached = true;
 
 	/* Add DevObject to tail. */
 	LST_PutTail(pDevObject->procList, (struct LST_ELEM *)hProcObject);

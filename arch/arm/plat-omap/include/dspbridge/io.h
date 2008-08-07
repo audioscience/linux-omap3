@@ -111,7 +111,7 @@
  *  Ensures:
  *      A requirement for each of the other public CHNL functions.
  */
-	extern BOOL IO_Init();
+	extern bool IO_Init();
 
 /*
  *  ======== IO_OnLoaded ========

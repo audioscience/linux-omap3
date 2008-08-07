@@ -24,9 +24,10 @@
 
 #ifndef GH_
 #define GH_
+#include <host_os.h>
 
 extern struct GH_THashTab *GH_create(u16 maxBucket, u16 valSize,
-		u16(*hash) (void *, u16), Bool(*match) (void *, void *),
+		u16(*hash) (void *, u16), bool(*match) (void *, void *),
 		void(*delete) (void *));
 extern void GH_delete(struct GH_THashTab *hashTab);
 extern void GH_exit(void);

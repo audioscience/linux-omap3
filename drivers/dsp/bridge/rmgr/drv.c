@@ -155,8 +155,8 @@ extern struct GT_Mask curTrace;
 #endif
 
 /*  ----------------------------------- Function Prototypes */
-static DSP_STATUS RequestBridgeResources(u32 dwContext, BOOL fRequest);
-static DSP_STATUS RequestBridgeResourcesDSP(u32 dwContext, BOOL fRequest);
+static DSP_STATUS RequestBridgeResources(u32 dwContext, s32 fRequest);
+static DSP_STATUS RequestBridgeResourcesDSP(u32 dwContext, s32 fRequest);
 
 #ifndef RES_CLEANUP_DISABLE
 
@@ -215,7 +215,7 @@ DSP_STATUS DRV_GetProcContext(u32 phProcess,
 	struct NODE_RES_OBJECT *pTempNode = NULL;
 	struct DMM_RES_OBJECT *pTempDMM2 = NULL;
 	struct DMM_RES_OBJECT *pTempDMM = NULL;
-	BOOL pCtxtFound = FALSE;
+	s32 pCtxtFound = 0;
 
 	DBC_Assert(pDrvObject != NULL);
 	pCtxtList = pDrvObject->procCtxtList;
@@ -227,7 +227,7 @@ DSP_STATUS DRV_GetProcContext(u32 phProcess,
 	if (pCtxtList == NULL) {
 		if (hNode != NULL) {
 			pCtxtList = pDrvObject->procCtxtList;
-			while ((pCtxtList != NULL) && (pCtxtFound == FALSE)) {
+			while ((pCtxtList != NULL) && (pCtxtFound == 0)) {
 				pTempNode = pCtxtList->pNodeList;
 				while ((pTempNode != NULL) &&
 				      (pTempNode->hNode != hNode)) {
@@ -235,15 +235,15 @@ DSP_STATUS DRV_GetProcContext(u32 phProcess,
 					pTempNode = pTempNode->next;
 				}
 				if (pTempNode != NULL) {
-					pCtxtFound = TRUE;
+					pCtxtFound = 1;
 					status = DSP_SOK;
 				} else {
 					pCtxtList = pCtxtList->next;
 				}
 			}
-		} else if ((pMapAddr != 0) && (pCtxtFound == FALSE)) {
+		} else if ((pMapAddr != 0) && (pCtxtFound == 0)) {
 			pCtxtList = pDrvObject->procCtxtList;
-			while ((pCtxtList != NULL) && (pCtxtFound == FALSE)) {
+			while ((pCtxtList != NULL) && (pCtxtFound == 0)) {
 				pTempDMM = pCtxtList->pDMMList;
 				while ((pTempDMM != NULL) &&
 				     (pTempDMM->ulDSPAddr != pMapAddr)) {
@@ -251,7 +251,7 @@ DSP_STATUS DRV_GetProcContext(u32 phProcess,
 					pTempDMM = pTempDMM->next;
 				}
 				if (pTempDMM != NULL) {
-					pCtxtFound = TRUE;
+					pCtxtFound = 1;
 					status = DSP_SOK;
 				} else {
 					pCtxtList = pCtxtList->next;
@@ -457,7 +457,7 @@ DSP_STATUS DRV_ProcFreeNodeRes(HANDLE hPCtxt)
 				== NODE_DONE)*/ {
 				status = NODE_Delete(pNodeRes->hNode);
 			}
-			pNodeRes->nodeAllocated = FALSE;
+			pNodeRes->nodeAllocated = 0;
 		}
 	}
 	return status;
@@ -550,7 +550,7 @@ DSP_STATUS DRV_UpdateDMMResElement(HANDLE hDMMRes, u32 pMpuAddr, u32 ulSize,
 	pDMMRes->ulDSPResAddr = pReqAddr;
 	pDMMRes->dmmSize = ulSize;
 	pDMMRes->hProcessor = hProcessor;
-	pDMMRes->dmmAllocated = TRUE;
+	pDMMRes->dmmAllocated = 1;
 
 	return status;
 }
@@ -573,7 +573,7 @@ DSP_STATUS  DRV_ProcFreeDMMRes(HANDLE hPCtxt)
 				 (void *)pDMMRes->ulDSPResAddr);
 			status = PROC_UnReserveMemory(pDMMRes->hProcessor,
 				 (void *)pDMMRes->ulDSPResAddr);
-			pDMMRes->dmmAllocated = FALSE;
+			pDMMRes->dmmAllocated = 0;
 		}
 	}
 	return status;
@@ -629,7 +629,7 @@ DSP_STATUS DRV_GetDMMResElement(u32 pMapAddr, HANDLE hDMMRes, HANDLE hPCtxt)
 }
 
 /* Update Node allocation status */
-void DRV_ProcNodeUpdateStatus(HANDLE hNodeRes, BOOL status)
+void DRV_ProcNodeUpdateStatus(HANDLE hNodeRes, s32 status)
 {
 	struct NODE_RES_OBJECT *pNodeRes = (struct NODE_RES_OBJECT *)hNodeRes;
 	DBC_Assert(hNodeRes != NULL);
@@ -637,7 +637,7 @@ void DRV_ProcNodeUpdateStatus(HANDLE hNodeRes, BOOL status)
 }
 
 /* Update Node Heap status */
-void DRV_ProcNodeUpdateHeapStatus(HANDLE hNodeRes, BOOL status)
+void DRV_ProcNodeUpdateHeapStatus(HANDLE hNodeRes, s32 status)
 {
 	struct NODE_RES_OBJECT *pNodeRes = (struct NODE_RES_OBJECT *)hNodeRes;
 	DBC_Assert(hNodeRes != NULL);
@@ -889,7 +889,7 @@ DSP_STATUS DRV_ProcFreeDSPHEAPRes(HANDLE hPCtxt)
 				pDSPHEAPRes->ulDSPResAddr);
 			status = PROC_UnReserveMemory(pDSPHEAPRes->hProcessor,
 				(void *)pDSPHEAPRes->ulDSPResAddr);
-			pDSPHEAPRes->heapAllocated = FALSE;
+			pDSPHEAPRes->heapAllocated = 0;
 		}
 	}
 	return status;
@@ -1426,7 +1426,7 @@ u32 DRV_GetNextDevExtension(u32 hDevExtension)
  */
 DSP_STATUS DRV_Init(void)
 {
-	BOOL fRetval = TRUE;	/* function return value */
+	s32 fRetval = 1;	/* function return value */
 
 	DBC_Require(cRefs >= 0);
 
@@ -1635,7 +1635,7 @@ DSP_STATUS DRV_ReleaseResources(u32 dwContext, struct DRV_OBJECT *hDrvObject)
  *  Purpose:
  *      Reserves shared memory for bridge.
  */
-static DSP_STATUS RequestBridgeResources(u32 dwContext, BOOL bRequest)
+static DSP_STATUS RequestBridgeResources(u32 dwContext, s32 bRequest)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct CFG_HOSTRES *pResources;
@@ -1798,7 +1798,7 @@ static DSP_STATUS RequestBridgeResources(u32 dwContext, BOOL bRequest)
  *  Purpose:
  *      Reserves shared memory for bridge.
  */
-static DSP_STATUS RequestBridgeResourcesDSP(u32 dwContext, BOOL bRequest)
+static DSP_STATUS RequestBridgeResourcesDSP(u32 dwContext, s32 bRequest)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct CFG_HOSTRES *pResources;

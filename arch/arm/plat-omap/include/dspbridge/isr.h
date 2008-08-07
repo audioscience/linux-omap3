@@ -48,7 +48,7 @@
 
 #ifndef ISR_
 #define ISR_
-
+#include <host_os.h>
 #include <cfg.h>
 
 /* Interrupt Object handle: */
@@ -135,7 +135,7 @@
  *  Ensures:
  *      A requirement for each of the other public ISR functions.
  */
-	extern BOOL CDECL ISR_Init();
+	extern bool CDECL ISR_Init();
 
 /*
  *  ======== ISR_Install ========

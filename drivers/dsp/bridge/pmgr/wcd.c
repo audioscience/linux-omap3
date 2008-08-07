@@ -297,11 +297,11 @@ void WCD_Exit(void)
  *  Purpose:
  *      Module initialization is done by SERVICES Init.
  */
-BOOL WCD_Init(void)
+bool WCD_Init(void)
 {
-	BOOL fInit = TRUE;
-	BOOL fDRV, fDEV, fCOD, fSERVICES, fCHNL, fMSG, fIO;
-	BOOL fMGR, fPROC, fNODE, fDISP, fNTFY, fSTRM, fRMM;
+	bool fInit = true;
+	bool fDRV, fDEV, fCOD, fSERVICES, fCHNL, fMSG, fIO;
+	bool fMGR, fPROC, fNODE, fDISP, fNTFY, fSTRM, fRMM;
 #ifdef DEBUG
 	/* runtime check of Device IOCtl array. */
 	u32 i;

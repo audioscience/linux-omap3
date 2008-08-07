@@ -134,7 +134,7 @@ struct MSG_QUEUE {
 	struct SYNC_OBJECT *hSyncDone;	/* For synchronizing cleanup */
 	struct SYNC_OBJECT *hSyncDoneAck;	/* For synchronizing cleanup */
 	struct NTFY_OBJECT *hNtfy;	/* For notification of message ready */
-	BOOL fDone;	/* TRUE <==> deleting the object */
+	bool fDone;	/* TRUE <==> deleting the object */
 	u32 refCount;	/* Number of pending MSG_get/put calls */
 };
 

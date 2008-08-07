@@ -145,7 +145,7 @@
  *  Ensures:
  *      A requirement for each of the other public DPC functions.
  */
-	extern BOOL CDECL DPC_Init();
+	extern bool CDECL DPC_Init();
 
 /*
  *  ======== DPC_Schedule ========

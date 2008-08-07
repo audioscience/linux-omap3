@@ -108,13 +108,13 @@ void CSL_Exit(void)
  *  Purpose:
  *      Initialize the CSL module's private state.
  */
-BOOL CSL_Init(void)
+bool CSL_Init(void)
 {
 	GT_create(&CSL_DebugMask, "CS");
 
 	GT_0trace(CSL_DebugMask, GT_5CLASS, "CSL_Init\n");
 
-	return TRUE;
+	return true;
 }
 
 /*

@@ -50,13 +50,13 @@ extern DSP_STATUS DRV_GetNodeResElement(HANDLE hNode, HANDLE nodeRes,
 extern DSP_STATUS DRV_InsertNodeResElement(HANDLE hNode, HANDLE nodeRes,
 					    HANDLE pCtxt);
 
-extern DSP_STATUS DRV_ProcNodeUpdateHeapStatus(HANDLE nodeRes, BOOL status);
+extern DSP_STATUS DRV_ProcNodeUpdateHeapStatus(HANDLE nodeRes, int status);
 
-extern DSP_STATUS DRV_ProcNodeUpdateStreamStatus(HANDLE nodeRes, BOOL status);
+extern DSP_STATUS DRV_ProcNodeUpdateStreamStatus(HANDLE nodeRes, int status);
 
-extern DSP_STATUS DRV_RemoveNodeResElement(HANDLE nodeRes, BOOL status);
+extern DSP_STATUS DRV_RemoveNodeResElement(HANDLE nodeRes, int status);
 
-extern DSP_STATUS DRV_ProcNodeUpdateStatus(HANDLE nodeRes, BOOL status);
+extern DSP_STATUS DRV_ProcNodeUpdateStatus(HANDLE nodeRes, int status);
 
 extern DSP_STATUS DRV_UpdateDMMResElement(HANDLE dmmRes, u32 pMpuAddr,
 					  u32 ulSize, u32 pReqAddr,

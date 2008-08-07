@@ -41,6 +41,8 @@
 #define GT_TRACE 0	    /* 0 = "trace compiled out"; 1 = "trace active" */
 #endif
 
+#include <host_os.h>
+
 #if !defined(GT_ASSERT) || GT_TRACE
 #define GT_ASSERT 1
 #endif
@@ -154,9 +156,9 @@ void GT_init(void)
  *  ======== GT_query ========
  */
 /* ARGSUSED */
-Bool GT_query(struct GT_Mask mask, u8 class)
+bool GT_query(struct GT_Mask mask, u8 class)
 {
-	return FALSE;
+	return false;
 }
 
 /*
@@ -257,7 +259,7 @@ extern struct GT_Config _GT_params;
 #define GT_set(settings)
 #define GT_setprintf(fxn)
 
-#define GT_query(mask, class)     FALSE
+#define GT_query(mask, class)     false
 
 #define GT_0trace(mask, class, format)
 #define GT_1trace(mask, class, format, arg1)

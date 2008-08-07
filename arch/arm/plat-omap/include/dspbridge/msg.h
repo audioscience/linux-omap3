@@ -101,6 +101,6 @@
  *      TRUE if initialization succeeded, FALSE otherwise.
  *  Ensures:
  */
-	extern BOOL MSG_Init();
+	extern bool MSG_Init();
 
 #endif				/* MSG_ */

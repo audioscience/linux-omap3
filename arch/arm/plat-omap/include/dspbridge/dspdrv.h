@@ -64,7 +64,7 @@
  *      dwOpenContext!= NULL.
  *  Ensures:The Application instance owned objects are cleaned up.
  */
-extern BOOL DSP_Close(u32 dwDeviceContext);
+extern bool DSP_Close(u32 dwDeviceContext);
 
 /*
  *  ======== DSP_Deinit ========
@@ -82,7 +82,7 @@ extern BOOL DSP_Close(u32 dwDeviceContext);
  *      get called.
  *  Ensures:
  */
-extern BOOL DSP_Deinit(u32 dwDeviceContext);
+extern bool DSP_Deinit(u32 dwDeviceContext);
 
 /*
  *  ======== DSP_Init ========

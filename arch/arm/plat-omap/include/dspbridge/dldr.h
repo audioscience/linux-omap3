@@ -66,7 +66,7 @@
 	extern DSP_STATUS DLDR_GetFxnAddr(struct DLDR_NODEOBJECT *hDldrNode,
 					  char *pstrFxn, u32 *pulAddr);
 
-	extern BOOL DLDR_Init();
+	extern bool DLDR_Init();
 	extern DSP_STATUS DLDR_Load(struct DLDR_NODEOBJECT *hDldrNode,
 				    enum DLDR_PHASE phase);
 	extern DSP_STATUS DLDR_Unload(struct DLDR_NODEOBJECT *hDldrNode,

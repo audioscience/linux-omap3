@@ -154,7 +154,7 @@ void CLK_Exit(void)
  *  Purpose:
  *      Initialize CLK module.
  */
-BOOL CLK_Init(void)
+bool CLK_Init(void)
 {
 	struct clk *clk_handle;
 	int i = 0;
@@ -185,7 +185,7 @@ BOOL CLK_Init(void)
 		i++;
 	}
 
-	return TRUE;
+	return true;
 }
 
 /*
@@ -225,7 +225,7 @@ DSP_STATUS CLK_Enable(IN enum SERVICES_ClkId clk_id)
 	 * waiting for the SSI module to be active after enabling the clocks
 	 */
 	if (clk_id == SERVICESCLK_ssi_fck)
-		SSI_Clk_Prepare(TRUE);
+		SSI_Clk_Prepare(true);
 
 	return status;
 }
@@ -290,7 +290,7 @@ DSP_STATUS CLK_Disable(IN enum SERVICES_ClkId clk_id)
 		 return status;
 	}
 	if (clk_id == SERVICESCLK_ssi_ick)
-		SSI_Clk_Prepare(FALSE);
+		SSI_Clk_Prepare(false);
 
 		if (pClk) {
 			clk_disable(pClk);
@@ -357,7 +357,7 @@ s32 CLK_Get_UseCnt(IN enum SERVICES_ClkId clk_id)
 	return useCount;
 }
 
-void SSI_Clk_Prepare(BOOL FLAG)
+void SSI_Clk_Prepare(bool FLAG)
 {
 	u32 ssi_sysconfig;
 	ssi_sysconfig = __raw_readl((SSI_BASE) + 0x10);

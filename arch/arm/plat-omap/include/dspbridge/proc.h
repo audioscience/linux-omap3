@@ -280,7 +280,7 @@
  *  Ensures:
  *      TRUE: A requirement for the other public PROC functions.
  */
-	extern BOOL CDECL PROC_Init();
+	extern bool CDECL PROC_Init();
 
 /*
  *  ======== PROC_GetState ========

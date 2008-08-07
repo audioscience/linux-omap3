@@ -107,13 +107,13 @@ DSP_STATUS PRCS_GetCurrentHandle(OUT HANDLE *phProcess)
  *  Purpose:
  *      Initialize the PRCS module's private state.
  */
-BOOL PRCS_Init(void)
+bool PRCS_Init(void)
 {
 
 	GT_create(&PRCS_debugMask, "PS");	/* PS for ProcesS */
 
 	GT_0trace(PRCS_debugMask, GT_5CLASS, "PRCS_Init\n");
 
-	return TRUE;
+	return true;
 }
 

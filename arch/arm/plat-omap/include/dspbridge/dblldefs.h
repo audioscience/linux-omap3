@@ -92,7 +92,7 @@ struct DBLL_Symbol {
  */
 typedef s32(*DBLL_AllocFxn) (void *hdl, s32 space, u32 size, u32 align,
 			     u32 *dspAddr, s32 segId, s32 req,
-			     Bool reserved);
+			     bool reserved);
 
 /*
  *  ======== DBLL_CloseFxn ========
@@ -104,8 +104,8 @@ typedef s32(*DBLL_FCloseFxn) (void *);
  *  Free memory function.  Free, or unreserve (if reserved == TRUE) "size"
  *  bytes of memory from segment "space"
  */
-typedef Bool(*DBLL_FreeFxn) (void *hdl, u32 addr, s32 space, u32 size,
-			     Bool reserved);
+typedef bool(*DBLL_FreeFxn) (void *hdl, u32 addr, s32 space, u32 size,
+			     bool reserved);
 
 /*
  *  ======== DBLL_FOpenFxn ========
@@ -144,7 +144,7 @@ typedef s32(*DBLL_SeekFxn) (void *, long, int);
  *      TRUE:           Success (symbol was found).
  *      FALSE:          Failed to find symbol.
  */
-typedef Bool(*DBLL_SymLookup) (void *handle, void *pArg, void *rmmHandle,
+typedef bool(*DBLL_SymLookup) (void *handle, void *pArg, void *rmmHandle,
 			       const char *name, struct DBLL_Symbol **sym);
 
 /*
@@ -170,7 +170,7 @@ struct DBLL_Attrs {
 	void *rmmHandle;	/* Handle to pass to alloc, free functions */
 	DBLL_WriteFxn write;
 	void *wHandle;		/* Handle to pass to write, cinit function */
-	Bool baseImage;
+	bool baseImage;
 	DBLL_LogWriteFxn logWrite;
 	void *logWriteHandle;
 
@@ -265,7 +265,7 @@ typedef void(*DBLL_ExitFxn) (void);
  *      ppSym != NULL.
  *  Ensures:
  */
-typedef Bool(*DBLL_GetAddrFxn) (struct DBLL_LibraryObj *lib, char *name,
+typedef bool(*DBLL_GetAddrFxn) (struct DBLL_LibraryObj *lib, char *name,
 				struct DBLL_Symbol **ppSym);
 
 /*
@@ -301,7 +301,7 @@ typedef void(*DBLL_GetAttrsFxn) (struct DBLL_TarObj *target,
  *      ppSym != NULL.
  *  Ensures:
  */
-typedef Bool(*DBLL_GetCAddrFxn) (struct DBLL_LibraryObj *lib, char *name,
+typedef bool(*DBLL_GetCAddrFxn) (struct DBLL_LibraryObj *lib, char *name,
 				 struct DBLL_Symbol **ppSym);
 
 /*
@@ -339,7 +339,7 @@ typedef DSP_STATUS(*DBLL_GetSectFxn) (struct DBLL_LibraryObj *lib, char *name,
  *      Success:        cRefs > 0.
  *      Failure:        cRefs >= 0.
  */
-typedef Bool(*DBLL_InitFxn) (void);
+typedef bool(*DBLL_InitFxn) (void);
 
 /*
  *  ======== DBLL_load ========

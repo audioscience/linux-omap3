@@ -37,15 +37,15 @@
 				      struct DBLL_Attrs *pAttrs);
 	extern void DBLL_delete(struct DBLL_TarObj *target);
 	extern void DBLL_exit(void);
-	extern Bool DBLL_getAddr(struct DBLL_LibraryObj *lib, char *name,
+	extern bool DBLL_getAddr(struct DBLL_LibraryObj *lib, char *name,
 				 struct DBLL_Symbol **ppSym);
 	extern void DBLL_getAttrs(struct DBLL_TarObj *target,
 				  struct DBLL_Attrs *pAttrs);
-	extern Bool DBLL_getCAddr(struct DBLL_LibraryObj *lib, char *name,
+	extern bool DBLL_getCAddr(struct DBLL_LibraryObj *lib, char *name,
 				  struct DBLL_Symbol **ppSym);
 	extern DSP_STATUS DBLL_getSect(struct DBLL_LibraryObj *lib, char *name,
 				       u32 *pAddr, u32 *pSize);
-	extern Bool DBLL_init(void);
+	extern bool DBLL_init(void);
 	extern DSP_STATUS DBLL_load(struct DBLL_LibraryObj *lib,
 				    DBLL_Flags flags,
 				    struct DBLL_Attrs *attrs, u32 *pEntry);

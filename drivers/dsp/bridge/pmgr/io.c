@@ -180,9 +180,9 @@ void IO_Exit(void)
  *  Purpose:
  *      Initialize the IO module's private state.
  */
-BOOL IO_Init(void)
+bool IO_Init(void)
 {
-	BOOL fRetval = TRUE;
+	bool fRetval = true;
 
 	DBC_Require(cRefs >= 0);
 

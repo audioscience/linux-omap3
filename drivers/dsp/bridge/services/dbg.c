@@ -70,13 +70,13 @@ static struct GT_Mask DBG_debugMask = { 0, 0 };	/* GT trace var. */
  *  Purpose:
  *      Ensures trace capability is set up for link drivers.
  */
-BOOL DBG_Init(void)
+bool DBG_Init(void)
 {
 	GT_create(&DBG_debugMask, "WD");     /* for WmD (link driver) debug */
 
 	GT_0trace(DBG_debugMask, GT_5CLASS, "DBG_Init\n");
 
-	return TRUE;
+	return true;
 }
 
 /*

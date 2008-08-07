@@ -110,7 +110,7 @@
  *      pAddr != NULL.
  *  Ensures:
  */
-	extern Bool DBL_getAddr(struct DBL_LibraryObj *lib, char *name,
+	extern bool DBL_getAddr(struct DBL_LibraryObj *lib, char *name,
 				struct DBL_Symbol **ppSym);
 
 /*
@@ -146,7 +146,7 @@
  *      pAddr != NULL.
  *  Ensures:
  */
-	extern Bool DBL_getCAddr(struct DBL_LibraryObj *lib, char *name,
+	extern bool DBL_getCAddr(struct DBL_LibraryObj *lib, char *name,
 				 struct DBL_Symbol **ppSym);
 
 /*
@@ -165,7 +165,7 @@
  *      pEntry != NULL.
  *  Ensures:
  */
-	extern Bool DBL_getEntry(struct DBL_LibraryObj *lib, u32 *pEntry);
+	extern bool DBL_getEntry(struct DBL_LibraryObj *lib, u32 *pEntry);
 
 /*
  *  ======== DBL_getSect ========
@@ -202,7 +202,7 @@
  *      Success:        cRefs > 0.
  *      Failure:        cRefs >= 0.
  */
-	extern Bool DBL_init(void);
+	extern bool DBL_init(void);
 
 /*
  *  ======== DBL_load ========

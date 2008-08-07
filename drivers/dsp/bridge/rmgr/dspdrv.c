@@ -58,7 +58,7 @@
  *!                 is Global.DevObject stores this pointer as hDevNode.
  *! 02-Dec-1999 rr: DBG_SetGT and RetailMSG conditionally included.
  *!                 Comments changed.Deinit handled.Code cleaned up.
- *!                 DSP_IOControl, Close, Deinit returns BOOL values.
+ *!                 DSP_IOControl, Close, Deinit returns bool values.
  *!                 Calls WCD_InitComplete2 for Board AutoStart.
  *! 29-Nov-1999 rr: DSP_IOControl returns the result through pBufOut.
  *!                 Global Arrays keeps track of installed devices.
@@ -223,9 +223,9 @@ func_cont:
  *  ======== DSP_Deinit ========
  *  	Frees the resources allocated for bridge.
  */
-BOOL DSP_Deinit(u32 deviceContext)
+bool DSP_Deinit(u32 deviceContext)
 {
-	BOOL retVal = TRUE;
+	bool retVal = true;
 	u32 deviceNode;
 	struct MGR_OBJECT *mgrObject = NULL;
 
@@ -255,9 +255,9 @@ BOOL DSP_Deinit(u32 deviceContext)
  *  	The Calling Process handle is passed to DEV_CleanupProcesState
  *      for cleaning up of any resources used by the application
  */
-BOOL DSP_Close(u32 dwOpenContext)
+bool DSP_Close(u32 dwOpenContext)
 {
-	BOOL retVal = FALSE;
+	bool retVal = false;
 
 	DBC_Require(dwOpenContext != 0);
 
@@ -267,7 +267,7 @@ BOOL DSP_Close(u32 dwOpenContext)
 
 	if (DSP_SUCCEEDED(DEV_CleanupProcessState((HANDLE) dwOpenContext))) {
 		GT_0trace(curTrace, GT_1CLASS, "DSP_Close Succeeded \r\n");
-		retVal = TRUE;
+		retVal = true;
 	} else {
 		GT_0trace(curTrace, GT_7CLASS, "DSP_Close failed \r\n");
 	}

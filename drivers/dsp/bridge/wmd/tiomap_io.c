@@ -60,7 +60,7 @@ u32 ulTraceSecBeg;
 u32 ulTraceSecEnd;
 u32 ulShmBaseVirt;
 
-BOOL bSymbolsReloaded = TRUE;
+bool bSymbolsReloaded = true;
 
 /*
  *  ======== ReadExtDspData ========
@@ -80,7 +80,7 @@ DSP_STATUS ReadExtDspData(struct WMD_DEV_CONTEXT *hDevContext,
 	static u32	ulTraceSecEnd;
 	u32	dwExtProgVirtMem;
 	u32	dwBaseAddr = pDevContext->dwDspExtBaseAddr;
-	BOOL	bTraceRead = FALSE;
+	bool	bTraceRead = false;
 
 	DBG_Trace(DBG_ENTER, "ReadExtDspData,"
 	"hDevContext: 0x%x\n\t\tpbHostBuf: 0x%x"
@@ -112,7 +112,7 @@ DSP_STATUS ReadExtDspData(struct WMD_DEV_CONTEXT *hDevContext,
 			(dwDSPAddr >= ulTraceSecBeg)) {
 			DBG_Trace(DBG_LEVEL5, "Reading from DSP Trace"
 				 "section 0x%x \n", dwDSPAddr);
-			bTraceRead = TRUE;
+			bTraceRead = true;
 		}
 	}
 
@@ -262,7 +262,7 @@ DSP_STATUS WriteDspData(struct WMD_DEV_CONTEXT *hDevContext, IN u8 *pbHostBuf,
  */
 DSP_STATUS WriteExtDspData(struct WMD_DEV_CONTEXT *pDevContext,
 			  IN u8 *pbHostBuf, u32 dwDSPAddr, u32 ulNumBytes,
-			  u32 ulMemType, BOOL bDynamicLoad)
+			  u32 ulMemType, bool bDynamicLoad)
 {
 	u32 dwBaseAddr = pDevContext->dwDspExtBaseAddr;
 	u32 dwOffset = 0;
@@ -274,7 +274,7 @@ DSP_STATUS WriteExtDspData(struct WMD_DEV_CONTEXT *pDevContext,
 	u32 ulTLBBaseVirt = 0;
 	u32 ulShmOffsetVirt = 0;
 	struct CFG_HOSTRES hostRes;
-	BOOL bTraceLoad = FALSE;
+	bool bTraceLoad = false;
 	bTempByte1 = 0x0;
 	bTempByte2 = 0x0;
 
@@ -293,7 +293,7 @@ DSP_STATUS WriteExtDspData(struct WMD_DEV_CONTEXT *pDevContext,
 		   (dwDSPAddr >= ulTraceSecBeg)) {
 			DBG_Trace(DBG_LEVEL5, "Writing to DSP Trace "
 				 "section 0x%x \n", dwDSPAddr);
-			bTraceLoad = TRUE;
+			bTraceLoad = true;
 		}
 	}
 
@@ -424,7 +424,7 @@ DSP_STATUS WriteExtDspData(struct WMD_DEV_CONTEXT *pDevContext,
 		MEM_UnmapLinearAddress((void *) pDevContext->dwDspExtBaseAddr);
 		pDevContext->dwDspExtBaseAddr = 0x0;
 	}
-	bSymbolsReloaded = FALSE;
+	bSymbolsReloaded = false;
 	return retVal;
 }
 

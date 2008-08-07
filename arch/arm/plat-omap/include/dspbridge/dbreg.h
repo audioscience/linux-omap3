@@ -78,7 +78,7 @@
 #define MGROBJECT        "MgrObject"
 #define CLASS            "Device"	/*  device class */
 #define TRACE            "Trace"	/* GT Trace settings.  */
-#define PERFR            "Perf"	/* Enable perf Bool.  */
+#define PERFR            "Perf"	/* Enable perf bool.  */
 #define ROOT             "Root"	/*  root dir */
 
 /* MiniDriver related definitions */

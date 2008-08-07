@@ -79,7 +79,7 @@ extern DSP_STATUS WriteDspData(struct WMD_DEV_CONTEXT *pDevContext,
 extern DSP_STATUS WriteExtDspData(struct WMD_DEV_CONTEXT *pDevContext,
 				 IN u8 *pbHostBuf, u32 dwDSPAddr,
 				 u32 ulNumBytes, u32 ulMemType,
-				 BOOL bDynamicLoad);
+				 bool bDynamicLoad);
 
 /*
  * ======== WriteExt32BitDspData ========

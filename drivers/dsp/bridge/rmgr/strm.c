@@ -482,7 +482,7 @@ DSP_STATUS STRM_GetInfo(struct STRM_OBJECT *hStrm,
 		/* We have a translator */
 		DBC_Assert(hStrm->uSegment > 0);
 		CMM_XlatorInfo(hStrm->hXlator, (u8 **)&pVirtBase, 0,
-			      hStrm->uSegment, FALSE);
+			      hStrm->uSegment, false);
 	}
 	pStreamInfo->uSegment = hStrm->uSegment;
 	pStreamInfo->lMode = hStrm->lMode;
@@ -514,7 +514,7 @@ func_end:
  *  Purpose:
  *      Idles a particular stream.
  */
-DSP_STATUS STRM_Idle(struct STRM_OBJECT *hStrm, BOOL fFlush)
+DSP_STATUS STRM_Idle(struct STRM_OBJECT *hStrm, bool fFlush)
 {
 	struct WMD_DRV_INTERFACE *pIntfFxns;
 	DSP_STATUS status = DSP_SOK;
@@ -540,9 +540,9 @@ DSP_STATUS STRM_Idle(struct STRM_OBJECT *hStrm, BOOL fFlush)
  *  Purpose:
  *      Initialize the STRM module.
  */
-BOOL STRM_Init(void)
+bool STRM_Init(void)
 {
-	BOOL fRetVal = TRUE;
+	bool fRetVal = true;
 
 	DBC_Require(cRefs >= 0);
 
@@ -722,7 +722,7 @@ DSP_STATUS STRM_Open(struct NODE_OBJECT *hNode, u32 uDir, u32 uIndex,
 			/*  Set translators Virt Addr attributes */
 			status = CMM_XlatorInfo(pStrm->hXlator,
 				 (u8 **)&pAttr->pVirtBase, pAttr->ulVirtSize,
-				 pStrm->uSegment, TRUE);
+				 pStrm->uSegment, true);
 			if (status != DSP_SOK) {
 				GT_0trace(STRM_debugMask, GT_6CLASS,
 					 "STRM_Open: ERROR: "
@@ -1024,7 +1024,7 @@ static DSP_STATUS DeleteStrm(struct STRM_OBJECT *hStrm)
 				if (hStrm->hXlator) {
 					/* force free */
 					(void)CMM_XlatorDelete(hStrm->hXlator,
-					TRUE);
+					true);
 				}
 			}
 		}

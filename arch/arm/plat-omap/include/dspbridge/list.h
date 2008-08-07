@@ -50,7 +50,7 @@
 #ifndef LIST_
 #define LIST_
 
-#include <linux/types.h>
+#include <host_os.h>
 
 #define LST_IsEmpty(l)      (((l)->head.next == &(l)->head))
 
@@ -182,7 +182,7 @@
  *  Ensures:
  *      LST initialized.
  */
-	extern BOOL LST_Init();
+	extern bool LST_Init();
 
 /*
  *  ======== LST_InitElem ========

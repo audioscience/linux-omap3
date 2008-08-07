@@ -78,7 +78,7 @@ struct DBL_Symbol {
  *  success, or an error code on failure.
  */
 typedef s32(*DBL_AllocFxn) (void *hdl, s32 space, u32 size, u32 align,
-			    u32 *dspAddr, s32 segId, s32 req, Bool reserved);
+			u32 *dspAddr, s32 segId, s32 req, bool reserved);
 
 /*
  *  ======== DBL_CinitFxn ========
@@ -111,8 +111,8 @@ typedef s32(*DBL_FCloseFxn) (void *);
  *  Free memory function.  Free, or unreserve (if reserved == TRUE) "size"
  *  bytes of memory from segment "space"
  */
-typedef Bool(*DBL_FreeFxn) (void *hdl, u32 addr, s32 space, u32 size,
-			    Bool reserved);
+typedef bool(*DBL_FreeFxn) (void *hdl, u32 addr, s32 space, u32 size,
+			    bool reserved);
 
 /*
  *  ======== DBL_FOpenFxn ========
@@ -151,7 +151,7 @@ typedef s32(*DBL_SeekFxn) (void *, long, int);
  *      TRUE:           Success (symbol was found).
  *      FALSE:          Failed to find symbol.
  */
-typedef Bool(*DBL_SymLookup) (void *handle, void *pArg, void *rmmHandle,
+typedef bool(*DBL_SymLookup) (void *handle, void *pArg, void *rmmHandle,
 			      const char *name, struct DBL_Symbol **sym);
 
 /*
@@ -272,7 +272,7 @@ typedef void(*DBL_ExitFxn) (void);
  *      ppSym != NULL.
  *  Ensures:
  */
-typedef Bool(*DBL_GetAddrFxn) (struct DBL_LibraryObj *lib, char *name,
+typedef bool(*DBL_GetAddrFxn) (struct DBL_LibraryObj *lib, char *name,
 			       struct DBL_Symbol **ppSym);
 
 /*
@@ -308,7 +308,7 @@ typedef void(*DBL_GetAttrsFxn) (struct DBL_TargetObj *target,
  *      ppSym != NULL.
  *  Ensures:
  */
-typedef Bool(*DBL_GetCAddrFxn) (struct DBL_LibraryObj *lib, char *name,
+typedef bool(*DBL_GetCAddrFxn) (struct DBL_LibraryObj *lib, char *name,
 				struct DBL_Symbol **ppSym);
 
 /*
@@ -346,7 +346,7 @@ typedef DSP_STATUS(*DBL_GetSectFxn) (struct DBL_LibraryObj *lib, char *name,
  *      Success:        cRefs > 0.
  *      Failure:        cRefs >= 0.
  */
-typedef Bool(*DBL_InitFxn) (void);
+typedef bool(*DBL_InitFxn) (void);
 
 /*
  *  ======== DBL_load ========

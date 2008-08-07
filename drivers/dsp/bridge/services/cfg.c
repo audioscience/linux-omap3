@@ -374,7 +374,7 @@ DSP_STATUS CFG_GetObject(OUT u32 *pdwValue, u32 dwType)
  *  Purpose:
  *      Initialize the CFG module's private state.
  */
-BOOL CFG_Init(void)
+bool CFG_Init(void)
 {
 	struct CFG_DSPRES dspResources;
 	GT_create(&CFG_debugMask, "CF");	/* CF for ConFig */
@@ -397,7 +397,7 @@ BOOL CFG_Init(void)
 		GT_0trace(CFG_debugMask, GT_5CLASS,
 			  "Failed to Initialize DSP resources"
 			  " in Registry \n");
-	return TRUE;
+	return true;
 }
 
 /*

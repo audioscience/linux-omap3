@@ -152,7 +152,7 @@ void MSG_Exit(void)
 /*
  *  ======== MSG_Init ========
  */
-BOOL MSG_Init(void)
+bool MSG_Init(void)
 {
 	DBC_Require(cRefs >= 0);
 
@@ -168,6 +168,6 @@ BOOL MSG_Init(void)
 
 	DBC_Ensure(cRefs >= 0);
 
-	return TRUE;
+	return true;
 }
 

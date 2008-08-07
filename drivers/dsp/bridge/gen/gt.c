@@ -30,7 +30,6 @@
 
 /*  ----------------------------------- DSP/BIOS Bridge */
 #include <std.h>
-#include <stdarg.h>
 
 /*  ----------------------------------- This */
 #include <gt.h>
@@ -54,7 +53,7 @@ char *GT_2format = "%s - %d(%d): ";
 
 unsigned char *GT_tMask[GT_BOUND];
 
-static Bool curInit = FALSE;
+static bool curInit = false;
 static char *separator;
 static unsigned char tabMem[GT_BOUND][sizeof(unsigned char) * GT_BOUND];
 
@@ -86,7 +85,7 @@ void GT_init(void)
 	register unsigned char index2;
 
 	if (!curInit) {
-		curInit = TRUE;
+		curInit = true;
 
 		separator = " ,;/";
 
@@ -113,19 +112,19 @@ void _GT_set(char *str)
 	s16 index1 = GT_BOUND;	/* indicates all values */
 	s16 index2 = GT_BOUND;	/* indicates all values */
 	char op = GT_CLEAR;
-	Bool maskValid;
+	bool maskValid;
 	s16 digit;
 	register unsigned char mask = 0x0;	/* no tracing */
 
 	if (str == NULL)
 		return;
 
-	maskValid = FALSE;
+	maskValid = false;
 	state = GT_SEP;
 	while (*str != '\0') {
 		switch ((s32) state) {
 		case (s32) GT_SEP:
-			maskValid = FALSE;
+			maskValid = false;
 			sep = separator;
 			while (*str != '\0') {
 				if (*str == *sep) {
@@ -181,7 +180,7 @@ void _GT_set(char *str)
 			mask = 0x0;	/* no tracing */
 			switch (op) {
 			case (s32) GT_CLEAR:
-				maskValid = TRUE;
+				maskValid = true;
 			case (s32) GT_ON:
 			case (s32) GT_OFF:
 				state = GT_DIGITS;
@@ -196,12 +195,12 @@ void _GT_set(char *str)
 			digit = (s16) (*str - '0');
 			if ((digit >= 0) && (digit <= 7)) {
 				mask |= (0x01 << digit);
-				maskValid = TRUE;
+				maskValid = true;
 				str++;
 			} else {
-				if (maskValid == TRUE) {
+				if (maskValid == true) {
 					setMask(index1, index2, op, mask);
-					maskValid = FALSE;
+					maskValid = false;
 				}
 				state = GT_SEP;
 			}

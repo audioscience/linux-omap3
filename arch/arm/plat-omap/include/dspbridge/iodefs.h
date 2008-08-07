@@ -36,7 +36,7 @@
 /* IO manager attributes: */
 	struct IO_ATTRS {
 		u8 bIRQ;	/* Channel's I/O IRQ number. */
-		BOOL fShared;	/* TRUE if the IRQ is shareable. */
+		bool fShared;	/* TRUE if the IRQ is shareable. */
 		u32 uWordSize;	/* DSP Word size. */
 		u32 dwSMBase;	/* Physical base address of shared memory. */
 		u32 uSMLength;	/* Size (in bytes) of shared memory. */

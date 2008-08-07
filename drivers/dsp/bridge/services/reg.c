@@ -155,9 +155,9 @@ DSP_STATUS REG_GetValue(OPTIONAL IN HANDLE *phKey, IN CONST char *pstrSubkey,
  *  ======== REG_Init ========
  *  Initialize the REG module's private state.
  */
-BOOL REG_Init(void)
+bool REG_Init(void)
 {
-	BOOL fInit;
+	bool fInit;
 
 	GT_create(&REG_debugMask, "RG");	/* RG for ReG */
 

@@ -56,8 +56,7 @@
 #ifndef CSL_
 #define CSL_
 
-#include <linux/types.h>
-
+#include <host_os.h>
 /*
  *  ======== CSL_Atoi ========
  *  Purpose:
@@ -97,7 +96,7 @@
  *  Ensures:
  *      A requirement for each of the other public CSL functions.
  */
-	extern BOOL CSL_Init();
+	extern bool CSL_Init();
 
 /*
  *  ======== CSL_NumToAscii ========

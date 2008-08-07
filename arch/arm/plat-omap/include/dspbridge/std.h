@@ -120,24 +120,12 @@
  *  Aliases for standard C types
  */
 
-#if defined(_80_)
-typedef int Bool;		/* boolean */
-#elif defined(_W32_)
-typedef long Bool;		/* boolean to match Windows boolean def */
-#else
-typedef u16 Bool;		/* boolean */
-#endif
-
 typedef s32(*Fxn) ();		/* generic function type */
 
 #ifndef NULL
 #define NULL 0
 #endif
 
-#ifndef TRUE
-#define FALSE ((Bool)0)
-#define TRUE  ((Bool)1)
-#endif
 
 /*
  * These macros are used to cast 'Arg' types to 's32' or 'Ptr'.

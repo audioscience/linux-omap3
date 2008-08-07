@@ -92,7 +92,7 @@
  *! 21-Jan-2000 ag: Clean-up per code review.
  *! 10-Dev-1999 ag: Added critical section in IO_Dispatch() to protect IOCL/IOR.
  *!		 Removed DBC_Asserts after cancelled/closed channels.
- *!		 Replaced x86 specific __asm int 3 with DBC_Assert(FALSE);
+ *!		 Replaced x86 specific __asm int 3 with DBC_Assert(false);
  *! 12-Nov-1999 ag: Removed some warnings when compiling for 16 bit targets.
  *!		 (See #if _CHNL_WORDSIZE).
  *! 04-Nov-1999 ag: WinCE port.
@@ -195,7 +195,7 @@ struct IO_MGR {
 	u8 *pMsgOutput; 	/* Address of output messages   */
 	u32 uSMBufSize; 	/* Size of a shared memory I/O channel */
 	struct ISR_IRQ *hIRQ; 		/* Virutalized IRQ handle       */
-	BOOL fSharedIRQ; 	/* Is this IRQ shared?	  */
+	bool fSharedIRQ; 	/* Is this IRQ shared?	  */
 	struct DPC_OBJECT *hDPC; 	/* DPC object handle	    */
 	struct SYNC_CSOBJECT *hCSObj; 	/* Critical section object handle */
 	u32 uWordSize; 	/* Size in bytes of DSP word    */
@@ -752,7 +752,7 @@ func_cont:
 		if ((hIOMgr->extProcInfo.tyTlb[0].ulGppPhys == 0) ||
 		   (uNumProcs != 1)) {
 			status = CHNL_E_NOMEMMAP;
-			DBC_Assert(FALSE);
+			DBC_Assert(false);
 		} else {
 			DBC_Assert(aEProc[0].ulDspVa <= ulShmBase);
 			/* ulShmBase may not be at ulDspVa address */
@@ -1054,10 +1054,10 @@ void IO_DPC(IN OUT void *pRefData)
  *      Calls the WMD's CHNL_ISR to determine if this interrupt is ours, then
  *      schedules a DPC to dispatch I/O.
  */
-BOOL IO_ISR(IN void *pRefData)
+bool IO_ISR(IN void *pRefData)
 {
 	struct IO_MGR *hIOMgr = (struct IO_MGR *)pRefData;
-	BOOL fSchedDPC;
+	bool fSchedDPC;
 	DBC_Require(MEM_IsValidHandle(hIOMgr, IO_MGRSIGNATURE));
 	DBG_Trace(DBG_LEVEL3, "Entering IO_ISR(0x%x)\n", pRefData);
 	/* Call WMD's CHNLSM_ISR() to see if interrupt is ours, and process. */
@@ -1080,12 +1080,12 @@ BOOL IO_ISR(IN void *pRefData)
 				DPC_Schedule(hIOMgr->hDPC);
 			}
 		}
-		return TRUE;
+		return true;
 	} else {
 		/* Ensure that, if WMD didn't claim it, the IRQ is shared. */
 		DBC_Ensure(hIOMgr->fSharedIRQ);
-		/* If not ours, return FALSE. */
-		return FALSE;
+		/* If not ours, return false. */
+		return false;
 	}
 }
 
@@ -1187,8 +1187,8 @@ static void InputChnl(struct IO_MGR *pIOMgr, struct CHNL_OBJECT *pChnl,
 	u32 uBytes;
 	struct CHNL_IRP *pChirp = NULL;
 	u32 dwArg;
-	BOOL fClearChnl = FALSE;
-	BOOL fNotifyClient = FALSE;
+	bool fClearChnl = false;
+	bool fNotifyClient = false;
 
 	sm = pIOMgr->pSharedMem;
 	pChnlMgr = pIOMgr->hChnlMgr;
@@ -1255,22 +1255,22 @@ static void InputChnl(struct IO_MGR *pIOMgr, struct CHNL_OBJECT *pChnl,
 						   struct SHM, sm, hostFreeMask,
 						   ~(1 << pChnl->uId));
 				}
-				fClearChnl = TRUE;
-				fNotifyClient = TRUE;
+				fClearChnl = true;
+				fNotifyClient = true;
 			} else {
 				/* Input full for this channel, but we have no
 				 * buffers available.  The channel must be
 				 * "idling". Clear out the physical input
 				 * channel.  */
-				fClearChnl = TRUE;
+				fClearChnl = true;
 			}
 		} else {
 			/* Input channel cancelled:  clear input channel.  */
-			fClearChnl = TRUE;
+			fClearChnl = true;
 		}
 	} else {
 		/* DPC fired after host closed channel: clear input channel. */
-		fClearChnl = TRUE;
+		fClearChnl = true;
 	}
 	if (fClearChnl) {
 		/* Indicate to the DSP we have read the input: */
@@ -1298,7 +1298,7 @@ static void InputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR *hMsgMgr)
 	struct MSG_FRAME *pMsg;
 	struct MSG_DSPMSG msg;
 	struct MSG *pCtrl;
-	BOOL fInputEmpty;
+	u32 fInputEmpty;
 	u32 addr;
 
 	pCtrl = pIOMgr->pMsgInputCtrl;
@@ -1374,9 +1374,9 @@ static void InputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR *hMsgMgr)
 	if (uMsgs > 0) {
 		/* Tell the DSP we've read the messages */
 		IO_SetValue(pIOMgr->hWmdContext, struct MSG, pCtrl, bufEmpty,
-			   TRUE);
+			   true);
 		IO_SetValue(pIOMgr->hWmdContext, struct MSG, pCtrl, postSWI,
-			   TRUE);
+			   true);
 		IO_InterruptDSP(pIOMgr->hWmdContext);
 	}
 }
@@ -1389,7 +1389,7 @@ static void InputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR *hMsgMgr)
 static void NotifyChnlComplete(struct CHNL_OBJECT *pChnl,
 			      struct CHNL_IRP *pChirp)
 {
-	BOOL fSignalEvent;
+	bool fSignalEvent;
 
 	DBC_Require(MEM_IsValidHandle(pChnl, CHNL_SIGNATURE));
 	DBC_Require(pChnl->hSyncEvent != NULL);
@@ -1502,7 +1502,7 @@ static void OutputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR *hMsgMgr)
 	u8 *pMsgOutput;
 	struct MSG_FRAME *pMsg;
 	struct MSG *pCtrl;
-	BOOL fOutputEmpty;
+	u32 fOutputEmpty;
 	u32 val;
 	u32 addr;
 
@@ -1562,10 +1562,10 @@ static void OutputMsg(struct IO_MGR *pIOMgr, struct MSG_MGR *hMsgMgr)
 				   size, uMsgs);
 #endif
 			IO_SetValue(pIOMgr->hWmdContext, struct MSG, pCtrl,
-				   bufEmpty, FALSE);
+				   bufEmpty, false);
 			/* Set the post SWI flag */
 			IO_SetValue(pIOMgr->hWmdContext, struct MSG, pCtrl,
-				   postSWI, TRUE);
+				   postSWI, true);
 			/* Tell the DSP we have written the output. */
 			IO_InterruptDSP(pIOMgr->hWmdContext);
 		}
@@ -1792,7 +1792,7 @@ void PrintDSPDebugTrace(struct IO_MGR *hIOMgr)
 {
 	u32 ulNewMessageLength = 0, ulGPPCurPointer;
 
-	while (TRUE) {
+	while (true) {
 		/* Get the DSP current pointer */
 		ulGPPCurPointer = *(u32 *) (hIOMgr->ulTraceBufferCurrent);
 		ulGPPCurPointer = hIOMgr->ulGppVa + (ulGPPCurPointer -

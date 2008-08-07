@@ -281,9 +281,9 @@ void DISP_Exit(void)
  *  ======== DISP_Init ========
  *  Initialize the DISP module.
  */
-BOOL DISP_Init(void)
+bool DISP_Init(void)
 {
-	BOOL fRetVal = TRUE;
+	bool fRetVal = true;
 
 	DBC_Require(cRefs >= 0);
 

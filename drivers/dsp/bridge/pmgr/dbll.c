@@ -165,7 +165,7 @@ struct Symbol {
 	struct DBLL_Symbol value;
 	char *name;
 } ;
-extern BOOL bSymbolsReloaded;
+extern bool bSymbolsReloaded;
 
 static void dofClose(struct DBLL_LibraryObj *zlLib);
 static DSP_STATUS dofOpen(struct DBLL_LibraryObj *zlLib);
@@ -217,7 +217,7 @@ static void release(struct Dynamic_Loader_Initialize *this);
 
 /* symbol table hash functions */
 static u16 nameHash(void *name, u16 maxBucket);
-static Bool nameMatch(void *name, void *sp);
+static bool nameMatch(void *name, void *sp);
 static void symDelete(void *sp);
 
 #if GT_TRACE
@@ -227,8 +227,8 @@ static struct GT_Mask DBLL_debugMask = { 0, 0 };     /* GT trace variable */
 static u32 cRefs; 		/* module reference count */
 
 /* Symbol Redefinition */
-static Bool bRedefinedSymbol = FALSE;
-static Bool bGblSearch = TRUE;
+static int bRedefinedSymbol = 0;
+static int bGblSearch = 1;
 
 /*
  *  ======== DBLL_close ========
@@ -353,11 +353,11 @@ void DBLL_exit(void)
  *  ======== DBLL_getAddr ========
  *  Get address of name in the specified library.
  */
-Bool DBLL_getAddr(struct DBLL_LibraryObj *zlLib, char *name,
+bool DBLL_getAddr(struct DBLL_LibraryObj *zlLib, char *name,
 		  struct DBLL_Symbol **ppSym)
 {
 	struct Symbol *sym;
-	Bool status = FALSE;
+	bool status = false;
 
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(zlLib, DBLL_LIBSIGNATURE));
@@ -371,7 +371,7 @@ Bool DBLL_getAddr(struct DBLL_LibraryObj *zlLib, char *name,
 	sym = (struct Symbol *)GH_find(zlLib->symTab, name);
 	if (sym != NULL) {
 		*ppSym = &sym->value;
-		status = TRUE;
+		status = true;
 	}
 	return status;
 }
@@ -397,12 +397,12 @@ void DBLL_getAttrs(struct DBLL_TarObj *target, struct DBLL_Attrs *pAttrs)
  *  ======== DBLL_getCAddr ========
  *  Get address of a "C" name in the specified library.
  */
-Bool DBLL_getCAddr(struct DBLL_LibraryObj *zlLib, char *name,
+bool DBLL_getCAddr(struct DBLL_LibraryObj *zlLib, char *name,
 		   struct DBLL_Symbol **ppSym)
 {
 	struct Symbol *sym;
 	char cname[MAXEXPR + 1];
-	Bool status = FALSE;
+	bool status = false;
 
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(zlLib, DBLL_LIBSIGNATURE));
@@ -420,7 +420,7 @@ Bool DBLL_getCAddr(struct DBLL_LibraryObj *zlLib, char *name,
 
 	if (sym != NULL) {
 		*ppSym = &sym->value;
-		status = TRUE;
+		status = true;
 	}
 
 	return status;
@@ -434,7 +434,7 @@ DSP_STATUS DBLL_getSect(struct DBLL_LibraryObj *lib, char *name, u32 *pAddr,
 			u32 *pSize)
 {
 	u32 uByteSize;
-	Bool fOpenedDoff = FALSE;
+	bool fOpenedDoff = false;
 	const struct LDR_SECTION_INFO *sect = NULL;
 	struct DBLL_LibraryObj *zlLib = (struct DBLL_LibraryObj *)lib;
 	DSP_STATUS status = DSP_SOK;
@@ -453,7 +453,7 @@ DSP_STATUS DBLL_getSect(struct DBLL_LibraryObj *lib, char *name, u32 *pAddr,
 		if (zlLib->fp == NULL) {
 			status = dofOpen(zlLib);
 			if (DSP_SUCCEEDED(status))
-				fOpenedDoff = TRUE;
+				fOpenedDoff = true;
 
 		} else {
 			(*(zlLib->pTarget->attrs.fseek))(zlLib->fp,
@@ -477,7 +477,7 @@ DSP_STATUS DBLL_getSect(struct DBLL_LibraryObj *lib, char *name, u32 *pAddr,
 	}
 	if (fOpenedDoff) {
 		dofClose(zlLib);
-		fOpenedDoff = FALSE;
+		fOpenedDoff = false;
 	}
 
 	return status;
@@ -486,9 +486,9 @@ DSP_STATUS DBLL_getSect(struct DBLL_LibraryObj *lib, char *name, u32 *pAddr,
 /*
  *  ======== DBLL_init ========
  */
-Bool DBLL_init(void)
+bool DBLL_init(void)
 {
-	Bool retVal = TRUE;
+	bool retVal = true;
 
 	DBC_Require(cRefs >= 0);
 
@@ -523,10 +523,10 @@ DSP_STATUS DBLL_load(struct DBLL_LibraryObj *lib, DBLL_Flags flags,
 {
 	struct DBLL_LibraryObj *zlLib = (struct DBLL_LibraryObj *)lib;
 	struct DBLL_TarObj *dbzl;
-	Bool gotSymbols = TRUE;
+	bool gotSymbols = true;
 	s32 err;
 	DSP_STATUS status = DSP_SOK;
-	BOOL fOpenedDoff = FALSE;
+	bool fOpenedDoff = false;
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(zlLib, DBLL_LIBSIGNATURE));
 	DBC_Require(pEntry != NULL);
@@ -543,7 +543,7 @@ DSP_STATUS DBLL_load(struct DBLL_LibraryObj *lib, DBLL_Flags flags,
 		dbzl->attrs = *attrs;
 		/* Create a hash table for symbols if not already created */
 		if (zlLib->symTab == NULL) {
-			gotSymbols = FALSE;
+			gotSymbols = false;
 			zlLib->symTab = GH_create(MAXBUCKETS,
 						 sizeof(struct Symbol),
 						 nameHash,
@@ -589,7 +589,7 @@ DSP_STATUS DBLL_load(struct DBLL_LibraryObj *lib, DBLL_Flags flags,
 		if (zlLib->fp == NULL) {
 			status = dofOpen(zlLib);
 			if (DSP_SUCCEEDED(status))
-				fOpenedDoff = TRUE;
+				fOpenedDoff = true;
 
 		}
 		if (DSP_SUCCEEDED(status)) {
@@ -598,7 +598,7 @@ DSP_STATUS DBLL_load(struct DBLL_LibraryObj *lib, DBLL_Flags flags,
 			/* Reset file cursor */
 			(*(zlLib->pTarget->attrs.fseek))(zlLib->fp, (long)0,
 				 SEEK_SET);
-			bSymbolsReloaded = TRUE;
+			bSymbolsReloaded = true;
 			/* The 5th argument, DLOAD_INITBSS, tells the DLL
 			 * module to zero-init all BSS sections.  In general,
 			 * this is not necessary and also increases load time.
@@ -617,7 +617,7 @@ DSP_STATUS DBLL_load(struct DBLL_LibraryObj *lib, DBLL_Flags flags,
 			} else if (bRedefinedSymbol) {
 				zlLib->loadRef++;
 				DBLL_unload(zlLib, (struct DBLL_Attrs *) attrs);
-				bRedefinedSymbol = FALSE;
+				bRedefinedSymbol = false;
 				status = DSP_EDYNLOAD;
 			} else {
 				*pEntry = zlLib->entry;
@@ -808,7 +808,7 @@ DSP_STATUS DBLL_readSect(struct DBLL_LibraryObj *lib, char *name,
 			 char *pContent, u32 size)
 {
 	struct DBLL_LibraryObj *zlLib = (struct DBLL_LibraryObj *)lib;
-	Bool fOpenedDoff = FALSE;
+	bool fOpenedDoff = false;
 	u32 uByteSize; 		/* size of bytes */
 	u32 ulSectSize; 		/* size of section */
 	const struct LDR_SECTION_INFO *sect = NULL;
@@ -828,7 +828,7 @@ DSP_STATUS DBLL_readSect(struct DBLL_LibraryObj *lib, char *name,
 		if (zlLib->fp == NULL) {
 			status = dofOpen(zlLib);
 			if (DSP_SUCCEEDED(status))
-				fOpenedDoff = TRUE;
+				fOpenedDoff = true;
 
 		} else {
 			(*(zlLib->pTarget->attrs.fseek))(zlLib->fp,
@@ -865,7 +865,7 @@ DSP_STATUS DBLL_readSect(struct DBLL_LibraryObj *lib, char *name,
 func_cont:
 	if (fOpenedDoff) {
 		dofClose(zlLib);
-		fOpenedDoff = FALSE;
+		fOpenedDoff = false;
 	}
 	return status;
 }
@@ -1015,7 +1015,7 @@ static u16 nameHash(void *key, u16 maxBucket)
 /*
  *  ======== nameMatch ========
  */
-static Bool nameMatch(void *key, void *value)
+static bool nameMatch(void *key, void *value)
 {
 	DBC_Require(key != NULL);
 	DBC_Require(value != NULL);
@@ -1023,10 +1023,10 @@ static Bool nameMatch(void *key, void *value)
 	if ((key != NULL) && (value != NULL)) {
 		if (CSL_Strcmp((char *)key, ((struct Symbol *)value)->
 		   name) == 0) {
-			return TRUE;
+			return true;
 		}
 	}
-	return FALSE;
+	return false;
 }
 
 /*
@@ -1107,7 +1107,7 @@ static struct dynload_symbol *findSymbol(struct Dynamic_Loader_Sym *this,
 	struct DBLLSymbol *pSymbol = (struct DBLLSymbol *)this;
 	struct DBLL_LibraryObj *lib;
 	struct DBLL_Symbol *pSym = NULL;
-	Bool status = FALSE; 	/* Symbol not found yet */
+	bool status = false; 	/* Symbol not found yet */
 
 	DBC_Require(this != NULL);
 	lib = pSymbol->lib;
@@ -1187,11 +1187,11 @@ static struct dynload_symbol *addToSymbolTable(struct Dynamic_Loader_Sym *this,
 
 	/* Check to see if symbol is already defined in symbol table */
 	if (!(lib->pTarget->attrs.baseImage)) {
-		bGblSearch = FALSE;
+		bGblSearch = false;
 		pSym = findSymbol(this, name);
-		bGblSearch = TRUE;
+		bGblSearch = true;
 		if (pSym) {
-			bRedefinedSymbol = TRUE;
+			bRedefinedSymbol = true;
 			GT_1trace(DBLL_debugMask, GT_6CLASS,
 				 "Symbol already defined in "
 				 "symbol table: %s\n", name);
@@ -1390,7 +1390,7 @@ func_cont:
 			 (u32 *)&rmmAddr, segId, req, FALSE);
 	}
 	if (DSP_FAILED(status)) {
-		retVal = FALSE;
+		retVal = false;
 	} else {
 		/* RMM gives word address. Need to convert to byte address */
 		info->load_addr = rmmAddr.addr * DSPWORDSIZE;
@@ -1432,7 +1432,7 @@ static void rmmDealloc(struct Dynamic_Loader_Allocate *this,
 	if (lib != NULL) {
 		status = (lib->pTarget->attrs.free)(lib->pTarget->
 			 attrs.symHandle, segid, info->load_addr / DSPWORDSIZE,
-			 freeSize, FALSE);
+			 freeSize, false);
 	}
 	if (DSP_SUCCEEDED(status)) {
 		GT_2trace(DBLL_debugMask, GT_5CLASS,
@@ -1448,7 +1448,7 @@ static void rmmDealloc(struct Dynamic_Loader_Allocate *this,
  */
 static int connect(struct Dynamic_Loader_Initialize *this)
 {
-	return TRUE;
+	return true;
 }
 
 /*
@@ -1481,7 +1481,7 @@ static int writeMem(struct Dynamic_Loader_Initialize *this, void *buf,
 	struct DBLL_LibraryObj *lib;
 	struct DBLL_SectInfo sectInfo;
 	u32 memType;
-	Bool retVal;
+	bool retVal;
 
 	DBC_Require(this != NULL);
 	lib = pInit->lib;
@@ -1517,7 +1517,7 @@ static int fillMem(struct Dynamic_Loader_Initialize *this, LDR_ADDR addr,
 		   struct LDR_SECTION_INFO *info, unsigned nBytes,
 		   unsigned val)
 {
-	Bool retVal = TRUE;
+	bool retVal = true;
 	char *pBuf;
 	struct DBLL_LibraryObj *lib;
 	struct DBLLInit *pInit = (struct DBLLInit *)this;
@@ -1533,6 +1533,7 @@ static int fillMem(struct Dynamic_Loader_Initialize *this, LDR_ADDR addr,
 		writeMem(this, &pBuf, addr, info, 0);
 	if (pBuf)
 		memset(pBuf, val, nBytes);
+
 	return retVal;
 }
 
@@ -1543,7 +1544,7 @@ static int execute(struct Dynamic_Loader_Initialize *this, LDR_ADDR start)
 {
 	struct DBLLInit *pInit = (struct DBLLInit *)this;
 	struct DBLL_LibraryObj *lib;
-	Bool retVal = TRUE;
+	bool retVal = true;
 
 	DBC_Require(this != NULL);
 	lib = pInit->lib;

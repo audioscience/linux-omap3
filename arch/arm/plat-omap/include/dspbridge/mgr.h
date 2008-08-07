@@ -229,6 +229,6 @@
  *  Ensures:
  *      TRUE: A requirement for the other public MGR functions.
  */
-	extern BOOL CDECL MGR_Init();
+	extern bool CDECL MGR_Init();
 
 #endif				/* MGR_ */

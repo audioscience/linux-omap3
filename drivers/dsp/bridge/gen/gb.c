@@ -167,12 +167,12 @@ void GB_set(struct GB_TMap *map, GB_BitNum bitn)
 /*
  *  ======== GB_test ========
  *  purpose:
- *      Returns TRUE if the bit is set in the specified location.
+ *      Returns true if the bit is set in the specified location.
  */
 
-Bool GB_test(struct GB_TMap *map, GB_BitNum bitn)
+bool GB_test(struct GB_TMap *map, GB_BitNum bitn)
 {
-	Bool state;
+	bool state;
 	u32 mask;
 	u32 word;
 
