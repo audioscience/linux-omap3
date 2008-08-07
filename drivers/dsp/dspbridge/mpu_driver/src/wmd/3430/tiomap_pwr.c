@@ -106,10 +106,9 @@ DSP_STATUS handle_constraints_set(struct WMD_DEV_CONTEXT *pDevContext,
 			 "handle_constraints_set: Constraint set failed\n");
 		return DSP_EFAIL;
 	}
-#else
-	return DSP_SOK;
 #endif /*#ifndef DISABLE_BRIDGE_DVFS*/
 #endif /*#ifndef DISABLE_BRIDGE_PM*/
+	return DSP_SOK;
 }
 
 /*
@@ -456,10 +455,9 @@ DSP_STATUS PreScale_DSP(struct WMD_DEV_CONTEXT *pDevContext, IN void *pArgs)
 			  " state in wrong state");
 		return DSP_EFAIL;
 	}
-#else
-	return DSP_SOK;
- #endif /*#ifndef DISABLE_BRIDGE_DVFS*/
+#endif /*#ifndef DISABLE_BRIDGE_DVFS*/
 #endif  /*#ifndef DISABLE_BRIDGE_PM */
+	return DSP_SOK;
 }
 
 /*
@@ -507,10 +505,9 @@ DSP_STATUS PostScale_DSP(struct WMD_DEV_CONTEXT *pDevContext, IN void *pArgs)
 			  "in wrong state");
 		return DSP_EFAIL;
 	}
-#else
-	return DSP_SOK;
 #endif /*#ifndef DISABLE_BRIDGE_DVFS*/
 #endif /*#ifndef DISABLE_BRIDGE_PM*/
+	return DSP_SOK;
 }
 
 /*

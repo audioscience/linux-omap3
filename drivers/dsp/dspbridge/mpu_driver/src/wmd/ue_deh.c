@@ -435,6 +435,8 @@ void CDECL WMD_DEH_Notify(struct DEH_MGR *hDehMgr, u32 ulEventMask,
 			memPhysical  = VirtToPhys(dummyVaAddr);
 			DBG_Trace(DBG_LEVEL6, "WMD_DEH_Notify: DSP_MMUFAULT, "
 				 "mem Physical= 0x%x\n", memPhysical);
+			pDevContext = (struct WMD_DEV_CONTEXT *)
+						pDehMgr->hWmdContext;
 			/* Reset the dynamic mmu index to fixed count if it
 			 * exceeds 31. So that the dynmmuindex is always
 			 * between the range of standard/fixed entries

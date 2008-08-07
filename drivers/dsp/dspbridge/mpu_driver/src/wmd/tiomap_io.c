@@ -268,7 +268,7 @@ DSP_STATUS WriteExtDspData(struct WMD_DEV_CONTEXT *pDevContext,
 			  u32 ulMemType, BOOL bDynamicLoad)
 {
 	u32 dwBaseAddr = pDevContext->dwDspExtBaseAddr;
-	u32 dwOffset;
+	u32 dwOffset = 0;
 	u8 bTempByte1, bTempByte2;
 	u8 remainByte[4];
 	s32 i;

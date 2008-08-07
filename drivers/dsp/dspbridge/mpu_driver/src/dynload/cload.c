@@ -41,12 +41,6 @@ static void init_module_handle(struct dload_state *dlthis);
 #if BITS_PER_AU > BITS_PER_BYTE
 static char *unpack_name(struct dload_state *dlthis, u32 soffset);
 #endif
-#if LEAD3
-static boolean chk_revision_mix(struct dload_state *dlthis, const char *sname);
-static boolean chk_memmodel_mix(struct dload_state *dlthis,
-		const struct doff_syment_t *sym, const struct dynload_symbol
-		*defSym, const char *sname);
-#endif
 
 static const char CINITNAME[] = { ".cinit" };
 static const char LOADER_DLLVIEW_ROOT[] = { "?DLModules?" };
@@ -832,13 +826,6 @@ static void dload_symbols(struct dload_state *dlthis)
 					}
 					val += delta;
 				}
-#if LEAD3
-				if (is_data_scn_num(sp->secnn)) {
-					/* adjust for 16-bit data addresses */
-					delta >>= 1;
-					val >>= 1;
-				}
-#endif
 				goto loop_itr;
 			}
 			/* This symbol is an absolute symbol */
@@ -847,28 +834,9 @@ static void dload_symbols(struct dload_state *dlthis)
 				struct dynload_symbol *symp;
 				symp = dlthis->mysym->Find_Matching_Symbol
 						      (dlthis->mysym, sname);
-				if (!symp) {
-#if LEAD3
-					/* This absolute symbol is not already
-					 * defined. Check for revision clash
-					 * before proceeding.		*/
-					if (chk_revision_mix(dlthis, sname)) {
-						/* If revision IDs are mixed,
-						 * return */
-						return;
-					}
-#endif
+				if (!symp)
 					goto loop_itr;
-				}
 				/* This absolute symbol is already defined.  */
-#if LEAD3
-				/* Check for memory model mixing */
-				if (chk_memmodel_mix(dlthis, input_sym,
-				    symp, sname)) {
-					/* If memory models are mixed, return */
-					return;
-				}
-#endif
 				if (symp->value == input_sym->dn_value) {
 					/* If symbol values are equal, continue
 					 * but don't add to the global symbol
@@ -1165,15 +1133,9 @@ static void dload_data(struct dload_state *dlthis)
 			s32 nip;
 			LDR_ADDR image_offset = 0;
 			/* set relocation info for this section */
-			if (curr_sect < dlthis->allocated_secn_count) {
+			if (curr_sect < dlthis->allocated_secn_count)
 				dlthis->delta_runaddr = sptr->ds_paddr;
-#if LEAD3
-				if (is_data_scn(lptr)) {
-					/* word-addressed data */
-					dlthis->delta_runaddr >>= 1;
-				}
-#endif
-			} else {
+			else {
 				lptr = DOFFSEC_IS_LDRSEC(sptr);
 				dlthis->delta_runaddr = 0;
 			}
@@ -1658,18 +1620,8 @@ static void init_module_handle(struct dload_state *dlthis)
 	dbsec = dbmod->sects;
 	for (curr_sect = dlthis->allocated_secn_count;
 	     curr_sect > 0; curr_sect -= 1) {
-#if LEAD3
-#define LEAD3_DATA_FLAG (3UL << 30)
-		if (is_data_scn(asecs)) {
-			dbsec->sect_load_adr = asecs->load_addr >> 1;
-			dbsec->sect_run_adr = (asecs->run_addr >> 1) |
-					       LEAD3_DATA_FLAG;
-		} else
-#endif
-		{
-			dbsec->sect_load_adr = asecs->load_addr;
-			dbsec->sect_run_adr = asecs->run_addr;
-		}
+		dbsec->sect_load_adr = asecs->load_addr;
+		dbsec->sect_run_adr = asecs->run_addr;
 		dbsec += 1;
 		asecs += 1;
 	}
@@ -1912,87 +1864,4 @@ static char *unpack_name(struct dload_state *dlthis, u32 soffset)
 	/* squirrel away length including terminating null */
 	return dlthis->str_temp;
 }				/* unpack_name */
-#endif
-
-#if LEAD3
-/*************************************************************************
- * Procedure chk_revision_mix
- *
- * Parameters:
- *  sname: Name of absolute symbol
- *
- * Effect:
- *  Given a symbol name, determine whether it reflects a CPU revision ID.
- *  If  it does, determine whether a different revision ID has already been
- *  defined.  If so, this would indicate that there is a CPU revision
- *  conflict, so produce an error and return TRUE.  Otherwise, there is no
- *  conflict,  return FALSE.
- ************************************************************************/
-static boolean chk_revision_mix(struct dload_state *dlthis, const char *sname)
-{
-	char *filename;
-	struct dynload_symbol *symp;
-#if BITS_PER_AU > BITS_PER_BYTE
-	filename = unpack_name(dlthis, 0);
-#else
-	filename = dlthis->str_head + BYTE_TO_HOST(0);
-#endif
-	if (DL_STRCMP(sname, TI_C55X_REV2) == 0) {
-		symp = dlthis->mysym->Find_Matching_Symbol(dlthis->mysym,
-							   TI_C55X_REV3);
-		if (symp) {
-			DL_ERROR("CPU rev 3 required, but %s forbids rev 3",
-				 filename);
-			return TRUE;
-		}
-	} else if (DL_STRCMP(sname, TI_C55X_REV3) == 0) {
-		symp = dlthis->mysym->Find_Matching_Symbol(dlthis->mysym,
-							TI_C55X_REV2);
-		if (symp) {
-			DL_ERROR("CPU rev 2 required, but %s forbids rev 2",
-				 filename);
-			return TRUE;
-		}
-	}
-	return FALSE;
-}
-
-/************************************************************************
- * Procedure chk_memmodel_mix
- *
- * Parameters:
- *	sname: Name of absolute symbol
- *
- * Effect:
- *  Given an old memory model symbol definition and new memory model
- *  symbol definition, evaluate whether the memory models are equal.
- *  If they aren't, produce error message and return TRUE.
- *  If they are, return  FALSE.
- ************************************************************************/
-static boolean chk_memmodel_mix(struct dload_state *dlthis,
-				const struct doff_syment_t *sym,
-				const struct dynload_symbol *defSym,
-				const char *sname)
-{
-	char *filename;
-	const char *mem_model_names[] = { "?", "small", "large", "?"/* 0-3 */
-		    "reserved", "?", "?", "?",	/* 4-7 */
-		"huge"		/*  8  */
-	};
-	if (DL_STRCMP(sname, TI_C55X_MEM_MODEL) == 0) {
-#if BITS_PER_AU > BITS_PER_BYTE
-		filename = unpack_name(dlthis, 0);
-#else
-		filename = dlthis->str_head + BYTE_TO_HOST(0);
-#endif
-		if (defSym->value != sym->dn_value) {
-			dload_error(dlthis,
-				    "%s is %s model, but CPU defines %s model",
-				    filename, mem_model_names[sym->dn_value],
-				    mem_model_names[defSym->value]);
-			return TRUE;
-		}
-	}
-	return FALSE;
-}
 #endif
