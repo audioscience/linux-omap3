@@ -123,15 +123,15 @@
 /* New structure (member of process context) abstracts NODE resource info */
 struct NODE_RES_OBJECT {
 	DSP_HNODE       hNode;
-	BOOL            nodeAllocated; /* Node status */
-	BOOL            heapAllocated; /* Heap status */
-	BOOL            streamsAllocated; /* Streams status */
+	s32            nodeAllocated; /* Node status */
+	s32            heapAllocated; /* Heap status */
+	s32            streamsAllocated; /* Streams status */
 	struct NODE_RES_OBJECT         *next;
 } ;
 
 /* New structure (member of process context) abstracts DMM resource info */
 struct DMM_RES_OBJECT {
-	BOOL            dmmAllocated; /* DMM status */
+	s32            dmmAllocated; /* DMM status */
 	u32           ulMpuAddr;
 	u32           ulDSPAddr;
 	u32           ulDSPResAddr;
@@ -142,7 +142,7 @@ struct DMM_RES_OBJECT {
 
 /* New structure (member of process context) abstracts DMM resource info */
 struct DSPHEAP_RES_OBJECT {
-	BOOL            heapAllocated; /* DMM status */
+	s32            heapAllocated; /* DMM status */
 	u32           ulMpuAddr;
 	u32           ulDSPAddr;
 	u32           ulDSPResAddr;
@@ -153,7 +153,7 @@ struct DSPHEAP_RES_OBJECT {
 
 /* New structure (member of process context) abstracts stream resource info */
 struct STRM_RES_OBJECT {
-	BOOL                    streamAllocated; /* Stream status */
+	s32                    streamAllocated; /* Stream status */
 	DSP_HSTREAM             hStream;
 	u32                    uNumBufs;
 	u32                    uDir;

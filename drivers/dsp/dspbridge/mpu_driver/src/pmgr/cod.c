@@ -92,7 +92,7 @@
 struct COD_MANAGER {
 	struct DBLL_TarObj *target;
 	struct DBLL_LibraryObj *baseLib;
-	BOOL fLoaded;		/* Base library loaded? */
+	bool fLoaded;		/* Base library loaded? */
 	u32 ulEntry;
 	struct LDR_MODULE *hDll;
 	struct DBLL_Fxns fxns;
@@ -134,7 +134,7 @@ static struct DBLL_Fxns dbllFxns = {
 	(DBLL_UnloadSectFxn) DBLL_unloadSect,
 };
 
-static BOOL NoOp();
+static bool NoOp();
 
 /*
  *  ======== COD_Close ========
@@ -206,7 +206,7 @@ DSP_STATUS COD_Create(OUT struct COD_MANAGER **phMgr, char *pstrDummyFile,
 	zlAttrs.fclose = (DBLL_FCloseFxn)KFILE_Close;
 	zlAttrs.fopen = (DBLL_FOpenFxn)KFILE_Open;
 	zlAttrs.symLookup = NULL;
-	zlAttrs.baseImage = TRUE;
+	zlAttrs.baseImage = true;
 	zlAttrs.logWrite = NULL;
 	zlAttrs.logWriteHandle = NULL;
 	zlAttrs.write = 0;
@@ -447,9 +447,9 @@ DSP_STATUS COD_GetSymValue(struct COD_MANAGER *hMgr, char *pstrSym,
  *      Initialize the COD module's private state.
  *
  */
-BOOL COD_Init(void)
+bool COD_Init(void)
 {
-	BOOL fRetVal = TRUE;
+	bool fRetVal = true;
 
 	DBC_Require(cRefs >= 0);
 
@@ -536,7 +536,7 @@ DSP_STATUS COD_LoadBase(struct COD_MANAGER *hMgr, u32 nArgc, char *aArgs[],
 			  "0x%x\n", status);
 	}
 	if (DSP_SUCCEEDED(status))
-		hMgr->fLoaded = TRUE;
+		hMgr->fLoaded = true;
 	else
 		hMgr->baseLib = NULL;
 
@@ -613,7 +613,7 @@ DSP_STATUS COD_OpenBase(struct COD_MANAGER *hMgr, IN char *pszCoffPath,
 				 "Base Image is already loaded. "
 				 "Unloading it...\n");
 			hMgr->fxns.unloadFxn(hMgr->baseLib, &hMgr->attrs);
-			hMgr->fLoaded = FALSE;
+			hMgr->fLoaded = false;
 		}
 		hMgr->fxns.closeFxn(hMgr->baseLib);
 		hMgr->baseLib = NULL;
@@ -676,8 +676,8 @@ DSP_STATUS COD_ReadSection(struct COD_LIBRARYOBJ *lib, IN char *pstrSect,
  *      No Operation.
  *
  */
-static BOOL NoOp(void)
+static bool NoOp(void)
 {
-	return TRUE;
+	return true;
 }
 

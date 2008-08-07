@@ -343,7 +343,7 @@
  *  Ensures:
  *      A requirement for each of the other public COD functions.
  */
-	extern BOOL CDECL COD_Init();
+	extern bool CDECL COD_Init();
 
 /*
  *  ======== COD_LoadBase ========

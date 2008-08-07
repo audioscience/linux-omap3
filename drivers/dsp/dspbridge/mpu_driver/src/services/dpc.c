@@ -187,13 +187,13 @@ void DPC_Exit(void)
  *  Purpose:
  *      Initialize the DPC module's private state.
  */
-BOOL DPC_Init(void)
+bool DPC_Init(void)
 {
 	GT_create(&DPC_DebugMask, "DP");
 
 	GT_0trace(DPC_DebugMask, GT_5CLASS, "Entered DPC_Init\n");
 
-	return TRUE;
+	return true;
 }
 
 /*

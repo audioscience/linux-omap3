@@ -237,14 +237,6 @@ typedef float  FLOAT;
 #endif
 
 /* boolean_t:  Boolean Type True, False */
-#ifndef OMAPBRIDGE_TYPES
-typedef enum boolean_label {
-    False = 0,
-    True = 1
-} boolean_t, pBoolean_t;
-
-#endif
-
 /* ReturnCode_t:  Return codes to be returned by all library functions */
 typedef enum ReturnCode_label {
     RET_OK = 0,

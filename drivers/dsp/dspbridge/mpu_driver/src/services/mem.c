@@ -82,7 +82,7 @@ static struct GT_Mask MEM_debugMask = { 0, 0 };	/* GT trace variable */
 
 static u32 cRefs;		/* module reference count */
 
-static BOOL extPhysMemPoolEnabled = FALSE;
+static bool extPhysMemPoolEnabled = false;
 
 struct extPhysMemPool {
 	u32 physMemBase;
@@ -184,13 +184,13 @@ void MEM_ExtPhysPoolInit(u32 poolPhysBase, u32 poolSize)
 		GT_0trace(MEM_debugMask, GT_7CLASS,
 			  "[PHYS_POOL]Mapping External "
 			  "physical memory to virt failed \n");
-		extPhysMemPoolEnabled = FALSE;
+		extPhysMemPoolEnabled = false;
 	} else {
 		extMemPool.physMemBase = poolPhysBase;
 		extMemPool.physMemSize = poolSize;
 		extMemPool.virtMemBase = poolVirtBase;
 		extMemPool.nextPhysAllocPtr = poolPhysBase;
-		extPhysMemPoolEnabled = TRUE;
+		extPhysMemPoolEnabled = true;
 		GT_3trace(MEM_debugMask, GT_1CLASS,
 			  "ExtMemory Pool details " "Pool"
 			  "Physical mem base = %0x " "Pool Physical mem size "
@@ -205,7 +205,7 @@ void MEM_ExtPhysPoolRelease(void)
 		  "Releasing External memory pool \n");
 	if (extPhysMemPoolEnabled) {
 		iounmap((void *)(extMemPool.virtMemBase));
-		extPhysMemPoolEnabled = FALSE;
+		extPhysMemPoolEnabled = false;
 	}
 }
 
@@ -569,7 +569,7 @@ void MEM_FreePhysMem(void *pVirtualAddress, u32 pPhysicalAddress,
  *  Purpose:
  *      Initialize MEM module private state.
  */
-BOOL MEM_Init(void)
+bool MEM_Init(void)
 {
 	DBC_Require(cRefs >= 0);
 
@@ -590,5 +590,5 @@ BOOL MEM_Init(void)
 
 	DBC_Ensure(cRefs > 0);
 
-	return TRUE;
+	return true;
 }

@@ -273,10 +273,10 @@ void CHNLSM_DPC(struct WMD_DEV_CONTEXT *hDevContext)
 /*
  *  ======== CHNLSM_ISR ========
  */
-BOOL CHNLSM_ISR(struct WMD_DEV_CONTEXT *hDevContext, OUT BOOL *pfSchedDPC,
+bool CHNLSM_ISR(struct WMD_DEV_CONTEXT *hDevContext, OUT bool *pfSchedDPC,
 		OUT u16 *pwIntrVal)
 {
-	BOOL fMyInterrupt = TRUE;	/*
+	bool fMyInterrupt = true;	/*
 					 * We own the mbx and
 					 * we're not sharing it
 					 */
@@ -300,8 +300,8 @@ BOOL CHNLSM_ISR(struct WMD_DEV_CONTEXT *hDevContext, OUT BOOL *pfSchedDPC,
 		DBG_Trace(DBG_LEVEL3, "Read %x from Mailbox\n", mbxValue);
 		*pwIntrVal = (u16) mbxValue;
 	}
-	/* Set *pfSchedDPC to TRUE; */
-	*pfSchedDPC = TRUE;
+	/* Set *pfSchedDPC to true; */
+	*pfSchedDPC = true;
 	return fMyInterrupt;
 }
 

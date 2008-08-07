@@ -88,6 +88,7 @@
 #include <dispdefs.h>
 #include <wmd.h>
 #include <dmm.h>
+#include <host_os.h>
 
 /*  ----------------------------------- This */
 #include <devdefs.h>
@@ -617,7 +618,7 @@
  *  Ensures:
  *      TRUE: A requirement for the other public DEV functions.
  */
-	extern BOOL CDECL DEV_Init();
+	extern bool CDECL DEV_Init();
 
 /*
  *  ======== DEV_IsLocked ========
@@ -661,9 +662,10 @@
  *      If it is False, there are already processors attached.
  */
 	extern DSP_STATUS CDECL DEV_InsertProcObject(IN struct DEV_OBJECT
-						*hDevObject,
-						IN u32 hProcObject,
-						OUT BOOL *pbAlreadyAttached);
+						     *hDevObject,
+						     IN u32 hProcObject,
+						     OUT bool *
+						     pbAlreadyAttached);
 
 /*
  *  ======== DEV_RemoveProcObject ========
@@ -673,7 +675,7 @@
  *  Parameters:
  *      pProcObject:        Ptr to ProcObject to insert.
  *      pDevObject:         Ptr to Dev Object where the list is.
- *      pbAlreadyAttached:  Ptr to return the BOOL
+ *      pbAlreadyAttached:  Ptr to return the bool
  *  Returns:
  *      DSP_SOK:            If successful.
  *      DSP_EFAIL           Failure to Remove the PROC Object from the list

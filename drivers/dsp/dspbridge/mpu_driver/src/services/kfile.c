@@ -72,7 +72,7 @@ struct KFILE_FileObj {
     u32 dwSignature;
     __kernel_pid_t owner_pid;	/* PID of process that opened this file */
     char 	*fileName  ;
-    Bool          isOpen    ;
+    bool          isOpen    ;
     u32        size      ;
     u32        curPos    ;
     long 	  hInternal;		/* internal handle of file */
@@ -135,13 +135,13 @@ void KFILE_Exit(void)
 /*
  *  ======== KFILE_Init ========
  */
-BOOL KFILE_Init(void)
+bool KFILE_Init(void)
 {
 	GT_create(&KFILE_debugMask, "KF");	/* "KF" for KFile */
 
 	GT_0trace(KFILE_debugMask, GT_5CLASS, "KFILE_Init\n");
 
-	return TRUE;
+	return true;
 }
 
 /*
@@ -178,7 +178,7 @@ struct KFILE_FileObj *KFILE_Open(CONST char *pszFileName, CONST char *pszMode)
 		} else {
 			hFile->fileDesc = fileDesc;
 			hFile->fileName = pszFileName;
-			hFile->isOpen	   = TRUE;
+			hFile->isOpen	   = true;
 			hFile->curPos   = 0;
 			hFile->size = fileDesc->f_op->llseek(fileDesc, 0,
 							    SEEK_END);

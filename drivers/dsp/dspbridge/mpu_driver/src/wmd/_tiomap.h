@@ -325,11 +325,11 @@ enum INTH_SensitiveEdge_t {
 #define MBOX_ARM HW_MBOX_U0_ARM
 #define MBOX_DSP HW_MBOX_U1_DSP1
 
-#define ENABLE                          TRUE
-#define DISABLE                         FALSE
+#define ENABLE                          true
+#define DISABLE                         false
 
-#define HIGH_LEVEL                      TRUE
-#define LOW_LEVEL                       FALSE
+#define HIGH_LEVEL                      true
+#define LOW_LEVEL                       false
 
 /* Macro's */
 #define REG16(A)    (*(REG_UWORD16 *)(A))
@@ -381,7 +381,7 @@ struct WMD_DEV_CONTEXT {
 	u32 fixedTLBEntries;	/* Fixed DSPMMU TLB entry count */
 
 	/* TC Settings */
-	BOOL tcWordSwapOn;	/* Traffic Controller Word Swap */
+	bool tcWordSwapOn;	/* Traffic Controller Word Swap */
 	struct PgTableAttrs *pPtAttrs;
 	u32 uDspPerClks;
 } ;

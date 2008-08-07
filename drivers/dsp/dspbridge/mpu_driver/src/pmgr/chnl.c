@@ -405,9 +405,9 @@ DSP_STATUS CHNL_GetProcessHandle(struct CHNL_OBJECT *hChnl,
  *  Purpose:
  *      Initialize the CHNL module's private state.
  */
-BOOL CHNL_Init(void)
+bool CHNL_Init(void)
 {
-	BOOL fRetval = TRUE;
+	bool fRetval = true;
 
 	DBC_Require(cRefs >= 0);
 

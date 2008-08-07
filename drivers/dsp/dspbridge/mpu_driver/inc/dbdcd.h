@@ -42,6 +42,7 @@
 #define DBDCD_
 
 #include <dbdcddef.h>
+#include <host_os.h>
 #include <nldrdefs.h>
 
 /*
@@ -198,7 +199,7 @@
 					 IN struct DSP_UUID *pUuid,
 					 u16 numLibs,
 					 OUT struct DSP_UUID *pDepLibUuids,
-					 OUT BOOL *pPersistentDepLibs,
+					 OUT bool *pPersistentDepLibs,
 					 IN enum NLDR_PHASE phase);
 
 /*
@@ -259,7 +260,7 @@
 					     IN OUT char *pstrLibName,
 					     IN OUT u32 *pdwSize,
 					     IN enum NLDR_PHASE phase,
-					     OUT BOOL *fPhaseSplit);
+					     OUT bool *fPhaseSplit);
 
 /*
  *  ======== DCD_GetObjectDef ========
@@ -339,7 +340,7 @@
  *  Ensures:
  *      DCD initialized.
  */
-	extern BOOL DCD_Init();
+	extern bool DCD_Init();
 
 /*
  *  ======== DCD_RegisterObject ========

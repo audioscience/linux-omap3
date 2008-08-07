@@ -21,7 +21,7 @@
 
 #include <std.h>
 
-#include <linux/types.h>
+#include <host_os.h>
 
 #include <gs.h>
 
@@ -37,11 +37,11 @@ struct GH_THashTab {
 	u16 valSize;
 	struct Elem **buckets;
 	 u16(*hash) (void *, u16);
-	 Bool(*match) (void *, void *);
+	 bool(*match) (void *, void *);
 	 void(*delete) (void *);
 };
 
-static void nop(void *p);
+static void Nop(void *p);
 static s32 curInit;
 static void myfree(void *ptr, s32 size);
 
@@ -50,7 +50,7 @@ static void myfree(void *ptr, s32 size);
  */
 
 struct GH_THashTab *GH_create(u16 maxBucket, u16 valSize,
-		u16(*hash)(void *, u16), Bool(*match)(void *, void *),
+		u16(*hash)(void *, u16), bool(*match)(void *, void *),
 		void(*delete)(void *))
 {
 	struct GH_THashTab *hashTab;
@@ -62,7 +62,7 @@ struct GH_THashTab *GH_create(u16 maxBucket, u16 valSize,
 	hashTab->valSize = valSize;
 	hashTab->hash = hash;
 	hashTab->match = match;
-	hashTab->delete = delete == NULL ? nop : delete;
+	hashTab->delete = delete == NULL ? Nop : delete;
 
 	hashTab->buckets = (struct Elem **)
 			   GS_alloc(sizeof(struct Elem *) * maxBucket);
@@ -174,10 +174,10 @@ void *GH_insert(struct GH_THashTab *hashTab, void *key, void *value)
 }
 
 /*
- *  ======== nop ========
+ *  ======== Nop ========
  */
 /* ARGSUSED */
-static void nop(void *p)
+static void Nop(void *p)
 {
 	p = p;			/* stifle compiler warning */
 }

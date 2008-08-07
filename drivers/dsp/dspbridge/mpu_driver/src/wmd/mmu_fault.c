@@ -62,7 +62,7 @@
 u32 dmmuEventMask;
 u32 faultAddr;
 
-static BOOL MMU_CheckIfFault(struct WMD_DEV_CONTEXT *pDevContext);
+static bool MMU_CheckIfFault(struct WMD_DEV_CONTEXT *pDevContext);
 
 /*
  *  ======== MMU_FaultDpc ========
@@ -146,11 +146,11 @@ void MMU_FaultIsr(IN void *pRefData)
  *      Check to see if MMU Fault is valid TLB miss from DSP
  *  Note: This function is called from an ISR
  */
-static BOOL MMU_CheckIfFault(struct WMD_DEV_CONTEXT *pDevContext)
+static bool MMU_CheckIfFault(struct WMD_DEV_CONTEXT *pDevContext)
 {
 
 
-	BOOL retVal = FALSE;
+	bool retVal = false;
 	DSP_STATUS status = DSP_SOK;
 	HW_STATUS hwStatus;
 	struct CFG_HOSTRES resources;
@@ -165,7 +165,7 @@ static BOOL MMU_CheckIfFault(struct WMD_DEV_CONTEXT *pDevContext)
 		HW_MMU_FaultAddrRead(resources.dwDmmuBase, &faultAddr);
 		DBG_Trace(DBG_LEVEL1, "WMD_DEH_Notify: DSP_MMUFAULT, fault "
 			 "address = 0x%x\n", faultAddr);
-		retVal = TRUE;
+		retVal = true;
 	}
 	return retVal;
 }

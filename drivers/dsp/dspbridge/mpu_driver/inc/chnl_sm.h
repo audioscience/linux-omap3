@@ -151,8 +151,8 @@
  *  Ensures:
  *      If the interrupt is *not* shared, this routine must return TRUE.
  */
-	extern BOOL CDECL CHNLSM_ISR(struct WMD_DEV_CONTEXT *hDevContext,
-				     OUT BOOL *pfSchedDPC,
+	extern bool CDECL CHNLSM_ISR(struct WMD_DEV_CONTEXT *hDevContext,
+				     OUT bool *pfSchedDPC,
 				     OUT u16 *pwIntrVal);
 
 /*
@@ -187,7 +187,7 @@
  *  Ensures:
  *      No more than sizeof(u32) bytes written to *pSHMLength
  */
-	extern BOOL CHNLSM_UpdateSHMLength(struct WMD_DEV_CONTEXT *hDevContext,
+	extern bool CHNLSM_UpdateSHMLength(struct WMD_DEV_CONTEXT *hDevContext,
 					   IN OUT u32 *pSHMLength);
 
 /*

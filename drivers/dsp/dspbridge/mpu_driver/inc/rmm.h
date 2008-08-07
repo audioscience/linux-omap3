@@ -92,7 +92,7 @@ struct RMM_TargetObj;
  *  Ensures:
  */
 extern DSP_STATUS RMM_alloc(struct RMM_TargetObj *target, u32 segid, u32 size,
-			    u32 align, u32 *dspAdr, Bool reserve);
+			    u32 align, u32 *dspAdr, bool reserve);
 
 /*
  *  ======== RMM_create ========
@@ -162,8 +162,8 @@ extern void RMM_exit(void);
  *      reserve || [dspAddr, dspAddr + size] is a valid memory range.
  *  Ensures:
  */
-extern Bool RMM_free(struct RMM_TargetObj *target, u32 segid, u32 dspAddr,
-		     u32 size, Bool reserved);
+extern bool RMM_free(struct RMM_TargetObj *target, u32 segid, u32 dspAddr,
+		     u32 size, bool reserved);
 
 /*
  *  ======== RMM_init ========
@@ -176,7 +176,7 @@ extern Bool RMM_free(struct RMM_TargetObj *target, u32 segid, u32 dspAddr,
  *  Requires:
  *  Ensures:
  */
-extern Bool RMM_init(void);
+extern bool RMM_init(void);
 
 /*
  *  ======== RMM_stat ========
@@ -193,7 +193,7 @@ extern Bool RMM_init(void);
  *      segid < target->numSegs
  *  Ensures:
  */
-extern Bool RMM_stat(struct RMM_TargetObj *target, enum DSP_MEMTYPE segid,
+extern bool RMM_stat(struct RMM_TargetObj *target, enum DSP_MEMTYPE segid,
 		     struct DSP_MEMSTAT *pMemStatBuf);
 
 #endif				/* RMM_ */

@@ -98,10 +98,10 @@ void GS_frees(void *ptr, u32 size)
  */
 void GS_init(void)
 {
-	static Bool curInit = FALSE;
+	static bool curInit = false;
 
-	if (curInit == FALSE) {
-		curInit = TRUE;
+	if (curInit == false) {
+		curInit = true;
 
 		MEM_Init();
 	}

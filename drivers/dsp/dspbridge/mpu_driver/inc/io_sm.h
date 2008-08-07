@@ -53,6 +53,7 @@
 #define IOSM_
 
 #include <_chnl_sm.h>
+#include <host_os.h>
 
 #include <iodefs.h>
 
@@ -149,7 +150,7 @@
  *      Interrupts are disabled and EOI for this interrupt has been sent.
  *  Ensures:
  */
-	extern BOOL IO_ISR(IN void *pRefData);
+	extern bool IO_ISR(IN void *pRefData);
 
 /*
  *  ======== IO_IVAISR ========

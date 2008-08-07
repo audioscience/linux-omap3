@@ -372,7 +372,7 @@ DSP_STATUS CMM_Create(OUT struct CMM_OBJECT **phCmmMgr,
 		if (DSP_SUCCEEDED(status))
 			*phCmmMgr = pCmmObject;
 		else
-			CMM_Destroy(pCmmObject, TRUE);
+			CMM_Destroy(pCmmObject, true);
 
 	} else {
 		GT_0trace(CMM_debugMask, GT_6CLASS,
@@ -388,7 +388,7 @@ DSP_STATUS CMM_Create(OUT struct CMM_OBJECT **phCmmMgr,
  *  Purpose:
  *      Release the communication memory manager resources.
  */
-DSP_STATUS CMM_Destroy(struct CMM_OBJECT *hCmmMgr, BOOL bForce)
+DSP_STATUS CMM_Destroy(struct CMM_OBJECT *hCmmMgr, bool bForce)
 {
 	struct CMM_OBJECT *pCmmMgr = (struct CMM_OBJECT *)hCmmMgr;
 	struct CMM_INFO tempInfo;
@@ -602,9 +602,9 @@ DSP_STATUS CMM_GetInfo(struct CMM_OBJECT *hCmmMgr,
  *  Purpose:
  *      Initializes private state of CMM module.
  */
-BOOL CMM_Init(void)
+bool CMM_Init(void)
 {
-	BOOL fRetval = TRUE;
+	bool fRetval = true;
 
 	DBC_Require(cRefs >= 0);
 	if (cRefs == 0) {
@@ -1042,7 +1042,7 @@ static struct CMM_ALLOCATOR *GetAllocator(struct CMM_OBJECT *pCmmMgr,
 		/* make sure it's for real */
 		if (!MEM_IsValidHandle(pAllocator, SMEMSIGNATURE)) {
 			pAllocator = NULL;
-			DBC_Assert(FALSE);
+			DBC_Assert(false);
 		}
 	}
 	return pAllocator;
@@ -1093,7 +1093,7 @@ DSP_STATUS CMM_XlatorCreate(OUT struct CMM_XLATOROBJECT **phXlator,
  *      Free the Xlator resources.
  *      VM gets freed later.
  */
-DSP_STATUS CMM_XlatorDelete(struct CMM_XLATOROBJECT *hXlator, BOOL bForce)
+DSP_STATUS CMM_XlatorDelete(struct CMM_XLATOROBJECT *hXlator, bool bForce)
 {
 	struct CMM_XLATOR *pXlator = (struct CMM_XLATOR *)hXlator;
 	DSP_STATUS status = DSP_SOK;
@@ -1171,7 +1171,7 @@ DSP_STATUS CMM_XlatorFreeBuf(struct CMM_XLATOROBJECT *hXlator, void *pBufVa)
 					"Cannot free DMA/ZCPY buffer"
 					"not allocated by MPU. PA %x, VA %x\n",
 					pBufPa, pBufVa);
-				DBC_Assert(FALSE);   /* CMM is leaking mem! */
+				DBC_Assert(false);   /* CMM is leaking mem! */
 			}
 		}
 	}
@@ -1184,7 +1184,7 @@ DSP_STATUS CMM_XlatorFreeBuf(struct CMM_XLATOROBJECT *hXlator, void *pBufVa)
  *      Set/Get translator info.
  */
 DSP_STATUS CMM_XlatorInfo(struct CMM_XLATOROBJECT *hXlator, IN OUT u8 **pAddr,
-			 u32 ulSize, u32 uSegId, BOOL bSetInfo)
+			 u32 ulSize, u32 uSegId, bool bSetInfo)
 {
 	struct CMM_XLATOR *pXlator = (struct CMM_XLATOR *)hXlator;
 	DSP_STATUS status = DSP_SOK;

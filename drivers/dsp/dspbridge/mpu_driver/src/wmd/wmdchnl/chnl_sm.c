@@ -171,10 +171,10 @@ DSP_STATUS WMD_CHNL_AddIOReq(struct CHNL_OBJECT *hChnl, void *pHostBuf,
 	struct CHNL_OBJECT *pChnl = (struct CHNL_OBJECT *)hChnl;
 	struct CHNL_IRP *pChirp = NULL;
 	u32 dwState;
-	BOOL fIsEOS;
+	bool fIsEOS;
 	struct CHNL_MGR *pChnlMgr = pChnl->pChnlMgr;
 	u8 *pHostSysBuf = NULL;
-	BOOL fSchedDPC = FALSE;
+	bool fSchedDPC = false;
 	u16 wMbVal = 0;
 
 	DBG_Trace(DBG_ENTER,
@@ -182,7 +182,7 @@ DSP_STATUS WMD_CHNL_AddIOReq(struct CHNL_OBJECT *hChnl, void *pHostBuf,
 		  "%x Id %d\n", pChnl, CHNL_IsOutput(pChnl->uMode),
 		  pChnl->uChnlType, pChnl->uId);
 
-	fIsEOS = (cBytes == 0) ? TRUE : FALSE;
+	fIsEOS = (cBytes == 0) ? true : false;
 
 	if (pChnl->uChnlType == CHNL_PCPY && pChnl->uId > 1 && pHostBuf) {
 		if (!(pHostBuf < (void *)USERMODE_ADDR)) {
@@ -292,7 +292,7 @@ func_cont:
 				IO_RequestChnl(pChnlMgr->hIOMgr, pChnl,
 					(CHNL_IsInput(pChnl->uMode) ?
 					IO_INPUT : IO_OUTPUT), &wMbVal);
-				fSchedDPC = TRUE;
+				fSchedDPC = true;
 			}
 		}
 	}
@@ -301,7 +301,7 @@ func_cont:
 	if (wMbVal != 0)
 		IO_IntrDSP2(pChnlMgr->hIOMgr, wMbVal);
 
-	if (fSchedDPC == TRUE) {
+	if (fSchedDPC == true) {
 		/* Schedule a DPC, to do the actual data transfer: */
 		IO_Schedule(pChnlMgr->hIOMgr);
 	}
@@ -652,7 +652,7 @@ DSP_STATUS WMD_CHNL_GetIOC(struct CHNL_OBJECT *hChnl, u32 dwTimeOut,
 	struct CHNL_OBJECT *pChnl = (struct CHNL_OBJECT *)hChnl;
 	struct CHNL_IRP *pChirp;
 	DSP_STATUS statSync;
-	BOOL fDequeueIOC = TRUE;
+	bool fDequeueIOC = true;
 	struct CHNL_IOC ioc;
 	u8 *pHostSysBuf = NULL;
 
@@ -681,7 +681,7 @@ DSP_STATUS WMD_CHNL_GetIOC(struct CHNL_OBJECT *hChnl, u32 dwTimeOut,
 		if (statSync == DSP_ETIMEOUT) {
 			/* No response from DSP */
 			ioc.status |= CHNL_IOCSTATTIMEOUT;
-			fDequeueIOC = FALSE;
+			fDequeueIOC = false;
 		} else if (statSync == DSP_EFAIL) {
 			/* This can occur when the user mode thread is
 			 * aborted (^C), or when _VWIN32_WaitSingleObject()
@@ -690,7 +690,7 @@ DSP_STATUS WMD_CHNL_GetIOC(struct CHNL_OBJECT *hChnl, u32 dwTimeOut,
 			 * the Q: */
 			if (LST_IsEmpty(pChnl->pIOCompletions)) {
 				ioc.status |= CHNL_IOCSTATCANCEL;
-				fDequeueIOC = FALSE;
+				fDequeueIOC = false;
 			}
 		}
 	}
@@ -836,7 +836,7 @@ DSP_STATUS WMD_CHNL_GetMgrInfo(struct CHNL_MGR *hChnlMgr, u32 uChnlID,
  *      Idles a particular channel.
  */
 DSP_STATUS WMD_CHNL_Idle(struct CHNL_OBJECT *hChnl, u32 dwTimeOut,
-			 BOOL fFlush)
+			 bool fFlush)
 {
 	CHNL_MODE uMode;
 	struct CHNL_MGR *pChnlMgr;

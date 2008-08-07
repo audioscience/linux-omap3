@@ -75,7 +75,7 @@
 				     struct DEV_OBJECT *hDevObject,
 				     IN CONST struct DMM_MGRATTRS *pMgrAttrs);
 
-	extern BOOL DMM_Init();
+	extern bool DMM_Init();
 
 	extern void DMM_Exit();
 

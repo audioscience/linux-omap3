@@ -26,7 +26,7 @@
 #define GB_
 
 #define GB_NOBITS (~0)
-
+#include <host_os.h>
 typedef s32 GB_BitNum;
 struct GB_TMap;
 
@@ -80,6 +80,6 @@ extern void GB_set(struct GB_TMap *map, GB_BitNum bitn);
  *  GB_test returns FALSE.  Bit positions are zero based.
  */
 
-extern Bool GB_test(struct GB_TMap *map, GB_BitNum bitn);
+extern bool GB_test(struct GB_TMap *map, GB_BitNum bitn);
 
 #endif				/*GB_ */

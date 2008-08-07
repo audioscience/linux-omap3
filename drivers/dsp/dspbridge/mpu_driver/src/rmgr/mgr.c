@@ -275,7 +275,7 @@ DSP_STATUS MGR_EnumProcessorInfo(u32 uProcessor,
 	s32 devType;
 	struct CFG_DEVNODE *devNode;
 	struct CFG_DSPRES chipResources;
-	BOOL procDetect = FALSE;
+	bool procDetect = false;
 
 	DBC_Require(pProcessorInfo != NULL);
 	DBC_Require(puNumProcs != NULL);
@@ -333,7 +333,7 @@ DSP_STATUS MGR_EnumProcessorInfo(u32 uProcessor,
 		uProcIndex++;
 		/* Get the Object properties to find the Device/Processor
 		 * Type */
-		if (procDetect != FALSE)
+		if (procDetect != false)
 			continue;
 
 		status2 = DCD_GetObjectDef(pMgrObject->hDcdMgr,
@@ -359,11 +359,11 @@ DSP_STATUS MGR_EnumProcessorInfo(u32 uProcessor,
 			if (devType == DSP_UNIT) {
 				if (pProcessorInfo->uProcessorType ==
 				   DSPPROCTYPE_C64)
-					procDetect = TRUE;
+					procDetect = true;
 			} else if (devType == IVA_UNIT) {
 				if (pProcessorInfo->uProcessorType ==
 				   IVAPROCTYPE_ARM7)
-					procDetect = TRUE;
+					procDetect = true;
 			}
 			/* User applciatiuons aonly check for chip type, so
 			 * this clumsy overwrite */
@@ -378,7 +378,7 @@ DSP_STATUS MGR_EnumProcessorInfo(u32 uProcessor,
 		}
 	}
 	*puNumProcs = uProcIndex;
-	if (procDetect == FALSE) {
+	if (procDetect == false) {
 		GT_0trace(MGR_DebugMask, GT_7CLASS,
 			 "Manager_EnumProcessorInfo: Failed"
 			 " to get Proc info from DCD , so use CFG registry\n");
@@ -433,10 +433,10 @@ DSP_STATUS MGR_GetDCDHandle(struct MGR_OBJECT *hMGRHandle,
  *  ======== MGR_Init ========
  *      Initialize MGR's private state, keeping a reference count on each call.
  */
-BOOL CDECL MGR_Init(void)
+bool CDECL MGR_Init(void)
 {
-	BOOL fRetval = TRUE;
-	BOOL fInitDCD = FALSE;
+	bool fRetval = true;
+	bool fInitDCD = false;
 
 	DBC_Require(cRefs >= 0);
 
@@ -449,7 +449,7 @@ BOOL CDECL MGR_Init(void)
 		fInitDCD = DCD_Init();	/*  DCD Module */
 
 		if (!fInitDCD) {
-			fRetval = FALSE;
+			fRetval = false;
 			GT_0trace(MGR_DebugMask, GT_6CLASS,
 				 "MGR_Init failed\n");
 		}

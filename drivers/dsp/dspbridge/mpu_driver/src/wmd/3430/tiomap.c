@@ -176,7 +176,7 @@ struct PgTableAttrs {
 } ;
 
 /*
- *  If dsp_debug is TRUE, do not branch to the DSP entry point and wait for DSP
+ *  If dsp_debug is true, do not branch to the DSP entry point and wait for DSP
  *  to boot
  */
 extern s32 dsp_debug;
@@ -902,7 +902,7 @@ static DSP_STATUS WMD_BRD_Write(struct WMD_DEV_CONTEXT *hDevContext,
 			 ulNumBytes, ulMemType);
 	} else {
 		status = WriteExtDspData(pDevContext, pbHostBuf, dwDSPAddr,
-					 ulNumBytes, ulMemType, FALSE);
+					 ulNumBytes, ulMemType, false);
 	}
 
 	DBG_Trace(DBG_ENTER, "WMD_BRD_Write, memcopy :  DspLogicAddr=0x%x \n",
@@ -1244,7 +1244,7 @@ static DSP_STATUS WMD_BRD_MemCopy(struct WMD_DEV_CONTEXT *hDevContext,
 			} else {
 				/* Write to External memory */
 				status = WriteExtDspData(hDevContext, hostBuf,
-					 destAddr, copyBytes, ulMemType, FALSE);
+					 destAddr, copyBytes, ulMemType, false);
 			}
 		}
 		totalBytes -= copyBytes;
@@ -1273,7 +1273,7 @@ static DSP_STATUS WMD_BRD_MemWrite(struct WMD_DEV_CONTEXT *hDevContext,
 					      ulBytes, ulMemType);
 		} else {
 			status = WriteExtDspData(hDevContext, pbHostBuf,
-				 dwDSPAddr, ulBytes, ulMemType, TRUE);
+				 dwDSPAddr, ulBytes, ulMemType, true);
 		}
 		ulRemainBytes -= ulBytes;
 		dwDSPAddr += ulBytes;
@@ -1619,7 +1619,7 @@ static DSP_STATUS TIOMAP_VirtToPhysical(struct mm_struct *mm, u32 ulMpuAddr,
 			 * page tables
 			 */
 			numUsrPgs = get_user_pages(curr_task, mm, ulMpuAddr, 1,
-							TRUE, 0, NULL, NULL);
+							true, 0, NULL, NULL);
 			up_read(&mm->mmap_sem);
 			/* Get the first level page table entry information */
 			/* Read the pointer to first level page table entry */
@@ -1663,7 +1663,7 @@ static DSP_STATUS TIOMAP_VirtToPhysical(struct mm_struct *mm, u32 ulMpuAddr,
 					 * the page tables */
 					if (numUsrPgs <= PAGES_II_LVL_TABLE) {
 						get_user_pages(curr_task, mm,
-						ulMpuAddr, numUsrPgs, TRUE,  0,
+						ulMpuAddr, numUsrPgs, true,  0,
 						NULL, NULL);
 						DBG_Trace(DBG_LEVEL4,
 						"get_user_pages, numUsrPgs"
@@ -1671,7 +1671,7 @@ static DSP_STATUS TIOMAP_VirtToPhysical(struct mm_struct *mm, u32 ulMpuAddr,
 					} else {
 						get_user_pages(curr_task, mm,
 						ulMpuAddr, PAGES_II_LVL_TABLE,
-						TRUE, 0, NULL, NULL);
+						true, 0, NULL, NULL);
 						DBG_Trace(DBG_LEVEL4,
 						"get_user_pages, numUsrPgs"
 						"= %d\n", PAGES_II_LVL_TABLE);
@@ -2154,7 +2154,7 @@ void configureDspMmu(struct WMD_DEV_CONTEXT *pDevContext, u32 dataBasePhys,
  *  ======== WaitForStart ========
  *      Wait for the singal from DSP that it has started, or time out.
  */
-BOOL WaitForStart(struct WMD_DEV_CONTEXT *pDevContext, u32 dwSyncAddr)
+bool WaitForStart(struct WMD_DEV_CONTEXT *pDevContext, u32 dwSyncAddr)
 {
 	u16 usCount = TIHELEN_ACKTIMEOUT;
 

@@ -222,7 +222,7 @@
  *  Ensures:
  *      REG initialized.
  */
-	extern BOOL REG_Init();
+	extern bool REG_Init();
 
 /*
  *  ======== REG_SetValue ========

@@ -109,16 +109,16 @@ static struct GT_Mask RMM_debugMask = { 0, 0 };	/* GT trace variable */
 
 static u32 cRefs;		/* module reference count */
 
-static Bool allocBlock(struct RMM_TargetObj *target, u32 segid, u32 size,
+static bool allocBlock(struct RMM_TargetObj *target, u32 segid, u32 size,
 		      u32 align, u32 *dspAddr);
-static Bool freeBlock(struct RMM_TargetObj *target, u32 segid, u32 addr,
+static bool freeBlock(struct RMM_TargetObj *target, u32 segid, u32 addr,
 		     u32 size);
 
 /*
  *  ======== RMM_alloc ========
  */
 DSP_STATUS RMM_alloc(struct RMM_TargetObj *target, u32 segid, u32 size,
-		    u32 align, u32 *dspAddr, Bool reserve)
+		    u32 align, u32 *dspAddr, bool reserve)
 {
 	struct RMM_OvlySect *sect;
 	struct RMM_OvlySect *prevSect = NULL;
@@ -357,11 +357,12 @@ void RMM_exit(void)
 /*
  *  ======== RMM_free ========
  */
-Bool RMM_free(struct RMM_TargetObj *target, u32 segid, u32 addr, u32 size,
-	      Bool reserved)
+bool RMM_free(struct RMM_TargetObj *target, u32 segid, u32 addr, u32 size,
+	bool reserved)
+
 {
 	struct RMM_OvlySect *sect;
-	Bool retVal = TRUE;
+	bool retVal = true;
 
 	DBC_Require(MEM_IsValidHandle(target, RMM_TARGSIGNATURE));
 
@@ -397,7 +398,7 @@ Bool RMM_free(struct RMM_TargetObj *target, u32 segid, u32 addr, u32 size,
 			       (struct LST_ELEM *)sect);
 		}
 		if (sect == NULL)
-			retVal = FALSE;
+			retVal = false;
 
 	}
 	return retVal;
@@ -406,9 +407,9 @@ Bool RMM_free(struct RMM_TargetObj *target, u32 segid, u32 addr, u32 size,
 /*
  *  ======== RMM_init ========
  */
-Bool RMM_init(void)
+bool RMM_init(void)
 {
-	Bool retVal = TRUE;
+	bool retVal = true;
 
 	DBC_Require(cRefs >= 0);
 
@@ -438,11 +439,11 @@ Bool RMM_init(void)
 /*
  *  ======== RMM_stat ========
  */
-Bool RMM_stat(struct RMM_TargetObj *target, enum DSP_MEMTYPE segid,
+bool RMM_stat(struct RMM_TargetObj *target, enum DSP_MEMTYPE segid,
 	     struct DSP_MEMSTAT *pMemStatBuf)
 {
 	struct RMM_Header *head;
-	Bool retVal = FALSE;
+	bool retVal = false;
 	u32 maxFreeSize = 0;
 	u32 totalFreeSize = 0;
 	u32 freeBlocks = 0;
@@ -476,7 +477,7 @@ Bool RMM_stat(struct RMM_TargetObj *target, enum DSP_MEMTYPE segid,
 		/* ulNumAllocBlocks */
 		pMemStatBuf->ulNumAllocBlocks = target->segTab[segid].number;
 
-		retVal = TRUE;
+		retVal = true;
 	}
 
 	return retVal;
@@ -487,7 +488,7 @@ Bool RMM_stat(struct RMM_TargetObj *target, enum DSP_MEMTYPE segid,
  *  This allocation function allocates memory from the lowest addresses
  *  first.
  */
-static Bool allocBlock(struct RMM_TargetObj *target, u32 segid, u32 size,
+static bool allocBlock(struct RMM_TargetObj *target, u32 segid, u32 size,
 		      u32 align, u32 *dspAddr)
 {
 	struct RMM_Header *head;
@@ -530,7 +531,7 @@ static Bool allocBlock(struct RMM_TargetObj *target, u32 segid, u32 size,
 				freeBlock(target, segid, addr, tmpalign);
 
 			*dspAddr = addr + tmpalign;
-			return TRUE;
+			return true;
 		}
 
 		prevhead = head;
@@ -538,7 +539,7 @@ static Bool allocBlock(struct RMM_TargetObj *target, u32 segid, u32 size,
 
 	} while (head != NULL);
 
-	return FALSE;
+	return false;
 }
 
 /*
@@ -548,18 +549,18 @@ static Bool allocBlock(struct RMM_TargetObj *target, u32 segid, u32 size,
  *  freeBlock() could use an RMM_Header from the pool, freeing as blocks
  *  are coalesced.
  */
-static Bool freeBlock(struct RMM_TargetObj *target, u32 segid, u32 addr,
+static bool freeBlock(struct RMM_TargetObj *target, u32 segid, u32 addr,
 		     u32 size)
 {
 	struct RMM_Header *head;
 	struct RMM_Header *thead;
 	struct RMM_Header *rhead;
-	Bool retVal = TRUE;
+	bool retVal = true;
 
 	/* Create a memory header to hold the newly free'd block. */
 	rhead = MEM_Calloc(sizeof(struct RMM_Header), MEM_PAGED);
 	if (rhead == NULL) {
-		retVal = FALSE;
+		retVal = false;
 	} else {
 		/* search down the free list to find the right place for addr */
 		head = target->freeList[segid];

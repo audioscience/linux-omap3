@@ -110,11 +110,11 @@ void SERVICES_Exit(void)
  *  Purpose:
  *      Initializes SERVICES modules.
  */
-BOOL SERVICES_Init(void)
+bool SERVICES_Init(void)
 {
-	BOOL fInit = TRUE;
-	BOOL fCFG, fCSL, fDBG, fDPC, fISR, fKFILE, fLST, fMEM;
-	BOOL fPRCS, fREG, fSYNC, fCLK, fUTIL, fNTFY;
+	bool fInit = true;
+	bool fCFG, fCSL, fDBG, fDPC, fISR, fKFILE, fLST, fMEM;
+	bool fPRCS, fREG, fSYNC, fCLK, fUTIL, fNTFY;
 
 	DBC_Require(cRefs >= 0);
 

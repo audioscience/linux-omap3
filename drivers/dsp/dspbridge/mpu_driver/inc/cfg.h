@@ -64,9 +64,8 @@
 
 #ifndef CFG_
 #define CFG_
-
+#include <host_os.h>
 #include <cfgdefs.h>
-#include <linux/types.h>
 
 /*
  *  ======== CFG_Exit ========
@@ -239,7 +238,7 @@
  *      pfEnablePerf != NULL;
  *  Ensures:
  */
-	extern void CFG_GetPerfValue(OUT BOOL *pfEnablePerf);
+	extern void CFG_GetPerfValue(OUT bool *pfEnablePerf);
 
 /*
  *  ======== CFG_GetWMDFileName ========
@@ -299,7 +298,7 @@
  *  Ensures:
  *      A requirement for each of the other public CFG functions.
  */
-	extern BOOL CFG_Init();
+	extern bool CFG_Init();
 
 /*
  *  ======== CFG_SetDevObject ========

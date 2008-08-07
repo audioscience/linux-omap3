@@ -32,6 +32,7 @@
 #ifndef SERVICES_
 #define SERVICES_
 
+#include <host_os.h>
 /*
  *  ======== SERVICES_Exit ========
  *  Purpose:
@@ -57,6 +58,6 @@
  *  Ensures:
  *      SERVICES modules initialized.
  */
-	extern BOOL SERVICES_Init();
+	extern bool SERVICES_Init();
 
 #endif				/* SERVICES_ */

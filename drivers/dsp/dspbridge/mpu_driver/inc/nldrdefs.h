@@ -144,7 +144,7 @@
 					       *pNodeProps,
 					       OUT struct NLDR_NODEOBJECT
 					       **phNldrNode,
-					       OUT BOOL *pfPhaseSplit);
+					       OUT bool *pfPhaseSplit);
 
 /*
  *  ======== NLDR_Create ========
@@ -247,7 +247,7 @@
  *      TRUE if initialization succeeded, FALSE otherwise.
  *  Ensures:
  */
-	typedef BOOL(*NLDR_INITFXN) ();
+	typedef bool(*NLDR_INITFXN) ();
 
 /*
  *  ======== NLDR_Load ========

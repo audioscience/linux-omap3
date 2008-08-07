@@ -114,13 +114,13 @@ void ISR_Exit(void)
  *  Purpose:
  *      Initialize the ISR module's private state.
  */
-BOOL ISR_Init(void)
+bool ISR_Init(void)
 {
 	GT_create(&ISR_DebugMask, "IS");
 
 	GT_0trace(ISR_DebugMask, GT_5CLASS, "Entered ISR_Init\n");
 
-	return TRUE;
+	return true;
 }
 
 /*

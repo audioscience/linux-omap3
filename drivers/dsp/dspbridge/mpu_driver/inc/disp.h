@@ -117,7 +117,7 @@
  *      TRUE if initialization succeeded, FALSE otherwise.
  *  Ensures:
  */
-	extern BOOL DISP_Init();
+	extern bool DISP_Init();
 
 /*
  *  ======== DISP_NodeChangePriority ========

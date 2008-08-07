@@ -164,7 +164,7 @@ struct DBL_LibraryObj {
 	u32 dwSignature; 	/* For object validation */
 	struct DBL_TargetObj *pTarget; 	/* Target for this library */
 	struct KFILE_FileObj *file; 	/* DBOF file handle */
-	Bool byteSwapped; 	/* Are bytes swapped? */
+	bool byteSwapped; 	/* Are bytes swapped? */
 	struct DBOF_FileHdr fileHdr; 	/* Header of DBOF file */
 	u16 nSymbols; 		/* Number of DSP/Bridge symbols */
 	struct Symbol *symbols; 	/* Table of DSP/Bridge symbols */
@@ -343,10 +343,10 @@ void DBL_exit()
  *  Purpose:
  *  	Get address of name in the specified library.
  */
-Bool DBL_getAddr(struct DBL_LibraryObj *lib, char *name,
+bool DBL_getAddr(struct DBL_LibraryObj *lib, char *name,
 		struct DBL_Symbol **ppSym)
 {
-	Bool retVal = FALSE;
+	bool retVal = false;
 	struct Symbol *symbol;
 	u16 i;
 
@@ -363,7 +363,7 @@ Bool DBL_getAddr(struct DBL_LibraryObj *lib, char *name,
 		if (CSL_Strcmp(name, symbol->pSymName) == 0) {
 			/* Found it */
 			*ppSym = &lib->symbols[i].sym;
-			retVal = TRUE;
+			retVal = true;
 			break;
 		}
 	}
@@ -390,10 +390,10 @@ void DBL_getAttrs(struct DBL_TargetObj *target, struct DBL_Attrs *pAttrs)
  *  Purpose:
  *  	Get address of "C" name in the specified library.
  */
-Bool DBL_getCAddr(struct DBL_LibraryObj *lib, char *name,
+bool DBL_getCAddr(struct DBL_LibraryObj *lib, char *name,
 		 struct DBL_Symbol **ppSym)
 {
-	Bool retVal = FALSE;
+	bool retVal = false;
 	struct Symbol *symbol;
 	u16 i;
 
@@ -412,7 +412,7 @@ Bool DBL_getCAddr(struct DBL_LibraryObj *lib, char *name,
 		     symbol->pSymName[0] == '_')) {
 			/* Found it */
 			*ppSym = &lib->symbols[i].sym;
-			retVal = TRUE;
+			retVal = true;
 			break;
 		}
 	}
@@ -425,7 +425,7 @@ Bool DBL_getCAddr(struct DBL_LibraryObj *lib, char *name,
  *  	Get program entry point.
  *
  */
-Bool DBL_getEntry(struct DBL_LibraryObj *lib, u32 *pEntry)
+bool DBL_getEntry(struct DBL_LibraryObj *lib, u32 *pEntry)
 {
 	struct DBL_LibraryObj *pdblLib = (struct DBL_LibraryObj *)lib;
 
@@ -437,7 +437,7 @@ Bool DBL_getEntry(struct DBL_LibraryObj *lib, u32 *pEntry)
 		 "DBL_getEntry: lib: 0x%x pEntry: 0x%x\n", lib, pEntry);
 	*pEntry = pdblLib->fileHdr.entry;
 
-	return TRUE;
+	return true;
 }
 
 /*
@@ -501,9 +501,9 @@ DSP_STATUS DBL_getSect(struct DBL_LibraryObj *lib, char *name, u32 *pAddr,
  *  Purpose:
  *  	Initialize DBL module.
  */
-Bool DBL_init(void)
+bool DBL_init(void)
 {
-	Bool retVal = TRUE;
+	bool retVal = true;
 
 	DBC_Require(cRefs >= 0);
 
@@ -663,7 +663,7 @@ DSP_STATUS DBL_loadSect(struct DBL_LibraryObj *lib, char *sectName,
 			break;
 		default:
 			/* ERROR */
-			DBC_Assert(FALSE);
+			DBC_Assert(false);
 			break;
 		}
 		/* Do overlay if reference count is 0 */
@@ -675,7 +675,7 @@ DSP_STATUS DBL_loadSect(struct DBL_LibraryObj *lib, char *sectName,
 				space = pOvlyData->data[offset + i].page;
 				status = (dbl->dblAttrs.alloc)(dbl->dblAttrs.
 					 rmmHandle, space, size, 0,
-					 &runAddr, TRUE);
+					 &runAddr, true);
 				if (DSP_FAILED(status))
 					break;
 
@@ -960,7 +960,7 @@ DSP_STATUS DBL_unloadSect(struct DBL_LibraryObj *lib, char *sectName,
 			break;
 		default:
 			/* ERROR */
-			DBC_Assert(FALSE);
+			DBC_Assert(false);
 			break;
 		}
 		if (*phaseRef) {
@@ -1004,12 +1004,12 @@ static void freeSects(struct DBL_TargetObj *dbl, struct OvlyData *pOvlyData,
 		size = pOvlyData->data[offset + i].size;
 		space = pOvlyData->data[offset + i].page;
 		if (!(dbl->dblAttrs.free)
-		    (dbl->dblAttrs.rmmHandle, space, runAddr, size, TRUE)) {
+		    (dbl->dblAttrs.rmmHandle, space, runAddr, size, true)) {
 			/*
 			 *  Free function will not fail for overlay, unless
 			 *  address passed in is bad.
 			 */
-			DBC_Assert(FALSE);
+			DBC_Assert(false);
 		}
 	}
 }
@@ -1150,7 +1150,7 @@ static DSP_STATUS readHeader(struct DBL_TargetObj *dbl,
 	u32 swapMagic;
 	DSP_STATUS status = DSP_SOK;
 
-	pdblLib->byteSwapped = FALSE;
+	pdblLib->byteSwapped = false;
 	file = pdblLib->file;
 	pHdr = &pdblLib->fileHdr;
 	if ((*dbl->dblAttrs.fread)(pHdr, sizeof(struct DBOF_FileHdr), 1,
@@ -1167,7 +1167,7 @@ static DSP_STATUS readHeader(struct DBL_TargetObj *dbl,
 			if (pHdr->magic == magicTab[i] || swapMagic ==
 			   magicTab[i]) {
 				if (swapMagic == magicTab[i]) {
-					pdblLib->byteSwapped = TRUE;
+					pdblLib->byteSwapped = true;
 					pHdr->magic = SWAPLONG(pHdr->magic);
 					pHdr->entry = SWAPLONG(pHdr->entry);
 					pHdr->symOffset = SWAPLONG(pHdr->

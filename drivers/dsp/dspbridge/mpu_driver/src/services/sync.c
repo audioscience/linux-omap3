@@ -168,13 +168,13 @@ void SYNC_Exit(void)
  *  Purpose:
  *      Initialize SYNC module.
  */
-BOOL SYNC_Init(void)
+bool SYNC_Init(void)
 {
 	GT_create(&SYNC_debugMask, "SY");	/* SY for SYnc */
 
 	GT_0trace(SYNC_debugMask, GT_5CLASS, "SYNC_Init\n");
 
-	return TRUE;
+	return true;
 }
 
 /*

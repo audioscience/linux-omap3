@@ -79,7 +79,7 @@
 					      *pMgrInfo);
 
 	extern DSP_STATUS WMD_CHNL_Idle(struct CHNL_OBJECT *hChnl,
-					u32 dwTimeOut, BOOL fFlush);
+					u32 dwTimeOut, bool fFlush);
 
 	extern DSP_STATUS WMD_CHNL_RegisterNotify(struct CHNL_OBJECT *hChnl,
 						  u32 uEventMask,

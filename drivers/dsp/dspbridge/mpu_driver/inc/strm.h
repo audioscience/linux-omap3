@@ -240,7 +240,7 @@
  *      STRM_Init() called.
  *  Ensures:
  */
-	extern DSP_STATUS STRM_Idle(struct STRM_OBJECT *hStrm, BOOL fFlush);
+	extern DSP_STATUS STRM_Idle(struct STRM_OBJECT *hStrm, bool fFlush);
 
 /*
  *  ======== STRM_Init ========
@@ -252,7 +252,7 @@
  *  Requires:
  *  Ensures:
  */
-	extern BOOL STRM_Init();
+	extern bool STRM_Init();
 
 /*
  *  ======== STRM_Issue ========

@@ -41,7 +41,7 @@
  *  The argument dwSyncAddr is set to 1 before releasing the DSP.
  *  If the DSP starts running, it will clear this location.
  */
-extern BOOL WaitForStart(struct WMD_DEV_CONTEXT *pDevContext, u32 dwSyncAddr);
+extern bool WaitForStart(struct WMD_DEV_CONTEXT *pDevContext, u32 dwSyncAddr);
 
 #endif				/* _TIOMAP_UTIL_ */
 

@@ -485,7 +485,7 @@
  *  Ensures:
  *      A requirement for each of the other public CHNL functions.
  */
-	extern BOOL CHNL_Init();
+	extern bool CHNL_Init();
 
 /*
  *  ======== CHNL_Open ========

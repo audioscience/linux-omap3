@@ -662,7 +662,7 @@ typedef DSP_STATUS(CDECL *WMD_BRD_WRITE)(struct WMD_DEV_CONTEXT *hDevContext,
  */
 	typedef DSP_STATUS(CDECL *WMD_CHNL_IDLE) (struct CHNL_OBJECT *hChnl,
 						   u32 dwTimeOut,
-						   BOOL fFlush);
+						   bool fFlush);
 
 /*
  *  ======== WMD_CHNL_RegisterNotify ========

@@ -251,7 +251,7 @@ struct NODE_MGR {
 	/* Loader properties */
 	struct NLDR_OBJECT *hNldr;	/* Handle to loader */
 	struct NLDR_FXNS nldrFxns;	/* Handle to loader functions */
-	BOOL fLoaderInit;	/* Loader Init function succeeded? */
+	bool fLoaderInit;	/* Loader Init function succeeded? */
 };
 
 /*
@@ -318,8 +318,8 @@ struct NODE_OBJECT {
 
 	/* Handle to pass to dynamic loader */
 	struct NLDR_NODEOBJECT *hNldrNode;
-	BOOL fLoaded;		/* Code is (dynamically) loaded */
-	BOOL fPhaseSplit;	/* Phases split in many libs or ovly */
+	bool fLoaded;		/* Code is (dynamically) loaded */
+	bool fPhaseSplit;	/* Phases split in many libs or ovly */
 
 } ;
 
@@ -755,7 +755,7 @@ func_cont2:
 
 		/* Preset this to assume phases are split
 		 * (for overlay and dll) */
-		pNode->fPhaseSplit = TRUE;
+		pNode->fPhaseSplit = true;
 
 		if (DSP_SUCCEEDED(status))
 			*phNode = pNode;
@@ -800,8 +800,8 @@ func_cont2:
 			if (pPctxt != NULL) {
 				DRV_InsertNodeResElement(*phNode, &nodeRes,
 							 pPctxt);
-				DRV_ProcNodeUpdateHeapStatus(nodeRes, TRUE);
-				DRV_ProcNodeUpdateStatus(nodeRes, TRUE);
+				DRV_ProcNodeUpdateHeapStatus(nodeRes, true);
+				DRV_ProcNodeUpdateStatus(nodeRes, true);
 			}
 		}
 	}
@@ -823,8 +823,8 @@ DBAPI NODE_AllocMsgBuf(struct NODE_OBJECT *hNode, u32 uSize,
 {
 	struct NODE_OBJECT *pNode = (struct NODE_OBJECT *)hNode;
 	DSP_STATUS status = DSP_SOK;
-	BOOL bVirtAddr = FALSE;
-	BOOL bSetInfo;
+	bool bVirtAddr = false;
+	bool bSetInfo;
 	u32 procId;
 
 	DBC_Require(cRefs > 0);
@@ -860,9 +860,9 @@ DBAPI NODE_AllocMsgBuf(struct NODE_OBJECT *hNode, u32 uSize,
 	 *  virtual address  from node's translator.  */
 	if ((pAttr->uSegment & MEM_SETVIRTUALSEGID) ||
 			    (pAttr->uSegment & MEM_GETVIRTUALSEGID)) {
-		bVirtAddr = TRUE;
+		bVirtAddr = true;
 		bSetInfo = (pAttr->uSegment & MEM_SETVIRTUALSEGID) ?
-			   TRUE : FALSE;
+			   true : false;
 		pAttr->uSegment &= ~MEM_MASKVIRTUALSEGID; /* clear mask bits */
 		/* Set/get this node's translators virtual address base/size */
 		status = CMM_XlatorInfo(pNode->hXlator, pBuffer, uSize,
@@ -1310,7 +1310,7 @@ DSP_STATUS NODE_Create(struct NODE_OBJECT *hNode)
 	enum NODE_TYPE nodeType;
 	DSP_STATUS status = DSP_SOK;
 	DSP_STATUS status1 = DSP_SOK;
-	BOOL bJustWokeDSP = FALSE;
+	bool bJustWokeDSP = false;
 	struct DSP_CBDATA cbData;
 	u32 procId = 255;
 
@@ -1370,7 +1370,7 @@ DSP_STATUS NODE_Create(struct NODE_OBJECT *hNode)
 						   NLDR_CREATE);
 		/* Get address of node's create function */
 		if (DSP_SUCCEEDED(status)) {
-			hNode->fLoaded = TRUE;
+			hNode->fLoaded = true;
 			if (nodeType != NODE_DEVICE) {
 				status = GetFxnAddress(hNode, &ulCreateFxn,
 							CREATEPHASE);
@@ -1427,7 +1427,7 @@ DSP_STATUS NODE_Create(struct NODE_OBJECT *hNode)
 		 * it. */
 		status1 = hNodeMgr->nldrFxns.pfnUnload(hNode->hNldrNode,
 						      NLDR_CREATE);
-		hNode->fLoaded = FALSE;
+		hNode->fLoaded = false;
 	}
 	if (DSP_FAILED(status1)) {
 		GT_1trace(NODE_debugMask, GT_5CLASS,
@@ -1447,7 +1447,7 @@ func_cont2:
 	}
 	if (procId == DSP_UNIT) {
 		/* If node create failed, see if should sleep DSP now */
-		if (bJustWokeDSP == TRUE) {
+		if (bJustWokeDSP == true) {
 			/* Check to see if partial create happened on DSP */
 			if (hNode->nodeEnv == (u32)NULL) {
 				/* No environment allocated on DSP, re-sleep
@@ -1692,7 +1692,7 @@ DSP_STATUS NODE_Delete(struct NODE_OBJECT *hNode)
 				 * is not * running */
 				status1 = hNodeMgr->nldrFxns.pfnUnload(hNode->
 					  hNldrNode, NLDR_EXECUTE);
-				hNode->fLoaded = FALSE;
+				hNode->fLoaded = false;
 				NODE_SetState(hNode, NODE_DONE);
 			}
 			/* Load delete phase code if not loaded or if haven't
@@ -1702,7 +1702,7 @@ DSP_STATUS NODE_Delete(struct NODE_OBJECT *hNode)
 				status = hNodeMgr->nldrFxns.pfnLoad(hNode->
 					 hNldrNode, NLDR_DELETE);
 				if (DSP_SUCCEEDED(status)) {
-					hNode->fLoaded = TRUE;
+					hNode->fLoaded = true;
 				} else {
 					GT_1trace(NODE_debugMask, GT_ENTER,
 						 "NODE_Delete: failed to "
@@ -1741,7 +1741,7 @@ func_cont1:
 				}
 				status1 = hNodeMgr->nldrFxns.pfnUnload(
 					  hNode->hNldrNode, NLDR_DELETE);
-				hNode->fLoaded = FALSE;
+				hNode->fLoaded = false;
 				if (DSP_FAILED(status1)) {
 					GT_1trace(NODE_debugMask, GT_ENTER,
 						  "NODE_Delete: failed to"
@@ -1781,7 +1781,7 @@ func_cont1:
 
 	if (DRV_GetNodeResElement(hNode, &nodeRes, pCtxt) != DSP_ENOTFOUND) {
 		GT_0trace(NODE_debugMask, GT_5CLASS, "\nNODE_Delete12:\n");
-		DRV_ProcNodeUpdateStatus(nodeRes, FALSE);
+		DRV_ProcNodeUpdateStatus(nodeRes, false);
 	}
 #endif
 func_cont:
@@ -2183,9 +2183,9 @@ enum NODE_TYPE NODE_GetType(struct NODE_OBJECT *hNode)
  *  Purpose:
  *      Initialize the NODE module.
  */
-BOOL NODE_Init(void)
+bool NODE_Init(void)
 {
-	BOOL fRetVal = TRUE;
+	bool fRetVal = true;
 
 	DBC_Require(cRefs >= 0);
 
@@ -2218,7 +2218,7 @@ CDECL void NODE_OnExit(struct NODE_OBJECT *hNode, s32 nStatus)
 	if (hNode->fLoaded && hNode->fPhaseSplit) {
 		(void)hNode->hNodeMgr->nldrFxns.pfnUnload(hNode->hNldrNode,
 							 NLDR_EXECUTE);
-		hNode->fLoaded = FALSE;
+		hNode->fLoaded = false;
 	}
 	/* Unblock call to NODE_Terminate */
 	(void) SYNC_SetEvent(hNode->hSyncDone);
@@ -2501,7 +2501,7 @@ DSP_STATUS NODE_Run(struct NODE_OBJECT *hNode)
 			status = hNodeMgr->nldrFxns.pfnLoad(hNode->hNldrNode,
 				NLDR_EXECUTE);
 			if (DSP_SUCCEEDED(status)) {
-				hNode->fLoaded = TRUE;
+				hNode->fLoaded = true;
 			} else {
 				GT_1trace(NODE_debugMask, GT_ENTER,
 					 "NODE_Run: failed to load "
@@ -2529,7 +2529,7 @@ DSP_STATUS NODE_Run(struct NODE_OBJECT *hNode)
 						NODE_GetPriority(hNode));
 	} else {
 		/* We should never get here */
-		DBC_Assert(FALSE);
+		DBC_Assert(false);
 	}
 func_cont1:
 	/* Update node state. */
@@ -3027,7 +3027,7 @@ static DSP_STATUS GetFxnAddress(struct NODE_OBJECT *hNode, u32 *pulFxnAddr,
 		break;
 	default:
 		/* Should never get here */
-		DBC_Assert(FALSE);
+		DBC_Assert(false);
 		break;
 	}
 

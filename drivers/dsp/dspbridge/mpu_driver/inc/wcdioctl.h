@@ -337,7 +337,7 @@ union Trapped_Args {
 
 	struct {
 		DSP_HSTREAM hStream;
-		BOOL bFlush;
+		bool bFlush;
 	} ARGS_STRM_IDLE;
 
 	struct {

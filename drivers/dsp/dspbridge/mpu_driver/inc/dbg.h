@@ -39,7 +39,7 @@
 
 #ifndef DBG_
 #define DBG_
-
+#include <host_os.h>
 #include <linux/types.h>
 
 /* Levels of trace debug messages: */
@@ -78,7 +78,7 @@
  *  Requires:
  *  Ensures:
  */
-	extern BOOL DBG_Init();
+	extern bool DBG_Init();
 
 /*
  *  ======== DBG_Trace ========
@@ -102,7 +102,7 @@
 #else
 
 #define DBG_Exit()
-#define DBG_Init() TRUE
+#define DBG_Init() true
 #define DBG_Trace(bLevel, pstrFormat, args...)
 
 #endif	     /* ((defined DEBUG) || (defined DDSP_DEBUG_PRODUCT)) && GT_TRACE */

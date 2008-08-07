@@ -152,7 +152,7 @@
  *  Ensures:
  *      SYNC initialized.
  */
-	extern BOOL SYNC_Init();
+	extern bool SYNC_Init();
 
 /*
  *  ======== SYNC_InitializeCS ========

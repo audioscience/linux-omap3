@@ -106,9 +106,8 @@ DSP_STATUS WMD_MSG_Create(OUT struct MSG_MGR **phMsgMgr,
 		pMsgMgr->msgUsedList = LST_Create();
 		if (pMsgMgr->queueList == NULL ||
 		    pMsgMgr->msgFreeList == NULL ||
-		    pMsgMgr->msgUsedList == NULL) {
+		    pMsgMgr->msgUsedList == NULL)
 			status = DSP_EMEMORY;
-		}
 		if (DSP_SUCCEEDED(status))
 			status = SYNC_InitializeDPCCS(&pMsgMgr->hSyncCS);
 
@@ -237,7 +236,7 @@ void WMD_MSG_DeleteQueue(struct MSG_QUEUE *hMsgQueue)
 	u32 refCount;
 
 	DBC_Require(MEM_IsValidHandle(hMsgQueue, MSGQ_SIGNATURE));
-	hMsgQueue->fDone = TRUE;
+	hMsgQueue->fDone = true;
 	 /*  Unblock all threads blocked in MSG_Get() or MSG_Put().  */
 	refCount = hMsgQueue->refCount;
 	while (refCount) {
@@ -267,7 +266,7 @@ DSP_STATUS WMD_MSG_Get(struct MSG_QUEUE *hMsgQueue,
 {
 	struct MSG_FRAME *pMsgFrame;
 	struct MSG_MGR *hMsgMgr;
-	BOOL fGotMsg = FALSE;
+	bool fGotMsg = false;
 	struct SYNC_OBJECT *hSyncs[2];
 	u32 uIndex;
 	DSP_STATUS status = DSP_SOK;
@@ -289,7 +288,7 @@ DSP_STATUS WMD_MSG_Get(struct MSG_QUEUE *hMsgQueue,
 			if (LST_IsEmpty(hMsgQueue->msgUsedList))
 				SYNC_ResetEvent(hMsgQueue->hSyncEvent);
 
-			fGotMsg = TRUE;
+			fGotMsg = true;
 		}
 	} else {
 		if (hMsgQueue->fDone)
@@ -354,7 +353,7 @@ DSP_STATUS WMD_MSG_Put(struct MSG_QUEUE *hMsgQueue,
 {
 	struct MSG_FRAME *pMsgFrame;
 	struct MSG_MGR *hMsgMgr;
-	BOOL fPutMsg = FALSE;
+	bool fPutMsg = false;
 	struct SYNC_OBJECT *hSyncs[2];
 	u32 uIndex;
 	DSP_STATUS status = DSP_SOK;
@@ -376,7 +375,7 @@ DSP_STATUS WMD_MSG_Put(struct MSG_QUEUE *hMsgQueue,
 			LST_PutTail(hMsgMgr->msgUsedList, (struct LST_ELEM *)
 				   pMsgFrame);
 			hMsgMgr->uMsgsPending++;
-			fPutMsg = TRUE;
+			fPutMsg = true;
 		}
 		if (LST_IsEmpty(hMsgMgr->msgFreeList))
 			SYNC_ResetEvent(hMsgMgr->hSyncEvent);

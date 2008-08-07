@@ -94,17 +94,17 @@ static inline void printS(void *pBuf)
  *  Purpose:
  *      Initialize the Registry Support module's private state.
  */
-BOOL regsupInit(void)
+bool regsupInit(void)
 {
 	if (pRegKey != NULL)
-		return TRUE;
+		return true;
 
 	/*  Need to allocate and setup our registry.  */
 	pRegKey = MEM_Calloc(sizeof(struct RegKeyStruct), MEM_NONPAGED);
 	if (pRegKey == NULL)
-		return FALSE;
+		return false;
 
-	return TRUE;
+	return true;
 }
 
 /*

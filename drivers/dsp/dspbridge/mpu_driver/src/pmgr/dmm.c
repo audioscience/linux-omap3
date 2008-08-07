@@ -338,9 +338,9 @@ DSP_STATUS DMM_GetHandle(DSP_HPROCESSOR hProcessor,
  *  Purpose:
  *      Initializes private state of DMM module.
  */
-BOOL DMM_Init(void)
+bool DMM_Init(void)
 {
-	BOOL fRetval = TRUE;
+	bool fRetval = true;
 
 	DBC_Require(cRefs >= 0);
 
@@ -388,7 +388,7 @@ DSP_STATUS DMM_MapMemory(struct DMM_OBJECT *hDmmMgr, u32 addr, u32 size)
 	chunk = (struct MapPage *)GetRegion(addr);
 	if (chunk != NULL) {
 		/* Mark the region 'mapped', leave the 'reserved' info as-is */
-		chunk->bMapped = TRUE;
+		chunk->bMapped = true;
 		chunk->MappedSize = (size/PG_SIZE_4K);
 	} else
 		status = DSP_ENOTFOUND;
@@ -427,15 +427,15 @@ DSP_STATUS DMM_ReserveMemory(struct DMM_OBJECT *hDmmMgr, u32 size,
 		rsvSize = size/PG_SIZE_4K;
 		if (rsvSize < node->RegionSize) {
 			/* Mark remainder of free region */
-			node[rsvSize].bMapped = FALSE;
-			node[rsvSize].bReserved = FALSE;
+			node[rsvSize].bMapped = false;
+			node[rsvSize].bReserved = false;
 			node[rsvSize].RegionSize = node->RegionSize - rsvSize;
 			node[rsvSize].MappedSize = 0;
 		}
 		/*  GetRegion will return first fit chunk. But we only use what
 			is requested. */
-		node->bMapped = FALSE;
-		node->bReserved = TRUE;
+		node->bMapped = false;
+		node->bReserved = true;
 		node->RegionSize = rsvSize;
 		node->MappedSize = 0;
 		/* Return the chunk's starting address */
@@ -474,7 +474,7 @@ DSP_STATUS DMM_UnMapMemory(struct DMM_OBJECT *hDmmMgr, u32 addr, u32 *pSize)
 	if (DSP_SUCCEEDED(status)) {
 		/* Unmap the region */
 		*pSize = chunk->MappedSize * PG_SIZE_4K;
-		chunk->bMapped = FALSE;
+		chunk->bMapped = false;
 		chunk->MappedSize = 0;
 	}
 	SYNC_LeaveCS(pDmmObj->hDmmLock);
@@ -517,14 +517,14 @@ DSP_STATUS DMM_UnReserveMemory(struct DMM_OBJECT *hDmmMgr, u32 rsvAddr)
 				/* Remove mapping from the page tables. */
 				chunkSize = chunk[i].MappedSize;
 				/* Clear the mapping flags */
-				chunk[i].bMapped = FALSE;
+				chunk[i].bMapped = false;
 				chunk[i].MappedSize = 0;
 				i += chunkSize;
 			} else
 				i++;
 		}
 		/* Clear the flags (mark the region 'free') */
-		chunk->bReserved = FALSE;
+		chunk->bReserved = false;
 		/* NOTE: We do NOT coalesce free regions here.
 		 * Free regions are coalesced in GetRegion(), as it traverses
 		 *the whole mapping table
@@ -585,11 +585,11 @@ struct MapPage *GetFreeRegion(u32 aSize)
 		while (i < TableSize) {
 			RegionSize = pVirtualMappingTable[i].RegionSize;
 			nextI = i+RegionSize;
-			if (pVirtualMappingTable[i].bReserved == FALSE) {
+			if (pVirtualMappingTable[i].bReserved == false) {
 				/* Coalesce, if possible */
 				if (nextI < TableSize &&
 				pVirtualMappingTable[nextI].bReserved
-							== FALSE) {
+							== false) {
 					pVirtualMappingTable[i].RegionSize +=
 					pVirtualMappingTable[nextI].RegionSize;
 					continue;

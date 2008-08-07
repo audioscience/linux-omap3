@@ -85,7 +85,7 @@
  *  Requires:
  *  Ensures:
  */
-	extern BOOL WCD_Init();
+	extern bool WCD_Init();
 
 /*
  *  ======== WCD_InitComplete2 ========
