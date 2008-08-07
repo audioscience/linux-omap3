@@ -45,8 +45,6 @@
 #ifndef LDR_
 #define LDR_
 
-#include <dspapi.h>
-
 /* Loader objects: */
 	struct LDR_MODULE;
 

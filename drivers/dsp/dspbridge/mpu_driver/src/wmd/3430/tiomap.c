@@ -76,8 +76,6 @@
 #include "_tiomap_mmu.h"
 #include "_tiomap_util.h"
 #include "tiomap_io.h"
-#include "_tiomap_api.h"
-#include "_tiomap_clk.h"
 
 /* Offset in shared mem to write to in order to synchronize start with DSP */
 #define SHMSYNCOFFSET 4		/* GPP byte offset */
@@ -2145,3 +2143,50 @@ void GetHWRegs(u32 prm_base, u32 cm_base)
 	   DBG_Trace(DBG_LEVEL6, "CM_ICLKEN1_CORE = 0x%x \n", temp);
 }
 
+/*
+ *  ======== configureDspMmu ========
+ *      Make DSP MMU page table entries.
+ */
+void configureDspMmu(struct WMD_DEV_CONTEXT *pDevContext, u32 dataBasePhys,
+		    u32 dspBaseVirt, u32 sizeInBytes, s32 nEntryStart,
+		    enum HW_Endianism_t endianism,
+		    enum HW_ElementSize_t elemSize,
+		    enum HW_MMUMixedSize_t mixedSize)
+{
+	struct CFG_HOSTRES resources;
+	struct HW_MMUMapAttrs_t mapAttrs = { endianism, elemSize, mixedSize };
+	DSP_STATUS status = DSP_SOK;
+
+	DBC_Require(sizeInBytes > 0);
+	DBG_Trace(DBG_LEVEL1,
+		 "configureDspMmu entry %x pa %x, va %x, bytes %x ",
+		 nEntryStart, dataBasePhys, dspBaseVirt, sizeInBytes);
+
+	DBG_Trace(DBG_LEVEL1, "endianism %x, elemSize %x, mixedSize %x\n",
+		 endianism, elemSize, mixedSize);
+	status = CFG_GetHostResources(
+		 (struct CFG_DEVNODE *)DRV_GetFirstDevExtension(), &resources);
+	status = HW_MMU_TLBAdd(pDevContext->dwDSPMmuBase, dataBasePhys,
+				dspBaseVirt, sizeInBytes, nEntryStart,
+				&mapAttrs, HW_SET, HW_SET);
+}
+
+/*
+ *  ======== WaitForStart ========
+ *      Wait for the singal from DSP that it has started, or time out.
+ */
+BOOL WaitForStart(struct WMD_DEV_CONTEXT *pDevContext, u32 dwSyncAddr)
+{
+	u16 usCount = TIHELEN_ACKTIMEOUT;
+
+	/*  Wait for response from board */
+	while (*((volatile u16 *)dwSyncAddr) && --usCount)
+		UTIL_Wait(TIHELEN_WRITE_DELAY);
+
+	/*  If timed out: return FALSE */
+	if (!usCount) {
+		DBG_Trace(DBG_LEVEL7, "Timed out Waiting for DSP to Start\n");
+		return FALSE;
+	}
+	return TRUE;
+}

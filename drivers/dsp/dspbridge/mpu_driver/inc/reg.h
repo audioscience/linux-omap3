@@ -51,7 +51,6 @@
 #ifndef _REG_H
 #define _REG_H
 
-#include <dspapi.h>
 #include <linux/types.h>
 
 /*  ------------------------- Defines, Data Structures, Typedefs for Linux */

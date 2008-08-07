@@ -40,7 +40,6 @@
 #ifndef DBG_
 #define DBG_
 
-#include <dspapi.h>
 #include <linux/types.h>
 
 /* Levels of trace debug messages: */

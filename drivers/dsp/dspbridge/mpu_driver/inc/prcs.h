@@ -38,8 +38,6 @@
 #ifndef _PRCS_H
 #define _PRCS_H
 
-#include <dspapi.h>
-
 /*
  *  ======== PRCS_Exit ========
  *  Purpose:

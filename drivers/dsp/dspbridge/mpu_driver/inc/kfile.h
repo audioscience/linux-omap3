@@ -52,8 +52,6 @@
 #ifndef KFILE_
 #define KFILE_
 
-#include <dspapi.h>
-
 /*
  *  Constants for KFILE_Seek.  Note that these MUST be the same definitions as
  *  those defined for fseek.

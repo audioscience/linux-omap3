@@ -21,7 +21,6 @@
 
 #include <GlobalTypes.h>
 #include <EasiGlobal.h>
-#include <EasiBase.h>
 
 #define SYSC_IVA2BOOTMOD_OFFSET	    0x404
 #define SYSC_IVA2BOOTADDR_OFFSET	    0x400

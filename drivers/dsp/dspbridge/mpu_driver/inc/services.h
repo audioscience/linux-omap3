@@ -32,8 +32,6 @@
 #ifndef SERVICES_
 #define SERVICES_
 
-#include <dspapi.h>
-
 /*
  *  ======== SERVICES_Exit ========
  *  Purpose:

@@ -19,7 +19,6 @@
 
 #include <GlobalTypes.h>
 #include <EasiGlobal.h>
-#include <EasiBase.h>
 #include "MLBAccInt.h"
 
 #if defined(USE_LEVEL_1_MACROS)

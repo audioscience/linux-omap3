@@ -56,9 +56,7 @@
 #ifndef CSL_
 #define CSL_
 
-#include <dspapi.h>
 #include <linux/types.h>
-
 
 /*
  *  ======== CSL_Atoi ========

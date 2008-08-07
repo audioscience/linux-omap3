@@ -50,7 +50,6 @@
 #ifndef LIST_
 #define LIST_
 
-#include <dspapi.h>
 #include <linux/types.h>
 
 #define LST_IsEmpty(l)      (((l)->head.next == &(l)->head))

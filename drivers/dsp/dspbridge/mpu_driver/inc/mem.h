@@ -68,8 +68,6 @@
 #ifndef MEM_
 #define MEM_
 
-#include <dspapi.h>
-
 #include <memdefs.h>
 
 /*

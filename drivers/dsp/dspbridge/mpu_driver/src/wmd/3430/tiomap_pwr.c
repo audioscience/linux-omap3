@@ -59,10 +59,8 @@
 
 /*  ----------------------------------- specific to this file */
 #include "_tiomap.h"
-#include "_tiomap_clk.h"
 #include "_tiomap_pwr.h"
 #include "_tiomap_util.h"
-#include "_tiomap_api.h"
 #ifndef DISABLE_BRIDGE_PM
 #ifndef DISABLE_BRIDGE_DVFS
 #include <asm/arch/resource.h>
