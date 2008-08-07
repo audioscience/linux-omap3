@@ -214,23 +214,11 @@
 
 /* the unit in which we process target image data */
 #if TARGET_AU_BITS <= 8
-#ifndef __KERNEL__
-typedef uint_least8_t TgtAU_t;
-#else
 typedef u8 TgtAU_t;
-#endif
 #elif TARGET_AU_BITS <= 16
-#ifndef __KERNEL__
-typedef uint_least16_t TgtAU_t;
-#else
 typedef u16 TgtAU_t;
-#endif
-#else
-#ifndef __KERNEL__
-typedef uint_least32_t TgtAU_t;
 #else
 typedef u32 TgtAU_t;
-#endif
 #endif
 
 /* size of that unit */

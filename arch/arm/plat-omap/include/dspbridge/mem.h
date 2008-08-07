@@ -89,11 +89,7 @@
  *      The returned pointer, if not NULL, points to a valid memory block of
  *      the size requested.
  */
-#ifdef __KERNEL__
 	extern void *MEM_Alloc(IN u32 cBytes, IN enum MEM_POOLATTRS type);
-#else
-#define MEM_Alloc(size, type) malloc(size)
-#endif
 
 /*
  *  ======== MEM_AllocObject ========
@@ -203,11 +199,7 @@
  *  Ensures:
  *      pMemBuf is no longer a valid pointer to memory.
  */
-#ifdef __KERNEL__
 	extern void MEM_Free(IN void *pMemBuf);
-#else
-#define MEM_Free(ptr) free(ptr)
-#endif
 
 /*
  *  ======== MEM_FreePhysMem ========

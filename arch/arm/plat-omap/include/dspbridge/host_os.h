@@ -27,8 +27,6 @@
 #ifndef _HOST_OS_H_
 #define _HOST_OS_H_
 
-#ifdef __KERNEL__
-
 #include <linux/autoconf.h>
 #include <asm/system.h>
 #include <asm/atomic.h>
@@ -55,8 +53,8 @@
 #include <linux/vmalloc.h>
 #include <linux/ioport.h>
 #include <linux/platform_device.h>
+#include <dbtype.h>
 /* #include <asm/arch/bus.h> */
-
 
 #if defined(OMAP_2430) || defined(OMAP_3430)
 #include <asm/arch/clock.h>
@@ -76,28 +74,10 @@
 #define SEEK_CUR        1	/* Seek from current position.  */
 #define SEEK_END        2	/* Seek from end of file.  */
 
-
 /* TODO -- Remove, once BP defines them */
 #ifdef OMAP_3430
 #define INT_MAIL_MPU_IRQ        26
 #define INT_DSP_MMU_IRQ        28
 #endif
-
-
-#else
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <semaphore.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-#include <sys/mman.h>
-#endif
-
-#include <dbtype.h>
 
 #endif

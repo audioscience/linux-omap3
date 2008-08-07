@@ -27,13 +27,10 @@
 
 /* maximum parenthesis nesting in relocation stack expressions */
 #define STATIC_EXPR_STK_SIZE 10
-#ifndef __KERNEL__
-#include <stdint.h>
-#else
+
 #include <linux/types.h>
 typedef unsigned int            uint_least32_t;
 typedef unsigned short int	uint_least16_t;
-#endif
 
 #include "doff.h"
 #include "dynamic_loader.h"

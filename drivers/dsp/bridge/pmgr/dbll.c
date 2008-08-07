@@ -751,19 +751,11 @@ DSP_STATUS DBLL_open(struct DBLL_TarObj *target, char *file, DBLL_Flags flags,
 	} else {
 		/* Do a fake load to get symbols - set write function to NoOp */
 		zlLib->init.dlInit.writemem = NoOp;
-#ifdef OPT_ELIMINATE_EXTRA_DLOAD
 		err = Dynamic_Open_Module(&zlLib->stream.dlStream,
 					&zlLib->symbol.dlSymbol,
 					&zlLib->allocate.dlAlloc,
 					&zlLib->init.dlInit, 0,
 					&zlLib->mHandle);
-#else
-		err = Dynamic_Load_Module(&zlLib->stream.dlStream,
-					 &zlLib->symbol.dlSymbol,
-					 &zlLib->allocate.dlAlloc,
-					 &zlLib->init.dlInit, 0,
-					 &zlLib->mHandle);
-#endif
 		if (err != 0) {
 			GT_1trace(DBLL_debugMask, GT_6CLASS, "DBLL_open: "
 				 "Dynamic_Load_Module failed: 0x%lx\n", err);
@@ -1526,7 +1518,6 @@ static int fillMem(struct Dynamic_Loader_Initialize *this, LDR_ADDR addr,
 		   unsigned val)
 {
 	Bool retVal = TRUE;
-#ifdef OPT_USE_MEMSET
 	char *pBuf;
 	struct DBLL_LibraryObj *lib;
 	struct DBLLInit *pInit = (struct DBLLInit *)this;
@@ -1542,23 +1533,6 @@ static int fillMem(struct Dynamic_Loader_Initialize *this, LDR_ADDR addr,
 		writeMem(this, &pBuf, addr, info, 0);
 	if (pBuf)
 		memset(pBuf, val, nBytes);
-#else
-	DBC_Require(this != NULL);
-	ulRemainBytes = nBytes;
-	/* Zero out buffer */
-	memset(tempBuf, val, MAXEXPR);
-
-	while ((ulRemainBytes > 0) && retVal) {
-		ulBytes = ulRemainBytes > MAXEXPR ? MAXEXPR : ulRemainBytes;
-
-		/* Call a function to fill memory */
-		retVal = writeMem(this, tempBuf, addr, info, ulBytes);
-
-		ulRemainBytes -= ulBytes;
-		/* (u8 *) addr += ulBytes; */
-		addr = (LDR_ADDR)((u8 *)addr + ulBytes);
-	}
-#endif
 	return retVal;
 }
 

@@ -36,8 +36,6 @@ ccflags-y += -DGT_TRACE -DDEBUG
 endif
 
 ccflags-y += -Wno-strict-prototypes -fomit-frame-pointer
-ccflags-y += -DOPT_ELIMINATE_EXTRA_DLOAD -DOPT_REDUCE_SYMBOL_LOOKUPS \
-		-DOPT_USE_MEMSET
 
 #Machine dependent
 ccflags-y += -D_TI_ -D_DB_TIOMAP -DOMAP_3430 -D__KERNEL__ -DTMS32060 \
