@@ -185,7 +185,11 @@ DSP_STATUS CHNLSM_InterruptDSP(struct WMD_DEV_CONTEXT *hDevContext)
 #ifndef DEBUG
 	u32 usCount = LOOP_COUNT;
 #endif
+#ifndef DISABLE_BRIDGE_PM
+#ifndef DISABLE_BRIDGE_DVFS
 	u32 opplevel;
+#endif
+#endif
 	HW_STATUS hwStatus;
 	u32 mbxFull;
 	struct CFG_HOSTRES resources;

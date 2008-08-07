@@ -21,14 +21,8 @@
 static const char BSSSYMBOL[] = {".bss"};
 #endif
 
-#if LEAD3
-#include "reloc_table_c5500.c"
-#elif LEAD
-#include "reloc_table_c5400.c"
-#elif TMS32060
+#if TMS32060
 #include "reloc_table_c6000.c"
-#elif TMS470
-#include "reloc_table_arm.c"
 #endif
 
 #if TMS32060
@@ -245,12 +239,10 @@ void dload_relocate(struct dload_state *dlthis, TgtAU_t *data,
 		fieldsz = RFV_WIDTH(reloc_action);
 		if (fieldsz) {	/* field info from table */
 			offset = RFV_POSN(reloc_action);
-#if !LEAD3
 			if (TARGET_BIG_ENDIAN)
 				/* make sure r_vaddr is the lowest target
 				 * address containing bits */
 				rp->r_vaddr += RFV_BIGOFF(reloc_info);
-#endif
 		} else {	/* field info from relocation op */
 			fieldsz = rp->r_fieldsz; offset = rp->r_offset;
 			if (TARGET_BIG_ENDIAN)

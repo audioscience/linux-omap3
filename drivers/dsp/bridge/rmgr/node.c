@@ -472,9 +472,8 @@ DSP_STATUS NODE_Allocate(struct PROC_OBJECT *hProcessor,
 		if (pAttrIn) {
 			/* Check if pAttrIn->iPriority is within range */
 			if (pAttrIn->iPriority < hNodeMgr->nMinPri ||
-			   pAttrIn->iPriority > hNodeMgr->nMaxPri) {
+			   pAttrIn->iPriority > hNodeMgr->nMaxPri)
 				status = DSP_ERANGE;
-			}
 		}
 	}
 func_cont:
@@ -615,9 +614,8 @@ func_cont2:
 			if ((MaxInputs(pNode) > 0 && (pNode->inputs == NULL ||
 			   ptaskArgs->strmInDef == NULL)) ||
 			   (MaxOutputs(pNode) > 0 && (pNode->outputs == NULL ||
-			   ptaskArgs->strmOutDef == NULL))) {
+			   ptaskArgs->strmOutDef == NULL)))
 				status = DSP_EMEMORY;
-			}
 		}
 	}
 	if (DSP_SUCCEEDED(status) && (nodeType != NODE_DEVICE)) {
@@ -791,7 +789,7 @@ func_cont2:
 				DRV_InsertProcContext(hDrvObject, &pPctxt);
 				if (pPctxt != NULL) {
 					DRV_ProcUpdatestate(pPctxt,
-							   PROC_RES_ALLOCATED);
+							PROC_RES_ALLOCATED);
 					DRV_ProcSetPID(pPctxt, (s32) hProcess);
 					pPctxt->hProcessor =
 						 (DSP_HPROCESSOR)hProcessor;
@@ -805,7 +803,7 @@ func_cont2:
 					REG_DRV_OBJECT);
 		if (DSP_SUCCEEDED(res_status)) {
 			DRV_GetProcContext(hProcess, hDrvObject, &pPctxt,
-					*phNode, 0);
+					 *phNode, 0);
 			if (pPctxt != NULL) {
 				DRV_InsertNodeResElement(*phNode, &nodeRes,
 							 pPctxt);
@@ -945,16 +943,12 @@ DSP_STATUS NODE_ChangePriority(struct NODE_OBJECT *hNode, s32 nPriority)
 	} else {
 		hNodeMgr = hNode->hNodeMgr;
 		nodeType = NODE_GetType(hNode);
-		if (nodeType != NODE_TASK && nodeType != NODE_DAISSOCKET) {
+		if (nodeType != NODE_TASK && nodeType != NODE_DAISSOCKET)
 			status = DSP_ENODETYPE;
-		} else {
-			if (nPriority < hNodeMgr->nMinPri ||
-			   nPriority > hNodeMgr->nMaxPri) {
+		else if (nPriority < hNodeMgr->nMinPri ||
+				nPriority > hNodeMgr->nMaxPri)
 				status = DSP_ERANGE;
-			}
-		}
 	}
-
 	if (!DSP_SUCCEEDED(status))
 		goto func_end;
 
@@ -1028,17 +1022,15 @@ DSP_STATUS NODE_Connect(struct NODE_OBJECT *hNode1, u32 uStream1,
 		if ((hNode1 != (struct NODE_OBJECT *) DSP_HGPPNODE &&
 		   !MEM_IsValidHandle(hNode1, NODE_SIGNATURE)) ||
 		   (hNode2 != (struct NODE_OBJECT *) DSP_HGPPNODE &&
-		   !MEM_IsValidHandle(hNode2, NODE_SIGNATURE))) {
+		   !MEM_IsValidHandle(hNode2, NODE_SIGNATURE)))
 			status = DSP_EHANDLE;
-		}
 	}
 	if (DSP_SUCCEEDED(status)) {
 		/* The two nodes must be on the same processor */
 		if (hNode1 != (struct NODE_OBJECT *)DSP_HGPPNODE &&
 		   hNode2 != (struct NODE_OBJECT *)DSP_HGPPNODE &&
-		   hNode1->hNodeMgr != hNode2->hNodeMgr) {
+		   hNode1->hNodeMgr != hNode2->hNodeMgr)
 			status = DSP_EFAIL;
-		}
 		/* Cannot connect a node to itself */
 		if (hNode1 == hNode2)
 			status = DSP_EFAIL;
@@ -1052,9 +1044,8 @@ DSP_STATUS NODE_Connect(struct NODE_OBJECT *hNode1, u32 uStream1,
 	/* Check stream indices ranges */
 		if ((node1Type != NODE_GPP && node1Type != NODE_DEVICE &&
 		   uStream1 >= MaxOutputs(hNode1)) || (node2Type != NODE_GPP &&
-		   node2Type != NODE_DEVICE && uStream2 >= MaxInputs(hNode2))) {
+		   node2Type != NODE_DEVICE && uStream2 >= MaxInputs(hNode2)))
 			status = DSP_EVALUE;
-		}
 	}
 	if (DSP_SUCCEEDED(status)) {
 		/*
@@ -1068,9 +1059,8 @@ DSP_STATUS NODE_Connect(struct NODE_OBJECT *hNode1, u32 uStream1,
 		 */
 		if (node1Type == NODE_MESSAGE || node2Type == NODE_MESSAGE ||
 		    (node1Type != NODE_TASK && node1Type != NODE_DAISSOCKET &&
-		     node2Type != NODE_TASK && node2Type != NODE_DAISSOCKET)) {
+		     node2Type != NODE_TASK && node2Type != NODE_DAISSOCKET))
 			status = DSP_EFAIL;
-		}
 	}
 	/*
 	 * Check stream mode. Default is STRMMODE_PROCCOPY.
@@ -1910,7 +1900,7 @@ void NODE_Exit(void)
  *  Purpose:
  *      Frees the message buffer.
  */
-extern DSP_STATUS NODE_FreeMsgBuf(struct NODE_OBJECT *hNode, IN u8 *pBuffer,
+DSP_STATUS NODE_FreeMsgBuf(struct NODE_OBJECT *hNode, IN u8 *pBuffer,
 				 OPTIONAL struct DSP_BUFFERATTR *pAttr)
 {
 	struct NODE_OBJECT *pNode = (struct NODE_OBJECT *)hNode;
@@ -1984,9 +1974,8 @@ DSP_STATUS NODE_GetAttr(struct NODE_OBJECT *hNode,
 			pAttr->inNodeAttrIn.uTimeout = hNode->uTimeout;
 			pAttr->inNodeAttrIn.uHeapSize =
 				hNode->createArgs.asa.taskArgs.uHeapSize;
-			pAttr->inNodeAttrIn.pGPPVirtAddr =
-				(void *)hNode->createArgs.asa.taskArgs.
-					uGPPHeapAddr;
+			pAttr->inNodeAttrIn.pGPPVirtAddr = (void *)
+				hNode->createArgs.asa.taskArgs.uGPPHeapAddr;
 			pAttr->uInputs = hNode->uNumGPPInputs;
 			pAttr->uOutputs = hNode->uNumGPPOutputs;
 			/* DSP_NODEINFO */
@@ -2343,15 +2332,14 @@ DSP_STATUS NODE_PutMessage(struct NODE_OBJECT *hNode,
 	GT_3trace(NODE_debugMask, GT_ENTER,
 		 "NODE_PutMessage: hNode: 0x%x\tpMsg: "
 		 "0x%x\tuTimeout: 0x%x\n", hNode, pMsg, uTimeout);
-	if (!MEM_IsValidHandle(hNode, NODE_SIGNATURE)) {
+	if (!MEM_IsValidHandle(hNode, NODE_SIGNATURE))
 		status = DSP_EHANDLE;
-	} else {
+	else {
 		hNodeMgr = hNode->hNodeMgr;
 		nodeType = NODE_GetType(hNode);
 		if (nodeType != NODE_MESSAGE && nodeType != NODE_TASK &&
-		    nodeType != NODE_DAISSOCKET) {
+		    nodeType != NODE_DAISSOCKET)
 			status = DSP_ENODETYPE;
-		}
 	}
 	if (DSP_SUCCEEDED(status)) {
 		/*  Check node state. Can't send messages to a node after
@@ -2436,9 +2424,9 @@ DSP_STATUS NODE_RegisterNotify(struct NODE_OBJECT *hNode, u32 uEventMask,
 	} else {
 		/* Check if event mask is a valid node related event */
 		if (uEventMask & ~(DSP_NODESTATECHANGE |
-		   DSP_NODEMESSAGEREADY)) {
+		   DSP_NODEMESSAGEREADY))
 			status = DSP_EVALUE;
-		}
+
 		/* Check if notify type is valid */
 		if (uNotifyType != DSP_SIGNALEVENT)
 			status = DSP_EVALUE;
@@ -2446,9 +2434,8 @@ DSP_STATUS NODE_RegisterNotify(struct NODE_OBJECT *hNode, u32 uEventMask,
 		/* Only one Notification can be registered at a
 		 * time - Limitation */
 		if (uEventMask == (DSP_NODESTATECHANGE |
-		   DSP_NODEMESSAGEREADY)) {
+		   DSP_NODEMESSAGEREADY))
 			status = DSP_EVALUE;
-		}
 	}
 	if (DSP_SUCCEEDED(status)) {
 		if (uEventMask == DSP_NODESTATECHANGE) {
@@ -2605,14 +2592,13 @@ DSP_STATUS NODE_Terminate(struct NODE_OBJECT *hNode, OUT DSP_STATUS *pStatus)
 	if (DSP_SUCCEEDED(status)) {
 		hNodeMgr = hNode->hNodeMgr;
 
-		if (!MEM_IsValidHandle(hNode, NODE_SIGNATURE)) {
+		if (!MEM_IsValidHandle(hNode, NODE_SIGNATURE))
 			status = DSP_EHANDLE;
-		} else {
+		else {
 			nodeType = NODE_GetType(hNode);
 			if (nodeType != NODE_TASK && nodeType !=
-			   NODE_DAISSOCKET) {
+			   NODE_DAISSOCKET)
 				status = DSP_ENODETYPE;
-			}
 		}
 	}
 	if (DSP_SUCCEEDED(status)) {
@@ -2856,10 +2842,10 @@ static void DeleteNodeMgr(struct NODE_MGR *hNodeMgr)
 		/* Remove any elements remaining in lists */
 		if (hNodeMgr->nodeList) {
 			while ((hNode =
-			      (struct NODE_OBJECT *)LST_GetHead(hNodeMgr->
-			      nodeList))) {
-				DeleteNode(hNode);
-			}
+				(struct NODE_OBJECT *)LST_GetHead(hNodeMgr->
+				nodeList)))
+					DeleteNode(hNode);
+
 			DBC_Assert(LST_IsEmpty(hNodeMgr->nodeList));
 			LST_Delete(hNodeMgr->nodeList);
 		}
@@ -2914,54 +2900,54 @@ static void FillStreamConnect(struct NODE_OBJECT *hNode1,
 			     u32 uStream1, u32 uStream2)
 {
 	u32 uStrmIndex;
-    struct DSP_STREAMCONNECT *pStrm1;
-    struct DSP_STREAMCONNECT *pStrm2;
-    enum NODE_TYPE node1Type = NODE_TASK;
-    enum NODE_TYPE node2Type = NODE_TASK;
+	struct DSP_STREAMCONNECT *pStrm1 = NULL;
+	struct DSP_STREAMCONNECT *pStrm2 = NULL;
+	enum NODE_TYPE node1Type = NODE_TASK;
+	enum NODE_TYPE node2Type = NODE_TASK;
 
-    node1Type = NODE_GetType(hNode1);
-    node2Type = NODE_GetType(hNode2);
-    if (hNode1 != (struct NODE_OBJECT *)DSP_HGPPNODE) {
+	node1Type = NODE_GetType(hNode1);
+	node2Type = NODE_GetType(hNode2);
+	if (hNode1 != (struct NODE_OBJECT *)DSP_HGPPNODE) {
+
 		if (node1Type != NODE_DEVICE) {
 			uStrmIndex = hNode1->uNumInputs +
 				     hNode1->uNumOutputs - 1;
-	    pStrm1 = &(hNode1->streamConnect[uStrmIndex]);
-	    pStrm1->cbStruct = sizeof(struct DSP_STREAMCONNECT);
-	    pStrm1->uThisNodeStreamIndex = uStream1;
-	}
-	if (hNode2 != (struct NODE_OBJECT *)DSP_HGPPNODE) {
-			/* NODE == > NODE */
+			pStrm1 = &(hNode1->streamConnect[uStrmIndex]);
+			pStrm1->cbStruct = sizeof(struct DSP_STREAMCONNECT);
+			pStrm1->uThisNodeStreamIndex = uStream1;
+		}
+
+		if (hNode2 != (struct NODE_OBJECT *)DSP_HGPPNODE) {
+				/* NODE == > NODE */
 			if (node1Type != NODE_DEVICE) {
 				pStrm1->hConnectedNode = hNode2;
-		pStrm1->uiConnectedNodeID = hNode2->nodeId;
-		pStrm1->uConnectedNodeStreamIndex = uStream2;
-		pStrm1->lType = CONNECTTYPE_NODEOUTPUT;
+				pStrm1->uiConnectedNodeID = hNode2->nodeId;
+				pStrm1->uConnectedNodeStreamIndex = uStream2;
+				pStrm1->lType = CONNECTTYPE_NODEOUTPUT;
 			}
 			if (node2Type != NODE_DEVICE) {
 				uStrmIndex = hNode2->uNumInputs +
-					     hNode2->uNumOutputs - 1;
+						hNode2->uNumOutputs - 1;
+				pStrm2 = &(hNode2->streamConnect[uStrmIndex]);
+				pStrm2->cbStruct =
+					sizeof(struct DSP_STREAMCONNECT);
+				pStrm2->uThisNodeStreamIndex = uStream2;
+				pStrm2->hConnectedNode = hNode1;
+				pStrm2->uiConnectedNodeID = hNode1->nodeId;
+				pStrm2->uConnectedNodeStreamIndex = uStream1;
+				pStrm2->lType = CONNECTTYPE_NODEINPUT;
+			}
+		} else if (node1Type != NODE_DEVICE)
+				pStrm1->lType = CONNECTTYPE_GPPOUTPUT;
+	} else {
+		/* GPP == > NODE */
+		DBC_Assert(hNode2 != (struct NODE_OBJECT *)DSP_HGPPNODE);
+		uStrmIndex = hNode2->uNumInputs + hNode2->uNumOutputs - 1;
 		pStrm2 = &(hNode2->streamConnect[uStrmIndex]);
 		pStrm2->cbStruct = sizeof(struct DSP_STREAMCONNECT);
 		pStrm2->uThisNodeStreamIndex = uStream2;
-		pStrm2->hConnectedNode = hNode1;
-		pStrm2->uiConnectedNodeID = hNode1->nodeId;
-		pStrm2->uConnectedNodeStreamIndex = uStream1;
-		pStrm2->lType = CONNECTTYPE_NODEINPUT;
-			}
-	} else {
-			/* NODE == > GPP */
-			if (node1Type != NODE_DEVICE)
-				pStrm1->lType = CONNECTTYPE_GPPOUTPUT;
+		pStrm2->lType = CONNECTTYPE_GPPINPUT;
 	}
-    } else {
-		/* GPP == > NODE */
-		DBC_Assert(hNode2 != (struct NODE_OBJECT *)DSP_HGPPNODE);
-	uStrmIndex = hNode2->uNumInputs + hNode2->uNumOutputs - 1;
-	pStrm2 = &(hNode2->streamConnect[uStrmIndex]);
-	pStrm2->cbStruct = sizeof(struct DSP_STREAMCONNECT);
-	pStrm2->uThisNodeStreamIndex = uStream2;
-	pStrm2->lType = CONNECTTYPE_GPPINPUT;
-    }
 }
 
 /*
@@ -3253,12 +3239,11 @@ DSP_STATUS NODE_GetUUIDProps(DSP_HPROCESSOR hProcessor,
 		dcdNodeProps.pstrIAlgName = NULL;
 
 		status = DCD_GetObjectDef(hNodeMgr->hDcdMgr,
-			(CONST struct DSP_UUID *) pNodeId, DSP_DCDNODETYPE,
-			(struct DCD_GENERICOBJ *) &dcdNodeProps);
-
+				(CONST struct DSP_UUID *) pNodeId,
+				DSP_DCDNODETYPE,
+				(struct DCD_GENERICOBJ *) &dcdNodeProps);
 		if (DSP_SUCCEEDED(status)) {
 			*pNodeProps = dcdNodeProps.ndbProps;
-
 			if (dcdNodeProps.pstrCreatePhaseFxn)
 				MEM_Free(dcdNodeProps.pstrCreatePhaseFxn);
 
@@ -3271,7 +3256,6 @@ DSP_STATUS NODE_GetUUIDProps(DSP_HPROCESSOR hProcessor,
 			if (dcdNodeProps.pstrIAlgName)
 				MEM_Free(dcdNodeProps.pstrIAlgName);
 		}
-
 	}
 
 	return status;

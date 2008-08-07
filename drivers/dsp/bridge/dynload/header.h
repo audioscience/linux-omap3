@@ -41,12 +41,6 @@ typedef unsigned short int	uint_least16_t;
 #include "dload_internal.h"
 #include "reloc_table.h"
 
-#if LEAD3
-#define TI_C55X_REV2 "$TI_capability_requires_rev2"
-#define TI_C55X_REV3 "$TI_capability_requires_rev3"
-#define TI_C55X_MEM_MODEL "$TI_capability$C5500$MemoryModel"
-#endif
-
 /*
  * Plausibility limits
  *

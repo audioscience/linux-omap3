@@ -1318,7 +1318,9 @@ static DSP_STATUS WMD_BRD_MemMap(struct WMD_DEV_CONTEXT *hDevContext,
 	struct HW_MMUMapAttrs_t hwAttrs;
 	u32 numOfActualTabEntries;
 	u32 temp = 0;
-	u32 *pPhysAddrPageTbl;
+	u32 *pPhysAddrPageTbl = NULL;
+	struct vm_area_struct *vma;
+	struct mm_struct *mm = current->mm;
 
 	DBG_Trace(DBG_ENTER, "> WMD_BRD_MemMap hDevContext %x, pa %x, va %x, "
 		 "size %x, ulMapAttr %x\n", hDevContext, ulMpuAddr, ulVirtAddr,
@@ -1376,8 +1378,6 @@ static DSP_STATUS WMD_BRD_MemMap(struct WMD_DEV_CONTEXT *hDevContext,
 		goto func_cont;
 	}
 
-	struct vm_area_struct *vma;
-	struct mm_struct *mm = current->mm;
 	/* Important Note: ulMpuAddr is mapped from user application process
 	 * to current process - it must lie completely within the current
 	 * virtual memory address space in order to be of use to us here!  */
@@ -1415,10 +1415,10 @@ static DSP_STATUS WMD_BRD_MemMap(struct WMD_DEV_CONTEXT *hDevContext,
 	status = TIOMAP_VirtToPhysical(mm, ulMpuAddr, ulNumBytes,
 				&numOfActualTabEntries, pPhysAddrPageTbl);
 	if (DSP_FAILED(status)) {
-			DBG_Trace(DBG_LEVEL7,
-				 "WMD_BRD_MemMap: TIOMAP_VirtToPhysical",
-				 " failed\n");
-			return DSP_EFAIL;
+		DBG_Trace(DBG_LEVEL7,
+			 "WMD_BRD_MemMap: TIOMAP_VirtToPhysical",
+			 " failed\n");
+		return DSP_EFAIL;
 	}
 	temp = 0;
 	DBG_Trace(DBG_LEVEL4, "WMD_BRD_MemMap: numOfActualTabEntries=%d, "
@@ -1613,7 +1613,8 @@ static DSP_STATUS TIOMAP_VirtToPhysical(struct mm_struct *mm, u32 ulMpuAddr,
 
 	DBG_Trace(DBG_ENTER, "TIOMAP_VirtToPhysical: START:ulMpuAddr=%x, "
 		  "ulNumBytes=%x\n", ulMpuAddr, ulNumBytes);
-
+	if (physicalAddrTable == NULL)
+		return DSP_EMEMORY;
 	while (ulNumBytes) {
 		DBG_Trace(DBG_LEVEL4, "TIOMAP_VirtToPhysical:Read the next PGD "
 			  "and PMD entry\n");
@@ -1970,6 +1971,13 @@ static DSP_STATUS MemMapVmalloc(struct WMD_DEV_CONTEXT *hDevContext,
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
 	struct HW_MMUMapAttrs_t hwAttrs;
 	struct page *pPage[1];
+	u32 i;
+	u32 paCurr;
+	u32 paNext;
+	u32 vaCurr;
+	u32 sizeCurr;
+	u32 numPages;
+
 	DBG_Trace(DBG_ENTER, "> MemMapVmalloc hDevContext %x, pa %x, va %x, "
 		  "size %x, ulMapAttr %x\n", hDevContext, ulMpuAddr,
 		  ulVirtAddr, ulNumBytes, ulMapAttr);
@@ -2006,12 +2014,7 @@ static DSP_STATUS MemMapVmalloc(struct WMD_DEV_CONTEXT *hDevContext,
 	 /* Do Kernel va to pa translation.
 	 * Combine physically contiguous regions to reduce TLBs.
 	 * Pass the translated pa to PteUpdate.  */
-	u32 i;
-	u32 paCurr;
-	u32 paNext;
-	u32 vaCurr;
-	u32 sizeCurr;
-	u32 numPages = ulNumBytes / PAGE_SIZE; /* PAGE_SIZE = OS page size */
+	numPages = ulNumBytes / PAGE_SIZE; /* PAGE_SIZE = OS page size */
 	if (!DSP_SUCCEEDED(status))
 		goto func_cont;
 

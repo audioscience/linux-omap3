@@ -415,11 +415,11 @@ DSP_STATUS WMD_IO_OnLoaded(struct IO_MGR *hIOMgr)
 	u32 ulMsgLimit;
 	u32 ulMsgLength = -1;
 	u32 ulExtEnd;
-	u32 ulGppPa;
+	u32 ulGppPa = 0;
 	u32 ulGppVa = 0;
-	u32 ulDspVa;
-	u32 ulSegSize;
-	u32 ulPadSize;
+	u32 ulDspVa = 0;
+	u32 ulSegSize = 0;
+	u32 ulPadSize = 0;
 	u32 i;
 	DSP_STATUS status = DSP_SOK;
 	u32 uNumProcs = 0;
@@ -431,6 +431,13 @@ DSP_STATUS WMD_IO_OnLoaded(struct IO_MGR *hIOMgr)
 	u32 ulShm0End;
 	u32 ulDynExtBase;
 	u32 ulSeg1Size;
+	u32 paCurr = 0;
+	u32 vaCurr = 0;
+	u32 gppVaCurr = 0;
+	u32 numBytes = 0;
+	u32 allBits = 0;
+	u32 pgSize[] = { HW_PAGE_SIZE_16MB, HW_PAGE_SIZE_1MB,
+			   HW_PAGE_SIZE_64KB, HW_PAGE_SIZE_4KB };
 
 	status = DEV_GetCodMgr(hIOMgr->hDevObject, &hCodMan);
 	DBC_Assert(DSP_SUCCEEDED(status));
@@ -566,13 +573,11 @@ func_cont1:
 	if (!DSP_SUCCEEDED(status))
 		goto func_cont;
 
-	u32 paCurr = ulGppPa;
-	u32 vaCurr = ulDynExtBase * hIOMgr->uWordSize;
-	u32 gppVaCurr = ulGppVa;
-	u32 numBytes = ulSeg1Size;
-	u32 allBits;
-	u32 pgSize[] = { HW_PAGE_SIZE_16MB, HW_PAGE_SIZE_1MB,
-			   HW_PAGE_SIZE_64KB, HW_PAGE_SIZE_4KB };
+	paCurr = ulGppPa;
+	vaCurr = ulDynExtBase * hIOMgr->uWordSize;
+	gppVaCurr = ulGppVa;
+	numBytes = ulSeg1Size;
+
 	/*
 	 * Try to fit into TLB entries. If not possible, push them to page
 	 * tables. It is quite possible that if sections are not on
@@ -1747,10 +1752,10 @@ void IO_IntrDSP2(IN struct IO_MGR *pIOMgr, IN u16 wMbVal)
 DSP_STATUS IO_SHMsetting(IN struct IO_MGR *hIOMgr, IN enum SHM_DESCTYPE desc,
 			 IN void *pArgs)
 {
-	u32 i;
-
 #ifndef DISABLE_BRIDGE_PM
 #ifndef DISABLE_BRIDGE_DVFS
+	u32 i;
+
 	switch (desc) {
 	case SHM_CURROPP:
 		/* Update the shared memory with requested OPP information */
