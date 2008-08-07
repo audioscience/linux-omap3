@@ -57,65 +57,10 @@
 
 typedef volatile unsigned long  REG_UWORD32;
 
-#define CM_AUTOIDLE1_CORE 0x48004A30
-#define CM_AUTOIDLE1_SIZE  0x20
-#define CM_AUTOIDLE2_CORE 0x48004A34
-#define CM_AUTOIDLE2_SIZE  0x20
-
-#define SYSCONFIG_SIZE 0x1000
-#define IVA2_SYSC_BASE 		0x48002000 /*0x01C20000*/
-#define IVA2_WUGEN_BSAE 	0x01C21000
-#define IVA2_IVLCD_BASE 	0x00080000
-#define IVA2_SEQ_BASE 		0x00090000
-#define IVA2_VIDEO_BASE 	0x0009C000
-#define IVA2_IME_BASE 		0x000A0000
-#define IVA2_ILF_BASE 		0x000A1000
-
-#define CM_IDLEST_PER 		0x48005020
-
-#define MAILBOX_Base 0x48094000
-#define GPT_Timer1_Base 0x48318000
-#define GPT_Timer2_Base 0x49032000
-#define GPT_Timer5_Base 0x49038000
-#define GPT_Timer6_Base 0x4903A000
-#define GPT_Timer7_Base  0x4903C000
-#define GPT_Timer8_Base 0x4903E000
-
-#define McBSP1_Base 0x48074000
-#define McBSP2_Base 0x49022000
-#define McBSP3_Base 0x49024000
-#define McBSP4_Base 0x49026000
-#define McBSP5_Base 0x48096000
-
-#define WDT3_Base 0x49030000
-#define GRPSEL_Base 0x48307000
-#define PER_PRM_Base 0x48307000
 #define SSI_Base        0x48058000
 
-#define MCBSP1_BASE	       IO_ADDRESS(McBSP1_Base)
-#define MCBSP2_BASE	       IO_ADDRESS(McBSP2_Base)
-#define MCBSP3_BASE	       IO_ADDRESS(McBSP3_Base)
-#define MCBSP4_BASE	       IO_ADDRESS(McBSP4_Base)
-#define MCBSP5_BASE	       IO_ADDRESS(McBSP5_Base)
-#define GPT1_BASE 			IO_ADDRESS(GPT_Timer1_Base)
-#define GPT2_BASE 			IO_ADDRESS(GPT_Timer2_Base)
-#define GPT5_BASE 			IO_ADDRESS(GPT_Timer5_Base)
-#define GPT6_BASE 			IO_ADDRESS(GPT_Timer6_Base)
-#define GPT7_BASE 			IO_ADDRESS(GPT_Timer7_Base)
-#define GPT8_BASE 			IO_ADDRESS(GPT_Timer8_Base)
-#define WDT3_BASE 			IO_ADDRESS(WDT3_Base)
-#define MBX_BASE			IO_ADDRESS(MAILBOX_Base)
-#define IVA2_BASE	   		IO_ADDRESS(IVA2_SYSC_BASE)
-#define GRPSEL_BASE 		IO_ADDRESS(GRPSEL_Base)
-#define PER_PRM_BASE		IO_ADDRESS(PER_PRM_Base)
 #define SSI_BASE                     IO_ADDRESS(SSI_Base)
 
-#define GRP_MPU_MASK		0x3effe
-#define GRP_IVA_MASK		0x00001
-
-
-#define LEVEL1  0
-#define LEVEL2  1
 
 struct SERVICES_Clk_t {
 	struct clk *clk_handle;

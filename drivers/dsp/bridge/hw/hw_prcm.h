@@ -114,22 +114,6 @@ enum HW_RstModule_t {
 } ;
 
 /*
-* TYPE:	 HW_RstCause
-*
-* DESCRIPTION:  Enumerated Type used to specify the cause of the reset
-*/
-/* TBD */
-enum RstCause {
-    HW_RSTCAUSE_DSP1_UMA_DMA,
-    HW_RSTCAUSE_DSP2_IPI_MMU,
-    HW_RSTCAUSE_IVA,
-    HW_RSTCAUSE_UMA,
-    HW_RSTCAUSE_CORE,
-    HW_RSTCAUSE_MPU,
-    HW_RSTCAUSE_GLOBALWARM
-} ;
-
-/*
 * TYPE:	 HW_PwrModule
 *
 * DESCRIPTION:  Enumerated Type used to specify the power domain
