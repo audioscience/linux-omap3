@@ -21,11 +21,7 @@
 /*
  * Table of relocation operator properties
  */
-#ifndef __KERNEL__
-#include "stdint.h"
-#else
 #include <linux/types.h>
-#endif
 
 /* How does this relocation operation access the program image? */
 #define ROP_N	0		/* does not access image */

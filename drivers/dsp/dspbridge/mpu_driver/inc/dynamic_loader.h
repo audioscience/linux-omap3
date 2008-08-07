@@ -19,11 +19,7 @@
 #ifndef _DYNAMIC_LOADER_H_
 #define _DYNAMIC_LOADER_H_
 #include <stdarg.h>
-#ifndef __KERNEL__
-#include <stdint.h>
-#else
 #include <linux/types.h>
-#endif
 
 /*
  * Dynamic Loader
@@ -100,7 +96,7 @@
 				       /* the returned module handle*/
 				       DLOAD_mhandle *mhandle
 	    );
-#ifdef OPT_ELIMINATE_EXTRA_DLOAD
+
 /*****************************************************************************
  * Procedure Dynamic_Open_Module
  *
@@ -137,7 +133,6 @@
 				      /* the returned module handle */
 				      DLOAD_mhandle *mhandle
 	);
-#endif
 
 /*****************************************************************************
  * Procedure Dynamic_Unload_Module
@@ -341,29 +336,15 @@
 		LDR_ADDR load_addr;	/* load address of the section */
 		LDR_ADDR size;	/* size of the section in addressable units */
 #ifndef _BIG_ENDIAN
-#ifdef __KERNEL__
 		u16 page;	/* memory page or view */
 		u16 type;	/* one of the section types below */
 #else
-		uint16_t page;	/* memory page or view */
-		uint16_t type;	/* one of the section types below */
-#endif
-#else
-#ifdef __KERNEL__
 		u16 type;	/* one of the section types below */
 		u16 page;	/* memory page or view */
-#else
-		uint16_t type;	/* one of the section types below */
-		uint16_t page;	/* memory page or view */
-#endif
 #endif
 		/* a context field for use by Dynamic_Loader_Allocate;
 		 *   ignored but maintained by the dynamic loader */
-#ifdef __KERNEL__
 		u32 context;
-#else
-		uintptr_t context;
-#endif
 	} ;
 
 /* use this macro to extract type of section from LDR_SECTION_INFO.type field */

@@ -427,9 +427,7 @@ DSP_STATUS WriteExtDspData(struct WMD_DEV_CONTEXT *pDevContext,
 		MEM_UnmapLinearAddress((void *) pDevContext->dwDspExtBaseAddr);
 		pDevContext->dwDspExtBaseAddr = 0x0;
 	}
-#ifdef OPT_REDUCE_SYMBOL_LOOKUPS
 	bSymbolsReloaded = FALSE;
-#endif
 	return retVal;
 }
 

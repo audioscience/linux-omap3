@@ -212,7 +212,6 @@ extern int Dynamic_Load_Module(struct Dynamic_Loader_Stream *module,
 	return dl_state.dload_errcount;
 }				/* DLOAD_File */
 
-#ifdef OPT_ELIMINATE_EXTRA_DLOAD
 /*************************************************************************
  * Procedure Dynamic_Open_Module
  *
@@ -317,7 +316,6 @@ Dynamic_Open_Module(struct Dynamic_Loader_Stream *module,
 
 	return dl_state.dload_errcount;
 }			       /* DLOAD_File */
-#endif
 
 
 /*************************************************************************

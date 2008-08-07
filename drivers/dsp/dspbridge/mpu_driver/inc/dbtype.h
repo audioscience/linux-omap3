@@ -101,10 +101,6 @@ typedef void *HANDLE;		/* h    */
 
 #define CDECL
 
-#define WINAPI
-
-#define STDCALL
-
 #define DLLIMPORT
 #define DLLEXPORT
 

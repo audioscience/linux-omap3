@@ -28,11 +28,7 @@
 #define _DOFF_H
 
 #ifndef UINT32_C
-#ifndef __KERNEL__
-#define UINT32_C(zzz) ((uint32_t)zzz)
-#else
 #define UINT32_C(zzz) ((u32)zzz)
-#endif
 #endif
 
 #define BYTE_RESHUFFLE_VALUE UINT32_C(0x00010203)
@@ -40,77 +36,7 @@
 /* DOFF file header containing fields categorizing the remainder of the file */
 struct doff_filehdr_t {
 
-#ifndef __KERNEL__
-	/* string table size, including filename, in bytes              */
-	uint32_t df_strtab_size;
-
-	/* entry point if one exists */
-	uint32_t df_entrypt;
-
-	/* identifies byte ordering of file;
-	 * always set to BYTE_RESHUFFLE_VALUE  */
-	uint32_t df_byte_reshuffle;
-
-	/* Size of the string table up to and including the last section name */
-	/* Size includes the name of the COFF file also              */
-	uint32_t df_scn_name_size;
-
-#ifndef _BIG_ENDIAN
-	/* number of symbols */
-	uint16_t df_no_syms;
-
-	/* length in bytes of the longest string, including terminating NULL */
-	/* excludes the name of the file                                  */
-	uint16_t df_max_str_len;
-
-	/* total number of sections including no-load ones               */
-	uint16_t df_no_scns;
-
-	/* number of sections containing target code allocated or downloaded */
-	uint16_t df_target_scns;
-
-	/* unique id for dll file format & version      */
-	uint16_t df_doff_version;
-
-	/* identifies ISA */
-	uint16_t df_target_id;
-
-	/* useful file flags */
-	uint16_t df_flags;
-
-	/* section reference for entry point, N_UNDEF for none,    */
-	/* N_ABS for absolute address */
-	int16_t df_entry_secn;
-#else
-	/* length of the longest string, including terminating NULL   */
-	uint16_t df_max_str_len;
-
-	/* number of symbols */
-	uint16_t df_no_syms;
-
-	/* number of sections containing target code allocated or downloaded */
-	uint16_t df_target_scns;
-
-	/* total number of sections including no-load ones */
-	uint16_t df_no_scns;
-
-	/* identifies ISA */
-	uint16_t df_target_id;
-
-	/* unique id for dll file format & version */
-	uint16_t df_doff_version;
-
-	/* section reference for entry point, N_UNDEF for none,   */
-	/* N_ABS for absolute address */
-	int16_t df_entry_secn;
-
-	/* useful file flags */
-	uint16_t df_flags;
-#endif
-	/* checksum for file header record */
-	uint32_t df_checksum;
-#else
-		/* string table size, including filename, in bytes   */
+	/* string table size, including filename, in bytes   */
 	u32 df_strtab_size;
 
 	/* entry point if one exists */
@@ -178,7 +104,6 @@ struct doff_filehdr_t {
 #endif
 	/* checksum for file header record */
 	u32 df_checksum;
-#endif
 
 } ;
 
@@ -201,22 +126,6 @@ struct doff_filehdr_t {
 /* Verification record containing values used to test integrity of the bits */
 struct doff_verify_rec_t {
 
-#ifndef __KERNEL__
-	/* time and date stamp */
-	uint32_t dv_timdat;
-
-	/* checksum for all section records */
-	uint32_t dv_scn_rec_checksum;
-
-	/* checksum for string table */
-	uint32_t dv_str_tab_checksum;
-
-	/* checksum for symbol table */
-	uint32_t dv_sym_tab_checksum;
-
-	/* checksum for verification record */
-	uint32_t dv_verify_rec_checksum;
-#else
 	/* time and date stamp */
 	u32 dv_timdat;
 
@@ -231,7 +140,6 @@ struct doff_verify_rec_t {
 
 	/* checksum for verification record */
 	u32 dv_verify_rec_checksum;
-#endif
 
 } ;
 
@@ -250,24 +158,6 @@ struct doff_verify_rec_t {
 
 struct doff_scnhdr_t {
 
-#ifndef __KERNEL__
-	int32_t ds_offset;	/* offset into string table of name    */
-	int32_t ds_paddr;	/* RUN address, in target AU           */
-	int32_t ds_vaddr;	/* LOAD address, in target AU          */
-	int32_t ds_size;	/* section size, in target AU          */
-#ifndef _BIG_ENDIAN
-	uint16_t ds_page;	/* memory page id                      */
-	uint16_t ds_flags;	/* section flags                       */
-#else
-	uint16_t ds_flags;	/* section flags                       */
-	uint16_t ds_page;	/* memory page id                      */
-#endif
-	uint32_t ds_first_pkt_offset;
-	/* Absolute byte offset into the file  */
-	/* where the first image record resides */
-
-	int32_t ds_nipacks;	/* number of image packets             */
-#else
 	s32 ds_offset;	/* offset into string table of name    */
 	s32 ds_paddr;	/* RUN address, in target AU           */
 	s32 ds_vaddr;	/* LOAD address, in target AU          */
@@ -284,23 +174,12 @@ struct doff_scnhdr_t {
 	/* where the first image record resides */
 
 	s32 ds_nipacks;	/* number of image packets             */
-#endif
+
 };
 
 /* Symbol table entry */
 struct doff_syment_t {
 
-#ifndef __KERNEL__
-	int32_t dn_offset;	/* offset into string table of name    */
-	int32_t dn_value;	/* value of symbol                     */
-#ifndef _BIG_ENDIAN
-	int16_t dn_scnum;	/* section number                      */
-	int16_t dn_sclass;	/* storage class                       */
-#else
-	int16_t dn_sclass;	/* storage class                       */
-	int16_t dn_scnum;	/* section number, 1-based             */
-#endif
-#else
 	s32 dn_offset;	/* offset into string table of name    */
 	s32 dn_value;	/* value of symbol                     */
 #ifndef _BIG_ENDIAN
@@ -310,7 +189,7 @@ struct doff_syment_t {
 	s16 dn_sclass;	/* storage class                       */
 	s16 dn_scnum;	/* section number, 1-based             */
 #endif
-#endif
+
 } ;
 
 /* special values for dn_scnum */
@@ -329,27 +208,6 @@ struct doff_syment_t {
 /* information necessary for its processing.                          */
 struct image_packet_t {
 
-#ifndef __KERNEL__
-	int32_t i_num_relocs;	/* number of relocations for   */
-	/* this packet                 */
-
-	int32_t i_packet_size;	/* number of bytes in array    */
-	/* "bits" occupied  by         */
-	/* valid data.  Could be       */
-	/* < IMAGE_PACKET_SIZE to      */
-	/* prevent splitting a         */
-	/* relocation across packets.  */
-	/* Last packet of a section    */
-	/* will most likely contain    */
-	/* < IMAGE_PACKET_SIZE bytes   */
-	/* of valid data               */
-
-	int32_t i_checksum;	/* Checksum for image packet   */
-	/* and the corresponding       */
-	/* relocation records          */
-
-	uint_least8_t *i_bits;	/* Actual data in section      */
-#else
 	s32 i_num_relocs;	/* number of relocations for   */
 	/* this packet                 */
 
@@ -369,73 +227,19 @@ struct image_packet_t {
 	/* relocation records          */
 
 	u8 *i_bits;	/* Actual data in section      */
-#endif
+
 };
 
 /* The relocation structure definition matches the COFF version.  Offsets  */
 /* however are relative to the image packet base not the section base.     */
 struct reloc_record_t {
-#ifndef __KERNEL__
-	int32_t r_vaddr;	/* (virtual) address of reference   */
-#else
+
 	s32 r_vaddr;
-#endif
+
 	/* expressed in target AUs          */
 
 	union {
 		struct {
-#ifndef __KERNEL__
-#ifndef _BIG_ENDIAN
-			uint8_t _offset;	/* bit offset of rel fld      */
-			uint8_t _fieldsz;	/* size of rel fld            */
-			uint8_t _wordsz;	/* # bytes containing rel fld */
-			uint8_t _dum1;
-			uint16_t _dum2;
-			uint16_t _type;
-#else
-			unsigned _dum1:8;
-			unsigned _wordsz:8;	/* # bytes containing rel fld */
-			unsigned _fieldsz:8;	/* size of rel fld            */
-			unsigned _offset:8;	/* bit offset of rel fld      */
-			uint16_t _type;
-			uint16_t _dum2;
-#endif
-		} _r_field;
-
-		struct {
-			uint32_t _spc;	/* image packet relative PC   */
-#ifndef _BIG_ENDIAN
-			uint16_t _dum;
-			uint16_t _type;	/* relocation type            */
-#else
-			uint16_t _type;	/* relocation type            */
-			uint16_t _dum;
-#endif
-		} _r_spc;
-
-		struct {
-			uint32_t _uval;	/* constant value             */
-#ifndef _BIG_ENDIAN
-			uint16_t _dum;
-			uint16_t _type;	/* relocation type            */
-#else
-			uint16_t _type;	/* relocation type            */
-			uint16_t _dum;
-#endif
-		} _r_uval;
-
-		struct {
-			int32_t _symndx;	/* 32-bit sym tbl index       */
-#ifndef _BIG_ENDIAN
-			uint16_t _disp;	/* extra addr encode data     */
-			uint16_t _type;	/* relocation type            */
-#else
-			uint16_t _type;	/* relocation type            */
-			uint16_t _disp;	/* extra addr encode data     */
-#endif
-		} _r_sym;
-	} _u_reloc;
-#else
 #ifndef _BIG_ENDIAN
 			u8 _offset;	/* bit offset of rel fld      */
 			u8 _fieldsz;	/* size of rel fld            */
@@ -486,7 +290,6 @@ struct reloc_record_t {
 #endif
 		} _r_sym;
 	} _u_reloc;
-#endif
 
 } ;
 

@@ -18,11 +18,9 @@
 
 #ifndef __DLOAD_INTERNAL__
 #define __DLOAD_INTERNAL__
-#ifndef __KERNEL__
-#include <stdint.h>
-#else
+
 #include <linux/types.h>
-#endif
+
 /*
  * Internal state definitions for the dynamic loader
  */
@@ -33,17 +31,10 @@ typedef int boolean;
 
 
 /* type used for relocation intermediate results */
-#ifdef __KERNEL__
 typedef s32 RVALUE;
-#else
-typedef int_least32_t RVALUE;
-#endif
+
 /* unsigned version of same; must have at least as many bits */
-#ifdef __KERNEL__
 typedef u32 URVALUE;
-#else
-typedef uint_least32_t URVALUE;
-#endif
 
 /*
  * Dynamic loader configuration constants
@@ -93,42 +84,18 @@ struct my_handle;
  */
 struct dbg_mirror_root {
 	/* must be same as dbg_mirror_list; __DLModules address on target */
-#ifdef __KERNEL__
 	u32 dbthis;
-#else
-    uint32_t dbthis;
-#endif
 	struct my_handle *hnext;	/* must be same as dbg_mirror_list */
-#ifdef __KERNEL__
 	u16 changes;	/* change counter */
-#else
-	uint16_t changes;
-#endif
-#ifdef __KERNEL__
 	u16 refcount;	/* number of modules referencing this root */
-#else
-	uint16_t changes;
-#endif
 } ;
 
 struct dbg_mirror_list {
-#ifdef __KERNEL__
 	u32 dbthis;
-#else
-	uint32_t dbthis;
-#endif
 	struct my_handle *hnext, *hprev;
 	struct dbg_mirror_root *hroot;
-#ifdef __KERNEL__
 	u16 dbsiz;
-#else
-	uint16_t dbsiz;
-#endif
-#ifdef __KERNEL__
 	u32 context;	/* Save context for .dllview memory allocation */
-#else
-	uint32_t context;
-#endif
 } ;
 
 #define VARIABLE_SIZE 1
@@ -149,17 +116,10 @@ struct my_handle {
  * reduced symbol structure used for symbols during relocation
  */
 struct Local_Symbol {
-#ifdef __KERNEL__
 	s32 value;	/* Relocated symbol value */
 	s32 delta;	/* Original value in input file */
 	s16 secnn;		/* section number */
 	s16 sclass;		/* symbol class */
-#else
-	int_least32_t value;	/* Relocated symbol value */
-	int_least32_t delta;	/* Original value in input file */
-	int16_t secnn;		/* section number */
-	int16_t sclass;		/* symbol class */
-#endif
 } ;
 
 /*
@@ -213,11 +173,7 @@ struct dload_state {
 	enum cinit_mode cinit_state;	/* current state of cload_cinit() */
 	int cinit_count;	/* the current count */
 	LDR_ADDR cinit_addr;	/* the current address */
-#ifdef __KERNEL__
 	s16 cinit_page;	/* the current page */
-#else
-	uint16_t cinit_page;
-#endif
 	/* Handle to be returned by Dynamic_Load_Module */
 	struct my_handle *myhandle;
 	unsigned dload_errcount;	/* Total # of errors reported so far */
@@ -227,11 +183,7 @@ struct dload_state {
 	boolean big_e_target;	/* Target data in big-endian format */
 #endif
 	/* map for reordering bytes, 0 if not needed */
-#ifdef __KERNEL__
 	u32 reorder_map;
-#else
-	uint_least32_t reorder_map;
-#endif
 	struct doff_filehdr_t dfile_hdr;	/* DOFF file header structure */
 	struct doff_verify_rec_t verify;	/* Verify record */
 
@@ -256,13 +208,9 @@ extern void dload_syms_error(struct Dynamic_Loader_Sym *syms,
 extern void dload_headers(struct dload_state *dlthis);
 extern void dload_strings(struct dload_state *dlthis, boolean sec_names_only);
 extern void dload_sections(struct dload_state *dlthis);
-#ifndef __KERNEL__
-extern void dload_reorder(void *data, int dsiz, uint_least32_t map);
-extern uint32_t dload_checksum(void *data, unsigned siz);
-#else
 extern void dload_reorder(void *data, int dsiz, u32 map);
 extern u32 dload_checksum(void *data, unsigned siz);
-#endif
+
 #if HOST_ENDIANNESS
 extern uint32_t dload_reverse_checksum(void *data, unsigned siz);
 #if (TARGET_AU_BITS > 8) && (TARGET_AU_BITS < 32)
