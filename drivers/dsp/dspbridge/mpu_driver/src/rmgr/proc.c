@@ -110,7 +110,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <gp.h>
 #include <gt.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
@@ -608,17 +607,15 @@ DSP_STATUS PROC_Detach(DSP_HPROCESSOR hProcessor)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct PROC_OBJECT *pProcObject = (struct PROC_OBJECT *)hProcessor;
-
+#ifndef RES_CLEANUP_DISABLE
+	HANDLE hDRVObject;
+	HANDLE hProcess;
+	DSP_STATUS res_status = DSP_SOK;
+	struct PROCESS_CONTEXT   *pPctxt = NULL;
+#endif
 	DBC_Require(cRefs > 0);
-
 	GT_1trace(PROC_DebugMask, GT_ENTER, "Entered PROC_Detach, args:\n\t"
 		 "hProcessor:  0x%x\n", hProcessor);
-#ifndef RES_CLEANUP_DISABLE
-    HANDLE	     hDRVObject;
-    HANDLE	     hProcess;
-    DSP_STATUS res_status = DSP_SOK;
-    struct PROCESS_CONTEXT   *pPctxt = NULL;
-#endif
 
 	if (MEM_IsValidHandle(pProcObject, PROC_SIGNATURE)) {
 		/* Notify the Client */
@@ -1069,7 +1066,7 @@ DSP_STATUS PROC_Load(DSP_HPROCESSOR hProcessor, IN CONST s32 iArgc,
 	cNewEnvp = (cEnvp ? (cEnvp + 1) : (cEnvp + 2));
 	newEnvp = MEM_Calloc(cNewEnvp * sizeof(char **), MEM_PAGED);
 	if (newEnvp) {
-		status = GP_snprintf(szProcID, MAXPROCIDLEN, PROC_ENVPROCID,
+		status = snprintf(szProcID, MAXPROCIDLEN, PROC_ENVPROCID,
 				    nProcID);
 		if (status == -1) {
 			GT_0trace(PROC_DebugMask, GT_7CLASS, "PROC_Load: "
@@ -1699,19 +1696,16 @@ DSP_STATUS PROC_UnMap(DSP_HPROCESSOR hProcessor, void *pMapAddr)
 	struct DMM_OBJECT *hDmmMgr;
 	u32 vaAlign;
 	u32 sizeAlign;
-
+#ifndef RES_CLEANUP_DISABLE
+	HANDLE	      hProcess;
+	HANDLE	      pCtxt = NULL;
+	HANDLE	      hDrvObject;
+	HANDLE	      dmmRes;
+	DSP_STATUS res_status = DSP_SOK;
+#endif
 	GT_2trace(PROC_DebugMask, GT_ENTER,
 		 "Entered PROC_UnMap, args:\n\thProcessor:"
 		 "0x%x pMapAddr: 0x%x\n", hProcessor, pMapAddr);
-	#ifndef RES_CLEANUP_DISABLE
-		HANDLE	      hProcess;
-		HANDLE	      pCtxt = NULL;
-		HANDLE	      hDrvObject;
-		HANDLE	      dmmRes;
-		DSP_STATUS res_status = DSP_SOK;
-	#endif
-
-
 
 	vaAlign = PG_ALIGN_LOW((u32) pMapAddr, PG_SIZE_4K);
 

@@ -401,11 +401,6 @@ void dload_headers(struct dload_state *dlthis)
 			    dlthis->dfile_hdr.df_no_scns);
 		return;
 	}
-	if (dlthis->dfile_hdr.df_no_syms > MAX_REASONABLE_SYMBOLS) {
-		dload_error(dlthis, "Excessive symbol count " FMT_UI32,
-			    dlthis->dfile_hdr.df_no_syms);
-		return;
-	}
 #ifndef TARGET_ENDIANNESS
 	/*
 	 * Check that endianness does not disagree with explicit specification
@@ -708,6 +703,8 @@ static void dload_symbols(struct dload_state *dlthis)
 	u32 s_count, siz, dsiz, symbols_left;
 	u32 checks;
 	struct Local_Symbol *sp;
+	struct dynload_symbol *symp;
+	struct dynload_symbol *newsym;
 
 	s_count = dlthis->dfile_hdr.df_no_syms;
 	if (s_count == 0)
@@ -786,7 +783,6 @@ static void dload_symbols(struct dload_state *dlthis)
 				if (input_sym->dn_sclass != DN_EXT)
 					goto loop_cont;
 
-				struct dynload_symbol *symp;
 				/* try to define symbol from previously
 				 * loaded images			  */
 				symp = dlthis->mysym->Find_Matching_Symbol
@@ -860,7 +856,6 @@ loop_itr:
 				if (!sname)
 					goto loop_cont;
 
-				struct dynload_symbol *newsym;
 				newsym = dlthis->mysym->Add_To_Symbol_Table
 						    (dlthis->mysym, sname,
 						    (unsigned)dlthis->myhandle);
@@ -1714,6 +1709,8 @@ extern int Dynamic_Unload_Module(DLOAD_mhandle mhandle,
 	struct my_handle *hndl;
 	struct dbg_mirror_root *root;
 	unsigned errcount = 0;
+	struct LDR_SECTION_INFO dllview_info = DLLVIEW_INFO_INIT;
+	struct modules_header mhdr;
 
 	hndl = (struct my_handle *)mhandle;
 	if (!hndl)
@@ -1743,14 +1740,12 @@ extern int Dynamic_Unload_Module(DLOAD_mhandle mhandle,
 	if (!hndl->dm.dbthis) {	/* target-side dllview record exists */
 		goto loop_end;
 	}
-	struct LDR_SECTION_INFO dllview_info = DLLVIEW_INFO_INIT;
 	/* Retrieve memory context in which .dllview was allocated */
 	dllview_info.context = hndl->dm.context;
 	if (hndl->dm.hprev == hndl)
 		goto exitunltgt;
 
 	/* target-side dllview record is in list */
-	struct modules_header mhdr;
 	/* dequeue this record from our GPP-side mirror list */
 	hndl->dm.hprev->dm.hnext = hndl->dm.hnext;
 	if (hndl->dm.hnext)

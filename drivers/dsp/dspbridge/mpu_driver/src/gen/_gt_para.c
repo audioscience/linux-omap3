@@ -42,7 +42,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <gt.h>
-#include <gp.h>
 
 /*  ----------------------------------- Function Prototypes */
 static void error(char *msg, ...);

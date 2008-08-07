@@ -1644,7 +1644,7 @@ DSP_STATUS NODE_Delete(struct NODE_OBJECT *hNode)
 	HANDLE		hProcess;
 	HANDLE		nodeRes;
 	HANDLE		hDrvObject;
-	struct PROCESS_CONTEXT     *pCtxt = NULL;
+	struct PROCESS_CONTEXT *pCtxt = NULL;
 	DSP_STATUS res_status = DSP_SOK;
 #endif
 
@@ -1791,7 +1791,7 @@ func_cont:
 	if (DSP_SUCCEEDED(status)) {
 		GT_0trace(NODE_debugMask, GT_5CLASS, "\nNODE_Delete2:\n ");
 		if (pCtxt != NULL)
-			DRV_RemoveNodeResElement(nodeRes, pCtxt);
+			DRV_RemoveNodeResElement(nodeRes, (HANDLE)pCtxt);
 
 	}
 #endif
@@ -3226,7 +3226,7 @@ DSP_STATUS NODE_GetUUIDProps(DSP_HPROCESSOR hProcessor,
 		dcdNodeProps.pstrIAlgName = NULL;
 
 		status = DCD_GetObjectDef(hNodeMgr->hDcdMgr,
-				(CONST struct DSP_UUID *) pNodeId,
+				(struct DSP_UUID *) pNodeId,
 				DSP_DCDNODETYPE,
 				(struct DCD_GENERICOBJ *) &dcdNodeProps);
 		if (DSP_SUCCEEDED(status)) {

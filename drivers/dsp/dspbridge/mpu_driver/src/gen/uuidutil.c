@@ -60,7 +60,7 @@ void UUID_UuidToString(IN struct DSP_UUID *pUuid, OUT char *pszUuid,
 	DBC_Require(pUuid && pszUuid);
 
 	i = snprintf(pszUuid, size,
-		     "%.8lX_%.4X_%.4X_%.2X%.2X_%.2X%.2X%.2X%.2X%.2X%.2X",
+		     "%.8X_%.4X_%.4X_%.2X%.2X_%.2X%.2X%.2X%.2X%.2X%.2X",
 		     pUuid->ulData1, pUuid->usData2, pUuid->usData3,
 		     pUuid->ucData4, pUuid->ucData5, pUuid->ucData6[0],
 		     pUuid->ucData6[1], pUuid->ucData6[2], pUuid->ucData6[3],

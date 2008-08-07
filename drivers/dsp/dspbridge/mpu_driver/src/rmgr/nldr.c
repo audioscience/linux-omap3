@@ -776,7 +776,7 @@ DSP_STATUS NLDR_GetFxnAddr(struct NLDR_NODEOBJECT *hNldrNode, char *pstrFxn,
 	DSP_STATUS status = DSP_SOK;
 	bool status1 = false;
 	s32 i = 0;
-	struct LibNode root;
+	struct LibNode root = { NULL, 0, NULL };
 	DBC_Require(cRefs > 0);
 	DBC_Require(MEM_IsValidHandle(hNldrNode, NLDR_NODESIGNATURE));
 	DBC_Require(pulAddr != NULL);
@@ -1683,7 +1683,7 @@ static DSP_STATUS RemoteAlloc(void **pRef, u16 space, u32 size,
 	struct NLDR_OBJECT *hNldr;
 	struct RMM_TargetObj *rmm;
 	u16 memPhaseBit = MAXFLAGS;
-	u16 segid;
+	u16 segid = 0;
 	u16 i;
 	u16 memType;
 	u32 nWords;

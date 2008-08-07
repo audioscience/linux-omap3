@@ -100,7 +100,6 @@
 
 /*  ----------------------------------- Trace & Debug */
 #include <dbc.h>
-#include <gp.h>
 #include <gt.h>
 
 /*  ----------------------------------- OS Adaptation Layer */
@@ -273,12 +272,12 @@ DSP_STATUS DRV_GetProcContext(u32 phProcess,
 /* Add a new process context to process context list */
 DSP_STATUS DRV_InsertProcContext(struct DRV_OBJECT *hDrVObject, HANDLE hPCtxt)
 {
-	GT_0trace(curTrace, GT_ENTER, "\n In DRV_InsertProcContext\n");
 	struct PROCESS_CONTEXT **pCtxt = (struct PROCESS_CONTEXT **)hPCtxt;
 	DSP_STATUS status = DSP_SOK;
 	struct PROCESS_CONTEXT *pCtxtList = NULL;
 	struct DRV_OBJECT	     *hDRVObject;
 
+	GT_0trace(curTrace, GT_ENTER, "\n In DRV_InsertProcContext\n");
 	status = CFG_GetObject((u32 *)&hDRVObject, REG_DRV_OBJECT);
 	DBC_Assert(hDRVObject != NULL);
 	*pCtxt = MEM_Calloc(1 * sizeof(struct PROCESS_CONTEXT), MEM_PAGED);

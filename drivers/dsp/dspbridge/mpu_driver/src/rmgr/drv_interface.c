@@ -554,7 +554,6 @@ static void __exit bridge_exit(void)
 int bridge_open(struct inode *ip, struct file *filp)
 {
 	int status = 0;
-	GT_0trace(driverTrace, GT_ENTER, "-> driver_open\n");
 #ifndef RES_CLEANUP_DISABLE
 	HANDLE	     hProcess;
 	DSP_STATUS dsp_status = DSP_SOK;
@@ -564,6 +563,7 @@ int bridge_open(struct inode *ip, struct file *filp)
 	struct PROCESS_CONTEXT    *pCtxtclosed = NULL;
 	struct PROCESS_CONTEXT    *pCtxttraverse = NULL;
 	struct task_struct *tsk = NULL;
+	GT_0trace(driverTrace, GT_ENTER, "-> driver_open\n");
 	dsp_status = CFG_GetObject((u32 *)&hDrvObject, REG_DRV_OBJECT);
 
 	/* Checking weather task structure for all process existing
@@ -708,7 +708,9 @@ int bridge_ioctl(struct inode *ip, struct file *filp, unsigned int code,
 /* This function maps kernel space memory to user space memory. */
 int bridge_mmap(struct file *filp, struct vm_area_struct *vma)
 {
+#if GT_TRACE
 	u32 offset = vma->vm_pgoff << PAGE_SHIFT;
+#endif
 	u32 status;
 
 	DBC_Assert(vma->vm_start < vma->vm_end);

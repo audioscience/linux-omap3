@@ -426,7 +426,7 @@ DSP_STATUS WMD_IO_OnLoaded(struct IO_MGR *hIOMgr)
 	u32 mapAttrs;
 	u32 ulShm0End;
 	u32 ulDynExtBase;
-	u32 ulSeg1Size;
+	u32 ulSeg1Size = 0;
 	u32 paCurr = 0;
 	u32 vaCurr = 0;
 	u32 gppVaCurr = 0;

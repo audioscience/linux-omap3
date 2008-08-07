@@ -126,7 +126,7 @@ void _GT_set(char *str)
 		case (s32) GT_SEP:
 			maskValid = false;
 			sep = separator;
-			while (*str != '\0') {
+			while (*sep != '\0') {
 				if (*str == *sep) {
 					str++;
 					break;
@@ -134,7 +134,7 @@ void _GT_set(char *str)
 					sep++;
 				}
 			}
-			if (*str != '\0')
+			if (*sep == '\0')
 				state = GT_FIRST;
 
 			break;

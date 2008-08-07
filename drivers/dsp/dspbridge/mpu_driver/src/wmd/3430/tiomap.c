@@ -1299,7 +1299,7 @@ static DSP_STATUS WMD_BRD_MemMap(struct WMD_DEV_CONTEXT *hDevContext,
 	DSP_STATUS status = DSP_SOK;
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
 	struct HW_MMUMapAttrs_t hwAttrs;
-	u32 numOfActualTabEntries;
+	u32 numOfActualTabEntries = 0;
 	u32 temp = 0;
 	u32 *pPhysAddrPageTbl = NULL;
 	struct vm_area_struct *vma;
