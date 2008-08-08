@@ -36,8 +36,6 @@
 #include <gs.h>
 #include <gb.h>
 
-#define LGSIZE  32		/* number of bits in a LgUns */
-
 typedef GB_BitNum GB_WordNum;
 
 struct GB_TMap {
@@ -56,8 +54,8 @@ void GB_clear(struct GB_TMap *map, GB_BitNum bitn)
 {
 	u32 mask;
 
-	mask = 1L << (bitn % LGSIZE);
-	map->words[bitn / LGSIZE] &= ~mask;
+	mask = 1L << (bitn % BITS_PER_LONG);
+	map->words[bitn / BITS_PER_LONG] &= ~mask;
 }
 
 /*
@@ -73,7 +71,7 @@ struct GB_TMap *GB_create(GB_BitNum len)
 	map = (struct GB_TMap *)GS_alloc(sizeof(struct GB_TMap));
 	if (map != NULL) {
 		map->len = len;
-		map->wcnt = len / LGSIZE + 1;
+		map->wcnt = len / BITS_PER_LONG + 1;
 		map->words = (u32 *)GS_alloc(map->wcnt * sizeof(u32));
 		if (map->words != NULL) {
 			for (i = 0; i < map->wcnt; i++)
@@ -132,18 +130,18 @@ GB_BitNum GB_minclear(struct GB_TMap *map)
 
 	for (word = map->words, i = 0; i < map->wcnt; word++, i++) {
 		if (~*word) {
-			for (bit = 0; bit < LGSIZE; bit++, bitAcc++) {
+			for (bit = 0; bit < BITS_PER_LONG; bit++, bitAcc++) {
 				if (bitAcc == map->len)
 					return GB_NOBITS;
 
 				if (~*word & (1L << bit)) {
-					bit_location = i * LGSIZE + bit;
+					bit_location = i * BITS_PER_LONG + bit;
 					return bit_location;
 				}
 
 			}
 		} else {
-			bitAcc += LGSIZE;
+			bitAcc += BITS_PER_LONG;
 		}
 	}
 
@@ -160,8 +158,8 @@ void GB_set(struct GB_TMap *map, GB_BitNum bitn)
 {
 	u32 mask;
 
-	mask = 1L << (bitn % LGSIZE);
-	map->words[bitn / LGSIZE] |= mask;
+	mask = 1L << (bitn % BITS_PER_LONG);
+	map->words[bitn / BITS_PER_LONG] |= mask;
 }
 
 /*
@@ -176,8 +174,8 @@ bool GB_test(struct GB_TMap *map, GB_BitNum bitn)
 	u32 mask;
 	u32 word;
 
-	mask = 1L << (bitn % LGSIZE);
-	word = map->words[bitn / LGSIZE];
+	mask = 1L << (bitn % BITS_PER_LONG);
+	word = map->words[bitn / BITS_PER_LONG];
 	state = word & mask ? TRUE : FALSE;
 
 	return state;
