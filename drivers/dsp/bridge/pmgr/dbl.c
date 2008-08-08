@@ -1,5 +1,5 @@
 /*
- * dspbridge/src/pmgr/linux/dbl/dbl.c
+ * linux/drivers/dsp/bridge/pmgr/linux/dbl/dbl.c
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

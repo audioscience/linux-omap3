@@ -1,5 +1,5 @@
 /*
- * dspbridge/src/pmgr/linux/common/wcd.c
+ * linux/drivers/dsp/bridge/pmgr/wcd.c
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

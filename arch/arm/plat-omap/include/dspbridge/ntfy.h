@@ -1,5 +1,5 @@
 /*
- * dspbridge/mpu_driver/inc/ntfy.h
+ * bridge/inc/ntfy.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

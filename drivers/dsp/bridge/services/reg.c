@@ -1,5 +1,5 @@
 /*
- * dspbridge/src/services/reg.c
+ * linux/drivers/dsp/bridge/services/reg.c
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

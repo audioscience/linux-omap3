@@ -1,5 +1,5 @@
 /*
- * dspbridge/src/wmd/linux/omap/common/_deh.h
+ * linux/drivers/dsp/bridge/wmd/linux/omap/common/_deh.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

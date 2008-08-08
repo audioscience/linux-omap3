@@ -1,5 +1,5 @@
 /*
- * dspbridge/src/gen/gs.c
+ * linux/drivers/dsp/bridge/gen/gs.c
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

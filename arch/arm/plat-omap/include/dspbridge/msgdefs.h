@@ -1,5 +1,5 @@
 /*
- * dspbridge/mpu_driver/inc/msgdefs.h
+ * bridge/inc/msgdefs.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

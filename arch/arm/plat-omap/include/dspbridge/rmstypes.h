@@ -1,5 +1,5 @@
 /*
- * dspbridge/mpu_driver/inc/rmstypes.h
+ * arch/arm/plat-omap/include/dspbridge/rmstypes.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

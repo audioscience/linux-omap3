@@ -1,5 +1,5 @@
 /*
- * dspbridge/src/pmgr/linux/common/chnl.c
+ * linux/drivers/dsp/bridge/pmgr/chnl.c
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

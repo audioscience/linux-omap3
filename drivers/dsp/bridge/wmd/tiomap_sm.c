@@ -1,5 +1,5 @@
 /*
- * dspbridge/src/wmd/linux/omap/2430/tiomap_sm.c
+ * linux/drivers/dsp/bridge/wmd/linux/omap/2430/tiomap_sm.c
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

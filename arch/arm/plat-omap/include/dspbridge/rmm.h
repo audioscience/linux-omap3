@@ -1,5 +1,5 @@
 /*
- * dspbridge/mpu_driver/inc/rmm.h
+ * arch/arm/plat-omap/include/dspbridge/rmm.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

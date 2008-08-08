@@ -1,5 +1,5 @@
 /*
- * dspbridge/src/services/prcs.c
+ * linux/drivers/dsp/bridge/services/prcs.c
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

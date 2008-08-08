@@ -1,5 +1,5 @@
 /*
- * dspbridge/mpu_driver/inc/mbx_sh.h
+ * bridge/inc/mbx_sh.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

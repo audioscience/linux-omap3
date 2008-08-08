@@ -1,5 +1,5 @@
 /*
- * dspbridge/mpu_driver/inc/wmddeh.h
+ * arch/arm/plat-omap/include/dspbridge/wmddeh.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

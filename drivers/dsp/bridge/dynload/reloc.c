@@ -1,5 +1,5 @@
 /*
- * dspbridge/src/dynload/reloc.c
+ * linux/drivers/dsp/bridge/dynload/reloc.c
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

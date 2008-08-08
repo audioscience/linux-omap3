@@ -1,5 +1,5 @@
 /*
- * dspbridge/src/dynload/params.h
+ * linux/drivers/dsp/bridge/dynload/params.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

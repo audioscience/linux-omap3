@@ -1,5 +1,5 @@
 /*
- * dspbridge/mpu_driver/inc/ldr.h
+ * bridge/inc/ldr.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

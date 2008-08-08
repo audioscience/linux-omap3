@@ -1,5 +1,5 @@
 /*
- * dspbridge/src/dynload/doff.h
+ * linux/drivers/dsp/bridge/dynload/doff.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

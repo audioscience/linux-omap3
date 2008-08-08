@@ -1,5 +1,5 @@
 /*
- * dspbridge/src/wmd/linux/omap/common/_tiomap_util.h
+ * linux/drivers/dsp/bridge/wmd/linux/omap/common/_tiomap_util.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

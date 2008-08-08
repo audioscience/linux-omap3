@@ -1,5 +1,5 @@
 /*
- * dspbridge/src/hw/omap3/mbox/MLBAccInt.h
+ * linux/drivers/dsp/bridge/hw/omap3/mbox/MLBAccInt.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

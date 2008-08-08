@@ -1,5 +1,5 @@
 /*
- * dspbridge/src/services/clk.c
+ * linux/drivers/dsp/bridge/services/clk.c
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

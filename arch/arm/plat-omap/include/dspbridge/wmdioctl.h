@@ -1,5 +1,5 @@
 /*
- * dspbridge/mpu_driver/inc/wmdioctl.h
+ * arch/arm/plat-omap/include/dspbridge/wmdioctl.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

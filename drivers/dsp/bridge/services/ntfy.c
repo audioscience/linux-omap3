@@ -1,5 +1,5 @@
 /*
- * dspbridge/src/services/ntfy.c
+ * linux/drivers/dsp/bridge/services/ntfy.c
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

@@ -1,5 +1,5 @@
 /*
- * dspbridge/src/rmgr/linux/common/rmm.c
+ * linux/drivers/dsp/bridge/rmgr/rmm.c
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

@@ -1,5 +1,5 @@
 /*
- * dspbridge/mpu_driver/inc/getsection.h
+ * bridge/inc/getsection.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

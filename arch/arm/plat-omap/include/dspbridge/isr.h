@@ -1,5 +1,5 @@
 /*
- * dspbridge/mpu_driver/inc/isr.h
+ * bridge/inc/isr.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

@@ -1,5 +1,5 @@
 /*
- * dspbridge/mpu_driver/inc/pwr_sh.h
+ * arch/arm/plat-omap/include/dspbridge/pwr_sh.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

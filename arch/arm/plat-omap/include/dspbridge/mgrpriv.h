@@ -1,5 +1,5 @@
 /*
- * dspbridge/mpu_driver/inc/mgrpriv.h
+ * bridge/inc/mgrpriv.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

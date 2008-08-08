@@ -1,5 +1,5 @@
 /*
- * dspbridge/src/gen/linux/uuidutil.c
+ * linux/drivers/dsp/bridge/gen/linux/uuidutil.c
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

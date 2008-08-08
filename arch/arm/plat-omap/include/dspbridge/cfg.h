@@ -1,5 +1,5 @@
 /*
- * dspbridge/mpu_driver/inc/cfg.h
+ * arch/arm/plat-omap/include/dspbridge/cfg.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

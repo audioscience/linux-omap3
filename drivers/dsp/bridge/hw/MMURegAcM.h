@@ -1,5 +1,5 @@
 /*
- * dspbridge/src/hw/omap3/mmu/MMURegAcM.h
+ * linux/drivers/dsp/bridge/hw/omap3/mmu/MMURegAcM.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

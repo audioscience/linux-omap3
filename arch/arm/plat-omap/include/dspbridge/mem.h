@@ -1,5 +1,5 @@
 /*
- * dspbridge/mpu_driver/inc/mem.h
+ * bridge/inc/mem.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

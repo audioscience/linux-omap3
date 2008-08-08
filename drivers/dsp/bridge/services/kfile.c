@@ -1,5 +1,5 @@
 /*
- * dspbridge/src/services/kfile.c
+ * linux/drivers/dsp/bridge/services/kfile.c
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

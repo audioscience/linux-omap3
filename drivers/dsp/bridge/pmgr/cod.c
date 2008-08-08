@@ -1,5 +1,5 @@
 /*
- * dspbridge/src/pmgr/linux/common/cod.c
+ * linux/drivers/dsp/bridge/pmgr/cod.c
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

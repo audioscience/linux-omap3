@@ -1,5 +1,5 @@
 /*
- * dspbridge/mpu_driver/inc/nodedefs.h
+ * bridge/inc/nodedefs.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

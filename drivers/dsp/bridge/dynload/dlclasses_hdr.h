@@ -1,5 +1,5 @@
 /*
- * dspbridge/src/dynload/dlclasses_hdr.h
+ * linux/drivers/dsp/bridge/dynload/dlclasses_hdr.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
