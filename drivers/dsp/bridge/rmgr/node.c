@@ -353,7 +353,7 @@ static CDECL u32 Ovly(void *pPrivRef, u32 ulDspRunAddr, u32 ulDspLoadAddr,
 static CDECL u32 Write(void *pPrivRef, u32 ulDspAddr, void *pBuf,
 			u32 ulNumBytes, u32 nMemSpace);
 #if GT_TRACE
-static struct GT_Mask NODE_debugMask = { 0, 0 };  /* GT trace variable */
+static struct GT_Mask NODE_debugMask = { NULL, NULL };  /* GT trace variable */
 #endif
 
 static u32 cRefs;		/* module reference count */

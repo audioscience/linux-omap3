@@ -114,7 +114,7 @@ static u32 cRefs;
 
 /* Debug msgs: */
 #if GT_TRACE
-static struct GT_Mask DISP_DebugMask = { 0, 0 };
+static struct GT_Mask DISP_DebugMask = { NULL, NULL };
 #endif
 
 static void DeleteDisp(struct DISP_OBJECT *hDisp);

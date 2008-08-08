@@ -75,7 +75,7 @@ void UUID_UuidToString(IN struct DSP_UUID *pUuid, OUT char *pszUuid,
  *      Converts a hex value to a decimal integer.
  */
 
-int htoi(char c)
+static int htoi(char c)
 {
 	switch (c) {
 	case '0':

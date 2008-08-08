@@ -188,7 +188,7 @@ struct DEV_OBJECT {
 /*  ----------------------------------- Globals */
 static u32 cRefs;		/* Module reference count */
 #if GT_TRACE
-static struct GT_Mask debugMask = { 0, 0 };	/* For debugging */
+static struct GT_Mask debugMask = { NULL, NULL };	/* For debugging */
 #endif
 
 /*  ----------------------------------- Function Prototypes */

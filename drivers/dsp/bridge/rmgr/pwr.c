@@ -56,7 +56,7 @@ DSP_STATUS PWR_SleepDSP(IN CONST u32 sleepCode, IN CONST u32 timeout)
 	struct WMD_DRV_INTERFACE *pIntfFxns;
 	struct WMD_DEV_CONTEXT *dwContext;
 	DSP_STATUS status = DSP_EFAIL;
-	struct DEV_OBJECT *hDevObject = 0;
+	struct DEV_OBJECT *hDevObject = NULL;
 	u32 ioctlcode = 0;
 	u32 arg = timeout;
 
@@ -97,7 +97,7 @@ DSP_STATUS PWR_WakeDSP(IN CONST u32 timeout)
 	struct WMD_DRV_INTERFACE *pIntfFxns;
 	struct WMD_DEV_CONTEXT *dwContext;
 	DSP_STATUS status = DSP_EFAIL;
-	struct DEV_OBJECT *hDevObject = 0;
+	struct DEV_OBJECT *hDevObject = NULL;
 	u32 arg = timeout;
 
 	for (hDevObject = (struct DEV_OBJECT *)DRV_GetFirstDevObject();
@@ -125,7 +125,7 @@ DSP_STATUS PWR_PM_PreScale(IN u16 voltage_domain, u32 level)
 	struct WMD_DRV_INTERFACE *pIntfFxns;
 	struct WMD_DEV_CONTEXT *dwContext;
 	DSP_STATUS status = DSP_EFAIL;
-	struct DEV_OBJECT *hDevObject = 0;
+	struct DEV_OBJECT *hDevObject = NULL;
 	u32 arg[2];
 
 	arg[0] = voltage_domain;
@@ -157,7 +157,7 @@ DSP_STATUS PWR_PM_PostScale(IN u16 voltage_domain, u32 level)
 	struct WMD_DRV_INTERFACE *pIntfFxns;
 	struct WMD_DEV_CONTEXT *dwContext;
 	DSP_STATUS status = DSP_EFAIL;
-	struct DEV_OBJECT *hDevObject = 0;
+	struct DEV_OBJECT *hDevObject = NULL;
 	u32 arg[2];
 
 	arg[0] = voltage_domain;

@@ -111,7 +111,6 @@
 #define DRIVER_MAJOR 0		/* Linux assigns our Major device number */
 #define DRIVER_MINOR 0		/* Linux assigns our Major device number */
 s32 dsp_debug;
-s32 dsp_inact_time = 5000;
 
 /* This is a test variable used by Bridge to test different sleep states */
 s32 dsp_test_sleepstate;
@@ -119,26 +118,26 @@ struct bridge_dev {
 	struct cdev cdev;
 };
 
-struct bridge_dev *bridge_device;
+static struct bridge_dev *bridge_device;
 
 static struct class *bridge_class;
 
-u32 driverContext;
-char *GT_str;
-s32 driver_major = DRIVER_MAJOR;
-s32 driver_minor = DRIVER_MINOR;
-char *base_img;
+static u32 driverContext;
+#ifdef CONFIG_BRIDGE_DEBUG
+static char *GT_str;
+#endif /* CONFIG_BRIDGE_DEBUG */
+static s32 driver_major = DRIVER_MAJOR;
+static s32 driver_minor = DRIVER_MINOR;
+static char *base_img;
 char *iva_img;
-char *num_procs = "C55=1";
-s32 shm_size = 0x400000;	/* 4 MB */
-s32 iva_extmem_size;	/* 0 KB */
-
-u32 phys_mempool_base = 0x87000000;
-u32 phys_mempool_size = 0x600000;
+static char *num_procs = "C55=1";
+static s32 shm_size = 0x400000;	/* 4 MB */
+static u32 phys_mempool_base = 0x87000000;
+static u32 phys_mempool_size = 0x600000;
 #if !defined(CONFIG_ARCH_OMAP2430) && !defined(CONFIG_ARCH_OMAP3430)
-int tc_wordswapon = 1;	/* Default value is always TRUE */
+static int tc_wordswapon = 1;	/* Default value is always TRUE */
 #else
-int tc_wordswapon = 0;	/* Default value is always TRUE */
+static int tc_wordswapon = 0;	/* Default value is always TRUE */
 #endif
 
 
@@ -200,14 +199,17 @@ MODULE_PARM_DESC(tc_wordswapon, "TC Word Swap Option. default = 0");
 MODULE_AUTHOR("Texas Instruments");
 MODULE_LICENSE("GPL");
 
-char *driver_name = DRIVER_NAME;
-struct GT_Mask driverTrace;
+static char *driver_name = DRIVER_NAME;
 
-struct file_operations bridge_fops = {
-      open:bridge_open,
-      release:bridge_release,
-      ioctl:bridge_ioctl,
-      mmap:bridge_mmap
+#ifdef CONFIG_BRIDGE_DEBUG
+static struct GT_Mask driverTrace;
+#endif /* CONFIG_BRIDGE_DEBUG */
+
+static struct file_operations bridge_fops = {
+	.open		= bridge_open,
+	.release	= bridge_release,
+	.ioctl		= bridge_ioctl,
+	.mmap		= bridge_mmap,
 };
 
 #ifndef CONFIG_DISABLE_BRIDGE_PM
@@ -227,7 +229,7 @@ static int omap34xx_bridge_probe(struct platform_device *dev)
 }
 
 #if defined(CONFIG_ARCH_OMAP2430) || defined(CONFIG_ARCH_OMAP3430)
-struct platform_device omap_dspbridge_dev = {
+static struct platform_device omap_dspbridge_dev = {
 		.name = BRIDGE_NAME,
 		.id = -1,
 		.num_resources = 0,
@@ -299,10 +301,10 @@ static struct platform_driver bridge_driver_ldm = {
 
 };
 
-
 struct device dspbridge_device = {
 	.driver = &bridge_driver_ldm.driver,
 };
+
 #endif
 
 /* Initialization routine. Executed when the driver is loaded (as a kernel

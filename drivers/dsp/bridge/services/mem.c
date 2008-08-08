@@ -77,7 +77,7 @@
 
 /*  ----------------------------------- Globals */
 #if GT_TRACE
-static struct GT_Mask MEM_debugMask = { 0, 0 };	/* GT trace variable */
+static struct GT_Mask MEM_debugMask = { NULL, NULL };	/* GT trace variable */
 #endif
 
 static u32 cRefs;		/* module reference count */
@@ -91,7 +91,7 @@ struct extPhysMemPool {
 	u32 nextPhysAllocPtr;
 };
 
-struct extPhysMemPool extMemPool;
+static struct extPhysMemPool extMemPool;
 
 /*  Information about each element allocated on heap */
 struct memInfo {
@@ -113,7 +113,7 @@ struct memMan {
 	spinlock_t lock;
 };
 
-struct memMan mMan;
+static struct memMan mMan;
 
 /*
  *  These functions are similar to LST_PutTail and LST_RemoveElem and are

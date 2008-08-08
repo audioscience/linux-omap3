@@ -188,7 +188,7 @@ struct PROC_OBJECT {
 
 /*  ----------------------------------- Globals */
 #if GT_TRACE
-static struct GT_Mask PROC_DebugMask = { 0, 0 };	/* WCD MGR Mask */
+static struct GT_Mask PROC_DebugMask = { NULL, NULL };	/* WCD MGR Mask */
 #endif
 
 static u32 cRefs;

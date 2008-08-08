@@ -112,7 +112,7 @@ struct COD_LIBRARYOBJ {
 static u32 cRefs = 0L;
 
 #if GT_TRACE
-static struct GT_Mask COD_debugMask = { 0, 0 };
+static struct GT_Mask COD_debugMask = { NULL, NULL };
 #endif
 
 static struct DBLL_Fxns dbllFxns = {

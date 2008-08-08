@@ -64,7 +64,7 @@
 static u32 cRefs;
 
 #if GT_TRACE
-static struct GT_Mask IO_DebugMask = { 0, 0 };	/* WCD IO Mask */
+static struct GT_Mask IO_DebugMask = { NULL, NULL };	/* WCD IO Mask */
 #endif
 
 /*

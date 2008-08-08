@@ -92,7 +92,7 @@ struct NOTIFICATION {
 
 /*  ----------------------------------- Globals */
 #if GT_TRACE
-static struct GT_Mask NTFY_debugMask = { 0, 0 };    /* GT trace variable */
+static struct GT_Mask NTFY_debugMask = { NULL, NULL };    /* GT trace variable */
 #endif
 
 /*  ----------------------------------- Function Prototypes */

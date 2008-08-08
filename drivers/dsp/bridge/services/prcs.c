@@ -55,7 +55,7 @@
 
 /*  ----------------------------------- Globals & Defines */
 #if GT_TRACE
-static struct GT_Mask PRCS_debugMask = { 0, 0 };	/* GT trace var. */
+static struct GT_Mask PRCS_debugMask = { NULL, NULL };	/* GT trace var. */
 #endif
 
 /*

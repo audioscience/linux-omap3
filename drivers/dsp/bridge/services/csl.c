@@ -76,7 +76,7 @@
 
 /*  ----------------------------------- Globals */
 #if GT_TRACE
-static struct GT_Mask CSL_DebugMask = { 0, 0 };	/* GT trace var. */
+static struct GT_Mask CSL_DebugMask = { NULL, NULL };	/* GT trace var. */
 #endif
 
 /*

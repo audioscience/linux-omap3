@@ -81,7 +81,7 @@ struct KFILE_FileObj {
 
 /*  ----------------------------------- Globals */
 #if GT_TRACE
-static struct GT_Mask KFILE_debugMask = { 0, 0 };	/* Debug mask */
+static struct GT_Mask KFILE_debugMask = { NULL, NULL };	/* Debug mask */
 #endif
 
 /*

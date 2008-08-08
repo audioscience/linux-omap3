@@ -327,7 +327,7 @@ static struct DBLL_Fxns dbllFxns = {
 	(DBLL_UnloadSectFxn) DBLL_unloadSect,
 };
 
-static struct GT_Mask NLDR_debugMask = { 0, 0 };	/* GT trace variable */
+static struct GT_Mask NLDR_debugMask = { NULL, NULL };	/* GT trace variable */
 static u32 cRefs;		/* module reference count */
 
 static DSP_STATUS AddOvlyInfo(void *handle, struct DBLL_SectInfo *sectInfo,

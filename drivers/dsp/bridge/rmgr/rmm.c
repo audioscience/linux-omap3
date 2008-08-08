@@ -104,7 +104,7 @@ struct RMM_TargetObj {
 };
 
 #if GT_TRACE
-static struct GT_Mask RMM_debugMask = { 0, 0 };	/* GT trace variable */
+static struct GT_Mask RMM_debugMask = { NULL, NULL };	/* GT trace variable */
 #endif
 
 static u32 cRefs;		/* module reference count */

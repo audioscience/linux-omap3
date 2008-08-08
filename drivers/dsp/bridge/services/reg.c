@@ -57,7 +57,7 @@
 #include <regsup.h>
 
 #if GT_TRACE
-struct GT_Mask REG_debugMask = { 0, 0 };	/* GT trace var. */
+struct GT_Mask REG_debugMask = { NULL, NULL };	/* GT trace var. */
 #endif
 
 /*

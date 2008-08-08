@@ -74,7 +74,7 @@ struct MGR_OBJECT {
 
 /*  ----------------------------------- Globals */
 #if GT_TRACE
-static struct GT_Mask MGR_DebugMask = { 0, 0 };
+static struct GT_Mask MGR_DebugMask = { NULL, NULL };
 #endif
 
 static u32 cRefs;

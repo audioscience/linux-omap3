@@ -97,7 +97,7 @@
 /*  ----------------------------------- Globals */
 static u32 cRefs;
 #if GT_TRACE
-static struct GT_Mask CHNL_DebugMask = { 0, 0 };	/* WCD CHNL Mask */
+static struct GT_Mask CHNL_DebugMask = { NULL, NULL };	/* WCD CHNL Mask */
 #endif
 
 /*  ----------------------------------- Function Prototypes */

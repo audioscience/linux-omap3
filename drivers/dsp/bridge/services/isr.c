@@ -89,11 +89,8 @@ struct ISR_IRQ {
 
 /*  ----------------------------------- Globals & Defines */
 #if GT_TRACE
-static struct GT_Mask ISR_DebugMask = { 0, 0 };	/* ISR Debug Mask */
+static struct GT_Mask ISR_DebugMask = { NULL, NULL };	/* ISR Debug Mask */
 #endif
-
-HANDLE hEvent;
-HANDLE hInterruptThread;
 
 /*  ----------------------------------- Function Prototypes */
 static irqreturn_t HardwareIST(int irq, void *hIRQ);

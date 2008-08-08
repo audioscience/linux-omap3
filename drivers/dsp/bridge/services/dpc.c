@@ -84,7 +84,7 @@ struct DPC_OBJECT {
 
 /*  ----------------------------------- Globals */
 #if GT_TRACE
-static struct GT_Mask DPC_DebugMask = { 0, 0 };	/* DPC Debug Mask */
+static struct GT_Mask DPC_DebugMask = { NULL, NULL };	/* DPC Debug Mask */
 #endif
 
 /*  ----------------------------------- Function Prototypes */
