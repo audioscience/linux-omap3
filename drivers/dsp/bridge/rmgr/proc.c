@@ -149,8 +149,8 @@
 #ifndef RES_CLEANUP_DISABLE
 #include <resourcecleanup.h>
 #endif
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 #include <asm/arch/resource.h>
 #endif
 #endif
@@ -193,8 +193,8 @@ static struct GT_Mask PROC_DebugMask = { 0, 0 };	/* WCD MGR Mask */
 
 static u32 cRefs;
 
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 extern struct constraint_handle *mpu_constraint_handle;
 #endif
 #endif
@@ -1190,8 +1190,8 @@ DSP_STATUS PROC_Load(DSP_HPROCESSOR hProcessor, IN CONST s32 iArgc,
 	if (DSP_SUCCEEDED(status)) {
 		/* Now, attempt to load an exec: */
 
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 	/* Boost the OPP level to Maximum level supported by baseport*/
 	if (constraint_set(mpu_constraint_handle, CO_VDD1_OPP5) != 0)
 		GT_1trace(PROC_DebugMask, GT_4CLASS, "PROC_Load:"
@@ -1218,8 +1218,8 @@ DSP_STATUS PROC_Load(DSP_HPROCESSOR hProcessor, IN CONST s32 iArgc,
 					 "COD_Load  status 0x%x \n", status);
 			}
 		}
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 	/* Requesting the lowest opp supported by baseport*/
 		if (constraint_set(mpu_constraint_handle, CO_VDD1_OPP1) != 0)
 			GT_1trace(PROC_DebugMask, GT_4CLASS, "PROC_Load:"

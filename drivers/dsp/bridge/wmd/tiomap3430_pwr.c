@@ -61,13 +61,13 @@
 #include "_tiomap.h"
 #include "_tiomap_pwr.h"
 #include "_tiomap_util.h"
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 #include <asm/arch/resource.h>
 #endif
 #endif
 extern s32 dsp_test_sleepstate;
-#ifndef DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_PM
 extern struct constraint_handle *dsp_constraint_handle;
 #endif
 extern struct MAILBOX_CONTEXT mboxsetting;
@@ -85,8 +85,8 @@ DSP_STATUS DSP_PeripheralClocks_Enable(struct WMD_DEV_CONTEXT *pDevContext,
 DSP_STATUS handle_constraints_set(struct WMD_DEV_CONTEXT *pDevContext,
 				  IN void *pArgs)
 {
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 	u32 *pConstraintVal;
 
 	pConstraintVal = (u32 *)(pArgs);
@@ -103,8 +103,8 @@ DSP_STATUS handle_constraints_set(struct WMD_DEV_CONTEXT *pDevContext,
 			 "handle_constraints_set: Constraint set failed\n");
 		return DSP_EFAIL;
 	}
-#endif /*#ifndef DISABLE_BRIDGE_DVFS*/
-#endif /*#ifndef DISABLE_BRIDGE_PM*/
+#endif /*#ifndef CONFIG_DISABLE_BRIDGE_DVFS*/
+#endif /*#ifndef CONFIG_DISABLE_BRIDGE_PM*/
 	return DSP_SOK;
 }
 
@@ -114,7 +114,7 @@ DSP_STATUS handle_constraints_set(struct WMD_DEV_CONTEXT *pDevContext,
  */
 DSP_STATUS handle_hibernation_fromDSP(struct WMD_DEV_CONTEXT *pDevContext)
 {
-#ifndef DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_PM
 	u16 usCount = TIHELEN_ACKTIMEOUT;
 	struct CFG_HOSTRES resources;
 	DSP_STATUS status = DSP_SOK;
@@ -156,7 +156,7 @@ DSP_STATUS handle_hibernation_fromDSP(struct WMD_DEV_CONTEXT *pDevContext)
 		if (DSP_SUCCEEDED(status)) {
 			/* Update the Bridger Driver state */
 			pDevContext->dwBrdState = BRD_DSP_HIBERNATION;
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 			status = DEV_GetIOMgr(pDevContext->hDevObject, &hIOMgr);
 			if (DSP_FAILED(status))
 				return status;
@@ -196,7 +196,7 @@ DSP_STATUS SleepDSP(struct WMD_DEV_CONTEXT *pDevContext, IN u32 dwCmd,
 		   IN void *pArgs)
 {
 	DSP_STATUS status = DSP_SOK;
-#ifndef DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_PM
 	struct CFG_HOSTRES resources;
 	u16 usCount = TIHELEN_ACKTIMEOUT;
 	enum HW_PwrState_t pwrState;
@@ -290,7 +290,7 @@ DSP_STATUS SleepDSP(struct WMD_DEV_CONTEXT *pDevContext, IN u32 dwCmd,
 DSP_STATUS WakeDSP(struct WMD_DEV_CONTEXT *pDevContext, IN void *pArgs)
 {
 	DSP_STATUS status = DSP_SOK;
-#ifndef DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_PM
 	struct CFG_HOSTRES resources;
 	enum HW_PwrState_t pwrState;
 
@@ -420,8 +420,8 @@ DSP_STATUS DSPPeripheralClkCtrl(struct WMD_DEV_CONTEXT *pDevContext,
  */
 DSP_STATUS PreScale_DSP(struct WMD_DEV_CONTEXT *pDevContext, IN void *pArgs)
 {
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 	u32 level;
 	u32 voltage_domain;
 
@@ -447,8 +447,8 @@ DSP_STATUS PreScale_DSP(struct WMD_DEV_CONTEXT *pDevContext, IN void *pArgs)
 			  " state in wrong state");
 		return DSP_EFAIL;
 	}
-#endif /*#ifndef DISABLE_BRIDGE_DVFS*/
-#endif  /*#ifndef DISABLE_BRIDGE_PM */
+#endif /*#ifndef CONFIG_DISABLE_BRIDGE_DVFS*/
+#endif  /*#ifndef CONFIG_DISABLE_BRIDGE_PM */
 	return DSP_SOK;
 }
 
@@ -459,8 +459,8 @@ DSP_STATUS PreScale_DSP(struct WMD_DEV_CONTEXT *pDevContext, IN void *pArgs)
  */
 DSP_STATUS PostScale_DSP(struct WMD_DEV_CONTEXT *pDevContext, IN void *pArgs)
 {
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 	u32 level;
 	u32 voltage_domain;
 	struct IO_MGR *hIOMgr;
@@ -496,8 +496,8 @@ DSP_STATUS PostScale_DSP(struct WMD_DEV_CONTEXT *pDevContext, IN void *pArgs)
 			  "in wrong state");
 		return DSP_EFAIL;
 	}
-#endif /*#ifndef DISABLE_BRIDGE_DVFS*/
-#endif /*#ifndef DISABLE_BRIDGE_PM*/
+#endif /*#ifndef CONFIG_DISABLE_BRIDGE_DVFS*/
+#endif /*#ifndef CONFIG_DISABLE_BRIDGE_PM*/
 	return DSP_SOK;
 }
 

@@ -67,8 +67,8 @@
 #include "_tiomap.h"
 #include <chnl_sm.h>
 
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 #include <asm/arch/resource.h>
 extern struct constraint_handle *dsp_constraint_handle;
 #endif
@@ -169,8 +169,8 @@ DSP_STATUS CHNLSM_InterruptDSP(struct WMD_DEV_CONTEXT *hDevContext)
 	DSP_STATUS status = DSP_SOK;
 	struct WMD_DEV_CONTEXT *pDevContext = hDevContext;
 
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 	u32 opplevel;
 #endif
 #endif
@@ -188,8 +188,8 @@ DSP_STATUS CHNLSM_InterruptDSP(struct WMD_DEV_CONTEXT *hDevContext)
 	if  (pDevContext->dwBrdState == BRD_DSP_HIBERNATION ||
 	    pDevContext->dwBrdState == BRD_HIBERNATION) {
 		pDevContext->dwBrdState = BRD_RUNNING;
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 		opplevel = constraint_get_level(dsp_constraint_handle);
 		/* If OPP is at minimum level, increase it before waking up
 		 * the DSP */

@@ -58,8 +58,8 @@
 #include <linux/init.h>
 #include <linux/moduleparam.h>
 #include <linux/cdev.h>
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 #include <asm/arch/resource.h>
 #include <asm/arch/prcm_34xx.h>
 #endif
@@ -143,7 +143,7 @@ int tc_wordswapon = 0;	/* Default value is always TRUE */
 
 
 
-#ifndef DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_PM
 struct omap34xx_bridge_suspend_data {
 	int suspended;
 	wait_queue_head_t suspend_wq;
@@ -210,7 +210,7 @@ struct file_operations bridge_fops = {
       mmap:bridge_mmap
 };
 
-#ifndef DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_PM
 u32 timeOut = 1000;
 
 static int bridge_suspend(struct platform_device *pdev, pm_message_t state);
@@ -238,8 +238,8 @@ struct platform_device omap_dspbridge_dev = {
 };
 
 
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 /* The number of OPPs supported in the system */
 s32 dsp_max_opps = CO_VDD1_OPP5-2;
 u32 vdd1_dsp_freq[6][4] = {
@@ -264,8 +264,8 @@ struct constraint_handle *mpu_constraint_handle;
 static int dspbridge_post_scale(struct notifier_block *op, unsigned long level,
 				void *ptr)
 {
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 	PWR_PM_PostScale(PRCM_VDD1, level);
 #endif
 #endif
@@ -290,7 +290,7 @@ static struct platform_driver bridge_driver_ldm = {
 	      .name     = BRIDGE_NAME,
 	 },
       .probe = omap34xx_bridge_probe,
-#ifndef DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_PM
       .suspend = bridge_suspend,
       .resume = bridge_resume,
 #endif
@@ -380,7 +380,7 @@ static int __init bridge_init(void)
 	if (!status)
 		status = platform_device_register(&omap_dspbridge_dev);
 
-#ifndef DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_PM
 	/* Initialize the wait queue */
 	if (!status) {
 		bridge_suspend_data.suspended = 0;
@@ -457,8 +457,8 @@ static int __init bridge_init(void)
 			GT_0trace(driverTrace, GT_5CLASS,
 					"DSP/BIOS Bridge driver loaded\n");
 		}
- #ifndef DISABLE_BRIDGE_PM
- #ifndef DISABLE_BRIDGE_DVFS
+ #ifndef CONFIG_DISABLE_BRIDGE_PM
+ #ifndef CONFIG_DISABLE_BRIDGE_DVFS
 		/* Register for the constraints */
 		dsp_constraint_handle = constraint_get("dspbridge",
 						      &cnstr_id_vdd1);
@@ -488,8 +488,8 @@ static void __exit bridge_exit(void)
 	bool ret;
 	GT_0trace(driverTrace, GT_ENTER, "-> driver_exit\n");
 
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 	/* remove the constraints */
 	if (dsp_constraint_handle != NULL) {
 		GT_0trace(driverTrace, GT_7CLASS,
@@ -519,8 +519,8 @@ static void __exit bridge_exit(void)
 			 "mpu_constraint_handle is NULL\n");
 
 	}
-#endif /*#ifndef DISABLE_BRIDGE_DVFS*/
-#endif /*#ifndef DISABLE_BRIDGE_PM*/
+#endif /*#ifndef CONFIG_DISABLE_BRIDGE_DVFS*/
+#endif /*#ifndef CONFIG_DISABLE_BRIDGE_PM*/
 	/* unregister bridge driver */
 	platform_device_unregister(&omap_dspbridge_dev);
 	platform_driver_unregister(&bridge_driver_ldm);
@@ -672,7 +672,7 @@ int bridge_ioctl(struct inode *ip, struct file *filp, unsigned int code,
 	union Trapped_Args pBufIn;
 
 	DBC_Require(filp != 0);
-#ifndef DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_PM
 	status = omap34xxbridge_suspend_lockout(&bridge_suspend_data, filp);
 	if (status != 0)
 		return status;
@@ -748,7 +748,7 @@ DSP_STATUS DRV_RemoveAllResources(HANDLE hPCtxt)
 }
 #endif
 
-#ifndef DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_PM
 
 static int bridge_suspend(struct platform_device *pdev, pm_message_t state)
 {

@@ -13,7 +13,7 @@ menuconfig MPU_BRIDGE
 
 if MPU_BRIDGE
 
-config BRIDGE_DVFS
+config DISABLE_BRIDGE_DVFS
 	bool "Disable Bridge Dynamic Voltage and Frequency Scaling (DVFS)"
 	default y
 	help
@@ -21,7 +21,7 @@ config BRIDGE_DVFS
 	the chip voltage and frequency in order to match the performance and
 	power consumption to the current processing requirements.
 
-config BRIDGE_PM
+config DISABLE_BRIDGE_PM
 	bool "Disable Bridge Power Management"
 	depends on PM
 	default y

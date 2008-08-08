@@ -111,8 +111,8 @@
 
 /*  ----------------------------------- Host OS */
 #include <host_os.h>
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 #include <asm/arch/resource.h>
 #endif
 #endif
@@ -247,8 +247,8 @@ static DSP_STATUS registerSHMSegs(struct IO_MGR *hIOMgr,
 
 extern u32 DRV_GetFirstDevExtension();
 
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 /* The maximum number of OPPs that are supported by Baseport */
 extern s32 dsp_max_opps;
 /* The Vdd1 opp table information */
@@ -1708,8 +1708,8 @@ void IO_IntrDSP2(IN struct IO_MGR *pIOMgr, IN u16 wMbVal)
 DSP_STATUS IO_SHMsetting(IN struct IO_MGR *hIOMgr, IN enum SHM_DESCTYPE desc,
 			 IN void *pArgs)
 {
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 	u32 i;
 
 	switch (desc) {

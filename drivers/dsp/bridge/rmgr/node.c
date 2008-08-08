@@ -153,8 +153,8 @@
 #include <resourcecleanup.h>
 #endif
 
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 #include <asm/arch/resource.h>
 #endif
 #endif
@@ -371,8 +371,8 @@ static struct NLDR_FXNS nldrFxns = {
 	NLDR_Unload,
 };
 
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 extern struct constraint_handle *mpu_constraint_handle;
 /*The maximum number of OPPs that DSP bridge can request */
 extern s32 dsp_max_opps;
@@ -1353,8 +1353,8 @@ DSP_STATUS NODE_Create(struct NODE_OBJECT *hNode)
 
 	if (DSP_SUCCEEDED(status)) {
 		/* If node's create function is not loaded, load it */
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 		/* Boost the OPP level to max level that DSP can be requested */
 		if (constraint_set(mpu_constraint_handle,
 		   dsp_max_opps) != 0)
@@ -1380,8 +1380,8 @@ DSP_STATUS NODE_Create(struct NODE_OBJECT *hNode)
 				 "NODE_Create: failed to load"
 				 " create code: 0x%x\n", status);
 		}
-#ifndef DISABLE_BRIDGE_PM
-#ifndef DISABLE_BRIDGE_DVFS
+#ifndef CONFIG_DISABLE_BRIDGE_PM
+#ifndef CONFIG_DISABLE_BRIDGE_DVFS
 		/* Request the lowest OPP level*/
 		if (constraint_set(mpu_constraint_handle,
 		   (CO_VDD1_OPP1)) != 0) {
