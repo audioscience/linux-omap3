@@ -55,9 +55,9 @@
 #include <linux/platform_device.h>
 #include <dbtype.h>
 
-#if defined(OMAP_2430) || defined(OMAP_3430)
+#if defined(CONFIG_ARCH_OMAP2430) || defined(CONFIG_ARCH_OMAP3430)
 #include <asm/arch/clock.h>
-#ifdef OMAP_3430
+#ifdef CONFIG_ARCH_OMAP3430
 #include <linux/clk.h>
 #endif
 #endif
@@ -73,7 +73,7 @@
 #define SEEK_END        2	/* Seek from end of file.  */
 
 /* TODO -- Remove, once BP defines them */
-#ifdef OMAP_3430
+#ifdef CONFIG_ARCH_OMAP3430
 #define INT_MAIL_MPU_IRQ        26
 #define INT_DSP_MMU_IRQ        28
 #endif

@@ -135,7 +135,7 @@ s32 iva_extmem_size;	/* 0 KB */
 
 u32 phys_mempool_base = 0x87000000;
 u32 phys_mempool_size = 0x600000;
-#if !defined(OMAP_2430) && !defined(OMAP_3430)
+#if !defined(CONFIG_ARCH_OMAP2430) && !defined(CONFIG_ARCH_OMAP3430)
 int tc_wordswapon = 1;	/* Default value is always TRUE */
 #else
 int tc_wordswapon = 0;	/* Default value is always TRUE */
@@ -226,7 +226,7 @@ static int omap34xx_bridge_probe(struct platform_device *dev)
 	return 0;
 }
 
-#if defined(OMAP_2430) || defined(OMAP_3430)
+#if defined(CONFIG_ARCH_OMAP2430) || defined(CONFIG_ARCH_OMAP3430)
 struct platform_device omap_dspbridge_dev = {
 		.name = BRIDGE_NAME,
 		.id = -1,

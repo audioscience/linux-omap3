@@ -97,7 +97,7 @@
 		u32 dwChnlBufSize;
 		u32 dwNumChnls;
 
-#ifdef OMAP_3430
+#ifdef CONFIG_ARCH_OMAP3430
 		u32 dwPrmBase;
 		u32 dwCmBase;
 		u32 dwPerBase;
