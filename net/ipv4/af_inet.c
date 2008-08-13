@@ -267,7 +267,7 @@ static inline int inet_netns_ok(struct net *net, int protocol)
 #ifdef CONFIG_ANDROID_PARANOID_NETWORK
 static inline int current_has_network(void)
 {
-	return (!current->uid || current->gid == AID_INET ||
+	return (!current->euid || current->egid == AID_INET ||
 		groups_search(current->group_info, AID_INET));
 }
 # else
