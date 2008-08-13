@@ -125,6 +125,14 @@
 
 /* I2C System Configuration Register (OMAP_I2C_SYSC): */
 #define OMAP_I2C_SYSC_SRST		(1 << 1)	/* Soft Reset */
+#define OMAP_I2C_SYSC_SRST		(1 << 1)	/* Soft Reset */
+#define OMAP_I2C_SYSC_SMART_IDLE	(2 << 3)
+#define OMAP_I2C_SYSC_CLK_ACT		(2 << 8)
+#define OMAP_I2C_SYSC_AUTO_IDLE		(1 <<  0)
+#define OMAP_I2C_WAKE_UP_ENABLE		(1 << 2)
+#define OMAP_I2C_WAKUP_EVENT		0x00006C1F
+#define OMAP_I2C_SYS_CONFIG_LVL1	1
+#define OMAP_I2C_SYS_CONFIG_LVL2	2
 
 struct omap_i2c_dev {
 	struct device		*dev;
@@ -158,6 +166,21 @@ static inline void omap_i2c_write_reg(struct omap_i2c_dev *i2c_dev,
 static inline u16 omap_i2c_read_reg(struct omap_i2c_dev *i2c_dev, int reg)
 {
 	return __raw_readw(i2c_dev->base + reg);
+}
+
+/* Sysconfig settings, Enable smart idle and auto idle */
+static void i2c_power_settings(struct omap_i2c_dev *dev, int level)
+{
+	/* set I2C smart idle and auto idle */
+	if (level == OMAP_I2C_SYS_CONFIG_LVL1)
+		omap_i2c_write_reg(dev, OMAP_I2C_SYSC_REG,
+			OMAP_I2C_SYSC_AUTO_IDLE | OMAP_I2C_SYSC_SMART_IDLE |
+			OMAP_I2C_SYSC_CLK_ACT | OMAP_I2C_WAKE_UP_ENABLE);
+	/* clk activity both iclk and fclk off*/
+	if (level == OMAP_I2C_SYS_CONFIG_LVL2)
+		omap_i2c_write_reg(dev, OMAP_I2C_SYSC_REG,
+			OMAP_I2C_SYSC_AUTO_IDLE | OMAP_I2C_SYSC_SMART_IDLE
+			| OMAP_I2C_WAKE_UP_ENABLE);
 }
 
 static int omap_i2c_get_clocks(struct omap_i2c_dev *dev)
@@ -209,6 +232,7 @@ static void omap_i2c_unidle(struct omap_i2c_dev *dev)
 	if (dev->iclk != NULL)
 		clk_enable(dev->iclk);
 	clk_enable(dev->fclk);
+	i2c_power_settings(dev, OMAP_I2C_SYS_CONFIG_LVL1);
 	dev->idle = 0;
 	if (dev->iestate)
 		omap_i2c_write_reg(dev, OMAP_I2C_IE_REG, dev->iestate);
@@ -231,6 +255,7 @@ static void omap_i2c_idle(struct omap_i2c_dev *dev)
 	 *
 	 */
 	wmb();
+	i2c_power_settings(dev, OMAP_I2C_SYS_CONFIG_LVL2);
 	dev->idle = 1;
 
 	clk_disable(dev->fclk);
@@ -262,6 +287,9 @@ static int omap_i2c_init(struct omap_i2c_dev *dev)
 			msleep(1);
 		}
 	}
+
+	/* Enabling wakeup events */
+	omap_i2c_write_reg(dev, OMAP_I2C_IV_REG, OMAP_I2C_WAKUP_EVENT);
 	omap_i2c_write_reg(dev, OMAP_I2C_CON_REG, 0);
 
 	if (cpu_class_is_omap1()) {
@@ -497,6 +525,8 @@ omap_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 	int r;
 
 	omap_i2c_unidle(dev);
+
+	omap_i2c_init(dev);
 
 	if ((r = omap_i2c_wait_for_bb(dev)) < 0)
 		goto out;
