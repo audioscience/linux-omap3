@@ -27,6 +27,38 @@
 #define GPMC_CS0_BASE	0x60
 #define GPMC_CS_SIZE	0x30
 
+#ifdef CONFIG_OMAP3_PM
+/*
+ * Number of frequencies supported by gpmc
+ */
+#define NO_GPMC_FREQ_SUPPORTED		2
+#define SUPPORTED_FREQ1			83
+#define SUPPORTED_FREQ2			166
+
+/*
+ * TBD: Get optimized NAND setting for 83MHz
+ *      Get 133/66MHz timings.
+ */
+
+struct gpmc_cs_config pdc_nand_gpmc_setting[] = {
+	{0x1800, 0x00030300, 0x00030200, 0x03000400, 0x00040505, 0x030001C0},
+	{0x1800, 0x00141400, 0x00141400, 0x0f010f01, 0x010c1414, 0x1f0f0a80}
+};
+
+/* ethernet goes crazy if differt times are used */
+struct gpmc_cs_config enet_gpmc_setting[] = {
+	{0x611200, 0x001F1F01, 0x00080803, 0x1D091D09, 0x041D1F1F, 0x1D0904C4},
+	{0x611200, 0x001F1F01, 0x00080803, 0x1D091D09, 0x041D1F1F, 0x1D0904C4}
+};
+
+/*
+ * Structure containing the gpmc cs values at different frequencies
+ * This structure will be populated run time depending on the
+ * values read from FPGA registers..On 3430 SDP FPGA is always on CS3
+ */
+struct gpmc_freq_config freq_config[NO_GPMC_FREQ_SUPPORTED];
+#endif
+
 static struct mtd_partition ldp_nand_partitions[] = {
 	/* All the partition sizes are listed in terms of NAND block size */
 	{
@@ -81,35 +113,41 @@ static struct platform_device ldp_nand_device = {
 	.resource	= &ldp_nand_resource,
 };
 
+/**
+ * ldp430_flash_init - Identify devices connected to GPMC and register.
+ *
+ * @return - void.
+ */
 void __init ldp_flash_init(void)
 {
-	u8 cs = 0;
 	u8 nandcs = GPMC_CS_NUM + 1;
 	u32 gpmc_base_add = OMAP34XX_GPMC_VIRT;
 
-	/* find out the chip-select on which NAND exists */
-	while (cs < GPMC_CS_NUM) {
-		u32 ret = 0;
-		ret = gpmc_cs_read_reg(cs, GPMC_CS_CONFIG1);
+#ifdef CONFIG_OMAP3_PM
+	freq_config[0].freq = SUPPORTED_FREQ1;
+	freq_config[1].freq = SUPPORTED_FREQ2;
 
-		if ((ret & 0xC00) == 0x800) {
-			if (nandcs > GPMC_CS_NUM)
-				nandcs = cs;
-		}
-		cs++;
-	}
-	if (nandcs > GPMC_CS_NUM) {
-		printk(KERN_INFO "NAND: Unable to find configuration "
-				"in GPMC\n ");
-		return;
-	}
-	if (nandcs < GPMC_CS_NUM) {
-		ldp_nand_data.cs = nandcs;
-		ldp_nand_data.gpmc_cs_baseaddr = (void *)(gpmc_base_add +
+	/* smc9211 debug ether */
+	freq_config[0].gpmc_cfg[LDP_SMC911X_CS] = enet_gpmc_setting[0];
+	freq_config[1].gpmc_cfg[LDP_SMC911X_CS] = enet_gpmc_setting[1];
+#endif
+	/* pop nand part */
+	nandcs = LDP3430_NAND_CS;
+
+	ldp_nand_data.cs = nandcs;
+	ldp_nand_data.gpmc_cs_baseaddr = (void *)(gpmc_base_add +
 					GPMC_CS0_BASE + nandcs * GPMC_CS_SIZE);
-		ldp_nand_data.gpmc_baseaddr = (void *) (gpmc_base_add);
+	ldp_nand_data.gpmc_baseaddr = (void *) (gpmc_base_add);
 
-		if (platform_device_register(&ldp_nand_device) < 0)
-			printk(KERN_ERR "Unable to register NAND device\n");
-	}
+	if (platform_device_register(&ldp_nand_device) < 0)
+		printk(KERN_ERR "Unable to register NAND device\n");
+#ifdef CONFIG_OMAP3_PM
+	/*
+	 * Setting up gpmc_freq_cfg so tat gpmc module is aware of the
+	 * frequencies supported and the various config values for cs
+	 */
+	gpmc_freq_cfg.total_no_of_freq = NO_GPMC_FREQ_SUPPORTED;
+	gpmc_freq_cfg.freq_cfg = freq_config;
+#endif
 }
+

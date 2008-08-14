@@ -38,5 +38,5 @@ extern void ldp_flash_init(void);
 #define LDP_SMC911X_GPIO	152
 
 #define TWL4030_IRQNUM		INT_34XX_SYS_NIRQ
-
+#define LDP3430_NAND_CS               0
 #endif /* __ASM_ARCH_OMAP_LDP_H */
