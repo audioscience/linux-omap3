@@ -1111,6 +1111,8 @@ struct dvfs_config {
 	struct sdrc_config sdrc_cfg[no_sdrc_cs];
 };
 
+extern struct dvfs_config omap3_vdd2_config[PRCM_NO_VDD2_OPPS];
+
 extern int prcm_clock_control(u32 deviceid, u8 clk_type, u8 control,
 			      u8 checkaccessibility);
 extern int prcm_is_device_accessible(u32 deviceid, u8 *result);

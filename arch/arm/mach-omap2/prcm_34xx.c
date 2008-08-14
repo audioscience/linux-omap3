@@ -2419,6 +2419,23 @@ int prcm_do_frequency_scaling(u32 target_opp_id, u32 current_opp_id)
 		tar_m2 = (core_dpll_param[index][target_opp_no - 1].dpll_m2);
 		/* This function is executed from SRAM */
 		local_irq_save(flags);
+		local_fiq_disable();
+		if (target_opp_id == PRCM_VDD2_OPP3) {
+			gpmc_change_freq(166);
+			rfr_ctrl = omap3_vdd2_config[1].
+				sdrc_cfg[0].sdrc_rfr_ctrl;
+			actim_ctrla = omap3_vdd2_config[1].
+				sdrc_cfg[0].sdrc_actim_ctrla;
+			actim_ctrlb = omap3_vdd2_config[1].
+				sdrc_cfg[0].sdrc_actim_ctrlb;
+		} else if (target_opp_id == PRCM_VDD2_OPP2) {
+			rfr_ctrl = omap3_vdd2_config[0].
+				sdrc_cfg[0].sdrc_rfr_ctrl;
+			actim_ctrla = omap3_vdd2_config[0].
+				sdrc_cfg[0].sdrc_actim_ctrla;
+			actim_ctrlb = omap3_vdd2_config[0].
+				sdrc_cfg[0].sdrc_actim_ctrlb;
+		}
 		omap3_configure_core_dpll(rfr_ctrl, actim_ctrla,
 							actim_ctrlb, tar_m2);
 		local_irq_restore(flags);
