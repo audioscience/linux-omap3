@@ -69,6 +69,13 @@ static struct gpmc_context {
 	u32 prefetch_control;
 	struct gpmc_cs_config cs_context[GPMC_CS_NUM];
 } gpmc_ctx;
+
+/*
+ * Structure to store the gpmc config values for
+ * various cs at various supported frequency
+ * Should be populated by respective board file
+ */
+struct gpmc_difffreq_config gpmc_freq_cfg;
 #endif
 
 static struct resource	gpmc_mem_root;
@@ -443,7 +450,10 @@ void __init gpmc_init(void)
 	l &= 0x03 << 3;
 	l |= (0x02 << 3) | (1 << 0);
 	gpmc_write_reg(GPMC_SYSCONFIG, l);
-
+#ifdef CONFIG_OMAP3_PM
+	gpmc_freq_cfg.freq_cfg = NULL;
+	gpmc_freq_cfg.total_no_of_freq = 0;
+#endif
 	gpmc_mem_init();
 }
 
@@ -509,5 +519,53 @@ void gpmc_restore_context()
 		}
 	}
 }
-#endif /* CONFIG_OMAP3_PM */
 
+int gpmc_change_freq(int freq)
+{
+	int i, j;
+	if (gpmc_freq_cfg.freq_cfg == NULL) {
+		printk(KERN_WARNING "gpmc frequency table not updated\
+			in board file\n");
+		return -EINVAL;
+	}
+	for (i = 0; i < gpmc_freq_cfg.total_no_of_freq; i++)
+		if (gpmc_freq_cfg.freq_cfg[i].freq == freq)
+			break;
+
+	if (i == gpmc_freq_cfg.total_no_of_freq) {
+		printk(KERN_WARNING "the specified frequency %dMHz is not\
+				supported by gpmc\n", freq);
+		return -EINVAL;
+	}
+
+	for (j = 0; j < GPMC_CS_NUM; j++) {
+		if (gpmc_cs_read_reg(j, GPMC_CS_CONFIG7) & (1 << 6)) {
+			gpmc_cs_write_reg(j, GPMC_CS_CONFIG1,
+					gpmc_freq_cfg.freq_cfg[i].\
+					gpmc_cfg[j].gpmc_config1);
+
+			gpmc_cs_write_reg(j, GPMC_CS_CONFIG2,
+					gpmc_freq_cfg.freq_cfg[i].\
+					gpmc_cfg[j].gpmc_config2);
+
+			gpmc_cs_write_reg(j, GPMC_CS_CONFIG3,
+					gpmc_freq_cfg.freq_cfg[i].\
+					gpmc_cfg[j].gpmc_config3);
+
+			gpmc_cs_write_reg(j, GPMC_CS_CONFIG4,
+					gpmc_freq_cfg.freq_cfg[i].\
+					gpmc_cfg[j].gpmc_config4);
+
+			gpmc_cs_write_reg(j, GPMC_CS_CONFIG5,
+					gpmc_freq_cfg.freq_cfg[i].\
+					gpmc_cfg[j].gpmc_config5);
+
+			gpmc_cs_write_reg(j, GPMC_CS_CONFIG6,
+					gpmc_freq_cfg.freq_cfg[i].\
+					gpmc_cfg[j].gpmc_config6);
+		}
+	}
+
+	return 0;
+}
+#endif /* CONFIG_OMAP3_PM */
