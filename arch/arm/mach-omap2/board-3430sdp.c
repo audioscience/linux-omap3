@@ -102,6 +102,29 @@ static struct platform_device sdp3430_smc91x_device = {
 	.resource	= sdp3430_smc91x_resources,
 };
 
+#ifdef CONFIG_OMAP3_PM
+/*
+ * Board DDR timings used during frequency changes
+ */
+struct dvfs_config omap3_vdd2_config[PRCM_NO_VDD2_OPPS] = {
+#ifdef CONFIG_OMAP3_CORE_166MHZ
+	{
+	/* SDRC CS0/CS1 values 83MHZ*/
+	/* not optimized at 1/2 speed except for RFR */
+	{{0x00025801, 0x629db4c6, 0x00012214},   /* cs 0 */
+	 {0x00025801, 0x629db4c6, 0x00012214} }, /* cs 1*/
+	},
+
+	/* SDRC CS0/CS1 values 166MHZ*/
+	{
+	{{0x0004e201, 0x629db4c6, 0x00012214},
+	 {0x0004e201, 0x629db4c6, 0x00012214} },
+	},
+#endif
+};
+
+#endif /* CONFIG_OMAP3_PM */
+
 /* IrDA
  */
 #if defined(CONFIG_OMAP_IR) || defined(CONFIG_OMAP_IR_MODULE)

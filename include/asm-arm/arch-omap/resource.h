@@ -43,6 +43,8 @@ extern struct clk *p_vdd2_clk;
 
 extern unsigned int vdd1_opp_setting(u32 target_opp_no);
 extern unsigned int vdd2_opp_setting(u32 target_opp_no);
+extern unsigned int vdd1_arm_dsp_freq[5][4];
+extern unsigned int rnd_rate_vdd1[5];
 
 /* Flags to denote Pool usage */
 #define RES_UNUSED		0x0

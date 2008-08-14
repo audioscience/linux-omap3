@@ -175,8 +175,7 @@ unsigned int vdd1_opp_setting(u32 target_opp_no)
 		printk(KERN_ERR "Unable to get clk virt_vdd1_prcm_set\n");
 
 	if (scale_volt_then_freq) {
-		/* TODO
-		prcm_do_voltage_scaling(target_vdd1_opp, current_vdd1_opp);*/
+		prcm_do_voltage_scaling(target_vdd1_opp, current_vdd1_opp);
 		valid_rate = clk_round_rate(R(clk),
 			rnd_rate_vdd1[target_opp_no-1]);
 		R(clk)->set_rate(R(clk), valid_rate);
@@ -184,8 +183,7 @@ unsigned int vdd1_opp_setting(u32 target_opp_no)
 		valid_rate = clk_round_rate(R(clk),
 			rnd_rate_vdd1[target_opp_no-1]);
 		R(clk)->set_rate(R(clk), valid_rate);
-		/* TODO
-		prcm_do_voltage_scaling(target_vdd1_opp, current_vdd1_opp);*/
+		prcm_do_voltage_scaling(target_vdd1_opp, current_vdd1_opp);
 	}
 	return target_vdd1_opp;
 }
