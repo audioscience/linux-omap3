@@ -30,14 +30,20 @@
 #include <asm/assembler.h>
 #include <asm/arch/io.h>
 #include <asm/hardware.h>
+#include "ti-compat.h"
 
 #include "prcm-regs.h"
 
-#define CM_CLKSEL1_PLL_V	IO_ADDRESS(OMAP3430_CM_BASE + 0xD40)
-#define	CM_ICLKEN1_CORE_V	IO_ADDRESS(OMAP3430_CM_BASE + 0xA10)
-#define CM_IDLEST1_CORE_V	IO_ADDRESS(OMAP3430_CM_BASE + 0xA20)
+#define CM_CLKSEL1_PLL_V	IO_ADDRESS(CM_BASE + 0xD40)
+#define	CM_ICLKEN1_CORE_V	IO_ADDRESS(CM_BASE + 0xA10)
+#define CM_IDLEST1_CORE_V	IO_ADDRESS(CM_BASE + 0xA20)
 
 #define	SDRC_POWER_V		IO_ADDRESS(OMAP343X_SDRC_BASE + 0x070)
+#define SDRC_RFR_CTRL		IO_ADDRESS(OMAP343X_SDRC_BASE + 0x0A4)
+#define SDRC_ACTIM_CTRL_A	IO_ADDRESS(OMAP343X_SDRC_BASE + 0x09C)
+#define	SDRC_ACTIM_CTRL_B	IO_ADDRESS(OMAP343X_SDRC_BASE + 0x0A0)
+#define	SDRC_DLLA_STATUS	IO_ADDRESS(OMAP343X_SDRC_BASE + 0x064)
+#define	SDRC_DLLA_CTRL		IO_ADDRESS(OMAP343X_SDRC_BASE + 0x060)
 
 	.text
 
@@ -67,17 +73,47 @@ ENTRY(sram_set_prcm_sz)
  */
 ENTRY(sram_configure_core_dpll)
 	stmfd	sp!, {r1-r12, lr}	@ store regs to stack
+	cmp	r3, #0x2
+	it	ne
+	blne	configure_sdrc
+	cmp	r3, #0x2
+	it	ne
+	blne	lock_dll
+	cmp	r3, #0x1
+	it	ne
+	blne	unlock_dll
 	bl	sdram_in_selfrefresh	@ put the SDRAM in self refresh
 	bl 	configure_core_dpll
 	bl	enable_sdrc
+	cmp	r3, #0x1
+	it	ne
+	blne	wait_dll_unlock
+	cmp	r3, #0x2
+	it	ne
+	blne	wait_dll_lock
+	cmp	r3, #0x1
+	it	ne
+	blne	configure_sdrc
 	mov 	r0, #0 			@ return value
 	ldmfd	sp!, {r1-r12, pc}	@ restore regs and return
+unlock_dll:
+	ldr     r4, sdrc_dlla_ctrl
+	ldr     r5, [r4]
+	orr	r5, r5, #0x4
+	str	r5, [r4]
+	bx	lr
+lock_dll:
+	ldr     r4, sdrc_dlla_ctrl
+	ldr     r5, [r4]
+	bic	r5, r5, #0x4
+	str     r5, [r4]
+	bx      lr
 sdram_in_selfrefresh:
 	mov	r5, #0x0		@ Move 0 to R5
 	mcr	p15, 0, r5, c7, c10, 5  @ memory barrier
 	ldr 	r4, sdrc_power		@ read the SDRC_POWER register
 	ldr 	r5, [r4]		@ read the contents of SDRC_POWER
-	orr 	r5, r5, #0x48		@ enable self refresh on idle req
+	orr 	r5, r5, #0x40		@ enable self refresh on idle req
 	str 	r5, [r4]		@ write back to SDRC_POWER register
 	ldr	r4, cm_iclken1_core	@ read the CM_ICLKEN1_CORE reg
 	ldr	r5, [r4]
@@ -98,6 +134,9 @@ configure_core_dpll:
 	orr	r5, r5, r3, lsl #0x1B	@ r3 contains the M2 val
 	str	r5, [r4]
 	ldr 	r5, clk_stabilize_delay	@ wait for the clock to stabilise
+	cmp	r3, #2
+	bne	wait_clk_stable
+	bx	lr
 wait_clk_stable:
 	subs 	r5, r5, #1
 	bne	wait_clk_stable
@@ -125,10 +164,31 @@ wait_sdrc_idle1:
 	bne	wait_sdrc_idle1
 	ldr	r4, sdrc_power
 	ldr	r5, [r4]
-	bic 	r5, r5, #0x48
+	bic 	r5, r5, #0x40
 	str 	r5, [r4]
 	bx	lr
-
+wait_dll_lock:
+	ldr	r4, sdrc_dlla_status
+	ldr	r5, [r4]
+	and 	r5, r5, #0x4
+	cmp	r5, #0x4
+	bne	wait_dll_lock
+	bx	lr
+wait_dll_unlock:
+	ldr     r4, sdrc_dlla_status
+	ldr     r5, [r4]
+	and     r5, r5, #0x4
+	cmp     r5, #0x0
+	bne     wait_dll_unlock
+	bx      lr
+configure_sdrc:
+	ldr     r4, sdrc_rfr_ctrl
+	str     r0, [r4]
+	ldr 	r4, sdrc_actim_ctrla
+	str     r1, [r4]
+	ldr     r4, sdrc_actim_ctrlb
+	str     r2, [r4]
+	bx      lr
 sdrc_power:
 	.word SDRC_POWER_V
 cm_clksel1_pll:
@@ -137,10 +197,20 @@ cm_idlest1_core:
 	.word CM_IDLEST1_CORE_V
 cm_iclken1_core:
 	.word CM_ICLKEN1_CORE_V
+sdrc_rfr_ctrl:
+        .word SDRC_RFR_CTRL
+sdrc_actim_ctrla:
+	.word SDRC_ACTIM_CTRL_A
+sdrc_actim_ctrlb:
+	.word SDRC_ACTIM_CTRL_B
+sdrc_dlla_status:
+	.word SDRC_DLLA_STATUS
+sdrc_dlla_ctrl:
+	.word SDRC_DLLA_CTRL
 core_m2_mask_val:
 	.word 0xE7FFFFFF
 clk_stabilize_delay:
-	.word 0x000002FF
+	.word 0x000000C8
 
 ENTRY(sram_configure_core_dpll_sz)
 	.word	. - sram_configure_core_dpll
