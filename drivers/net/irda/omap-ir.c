@@ -71,6 +71,21 @@
 #include <mach/gpio.h>
 #include <mach/irda.h>
 
+#ifdef CONFIG_ARCH_OMAP34XX
+#include <asm/arch/resource.h>
+
+#define IrDA_LAT_CONST 1
+#endif /* #ifdef CONFIG_ARCH_OMAP34XX */
+
+#if defined(IrDA_LAT_CONST) && defined(CONFIG_OMAP3_PM)
+
+static struct constraint_handle *constr_handle;
+static struct constraint_id cnstr_id = {
+	.type = RES_LATENCY_CO,
+	.data = (void *)"latency",
+};
+#endif
+
 #define UART3_EFR_EN			(1 << 4)
 #define UART3_MCR_EN_TCR_TLR		(1 << 6)
 
@@ -111,6 +126,8 @@
 
 #define UART3_IIR_TX_STATUS		(1 << 5)
 #define UART3_IIR_EOF			(0x80)
+
+#define UART3_SYSC			(0x49020054)
 
 #define IS_FIR(omap_ir)		((omap_ir)->speed >= 4000000)
 
@@ -294,6 +311,9 @@ static int omap_irda_startup(struct net_device *dev)
 	uart_reg_out(UART3_RXFLL, 0x00);
 	uart_reg_out(UART3_RXFLH, 0x08);
 
+	/* Smartidle, Wakeup and AutoIdle */
+	uart_reg_out(UART3_SYSC, 0x15);
+
 	uart_reg_in(UART3_RESUME);
 
 	return 0;
@@ -322,6 +342,9 @@ static int omap_irda_shutdown(struct omap_irda *omap_ir)
 
 	local_irq_restore(flags);
 
+	/* ForceIdle, Wakeup and AutoIdle */
+	uart_reg_out(UART3_SYSC, 0x5);
+
 	return 0;
 }
 
@@ -332,11 +355,26 @@ omap_irda_irq(int irq, void *dev_id)
 	struct omap_irda *omap_ir = netdev_priv(dev);
 	struct sk_buff *skb;
 
-	u8 status;
+	u8 status, wk_status;
 	int w = 0;
 
 	/* Clear EOF interrupt */
 	status = uart_reg_in(UART3_IIR);
+	wk_status = uart_reg_in(UART3_SSR);
+
+	/*
+	 * Handle wake-up event here, IIR reg is not modified when
+	 * wake-up occurs, SSR reg must be checked to detect wake-up.
+	 * We don't re-enable this bit, to prevent wake-up interrupts
+	 * on wake-up events.
+	 */
+	if (wk_status & 0x2) {
+		u32 scr = uart_reg_in(UART3_SCR);
+		scr &= ~(0x10);
+		uart_reg_out(UART3_SCR, scr);
+
+		return IRQ_HANDLED;
+	}
 
 	if (status & UART3_IIR_TX_STATUS) {
 		u8 mdr2 = uart_reg_in(UART3_MDR2);
@@ -603,6 +641,11 @@ static int omap_irda_start(struct net_device *dev)
 	enable_irq(dev->irq);
 	netif_start_queue(dev);
 
+#if defined(IrDA_LAT_CONST) && defined(CONFIG_OMAP3_PM)
+	constr_handle = constraint_get("irda", &cnstr_id);
+	constraint_set(constr_handle, CO_LATENCY_MPUOFF_COREON);
+#endif
+
 	return 0;
 
 err_irlap:
@@ -657,6 +700,11 @@ static int omap_irda_stop(struct net_device *dev)
 	 * Free resources
 	 */
 	free_irq(dev->irq, dev);
+
+#if defined(IrDA_LAT_CONST) && defined(CONFIG_OMAP3_PM)
+	constraint_remove(constr_handle);
+	constraint_put(constr_handle);
+#endif
 
 	return 0;
 }
