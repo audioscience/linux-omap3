@@ -955,8 +955,6 @@ static int vidioc_default(struct file *file, void *fh, int cmd, void *arg)
 	struct omap34xxcam_videodev *vdev = ofh->vdev;
 	int rval;
 
-	mutex_lock(&vdev->mutex);
-
 	if (vdev->vdev_sensor_config.sensor_isp) {
 		rval = -EINVAL;
 	} else {
@@ -971,16 +969,20 @@ static int vidioc_default(struct file *file, void *fh, int cmd, void *arg)
 			if (data->update & SET_EXPOSURE) {
 				vc.id = V4L2_CID_EXPOSURE;
 				vc.value = data->shutter;
+				mutex_lock(&vdev->mutex);
 				rval = vidioc_int_s_ctrl(vdev->vdev_sensor,
 							 &vc);
+				mutex_unlock(&vdev->mutex);
 				if (rval)
 					goto out;
 			}
 			if (data->update & SET_ANALOG_GAIN) {
 				vc.id = V4L2_CID_GAIN;
 				vc.value = data->gain;
+				mutex_lock(&vdev->mutex);
 				rval = vidioc_int_s_ctrl(vdev->vdev_sensor,
 							 &vc);
+				mutex_unlock(&vdev->mutex);
 				if (rval)
 					goto out;
 			}
@@ -995,13 +997,17 @@ static int vidioc_default(struct file *file, void *fh, int cmd, void *arg)
 			if (data->update & LENS_DESIRED_POSITION) {
 				vc.id = V4L2_CID_FOCUS_ABSOLUTE;
 				vc.value = data->desired_lens_direction;
+				mutex_lock(&vdev->mutex);
 				rval = vidioc_int_s_ctrl(vdev->vdev_lens, &vc);
+				mutex_unlock(&vdev->mutex);
 				if (rval)
 					goto out;
 			}
 			if (data->update & REQUEST_STATISTICS) {
 				vc.id = V4L2_CID_FOCUS_ABSOLUTE;
+				mutex_lock(&vdev->mutex);
 				rval = vidioc_int_g_ctrl(vdev->vdev_lens, &vc);
+				mutex_unlock(&vdev->mutex);
 				if (rval)
 					goto out;
 				data->xtrastats.lens_position = vc.value;
