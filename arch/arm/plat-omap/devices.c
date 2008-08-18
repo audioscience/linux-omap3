@@ -479,7 +479,7 @@ static struct resource wdt_resources[] = {
 
 static struct platform_device omap_wdt_device = {
 	.name	   = "omap_wdt",
-	.id	     = -1,
+	.id	     = 2,
 	.num_resources	= ARRAY_SIZE(wdt_resources),
 	.resource	= wdt_resources,
 };
