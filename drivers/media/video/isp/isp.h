@@ -288,7 +288,7 @@ int isp_enum_fmt_cap(struct v4l2_fmtdesc *f);
 int isp_try_fmt_cap(struct v4l2_pix_format *pix_input,
 					struct v4l2_pix_format *pix_output);
 
-void isp_g_fmt_cap(struct v4l2_format *f);
+void isp_g_fmt_cap(struct v4l2_pix_format *pix);
 
 int isp_s_fmt_cap(struct v4l2_pix_format *pix_input,
 					struct v4l2_pix_format *pix_output);
