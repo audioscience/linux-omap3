@@ -41,7 +41,7 @@
 		u32 reserved;
 	} ;
 
-#define DMMPOOLSIZE      0x3000000
+#define DMMPOOLSIZE      0x4000000
 
 /*
  *  ======== DMM_GetHandle ========
