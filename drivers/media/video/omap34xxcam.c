@@ -1381,8 +1381,10 @@ static int omap34xxcam_device_register(struct v4l2_int_device *s)
 		 s->name, hwc.dev_type, vfd->minor);
 
 	isp_get();
+	isp_open();
 	rval = omap34xxcam_slave_power_set(vdev, V4L2_POWER_ON);
 	omap34xxcam_slave_power_set(vdev, V4L2_POWER_OFF);
+	isp_close();
 	isp_put();
 
 	if (rval)
@@ -1548,6 +1550,7 @@ static int omap34xxcam_probe(struct platform_device *pdev)
 	isp_sysconfig.reset = 0;
 	isp_sysconfig.idle_mode = 1;
 	isp_power_settings(isp_sysconfig);
+	isp_put();
 
 	for (i = 0; i < OMAP34XXCAM_VIDEODEVS; i++) {
 		struct omap34xxcam_videodev *vdev = &cam->vdevs[i];
@@ -1569,13 +1572,11 @@ static int omap34xxcam_probe(struct platform_device *pdev)
 	}
 
 	omap34xxcam = cam;
-	isp_put();
 
 	return 0;
 
 err:
 	omap34xxcam_remove(pdev);
-	isp_put();
 	return -ENODEV;
 }
 
@@ -1597,8 +1598,6 @@ static int omap34xxcam_remove(struct platform_device *pdev)
 		return 0;
 
 	omap34xxcam = NULL;
-
-	isp_put();
 
 	for (i = 0; i < OMAP34XXCAM_VIDEODEVS; i++) {
 		if (cam->vdevs[i].cam == NULL)
