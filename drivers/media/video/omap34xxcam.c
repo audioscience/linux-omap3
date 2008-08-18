@@ -605,7 +605,9 @@ static int vidioc_streamoff(struct file *file, void *fh, enum v4l2_buf_type i)
 
 	mutex_lock(&vdev->mutex);
 
-	isp_stop();
+	if (vdev->streaming == file)
+		isp_stop();
+
 	rval = videobuf_streamoff(q);
 	if (!rval)
 		vdev->streaming = NULL;
