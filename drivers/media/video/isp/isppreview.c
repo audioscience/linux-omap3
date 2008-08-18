@@ -425,6 +425,7 @@ err_copy_from_user:
 	printk(KERN_ERR "Preview Config: Copy From User Error");
 	return -EINVAL;
 }
+EXPORT_SYMBOL(omap34xx_isp_preview_config);
 
 /**
  * omap34xx_isp_tables_update - Abstraction layer Tables update.
@@ -1283,6 +1284,7 @@ void isppreview_query_contrast(u8 *contrast)
 	*contrast = (brt_cnt_val >> ISPPRV_CNT_BRT_CNT_SHIFT) & 0xFF;
 	DPRINTK_ISPPREV(" Current brt cnt value in hw is %x\n", brt_cnt_val);
 }
+EXPORT_SYMBOL(isppreview_query_contrast);
 
 /**
  * isppreview_update_contrast - Updates the contrast.
@@ -1294,6 +1296,7 @@ void isppreview_update_contrast(u8 *contrast)
 {
 	ispprev_obj.contrast = *contrast;
 }
+EXPORT_SYMBOL(isppreview_update_contrast);
 
 /**
  * isppreview_config_contrast - Configures the Contrast.
@@ -1334,6 +1337,7 @@ void isppreview_update_brightness(u8 *brightness)
 {
 	ispprev_obj.brightness = *brightness;
 }
+EXPORT_SYMBOL(isppreview_update_brightness);
 
 /**
  * isppreview_config_brightness - Configures the brightness.
@@ -1360,6 +1364,7 @@ void isppreview_query_brightness(u8 *brightness)
 
 	*brightness = omap_readl(ISPPRV_CNT_BRT);
 }
+EXPORT_SYMBOL(isppreview_query_brightness);
 
 /**
  * isppreview_get_brightness_range - Gets the range brightness value
@@ -1781,7 +1786,7 @@ EXPORT_SYMBOL(isppreview_print_status);
 /**
  * isp_preview_init - Module Initialization.
  **/
-static int __init isp_preview_init(void)
+int __init isp_preview_init(void)
 {
 	int i = 0;
 
@@ -1852,15 +1857,8 @@ static int __init isp_preview_init(void)
 /**
  * isp_preview_cleanup - Module Cleanup.
  **/
-static void isp_preview_cleanup(void)
+void __exit isp_preview_cleanup(void)
 {
 	kfree(prev_config_params);
 	prev_config_params = NULL;
 }
-
-module_init(isp_preview_init);
-module_exit(isp_preview_cleanup);
-
-MODULE_AUTHOR("Texas Instruments");
-MODULE_DESCRIPTION("ISP Preview Library");
-MODULE_LICENSE("GPL");

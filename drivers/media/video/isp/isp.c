@@ -280,6 +280,7 @@ void isp_open(void)
 	ispresizer_request();
 	return;
 }
+EXPORT_SYMBOL(isp_open);
 
 /**
  * isp_close - Free ISP submodules
@@ -291,6 +292,7 @@ void isp_close(void)
 	ispresizer_free();
 	return;
 }
+EXPORT_SYMBOL(isp_close);
 
 /* Flag to check first time of isp_get */
 static int off_mode;
@@ -1097,6 +1099,7 @@ void isp_start(void)
 
 	return;
 }
+EXPORT_SYMBOL(isp_start);
 
 /**
  * isp_stop - Stops isp submodules
@@ -1356,6 +1359,7 @@ void isp_sgdma_init()
 		ispsg.sg_state[sg].arg = NULL;
 	}
 }
+EXPORT_SYMBOL(isp_stop);
 
 /**
  * isp_sgdma_process - Sets operations and config for specified SG DMA
@@ -1460,6 +1464,7 @@ int isp_sgdma_queue(struct videobuf_dmabuf *vdma, struct videobuf_buffer *vb,
 
 	return 0;
 }
+EXPORT_SYMBOL(isp_sgdma_queue);
 
 /**
  * isp_vbq_prepare - Videobuffer queue prepare.
@@ -1489,6 +1494,7 @@ int isp_vbq_prepare(struct videobuf_queue *vbq, struct videobuf_buffer *vb,
 
 	return err;
 }
+EXPORT_SYMBOL(isp_vbq_prepare);
 
 /**
  * isp_vbq_release - Videobuffer queue release.
@@ -1501,6 +1507,7 @@ void isp_vbq_release(struct videobuf_queue *vbq, struct videobuf_buffer *vb)
 	ispsg.isp_addr_capture[vb->i] = (dma_addr_t) NULL;
 	return;
 }
+EXPORT_SYMBOL(isp_vbq_release);
 
 /**
  * isp_queryctrl - Query V4L2 control from existing controls in ISP.
@@ -1522,6 +1529,7 @@ int isp_queryctrl(struct v4l2_queryctrl *a)
 	*a = video_control[i].qc;
 	return 0;
 }
+EXPORT_SYMBOL(isp_queryctrl);
 
 /**
  * isp_g_ctrl - Gets value of the desired V4L2 control.
@@ -1554,6 +1562,7 @@ int isp_g_ctrl(struct v4l2_control *a)
 
 	return rval;
 }
+EXPORT_SYMBOL(isp_g_ctrl);
 
 /**
  * isp_s_ctrl - Sets value of the desired V4L2 control.
@@ -1595,6 +1604,7 @@ int isp_s_ctrl(struct v4l2_control *a)
 
 	return rval;
 }
+EXPORT_SYMBOL(isp_s_ctrl);
 
 /**
  * isp_handle_private - Handle all private ioctls for isp module.
@@ -1659,6 +1669,7 @@ int isp_handle_private(int cmd, void *arg)
 	}
 	return rval;
 }
+EXPORT_SYMBOL(isp_handle_private);
 
 /**
  * isp_enum_fmt_cap - Gets more information of chosen format index and type
@@ -1706,6 +1717,7 @@ void isp_g_fmt_cap(struct v4l2_pix_format *pix)
 	*pix = ispmodule_obj.pix;
 	return;
 }
+EXPORT_SYMBOL(isp_g_fmt_cap);
 
 /**
  * isp_s_fmt_cap - Sets I/O formats and crop and configures pipeline in ISP
@@ -1779,6 +1791,7 @@ void isp_config_crop(struct v4l2_pix_format *croppix)
 
 	return;
 }
+EXPORT_SYMBOL(isp_config_crop);
 
 /**
  * isp_g_crop - Gets crop rectangle size and position.
@@ -1793,6 +1806,7 @@ int isp_g_crop(struct v4l2_crop *a)
 	crop->c = ispcroprect;
 	return 0;
 }
+EXPORT_SYMBOL(isp_g_crop);
 
 /**
  * isp_s_crop - Sets crop rectangle size and position and queues crop operation
@@ -1827,6 +1841,7 @@ int isp_s_crop(struct v4l2_crop *a, struct v4l2_pix_format *pix)
 out:
 	return rval;
 }
+EXPORT_SYMBOL(isp_s_crop);
 
 /**
  * isp_try_fmt_cap - Tries desired input/output image formats
@@ -1959,6 +1974,8 @@ int isp_try_fmt(struct v4l2_pix_format *pix_input,
 
 	return 0;
 }
+EXPORT_SYMBOL(isp_try_fmt);
+
 /**
  * isp_save_ctx - Saves ISP, CCDC, HIST, H3A, PREV, RESZ & MMU context.
  *
@@ -2105,6 +2122,14 @@ void isp_restore_context(struct isp_reg *reg_list)
 }
 EXPORT_SYMBOL(isp_restore_context);
 
+int __init isp_ccdc_init(void);
+int __init isp_hist_init(void);
+int __init isph3a_aewb_init(void);
+int __init ispmmu_init(void);
+int __init isp_preview_init(void);
+int __init isp_resizer_init(void);
+int __init isp_af_init(void);
+
 /**
  * isp_init - ISP module initialization.
  **/
@@ -2115,23 +2140,48 @@ static int __init isp_init(void)
 
 	mutex_init(&(isp_obj.isp_mutex));
 	spin_lock_init(&isp_obj.isp_temp_buf_lock);
+	spin_lock_init(&isp_obj.lock);
 
 	if (request_irq(INT_34XX_CAM_IRQ, omap34xx_isp_isr, IRQF_SHARED,
 				"Omap 34xx Camera ISP", &ispirq_obj)) {
 		DPRINTK_ISPCTRL("Could not install ISR\n");
 		return -EINVAL;
-	} else {
-		spin_lock_init(&isp_obj.lock);
-		DPRINTK_ISPCTRL("-isp_init for Omap 3430 Camera ISP\n");
-		return 0;
 	}
+
+	isp_ccdc_init();
+	isp_hist_init();
+	isph3a_aewb_init();
+	ispmmu_init();
+	isp_preview_init();
+	isp_resizer_init();
+	isp_af_init();
+
+	DPRINTK_ISPCTRL("-isp_init for Omap 3430 Camera ISP\n");
+	return 0;
 }
+EXPORT_SYMBOL(isp_sgdma_init);
+
+void __exit isp_ccdc_cleanup(void);
+void __exit isp_hist_cleanup(void);
+void __exit isph3a_aewb_cleanup(void);
+void __exit ispmmu_cleanup(void);
+void __exit isp_preview_cleanup(void);
+void __exit isp_hist_cleanup(void);
+void __exit isp_resizer_cleanup(void);
+void __exit isp_af_exit(void);
 
 /**
  * isp_cleanup - ISP module cleanup.
  **/
 static void __exit isp_cleanup(void)
 {
+	isp_af_exit();
+	isp_resizer_cleanup();
+	isp_preview_cleanup();
+	ispmmu_cleanup();
+	isph3a_aewb_cleanup();
+	isp_hist_cleanup();
+	isp_ccdc_cleanup();
 	free_irq(INT_34XX_CAM_IRQ, &ispirq_obj);
 }
 

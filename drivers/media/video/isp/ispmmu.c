@@ -554,7 +554,7 @@ static void ispmmu_isr(unsigned long status, isp_vbq_callback_ptr arg1,
  * when no memory for TTB, or init_l2_page_cache return value if L2 page cache
  * init fails.
  **/
-static int __init ispmmu_init(void)
+int __init ispmmu_init(void)
 {
 	int i, val = 0;
 	struct isp_sysc isp_sysconfig;
@@ -653,7 +653,7 @@ static int __init ispmmu_init(void)
 /**
  * ispmmu_cleanup - Frees the L1, L2 Page tables. Unsets the callback for MMU.
  **/
-static void ispmmu_cleanup(void)
+void __exit ispmmu_cleanup(void)
 {
 	ttb = page_address(ttb_page);
 	ttb_p = __pa(ttb);
@@ -725,10 +725,3 @@ void ispmmu_print_status(void)
 						omap_readl(ISPMMU_READ_RAM));
 }
 EXPORT_SYMBOL_GPL(ispmmu_print_status);
-
-MODULE_AUTHOR("Texas Instruments.");
-MODULE_DESCRIPTION("OMAP3430 ISP MMU Driver");
-MODULE_LICENSE("GPL");
-
-module_init(ispmmu_init);
-module_exit(ispmmu_cleanup);

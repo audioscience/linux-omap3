@@ -300,6 +300,7 @@ copy_from_user_err:
 	printk(KERN_ERR "CCDC Config:Copy From User Error");
 	return -EINVAL ;
 }
+EXPORT_SYMBOL(omap34xx_isp_ccdc_config);
 
 /**
  * ispccdc_request - Reserves the CCDC module.
@@ -1334,6 +1335,7 @@ int ispccdc_busy(void)
 {
 	return (omap_readl(ISPCCDC_PCR) & ISPCCDC_PCR_BUSY);
 }
+EXPORT_SYMBOL(ispccdc_busy);
 
 /**
  * ispccdc_save_context - Saves the values of the CCDC module registers
@@ -1445,7 +1447,7 @@ EXPORT_SYMBOL(ispccdc_print_status);
  *
  * Always returns 0
  **/
-static int __init isp_ccdc_init(void)
+int __init isp_ccdc_init(void)
 {
 	ispccdc_obj.ccdc_inuse = 0;
 	ispccdc_config_crop(0, 0, 0, 0);
@@ -1468,7 +1470,7 @@ static int __init isp_ccdc_init(void)
 /**
  * isp_ccdc_cleanup - CCDC module cleanup.
  **/
-static void isp_ccdc_cleanup(void)
+void isp_ccdc_cleanup(void)
 {
 	if (is_isplsc_activated()) {
 		if (lsc_initialized) {
@@ -1483,10 +1485,3 @@ static void isp_ccdc_cleanup(void)
 		kfree(fpc_table_add);
 	}
 }
-
-module_init(isp_ccdc_init);
-module_exit(isp_ccdc_cleanup);
-
-MODULE_AUTHOR("Texas Instruments");
-MODULE_DESCRIPTION("ISP CCDC Library");
-MODULE_LICENSE("GPL");

@@ -328,7 +328,7 @@ static int isp_af_mmap_buffers(struct isp_af_buffer *buffer)
 	vma.vm_flags = calc_vm_prot_bits(prot) | calc_vm_flag_bits(flags);
 	vma.vm_pgoff = pgoff;
 	vma.vm_file = NULL;
-	vma.vm_page_prot = protection_map[vma.vm_flags];
+	vma.vm_page_prot = vm_get_page_prot(vma.vm_flags);
 
 	while (size > 0) {
 		if (vm_insert_page(&vma, addr, vmalloc_to_page(pos)))
@@ -810,10 +810,3 @@ void __exit isp_af_exit(void)
 	af_major = -1;
 	isp_af_enable(0);
 }
-
-module_init(isp_af_init)
-module_exit(isp_af_exit)
-
-MODULE_AUTHOR("Texas Instruments");
-MODULE_DESCRIPTION("AF ISP Module");
-MODULE_LICENSE("GPL");
