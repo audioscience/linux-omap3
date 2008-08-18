@@ -53,7 +53,7 @@ static char *GT_1format = "%s - %d: ";
 static char *GT_2format = "%s - %d(%d): ";
 #endif /* CONFIG_BRIDGE_DEBUG */
 
-unsigned char *GT_tMask[GT_BOUND];
+static unsigned char *GT_tMask[GT_BOUND];
 
 static bool curInit = false;
 static char *separator;
