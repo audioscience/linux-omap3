@@ -861,39 +861,6 @@ DSP_STATUS DRV_ProcUpdateSTRMRes(u32 uNumBufs, HANDLE hSTRMRes, HANDLE hPCtxt)
 	(*STRMRes)->uNumBufs = uNumBufs;
 	return status;
 }
-
-/* Actual DSPHEAP De-Allocation */
-DSP_STATUS DRV_ProcFreeDSPHEAPRes(HANDLE hPCtxt)
-{
-	struct PROCESS_CONTEXT *pCtxt = (struct PROCESS_CONTEXT *)hPCtxt;
-	DSP_STATUS status = DSP_SOK;
-	struct DSPHEAP_RES_OBJECT *pDSPHEAPList = NULL;
-	struct DSPHEAP_RES_OBJECT *pDSPHEAPRes = NULL;
-
-	DBC_Assert(hPCtxt != NULL);
-	pDSPHEAPList = pCtxt->pDSPHEAPList;
-	while (pDSPHEAPList != NULL) {
-		pDSPHEAPRes = pDSPHEAPList;
-		pDSPHEAPList = pDSPHEAPList->next;
-		if (pDSPHEAPRes->heapAllocated) {
-			GT_1trace(curTrace, GT_5CLASS,
-				"DRV_ProcFreeDSPHEAPRes:Unmapping "
-				"pDSPHEAPRes->ulDSPAddr:%x \n",
-				pDSPHEAPRes->ulDSPAddr);
-			status = PROC_UnMap(pDSPHEAPRes->hProcessor,
-				(void *) pDSPHEAPRes->ulDSPAddr);
-			GT_1trace(curTrace, GT_5CLASS,
-				"DRV_ProcFreeDSPHEAPRes:UnReserving"
-				" memory:pDSPHEAPRes->ulDSPResAddr: %x \n",
-				pDSPHEAPRes->ulDSPResAddr);
-			status = PROC_UnReserveMemory(pDSPHEAPRes->hProcessor,
-				(void *)pDSPHEAPRes->ulDSPResAddr);
-			pDSPHEAPRes->heapAllocated = 0;
-		}
-	}
-	return status;
-}
-
 /* Displaying the resources allocated by a process */
 DSP_STATUS DRV_ProcDisplayResInfo(u8 *pBuf1, u32 *pSize)
 {

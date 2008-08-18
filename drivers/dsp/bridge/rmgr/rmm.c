@@ -69,8 +69,6 @@
 
 #define RMM_TARGSIGNATURE   0x544d4d52	/* "TMMR" */
 
-#define MAX(x, y) ((x) > (y) ? (x) : (y))
-
 /*
  *  ======== RMM_Header ========
  *  This header is used to maintain a list of free memory blocks.
@@ -456,7 +454,7 @@ bool RMM_stat(struct RMM_TargetObj *target, enum DSP_MEMTYPE segid,
 
 		/* Collect data from freeList */
 		while (head != NULL) {
-			maxFreeSize = MAX(maxFreeSize, head->size);
+			maxFreeSize = max(maxFreeSize, head->size);
 			totalFreeSize += head->size;
 			freeBlocks++;
 			head = head->next;

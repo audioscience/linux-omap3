@@ -72,8 +72,6 @@
 #define EXECUTEPHASE 2
 #define NONE 3		/* For overlay section with phase not specified */
 
-#define MIN(a, b)	    ((a) < (b) ? (a) : (b))
-
 /* Default load buffer size */
 #define LOADBUFSIZE     0x800
 
@@ -1056,7 +1054,7 @@ static DSP_STATUS loadSect(struct DBL_TargetObj *dbl,
 		addr = sectHdr.addr;
 		space = sectHdr.page;
 		for (total = sectHdr.size; total > 0; total -= nWords) {
-			nWords = MIN(total, bufSize);
+			nWords = min(total, bufSize);
 			nBytes = nWords * mauSize;
 			/* Read section data */
 			if ((*dbl->dblAttrs.fread)(pBuf, nBytes, 1,

@@ -168,8 +168,6 @@
 
 #define EXTEND      "_EXT_END"
 
-#define Min(x, y)       ((x < y) ? x : y)
-
 #define SwapWord(x)     (x)
 #define ulPageAlignSize 0x10000   /* Page Align Size */
 
@@ -1219,7 +1217,7 @@ static void InputChnl(struct IO_MGR *pIOMgr, struct CHNL_OBJECT *pChnl,
 				DBC_Assert(pChnl->cIOReqs >= 0);
 				/* Ensure we don't overflow the client's
 				 * buffer: */
-				uBytes = Min(uBytes, pChirp->cBytes);
+				uBytes = min(uBytes, pChirp->cBytes);
 				/* Transfer buffer from DSP side: */
 				uBytes = ReadData(pIOMgr->hWmdContext,
 						pChirp->pHostSysBuf,
@@ -1461,7 +1459,7 @@ static void OutputChnl(struct IO_MGR *pIOMgr, struct CHNL_OBJECT *pChnl,
 
 	/* Transfer buffer to DSP side: */
 	pChirp->cBytes = WriteData(pIOMgr->hWmdContext, pIOMgr->pOutput,
-			pChirp->pHostSysBuf, Min(pIOMgr->uSMBufSize, pChirp->
+			pChirp->pHostSysBuf, min(pIOMgr->uSMBufSize, pChirp->
 			cBytes));
 	pChnl->cBytesMoved += pChirp->cBytes;
 	/* Write all 32 bits of arg */
