@@ -148,7 +148,6 @@ static int omap34xxcam_vbq_setup(struct videobuf_queue *vbq, unsigned int *cnt,
 				 unsigned int *size)
 {
 	struct omap34xxcam_fh *fh = vbq->priv_data;
-	struct v4l2_format format;
 
 	if (*cnt <= 0)
 		*cnt = VIDEO_MAX_FRAME;	/* supply a default number of buffers */
@@ -156,8 +155,7 @@ static int omap34xxcam_vbq_setup(struct videobuf_queue *vbq, unsigned int *cnt,
 	if (*cnt > VIDEO_MAX_FRAME)
 		*cnt = VIDEO_MAX_FRAME;
 
-	isp_g_fmt_cap(&format.fmt.pix);
-	*size = format.fmt.pix.sizeimage;
+	*size = fh->pix.sizeimage;
 
 	/* accessing fh->cam->capture_mem is ok, it's constant */
 	while (*size * *cnt > fh->vdev->capture_mem)
@@ -200,12 +198,11 @@ static int omap34xxcam_vbq_prepare(struct videobuf_queue *vbq,
 				   struct videobuf_buffer *vb,
 				   enum v4l2_field field)
 {
-	struct v4l2_format format;
+	struct omap34xxcam_fh *fh = vbq->priv_data;
 	unsigned int size;
 	int err = 0;
 
-	isp_g_fmt_cap(&format.fmt.pix);
-	size = format.fmt.pix.sizeimage;
+	size = fh->pix.sizeimage;
 	/*
 	 * Accessing pix here is okay since it's constant while
 	 * streaming is on (and we only get called then).
@@ -244,8 +241,8 @@ static int omap34xxcam_vbq_prepare(struct videobuf_queue *vbq,
 	if (err)
 		return err;
 
-	vb->width = format.fmt.pix.width;
-	vb->height = format.fmt.pix.height;
+	vb->width = fh->pix.width;
+	vb->height = fh->pix.height;
 	vb->field = field;
 
 	if (vb->state == VIDEOBUF_NEEDS_INIT) {
