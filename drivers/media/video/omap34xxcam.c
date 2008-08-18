@@ -156,7 +156,7 @@ static int omap34xxcam_vbq_setup(struct videobuf_queue *vbq, unsigned int *cnt,
 	if (*cnt > VIDEO_MAX_FRAME)
 		*cnt = VIDEO_MAX_FRAME;
 
-	isp_g_fmt_cap(&format);
+	isp_g_fmt_cap(&format.fmt.pix);
 	*size = format.fmt.pix.sizeimage;
 
 	/* accessing fh->cam->capture_mem is ok, it's constant */
@@ -204,7 +204,7 @@ static int omap34xxcam_vbq_prepare(struct videobuf_queue *vbq,
 	unsigned int size;
 	int err = 0;
 
-	isp_g_fmt_cap(&format);
+	isp_g_fmt_cap(&format.fmt.pix);
 	size = format.fmt.pix.sizeimage;
 	/*
 	 * Accessing pix here is okay since it's constant while
@@ -409,6 +409,8 @@ static int vidioc_s_fmt_cap(struct file *file, void *fh, struct v4l2_format *f)
 
 	/* Negotiate with OMAP3 ISP */
 	rval = isp_s_fmt_cap(pix, &pix_tmp);
+	if (!rval)
+		isp_g_fmt_cap(&pix_tmp);
 out:
 	if (!rval)
 		ofh->pix = pix_tmp;
@@ -1147,7 +1149,7 @@ static int omap34xxcam_open(struct inode *inode, struct file *file)
 	if (vdev->vdev_sensor_config.sensor_isp)
 		vidioc_int_g_fmt_cap(vdev->vdev_sensor, &format);
 	else
-		isp_g_fmt_cap(&format);
+		isp_g_fmt_cap(&format.fmt.pix);
 
 	mutex_unlock(&vdev->mutex);
 	/* FIXME: how about fh->pix when there are more users? */

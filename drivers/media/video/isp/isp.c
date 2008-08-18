@@ -1695,9 +1695,9 @@ EXPORT_SYMBOL(isp_enum_fmt_cap);
  * isp_g_fmt_cap - Gets current output image format.
  * @f: Pointer to V4L2 format structure to be filled with current output format
  **/
-void isp_g_fmt_cap(struct v4l2_format *f)
+void isp_g_fmt_cap(struct v4l2_pix_format *pix)
 {
-	f->fmt.pix = ispmodule_obj.pix;
+	*pix = ispmodule_obj.pix;
 	return;
 }
 
@@ -1929,7 +1929,8 @@ int isp_try_fmt(struct v4l2_pix_format *pix_input,
 	pix_output->pixelformat = isp_formats[ifmt].pixelformat;
 	pix_output->field = V4L2_FIELD_NONE;
 	pix_output->bytesperline = pix_output->width * ISP_BYTES_PER_PIXEL;
-	pix_output->sizeimage = pix_output->bytesperline * pix_output->height;
+	pix_output->sizeimage =
+		PAGE_ALIGN(pix_output->bytesperline * pix_output->height);
 	pix_output->priv = 0;
 	switch (pix_output->pixelformat) {
 	case V4L2_PIX_FMT_YUYV:
