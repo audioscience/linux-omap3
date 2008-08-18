@@ -1168,6 +1168,7 @@ out_slave_power_set_standby:
 	omap34xxcam_slave_power_set(vdev, V4L2_POWER_OFF);
 	isp_close();
 	isp_put();
+	atomic_dec(&vdev->users);
 	mutex_unlock(&vdev->mutex);
 
 out_try_module_get:
