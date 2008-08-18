@@ -125,9 +125,9 @@ static struct vcontrol {
  * CBK_LSC_ISR).
  */
 static struct ispirq {
-	isp_callback_t isp_callbk[10];
-	isp_vbq_callback_ptr isp_callbk_arg1[10];
-	void *isp_callbk_arg2[10];
+	isp_callback_t isp_callbk[CBK_END];
+	isp_vbq_callback_ptr isp_callbk_arg1[CBK_END];
+	void *isp_callbk_arg2[CBK_END];
 } ispirq_obj;
 
 /**
@@ -929,6 +929,12 @@ static irqreturn_t omap34xx_isp_isr(int irq, void *ispirq_disp)
 	irqstatus = omap_readl(ISP_IRQ0STATUS);
 
 	spin_lock_irqsave(&isp_obj.lock, irqflags);
+
+	if (irqdis->isp_callbk[CBK_CATCHALL])
+		irqdis->isp_callbk[CBK_CATCHALL](
+			irqstatus,
+			irqdis->isp_callbk_arg1[CBK_CATCHALL],
+			irqdis->isp_callbk_arg2[CBK_CATCHALL]);
 
 	if ((irqstatus & MMU_ERR) == MMU_ERR) {
 		if (irqdis->isp_callbk[CBK_MMU_ERR])
