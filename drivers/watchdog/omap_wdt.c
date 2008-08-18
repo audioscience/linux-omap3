@@ -49,6 +49,31 @@
 
 #include "omap_wdt.h"
 
+#ifdef CONFIG_OMAP3_PM
+/* WD_SYSCONFIG is SYSCONFIG here, to be consistent with other drivers */
+/* SYSCONFIG bit settings */
+#define OMAP_WDT_SYSCONFIG_CLKACT_IOFF_FOFF	0x0
+#define OMAP_WDT_SYSCONFIG_CLKACT_ION_FOFF	0x1
+#define OMAP_WDT_SYSCONFIG_CLKACT_IOFF_FON	0x2
+#define OMAP_WDT_SYSCONFIG_CLKACT_ION_FON	0x3
+
+#define OMAP_WDT_SYSCONFIG_IDLEMODE_FORCEIDLE	0x0
+#define OMAP_WDT_SYSCONFIG_IDLEMODE_NOIDLE	0x1
+#define OMAP_WDT_SYSCONFIG_IDLEMODE_SMARTIDLE	0x2
+
+#define OMAP_WDT_SYSCONFIG_ENAWAKEUP		0x1
+
+#define OMAP_WDT_SYSCONFIG_AUTOIDLE		0x1
+
+/* SYSCONFIG bit masks */
+#define OMAP_WDT_SYSCONFIG_CLKACT_SHIFT		0x8
+#define OMAP_WDT_SYSCONFIG_IDLEMODE_SHIFT	0x3
+#define OMAP_WDT_SYSCONFIG_ENAWAKEUP_SHIFT	0x2
+
+#define OMAP_WDT_SYSCONFIG_LVL1			0x1
+#define OMAP_WDT_SYSCONFIG_LVL2			0x2
+#endif /* #ifdef CONFIG_OMAP3_PM */
+
 static struct platform_device *omap_wdt_dev;
 
 static unsigned timer_margin;
@@ -66,6 +91,44 @@ struct omap_wdt_dev {
 	struct resource *mem;
 	struct miscdevice omap_wdt_miscdev;
 };
+
+#ifdef CONFIG_OMAP3_PM
+static void omap_wdt_sysconfig(struct omap_wdt_dev *wdev, int level)
+{
+	u32 sysconfig_val;
+
+	switch (level) {
+	case OMAP_WDT_SYSCONFIG_LVL1:
+		sysconfig_val = (
+			(OMAP_WDT_SYSCONFIG_CLKACT_IOFF_FON <<
+			OMAP_WDT_SYSCONFIG_CLKACT_SHIFT) |
+			(OMAP_WDT_SYSCONFIG_IDLEMODE_SMARTIDLE <<
+			OMAP_WDT_SYSCONFIG_IDLEMODE_SHIFT) |
+			(OMAP_WDT_SYSCONFIG_ENAWAKEUP <<
+			OMAP_WDT_SYSCONFIG_ENAWAKEUP_SHIFT) |
+			OMAP_WDT_SYSCONFIG_AUTOIDLE
+		);
+		omap_writel(sysconfig_val,
+				(wdev->base + OMAP_WATCHDOG_SYS_CONFIG));
+		break;
+
+	case OMAP_WDT_SYSCONFIG_LVL2:
+		sysconfig_val = (
+			(OMAP_WDT_SYSCONFIG_CLKACT_IOFF_FOFF <<
+			OMAP_WDT_SYSCONFIG_CLKACT_SHIFT) |
+			(OMAP_WDT_SYSCONFIG_IDLEMODE_SMARTIDLE <<
+			OMAP_WDT_SYSCONFIG_IDLEMODE_SHIFT) |
+			(OMAP_WDT_SYSCONFIG_ENAWAKEUP <<
+			OMAP_WDT_SYSCONFIG_ENAWAKEUP_SHIFT) |
+			OMAP_WDT_SYSCONFIG_AUTOIDLE
+		);
+		omap_writel(sysconfig_val,
+				(wdev->base + OMAP_WATCHDOG_SYS_CONFIG));
+		break;
+	}
+	return;
+}
+#endif /* #ifdef CONFIG_OMAP3_PM */
 
 static void omap_wdt_ping(struct omap_wdt_dev *wdev)
 {
@@ -151,6 +214,11 @@ static int omap_wdt_open(struct inode *inode, struct file *file)
 		clk_enable(wdev->mpu_wdt_fck);    /* Enable the functional clock */
 	}
 
+#if defined(CONFIG_OMAP3_PM)
+	if (cpu_is_omap34xx())
+		omap_wdt_sysconfig(wdev, OMAP_WDT_SYSCONFIG_LVL1);
+#endif /* #if defined(CONFIG_OMAP3_PM) */
+
 	/* initialize prescaler */
 	while (omap_readl(base + OMAP_WATCHDOG_WPS) & 0x01)
 		cpu_relax();
@@ -183,6 +251,11 @@ static int omap_wdt_release(struct inode *inode, struct file *file)
 		clk_disable(wdev->mpu_wdt_ick);	/* Disable the clock */
 		clk_disable(wdev->mpu_wdt_fck);	/* Disable the clock */
 	}
+#if defined(CONFIG_OMAP3_PM)
+	if (cpu_is_omap34xx())
+		omap_wdt_sysconfig(wdev, OMAP_WDT_SYSCONFIG_LVL2);
+#endif /* #if defined(CONFIG_OMAP3_PM) */
+
 #else
 	printk(KERN_CRIT "omap_wdt: Unexpected close, not stopping!\n");
 #endif
@@ -311,6 +384,20 @@ static int __init omap_wdt_probe(struct platform_device *pdev)
 	}
 
 	if (cpu_is_omap34xx()) {
+#ifdef CONFIG_OMAP3_PM
+		wdev->mpu_wdt_ick = clk_get(&pdev->dev, "wdt_ick");
+		if (IS_ERR(wdev->mpu_wdt_ick)) {
+			ret = PTR_ERR(wdev->mpu_wdt_ick);
+			wdev->mpu_wdt_ick = NULL;
+			goto fail;
+		}
+		wdev->mpu_wdt_fck = clk_get(&pdev->dev, "wdt_fck");
+		if (IS_ERR(wdev->mpu_wdt_fck)) {
+			ret = PTR_ERR(wdev->mpu_wdt_fck);
+			wdev->mpu_wdt_fck = NULL;
+			goto fail;
+		}
+#else
 		wdev->mpu_wdt_ick = clk_get(&pdev->dev, "wdt2_ick");
 		if (IS_ERR(wdev->mpu_wdt_ick)) {
 			ret = PTR_ERR(wdev->mpu_wdt_ick);
@@ -323,7 +410,9 @@ static int __init omap_wdt_probe(struct platform_device *pdev)
 			wdev->mpu_wdt_fck = NULL;
 			goto fail;
 		}
+#endif
 	}
+
 	wdev->base = (void __iomem *) (mem->start);
 	platform_set_drvdata(pdev, wdev);
 
@@ -343,8 +432,26 @@ static int __init omap_wdt_probe(struct platform_device *pdev)
 		omap_readl(wdev->base + OMAP_WATCHDOG_REV) & 0xFF,
 		timer_margin);
 
+#if defined(CONFIG_OMAP3_PM)
+	/* Enable clocks for SYSCONFIG setting */
+	if (clk_enable(wdev->mpu_wdt_ick) != 0)
+		goto fail;
+	if (clk_enable(wdev->mpu_wdt_fck) != 0) {
+		clk_disable(wdev->mpu_wdt_ick);
+		goto fail;
+	}
+
+	/* SYSCONFIG setting */
+	omap_wdt_sysconfig(wdev, OMAP_WDT_SYSCONFIG_LVL2);
+#else /* #if defined(CONFIG_OMAP3_PM) */
 	/* autogate OCP interface clock */
 	omap_writel(0x01, wdev->base + OMAP_WATCHDOG_SYS_CONFIG);
+#endif
+
+#if defined(CONFIG_OMAP3_PM)
+	clk_disable(wdev->mpu_wdt_ick); /* Disable the interface clock */
+	clk_disable(wdev->mpu_wdt_fck); /* Disable the functional clock */
+#endif /* #if defined(CONFIG_OMAP3_PM) */
 
 	omap_wdt_dev = pdev;
 
@@ -415,18 +522,68 @@ static int omap_wdt_suspend(struct platform_device *pdev, pm_message_t state)
 	wdev = platform_get_drvdata(pdev);
 	if (wdev->omap_wdt_users)
 		omap_wdt_disable(wdev);
+
+#if defined(CONFIG_OMAP3_PM)
+	if (!wdev->omap_wdt_users) {
+		/* Enable the interface clock */
+		if (clk_enable(wdev->mpu_wdt_ick) != 0)
+			goto fail;
+
+		/* Enable the functional clock */
+		if (clk_enable(wdev->mpu_wdt_fck) != 0)
+			goto fail_1;
+	}
+
+	if (cpu_is_omap34xx())
+		omap_wdt_sysconfig(wdev, OMAP_WDT_SYSCONFIG_LVL2);
+
+	clk_disable(wdev->mpu_wdt_ick); /* Disable the interface clock */
+	clk_disable(wdev->mpu_wdt_fck); /* Disable the functional clock */
+#endif /* #if defined(CONFIG_OMAP3_PM) */
 	return 0;
+#if defined(CONFIG_OMAP3_PM)
+fail_1:
+	clk_disable(wdev->mpu_wdt_ick);
+fail:
+	printk(KERN_ERR"WDT: clock enable failure\n");
+	return -1;
+#endif /* #if defined(CONFIG_OMAP3_PM) */
 }
 
 static int omap_wdt_resume(struct platform_device *pdev)
 {
 	struct omap_wdt_dev *wdev;
 	wdev = platform_get_drvdata(pdev);
+
+#if defined(CONFIG_OMAP3_PM)
+	if (wdev->omap_wdt_users) {
+		/* Enable the interface clock */
+		if (clk_enable(wdev->mpu_wdt_ick) != 0)
+			goto fail;
+
+		/* Enable the functional clock */
+		if (clk_enable(wdev->mpu_wdt_fck) != 0)
+			goto fail_1;
+
+		if (cpu_is_omap34xx())
+			omap_wdt_sysconfig(wdev, OMAP_WDT_SYSCONFIG_LVL1);
+	} else {
+		return 0;
+	}
+#endif /* #if defined(CONFIG_OMAP3_PM) */
+
 	if (wdev->omap_wdt_users) {
 		omap_wdt_enable(wdev);
 		omap_wdt_ping(wdev);
 	}
 	return 0;
+#if defined(CONFIG_OMAP3_PM)
+fail_1:
+	clk_disable(wdev->mpu_wdt_ick);
+fail:
+	printk(KERN_ERR"WDT: clock enable failure\n");
+	return -1;
+#endif /* #if defined(CONFIG_OMAP3_PM) */
 }
 
 #else
