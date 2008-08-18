@@ -194,9 +194,14 @@ static struct resource omap2_mcspi1_resources[] = {
 		.end		= OMAP2_MCSPI1_BASE + 0xff,
 		.flags		= IORESOURCE_MEM,
 	},
+
+	{
+		.start		= INT_24XX_SPI1_IRQ,
+		.flags		= IORESOURCE_IRQ,
+	},
 };
 
-static struct platform_device omap2_mcspi1 = {
+struct platform_device omap2_mcspi1 = {
 	.name		= "omap2_mcspi",
 	.id		= 1,
 	.num_resources	= ARRAY_SIZE(omap2_mcspi1_resources),
@@ -216,9 +221,14 @@ static struct resource omap2_mcspi2_resources[] = {
 		.end		= OMAP2_MCSPI2_BASE + 0xff,
 		.flags		= IORESOURCE_MEM,
 	},
+
+	{
+		.start		= INT_24XX_SPI2_IRQ,
+		.flags		= IORESOURCE_IRQ,
+	},
 };
 
-static struct platform_device omap2_mcspi2 = {
+struct platform_device omap2_mcspi2 = {
 	.name		= "omap2_mcspi",
 	.id		= 2,
 	.num_resources	= ARRAY_SIZE(omap2_mcspi2_resources),
@@ -235,9 +245,14 @@ static struct omap2_mcspi_platform_config omap2_mcspi3_config = {
 
 static struct resource omap2_mcspi3_resources[] = {
 	{
-	.start		= OMAP2_MCSPI3_BASE,
-	.end		= OMAP2_MCSPI3_BASE + 0xff,
-	.flags		= IORESOURCE_MEM,
+		.start		= OMAP2_MCSPI3_BASE,
+		.end		= OMAP2_MCSPI3_BASE + 0xff,
+		.flags		= IORESOURCE_MEM,
+	},
+
+	{
+		.start		= INT_24XX_SPI3_IRQ,
+		.flags		= IORESOURCE_IRQ,
 	},
 };
 
@@ -262,6 +277,11 @@ static struct resource omap2_mcspi4_resources[] = {
 		.start		= OMAP2_MCSPI4_BASE,
 		.end		= OMAP2_MCSPI4_BASE + 0xff,
 		.flags		= IORESOURCE_MEM,
+	},
+
+	{
+		.start		= INT_34XX_SPI4_IRQ,
+		.flags		= IORESOURCE_IRQ,
 	},
 };
 
