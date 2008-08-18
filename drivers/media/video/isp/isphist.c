@@ -443,7 +443,7 @@ static int isp_hist_mmap_buffer(struct isp_hist_buffer *buffer)
 	vma.vm_flags = calc_vm_prot_bits(prot) | calc_vm_flag_bits(flags);
 	vma.vm_pgoff = pgoff;
 	vma.vm_file = NULL;
-	vma.vm_page_prot = protection_map[vma.vm_flags];
+	vma.vm_page_prot = vm_get_page_prot(vma.vm_flags);
 
 	if (vm_insert_page(&vma, addr, vmalloc_to_page(pos)))
 		return -EAGAIN;
@@ -558,7 +558,7 @@ EXPORT_SYMBOL(isp_hist_request_statistics);
  *
  * Returns 0 if successful.
  **/
-static int __init isp_hist_init(void)
+int __init isp_hist_init(void)
 {
 	memset(&histstat, 0, sizeof(histstat));
 	memset(&hist_regs, 0, sizeof(hist_regs));
@@ -569,7 +569,7 @@ static int __init isp_hist_init(void)
 /**
  * isp_hist_cleanup - Module cleanup.
  **/
-static void isp_hist_cleanup(void)
+void __exit isp_hist_cleanup(void)
 {
 	isp_hist_enable(0);
 	mdelay(100);
@@ -594,6 +594,7 @@ isphist_save_context(void)
 	DPRINTK_ISPHIST(" Saving context\n");
 	isp_save_context(isphist_reg_list);
 }
+EXPORT_SYMBOL(isphist_save_context);
 
 /**
  * isphist_restore_context - Restores the values of the histogram module regs.
@@ -604,6 +605,7 @@ isphist_restore_context(void)
 	DPRINTK_ISPHIST(" Restoring context\n");
 	isp_restore_context(isphist_reg_list);
 }
+EXPORT_SYMBOL(isphist_restore_context);
 
 /**
  * isp_hist_print_status - Debug print
@@ -637,12 +639,3 @@ static void isp_hist_print_status(void)
 	DPRINTK_ISPHIST("ISPHIST_H_V_INFO = 0x%08x\n",
 						omap_readl(ISPHIST_H_V_INFO));
 }
-
-module_init(isp_hist_init);
-module_exit(isp_hist_cleanup);
-module_exit(isphist_save_context);
-module_exit(isphist_restore_context);
-
-MODULE_AUTHOR("Texas Instruments");
-MODULE_DESCRIPTION("HISTOGRAM ISP Module");
-MODULE_LICENSE("GPL");

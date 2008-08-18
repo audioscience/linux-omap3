@@ -576,7 +576,7 @@ static int isph3a_aewb_mmap_buffers(struct isph3a_aewb_buffer *buffer)
 	vma.vm_flags = calc_vm_prot_bits(prot) | calc_vm_flag_bits(flags);
 	vma.vm_pgoff = pgoff;
 	vma.vm_file = NULL;
-	vma.vm_page_prot = protection_map[vma.vm_flags];
+	vma.vm_page_prot = vm_get_page_prot(vma.vm_flags);
 
 	while (size > 0) {
 		if (vm_insert_page(&vma, addr, vmalloc_to_page(pos)))
@@ -818,7 +818,7 @@ EXPORT_SYMBOL(isph3a_aewb_request_statistics);
  *
  * Always returns 0.
  **/
-static int __init isph3a_aewb_init(void)
+int __init isph3a_aewb_init(void)
 {
 	memset(&aewbstat, 0, sizeof(aewbstat));
 	memset(&aewb_regs, 0, sizeof(aewb_regs));
@@ -831,7 +831,7 @@ static int __init isph3a_aewb_init(void)
 /**
  * isph3a_aewb_cleanup - Module exit.
  **/
-static void isph3a_aewb_cleanup(void)
+void __exit isph3a_aewb_cleanup(void)
 {
 	int i;
 	isph3a_aewb_enable(0);
@@ -909,11 +909,3 @@ void isph3a_restore_context(void)
 	isp_restore_context(isph3a_reg_list);
 }
 EXPORT_SYMBOL(isph3a_restore_context);
-
-module_init(isph3a_aewb_init);
-module_exit(isph3a_aewb_cleanup);
-
-MODULE_AUTHOR("Texas Instruments");
-MODULE_DESCRIPTION("H3A ISP Module");
-MODULE_LICENSE("GPL");
-
