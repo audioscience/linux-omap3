@@ -33,7 +33,7 @@
 #include <asm/setup.h>
 #include <mach/clock.h>
 #include <mach/serial.h>
-#include <asm/arch-omap/omap-hsuart.h>
+#include <mach/omap-hsuart.h>
 
 #include <mach/common.h>
 #include <mach/board.h>

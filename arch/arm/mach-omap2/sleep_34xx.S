@@ -26,8 +26,8 @@
  */
 #include <linux/linkage.h>
 #include <asm/assembler.h>
-#include <asm/arch/io.h>
-#include <asm/arch/pm.h>
+#include <mach/io.h>
+#include <mach/pm.h>
 #include "ti-compat.h"
 
 #define PM_PREPWSTST_CORE_V	IO_ADDRESS(PRM_BASE + 0xAE8)

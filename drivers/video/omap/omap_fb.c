@@ -31,9 +31,9 @@
 #include <linux/console.h>
 #include <linux/platform_device.h>
 #include <linux/clk.h>
-#include <asm/irq.h>
+#include <linux/irq.h>
 // #include <asm/arch/bus.h>
-#include <asm/arch/clock.h>
+#include <mach/clock.h>
 #include <asm/uaccess.h>
 
 #ifdef CONFIG_PM
@@ -46,7 +46,7 @@
 #include <linux/dpm.h>
 #endif
 
-#include <asm/arch/display.h>
+#include <mach/display.h>
 #include "omap_fb.h"
 
 #undef DEBUG

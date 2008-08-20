@@ -38,15 +38,15 @@
 #include <asm/mmu.h>
 #include <asm/tlbflush.h>
 
-#include <asm/arch/irqs.h>
-#include <asm/arch/clock.h>
-#include <asm/arch/sram.h>
-#include <asm/arch/pm.h>
+#include <mach/irqs.h>
+#include <mach/clock.h>
+#include <mach/sram.h>
+#include <mach/pm.h>
 #include <linux/tick.h>
-#include <asm/arch/resource.h>
-#include <asm/arch/prcm_34xx.h>
+#include <mach/resource.h>
+#include <mach/prcm_34xx.h>
 #ifdef CONFIG_OMAP34XX_OFFMODE
-#include <asm/arch/io.h>
+#include <mach/io.h>
 #endif /* #ifdef CONFIG_OMAP34XX_OFFMODE */
 
 #include "prcm-regs.h"

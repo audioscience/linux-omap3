@@ -24,9 +24,9 @@
 
 #include <linux/module.h>
 #include <linux/init.h>
-#include <asm/arch/prcm_34xx.h>
+#include <mach/prcm_34xx.h>
 #include <asm/io.h>
-#include <asm/arch/gpmc.h>
+#include <mach/gpmc.h>
 
 #include "prcm-regs.h"
 #include "ti-compat.h"

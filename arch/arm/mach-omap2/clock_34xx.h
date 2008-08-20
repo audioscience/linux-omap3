@@ -27,7 +27,7 @@
 #ifndef __ARCH_ARM_MACH_OMAP3_CLOCK_H
 #define __ARCH_ARM_MACH_OMAP3_CLOCK_H
 
-#include <asm/arch/prcm_34xx.h>
+#include <mach/prcm_34xx.h>
 
 /* Macro to enable clock control via clock framework */
 #define ENABLE_CLOCKCONTROL 1

@@ -33,14 +33,14 @@
 #include <linux/clk.h>
 #include <linux/cpufreq.h>
 
-#include <asm/io.h>
+#include <mach/io.h>
 
-#include <asm/arch/clock.h>
-#include <asm/arch/sram.h>
-#include <asm/arch/resource.h>
+#include <mach/clock.h>
+#include <mach/sram.h>
+#include <mach/resource.h>
 
 #include "prcm-regs.h"
-#include "memory.h"
+#include <mach/memory.h>
 #include "clock_34xx.h"
 
 #ifdef CONFIG_OMAP34XX_OFFMODE

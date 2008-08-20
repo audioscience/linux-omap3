@@ -20,7 +20,7 @@
 #include <linux/videodev.h>
 
 /* hack for __REG32 */
-#include <asm/arch/io.h>
+#include <linux/io.h>
 #ifndef __ASSEMBLER__
 /* 16 bit uses LDRH/STRH, base +/- offset_8 */
 typedef struct { volatile u16 offset[256]; } __regbase16;

@@ -25,7 +25,7 @@
 #include <linux/kernel.h>
 #include <linux/list.h>
 #include <linux/clk.h>
-#include <asm/semaphore.h>
+#include <linux/semaphore.h>
 #include <linux/notifier.h>
 
 #ifdef CONFIG_OMAP34XX_OFFMODE

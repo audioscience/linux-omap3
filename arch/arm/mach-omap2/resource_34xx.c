@@ -19,11 +19,11 @@
 #include <linux/err.h>
 #include <linux/errno.h>
 #include <linux/notifier.h>
-#include <asm/arch/resource.h>
-#include <asm/arch/clock.h>
+#include <mach/resource.h>
+#include <mach/clock.h>
 #include "resource_34xx.h"
 #include "prcm-regs.h"
-#include <asm/arch/power_companion.h>
+#include <mach/power_companion.h>
 
 u32 current_vdd1_opp = PRCM_VDD1_OPP3;
 u32 current_vdd2_opp = PRCM_VDD2_OPP3;

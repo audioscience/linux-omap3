@@ -72,7 +72,7 @@
 #include <mach/irda.h>
 
 #ifdef CONFIG_ARCH_OMAP34XX
-#include <asm/arch/resource.h>
+#include <mach/resource.h>
 
 #define IrDA_LAT_CONST 1
 #endif /* #ifdef CONFIG_ARCH_OMAP34XX */

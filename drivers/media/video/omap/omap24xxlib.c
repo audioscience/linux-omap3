@@ -32,10 +32,10 @@
 #include <linux/wait.h>
 #include <linux/videodev.h>
 
-#include <asm/arch/display.h>
+#include <mach/display.h>
 
 #include <asm/byteorder.h>
-#include <asm/semaphore.h>
+#include <linux/semaphore.h>
 
 /* Return the default overlay cropping rectangle in crop given the image
  * size in pix and the video display size in fbuf.  The default 

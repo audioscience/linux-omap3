@@ -24,9 +24,9 @@
 #include <linux/clk.h>
 #include <linux/io.h>
 
+#include <mach/sram.h>
 #include <mach/common.h>
 #include <mach/clock.h>
-#include <mach/sram.h>
 
 #include "prm.h"
 
@@ -102,8 +102,10 @@ u32 omap2xxx_sdrc_reprogram(u32 level, u32 force)
 #ifndef CONFIG_OMAP3_PM
 	prm_write_mod_reg(0xffff, OMAP24XX_GR_MOD,
 			  OMAP24XX_PRCM_VOLTSETUP_OFFSET);
+
 #endif
 	omap2_sram_reprogram_sdrc(level, dll_ctrl, m_type);
+
 	curr_perf_level = level;
 	local_irq_restore(flags);
 

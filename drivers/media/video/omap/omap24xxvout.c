@@ -45,7 +45,8 @@
 #include <linux/input.h>
 #include <linux/dma-mapping.h>
 #include <media/v4l2-dev.h>
- 
+#include <media/v4l2-ioctl.h>
+
 #ifdef CONFIG_PM
 #include <linux/notifier.h>
 #include <linux/pm.h>
@@ -54,15 +55,15 @@
 #include <linux/dpm.h>
 #endif
 
-#include <asm/arch/display.h>
+#include <mach/display.h>
 
-#include <asm/io.h>
+#include <linux/io.h>
 #include <asm/byteorder.h>
-#include <asm/irq.h>
-#include <asm/semaphore.h>
+#include <linux/irq.h>
+#include <linux/semaphore.h>
 #include <asm/processor.h>
 // #include <asm/arch/bus.h>
-#include <asm/arch/dma.h>
+#include <mach/dma.h>
 
 #include "omap24xxlib.h"
 
@@ -2114,7 +2115,7 @@ init_vout_device (int vid)
 	vfd->release = video_device_release;
 
 	strncpy (vfd->name, VOUT_NAME, sizeof (vfd->name));
-	vfd->type = VID_TYPE_OVERLAY | VID_TYPE_CHROMAKEY;
+	vfd->vfl_type = VID_TYPE_OVERLAY | VID_TYPE_CHROMAKEY;
 	/* need to register for a VID_HARDWARE_* ID in videodev.h */
 #if 0	
 	vfd->hardware = 0;

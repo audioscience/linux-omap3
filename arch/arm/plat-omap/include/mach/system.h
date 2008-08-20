@@ -10,7 +10,7 @@
 #include <mach/hardware.h>
 
 #include <mach/prcm.h>
-
+#include <asm/proc-fns.h>
 #ifndef CONFIG_MACH_VOICEBLUE
 #define voiceblue_reset()		do {} while (0)
 #endif

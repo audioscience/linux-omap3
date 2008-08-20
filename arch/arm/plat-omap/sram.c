@@ -271,7 +271,7 @@ int __init omap1_sram_init(void)
 #define omap1_sram_init()	do {} while (0)
 #endif
 
-#if defined(CONFIG_ARCH_OMAP2)
+#if defined(CONFIG_ARCH_OMAP2) || defined(CONFIG_ARCH_OMAP3)
 
 static void (*_omap2_sram_ddr_init)(u32 *slow_dll_ctrl, u32 fast_dll_ctrl,
 			      u32 base_cs, u32 force_unlock);
@@ -327,7 +327,7 @@ static inline int omap242x_sram_init(void)
 {
 	return 0;
 }
-
+#endif
 #ifdef CONFIG_ARCH_OMAP2430
 int __init omap243x_sram_init(void)
 {

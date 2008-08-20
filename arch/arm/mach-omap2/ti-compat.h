@@ -13,7 +13,7 @@
 #ifndef _TI_COMPAT_H_
 #define _TI_COMPAT_H_
 
-#include <asm/arch/hardware.h>
+#include <mach/hardware.h>
 
 /* ! NOTE: this is _NOT_ OMAP3430_PRM_BASE */
 #define PRM_BASE		(L4_WK_34XX_BASE + 0x6000)

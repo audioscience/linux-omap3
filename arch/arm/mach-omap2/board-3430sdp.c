@@ -50,7 +50,7 @@
 #include "ti-compat.h"
 #ifdef CONFIG_OMAP3_PM
 #include "prcm-regs.h"
-#include <asm/arch/prcm_34xx.h>
+#include <mach/prcm_34xx.h>
 #endif
 
 #include <asm/io.h>

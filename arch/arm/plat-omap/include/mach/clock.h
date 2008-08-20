@@ -81,6 +81,7 @@ struct clk {
 #endif
 	struct module		*owner;
 	const char		*name;
+	u32			prcmid;
 	int			id;
 	struct clk		*parent;
 	unsigned long		rate;

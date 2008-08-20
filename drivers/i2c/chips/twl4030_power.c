@@ -21,12 +21,12 @@
 #include <linux/errno.h>
 #include <linux/delay.h>
 #include <linux/clk.h>
-#include <asm/arch/power_companion.h>
-#include <asm/arch/clock.h>
-#include <asm/arch/mux.h>
-#include <asm/arch/prcm_34xx.h>
-#include <asm/semaphore.h>
-#include <asm/arch/twl4030.h>
+#include <mach/power_companion.h>
+#include <mach/clock.h>
+#include <mach/mux.h>
+#include <mach/prcm_34xx.h>
+#include <linux/semaphore.h>
+#include <mach/twl4030.h>
 
 struct twl4030_power_registers {
 	u8 dev_grp_address;

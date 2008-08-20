@@ -30,13 +30,13 @@
 #include <linux/fb.h>
 #include <linux/delay.h>
 #include <linux/device.h>
-#include <asm/hardware.h>
+#include <mach/hardware.h>
 #include <asm/uaccess.h>
 #include <asm/delay.h>
 #include <linux/delay.h>
-#include <asm/arch/display.h>
-#include <asm/arch/gpio.h>
-#include <asm/arch/clock.h>
+#include <mach/display.h>
+#include <mach/gpio.h>
+#include <mach/clock.h>
 #if defined(CONFIG_MACH_OMAP_2430SDP) || defined (CONFIG_MACH_OMAP_3430SDP) ||\
     defined(CONFIG_MACH_OMAP_LDP)
 #include <linux/i2c/twl4030.h>
@@ -1605,7 +1605,8 @@ create_sysfs_files(void)
 	new_bd->props = bd;
 	memset(&new_bd->dev, 0, sizeof(new_bd->dev));
 	new_bd->dev.class = &dispc_class;
-	strlcpy(new_bd->dev.bus_id, "omap_disp_control", KOBJ_NAME_LEN);
+	strlcpy(new_bd->dev.bus_id, "omap_disp_control",
+				sizeof("omap_disp_control"));
 	rc = device_register(&new_bd->dev);
 	
 	if (unlikely(rc)) {

@@ -22,9 +22,9 @@
 #include <linux/clk.h>
 #include <linux/pm_qos_params.h>
 
-#include <asm/arch/clock.h>
-#include <asm/arch/resource.h>
-#include <asm/arch/prcm_34xx.h>
+#include <mach/clock.h>
+#include <mach/resource.h>
+#include <mach/prcm_34xx.h>
 
 #define S600M   600000000
 #define S550M   550000000

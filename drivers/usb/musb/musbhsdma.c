@@ -34,7 +34,7 @@
 #include <linux/interrupt.h>
 #include <linux/platform_device.h>
 #include "musb_core.h"
-#include <asm/arch/dma.h>
+#include <mach/dma.h>
 
 #if defined(CONFIG_ARCH_OMAP2430) || defined(CONFIG_ARCH_OMAP3430)
 #include "omap2430.h"

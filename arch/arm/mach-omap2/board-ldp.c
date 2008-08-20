@@ -33,7 +33,7 @@
 #include <mach/gpio.h>
 #include <mach/board.h>
 #include <mach/common.h>
-#include <asm/arch/keypad.h>
+#include <mach/keypad.h>
 #include <mach/gpmc.h>
 #include <mach/hsmmc.h>
 #include <mach/usb-musb.h>
@@ -44,7 +44,7 @@
 #ifdef CONFIG_OMAP3_PM
 #include "prcm-regs.h"
 #include "ti-compat.h"
-#include <asm/arch/prcm_34xx.h>
+#include <mach/prcm_34xx.h>
 #endif
 
 #define       SDP3430_SMC91X_CS 	3

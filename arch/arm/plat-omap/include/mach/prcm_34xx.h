@@ -961,7 +961,7 @@ enum prcm_save_state {
 
 
 extern void omap_sram_idle(void);
-extern void omap3_configure_core_dpll(u32 tar_m, u32 tar_n, u32 tar_freqsel,
+extern u32 omap3_configure_core_dpll(u32 tar_m, u32 tar_n, u32 tar_freqsel,
 				u32 tar_m2);
 extern void omap3_clk_prepare_for_reboot(void);
 

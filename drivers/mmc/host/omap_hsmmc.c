@@ -33,7 +33,7 @@
 #include <mach/board.h>
 #include <mach/mmc.h>
 #include <mach/cpu.h>
-#include <asm/arch/resource.h>
+#include <mach/resource.h>
 
 /* OMAP HSMMC Host Controller Registers */
 #define OMAP_HSMMC_SYSCONFIG	0x0010

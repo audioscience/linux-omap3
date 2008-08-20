@@ -105,7 +105,7 @@ struct omap_sdrc_params {
 void __init omap2_sdrc_init(struct omap_sdrc_params *);
 struct omap_sdrc_params *omap2_sdrc_get_params(unsigned long r);
 
-#ifdef CONFIG_ARCH_OMAP2
+#if defined (CONFIG_ARCH_OMAP2) || defined (CONFIG_ARCH_OMAP3)
 
 struct memory_timings {
 	u32 m_type;		/* ddr = 1, sdr = 0 */

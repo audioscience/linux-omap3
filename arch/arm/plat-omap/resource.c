@@ -19,8 +19,8 @@
 #include <linux/err.h>
 #include <linux/errno.h>
 #include <linux/io.h>
-#include <asm/arch/resource.h>
-#include <asm/arch/prcm_34xx.h>
+#include <mach/resource.h>
+#include <mach/prcm_34xx.h>
 
 /* #define DEBUG_RES_FRWK 1 */
 #ifdef DEBUG_RES_FRWK

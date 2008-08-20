@@ -24,9 +24,9 @@
 #include <linux/hrtimer.h>
 #include <linux/tick.h>
 #include <linux/sched.h>
-#include <asm/arch/pm.h>
-#include <asm/arch/prcm_34xx.h>
-#include <asm/arch/dma.h>
+#include <mach/pm.h>
+#include <mach/prcm_34xx.h>
+#include <mach/dma.h>
 #include "prcm-regs.h"
 #include "pm_idle_34xx.h"
 #include "ti-compat.h"
