@@ -31,6 +31,86 @@ u32 current_vdd2_opp = PRCM_VDD2_OPP3;
 /* global variables which can be used in idle_thread */
 short	core_active = LOGICAL_UNUSED;
 
+#ifdef CONFIG_OMAP34XX_OFFMODE
+/* An array of struct which contains the context attributes for each domain. */
+static struct domain_ctxsvres_status domain_ctxsvres[PRCM_NUM_DOMAINS];
+
+/*  This function is called by the DeviceDriver when it has done context save.
+ */
+void context_save_done(struct clk *clk)
+{
+	struct domain_ctxsvres_status *ctxsvres;
+	u32 prcm_id, domain_id, device_id, device_bitpos;
+
+	prcm_id = clk->prcmid;
+	domain_id = DOMAIN_ID(prcm_id);
+	device_id = DEV_BIT_POS(prcm_id);
+	device_bitpos = 1 << device_id;
+
+	spin_lock(&svres_reg_lock);
+	ctxsvres = &domain_ctxsvres[domain_id];
+
+	ctxsvres->context_saved |= device_bitpos;
+	spin_unlock(&svres_reg_lock);
+}
+EXPORT_SYMBOL(context_save_done);
+
+/*  This function is called by the DeviceDriver to check whether context restore
+ *  is required.
+ */
+int context_restore_required(struct clk *clk)
+{
+	struct domain_ctxsvres_status *ctxsvres;
+	u32 prcm_id, domain_id, device_id, device_bitpos;
+	int ret;
+#ifdef CONFIG_TRACK_RESOURCES
+	struct resource_handle *res = (struct resource_handle *) clk;
+	prcm_id = res->clk->prcmid;
+#else
+	prcm_id = clk->prcmid;
+#endif
+	ret = 0;
+
+	domain_id = DOMAIN_ID(prcm_id);
+	device_id = DEV_BIT_POS(prcm_id);
+	device_bitpos = 1 << device_id;
+
+	spin_lock(&svres_reg_lock);
+	ctxsvres = &domain_ctxsvres[domain_id];
+
+	if (ctxsvres->context_restore & device_bitpos) {
+		ret = 1;
+		ctxsvres->context_saved &= ~device_bitpos;
+		ctxsvres->context_restore &= ~device_bitpos;
+	}
+	spin_unlock(&svres_reg_lock);
+
+	return ret;
+}
+EXPORT_SYMBOL(context_restore_required);
+
+/*  This function is called to update the context attributes when power domain
+ *  is put to OFF.
+ */
+void context_restore_update(unsigned long domain_id)
+{
+	struct domain_ctxsvres_status *ctxsvres;
+
+	spin_lock(&svres_reg_lock);
+	ctxsvres = &domain_ctxsvres[domain_id];
+	ctxsvres->context_restore = ctxsvres->context_saved;
+
+	if (domain_id == DOM_CORE1) {
+		ctxsvres = &domain_ctxsvres[DOM_CORE2];
+		ctxsvres->context_restore = ctxsvres->context_saved;
+		ctxsvres = &domain_ctxsvres[DOM_CORE3];
+		ctxsvres->context_restore = ctxsvres->context_saved;
+	}
+	spin_unlock(&svres_reg_lock);
+}
+EXPORT_SYMBOL(context_restore_update);
+#endif /* #ifdef CONFIG_OMAP34XX_OFFMODE */
+
 int __init omap2_resource_init(void)
 {
 	return resource_init(res_list);
@@ -312,4 +392,3 @@ int turn_power_domains_off(void)
 #ifdef CONFIG_AUTO_POWER_DOMAIN_CTRL
 late_initcall(turn_power_domains_off);
 #endif
-
