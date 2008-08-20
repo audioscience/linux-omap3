@@ -28,6 +28,9 @@
 #include <asm/semaphore.h>
 #include <linux/notifier.h>
 
+#ifdef CONFIG_OMAP34XX_OFFMODE
+extern spinlock_t svres_reg_lock;
+#endif /* #ifdef CONFIG_OMAP34XX_OFFMODE */
 
 #define curr_vdd1_opp   3
 #define curr_vdd2_opp   3

@@ -789,4 +789,11 @@ static struct shared_resource *res_list[] = {
 	NULL
 };
 
+#ifdef CONFIG_OMAP34XX_OFFMODE
+struct domain_ctxsvres_status {
+	u32 context_saved;
+	u32 context_restore;
+};
+#endif /* #ifdef CONFIG_OMAP34XX_OFFMODE */
+
 #endif /* __ARCH_ARM_MACH_OMAP3_RESOURCE_34XX_H */
