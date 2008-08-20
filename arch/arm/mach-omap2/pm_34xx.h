@@ -62,8 +62,8 @@ struct res_handle  *memret2;
 struct res_handle  *logret1;
 int res1_level = -1, res2_level = -1, res3_level = -1;
 
-extern void omap_uart_save_ctx(void);
-extern void omap_uart_restore_ctx(void);
+extern void omap_uart_save_ctx(int unum);
+extern void omap_uart_restore_ctx(int unum);
 extern void set_blank_interval(int fb_timeout_val);
 extern void omap_gpio_save(void);
 extern void omap_gpio_restore(void);

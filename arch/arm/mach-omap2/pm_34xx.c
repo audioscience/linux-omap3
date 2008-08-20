@@ -169,12 +169,14 @@ void omap3_save_per_context(void)
 {
 	/* Only GPIO save is done here */
 	omap_gpio_save();
+	omap_uart_save_ctx(2);
 }
 
 void omap3_restore_per_context(void)
 {
 	/* Only GPIO restore is done here */
 	omap_gpio_restore();
+	omap_uart_restore_ctx(2);
 }
 
 void omap3_push_sram_functions()
@@ -189,6 +191,8 @@ void omap3_restore_core_settings(void)
 	prcm_lock_iva_dpll(current_vdd1_opp);
 	restore_sram_functions();
 	omap3_push_sram_functions();
+	omap_uart_restore_ctx(0);
+	omap_uart_restore_ctx(1);
 }
 
 void memory_logic_res_seting(void)
@@ -232,8 +236,10 @@ static int omap3_pm_suspend(void)
 	PM_PREPWSTST_NEON = 0xFF;
 	PM_PREPWSTST_PER = 0xFF;
 #ifdef CONFIG_CORE_OFF
-	if (enable_off)
-		omap_uart_save_ctx();
+	if (enable_off) {
+		omap_uart_save_ctx(0);
+		omap_uart_save_ctx(1);
+	}
 #endif
 #ifdef CONFIG_MPU_OFF
 	/* On ES 2.0, if scrathpad is populated with valid
@@ -288,7 +294,8 @@ static int omap3_pm_suspend(void)
 
 	if (target_state.core_state >=  PRCM_CORE_OSWR_MEMRET) {
 		prcm_save_core_context(target_state.core_state);
-		omap_uart_save_ctx();
+		omap_uart_save_ctx(0);
+		omap_uart_save_ctx(1);
 	}
 
 	ret = prcm_set_chip_power_mode(&target_state, PRCM_WAKEUP_T2_KEYPAD |
@@ -307,7 +314,6 @@ static int omap3_pm_suspend(void)
 #ifdef CONFIG_CORE_OFF
 	if (enable_off) {
 		omap3_restore_core_settings();
-		omap_uart_restore_ctx();
 	}
 #else
 	if (target_state.core_state >= PRCM_CORE_OSWR_MEMRET) {
@@ -315,7 +321,8 @@ static int omap3_pm_suspend(void)
 	context_restore_update(DOM_CORE1);
 #endif
 		prcm_restore_core_context(target_state.core_state);
-		omap_uart_restore_ctx();
+		omap_uart_restore_ctx(0);
+		omap_uart_restore_ctx(1);
 	}
 
 	if ((target_state.core_state > PRCM_CORE_CSWR_MEMRET) &&
