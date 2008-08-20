@@ -496,6 +496,7 @@ static int omap3_enter_idle(struct cpuidle_device *dev,
 	prcm_get_power_domain_state(DOM_NEON, &cur_neon_state);
 
 	fclken_core = CM_FCLKEN1_CORE;
+	CM_ICLKEN1_CORE |= 0x40;
 	iclken_core = CM_ICLKEN1_CORE;
 	fclken_per = CM_FCLKEN_PER;
 	iclken_per = CM_ICLKEN_PER;
