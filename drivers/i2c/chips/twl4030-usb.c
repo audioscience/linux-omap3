@@ -589,12 +589,6 @@ static void twl4030_usb_ldo_init(struct twl4030_usb *twl)
 	twl4030_i2c_write_u8(TWL4030_MODULE_PM_MASTER, 0, PROTECT_KEY);
 }
 
-#ifdef CONFIG_TWL4030_BCI_BATTERY
-extern int twl4030charger_usb_en(int enable);
-#else
-static inline int twl4030charger_usb_en(int enable) { return 0; }
-#endif
-
 static irqreturn_t twl4030_usb_irq(int irq, void *_twl)
 {
 	int ret = IRQ_NONE;
