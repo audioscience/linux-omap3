@@ -19,7 +19,7 @@
 #include <linux/i2c.h>
 #include <linux/delay.h>
 #include <media/v4l2-int-device.h>
-#include <asm/arch/gpio.h>
+#include <mach/gpio.h>
 #include <linux/platform_device.h>
 #include <linux/cdev.h>
 #include <linux/device.h>
