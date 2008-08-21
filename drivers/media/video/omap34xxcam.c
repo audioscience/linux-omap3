@@ -26,6 +26,7 @@
 #include <linux/platform_device.h>
 
 #include <media/v4l2-common.h>
+#include <media/v4l2-ioctl.h>
 
 #include "omap34xxcam.h"
 #include "isp/isp.h"
@@ -1235,6 +1236,31 @@ static struct file_operations omap34xxcam_fops = {
 	.release = omap34xxcam_release,
 };
 
+static const struct v4l2_ioctl_ops omap34xxcam_ioctl_ops = {
+	.vidioc_querycap	 = vidioc_querycap,
+	.vidioc_enum_fmt_vid_cap	 = vidioc_enum_fmt_cap,
+	.vidioc_g_fmt_vid_cap	 = vidioc_g_fmt_cap,
+	.vidioc_s_fmt_vid_cap	 = vidioc_s_fmt_cap,
+	.vidioc_try_fmt_vid_cap	 = vidioc_try_fmt_cap,
+	.vidioc_reqbufs		 = vidioc_reqbufs,
+	.vidioc_querybuf	 = vidioc_querybuf,
+	.vidioc_qbuf		 = vidioc_qbuf,
+	.vidioc_dqbuf		 = vidioc_dqbuf,
+	.vidioc_streamon	 = vidioc_streamon,
+	.vidioc_streamoff	 = vidioc_streamoff,
+	.vidioc_enum_input	 = vidioc_enum_input,
+	.vidioc_g_input		 = vidioc_g_input,
+	.vidioc_s_input		 = vidioc_s_input,
+	.vidioc_queryctrl	 = vidioc_queryctrl,
+	.vidioc_g_ctrl		 = vidioc_g_ctrl,
+	.vidioc_s_ctrl		 = vidioc_s_ctrl,
+	.vidioc_g_parm		 = vidioc_g_parm,
+	.vidioc_s_parm		 = vidioc_s_parm,
+	.vidioc_cropcap		 = vidioc_cropcap,
+	.vidioc_g_crop		 = vidioc_g_crop,
+	.vidioc_s_crop		 = vidioc_s_crop,
+	.vidioc_default		 = vidioc_default,
+};
 /**
  * omap34xxcam_device_unregister - V4L2 detach handler
  * @s: ptr. to standard V4L2 device information structure
@@ -1327,35 +1353,12 @@ static int omap34xxcam_device_register(struct v4l2_int_device *s)
 		}
 		vfd->release = video_device_release;
 
-		vfd->dev = cam->dev;
+		vfd->parent = cam->dev;
 
-		vfd->type		 = VID_TYPE_CAPTURE;
 		vfd->fops		 = &omap34xxcam_fops;
 		vfd->priv		 = vdev;
 
-		vfd->vidioc_querycap	 = vidioc_querycap;
-		vfd->vidioc_enum_fmt_cap = vidioc_enum_fmt_cap;
-		vfd->vidioc_g_fmt_cap	 = vidioc_g_fmt_cap;
-		vfd->vidioc_s_fmt_cap	 = vidioc_s_fmt_cap;
-		vfd->vidioc_try_fmt_cap	 = vidioc_try_fmt_cap;
-		vfd->vidioc_reqbufs	 = vidioc_reqbufs;
-		vfd->vidioc_querybuf	 = vidioc_querybuf;
-		vfd->vidioc_qbuf	 = vidioc_qbuf;
-		vfd->vidioc_dqbuf	 = vidioc_dqbuf;
-		vfd->vidioc_streamon	 = vidioc_streamon;
-		vfd->vidioc_streamoff	 = vidioc_streamoff;
-		vfd->vidioc_enum_input	 = vidioc_enum_input;
-		vfd->vidioc_g_input	 = vidioc_g_input;
-		vfd->vidioc_s_input	 = vidioc_s_input;
-		vfd->vidioc_queryctrl	 = vidioc_queryctrl;
-		vfd->vidioc_g_ctrl	 = vidioc_g_ctrl;
-		vfd->vidioc_s_ctrl	 = vidioc_s_ctrl;
-		vfd->vidioc_g_parm	 = vidioc_g_parm;
-		vfd->vidioc_s_parm	 = vidioc_s_parm;
-		vfd->vidioc_cropcap	 = vidioc_cropcap;
-		vfd->vidioc_g_crop	 = vidioc_g_crop;
-		vfd->vidioc_s_crop	 = vidioc_s_crop;
-		vfd->vidioc_default	 = vidioc_default;
+		vfd->ioctl_ops		 = &omap34xxcam_ioctl_ops;
 
 		if (video_register_device(vfd, VFL_TYPE_GRABBER,
 					  hwc.dev_minor) < 0) {
