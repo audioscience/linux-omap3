@@ -26,7 +26,7 @@
 #include <asm/cacheflush.h>
 #include <asm/uaccess.h>
 #include <asm/io.h>
-#include <asm/arch/io.h>
+#include <mach/io.h>
 #include "isp.h"
 #include "ispmmu.h"
 #include "ispreg.h"
@@ -778,8 +778,9 @@ static int __init omap_previewer_init(void)
 	if (!prev_class)
 		goto fail4;
 
-	prev_dev = device_create(prev_class, prev_dev, (MKDEV(prev_major, 0)),
-				OMAP_PREV_NAME);
+	prev_dev = device_create_drvdata(prev_class, prev_dev,
+						(MKDEV(prev_major, 0)), NULL,
+						OMAP_PREV_NAME);
 	dev_dbg(prev_dev, OMAP_PREV_NAME ": Registered Previewer Wrapper\n");
 	device->opened = 0;
 

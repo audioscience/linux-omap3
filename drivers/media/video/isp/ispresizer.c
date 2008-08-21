@@ -22,7 +22,7 @@
 #include <linux/delay.h>
 #include <asm/io.h>
 #include <linux/module.h>
-#include <asm/semaphore.h>
+#include <linux/semaphore.h>
 
 #include "isp.h"
 #include "ispreg.h"

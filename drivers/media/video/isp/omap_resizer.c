@@ -27,7 +27,7 @@
 #include <asm/cacheflush.h>
 #include <asm/uaccess.h>
 #include <asm/io.h>
-#include <asm/arch/io.h>
+#include <mach/io.h>
 #include <asm/scatterlist.h>
 
 #include "isp.h"
@@ -1242,8 +1242,9 @@ static int __init omap_rsz_init(void)
 	if (!rsz_class)
 		goto fail4;
 
-	rsz_device = device_create(rsz_class, rsz_device, MKDEV(rsz_major, 0),
-							OMAP_REZR_NAME);
+	rsz_device = device_create_drvdata(rsz_class, rsz_device,
+						MKDEV(rsz_major, 0), NULL,
+						OMAP_REZR_NAME);
 	dev_dbg(rsz_device, OMAP_REZR_NAME ": Registered Resizer Wrapper\n");
 	device->opened = 0;
 

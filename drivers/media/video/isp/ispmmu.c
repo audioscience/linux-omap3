@@ -31,7 +31,7 @@
 #include <asm/byteorder.h>
 #include <asm/scatterlist.h>
 #include <asm/irq.h>
-#include <asm/semaphore.h>
+#include <linux/semaphore.h>
 
 #include "isp.h"
 #include "ispreg.h"

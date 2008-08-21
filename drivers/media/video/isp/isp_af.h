@@ -18,7 +18,7 @@
 #ifndef OMAP_ISP_AF_H
 #define OMAP_ISP_AF_H
 
-#include <asm/arch/isp_user.h>
+#include <mach/isp_user.h>
 
 #define AF_MAJOR_NUMBER			0
 #define ISPAF_NAME			"OMAPISP_AF"

@@ -21,7 +21,7 @@
 #include <linux/delay.h>
 #include <linux/types.h>
 #include <asm/mach-types.h>
-#include <asm/arch/clock.h>
+#include <mach/clock.h>
 #include <asm/io.h>
 #include <asm/scatterlist.h>
 #include <asm/uaccess.h>

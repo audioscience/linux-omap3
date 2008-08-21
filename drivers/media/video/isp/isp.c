@@ -26,8 +26,9 @@
 #include <asm/bitops.h>
 #include <asm/scatterlist.h>
 #include <asm/mach-types.h>
-#include <asm/arch/clock.h>
-#include <asm/arch/io.h>
+#include <mach/clock.h>
+#include <mach/io.h>
+#include <linux/mm.h>
 #include <linux/device.h>
 #include <linux/videodev2.h>
 #include <media/v4l2-int-device.h>
@@ -280,7 +281,7 @@ void isp_open(void)
 	ispresizer_request();
 	return;
 }
-EXPORT_SYMBOL(isp_open);
+EXPORT_SYMBOL(isp_set_pipeline);
 
 /**
  * isp_close - Free ISP submodules
@@ -292,7 +293,7 @@ void isp_close(void)
 	ispresizer_free();
 	return;
 }
-EXPORT_SYMBOL(isp_close);
+EXPORT_SYMBOL(omapisp_unset_callback);
 
 /* Flag to check first time of isp_get */
 static int off_mode;
