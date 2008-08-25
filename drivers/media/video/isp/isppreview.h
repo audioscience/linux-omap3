@@ -17,7 +17,7 @@
 #ifndef OMAP_ISP_PREVIEW_H
 #define OMAP_ISP_PREVIEW_H
 
-#include <asm/arch/isp_user.h>
+#include <mach/isp_user.h>
 /* Isp query control structure */
 
 #define ISPPRV_BRIGHT_STEP		0x1

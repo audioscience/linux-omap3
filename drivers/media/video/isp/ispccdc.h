@@ -17,7 +17,7 @@
 #ifndef OMAP_ISP_CCDC_H
 #define OMAP_ISP_CCDC_H
 
-#include <asm/arch/isp_user.h>
+#include <mach/isp_user.h>
 
 #ifndef CONFIG_ARCH_OMAP3410
 # define cpu_is_omap3410()		0

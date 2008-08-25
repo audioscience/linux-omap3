@@ -17,7 +17,7 @@
 #ifndef OMAP_ISP_H3A_H
 #define OMAP_ISP_H3A_H
 
-#include <asm/arch/isp_user.h>
+#include <mach/isp_user.h>
 
 #define AEWB_PACKET_SIZE	16
 #define H3A_MAX_BUFF		5

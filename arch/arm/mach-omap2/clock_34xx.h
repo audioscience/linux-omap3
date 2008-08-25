@@ -487,8 +487,7 @@ static struct clk rng_ick = {
 };
 
 static struct clk mcbsp1_fck = {
-	.name = "mcbsp_fck",
-	.id = 1,
+	.name = "mcbsp1_fck",
 	.parent = &func_96m_ck,	/* Can also be external clock */
 	.prcmid = PRCM_MCBSP1,
 	.flags = CLOCK_IN_OMAP343X | SRC_SEL | F_CLK | POWER_ON_REQUIRED,
@@ -496,8 +495,7 @@ static struct clk mcbsp1_fck = {
 };
 
 static struct clk mcbsp1_ick = {
-	.name = "mcbsp_ick",
-	.id = 1,
+	.name = "mcbsp1_ick",
 	.parent = &l4_ck,
 	.prcmid = PRCM_MCBSP1,
 	.flags = CLOCK_IN_OMAP343X | I_CLK,
@@ -505,8 +503,7 @@ static struct clk mcbsp1_ick = {
 };
 
 static struct clk mcbsp5_fck = {
-	.name = "mcbsp_fck",
-	.id = 5,
+	.name = "mcbsp5_fck",
 	.parent = &func_96m_ck,	/* Can be external clock too */
 	.prcmid = PRCM_MCBSP5,
 	.flags = CLOCK_IN_OMAP343X | SRC_SEL | F_CLK | POWER_ON_REQUIRED,
@@ -514,8 +511,7 @@ static struct clk mcbsp5_fck = {
 };
 
 static struct clk mcbsp5_ick = {
-	.name = "mcbsp_ick",
-	.id = 5,
+	.name = "mcbsp5_ick",
 	.parent = &l4_ck,
 	.prcmid = PRCM_MCBSP5,
 	.flags = CLOCK_IN_OMAP343X | I_CLK,
@@ -1048,8 +1044,7 @@ static struct clk wdt1_fck = {
 };
 
 static struct clk mcbsp2_fck = {
-	.name = "mcbsp_fck",
-	.id = 2,
+	.name = "mcbsp2_fck",
 	.parent = &func_96m_ck,	/*Can be external clock too */
 	.prcmid = PRCM_MCBSP2,
 	.flags = CLOCK_IN_OMAP343X | SRC_SEL | F_CLK | POWER_ON_REQUIRED,
@@ -1057,8 +1052,7 @@ static struct clk mcbsp2_fck = {
 };
 
 static struct clk mcbsp2_ick = {
-	.name = "mcbsp_ick",
-	.id = 2,
+	.name = "mcbsp2_ick",
 	.parent = &l4_ck,
 	.prcmid = PRCM_MCBSP2,
 	.flags = CLOCK_IN_OMAP343X | I_CLK,
@@ -1066,8 +1060,7 @@ static struct clk mcbsp2_ick = {
 };
 
 static struct clk mcbsp3_fck = {
-	.name = "mcbsp_fck",
-	.id = 3,
+	.name = "mcbsp3_fck",
 	.parent = &func_96m_ck,	/* Can be external clock too */
 	.prcmid = PRCM_MCBSP3,
 	.flags = CLOCK_IN_OMAP343X | SRC_SEL | F_CLK | POWER_ON_REQUIRED,
@@ -1075,8 +1068,7 @@ static struct clk mcbsp3_fck = {
 };
 
 static struct clk mcbsp3_ick = {
-	.name = "mcbsp_ick",
-	.id = 3,
+	.name = "mcbsp3_ick",
 	.parent = &l4_ck,
 	.prcmid = PRCM_MCBSP3,
 	.flags = CLOCK_IN_OMAP343X | I_CLK,
@@ -1084,8 +1076,7 @@ static struct clk mcbsp3_ick = {
 };
 
 static struct clk mcbsp4_fck = {
-	.name = "mcbsp_fck",
-	.id = 4,
+	.name = "mcbsp4_fck",
 	.parent = &func_96m_ck,	/* can be external clock too */
 	.prcmid = PRCM_MCBSP4,
 	.flags = CLOCK_IN_OMAP343X | SRC_SEL | F_CLK | POWER_ON_REQUIRED,
@@ -1093,8 +1084,7 @@ static struct clk mcbsp4_fck = {
 };
 
 static struct clk mcbsp4_ick = {
-	.name = "mcbsp_ick",
-	.id = 4,
+	.name = "mcbsp4_ick",
 	.parent = &l4_ck,
 	.prcmid = PRCM_MCBSP4,
 	.flags = CLOCK_IN_OMAP343X | I_CLK,

@@ -26,14 +26,14 @@
 #include <asm/system.h>
 #include <asm/mach/irq.h>
 #include <asm/irq.h>
-#include <asm/hardware.h>
+#include <mach/hardware.h>
 #include <asm/dma.h>
 
 #include <asm/io.h>
 #include <asm/setup.h>
-#include <asm/arch/clock.h>
-#include <asm/arch/serial.h>
-#include <asm/arch/omap-hsuart.h>
+#include <mach/clock.h>
+#include <mach/serial.h>
+#include <asm/arch-omap/omap-hsuart.h>
 
 #include <mach/common.h>
 #include <mach/board.h>
@@ -45,27 +45,27 @@
 
 /* structure for storing UART DMA info */
 struct omap_hsuart {
-      u8 uart_no;
-      int rx_dma_channel;
-      int tx_dma_channel;
+	u8 uart_no;
+	int rx_dma_channel;
+	int tx_dma_channel;
 
-      u8 dma_tx;      /* DMA receive line */
-      u8 dma_rx;      /* DMA transmit line */
+	u8 dma_tx;      /* DMA receive line */
+	u8 dma_rx;      /* DMA transmit line */
 
-      dma_addr_t rx_buf_dma_phys;     /* Physical adress of RX DMA buffer */
-      dma_addr_t tx_buf_dma_phys;     /* Physical adress of TX DMA buffer */
+	dma_addr_t rx_buf_dma_phys;     /* Physical adress of RX DMA buffer */
+	dma_addr_t tx_buf_dma_phys;     /* Physical adress of TX DMA buffer */
 
-      void *rx_buf_dma_virt;  /* Virtual adress of RX DMA buffer */
-      void *tx_buf_dma_virt;  /* Virtual adress of TX DMA buffer */
+	void *rx_buf_dma_virt;  /* Virtual adress of RX DMA buffer */
+	void *tx_buf_dma_virt;  /* Virtual adress of TX DMA buffer */
 
-      u8 tx_buf_state;
-      u8 rx_buf_state;
+	u8 tx_buf_state;
+	u8 rx_buf_state;
 
-      struct uart_callback cb;
-      u8 mode;
+	struct uart_callback cb;
+	u8 mode;
 
-      spinlock_t uart_lock;
-      int in_use;
+	spinlock_t uart_lock;
+	int in_use;
 };
 static struct omap_hsuart ui[MAX_UARTS + 1];
 
