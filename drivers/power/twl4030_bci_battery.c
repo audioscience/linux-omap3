@@ -24,6 +24,8 @@
 #include <linux/i2c/twl4030.h>
 #include <linux/power_supply.h>
 #include <asm/mach-types.h>
+#include <asm/arch/bci.h>
+#include <linux/i2c/twl4030-madc.h>
 
 #define T2_BATTERY_VOLT		0x04
 #define T2_BATTERY_TEMP		0x06
@@ -56,11 +58,7 @@
 
 /* Boot BCI register */
 #define REG_BOOT_BCI		0x007
-#define REG_GPBR1		0x0c
-#define MADC_HFCLK_EN		0x80
-#define DEFAULT_MADC_CLK_EN	0x10
 #define REG_CTRL1		0x00
-#define MADC_ON			0x01
 #define REG_SW1SELECT_MSB	0x07
 #define SW1_CH9_SEL		0x02
 #define REG_CTRL_SW1		0x012
@@ -84,7 +82,6 @@
 #define VBATOV3			0x010
 #define VBATOV2			0x008
 #define VBATOV1			0x004
-#define MADC_LSB_MASK		0xC0
 #define REG_BB_CFG		0x012
 #define BBCHEN			0x010
 
@@ -146,6 +143,12 @@
 #define BK_VOLT_STEP_SIZE	441
 #define BK_VOLT_PSR_R		100
 
+#define ENABLE		1
+#define DISABLE		1
+
+/* Ptr to thermistor table */
+int *therm_tbl;
+
 static int twl4030_bci_battery_probe(struct platform_device *dev);
 static int twl4030_bci_battery_remove(struct platform_device *dev);
 #ifdef CONFIG_PM
@@ -172,11 +175,11 @@ struct twl4030_bci_device_info {
 };
 
 static struct platform_driver twl4030_bci_battery_driver = {
-	.probe = twl4030_bci_battery_probe,
-	.remove = twl4030_bci_battery_remove,
+	.probe =	twl4030_bci_battery_probe,
+	.remove =	twl4030_bci_battery_remove,
 #ifdef CONFIG_PM
-	.suspend = twl4030_bci_battery_suspend,
-	.resume = twl4030_bci_battery_resume,
+	.suspend =	twl4030_bci_battery_suspend,
+	.resume =	twl4030_bci_battery_resume,
 #endif
 	.driver = {
 		.name = "twl4030-bci-battery",
@@ -186,25 +189,9 @@ static struct platform_driver twl4030_bci_battery_driver = {
 static int usb_charger_flag;
 static int LVL_1, LVL_2, LVL_3, LVL_4;
 
-static int twl4030madc_sw1_trigger(void);
 static int read_bci_val(u8 reg_1);
 static inline int clear_n_set(u8 mod_no, u8 clear, u8 set, u8 reg);
 static int twl4030charger_presence(void);
-
-/*
- * Twl4030 battery temperature lookup table.
- */
-const int twl4030battery_temp_tbl [] =
-{
-/* 0 C*/
-27100,
-26000, 24900, 23900, 22900, 22000, 21100, 20300, 19400, 18700, 17900,
-17200, 16500, 15900, 15300, 14700, 14100, 13600, 13100, 12600, 12100,
-11600, 11200, 10800, 10400, 10000, 9630,   9280,   8950,   8620,   8310,
-8020,   7730,   7460,   7200,   6950,   6710,   6470,   6250,   6040,   5830,
-5640,   5450,   5260,   5090,   4920,   4760,   4600,   4450,   4310,   4170,
-4040,   3910,   3790,   3670,   3550
-};
 
 /*
  * Report and clear the charger presence event.
@@ -612,6 +599,7 @@ int twl4030charger_usb_en(int enable)
 		if (ret)
 			return ret;
 	} else {
+		twl4030charger_presence();
 		ret = clear_n_set(TWL4030_MODULE_PM_MASTER, BCIAUTOUSB,
 			(CONFIG_DONE | BCIAUTOWEN), REG_BOOT_BCI);
 		if (ret)
@@ -649,10 +637,20 @@ static int twl4030battery_temperature(void)
 	res = volt * 1000 / curr;
 
 	/*calculating temperature*/
-	for (temp = 55; temp >= 0; temp--) {
-		int actual = twl4030battery_temp_tbl [temp];
+	for (temp = 58; temp >= 0; temp--) {
+		int actual = therm_tbl [temp];
 		if ((actual - res) >= 0)
 			break;
+	}
+
+	/* Negative temperature */
+	if (temp < 3) {
+		if (temp == 2)
+			temp = -1;
+		else if (temp == 1)
+			temp = -2;
+		else
+			temp = -3;
 	}
 
 	return temp + 1;
@@ -697,23 +695,12 @@ static int twl4030backupbatt_voltage(void)
 {
 	int ret, temp;
 	u8 volt;
+	struct twl4030_madc_request req;
 
-	/* trigger MADC convertion */
-	twl4030madc_sw1_trigger();
-
-	ret = twl4030_i2c_read_u8(TWL4030_MODULE_MADC, &volt,
-			REG_GPCH9 + 1);
-	if (ret)
-		return ret;
-
-	temp = ((int) volt) << 2;
-
-	ret = twl4030_i2c_read_u8(TWL4030_MODULE_MADC, &volt,
-		REG_GPCH9);
-	if (ret)
-		return ret;
-
-	temp = temp + ((int) ((volt & MADC_LSB_MASK) >> 6));
+	req.channels = (1 << 9);
+	req.method = TWL4030_MADC_SW1;
+	twl4030_madc_conversion(&req);
+	temp = (u16)req.rbuf[9];
 
 	return  (temp * BK_VOLT_STEP_SIZE) / BK_VOLT_PSR_R;
 }
@@ -740,8 +727,12 @@ static int twl4030charger_presence(void)
 	}
 
 	ret = (hwsts & STS_CHG)? AC_PW_CONN: NO_PW_CONN;
-
 	ret += (hwsts & STS_VBUS)? USB_PW_CONN: NO_PW_CONN;
+
+	if (ret & USB_PW_CONN)
+		usb_charger_flag = 1;
+	else
+		usb_charger_flag = 0;
 
 	return ret;
 
@@ -789,66 +780,12 @@ static int read_bci_val(u8 reg)
 }
 
 /*
- * Triggers the sw1 request for the twl4030 module to measure the sw1 selected
- * channels
- */
-static int twl4030madc_sw1_trigger(void)
-{
-	u8 val;
-	int ret;
-
-	/* Triggering SW1 MADC convertion */
-	ret = twl4030_i2c_read_u8(TWL4030_MODULE_MADC, &val,
-		REG_CTRL_SW1);
-	if (ret)
-		return ret;
-
-	val |= SW1_TRIGGER;
-
-	ret = twl4030_i2c_write_u8(TWL4030_MODULE_MADC, val,
-		REG_CTRL_SW1);
-	if (ret)
-		return ret;
-
-	/* Waiting until the SW1 conversion ends*/
-	val = 0;
-
-	while (!(val & EOC_SW1)) {
-		ret = twl4030_i2c_read_u8(TWL4030_MODULE_MADC, &val,
-			REG_CTRL_SW1);
-		if (ret)
-			return ret;
-		mdelay(10);
-	}
-
-	return 0;
-}
-
-/*
- * Settup the twl4030 MADC module to measure the backup
- * battery voltage.
+ * Settup the twl4030 BCI module to enable backup
+ * battery charging.
  */
 static int twl4030backupbatt_voltage_setup(void)
 {
 	int ret;
-
-	/* turning MADC clocks on */
-	ret = clear_n_set(TWL4030_MODULE_INTBR, 0,
-		(MADC_HFCLK_EN | DEFAULT_MADC_CLK_EN), REG_GPBR1);
-	if (ret)
-		return ret;
-
-	/* turning adc_on */
-	ret = twl4030_i2c_write_u8(TWL4030_MODULE_MADC, MADC_ON,
-		REG_CTRL1);
-	if (ret)
-		return ret;
-
-	/*setting MDC channel 9 to trigger by SW1*/
-	ret = clear_n_set(TWL4030_MODULE_MADC, 0, SW1_CH9_SEL,
-		REG_SW1SELECT_MSB);
-	if (ret)
-		return ret;
 
 	/* Starting backup batery charge */
 	ret = clear_n_set(TWL4030_MODULE_PM_RECEIVER, 0, BBCHEN,
@@ -860,7 +797,7 @@ static int twl4030backupbatt_voltage_setup(void)
 }
 
 /*
- * Settup the twl4030 BCI and MADC module to measure battery
+ * Settup the twl4030 BCI module to measure battery
  * temperature
  */
 static int twl4030battery_temp_setup(void)
@@ -926,8 +863,8 @@ twl4030_bk_bci_battery_read_status(struct twl4030_bci_device_info *di)
 static void twl4030_bk_bci_battery_work(struct work_struct *work)
 {
 	struct twl4030_bci_device_info *di = container_of(work,
-					struct twl4030_bci_device_info,
-					twl4030_bk_bci_monitor_work.work);
+		struct twl4030_bci_device_info,
+		twl4030_bk_bci_monitor_work.work);
 
 	twl4030_bk_bci_battery_read_status(di);
 	schedule_delayed_work(&di->twl4030_bk_bci_monitor_work, 500);
@@ -953,7 +890,6 @@ twl4030_bci_battery_update_status(struct twl4030_bci_device_info *di)
 		di->charge_status = POWER_SUPPLY_STATUS_CHARGING;
 	else
 		di->charge_status = POWER_SUPPLY_STATUS_DISCHARGING;
-
 	return;
 }
 
@@ -1003,8 +939,8 @@ static int twl4030_bci_battery_get_property(struct power_supply *psy,
 					enum power_supply_property psp,
 					union power_supply_propval *val)
 {
-	int status = 0;
 	struct twl4030_bci_device_info *di = to_twl4030_bci_device_info(psy);
+	int status = 0;
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
@@ -1070,6 +1006,9 @@ static int twl4030_bci_battery_probe(struct  platform_device *dev)
 {
 	struct twl4030_bci_device_info *di;
 	int ret;
+	struct twl4030_bci_platform_data *pdata = dev->dev.platform_data;
+
+	therm_tbl = pdata->battery_tmp_tbl;
 
 	di = kzalloc(sizeof(*di), GFP_KERNEL);
 	if (!di)
@@ -1102,11 +1041,11 @@ static int twl4030_bci_battery_probe(struct  platform_device *dev)
 	if (ret)
 		goto voltage_setup_fail;
 
-	twl4030charger_ac_en(1);
-	twl4030charger_usb_en(1);
-	twl4030charger_hw_presence_en(1);
-	twl4030battery_hw_level_en(1);
-	twl4030battery_hw_presence_en(1);
+	twl4030charger_ac_en(ENABLE);
+	twl4030charger_usb_en(ENABLE);
+	twl4030charger_hw_presence_en(ENABLE);
+	twl4030battery_hw_level_en(ENABLE);
+	twl4030battery_hw_presence_en(ENABLE);
 
 	/* settings for temperature sensing */
 	ret = twl4030battery_temp_setup();
@@ -1122,18 +1061,9 @@ static int twl4030_bci_battery_probe(struct  platform_device *dev)
 		goto batt_irq_fail;
 	}
 
-	/* Previous setup for power interrupt handling */
-	ret = clear_n_set(TWL4030_MODULE_INT, COR, 0,
-		REG_PWR_SIH_CTRL);
-	if (ret) {
-		pr_err("BATTERY DRIVER:"
-			"power interrupt previous settup error.\n");
-		goto prev_setup_err;
-	}
-
-	/* request interrupt on charger detection */
-	ret = request_irq(TWL4030_PWRIRQ_CHG_PRES, twl4030charger_interrupt, 0,
-		dev->name, di);
+	/* request Power interruption */
+	ret = request_irq(TWL4030_PWRIRQ_CHG_PRES, twl4030charger_interrupt,
+		0, dev->name, di);
 #ifndef CONFIG_TWL4030_USB
 	ret = request_irq(TWL4030_PWRIRQ_USB_PRES, twl4030charger_interrupt, 0,
 		dev->name, di);
@@ -1150,7 +1080,7 @@ static int twl4030_bci_battery_probe(struct  platform_device *dev)
 		goto batt_failed;
 	}
 
-	INIT_DELAYED_WORK(&di->twl4030_bci_monitor_work,
+	INIT_DELAYED_WORK_DEFERRABLE(&di->twl4030_bci_monitor_work,
 				twl4030_bci_battery_work);
 	schedule_delayed_work(&di->twl4030_bci_monitor_work, 0);
 
@@ -1160,7 +1090,7 @@ static int twl4030_bci_battery_probe(struct  platform_device *dev)
 		goto bk_batt_failed;
 	}
 
-	INIT_DELAYED_WORK(&di->twl4030_bk_bci_monitor_work,
+	INIT_DELAYED_WORK_DEFERRABLE(&di->twl4030_bk_bci_monitor_work,
 				twl4030_bk_bci_battery_work);
 	schedule_delayed_work(&di->twl4030_bk_bci_monitor_work, 500);
 
@@ -1174,13 +1104,13 @@ chg_irq_fail:
 prev_setup_err:
 	free_irq(TWL4030_MODIRQ_BCI, NULL);
 batt_irq_fail:
-temp_setup_fail:
-	twl4030charger_ac_en(0);
-	twl4030charger_usb_en(0);
-	twl4030charger_hw_presence_en(0);
-	twl4030battery_hw_level_en(0);
-	twl4030battery_hw_presence_en(0);
 voltage_setup_fail:
+temp_setup_fail:
+	twl4030charger_ac_en(DISABLE);
+	twl4030charger_usb_en(DISABLE);
+	twl4030charger_hw_presence_en(DISABLE);
+	twl4030battery_hw_level_en(DISABLE);
+	twl4030battery_hw_presence_en(DISABLE);
 	kfree(di);
 
 	return ret;
@@ -1190,11 +1120,11 @@ static int twl4030_bci_battery_remove(struct  platform_device *dev)
 {
 	struct twl4030_bci_device_info *di = platform_get_drvdata(dev);
 
-	twl4030charger_ac_en(0);
-	twl4030charger_usb_en(0);
-	twl4030charger_hw_presence_en(0);
-	twl4030battery_hw_level_en(0);
-	twl4030battery_hw_presence_en(0);
+	twl4030charger_ac_en(DISABLE);
+	twl4030charger_usb_en(DISABLE);
+	twl4030charger_hw_presence_en(DISABLE);
+	twl4030battery_hw_level_en(DISABLE);
+	twl4030battery_hw_presence_en(DISABLE);
 
 	free_irq(TWL4030_MODIRQ_BCI, NULL);
 	free_irq(TWL4030_MODIRQ_PWR, di);
@@ -1252,3 +1182,5 @@ static void __exit twl4030_battery_exit(void)
 module_init(twl4030_battery_init);
 module_exit(twl4030_battery_exit);
 MODULE_LICENSE("GPL");
+MODULE_ALIAS("twl4030_bci_battery");
+MODULE_AUTHOR("Texas Instruments Inc");

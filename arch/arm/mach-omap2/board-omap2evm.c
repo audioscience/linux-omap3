@@ -17,15 +17,18 @@
 #include <linux/err.h>
 #include <linux/clk.h>
 #include <linux/io.h>
+#include <linux/input.h>
 
-#include <asm/hardware.h>
+#include <mach/hardware.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
 
-#include <asm/arch/gpio.h>
-#include <asm/arch/board.h>
-#include <asm/arch/common.h>
+#include <mach/gpio.h>
+#include <mach/board.h>
+#include <mach/common.h>
+#include <mach/hsmmc.h>
+#include <mach/keypad.h>
 
 static struct resource omap2evm_smc911x_resources[] = {
 	[0] =   {
@@ -62,9 +65,53 @@ static inline void __init omap2evm_init_smc911x(void)
 
 }
 
+static struct platform_device omap2_evm_lcd_device = {
+	.name		= "omap2evm_lcd",
+	.id		= -1,
+};
+
+static struct omap_lcd_config omap2_evm_lcd_config __initdata = {
+	.ctrl_name	= "internal",
+};
+
+static int omap2evm_keymap[] = {
+	KEY(0, 0, KEY_LEFT),
+	KEY(0, 1, KEY_RIGHT),
+	KEY(0, 2, KEY_A),
+	KEY(0, 3, KEY_B),
+	KEY(1, 0, KEY_DOWN),
+	KEY(1, 1, KEY_UP),
+	KEY(1, 2, KEY_E),
+	KEY(1, 3, KEY_F),
+	KEY(2, 0, KEY_ENTER),
+	KEY(2, 1, KEY_I),
+	KEY(2, 2, KEY_J),
+	KEY(2, 3, KEY_K),
+	KEY(3, 0, KEY_M),
+	KEY(3, 1, KEY_N),
+	KEY(3, 2, KEY_O),
+	KEY(3, 3, KEY_P)
+};
+
+static struct omap_kp_platform_data omap2evm_kp_data = {
+	.rows		= 4,
+	.cols		= 4,
+	.keymap 	= omap2evm_keymap,
+	.keymapsize	= ARRAY_SIZE(omap2evm_keymap),
+	.rep		= 1,
+};
+
+static struct platform_device omap2evm_kp_device = {
+	.name		= "omap_twl4030keypad",
+	.id		= -1,
+	.dev		= {
+				.platform_data = &omap2evm_kp_data,
+			},
+};
+
 static void __init omap2_evm_init_irq(void)
 {
-	omap2_init_common_hw();
+	omap2_init_common_hw(NULL);
 	omap_init_irq();
 	omap_gpio_init();
 	omap2evm_init_smc911x();
@@ -74,8 +121,17 @@ static struct omap_uart_config omap2_evm_uart_config __initdata = {
 	.enabled_uarts	= ((1 << 0) | (1 << 1) | (1 << 2)),
 };
 
+static struct omap_mmc_config omap2_evm_mmc_config __initdata = {
+	.mmc [0] = {
+		.enabled        = 1,
+		.wire4          = 1,
+	},
+};
+
 static struct omap_board_config_kernel omap2_evm_config[] __initdata = {
-	{OMAP_TAG_UART, &omap2_evm_uart_config},
+	{ OMAP_TAG_UART,	&omap2_evm_uart_config },
+	{ OMAP_TAG_LCD,		&omap2_evm_lcd_config },
+	{ OMAP_TAG_MMC,		&omap2_evm_mmc_config },
 };
 
 static int __init omap2_evm_i2c_init(void)
@@ -90,7 +146,9 @@ static int __init omap2_evm_i2c_init(void)
 }
 
 static struct platform_device *omap2_evm_devices[] __initdata = {
-    &omap2evm_smc911x_device,
+	&omap2_evm_lcd_device,
+	&omap2evm_smc911x_device,
+	&omap2evm_kp_device,
 };
 
 static void __init omap2_evm_init(void)
@@ -99,6 +157,7 @@ static void __init omap2_evm_init(void)
 	omap_board_config = omap2_evm_config;
 	omap_board_config_size = ARRAY_SIZE(omap2_evm_config);
 	omap_serial_init();
+	hsmmc_init();
 }
 
 static void __init omap2_evm_map_io(void)

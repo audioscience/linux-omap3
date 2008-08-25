@@ -24,46 +24,45 @@
 #include <linux/i2c/twl4030.h>
 #include <linux/i2c/twl4030-rtc.h>
 
-#include <asm/hardware.h>
+#include <mach/hardware.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
 
-#include <asm/arch/mcspi.h>
-#include <asm/arch/gpio.h>
-#include <asm/arch/board.h>
-#include <asm/arch/common.h>
+#include <mach/mcspi.h>
+#include <mach/gpio.h>
+#include <mach/board.h>
+#include <mach/common.h>
 #include <asm/arch/keypad.h>
-#include <asm/arch/gpmc.h>
-#include <asm/arch/hsmmc.h>
-#include <asm/arch/usb-musb.h>
+#include <mach/gpmc.h>
+#include <mach/hsmmc.h>
+#include <mach/usb-musb.h>
 
 #include <asm/io.h>
 #include <asm/delay.h>
-#include <asm/arch/control.h>
+#include <mach/control.h>
 #ifdef CONFIG_OMAP3_PM
 #include "prcm-regs.h"
 #include "ti-compat.h"
 #include <asm/arch/prcm_34xx.h>
 #endif
 
-#define	SDP3430_SMC91X_CS	3
-#define ENABLE_VAUX1_DEDICATED	0x03
-#define ENABLE_VAUX1_DEV_GRP	0x20
+#define       SDP3430_SMC91X_CS 	3
+#define ENABLE_VAUX1_DEDICATED		0x03
+#define ENABLE_VAUX1_DEV_GRP		0x20
 
-#define ENABLE_VAUX3_DEDICATED	0x03
-#define ENABLE_VAUX3_DEV_GRP	0x20
-#define TWL4030_MSECURE_GPIO	22
+#define ENABLE_VAUX3_DEDICATED        	0x03
+#define ENABLE_VAUX3_DEV_GRP  		0x20
+#define TWL4030_MSECURE_GPIO		22
 
 #ifdef CONFIG_OMAP3_PM
-#define CONTROL_SYSC_SMARTIDLE  (0x2 << 3)
-#define CONTROL_SYSC_AUTOIDLE   (0x1)
-
-#define PRCM_INTERRUPT_MASK     (1 << 11)
-#define UART1_INTERRUPT_MASK    (1 << 8)
-#define UART2_INTERRUPT_MASK    (1 << 9)
-#define UART3_INTERRUPT_MASK    (1 << 10)
-#define TWL4030_MSECURE_GPIO    22
+#define CONTROL_SYSC_SMARTIDLE  	(0x2 << 3)
+#define CONTROL_SYSC_AUTOIDLE   	(0x1)
+#define PRCM_INTERRUPT_MASK     	(1 << 11)
+#define UART1_INTERRUPT_MASK    	(1 << 8)
+#define UART2_INTERRUPT_MASK    	(1 << 9)
+#define UART3_INTERRUPT_MASK    	(1 << 10)
+#define TWL4030_MSECURE_GPIO    	22
 int console_detect(char *str);
 unsigned int uart_interrupt_mask_value;
 u32 *console_padconf_reg;
@@ -444,8 +443,8 @@ static struct spi_board_info ldp_spi_board_info[] __initdata = {
 };
 
 static struct platform_device *ldp_devices[] __initdata = {
-	&ldp_smc911x_device,
-	&ldp_kp_device,
+       &ldp_smc911x_device,
+       &ldp_kp_device,
 #ifdef CONFIG_RTC_DRV_TWL4030
 	&ldp_twl4030rtc_device,
 #endif
@@ -453,43 +452,44 @@ static struct platform_device *ldp_devices[] __initdata = {
 
 static inline void __init ldp_init_smc911x(void)
 {
-	int eth_cs;
-	unsigned long cs_mem_base;
-	int eth_gpio = 0;
+       int eth_cs;
+       unsigned long cs_mem_base;
+       int eth_gpio = 0;
 
-	eth_cs = LDP_SMC911X_CS;
+       eth_cs = LDP_SMC911X_CS;
 
-	if (gpmc_cs_request(eth_cs, SZ_16M, &cs_mem_base) < 0) {
-		printk(KERN_ERR "Failed to request GPMC mem for smc911x\n");
-		return;
-	}
+       if (gpmc_cs_request(eth_cs, SZ_16M, &cs_mem_base) < 0) {
+               printk(KERN_ERR "Failed to request GPMC mem for smc911x\n");
+               return;
+       }
 
-	ldp_smc911x_resources[0].start = cs_mem_base + 0x0;
-	ldp_smc911x_resources[0].end   = cs_mem_base + 0xf;
-	udelay(100);
+       ldp_smc911x_resources[0].start = cs_mem_base + 0x0;
+       ldp_smc911x_resources[0].end   = cs_mem_base + 0xf;
+       udelay(100);
 
-	eth_gpio = LDP_SMC911X_GPIO;
+       eth_gpio = LDP_SMC911X_GPIO;
 
-	ldp_smc911x_resources[1].start = OMAP_GPIO_IRQ(eth_gpio);
+       ldp_smc911x_resources[1].start = OMAP_GPIO_IRQ(eth_gpio);
 
-	if (omap_request_gpio(eth_gpio) < 0) {
-		printk(KERN_ERR "Failed to request GPIO%d for smc911x IRQ\n",
-			eth_gpio);
-		return;
-	}
-	omap_set_gpio_direction(eth_gpio, 1);
+       if (omap_request_gpio(eth_gpio) < 0) {
+               printk(KERN_ERR "Failed to request GPIO%d for smc911x IRQ\n",
+                       eth_gpio);
+               return;
+       }
+       omap_set_gpio_direction(eth_gpio, 1);
 }
+
 
 static void __init omap_ldp_init_irq(void)
 {
-	omap2_init_common_hw();
+	omap2_init_common_hw(NULL);
 	omap_init_irq();
 #ifdef CONFIG_OMAP3_PM
 	/* System Control module clock initialization */
 	scm_clk_init();
 #endif
 	omap_gpio_init();
-	ldp_init_smc911x();
+        ldp_init_smc911x();
 }
 
 static struct omap_uart_config ldp_uart_config __initdata = {

@@ -35,8 +35,8 @@
 #include <asm/arch/serial.h>
 #include <asm/arch/omap-hsuart.h>
 
-#include <asm/arch/common.h>
-#include <asm/arch/board.h>
+#include <mach/common.h>
+#include <mach/board.h>
 
 #define CONSOLE_NAME    "console="
 #define FREE            0

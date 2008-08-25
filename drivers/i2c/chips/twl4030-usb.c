@@ -33,7 +33,7 @@
 #include <linux/usb/gadget.h>
 #include <linux/usb/otg.h>
 #include <linux/i2c/twl4030.h>
-#include <asm/arch/usb.h>
+#include <mach/usb.h>
 
 /* Register defines */
 
@@ -586,7 +586,7 @@ static void twl4030_usb_ldo_init(struct twl4030_usb *twl)
 	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0, VUSB1V8_TYPE);
 
 	/* disable access to power configuration registers */
-	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0, PROTECT_KEY);
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_MASTER, 0, PROTECT_KEY);
 }
 
 #ifdef CONFIG_TWL4030_BCI_BATTERY
@@ -609,6 +609,7 @@ static irqreturn_t twl4030_usb_irq(int irq, void *_twl)
 				" line %d\n", __LINE__);
 		goto done;
 	}
+
 	if (val & USB_PRES_RISING) {
 		twl4030_phy_resume();
 		twl4030charger_usb_en(1);

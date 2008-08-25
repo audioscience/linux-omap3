@@ -53,7 +53,7 @@
 #define TWL4030_MODULE_SECURED_REG	0x15
 
 /* IRQ information-need base */
-#include <asm/arch/irqs.h>
+#include <mach/irqs.h>
 /* TWL4030 interrupts */
 
 #define TWL4030_MODIRQ_GPIO		(TWL4030_IRQ_BASE + 0)
@@ -128,5 +128,12 @@ int twl4030_set_gpio_direction(int gpio, int is_input);
 int twl4030_set_gpio_edge_ctrl(int gpio, int edge);
 int twl4030_set_gpio_debounce(int gpio, int enable);
 int twl4030_free_gpio(int gpio);
+
+#if defined(CONFIG_TWL4030_BCI_BATTERY) || \
+	defined(CONFIG_TWL4030_BCI_BATTERY_MODULE)
+	extern int twl4030charger_usb_en(int enable);
+#else
+	static inline int twl4030charger_usb_en(int enable) { return 0; }
+#endif
 
 #endif /* End of __TWL4030_H */

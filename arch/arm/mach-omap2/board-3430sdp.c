@@ -24,23 +24,23 @@
 #include <linux/spi/spi.h>
 #include <linux/spi/ads7846.h>
 
-#include <asm/hardware.h>
+#include <mach/hardware.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
 
-#include <asm/arch/mcspi.h>
-#include <asm/arch/gpio.h>
-#include <asm/arch/mux.h>
-#include <asm/arch/irda.h>
-#include <asm/arch/board.h>
-#include <asm/arch/usb-musb.h>
-#include <asm/arch/usb-ehci.h>
-#include <asm/arch/hsmmc.h>
-#include <asm/arch/common.h>
-#include <asm/arch/keypad.h>
-#include <asm/arch/dma.h>
-#include <asm/arch/gpmc.h>
+#include <mach/mcspi.h>
+#include <mach/gpio.h>
+#include <mach/mux.h>
+#include <mach/irda.h>
+#include <mach/board.h>
+#include <mach/usb-musb.h>
+#include <mach/usb-ehci.h>
+#include <mach/hsmmc.h>
+#include <mach/common.h>
+#include <mach/keypad.h>
+#include <mach/dma.h>
+#include <mach/gpmc.h>
 #include <linux/i2c/twl4030-rtc.h>
 #include <media/v4l2-int-device.h>
 #include <../drivers/media/video/mt9p012.h>
@@ -55,7 +55,9 @@
 
 #include <asm/io.h>
 #include <asm/delay.h>
-#include <asm/arch/control.h>
+#include <mach/control.h>
+
+#include "sdram-qimonda-hyb18m512160af-6.h"
 
 #define	SDP3430_SMC91X_CS	3
 
@@ -66,7 +68,7 @@
 #define ENABLE_VAUX3_DEV_GRP	0x20
 
 
-#define TWL4030_MSECURE_GPIO	22
+#define TWL4030_MSECURE_GPIO 22
 
 #ifdef CONFIG_OMAP3_PM
 #define CONTROL_SYSC_SMARTIDLE  (0x2 << 3)
@@ -601,7 +603,7 @@ static int mt9p012_sensor_set_prv_data(void *priv)
 static struct isp_interface_config mt9p012_if_config = {
 	.ccdc_par_ser = ISP_PARLL,
 	.dataline_shift = 0x1,
-	.hsvs_syncdetect = ISPCTRL_SYNC_DETECT_VSRISE,	
+	.hsvs_syncdetect = ISPCTRL_SYNC_DETECT_VSRISE,
 	.vdint0_timing = 0x0,
 	.vdint1_timing = 0x0,
 	.strobe = 0x0,
@@ -613,6 +615,7 @@ static struct isp_interface_config mt9p012_if_config = {
 
 static int mt9p012_sensor_power_set(enum v4l2_power power)
 {
+	u16 cam_fld_pad_config_reg_offset = 0x114;
 	switch (power) {
 	case V4L2_POWER_OFF:
 		/* Power Down Sequence */
@@ -679,7 +682,7 @@ static int mt9p012_sensor_power_set(enum v4l2_power power)
 		/* give sensor sometime to get out of the reset. Datasheet says
 		   2400 xclks. At 6 MHz, 400 usec are enough */
 		udelay(300);
-		omap_writel(0x01003B1C, CONTROL_PADCONF_CAM_FLD);
+		omap_ctrl_writew(0x3B1C, cam_fld_pad_config_reg_offset);
 		omap_set_gpio_direction(MT9P012_RESET_GPIO, GPIO_DIR_INPUT);
 		break;
 	case V4L2_POWER_STANDBY:
@@ -807,7 +810,7 @@ static inline void __init sdp3430_init_smc91x(void)
 
 static void __init omap_3430sdp_init_irq(void)
 {
-	omap2_init_common_hw();
+	omap2_init_common_hw(hyb18m512160af6_sdrc_params);
 	omap_init_irq();
 	omap_gpio_init();
 	sdp3430_init_smc91x();
@@ -863,6 +866,7 @@ static void __init omap_3430sdp_init(void)
 				ARRAY_SIZE(sdp3430_spi_board_info));
 	ads7846_dev_init();
 	sdp3430_flash_init();
+	twl4030_bci_battery_init();
 	omap_serial_init();
 	usb_musb_init();
 	usb_ehci_init();

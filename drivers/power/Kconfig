@@ -71,11 +71,24 @@ config BATTERY_BQ27200
 	  Say Y here to enable support for batteries with BQ27200(I2C) chip.
 
 config TWL4030_BCI_BATTERY
-	bool "OMAP TWL4030 BCI Battery driver"
-	depends on (MACH_OMAP_2430SDP || MACH_OMAP_3430SDP || MACH_OMAP_LDP) && TWL4030_CORE
+	tristate "OMAP TWL4030 BCI Battery driver"
+	depends on (MACH_OMAP_2430SDP || MACH_OMAP_3430SDP || MACH_OMAP_LDP) && TWL4030_MADC
 	default y
 	help
 	  Support for OMAP TWL4030 BCI Battery driver.
 	  This driver can give support for TWL4030 Battery Charge Interface.
+
+config BATTERY_TOSA
+	tristate "Sharp SL-6000 (tosa) battery"
+	depends on MACH_TOSA && MFD_TC6393XB
+	help
+	  Say Y to enable support for the battery on the Sharp Zaurus
+	  SL-6000 (tosa) models.
+
+config BATTERY_PALMTX
+	tristate "Palm T|X battery"
+	depends on MACH_PALMTX
+	help
+	  Say Y to enable support for the battery in Palm T|X.
 
 endif # POWER_SUPPLY

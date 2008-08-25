@@ -13,21 +13,21 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/platform_device.h>
+#include <linux/i2c/menelaus.h>
 
-#include <asm/hardware.h>
+#include <mach/hardware.h>
 #include <asm/io.h>
 #include <asm/mach-types.h>
 #include <asm/mach/map.h>
 
-#include <asm/arch/tc.h>
-#include <asm/arch/control.h>
-#include <asm/arch/board.h>
-#include <asm/arch/mmc.h>
-#include <asm/arch/mux.h>
-#include <asm/arch/gpio.h>
-#include <asm/arch/menelaus.h>
-#include <asm/arch/dsp_common.h>
-#include <asm/arch/mcbsp.h>
+#include <mach/tc.h>
+#include <mach/control.h>
+#include <mach/board.h>
+#include <mach/mmc.h>
+#include <mach/mux.h>
+#include <mach/gpio.h>
+#include <mach/dsp_common.h>
+#include <mach/mcbsp.h>
 
 #if	defined(CONFIG_OMAP_DSP) || defined(CONFIG_OMAP_DSP_MODULE)
 
@@ -159,13 +159,6 @@ void omap_mcbsp_register_board_cfg(struct omap_mcbsp_platform_data *config,
 					int size)
 {
 	int i;
-
-	if (size > OMAP_MAX_MCBSP_COUNT) {
-		printk(KERN_WARNING "Registered too many McBSPs platform_data."
-			" Using maximum (%d) available.\n",
-			OMAP_MAX_MCBSP_COUNT);
-		size = OMAP_MAX_MCBSP_COUNT;
-	}
 
 	omap_mcbsp_devices = kzalloc(size * sizeof(struct platform_device *),
 				     GFP_KERNEL);

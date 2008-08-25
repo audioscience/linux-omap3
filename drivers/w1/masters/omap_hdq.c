@@ -16,7 +16,7 @@
 #include <linux/clk.h>
 #include <linux/io.h>
 #include <asm/irq.h>
-#include <asm/hardware.h>
+#include <mach/hardware.h>
 
 #include "../w1.h"
 #include "../w1_int.h"
@@ -515,8 +515,11 @@ static u8 omap_w1_read_byte(void *data)
 	int ret;
 
 	ret = hdq_read_byte(&val);
-	if (ret)
+	if (ret) {
+		init_trans = 0;
+		omap_hdq_put();
 		return -1;
+	}
 
 	/* Write followed by a read, release the module */
 	if (init_trans) {

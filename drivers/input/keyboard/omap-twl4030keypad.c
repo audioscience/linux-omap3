@@ -37,8 +37,7 @@
 #include <linux/i2c.h>
 #include <linux/i2c/twl4030.h>
 #include <linux/irq.h>
-#include <asm/arch/keypad.h>
-#include <asm/arch/gpio.h>
+#include <mach/keypad.h>
 #include "twl4030-keypad.h"
 
 #define PTV_PRESCALER		4
@@ -169,7 +168,7 @@ static void twl4030_kp_scan(int release_all)
 		if (!changed)
 			continue;
 
-		for (col = 0; col < n_cols + 1; col++) {
+		for (col = 0; col < n_cols; col++) {
 			int key;
 
 			if (!(changed & (1 << col)))
@@ -525,4 +524,3 @@ MODULE_ALIAS("platform:omap_twl4030keypad");
 MODULE_AUTHOR("Texas Instruments");
 MODULE_DESCRIPTION("OMAP TWL4030 Keypad Driver");
 MODULE_LICENSE("GPL");
-MODULE_ALIAS("platform:omap_twl4030keypad");

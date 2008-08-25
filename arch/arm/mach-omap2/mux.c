@@ -29,8 +29,8 @@
 #include <linux/io.h>
 #include <linux/spinlock.h>
 
-#include <asm/arch/control.h>
-#include <asm/arch/mux.h>
+#include <mach/control.h>
+#include <mach/mux.h>
 
 #ifdef CONFIG_OMAP_MUX
 
@@ -424,7 +424,7 @@ static void __init_or_module omap2_cfg_debug(const struct pin_config *cfg, u16 r
 #endif
 
 #ifdef CONFIG_ARCH_OMAP24XX
-int __init_or_module omap24xx_cfg_reg(const struct pin_config *cfg)
+static int __init_or_module omap24xx_cfg_reg(const struct pin_config *cfg)
 {
 	static DEFINE_SPINLOCK(mux_spin_lock);
 	unsigned long flags;

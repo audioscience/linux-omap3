@@ -82,7 +82,7 @@
 /*
  * This gets many kinds of configuration information:
  *	- Kconfig for everything user-configurable
- *	- <asm/arch/hdrc_cnf.h> for SOC or family details
+ *	- <mach/hdrc_cnf.h> for SOC or family details
  *	- platform_device for addressing, irq, and platform_data
  *	- platform_data is mostly for board-specific informarion
  *
@@ -100,8 +100,8 @@
 #include <linux/io.h>
 
 #ifdef	CONFIG_ARM
-#include <asm/arch/hardware.h>
-#include <asm/arch/memory.h>
+#include <mach/hardware.h>
+#include <mach/memory.h>
 #include <asm/mach-types.h>
 #endif
 
@@ -443,7 +443,7 @@ static irqreturn_t musb_stage0_irq(struct musb *musb, u8 int_usb,
 				MUSB_DEV_MODE(musb);
 				break;
 			default:
-				WARN("bogus %s RESUME (%s)\n",
+				WARNING("bogus %s RESUME (%s)\n",
 					"host",
 					otg_state_string(musb));
 			}
@@ -477,7 +477,7 @@ static irqreturn_t musb_stage0_irq(struct musb *musb, u8 int_usb,
 				break;
 #endif
 			default:
-				WARN("bogus %s RESUME (%s)\n",
+				WARNING("bogus %s RESUME (%s)\n",
 					"peripheral",
 					otg_state_string(musb));
 			}
@@ -799,7 +799,7 @@ static irqreturn_t musb_stage2_irq(struct musb *musb, u8 int_usb,
 			break;
 #endif	/* GADGET */
 		default:
-			WARN("unhandled DISCONNECT transition (%s)\n",
+			WARNING("unhandled DISCONNECT transition (%s)\n",
 				otg_state_string(musb));
 			break;
 		}

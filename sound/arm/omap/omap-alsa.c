@@ -52,9 +52,8 @@
 #endif
 #include <sound/core.h>
 #include <sound/pcm.h>
-
 #include <asm/mach-types.h>
-#include <asm/arch/omap-alsa.h>
+#include <mach/omap-alsa.h>
 #include "omap-alsa-dma.h"
 
 MODULE_AUTHOR("Mika Laitio");

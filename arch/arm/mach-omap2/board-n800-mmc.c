@@ -9,12 +9,12 @@
  * published by the Free Software Foundation.
  */
 
-#include <asm/arch/mmc.h>
-#include <asm/arch/menelaus.h>
-#include <asm/arch/gpio.h>
+#include <mach/mmc.h>
+#include <mach/gpio.h>
 
 #include <asm/mach-types.h>
 #include <linux/delay.h>
+#include <linux/i2c/menelaus.h>
 
 #ifdef CONFIG_MMC_OMAP
 

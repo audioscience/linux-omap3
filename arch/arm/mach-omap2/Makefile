@@ -3,13 +3,19 @@
 #
 
 # Common support
-obj-y := irq.o id.o io.o memory.o control.o mux.o prcm.o\
+
+
+obj-y := irq.o id.o io.o sdrc.o sdrc2xxx.o control.o mux.o prcm.o\
 		devices.o serial.o gpmc.o timer-gp.o \
 
 obj-$(CONFIG_OMAP_MCBSP) += mcbsp.o
 
 # Functions loaded to SRAM
 obj-$(CONFIG_ARCH_OMAP3)		+= sram34xx.o
+
+# SMS/SDRC
+obj-$(CONFIG_ARCH_OMAP2)		+= sdrc2xxx.o
+# obj-$(CONFIG_ARCH_OMAP3)		+= sdrc3xxx.o
 
 # Power Management
 ifeq ($(CONFIG_PM),y)
@@ -55,12 +61,14 @@ obj-$(CONFIG_MACH_OMAP_2430SDP)		+= board-2430sdp.o \
 					   hsmmc.o \
 					   usb-musb.o \
 					   usb-ehci.o
-obj-$(CONFIG_MACH_OMAP2EVM)		+= board-omap2evm.o
+obj-$(CONFIG_MACH_OMAP2EVM)		+= board-omap2evm.o \
+					   hsmmc.o
 obj-$(CONFIG_MACH_OMAP_3430SDP)		+= board-3430sdp.o \
 					   hsmmc.o \
 					   usb-musb.o \
 					   usb-ehci.o \
-					   board-3430sdp-flash.o
+					   board-3430sdp-flash.o \
+					   bci.o
 obj-$(CONFIG_MACH_OMAP3EVM)		+= board-omap3evm.o \
 					   hsmmc.o \
 					   usb-musb.o usb-ehci.o \

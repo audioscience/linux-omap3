@@ -27,9 +27,9 @@
 #include <linux/i2c/twl4030.h>
 #include <linux/io.h>
 
-#include <asm/arch/omap34xx.h>
-#include <asm/arch/control.h>
-#include <asm/arch/clock.h>
+#include <mach/omap34xx.h>
+#include <mach/control.h>
+#include <mach/clock.h>
 
 #include "prm.h"
 #include "smartreflex.h"
@@ -60,9 +60,11 @@ struct sr_custom_clk {
 	struct omap_sr 	*sr;
 };
 
+#define SR_REGADDR(offs)     (__force void __iomem *)(sr->srbase_addr + offset)
+
 static inline void sr_write_reg(struct omap_sr *sr, int offset, u32 value)
 {
-	__raw_writel(value, sr->srbase_addr + offset);
+	__raw_writel(value, SR_REGADDR(offset));
 }
 
 static inline void sr_modify_reg(struct omap_sr *sr, int offset, u32 mask,
@@ -70,16 +72,16 @@ static inline void sr_modify_reg(struct omap_sr *sr, int offset, u32 mask,
 {
 	u32 reg_val;
 
-	reg_val = __raw_readl(sr->srbase_addr + offset);
+	reg_val = __raw_readl(SR_REGADDR(offset));
 	reg_val &= ~mask;
 	reg_val |= value;
 
-	__raw_writel(reg_val, sr->srbase_addr + offset);
+	__raw_writel(reg_val, SR_REGADDR(offset));
 }
 
 static inline u32 sr_read_reg(struct omap_sr *sr, int offset)
 {
-	return __raw_readl(sr->srbase_addr + offset);
+	return __raw_readl(SR_REGADDR(offset));
 }
 
 /* Custom clock handling functions */
@@ -360,64 +362,6 @@ static void sr_configure_vp(int srid)
 					OMAP3_PRM_VP2_CONFIG_OFFSET);
 
 	}
-}
-
-static void sr_configure_vc(void)
-{
-	prm_write_mod_reg((R_SRI2C_SLAVE_ADDR << OMAP3430_SMPS_SA1_SHIFT) |
-			(R_SRI2C_SLAVE_ADDR << OMAP3430_SMPS_SA0_SHIFT),
-			OMAP3430_GR_MOD, OMAP3_PRM_VC_SMPS_SA_OFFSET);
-
-	prm_write_mod_reg((R_VDD2_SR_CONTROL << OMAP3430_VOLRA1_SHIFT) |
-			(R_VDD1_SR_CONTROL << OMAP3430_VOLRA0_SHIFT),
-			OMAP3430_GR_MOD, OMAP3_PRM_VC_SMPS_VOL_RA_OFFSET);
-
-	prm_write_mod_reg((OMAP3430_VC_CMD_VAL0_ON <<
-		OMAP3430_VC_CMD_ON_SHIFT) |
-		(OMAP3430_VC_CMD_VAL0_ONLP << OMAP3430_VC_CMD_ONLP_SHIFT) |
-		(OMAP3430_VC_CMD_VAL0_RET << OMAP3430_VC_CMD_RET_SHIFT) |
-		(OMAP3430_VC_CMD_VAL0_OFF << OMAP3430_VC_CMD_OFF_SHIFT),
-		OMAP3430_GR_MOD, OMAP3_PRM_VC_CMD_VAL_0_OFFSET);
-
-	prm_write_mod_reg((OMAP3430_VC_CMD_VAL1_ON <<
-		OMAP3430_VC_CMD_ON_SHIFT) |
-		(OMAP3430_VC_CMD_VAL1_ONLP << OMAP3430_VC_CMD_ONLP_SHIFT) |
-		(OMAP3430_VC_CMD_VAL1_RET << OMAP3430_VC_CMD_RET_SHIFT) |
-		(OMAP3430_VC_CMD_VAL1_OFF << OMAP3430_VC_CMD_OFF_SHIFT),
-		OMAP3430_GR_MOD, OMAP3_PRM_VC_CMD_VAL_1_OFFSET);
-
-	prm_write_mod_reg(OMAP3430_CMD1 | OMAP3430_RAV1,
-				OMAP3430_GR_MOD,
-				OMAP3_PRM_VC_CH_CONF_OFFSET);
-
-	prm_write_mod_reg(OMAP3430_MCODE_SHIFT | OMAP3430_HSEN | OMAP3430_SREN,
-				OMAP3430_GR_MOD,
-				OMAP3_PRM_VC_I2C_CFG_OFFSET);
-
-	/* Setup voltctrl and other setup times */
-	/* XXX CONFIG_SYSOFFMODE has not been implemented yet */
-#ifdef CONFIG_SYSOFFMODE
-	prm_write_mod_reg(OMAP3430_AUTO_OFF | OMAP3430_AUTO_RET,
-			OMAP3430_GR_MOD,
-			OMAP3_PRM_VOLTCTRL_OFFSET);
-
-	prm_write_mod_reg(OMAP3430_CLKSETUP_DURATION, OMAP3430_GR_MOD,
-			OMAP3_PRM_CLKSETUP_OFFSET);
-	prm_write_mod_reg((OMAP3430_VOLTSETUP_TIME2 <<
-			OMAP3430_VOLTSETUP_TIME2_OFFSET) |
-			(OMAP3430_VOLTSETUP_TIME1 <<
-			OMAP3430_VOLTSETUP_TIME1_OFFSET),
-			OMAP3430_GR_MOD, OMAP3_PRM_VOLTSETUP1_OFFSET);
-
-	prm_write_mod_reg(OMAP3430_VOLTOFFSET_DURATION, OMAP3430_GR_MOD,
-			OMAP3_PRM_VOLTOFFSET_OFFSET);
-	prm_write_mod_reg(OMAP3430_VOLTSETUP2_DURATION, OMAP3430_GR_MOD,
-			OMAP3_PRM_VOLTSETUP2_OFFSET);
-#else
-	prm_set_mod_reg_bits(OMAP3430_AUTO_RET, OMAP3430_GR_MOD,
-			OMAP3_PRM_VOLTCTRL_OFFSET);
-#endif
-
 }
 
 static void sr_configure(struct omap_sr *sr)
@@ -844,8 +788,6 @@ static int __init omap3_sr_init(void)
 
 	sr_set_nvalues(&sr2);
 	sr_configure_vp(SR2);
-
-	sr_configure_vc();
 
 	/* Enable SR on T2 */
 	ret = twl4030_i2c_read_u8(TWL4030_MODULE_PM_RECEIVER, &RdReg,

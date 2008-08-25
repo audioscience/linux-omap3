@@ -23,19 +23,19 @@
 #include <asm/tlb.h>
 
 #include <asm/mach/map.h>
-#include <asm/arch/mux.h>
-#include <asm/arch/omapfb.h>
-#include <asm/arch/sram.h>
-
-#include "memory.h"
+#include <mach/mux.h>
+#include <mach/omapfb.h>
+#include <mach/sram.h>
+#include <mach/sdrc.h>
+#include <mach/gpmc.h>
 
 #include "clock.h"
 
-#include <asm/arch/powerdomain.h>
+#include <mach/powerdomain.h>
 
 #include "powerdomains.h"
 
-#include <asm/arch/clockdomain.h>
+#include <mach/clockdomain.h>
 #include "clockdomains.h"
 
 #ifdef CONFIG_OMAP3_PM
@@ -198,7 +198,7 @@ void __init omap2_map_common_io(void)
 	omapfb_reserve_sdram();
 }
 
-void __init omap2_init_common_hw(void)
+void __init omap2_init_common_hw(struct omap_sdrc_params *sp)
 {
 	omap2_mux_init();
 #ifndef CONFIG_OMAP3_PM
@@ -208,6 +208,6 @@ void __init omap2_init_common_hw(void)
 	omap2_resource_init();
 #endif
 	omap2_clk_init();
-	omap2_init_memory();
+	omap2_sdrc_init(sp);
 	gpmc_init();
 }
