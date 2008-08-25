@@ -23,6 +23,7 @@
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/io.h>
+#include <linux/irq.h>
 
 #include <mach/dma.h>
 #include <mach/mcbsp.h>
@@ -50,9 +51,6 @@ int omap_mcbsp_read(u32 io_base, u16 reg)
 			omap_mcbsp_read(base, OMAP_MCBSP_REG_##reg)
 #define OMAP_MCBSP_WRITE(base, reg, val) \
 			omap_mcbsp_write(base, OMAP_MCBSP_REG_##reg, val)
-
-#define omap_mcbsp_check_valid_id(id)	(id < omap_mcbsp_count)
-#define id_to_mcbsp_ptr(id)		mcbsp_ptr[id];
 
 static void omap_mcbsp_dump_reg(u8 id)
 {
@@ -173,6 +171,11 @@ void omap_mcbsp_config(unsigned int id, const struct omap_mcbsp_reg_cfg *config)
 	OMAP_MCBSP_WRITE(io_base, MCR2, config->mcr2);
 	OMAP_MCBSP_WRITE(io_base, MCR1, config->mcr1);
 	OMAP_MCBSP_WRITE(io_base, PCR0, config->pcr0);
+	if (cpu_is_omap2430() || cpu_is_omap34xx()) {
+		if (mcbsp->pdata->ops->config)
+			mcbsp->pdata->ops->config(id, config);
+	}
+
 }
 EXPORT_SYMBOL(omap_mcbsp_config);
 
@@ -217,11 +220,10 @@ int omap_mcbsp_request(unsigned int id)
 		return -ENODEV;
 	}
 	mcbsp = id_to_mcbsp_ptr(id);
+	clk_enable(mcbsp->clk);
 
 	if (mcbsp->pdata && mcbsp->pdata->ops && mcbsp->pdata->ops->request)
 		mcbsp->pdata->ops->request(id);
-
-	clk_enable(mcbsp->clk);
 
 	spin_lock(&mcbsp->lock);
 	if (!mcbsp->free) {
@@ -893,6 +895,7 @@ static int __init omap_mcbsp_probe(struct platform_device *pdev)
 	mcbsp->dma_rx_lch = -1;
 
 	mcbsp->io_base = pdata->virt_base;
+	mcbsp->phy_base = pdata->phy_base;
 	/* Default I/O is IRQ based */
 	mcbsp->io_type = OMAP_MCBSP_IRQ_IO;
 	mcbsp->tx_irq = pdata->tx_irq;
