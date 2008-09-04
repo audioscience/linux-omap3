@@ -7,6 +7,12 @@ config FB_OMAP
 	help
           Frame buffer driver for OMAP based boards.
 
+config FB_OMAP_LCD_WVGA
+	bool "MID LDP WVGA Display"
+	depends on ARCH_OMAP34XX && MACH_OMAP_LDP
+	help
+	  Say Y to support the NEC NL8048HL WVGA display
+
 config FB_OMAP_LCD_VGA
 	bool "Use LCD in VGA mode"
 	depends on MACH_OMAP_3430SDP || MACH_OMAP_LDP

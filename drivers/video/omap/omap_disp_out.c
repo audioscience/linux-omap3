@@ -47,6 +47,9 @@
 #include <linux/pm.h>
 #endif
 #include <linux/platform_device.h>
+#ifdef CONFIG_FB_OMAP_LCD_WVGA
+#include <linux/spi/spi.h>
+#endif
 #include "omap_fb.h"
 
 #define DRIVER			"omap2_disp_out"
@@ -76,6 +79,12 @@
 #endif
 #endif
 
+#ifdef CONFIG_FB_OMAP_LCD_WVGA
+#define H4_LCD_XRES	 	800
+#define H4_LCD_YRES 		480
+#define H4_LCD_PIXCLOCK_MAX	45871 /* in pico seconds - freq 25.7 MHz*/
+#define H4_LCD_PIXCLOCK_MIN	38910  /* in pico seconds - freq 21.8 MHz*/
+#else
 #ifdef CONFIG_FB_OMAP_LCD_VGA
 #define H4_LCD_XRES	 	480
 #define H4_LCD_YRES 		640
@@ -92,6 +101,7 @@
 #define H4_LCD_YRES 		320
 #define H4_LCD_PIXCLOCK_MAX	185186 /* freq 5.4 MHz */
 #define H4_LCD_PIXCLOCK_MIN	138888 /* freq 7.2 MHz */
+#endif
 #endif
 #endif
 
@@ -163,7 +173,11 @@ struct res_handle * dsi_rhandle = NULL;
 struct res_handle * tv_rhandle = NULL;
 #endif
 
-/*---------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------*/
+
+#ifdef CONFIG_FB_OMAP_LCD_WVGA
+static struct spi_device *wvgalcd_spi;
+#endif
 
 #ifdef CONFIG_OMAP2_LCD
 
@@ -496,11 +510,135 @@ EXPORT_SYMBOL(disable_backlight);
 
 static int gpio_reserved = 0;
 
+/*---------------------------------------------------------------------------*/
+#ifdef CONFIG_FB_OMAP_LCD_WVGA
+/* NEC WVGA LCD related
+ * We're intializing all register for the WVGA LCD */
+
+static int
+spi_wvgalcd_send(unsigned char reg_addr, unsigned char reg_data)
+{
+      int ret = 0;
+      unsigned int cmd = 0;
+      unsigned int data = 0;
+      cmd = 0x0000 | reg_addr; /* register address write */
+      data = 0x0100 | reg_data ; /* register data write */
+      data = (cmd << 16) | data;
+      spi_write(wvgalcd_spi, (unsigned char *)&data, 4);
+      udelay(10);
+      return ret;
+}
+
+int initialize_nec_wvgalcd(void)
+{
+	/* Initialization Sequence
+	* No information was provided by NEC for the following registers */
+	spi_wvgalcd_send(3, 0x01);    /* R3 = 01h */
+	spi_wvgalcd_send(0, 0x00);    /* R0 = 00h */
+	spi_wvgalcd_send(1, 0x03);    /* R1 = 0x01 (normal), 0x03 (reversed) */
+	spi_wvgalcd_send(4, 0x00);    /* R4 = 00h */
+	spi_wvgalcd_send(5, 0x14);    /* R5 = 14h */
+	spi_wvgalcd_send(6, 0x24);    /* R6 = 24h */
+	spi_wvgalcd_send(16, 0xD7);   /* R16 = D7h */
+	spi_wvgalcd_send(17, 0x00);   /* R17 = 00h */
+	spi_wvgalcd_send(18, 0x00);   /* R18 = 00h */
+	spi_wvgalcd_send(19, 0x55);   /* R19 = 55h */
+	spi_wvgalcd_send(20, 0x01);   /* R20 = 01h */
+	spi_wvgalcd_send(21, 0x70);   /* R21 = 70h */
+	spi_wvgalcd_send(22, 0x1E);   /* R22 = 1Eh */
+	spi_wvgalcd_send(23, 0x25);   /* R23 = 25h */
+	spi_wvgalcd_send(24, 0x25);   /* R24 = 25h */
+	spi_wvgalcd_send(25, 0x02);   /* R25 = 02h */
+	spi_wvgalcd_send(26, 0x02);   /* R26 = 02h */
+	spi_wvgalcd_send(27, 0xA0);   /* R27 = A0h */
+	spi_wvgalcd_send(32, 0x2F);   /* R32 = 2Fh */
+	spi_wvgalcd_send(33, 0x0F);   /* R33 = 0Fh */
+	spi_wvgalcd_send(34, 0x0F);   /* R34 = 0Fh */
+	spi_wvgalcd_send(35, 0x0F);   /* R35 = 0Fh */
+	spi_wvgalcd_send(36, 0x0F);   /* R36 = 0Fh */
+	spi_wvgalcd_send(37, 0x0F);   /* R37 = 0Fh */
+	spi_wvgalcd_send(38, 0x0F);   /* R38 = 0Fh */
+	spi_wvgalcd_send(39, 0x00);   /* R39 = 00h */
+	spi_wvgalcd_send(40, 0x02);   /* R40 = 02h */
+	spi_wvgalcd_send(41, 0x02);   /* R41 = 02h */
+	spi_wvgalcd_send(42, 0x02);   /* R42 = 02h */
+	spi_wvgalcd_send(43, 0x0F);   /* R43 = 0Fh */
+	spi_wvgalcd_send(44, 0x0F);   /* R44 = 0Fh */
+	spi_wvgalcd_send(45, 0x0F);   /* R45 = 0Fh */
+	spi_wvgalcd_send(46, 0x0F);   /* R46 = 0Fh */
+	spi_wvgalcd_send(47, 0x0F);   /* R47 = 0Fh */
+	spi_wvgalcd_send(48, 0x0F);   /* R48 = 0Fh */
+	spi_wvgalcd_send(49, 0x0F);   /* R49 = 0Fh */
+	spi_wvgalcd_send(50, 0x00);   /* R50 = 00h */
+	spi_wvgalcd_send(51, 0x02);   /* R51 = 02h */
+	spi_wvgalcd_send(52, 0x02);   /* R52 = 02h */
+	spi_wvgalcd_send(53, 0x02);   /* R53 = 02h */
+	spi_wvgalcd_send(80, 0x0C);   /* R80 = 0Ch */
+	spi_wvgalcd_send(83, 0x42);   /* R83 = 42h */
+	spi_wvgalcd_send(84, 0x42);   /* R84 = 42h */
+	spi_wvgalcd_send(85, 0x41);   /* R85 = 41h */
+	spi_wvgalcd_send(86, 0x14);   /* R86 = 14h */
+	spi_wvgalcd_send(89, 0x88);   /* R89 = 88h */
+	spi_wvgalcd_send(90, 0x01);   /* R90 = 01h */
+	spi_wvgalcd_send(91, 0x00);   /* R91 = 00h */
+	spi_wvgalcd_send(92, 0x02);   /* R92 = 02h */
+	spi_wvgalcd_send(93, 0x0C);   /* R93 = 0Ch */
+	spi_wvgalcd_send(94, 0x1C);   /* R94 = 1Ch */
+	spi_wvgalcd_send(95, 0x27);   /* R95 = 27h */
+	spi_wvgalcd_send(98, 0x49);   /* R98 = 49h */
+	spi_wvgalcd_send(99, 0x27);   /* R99 = 27h */
+	spi_wvgalcd_send(102, 0x76);  /* R102 = 76h */
+	spi_wvgalcd_send(103, 0x27);  /* R103 = 27h */
+	spi_wvgalcd_send(112, 0x01);  /* R112 = 01h */
+	spi_wvgalcd_send(113, 0x0E);  /* R113 = 0Eh */
+	spi_wvgalcd_send(114, 0x02);  /* R114 = 02h */
+	spi_wvgalcd_send(115, 0x0C);  /* R115 = 0Ch */
+	spi_wvgalcd_send(118, 0x0C);  /* R118 = 0Ch */
+	spi_wvgalcd_send(121, 0x10);  /* R121 = 0x30(normal), 0x10(reversed)*/
+	spi_wvgalcd_send(130, 0x00);  /* R130 = 00h */
+	spi_wvgalcd_send(131, 0x00);  /* R131 = 00h */
+	spi_wvgalcd_send(132, 0xFC);  /* R132 = FCh */
+	spi_wvgalcd_send(134, 0x00);  /* R134 = 00h */
+	spi_wvgalcd_send(136, 0x00);  /* R136 = 00h */
+	spi_wvgalcd_send(138, 0x00);  /* R138 = 00h */
+	spi_wvgalcd_send(139, 0x00);  /* R139 = 00h */
+	spi_wvgalcd_send(140, 0x00);  /* R140 = 00h */
+	spi_wvgalcd_send(141, 0xFC);  /* R141 = FCh */
+	spi_wvgalcd_send(143, 0x00);  /* R143 = 00h */
+	spi_wvgalcd_send(145, 0x00);  /* R145 = 00h */
+	spi_wvgalcd_send(147, 0x00);  /* R147 = 00h */
+	spi_wvgalcd_send(148, 0x00);  /* R148 = 00h */
+	spi_wvgalcd_send(149, 0x00);  /* R149 = 00h */
+	spi_wvgalcd_send(150, 0xFC);  /* R150 = FCh */
+	spi_wvgalcd_send(152, 0x00);  /* R152 = 00h */
+	spi_wvgalcd_send(154, 0x00);  /* R154 = 00h */
+	spi_wvgalcd_send(156, 0x00);  /* R156 = 00h */
+	spi_wvgalcd_send(157, 0x00);  /* R157 = 00h */
+	udelay(20);
+	spi_wvgalcd_send(2, 0x00);    /* R2 = 00h */
+	return 0;
+}
+#endif
+/*------------------------------------------------------------------------*/
+
 #ifndef CONFIG_LCD_IOCTL
 static
 #endif
 int omap_lcd_init(struct omap_lcd_info *info)
 {
+#ifdef CONFIG_FB_OMAP_LCD_WVGA
+		u32 pixclock    = H4_LCD_PIXCLOCK_MAX,  /* picoseconds */
+		left_margin	= 4,	/* pixclocks */
+		right_margin	= 6,	/* pixclocks */
+		upper_margin	= 4,	/* line clocks */
+		lower_margin	= 3,	/* line clocks */
+		hsync_len	= 1,	/* pixclocks */
+		vsync_len	= 1,	/* line clocks */
+		sync		= 1,	/* hsync & vsync polarity */
+		acb		= 0x28,	/* AC-bias pin frequency */
+		ipc		= 1,	/* Invert pixel clock */
+		onoff		= 1;	/* HSYNC/VSYNC Pixel clk Control*/
+#else
 #ifdef CONFIG_FB_OMAP_LCD_VGA
 	u32	pixclock	= H4_LCD_PIXCLOCK_MAX,/* picoseconds */
 		left_margin	= 79,		/* pixclocks */
@@ -540,6 +678,7 @@ int omap_lcd_init(struct omap_lcd_info *info)
 		onoff		= 0;		/* HSYNC/VSYNC Pixel clk Control*/
 
 #endif	
+#endif
 #endif
 	u32 clkdiv;
 #ifdef CONFIG_OMAP_DSI
@@ -595,6 +734,12 @@ bypass_gpio:
 #endif
 	omap2_dss_rgb_enable();
 	omap2_disp_get_dss();
+
+#ifdef CONFIG_FB_OMAP_LCD_WVGA
+	/* Initialization of the NEC WVGA LCD */
+	initialize_nec_wvgalcd();
+#endif
+
 #ifndef CONFIG_OMAP_DSI
 	omap2_disp_set_panel_size(OMAP2_OUTPUT_LCD, H4_LCD_XRES, H4_LCD_YRES);
 
@@ -659,6 +804,16 @@ lcd_exit(void)
 
 	omap2_disp_get_dss();
 	omap2_disp_disable_output_dev(OMAP2_OUTPUT_LCD);
+#ifdef CONFIG_FB_OMAP_LCD_WVGA
+	/* Power Off sequence */
+	spi_wvgalcd_send(16, 0x05);  /* R16 = 05h */
+	udelay(20);
+	spi_wvgalcd_send(16, 0x01);  /* R16 = 01h */
+	udelay(20);
+	spi_wvgalcd_send(16, 0x00);  /* R16 = 00h */
+	udelay(20);
+	spi_wvgalcd_send(3, 0x01);  /* R3 = 01h */
+#endif
 	omap2_disp_put_dss();
 
 #if defined(CONFIG_MACH_OMAP_2430SDP) || defined(CONFIG_MACH_OMAP_3430SDP)
@@ -681,12 +836,42 @@ lcd_exit(void)
 static int __init
 lcd_probe(struct platform_device *odev)
 {
+#ifdef CONFIG_FB_OMAP_LCD_WVGA
+	return 0;
+#else
+	 return omap_lcd_init(0);
+#endif
+}
+
+#ifdef CONFIG_FB_OMAP_LCD_WVGA
+static int wvgalcd_probe(struct spi_device *spi)
+{
+	wvgalcd_spi = spi;
+	wvgalcd_spi->mode = SPI_MODE_0;
+	wvgalcd_spi->bits_per_word = 32;
+	spi_setup(wvgalcd_spi);
 	return omap_lcd_init(0);
 }
+#endif
 
 #ifdef CONFIG_PM
 static int lcd_suspend(struct platform_device *odev, pm_message_t state);
 static int lcd_resume(struct platform_device *odev);
+#endif
+
+#ifdef CONFIG_FB_OMAP_LCD_WVGA
+static struct spi_driver wvga_lcd_driver = {
+       .probe		= wvgalcd_probe,
+#ifdef CONFIG_PM
+       .suspend		= lcd_suspend,
+       .resume		= lcd_resume,
+#endif
+	.driver		= {
+		.name	= "wvgalcd",
+		.bus	= &spi_bus_type,
+		.owner	= THIS_MODULE,
+	},
+};
 #endif
 
 static struct platform_driver omap2_lcd_driver = {
@@ -712,6 +897,11 @@ lcd_suspend(struct platform_device *odev, pm_message_t state)
 		if (!lcd_in_use)
 		return 0;
 	disable_backlight();
+#ifdef CONFIG_FB_OMAP_LCD_WVGA
+       /* Stand-by sequence */
+       spi_wvgalcd_send(2, 0x01);  /* R2 = 01h */
+       mdelay(40);
+#endif
 	omap2_dss_rgb_disable();
 	
 	return 0;
@@ -724,6 +914,10 @@ lcd_resume(struct platform_device *odev)
 		return 0;
 	omap2_dss_rgb_enable();
 	udelay(20);
+#ifdef CONFIG_FB_OMAP_LCD_WVGA
+	/* Wake up sequence */
+	spi_wvgalcd_send(2, 0x00);  /* R2 = 00h */
+#endif
 	enable_backlight();
 
 	return 0;
@@ -1702,6 +1896,16 @@ omap2_dispout_init(void)
 		return -ENODEV;
 	}
 #endif
+
+#ifdef CONFIG_FB_OMAP_LCD_WVGA
+	/* Register the driver with SPI */
+	if (spi_register_driver(&wvga_lcd_driver)) {
+		printk(KERN_ERR DRIVER ": failed to\
+					 register wvga_lcd driver\n");
+		return -ENODEV;
+	}
+#endif
+
 		return 0;
 
 }
@@ -1714,6 +1918,9 @@ omap2_dispout_exit(void)
 
 #ifdef CONFIG_OMAP2_LCD
 	lcd_exit();
+#ifdef CONFIG_FB_OMAP_LCD_WVGA
+	spi_unregister_driver(&wvga_lcd_driver);
+#endif
 	platform_device_unregister(&lcd_device);
 	platform_driver_unregister(&omap2_lcd_driver);
 #endif
@@ -1770,12 +1977,21 @@ static struct fb_var_screeninfo h4_lcd_var = {
 	.width		= -1,
 	.accel_flags	= 0,
 	.pixclock	= H4_LCD_PIXCLOCK_MAX,/* picoseconds */
+#ifdef CONFIG_FB_OMAP_LCD_WVGA
+	.left_margin	= 4,		/* pixclocks */
+	.right_margin	= 6,		/* pixclocks */
+	.upper_margin	= 7,		/* line clocks */
+	.lower_margin	= 2,		/* line clocks */
+	.hsync_len	= 1,		/* pixclocks */
+	.vsync_len	= 1,		/* line clocks */
+#else
 	.left_margin	= 40,		/* pixclocks */
 	.right_margin	= 4,		/* pixclocks */
 	.upper_margin	= 8,		/* line clocks */
 	.lower_margin	= 2,		/* line clocks */
 	.hsync_len	= 4,		/* pixclocks */
 	.vsync_len	= 2,		/* line clocks */
+#endif
 	.sync		= 0,
 	.vmode		= FB_VMODE_NONINTERLACED,
 	.rotate		= 0,
