@@ -10,6 +10,7 @@
 #include <asm/hardware.h>
 
 #include <asm/arch/prcm.h>
+#include <asm/proc-fns.h>
 
 #ifndef CONFIG_MACH_VOICEBLUE
 #define voiceblue_reset()		do {} while (0)
