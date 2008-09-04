@@ -148,6 +148,20 @@ config CORE_OFF
         ---help---
         This option is for enabling CORE domain to go to OFF state in suspend/resume
 
+config CORE_OFF_CPUIDLE
+        bool "Enable CORE off in cpuidle"
+        depends on CORE_OFF
+        default y
+        ---help---
+        This option is for enabling CORE domain to go to OFF state in cpuidle
+
+config SYSOFFMODE
+        bool "Enable sysoff mode and VDD1/2 scaling to 0V"
+        depends on CORE_OFF
+        default n
+        ---help---
+        This option is for enabling sysoffmode when chip off happens
+
 config HW_SUP_TRANS
         bool "OMAP3430 enable H/W supervised transition for clock domains"
         depends on ARCH_OMAP3 && ARCH_OMAP34XX && OMAP3_PM
