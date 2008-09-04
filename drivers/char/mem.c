@@ -109,7 +109,7 @@ void __attribute__((weak)) unxlate_dev_mem_ptr(unsigned long phys, void *addr)
 {
 }
 
-#ifdef CONFIG_DEVMEM
+//#ifdef CONFIG_DEVMEM
 /*
  * This funcion reads the *physical* memory. The f_pos points directly to the 
  * memory location. 
@@ -318,7 +318,7 @@ static void mmap_mem_open(struct vm_area_struct *vma)
 	map_devmem(vma->vm_pgoff,  vma->vm_end - vma->vm_start,
 			vma->vm_page_prot);
 }
-#endif	/* CONFIG_DEVMEM */
+//#endif	/* CONFIG_DEVMEM */
 
 static void mmap_mem_close(struct vm_area_struct *vma)
 {
@@ -423,7 +423,7 @@ static ssize_t read_oldmem(struct file *file, char __user *buf,
 }
 #endif
 
-#ifdef CONFIG_DEVMEM
+//#ifdef CONFIG_DEVMEM
 extern long vread(char *buf, char *addr, unsigned long count);
 extern long vwrite(char *buf, char *addr, unsigned long count);
 
@@ -634,7 +634,7 @@ static ssize_t write_kmem(struct file * file, const char __user * buf,
 }
 #endif
 
-#ifdef CONFIG_DEVPORT
+//#ifdef CONFIG_DEVPORT
 static ssize_t read_port(struct file * file, char __user * buf,
 			 size_t count, loff_t *ppos)
 {
@@ -652,7 +652,7 @@ static ssize_t read_port(struct file * file, char __user * buf,
 	*ppos = i;
 	return tmp-buf;
 }
-#endif	/* CONFIG_DEVMEM */
+//#endif	/* CONFIG_DEVMEM */
 
 static ssize_t write_port(struct file * file, const char __user * buf,
 			  size_t count, loff_t *ppos)
@@ -676,7 +676,7 @@ static ssize_t write_port(struct file * file, const char __user * buf,
 	*ppos = i;
 	return tmp-buf;
 }
-#endif
+//#endif
 
 static ssize_t read_null(struct file * file, char __user * buf,
 			 size_t count, loff_t *ppos)
@@ -758,7 +758,7 @@ static loff_t null_lseek(struct file * file, loff_t offset, int orig)
 	return file->f_pos = 0;
 }
 
-#if defined(CONFIG_DEVMEM) || defined(CONFIG_DEVPORT)
+//#if defined(CONFIG_DEVMEM) || defined(CONFIG_DEVPORT)
 
 /*
  * The memory devices use the full 32/64 bits of the offset, and so we cannot
@@ -791,14 +791,14 @@ static loff_t memory_lseek(struct file * file, loff_t offset, int orig)
 	return ret;
 }
 
-#endif
+//#endif
 
-#if defined(CONFIG_DEVMEM) || defined(CONFIG_DEVPORT)
+//#if defined(CONFIG_DEVMEM) || defined(CONFIG_DEVPORT)
 static int open_port(struct inode * inode, struct file * filp)
 {
 	return capable(CAP_SYS_RAWIO) ? 0 : -EPERM;
 }
-#endif
+//#endif
 
 #define zero_lseek	null_lseek
 #define full_lseek      null_lseek
@@ -808,7 +808,7 @@ static int open_port(struct inode * inode, struct file * filp)
 #define open_kmem	open_mem
 #define open_oldmem	open_mem
 
-#ifdef CONFIG_DEVMEM
+//#ifdef CONFIG_DEVMEM
 static const struct file_operations mem_fops = {
 	.llseek		= memory_lseek,
 	.read		= read_mem,
@@ -817,7 +817,7 @@ static const struct file_operations mem_fops = {
 	.open		= open_mem,
 	.get_unmapped_area = get_unmapped_area_mem,
 };
-#endif
+//#endif
 
 #ifdef CONFIG_DEVKMEM
 static const struct file_operations kmem_fops = {
@@ -837,14 +837,14 @@ static const struct file_operations null_fops = {
 	.splice_write	= splice_write_null,
 };
 
-#ifdef CONFIG_DEVPORT
+//#ifdef CONFIG_DEVPORT
 static const struct file_operations port_fops = {
 	.llseek		= memory_lseek,
 	.read		= read_port,
 	.write		= write_port,
 	.open		= open_port,
 };
-#endif
+//#endif
 
 static const struct file_operations zero_fops = {
 	.llseek		= zero_lseek,
@@ -902,13 +902,13 @@ static const struct file_operations kmsg_fops = {
 static int memory_open(struct inode * inode, struct file * filp)
 {
 	switch (iminor(inode)) {
-#ifdef CONFIG_DEVMEM
+//#ifdef CONFIG_DEVMEM
 		case 1:
 			filp->f_op = &mem_fops;
 			filp->f_mapping->backing_dev_info =
 				&directly_mappable_cdev_bdi;
 			break;
-#endif
+//#endif
 #ifdef CONFIG_DEVKMEM
 		case 2:
 			filp->f_op = &kmem_fops;
@@ -919,11 +919,11 @@ static int memory_open(struct inode * inode, struct file * filp)
 		case 3:
 			filp->f_op = &null_fops;
 			break;
-#ifdef CONFIG_DEVPORT
+//#ifdef CONFIG_DEVPORT
 		case 4:
 			filp->f_op = &port_fops;
 			break;
-#endif
+//#endif
 		case 5:
 			filp->f_mapping->backing_dev_info = &zero_bdi;
 			filp->f_op = &zero_fops;
@@ -963,16 +963,16 @@ static const struct {
 	umode_t			mode;
 	const struct file_operations	*fops;
 } devlist[] = { /* list of minor devices */
-#ifdef CONFIG_DEVMEM
+//#ifdef CONFIG_DEVMEM
 	{1, "mem",     S_IRUSR | S_IWUSR | S_IRGRP, &mem_fops},
-#endif
+//#endif
 #ifdef CONFIG_DEVKMEM
 	{2, "kmem",    S_IRUSR | S_IWUSR | S_IRGRP, &kmem_fops},
 #endif
 	{3, "null",    S_IRUGO | S_IWUGO,           &null_fops},
-#ifdef CONFIG_DEVPORT
+//#ifdef CONFIG_DEVPORT
 	{4, "port",    S_IRUSR | S_IWUSR | S_IRGRP, &port_fops},
-#endif
+//#endif
 	{5, "zero",    S_IRUGO | S_IWUGO,           &zero_fops},
 	{7, "full",    S_IRUGO | S_IWUGO,           &full_fops},
 	{8, "random",  S_IRUGO | S_IWUSR,           &random_fops},
