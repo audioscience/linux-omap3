@@ -34,7 +34,10 @@ struct sys_timer;
 extern void omap_map_common_io(void);
 extern struct sys_timer omap_timer;
 extern void omap_serial_init(void);
-extern void omap_serial_enable_clocks(int enable);
+extern void omap_serial_enable_clocks(int enable, int unum);
+extern int omap_serial_can_sleep(void);
+extern void omap_serial_fclk_mask(u32 *f1, u32 *f2);
+void omap_serial_check_wakeup(void);
 #ifdef CONFIG_I2C_OMAP
 extern int omap_register_i2c_bus(int bus_id, u32 clkrate,
 				 struct i2c_board_info const *info,

@@ -44,6 +44,7 @@
 #include <asm/arch/mux.h>
 #include <asm/arch/dma.h>
 #include <asm/arch/board.h>
+#include <asm/arch/common.h>
 
 #include "prm.h"
 #include "prm-regbits-24xx.h"
@@ -73,7 +74,10 @@ static int omap2_fclks_active(void)
 
 	f1 = cm_read_mod_reg(CORE_MOD, CM_FCLKEN1);
 	f2 = cm_read_mod_reg(CORE_MOD, OMAP24XX_CM_FCLKEN2);
-	serial_console_fclk_mask(&f1, &f2);
+
+	if (clocks_off_while_idle)
+		omap_serial_fclk_mask(&f1, &f2);
+
 	if (f1 | f2)
 		return 1;
 	return 0;
@@ -81,7 +85,8 @@ static int omap2_fclks_active(void)
 
 static void omap2_enter_full_retention(void)
 {
-	u32 l, sleep_time = 0;
+	u32 l = 0;
+	struct timespec sleep_time;
 
 	/* There is 1 reference hold for all children of the oscillator
 	 * clock, the following will remove it. If no one else uses the
@@ -111,28 +116,33 @@ static void omap2_enter_full_retention(void)
 
 	if (omap2_pm_debug) {
 		omap2_pm_dump(0, 0, 0);
-		sleep_time = omap2_read_32k_sync_counter();
+		getnstimeofday(&sleep_time);
 	}
+
+	if (clocks_off_while_idle)
+		omap_serial_enable_clocks(0);
 
 	/* One last check for pending IRQs to avoid extra latency due
 	 * to sleeping unnecessarily. */
 	if (omap_irq_pending())
 		goto no_sleep;
 
-	serial_console_sleep(1);
 	/* Jump to SRAM suspend code */
 	omap2_sram_suspend(OMAP_SDRC_REGADDR(SDRC_DLLA_CTRL));
 no_sleep:
-	serial_console_sleep(0);
+	omap_serial_check_wakeup();
+	if (clocks_off_while_idle)
+		omap_serial_enable_clocks(1);
 
 	if (omap2_pm_debug) {
-		unsigned long long tmp;
-		u32 resume_time;
+		struct timespec t;
+		struct timespec ts_delta;
 
-		resume_time = omap2_read_32k_sync_counter();
-		tmp = resume_time - sleep_time;
-		tmp *= 1000000;
-		omap2_pm_dump(0, 1, tmp / 32768);
+		getnstimeofday(&t);
+		ts_delta = timespec_sub(t, sleep_time);
+		omap2_pm_dump(0, 1,
+			     div_s64(timespec_to_ns(&ts_delta),
+				     NSEC_PER_USEC));
 	}
 	omap2_gpio_resume_after_retention();
 
@@ -193,7 +203,7 @@ static int omap2_allow_mpu_retention(void)
 
 static void omap2_enter_mpu_retention(void)
 {
-	u32 sleep_time = 0;
+	struct timespec sleep_time;
 	int only_idle = 0;
 
 	/* Putting MPU into the WFI state while a transfer is active
@@ -222,19 +232,20 @@ static void omap2_enter_mpu_retention(void)
 
 	if (omap2_pm_debug) {
 		omap2_pm_dump(only_idle ? 2 : 1, 0, 0);
-		sleep_time = omap2_read_32k_sync_counter();
+		getnstimeofday(&sleep_time);
 	}
 
 	omap2_sram_idle();
 
 	if (omap2_pm_debug) {
-		unsigned long long tmp;
-		u32 resume_time;
+		struct timespec t;
+		struct timespec ts_delta;
 
-		resume_time = omap2_read_32k_sync_counter();
-		tmp = resume_time - sleep_time;
-		tmp *= 1000000;
-		omap2_pm_dump(only_idle ? 2 : 1, 1, tmp / 32768);
+		getnstimeofday(&t);
+		ts_delta = timespec_sub(t, sleep_time);
+		omap2_pm_dump(only_idle ? 2 : 1, 1,
+			      div_s64(timespec_to_ns(&ts_delta),
+				      NSEC_PER_USEC));
 	}
 }
 
@@ -249,6 +260,8 @@ static int omap2_can_sleep(void)
 	if (clk_get_usecount(osc_ck) > 1)
 		return 0;
 	if (omap_dma_running())
+		return 0;
+	if (!omap_serial_can_sleep())
 		return 0;
 
 	return 1;
@@ -516,8 +529,6 @@ int __init omap2_pm_init(void)
 	}
 
 	prcm_setup_regs();
-
-	pm_init_serial_console();
 
 	/* Hack to prevent MPU retention when STI console is enabled. */
 	{

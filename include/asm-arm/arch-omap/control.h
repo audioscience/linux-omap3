@@ -191,6 +191,10 @@
 #define OMAP343X_SR1_SENPENABLE_MASK	(0x3 << 0)
 #define OMAP343X_SR1_SENPENABLE_SHIFT	0
 
+#define OMAP343X_SCRATCHPAD_ROM		0x48002860
+#define OMAP343X_SCRATCHPAD		0x48002910
+#define OMAP343X_SCRATHPAD_ROM_OFFSET	0x19C
+
 #ifndef __ASSEMBLY__
 #if defined(CONFIG_ARCH_OMAP2) || defined(CONFIG_ARCH_OMAP3)
 extern void __iomem *omap_ctrl_base_get(void);
@@ -200,6 +204,71 @@ extern u32 omap_ctrl_readl(u16 offset);
 extern void omap_ctrl_writeb(u8 val, u16 offset);
 extern void omap_ctrl_writew(u16 val, u16 offset);
 extern void omap_ctrl_writel(u32 val, u16 offset);
+
+extern void omap3_save_scratchpad_contents(void);
+extern void omap3_clear_scratchpad_contents(void);
+extern u32 *get_restore_pointer(void);
+extern u32 context_mem[128];
+
+struct omap3_scratchpad {
+	u32 boot_config_ptr;
+	u32 public_restore_ptr;
+	u32 secure_ram_restore_ptr;
+	u32 sdrc_module_semaphore;
+	u32 prcm_block_offset;
+	u32 sdrc_block_offset;
+};
+
+struct omap3_scratchpad_prcm_block {
+	u32 prm_clksrc_ctrl;
+	u32 prm_clksel;
+	u32 cm_clksel_core;
+	u32 cm_clksel_wkup;
+	u32 cm_clken_pll;
+	u32 cm_autoidle_pll;
+	u32 cm_clksel1_pll;
+	u32 cm_clksel2_pll;
+	u32 cm_clksel3_pll;
+	u32 cm_clken_pll_mpu;
+	u32 cm_autoidle_pll_mpu;
+	u32 cm_clksel1_pll_mpu;
+	u32 cm_clksel2_pll_mpu;
+	u32 prcm_block_size;
+};
+
+struct omap3_scratchpad_sdrc_block {
+	u16 sdrc_sysconfig;
+	u16 sdrc_cs_cfg;
+	u16 sdrc_sharing;
+	u16 sdrc_err_type;
+	u32 sdrc_dll_a_ctrl;
+	u32 sdrc_dll_b_ctrl;
+	u32 sdrc_power;
+	u32 sdrc_cs_0;
+	u32 sdrc_mcfg_0;
+	u16 sdrc_mr_0;
+	u16 sdrc_emr_1_0;
+	u16 sdrc_emr_2_0;
+	u16 sdrc_emr_3_0;
+	u32 sdrc_actim_ctrla_0;
+	u32 sdrc_actim_ctrlb_0;
+	u32 sdrc_rfr_ctrl_0;
+	u32 sdrc_cs_1;
+	u32 sdrc_mcfg_1;
+	u16 sdrc_mr_1;
+	u16 sdrc_emr_1_1;
+	u16 sdrc_emr_2_1;
+	u16 sdrc_emr_3_1;
+	u32 sdrc_actim_ctrla_1;
+	u32 sdrc_actim_ctrlb_1;
+	u32 sdrc_rfr_ctrl_1;
+	u16 sdrc_dcdl_1_ctrl;
+	u16 sdrc_dcdl_2_ctrl;
+	u32 sdrc_flags;
+	u32 sdrc_block_size;
+	u32 sdrc_context_addr;
+};
+
 #else
 #define omap_ctrl_base_get()		0
 #define omap_ctrl_readb(x)		0
