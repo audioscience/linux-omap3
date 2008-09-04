@@ -108,14 +108,16 @@ static int rotation_support = -1;
 #define D1_NTSC_WIDTH		720
 #define D1_NTSC_HEIGHT		486
 
-#define D1_PAL_VSTAT_WIDTH		832
-#define D1_PAL_VSTAT_HEIGHT		672
+#define D1_PAL_VSTAT_WIDTH	832
+#define D1_PAL_VSTAT_HEIGHT	672
 
-#define D1_NTSC_VSTAT_WIDTH		832
+#define D1_NTSC_VSTAT_WIDTH	832
 #define D1_NTSC_VSTAT_HEIGHT	560
 
 #define WVGA_WIDTH		854
 #define WVGA_HEIGHT		480
+#define WVGA_SQUARE_WIDTH	864
+#define WVGA_SQUARE_HEIGHT_R90	864
 
 #define VGA_WIDTH		640
 #define VGA_HEIGHT		480
@@ -130,9 +132,8 @@ static int rotation_support = -1;
 #define SMS_YUYV_PIXSIZE	4
 #define VRFB_TX_TIMEOUT		1000
 
-#define VID_MAX_WIDTH		WVGA_WIDTH /* Largest width */
-#define VID_MAX_HEIGHT		D1_PAL_VSTAT_HEIGHT /* Largest height */
-
+#define VID_MAX_WIDTH		WVGA_SQUARE_WIDTH /* Largest width */
+#define VID_MAX_HEIGHT		WVGA_SQUARE_HEIGHT_R90 /* Largest height */
 
 static struct omap24xxvout_device *saved_v1out, *saved_v2out;
 
