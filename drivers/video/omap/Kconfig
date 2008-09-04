@@ -7,6 +7,12 @@ config FB_OMAP
 	help
           Frame buffer driver for OMAP based boards.
 
+config FB_OMAP_720P_STREAMING
+	bool "Enable DVI 720p streaming"
+	depends on ARCH_OMAP34XX
+	help
+	  Set DVI 720p streaming as output.
+
 config FB_OMAP_LCD_WVGA
 	bool "MID LDP WVGA Display"
 	depends on ARCH_OMAP34XX && MACH_OMAP_LDP

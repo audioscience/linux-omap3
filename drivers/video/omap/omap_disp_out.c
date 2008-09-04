@@ -42,6 +42,8 @@
 #include <linux/i2c/twl4030.h>
 #endif
 #include <linux/workqueue.h>
+#include <mach/power_companion.h>
+#include <mach/resource.h>
 #ifdef CONFIG_PM
 #include <linux/notifier.h>
 #include <linux/pm.h>
@@ -79,6 +81,12 @@
 #endif
 #endif
 
+#ifdef CONFIG_FB_OMAP_720P_STREAMING
+#define H4_LCD_XRES		1280
+#define H4_LCD_YRES		720
+#define H4_LCD_PIXCLOCK_MAX	13468 /* ??? in pico seconds  */
+#define H4_LCD_PIXCLOCK_MIN	13468  /* ??? in pico seconds */
+#else
 #ifdef CONFIG_FB_OMAP_LCD_WVGA
 #define H4_LCD_XRES	 	800
 #define H4_LCD_YRES 		480
@@ -104,6 +112,7 @@
 #endif
 #endif
 #endif
+#endif
 
 #define H4_TV_XRES		640
 #define H4_TV_YRES		480
@@ -119,6 +128,8 @@
 #define LCD_PANEL_RESET_GPIO		55
 #define LCD_PANEL_QVGA_GPIO		56
 #define LCD_PANEL_BACKLIGHT_GPIO 	7
+#define DVI_OUTPUT_GPIO		8
+#define DVI_POWER_ON_GPIO		167
 #elif defined(CONFIG_OMAP3430_ES2)
 #define LCD_PANEL_ENABLE_GPIO 		5
 #define LCD_PANEL_BACKLIGHT_GPIO 	8
@@ -158,7 +169,9 @@ extern int twl4030_free_gpio(int gpio);
 extern int twl4030_set_gpio_dataout(int gpio, int enable);
 extern int twl4030_set_gpio_direction(int gpio, int is_input);
 */
-
+#ifdef CONFIG_FB_OMAP_720P_STREAMING
+extern int config_dsipll_lclk(int lck, int sysclk, int syclk2, int mode);
+#endif
 #ifdef CONFIG_ARCH_OMAP34XX
 extern int lpr_enabled;
 #endif
@@ -169,9 +182,9 @@ extern void edisco_init(u32 *handle);
 
 #if 0 /* To be added back after SRF is in place */
 struct res_handle		*lcd_rhandle = NULL;
+#endif
 struct res_handle * dsi_rhandle = NULL;
 struct res_handle * tv_rhandle = NULL;
-#endif
 
 /*------------------------------------------------------------------------*/
 
@@ -180,7 +193,7 @@ static struct spi_device *wvgalcd_spi;
 #endif
 
 #ifdef CONFIG_OMAP2_LCD
-
+static int dvi_in_use; /* dvi output flag */
 static int lcd_in_use;
 static int lcd_backlight_state=1;
 
@@ -508,6 +521,42 @@ void disable_backlight(void)
 }
 EXPORT_SYMBOL(disable_backlight);
 
+#ifdef CONFIG_MACH_OMAP_3430LABRADOR
+static void
+enable_dvi_output(void)
+{
+	/* If already enable, return*/
+	if (dvi_in_use)
+		return;
+	omap2_disp_set_lcddatalines(LCD_DATA_LINE_24BIT);
+	/* DVI output enable sequence */
+	omap_set_gpio_direction(LCD_PANEL_QVGA_GPIO, 1);
+	omap_set_gpio_direction(DVI_POWER_ON_GPIO, 0);
+	omap_set_gpio_direction(DVI_OUTPUT_GPIO, 0);
+	omap_set_gpio_dataout(DVI_POWER_ON_GPIO, 1);
+	omap_set_gpio_dataout(DVI_OUTPUT_GPIO, 0);
+
+	dvi_in_use = 1;
+}
+
+static void
+disable_dvi_output(void)
+{
+	/* If is already disable, return*/
+	if (!dvi_in_use)
+		return;
+	omap2_disp_set_lcddatalines(LCD_DATA_LINE_18BIT);
+	/* DVI output disable sequence */
+	omap_set_gpio_dataout(DVI_OUTPUT_GPIO, 1);
+	omap_set_gpio_dataout(DVI_POWER_ON_GPIO, 0);
+	omap_set_gpio_direction(DVI_OUTPUT_GPIO, 1);
+	omap_set_gpio_direction(DVI_POWER_ON_GPIO, 1);
+	omap_set_gpio_direction(LCD_PANEL_QVGA_GPIO, 0);
+
+	dvi_in_use = 0;
+}
+#endif
+
 static int gpio_reserved = 0;
 
 /*---------------------------------------------------------------------------*/
@@ -712,9 +761,17 @@ int omap_lcd_init(struct omap_lcd_info *info)
 #elif defined(CONFIG_MACH_OMAP_LDP)
 	omap_request_gpio(LCD_PANEL_RESET_GPIO);
 	omap_request_gpio(LCD_PANEL_QVGA_GPIO);
+	omap_request_gpio(DVI_OUTPUT_GPIO);
+	omap_request_gpio(DVI_POWER_ON_GPIO);
 	twl4030_request_gpio(LCD_PANEL_ENABLE_GPIO);  /* LCD panel */
-	twl4030_request_gpio(LCD_PANEL_BACKLIGHT_GPIO);	 /* LCD backlight */
+	twl4030_request_gpio(LCD_PANEL_BACKLIGHT_GPIO); /* LCD backlight */
 
+#ifdef CONFIG_FB_OMAP_720P_STREAMING
+	omap_set_gpio_direction(DVI_POWER_ON_GPIO, 0);
+	omap_set_gpio_direction(DVI_OUTPUT_GPIO, 0);
+	omap_set_gpio_dataout(DVI_POWER_ON_GPIO, 1);
+	omap_set_gpio_dataout(DVI_OUTPUT_GPIO, 0);
+#else
 	omap_set_gpio_direction(LCD_PANEL_QVGA_GPIO, 0);
 	omap_set_gpio_direction(LCD_PANEL_RESET_GPIO, 0);
 	twl4030_set_gpio_direction(LCD_PANEL_ENABLE_GPIO, 0); /* output */
@@ -727,12 +784,21 @@ int omap_lcd_init(struct omap_lcd_info *info)
 #endif
 	omap_set_gpio_dataout(LCD_PANEL_RESET_GPIO, 1);
 #endif
+#endif
 
 #ifdef CONFIG_LCD_IOCTL
 bypass_gpio:
 	gpio_reserved = 1;
 #endif
 	omap2_dss_rgb_enable();
+#ifdef CONFIG_FB_OMAP_720P_STREAMING
+#ifdef CONFIG_OMAP3_PM
+	resource_request(dsi_rhandle, T2_VAUX3_2V80);
+#else
+	if (0 != twl4030_vaux3_ldo_use())
+		printk(KERN_WARNING "omap2_disp: twl4030_vaux3_ldo_use returns error \n");
+#endif
+#endif
 	omap2_disp_get_dss();
 
 #ifdef CONFIG_FB_OMAP_LCD_WVGA
@@ -746,23 +812,30 @@ bypass_gpio:
 	/* clkdiv = pixclock / (omap2 dss1 clock period) */
 	clkdiv = pixclock / (1000000000UL/omap24xx_get_dss1_clock());
 	clkdiv /= 1000;
-	
-	omap2_disp_config_lcd(clkdiv,
-			      left_margin - 1,	// hbp
-			      right_margin - 1,	// hfp
-			      hsync_len - 1,	// hsw
-			      upper_margin,	// vbp
-			      lower_margin,	// vfp
-			      vsync_len - 1	// vsw
-			      );
 
-	omap2_disp_lcdcfg_polfreq(	sync,   // horizontal sync active low
-					sync,   // vertical sync active low
-					acb,    // ACB
-					ipc,    // IPC
-					onoff   // ONOFF
+#ifdef CONFIG_FB_OMAP_720P_STREAMING
+	/* Request dsi pll for 148MHZ */
+	config_dsipll_lclk(148, 2, 26, 1);
+	/* config_dsipll_lclk(108, 2, 26, 1); */
+	/* edisco_init(&handle); */
+#endif
+
+	omap2_disp_config_lcd(clkdiv,
+				left_margin - 1, 	/* hbp */
+				right_margin - 1, 	/* hfp */
+				hsync_len - 1,		/* hsw */
+				upper_margin,		/* vbp */
+				lower_margin,		/* vfp */
+				vsync_len - 1		/* vsw */
 				);
-																									 
+
+	omap2_disp_lcdcfg_polfreq(sync,	/* horizontal sync active low */
+				sync,	/* vertical sync active low */
+				acb,	/* ACB */
+				ipc,	/* IPC */
+				onoff	/* ONOFF */
+				);
+
 	omap2_disp_enable_output_dev(OMAP2_OUTPUT_LCD);
 	udelay(20);	
 #else
@@ -783,11 +856,13 @@ bypass_gpio:
 	edisco_init(&handle);
 	printk("Edisco handle = 0x%x !!!!!\n",handle);
 	// edisco_write(handle, 0x12,&ebuf_len,&ebuf);
-#endif	
-	
+#endif
+
+#ifndef CONFIG_FB_OMAP_720P_STREAMING
 	enable_backlight();
 	power_lcd_panel(LCD_ON);
-#ifndef CONFIG_OMAP_DSI
+#endif
+#if !defined(CONFIG_OMAP_DSI) && !defined(CONFIG_FB_OMAP_720P_STREAMING)
 	omap2_disp_put_dss();
 #endif
 
@@ -1339,9 +1414,14 @@ lcd_data_lines_show(struct device *dev, struct device_attribute *attr,
 	current_lcddatalines_state = omap2_disp_get_lcddatalines();
 	
 	switch (current_lcddatalines_state) {
-	case LCD_DATA_LINE_18BIT:	p = sprintf(buf, "18 bits\n");
+	case LCD_DATA_LINE_24BIT:
+			p = sprintf(buf, "24 bits\n");
 			break;
-	case LCD_DATA_LINE_16BIT:	p = sprintf(buf, "16 bits\n");
+	case LCD_DATA_LINE_18BIT:
+			p = sprintf(buf, "18 bits\n");
+			break;
+	case LCD_DATA_LINE_16BIT:
+			p = sprintf(buf, "16 bits\n");
 			break;
 	}
 	return (p);
@@ -1356,12 +1436,12 @@ lcd_data_lines_store(struct device *dev, struct device_attribute *attr,
 	if (!buffer || (count == 0))
 		return 0;
 
-	if (strncmp(buffer,"18",2) == 0)
+	if (strncmp(buffer, "24", 2) == 0)
+		no_of_data_lines = LCD_DATA_LINE_24BIT;
+	else if (strncmp(buffer, "18", 2) == 0)
 		no_of_data_lines = LCD_DATA_LINE_18BIT;
 	else if (strncmp(buffer, "16", 2) == 0)
 		no_of_data_lines = LCD_DATA_LINE_16BIT;
-	else if (strncmp(buffer, "24", 2) == 0)
-                no_of_data_lines = LCD_DATA_LINE_24BIT;
 	else
 		return -EINVAL;
 
@@ -1857,7 +1937,7 @@ omap2_dispout_init(void)
 				return -ENODEV;
 		}
 #endif
-#ifdef CONFIG_OMAP_DSI
+#if defined(CONFIG_OMAP_DSI) || defined(CONFIG_FB_OMAP_720P_STREAMING)
 		dsi_rhandle = resource_get("DSI", "t2_vaux3");
 		if (dsi_rhandle == NULL) {
 				printk(KERN_ERR DRIVER ": Failed to get DSI power resources !! \n");

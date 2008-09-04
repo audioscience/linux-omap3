@@ -108,6 +108,9 @@ static int rotation_support = -1;
 #define D1_NTSC_WIDTH		720
 #define D1_NTSC_HEIGHT		486
 
+#define HD_720P_WIDTH		1280
+#define HD_720P_HEIGHT		720
+
 #define D1_PAL_VSTAT_WIDTH	832
 #define D1_PAL_VSTAT_HEIGHT	672
 
@@ -132,8 +135,13 @@ static int rotation_support = -1;
 #define SMS_YUYV_PIXSIZE	4
 #define VRFB_TX_TIMEOUT		1000
 
+#ifdef CONFIG_FB_OMAP_720P_STREAMING
+#define VID_MAX_WIDTH		HD_720P_WIDTH  /* Largest width */
+#define VID_MAX_HEIGHT		HD_720P_HEIGHT  /* Largest height */
+#else
 #define VID_MAX_WIDTH		WVGA_SQUARE_WIDTH /* Largest width */
 #define VID_MAX_HEIGHT		WVGA_SQUARE_HEIGHT_R90 /* Largest height */
+#endif
 
 static struct omap24xxvout_device *saved_v1out, *saved_v2out;
 
@@ -714,7 +722,7 @@ omap24xxvout_do_ioctl (struct inode *inode, struct file *file,
 #endif
 			vout->buffer_allocated++;
 		}
-		vout->buf_memory_type = req->memory; 
+		vout->buf_memory_type = req->memory;
 
 		/* return -ENOMEM if we are not able to allocate a single buffer
 		 * we have to seperate the case which user requests 0 buffer which

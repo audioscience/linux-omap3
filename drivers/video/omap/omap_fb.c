@@ -184,8 +184,13 @@ struct device omap_fb_dev = {
  * prototype:
  * unsigned long omap24xxfb_fb_size(void);
  */
+#ifdef CONFIG_FB_OMAP_720P_STREAMING
 #define omap24xxfb_fb_size(rotation) \
-	rotation ? (2048 * 640 * (16/8)) : (720 * 576 * (16/8) * 3) 
+	rotation ? (2048 * 800 * (16/8)) : (720 * 576 * (16/8) * 3)
+#else
+#define omap24xxfb_fb_size(rotation) \
+	rotation ? (2048 * 640 * (16/8)) : (720 * 576 * (16/8) * 3)
+#endif
 /* 720 x 576 is the max framebuffer size we allow for TV (PAL) */
 
 /* omap24xxfb_vrfb_size() must return the size of the virtual rotated
@@ -194,7 +199,11 @@ struct device omap_fb_dev = {
  * prototype:
  * unsigned long omap24xxfb_fb_size(void);
  */
+#ifdef CONFIG_FB_OMAP_720P_STREAMING
+#define omap24xxfb_vrfb_size()	(MAX_PIXELS_PER_LINE * 1280 * (16/8))
+#else
 #define omap24xxfb_vrfb_size()	(MAX_PIXELS_PER_LINE * 640 * (16/8))
+#endif
 
 /* omap24xx_display_pixclock_max() must return the maximum pixclock period
  * supported by the display.
@@ -635,6 +644,11 @@ omap24xxfb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 	DBGENTER;
 	memcpy(&v, var, sizeof(v));
 
+#ifdef CONFIG_FB_OMAP_720P_STREAMING
+	omap2_disp_put_dss();
+	return 0;
+#endif
+
 	/* do board-specific checks on the var */
 	if (omap24xxfb_check_mode(oinfo, &v)){
 		omap2_disp_put_dss();
@@ -876,11 +890,16 @@ omap24xxfb_set_dma_params(const struct fb_var_screeninfo *var,
 			case 180:
 			default:
 				xoffset = var->xoffset;
-				if (rotation == 180)
+				yoffset = var->yoffset;
+				if (rotation == 180) {
 					xoffset += var->xres_virtual - var->xres;
+#ifdef CONFIG_FB_OMAP_720P_STREAMING
+					yoffset += var->xres - var->yres;
+#endif
+				}
 
 				start = view_address_base
-					+ var->yoffset*fix->line_length
+					+ yoffset*fix->line_length
 					+ (xoffset*var->bits_per_pixel)/8;
 
 				total_width = fix->line_length;
@@ -890,12 +909,16 @@ omap24xxfb_set_dma_params(const struct fb_var_screeninfo *var,
 				break;
 			case 90:
 			case 270:
+				xoffset = var->xoffset;
 				yoffset = var->yoffset;
 				if (rotation == 90)
 					yoffset += var->yres_virtual - var->yres;
-
+#ifdef CONFIG_FB_OMAP_720P_STREAMING
+				else
+					xoffset += var->yres - var->xres;
+#endif
 				start = view_address_base
-					+ var->xoffset*fix->line_length
+					+ xoffset*fix->line_length
 					+ (yoffset*var->bits_per_pixel)/8;
 
 				total_width = fix->line_length;

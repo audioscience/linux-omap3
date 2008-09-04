@@ -37,6 +37,7 @@
 #ifdef CONFIG_TRACK_RESOURCES
 #include <linux/device.h>
 #endif
+#include <mach/resource.h>
 
 #ifdef CONFIG_ARCH_OMAP34XX
 extern int lpr_enabled;
@@ -60,7 +61,7 @@ static struct tvlcd_status_t tvlcd_status;
 static void omap24xx_ll_config_tv_clocks(int sleep_state);
 #endif
 static struct clk *dss1f, *dss1i;
-#ifdef CONFIG_OMAP_DSI
+#if defined(CONFIG_OMAP_DSI) || defined(CONFIG_FB_OMAP_720P_STREAMING)
 static struct clk *dss2f;
 #endif
 
@@ -724,8 +725,9 @@ static void
 omap2_synclost_isr(void *arg, struct pt_regs *regs)
 {
 	int i = 0;
-	
-	// printk(KERN_WARNING "Sync Lost LCD %x\n",dispc_reg_in(DISPC_IRQSTATUS));
+
+	printk(KERN_WARNING "Sync Lost LCD %x\n", \
+				dispc_reg_in(DISPC_IRQSTATUS));
 	arg = NULL; regs = NULL;
 
 	/*
@@ -1935,8 +1937,19 @@ omap2_disp_config_lcd(u32 clkdiv, u32 hbp, u32 hfp, u32 hsw,
 					u32 vbp, u32 vfp, u32 vsw)
 {
 	u32 control, divisor, timing_h, timing_v;
-	divisor = (1 << DISPC_DIVISOR_LCD_SHIFT) 
-		| (clkdiv << DISPC_DIVISOR_PCD_SHIFT);
+#ifdef CONFIG_FB_OMAP_720P_STREAMING
+	divisor = (1 << DISPC_DIVISOR_LCD_SHIFT) |
+				(2 << DISPC_DIVISOR_PCD_SHIFT);
+	hbp = 208;
+	hfp = 80;
+	hsw = 168;
+	vbp = 20;
+	vfp = 5;
+	vsw = 5;
+#else
+	divisor = (1 << DISPC_DIVISOR_LCD_SHIFT) |
+				(clkdiv << DISPC_DIVISOR_PCD_SHIFT);
+#endif
 
 #ifdef CONFIG_OMAP_DSI
 	return ;
@@ -1956,12 +1969,20 @@ omap2_disp_config_lcd(u32 clkdiv, u32 hbp, u32 hfp, u32 hsw,
 	
 	dispc_reg_out(DISPC_TIMING_H, timing_h);
 	dispc_reg_out(DISPC_TIMING_V, timing_v);
+#ifdef CONFIG_FB_OMAP_720P_STREAMING
+	dispc_reg_out(DISPC_TIMING_H, 0x0ff03f31);
+	dispc_reg_out(DISPC_TIMING_V, 0x01400504);
+#endif
 	dispc_reg_out(DISPC_DIVISOR, divisor);
 	control = dispc_reg_in(DISPC_CONTROL);
+#ifdef CONFIG_FB_OMAP_720P_STREAMING
+	control |= DISPC_CONTROL_TFTDATALINES_OALSB24B;
+#else
 #ifdef CONFIG_MACH_OMAP_LDP
 	control |= DISPC_CONTROL_TFTDATALINES_OALSB18B;
 #else
 	control |= DISPC_CONTROL_TFTDATALINES_OALSB16B;
+#endif
 #endif
 	control |= DISPC_CONTROL_GPOUT1	| DISPC_CONTROL_GPOUT0 
 	| DISPC_CONTROL_STNTFT;
@@ -2045,7 +2066,7 @@ omap24xx_ll_config_disp_clocks(int sleep_state)
 		omap2_disp_set_dssfclk();
 		dss1i = clk_get(dev,"dss_ick");
 		dss1f = clk_get(dev,"dss1_alwon_fck");
-#ifdef CONFIG_OMAP_DSI
+#if defined(CONFIG_OMAP_DSI) || defined(CONFIG_FB_OMAP_720P_STREAMING)
 		dss2f = clk_get(dev,"dss2_alwon_fck");
 #endif
 		if(IS_ERR(dss1i) || IS_ERR(dss1f)) {
@@ -2067,7 +2088,7 @@ omap24xx_ll_config_disp_clocks(int sleep_state)
 			printk("Unable to enable DSS FCLK\n");
 			return;
 		}
-#ifdef CONFIG_OMAP_DSI
+#if defined(CONFIG_OMAP_DSI) || defined(CONFIG_FB_OMAP_720P_STREAMING)
 		printk("Enabling the DSS2 functional clock !!! \n");
 		if(clk_enable(dss2f) != 0) {
 			printk("Unable to enable DSS FCLK\n");
@@ -2113,7 +2134,7 @@ omap2_disp_get_all_clks(void)
 		omap2_disp_restore_ctx(OMAP2_VIDEO2);
 
 #endif /* #ifdef CONFIG_OMAP34XX_OFFMODE */			
-#ifdef CONFIG_HW_SUP_TRANS
+#if defined(CONFIG_HW_SUP_TRANS) && !defined(CONFIG_FB_OMAP_720P_STREAMING)
 		/* Set smart idle for Display subsystem */
 		idle_dss = dss_reg_in(DSS_SYSCONFIG);
 		idle_dss |= DSS_SYSCONFIG_AUTOIDLE;
@@ -2125,7 +2146,7 @@ omap2_disp_get_all_clks(void)
 		idle_dispc &= ~(DISPC_SYSCONFIG_MIDLEMODE | 
 						DISPC_SYSCONFIG_SIDLEMODE);
 
-#ifdef CONFIG_HW_SUP_TRANS
+#if defined(CONFIG_HW_SUP_TRANS) && !defined(CONFIG_FB_OMAP_720P_STREAMING)
 		idle_dispc |= (DISPC_SYSCONFIG_MIDLEMODE_SSTANDBY |
 					DISPC_SYSCONFIG_SIDLEMODE_SIDLE |
 						DISPC_SYSCONFIG_ENABLE_WKUP);
@@ -2247,7 +2268,7 @@ omap2_disp_get_dss(void)
 		omap2_disp_restore_ctx(OMAP2_VIDEO2);
 
 #endif /* #ifdef CONFIG_OMAP34XX_OFFMODE */			
-#ifdef CONFIG_HW_SUP_TRANS
+#if defined(CONFIG_HW_SUP_TRANS) && !defined(CONFIG_FB_OMAP_720P_STREAMING)
 		/* Set smart idle for Display subsystem */
 		idle_dss = dss_reg_in(DSS_SYSCONFIG);
 		idle_dss |= DSS_SYSCONFIG_AUTOIDLE;
@@ -2259,7 +2280,7 @@ omap2_disp_get_dss(void)
 		idle_dispc &= ~(DISPC_SYSCONFIG_MIDLEMODE | 
 						DISPC_SYSCONFIG_SIDLEMODE);
 
-#ifdef CONFIG_HW_SUP_TRANS
+#if defined(CONFIG_HW_SUP_TRANS) && !defined(CONFIG_FB_OMAP_720P_STREAMING)
 		idle_dispc |= (DISPC_SYSCONFIG_MIDLEMODE_SSTANDBY |
 					DISPC_SYSCONFIG_SIDLEMODE_SIDLE |
 						DISPC_SYSCONFIG_ENABLE_WKUP);
@@ -3313,6 +3334,14 @@ omap2_disp_master_isr(int irq, void *arg, struct pt_regs *regs)
 
 	return IRQ_HANDLED;
 }
+#ifdef CONFIG_OMAP3430_ES2
+struct constraint_handle *cnst_handle;
+
+static struct constraint_id cnst_id = {
+		.type = RES_LATENCY_CO,
+		.data = (void *) "latency",
+};
+#endif
 
 int __init
 omap2_disp_init(void)
@@ -3321,14 +3350,17 @@ omap2_disp_init(void)
 	u32 dss_control;
 
 	spin_lock_init(&dss_lock);
-	
+#ifdef CONFIG_OMAP3430_ES2
+	cnst_handle = constraint_get("dss", &cnst_id);
+	constraint_set(cnst_handle, CO_LATENCY_WFI);
+#endif
 	/* Required for scale call */
 #ifdef CONFIG_TRACK_RESOURCES
-	dss1f_scale = clk_get(&display_dev,"dss1_alwon_fck");
+	dss1f_scale = clk_get(&display_dev, "dss1_alwon_fck");
 #else
-	dss1f_scale = clk_get(NULL,"dss1_alwon_fck");
+	dss1f_scale = clk_get(NULL, "dss1_alwon_fck");
 #if 1	
-	dpll4_scale = clk_get(NULL,"dpll4_m4x2_ck");
+	dpll4_scale = clk_get(NULL, "dpll4_m4x2_ck");
 #endif
 #endif
 #if 1
@@ -3438,7 +3470,9 @@ omap2_disp_init(void)
 
 	omap2_disp_register_isr(omap2_synclost_isr, layer,
 							DISPC_IRQSTATUS_SYNCLOST|DISPC_IRQSTATUS_SYNCLOSTDIGITAL);
+#if !defined(CONFIG_OMAP_DSI) && !defined(CONFIG_FB_OMAP_720P_STREAMING)
 	omap2_disp_put_all_clks();
+#endif
 	
 	return 0;
 

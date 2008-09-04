@@ -31,3 +31,6 @@ obj-$(CONFIG_OMAP_MMU_FWK) += mmu.o
 # OMAP mailbox framework
 obj-$(CONFIG_OMAP_MBOX_FWK) += mailbox.o
 
+# DSI subsystem
+obj-$(CONFIG_FB_OMAP_720P_STREAMING) += dsi/
+
