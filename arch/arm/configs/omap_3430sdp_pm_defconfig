@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
-# Linux kernel version: 2.6.26-rc8-omap1
-# Mon Jul 14 21:04:14 2008
+# Linux kernel version: 2.6.26-omap1
+# Tue Sep 30 02:38:23 2008
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -203,8 +203,11 @@ CONFIG_MACH_OMAP_3430SDP=y
 # CONFIG_MACH_OMAP3EVM is not set
 # CONFIG_MACH_OMAP3_BEAGLE is not set
 CONFIG_OMAP3_PM=y
-# CONFIG_MPU_OFF is not set
-# CONFIG_OMAP34XX_OFFMODE is not set
+CONFIG_MPU_OFF=y
+CONFIG_OMAP34XX_OFFMODE=y
+CONFIG_CORE_OFF=y
+CONFIG_CORE_OFF_CPUIDLE=y
+# CONFIG_SYSOFFMODE is not set
 CONFIG_HW_SUP_TRANS=y
 # CONFIG_TRACK_RESOURCES is not set
 CONFIG_AUTO_POWER_DOMAIN_CTRL=y
@@ -321,9 +324,7 @@ CONFIG_CPU_IDLE_GOV_MENU=y
 CONFIG_FPE_NWFPE=y
 # CONFIG_FPE_NWFPE_XP is not set
 # CONFIG_FPE_FASTFPE is not set
-CONFIG_VFP=y
-CONFIG_VFPv3=y
-# CONFIG_NEON is not set
+# CONFIG_VFP is not set
 
 #
 # Userspace binary formats
