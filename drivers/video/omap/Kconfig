@@ -66,7 +66,7 @@ config FB_OMAP_BOOTLOADER_INIT
 config FB_OMAP_CONSISTENT_DMA_SIZE
 	int "Consistent DMA memory size (MB)"
 	depends on FB_OMAP
-	range 1 14
+	range 1 28
 	default 2
 	help
 	  Increase the DMA consistent memory size according to your video
