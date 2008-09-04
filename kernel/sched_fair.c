@@ -609,16 +609,8 @@ place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int initial)
 
 	if (!initial) {
 		/* sleeps upto a single latency don't count. */
-		if (sched_feat(NEW_FAIR_SLEEPERS)) {
-			unsigned long thresh = sysctl_sched_latency;
-
-			/*
-			 * convert the sleeper threshold into virtual time
-			 */
-			if (sched_feat(NORMALIZED_SLEEPER))
-				thresh = calc_delta_fair(thresh, &cfs_rq->load);
-			vruntime -= thresh;
-		}
+		if (sched_feat(NEW_FAIR_SLEEPERS))
+			vruntime -= sysctl_sched_latency;
 
 		/* ensure we never gain time by being placed backwards. */
 		vruntime = max_vruntime(se->vruntime, vruntime);

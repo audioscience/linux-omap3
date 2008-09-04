@@ -15,10 +15,10 @@
  *
  */
 
-#include <linux/fdtable.h>
 #include <asm/cacheflush.h>
 #include <linux/binder.h>
 #include <linux/file.h>
+#include <linux/fdtable.h>
 #include <linux/fs.h>
 #include <linux/list.h>
 #include <linux/miscdevice.h>
@@ -890,7 +890,7 @@ binder_get_node(struct binder_proc *proc, void __user *ptr)
 }
 
 static struct binder_node *
-binder_new_node(struct binder_proc *proc, void __user *ptr, void __user *cookie)
+binder_new_node(struct binder_proc *proc, void __user *ptr)
 {
 	struct rb_node **p = &proc->nodes.rb_node;
 	struct rb_node *parent = NULL;
@@ -917,14 +917,9 @@ binder_new_node(struct binder_proc *proc, void __user *ptr, void __user *cookie)
 	node->debug_id = ++binder_last_id;
 	node->proc = proc;
 	node->ptr = ptr;
-	node->cookie = cookie;
 	node->work.type = BINDER_WORK_NODE;
 	INIT_LIST_HEAD(&node->work.entry);
 	INIT_LIST_HEAD(&node->async_todo);
-	if (binder_debug_mask & BINDER_DEBUG_INTERNAL_REFS)
-		printk(KERN_INFO "binder: %d:%d node %d u%p c%p created\n",
-		       proc->pid, current->pid, node->debug_id,
-		       node->ptr, node->cookie);
 	return node;
 }
 
@@ -945,10 +940,8 @@ binder_inc_node(struct binder_node *node, int strong, int internal,
 			node->internal_strong_refs++;
 		} else
 			node->local_strong_refs++;
-		if (!node->has_strong_ref && target_list) {
-			list_del_init(&node->work.entry);
+		if (!node->has_strong_ref && list_empty(&node->work.entry))
 			list_add_tail(&node->work.entry, target_list);
-		}
 	} else {
 		if (!internal)
 			node->local_weak_refs++;
@@ -986,9 +979,9 @@ binder_dec_node(struct binder_node *node, int strong, int internal)
 			wake_up_interruptible(&node->proc->wait);
 		}
 	} else {
+		list_del_init(&node->work.entry);
 		if (hlist_empty(&node->refs) && !node->local_strong_refs &&
 		    !node->local_weak_refs) {
-			list_del_init(&node->work.entry);
 			if (node->proc) {
 				rb_erase(&node->rb_node, &node->proc->nodes);
 				if (binder_debug_mask & BINDER_DEBUG_INTERNAL_REFS)
@@ -1451,21 +1444,14 @@ binder_transaction(struct binder_proc *proc, struct binder_thread *thread,
 			struct binder_ref *ref;
 			struct binder_node *node = binder_get_node(proc, fp->binder);
 			if (node == NULL) {
-				node = binder_new_node(proc, fp->binder, fp->cookie);
+				node = binder_new_node(proc, fp->binder);
 				if (node == NULL) {
 					return_error = BR_FAILED_REPLY;
 					goto err_binder_new_node_failed;
 				}
+				node->cookie = fp->cookie;
 				node->min_priority = fp->flags & FLAT_BINDER_FLAG_PRIORITY_MASK;
 				node->accept_fds = !!(fp->flags & FLAT_BINDER_FLAG_ACCEPTS_FDS);
-			}
-			if (fp->cookie != node->cookie) {
-				binder_user_error("binder: %d:%d sending u%p "
-					"node %d, cookie mismatch %p != %p\n",
-					proc->pid, thread->pid,
-					fp->binder, node->debug_id,
-					fp->cookie, node->cookie);
-				goto err_binder_get_ref_for_node_failed;
 			}
 			ref = binder_get_ref_for_node(target_proc, node);
 			if (ref == NULL) {
@@ -1795,16 +1781,6 @@ binder_thread_write(struct binder_proc *proc, struct binder_thread *thread,
 					node_ptr);
 				break;
 			}
-			if (cookie != node->cookie) {
-				binder_user_error("binder: %d:%d %s u%p node %d"
-					" cookie mismatch %p != %p\n",
-					proc->pid, thread->pid,
-					cmd == BC_INCREFS_DONE ?
-					"BC_INCREFS_DONE" : "BC_ACQUIRE_DONE",
-					node_ptr, node->debug_id,
-					cookie, node->cookie);
-				break;
-			}
 			if (cmd == BC_ACQUIRE_DONE) {
 				if (node->pending_strong_ref == 0) {
 					binder_user_error("binder: %d:%d "
@@ -1997,7 +1973,7 @@ binder_thread_write(struct binder_proc *proc, struct binder_thread *thread,
 						list_add_tail(&ref->death->work.entry, &thread->todo);
 					} else {
 						list_add_tail(&ref->death->work.entry, &proc->todo);
-						wake_up_interruptible(&proc->wait);
+						wake_up_interruptible(&ref->proc->wait);
 					}
 				}
 			} else {
@@ -2023,12 +1999,7 @@ binder_thread_write(struct binder_proc *proc, struct binder_thread *thread,
 				ref->death = NULL;
 				if (list_empty(&death->work.entry)) {
 					death->work.type = BINDER_WORK_CLEAR_DEATH_NOTIFICATION;
-					if (thread->looper & (BINDER_LOOPER_STATE_REGISTERED | BINDER_LOOPER_STATE_ENTERED)) {
-						list_add_tail(&death->work.entry, &thread->todo);
-					} else {
-						list_add_tail(&death->work.entry, &proc->todo);
-						wake_up_interruptible(&proc->wait);
-					}
+					list_add_tail(&death->work.entry, &thread->todo);
 				} else {
 					BUG_ON(death->work.type != BINDER_WORK_DEAD_BINDER);
 					death->work.type = BINDER_WORK_DEAD_BINDER_AND_CLEAR;
@@ -2063,12 +2034,7 @@ binder_thread_write(struct binder_proc *proc, struct binder_thread *thread,
 			list_del_init(&death->work.entry);
 			if (death->work.type == BINDER_WORK_DEAD_BINDER_AND_CLEAR) {
 				death->work.type = BINDER_WORK_CLEAR_DEATH_NOTIFICATION;
-				if (thread->looper & (BINDER_LOOPER_STATE_REGISTERED | BINDER_LOOPER_STATE_ENTERED)) {
-					list_add_tail(&death->work.entry, &thread->todo);
-				} else {
-					list_add_tail(&death->work.entry, &proc->todo);
-					wake_up_interruptible(&proc->wait);
-				}
+				list_add_tail(&death->work.entry, &thread->todo);
 			}
 		} break;
 
@@ -2600,7 +2566,7 @@ static long binder_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			}
 		} else
 			binder_context_mgr_uid = current->euid;
-		binder_context_mgr_node = binder_new_node(proc, NULL, NULL);
+		binder_context_mgr_node = binder_new_node(proc, NULL);
 		if (binder_context_mgr_node == NULL) {
 			ret = -ENOMEM;
 			goto err;

@@ -55,8 +55,6 @@
 
 #define VERSION "0.6"
 
-static int disable_esco = 0;
-
 static const struct proto_ops sco_sock_ops;
 
 static struct bt_sock_list sco_sk_list = {
