@@ -427,6 +427,13 @@ static struct omap2_mcspi_device_config tsc2046_mcspi_config = {
 	.single_channel	= 1,  /* 0: slave, 1: master */
 };
 
+#ifdef CONFIG_FB_OMAP_LCD_WVGA
+static struct omap2_mcspi_device_config wvgalcd_mcspi_config = {
+	.turbo_mode		= 0,
+	.single_channel		= 1,  /* 0: slave, 1: master */
+};
+#endif
+
 static struct spi_board_info ldp_spi_board_info[] __initdata = {
 	[0] = {
 		/*
@@ -441,6 +448,15 @@ static struct spi_board_info ldp_spi_board_info[] __initdata = {
 		.irq			= 0,
 		.platform_data		= &tsc2046_config,
 	},
+#ifdef CONFIG_FB_OMAP_LCD_WVGA
+	[1] = {
+		.modalias		= "wvgalcd",
+		.bus_num		= 1,
+		.chip_select		= 2,
+		.max_speed_hz		= 375000,
+		.controller_data 	= &wvgalcd_mcspi_config,
+	},
+#endif
 };
 
 static struct platform_device *ldp_devices[] __initdata = {
