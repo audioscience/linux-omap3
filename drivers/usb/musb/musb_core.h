@@ -462,6 +462,8 @@ extern irqreturn_t musb_interrupt(struct musb *);
 
 extern void musb_platform_enable(struct musb *musb);
 extern void musb_platform_disable(struct musb *musb);
+extern int musb_platform_resume(struct musb *musb);
+extern int musb_platform_suspend(struct musb *musb);
 
 extern void musb_hnp_stop(struct musb *musb);
 

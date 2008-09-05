@@ -14,6 +14,16 @@
 #include <mach/hardware.h>
 #include <mach/usb.h>
 
+#if defined(CONFIG_TWL4030_USB_HS_ULPI)
+extern void twl4030_phy_suspend(int controller_off);
+extern void twl4030_phy_resume(void);
+extern int twl4030_usb_device_connected(void);
+#else
+#define twl4030_phy_suspend(x)		do {} while (0)
+#define twl4030_phy_resume()		do {} while (0)
+#define twl4030_usb_device_connected()	0
+#endif
+
 /*
  * OMAP2430-specific definitions
  */

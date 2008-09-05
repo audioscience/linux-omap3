@@ -35,6 +35,20 @@
 #include <linux/i2c/twl4030.h>
 #include <mach/usb.h>
 
+#ifdef CONFIG_OMAP34XX_OFFMODE
+
+/* FIXME: Constraints not working as expected. It appears that even when
+ * the constraint is released, the core does not go to off/RET.
+ * To test this, enable the USB_LAT_CONST macro below and try a
+ * connect/disconnect sequence.
+ */
+
+//#define USB_LAT_CONST 1
+#undef USB_LAT_CONST
+#include <mach/resource.h>
+#include <mach/prcm.h>
+#endif
+
 /* Register defines */
 
 #define VENDOR_ID_LO			0x00
@@ -214,6 +228,9 @@
 
 /* In module TWL4030_MODULE_PM_MASTER */
 #define PROTECT_KEY			0x0E
+#define REG_STS_HW_CONDITIONS		0x0F
+#define STS_VBUS			(1 << 7)
+#define STS_USB				(1 << 2)
 
 /* In module TWL4030_MODULE_PM_RECEIVER */
 #define VUSB_DEDICATED1			0x7D
@@ -277,7 +294,17 @@ struct twl4030_usb {
 #define T2_USB_MODE_ULPI		1
 /* #define T2_USB_MODE_CEA2011_3PIN	2 */
 	u8			asleep;
+#if defined(USB_LAT_CONST) && defined(CONFIG_OMAP3_PM)
+	struct	constraint_handle	*usb_power_constraint;
+#endif
 };
+
+#if defined(USB_LAT_CONST) && defined(CONFIG_OMAP3_PM)
+static struct constraint_id cnstr_id = {
+	.type = RES_LATENCY_CO,
+	.data = (void *)"latency",
+};
+#endif
 
 static struct twl4030_usb *the_transceiver;
 
@@ -539,8 +566,26 @@ static void twl4030_phy_suspend(int controller_off)
 
 	twl4030_phy_power(twl, 0);
 	twl->asleep = 1;
+
+#if defined(USB_LAT_CONST) && defined(CONFIG_OMAP3_PM)
+	/* Release USB constraint on OFF/RET */
+	if (twl->usb_power_constraint)
+		constraint_remove(twl->usb_power_constraint);
+#endif
+
 	return;
 }
+
+#ifdef CONFIG_OMAP34XX_OFFMODE
+
+#if defined(CONFIG_USB_MUSB_HDRC_MODULE) || !defined(CONFIG_USB_MUSB_SOC)
+	/* For Module no need to store context */
+void musb_context_restore_and_wakeup(void)	{}
+#else
+extern void musb_context_restore_and_wakeup(void);
+#endif
+
+#endif
 
 static void twl4030_phy_resume(void)
 {
@@ -548,6 +593,13 @@ static void twl4030_phy_resume(void)
 
 	if (!twl->asleep)
 		return;
+
+#if defined(USB_LAT_CONST) && defined(CONFIG_OMAP3_PM)
+	/* Acquire USB constraint on OFF/RET */
+	if (twl->usb_power_constraint)
+		constraint_set(twl->usb_power_constraint,
+					CO_LATENCY_MPUOFF_COREON);
+#endif
 
 	/* enable falling edge interrupt to detect cable detach */
 	usb_irq_enable(0, 1);
@@ -558,6 +610,12 @@ static void twl4030_phy_resume(void)
 	if (twl->usb_mode == T2_USB_MODE_ULPI)
 		twl4030_i2c_access(0);
 	twl->asleep = 0;
+
+#ifdef CONFIG_OMAP34XX_OFFMODE
+	/* Restore context of MUSB from OFF mode */
+	musb_context_restore_and_wakeup();
+#endif
+
 	return;
 }
 
@@ -692,6 +750,17 @@ static int twl4030_set_host(struct otg_transceiver *xceiv, struct usb_bus *host)
 	return 0;
 }
 
+int twl4030_usb_device_connected(void)
+{
+	u8 val;
+
+	/* check if USB connection is present */
+	twl4030_i2c_read_u8(TWL4030_MODULE_PM_MASTER, &val,
+				REG_STS_HW_CONDITIONS);
+	return !!(val & (STS_VBUS | STS_USB));
+}
+EXPORT_SYMBOL(twl4030_usb_device_connected);
+
 static int __init twl4030_usb_init(void)
 {
 	struct twl4030_usb	*twl;
@@ -732,8 +801,24 @@ static int __init twl4030_usb_init(void)
 
 	twl->asleep = 0;
 
-	if (twl->usb_mode == T2_USB_MODE_ULPI)
-		twl4030_phy_suspend(1);
+#if defined(USB_LAT_CONST) && defined(CONFIG_OMAP3_PM)
+	/* Get handle to USB Constraint for OFF/RETENTION */
+	twl->usb_power_constraint = constraint_get("usb", &cnstr_id);
+#endif
+
+	/* Allow USB presence interrupt as wakeup event */
+	if (twl->usb_mode == T2_USB_MODE_ULPI) {
+		/* Suspend PHY but keep PRES int enabled */
+		twl4030_phy_suspend(0);
+
+		/* Check for cold plugging case: if USB is already connected */
+		if (twl4030_usb_device_connected()) {
+			printk(KERN_DEBUG "\tUSB connected at bootup\n");
+			twl4030_phy_resume();
+			twl4030charger_usb_en(1);
+		} else
+			printk(KERN_DEBUG "\tUSB not connected at bootup\n");
+	}
 
 	otg_set_transceiver(&twl->otg);
 
@@ -769,6 +854,11 @@ static void __exit twl4030_usb_exit(void)
 	twl4030_usb_clear_bits(twl, POWER_CTRL, POWER_CTRL_OTG_ENAB);
 
 	twl4030_phy_power(twl, 0);
+
+#if defined(USB_LAT_CONST) && defined(CONFIG_OMAP3_PM)
+	if (twl->usb_power_constraint)
+		constraint_put(twl->usb_power_constraint);
+#endif
 
 	kfree(twl);
 }

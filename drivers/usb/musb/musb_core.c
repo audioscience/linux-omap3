@@ -1910,6 +1910,9 @@ static void musb_free(struct musb *musb)
 #endif
 }
 
+#ifdef CONFIG_OMAP34XX_OFFMODE
+extern int musb_context_store_and_suspend(struct musb *musb, int overwrite);
+#endif
 /*
  * Perform generic per-controller initialization.
  *
@@ -2092,6 +2095,11 @@ bad_config:
 
 	}
 
+#if defined(CONFIG_OMAP34XX_OFFMODE) && !defined(CONFIG_USB_MUSB_HDRC_MODULE)
+		/* Save Context of MUSB to recover from OFF mode */
+		musb_context_store_and_suspend(musb, 0);
+#endif
+
 	if (status == 0)
 		musb_debug_create("driver/musb_hdrc", musb);
 	else {
@@ -2200,13 +2208,21 @@ static int musb_suspend(struct platform_device *pdev, pm_message_t message)
 		 */
 	}
 
+#if 0
+	/* Clocks are autoidled. No need to explicitly disable */
 	if (musb->set_clock)
 		musb->set_clock(musb->clock, 0);
 	else
 		clk_disable(musb->clock);
+#endif
+	musb_platform_suspend(musb);
 	spin_unlock_irqrestore(&musb->lock, flags);
 	return 0;
 }
+
+#if defined(CONFIG_OMAP34XX_OFFMODE) && !defined(CONFIG_USB_MUSB_HDRC_MODULE)
+extern void musb_context_restore_and_wakeup(void);
+#endif
 
 static int musb_resume(struct platform_device *pdev)
 {
@@ -2218,10 +2234,19 @@ static int musb_resume(struct platform_device *pdev)
 
 	spin_lock_irqsave(&musb->lock, flags);
 
+#if 0
+	/* Clocks are autoidled. No need to explicitly enable */
 	if (musb->set_clock)
 		musb->set_clock(musb->clock, 1);
 	else
 		clk_enable(musb->clock);
+#endif
+
+#if defined(CONFIG_OMAP34XX_OFFMODE) && !defined(CONFIG_USB_MUSB_HDRC_MODULE)
+	musb_context_restore_and_wakeup();
+#else
+	musb_platform_resume(musb);
+#endif
 
 	/* for static cmos like DaVinci, register values were preserved
 	 * unless for some reason the whole soc powered down and we're
