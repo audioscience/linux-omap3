@@ -16,3 +16,7 @@ snd-omap-alsa-sx1-objs := omap-alsa.o omap-alsa-dma.o omap-alsa-sx1.o omap-alsa-
 
 obj-$(CONFIG_SND_OMAP24XX_EAC) += snd-omap24xx-eac.o
 snd-omap24xx-eac-objs := eac.o
+
+obj-$(CONFIG_SND_OMAP3_TWL4030) += snd-omap3-alsa-twl4030.o
+snd-omap3-alsa-twl4030-objs := omap-alsa.o omap3-alsa-dma.o omap-alsa-twl4030.o omap-alsa-twl4030-mixer.o
+
