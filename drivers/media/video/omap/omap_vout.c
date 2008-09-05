@@ -3418,6 +3418,7 @@ rotation_free:
 static int __init omap_vout_init(void)
 {
 	omap_disp_get_dss();
+	omap_disp_get_dss();
 	saved_v1out = omap_vout_init_device(OMAP_VIDEO1);
 	if (saved_v1out == NULL) {
 		omap_disp_put_dss();
