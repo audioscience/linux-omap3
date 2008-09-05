@@ -760,8 +760,6 @@ source "drivers/media/video/au0828/Kconfig"
 
 source "drivers/media/video/ivtv/Kconfig"
 
-source drivers/media/video/omap/Kconfig
-
 source "drivers/media/video/cx18/Kconfig"
 
 config VIDEO_M32R_AR
@@ -793,14 +791,24 @@ config VIDEO_CAFE_CCIC
 	  generation OLPC systems.
 
 config VIDEO_OMAP3
+	tristate "OMAP2/OMAP3 V4L2 drivers"
+	depends on VIDEO_DEV && (ARCH_OMAP24XX || ARCH_OMAP34XX)
+	help
+	  V4L2 DSS driver support for OMAP2/3 based boards.
+
+config VIDEO_OMAP3_CAMERA
         tristate "OMAP 3 Camera support"
 	select VIDEOBUF_GEN
 	select VIDEOBUF_DMA_SG
-	depends on VIDEO_V4L2 && ARCH_OMAP34XX
+	select VIDEO_OMAP3_ISP
+	depends on VIDEO_V4L2 && ARCH_OMAP34XX && VIDEO_OMAP3
+	default VIDEO_OMAP3
 	---help---
 	  Driver for an OMAP 3 camera controller.
 
 source "drivers/media/video/isp/Kconfig"
+
+source "drivers/media/video/omap/Kconfig"
 
 config VIDEO_OMAP2
 	tristate "OMAP 2 Camera support (EXPERIMENTAL)"
@@ -809,7 +817,6 @@ config VIDEO_OMAP2
 	depends on VIDEO_V4L2 && ARCH_OMAP24XX
 	---help---
 	  Driver for an OMAP 2 camera controller.
-
 
 #
 # USB Multimedia device configuration

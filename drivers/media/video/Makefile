@@ -105,7 +105,8 @@ obj-$(CONFIG_VIDEO_CAFE_CCIC) += cafe_ccic.o
 obj-$(CONFIG_VIDEO_OV7670) 	+= ov7670.o
 
 obj-$(CONFIG_VIDEO_OMAP2) += omap24xxcam.o omap24xxcam-dma.o
-obj-$(CONFIG_VIDEO_OMAP3) += omap34xxcam.o isp/
+obj-$(CONFIG_VIDEO_OMAP3) += omap/ isp/
+obj-$(CONFIG_VIDEO_OMAP3_CAMERA) += omap34xxcam.o
 
 obj-$(CONFIG_VIDEO_TCM825X) += tcm825x.o
 obj-$(CONFIG_VIDEO_OV9640)	+= ov9640.o
@@ -146,3 +147,4 @@ obj-$(CONFIG_USB_VIDEO_CLASS)	+= uvc/
 EXTRA_CFLAGS += -Idrivers/media/dvb/dvb-core
 EXTRA_CFLAGS += -Idrivers/media/dvb/frontends
 EXTRA_CFLAGS += -Idrivers/media/common/tuners
+

@@ -3,6 +3,8 @@
 obj-$(CONFIG_VIDEO_OMAP_CAMERA) += omapcamera.o
 
 objs-y$(CONFIG_ARCH_OMAP16XX) += omap16xxcam.o camera_core.o
+obj-$(CONFIG_VIDEO_OMAP_VIDEOLIB) += omap_voutlib.o
+obj-$(CONFIG_VIDEO_OMAP_VIDEOOUT) += omap_vout.o
 
 omapcamera-objs := $(objs-yy)
 
