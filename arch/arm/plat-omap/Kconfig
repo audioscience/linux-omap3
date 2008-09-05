@@ -245,6 +245,11 @@ config OMAP_SERIAL_WAKE
 	  to data on the serial RX line. This allows you to wake the
 	  system from serial console.
 
+config VIDEO_OMAP_TVOUT
+	bool "TV out support"
+	depends on VIDEO_OMAP3
+	default VIDEO_OMAP3
+
 endmenu
 
 choice
