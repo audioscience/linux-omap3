@@ -617,7 +617,7 @@ int ispresizer_busy(void)
 {
 	return omap_readl(ISPRSZ_PCR) & ISPPRV_PCR_BUSY;
 }
-
+EXPORT_SYMBOL(ispresizer_busy);
 /**
  * ispresizer_config_startphase - Sets the horizontal and vertical start phase.
  * @hstartphase: horizontal start phase (0 - 7).
