@@ -203,7 +203,7 @@ static struct mem_type mem_types[] = {
 		.prot_l1	= PMD_TYPE_TABLE,
 		.prot_sect	= PROT_SECT_DEVICE | PMD_SECT_WB,
 		.domain		= DOMAIN_IO,
-	},	
+	},
 	[MT_DEVICE_IXP2000] = {	  /* IXP2400 requires XCB=101 for on-chip I/O */
 		.prot_pte	= PROT_PTE_DEVICE,
 		.prot_l1	= PMD_TYPE_TABLE,
@@ -230,6 +230,11 @@ static struct mem_type mem_types[] = {
 				L_PTE_USER | L_PTE_EXEC,
 		.prot_l1   = PMD_TYPE_TABLE,
 		.domain    = DOMAIN_USER,
+	},
+	[MT_MEMORY_SO] = {
+		.prot_sect = PMD_TYPE_SECT | PMD_SECT_AP_WRITE |
+				PMD_SECT_UNCACHED,
+		.domain    = DOMAIN_KERNEL,
 	},
 	[MT_MEMORY] = {
 		.prot_sect = PMD_TYPE_SECT | PMD_SECT_AP_WRITE,

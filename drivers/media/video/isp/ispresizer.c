@@ -188,6 +188,7 @@ void ispresizer_trycrop(u32 left, u32 top, u32 width, u32 height, u32 ow,
 	ispres_obj.ipht_crop = top;
 	ispres_obj.ipwd_crop = left;
 }
+EXPORT_SYMBOL(ispresizer_trycrop);
 
 /**
  * ispresizer_applycrop - Apply crop to input image.
@@ -199,6 +200,7 @@ void ispresizer_applycrop()
 						ispres_obj.outputheight);
 	return;
 }
+EXPORT_SYMBOL(ispresizer_applycrop);
 
 /**
  * ispresizer_request - Reserves the Resizer module.
@@ -559,6 +561,7 @@ int ispresizer_config_size(u32 input_w, u32 input_h, u32 output_w,
 						v_filter_coef_4tap[j + 1] <<
 						ISPRSZ_VFILT10_COEF1_SHIFT),
 						ISPRSZ_VFILT10 + (i * 0x04));
+			j += 2;
 		}
 	} else {
 		j = 0;
@@ -618,6 +621,7 @@ int ispresizer_busy(void)
 	return omap_readl(ISPRSZ_PCR) & ISPPRV_PCR_BUSY;
 }
 EXPORT_SYMBOL(ispresizer_busy);
+
 /**
  * ispresizer_config_startphase - Sets the horizontal and vertical start phase.
  * @hstartphase: horizontal start phase (0 - 7).
@@ -841,7 +845,7 @@ EXPORT_SYMBOL(ispresizer_print_status);
  *
  * Always returns 0.
  **/
-static int __init isp_resizer_init(void)
+int __init isp_resizer_init(void)
 {
 	mutex_init(&ispres_obj.ispres_mutex);
 	return 0;
@@ -850,13 +854,6 @@ static int __init isp_resizer_init(void)
 /**
  * isp_resizer_cleanup - Module Cleanup.
  **/
-static void isp_resizer_cleanup(void)
+void __exit isp_resizer_cleanup(void)
 {
 }
-
-module_init(isp_resizer_init);
-module_exit(isp_resizer_cleanup);
-
-MODULE_AUTHOR("Texas Instruments");
-MODULE_DESCRIPTION("ISP Resizer Library");
-MODULE_LICENSE("GPL");

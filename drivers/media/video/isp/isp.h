@@ -50,9 +50,9 @@
 #define VIDIOC_PRIVATE_ISP_HIST_REQ \
 	_IOWR('V', BASE_VIDIOC_PRIVATE + 7, struct isp_hist_data)
 #define VIDIOC_PRIVATE_ISP_AF_CFG \
-	_IO('V', BASE_VIDIOC_PRIVATE + 8)
+	_IOWR('V', BASE_VIDIOC_PRIVATE + 8, struct af_configuration)
 #define VIDIOC_PRIVATE_ISP_AF_REQ \
-	_IO('V', BASE_VIDIOC_PRIVATE + 9)
+	_IOWR('V', BASE_VIDIOC_PRIVATE + 9, struct isp_af_data)
 
 #define ISP_TOK_TERM		0xFFFFFFFF	/*
 						 * terminating token for ISP
@@ -94,7 +94,8 @@ typedef void (*isp_callback_t) (unsigned long status,
 enum isp_interface_type {
 	ISP_PARLL = 1,
 	ISP_CSIA = 2,
-	ISP_CSIB = 4
+	ISP_CSIB = 4,
+	ISP_PARLL_YUV_BT = 8
 };
 
 enum isp_irqevents {
@@ -103,6 +104,7 @@ enum isp_irqevents {
 	CCDC_VD2 = 0x400,
 	CCDC_ERR = 0x800,
 	H3A_AWB_DONE = 0x2000,
+	H3A_AF_DONE = 0x1000,
 	HIST_DONE = 0x10000,
 	PREV_DONE = 0x100000,
 	LSC_DONE = 0x20000,
@@ -124,7 +126,10 @@ enum isp_callback_type {
 	CBK_H3A_AWB_DONE,
 	CBK_HIST_DONE,
 	CBK_HS_VS,
-	CBK_LSC_ISR
+	CBK_LSC_ISR,
+	CBK_H3A_AF_DONE,
+	CBK_CATCHALL,
+	CBK_END,
 };
 
 /**
@@ -294,7 +299,7 @@ int isp_enum_fmt_cap(struct v4l2_fmtdesc *f);
 int isp_try_fmt_cap(struct v4l2_pix_format *pix_input,
 					struct v4l2_pix_format *pix_output);
 
-void isp_g_fmt_cap(struct v4l2_format *f);
+void isp_g_fmt_cap(struct v4l2_pix_format *pix);
 
 int isp_s_fmt_cap(struct v4l2_pix_format *pix_input,
 					struct v4l2_pix_format *pix_output);
@@ -310,6 +315,10 @@ int isp_try_size(struct v4l2_pix_format *pix_input,
 
 int isp_try_fmt(struct v4l2_pix_format *pix_input,
 					struct v4l2_pix_format *pix_output);
+
+int isp_configure_std(v4l2_std_id std);
+
+int isp_check_format(struct v4l2_pix_format *pixfmt);
 
 int isp_handle_private(int cmd, void *arg);
 

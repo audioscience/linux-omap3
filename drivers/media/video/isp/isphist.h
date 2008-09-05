@@ -85,7 +85,6 @@
 		(reg = ((reg & ~ISPHIST_REGVERT_MASK) \
 		| (reg_n_vert & ISPHIST_REGVERT_MASK)))
 
-
 int isp_hist_configure(struct isp_hist_config *histcfg);
 
 int isp_hist_request_statistics(struct isp_hist_data *histdata);
@@ -93,5 +92,9 @@ int isp_hist_request_statistics(struct isp_hist_data *histdata);
 void isphist_save_context(void);
 
 void isphist_restore_context(void);
+
+int __init isp_hist_init(void);
+
+void __exit isp_hist_cleanup(void);
 
 #endif				/* OMAP_ISP_HIST */

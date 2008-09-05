@@ -96,20 +96,20 @@ static struct ispprev_csc flr_prev_csc[] = {
 			{0x0, 0x0, 0x0}
 	},
 	{
-		{	/* CSC Coef Matrix BW*/
+		{	/* CSC Coef Matrix Sepia */
+			{19, 38, 7},
+			{0, 0, 0},
+			{0, 0, 0}
+		},	/* CSC Offset */
+			{0x0, 0xE7, 0x14}
+	},
+	{
+		{	/* CSC Coef Matrix BW */
 			{66, 129, 25},
 			{0, 0, 0},
 			{0, 0, 0}
 		},	/* CSC Offset */
 			{0x0, 0x0, 0x0}
-	},
-	{
-		{	/* CSC Coef Matrix Sepia*/
-			{66, 129, 25},
-			{0, 0, 0},
-			{0, 0, 0}
-		},	/* CSC Offset */
-			{0x0, 0xE7, 0x14}
 	}
 };
 
@@ -429,6 +429,7 @@ err_copy_from_user:
 	printk(KERN_ERR "Preview Config: Copy From User Error");
 	return -EINVAL;
 }
+EXPORT_SYMBOL(omap34xx_isp_preview_config);
 
 /**
  * omap34xx_isp_tables_update - Abstraction layer Tables update.
@@ -1287,6 +1288,7 @@ void isppreview_query_contrast(u8 *contrast)
 	*contrast = (brt_cnt_val >> ISPPRV_CNT_BRT_CNT_SHIFT) & 0xFF;
 	DPRINTK_ISPPREV(" Current brt cnt value in hw is %x\n", brt_cnt_val);
 }
+EXPORT_SYMBOL(isppreview_query_contrast);
 
 /**
  * isppreview_update_contrast - Updates the contrast.
@@ -1298,6 +1300,7 @@ void isppreview_update_contrast(u8 *contrast)
 {
 	ispprev_obj.contrast = *contrast;
 }
+EXPORT_SYMBOL(isppreview_update_contrast);
 
 /**
  * isppreview_config_contrast - Configures the Contrast.
@@ -1338,6 +1341,7 @@ void isppreview_update_brightness(u8 *brightness)
 {
 	ispprev_obj.brightness = *brightness;
 }
+EXPORT_SYMBOL(isppreview_update_brightness);
 
 /**
  * isppreview_config_brightness - Configures the brightness.
@@ -1364,6 +1368,7 @@ void isppreview_query_brightness(u8 *brightness)
 
 	*brightness = omap_readl(ISPPRV_CNT_BRT);
 }
+EXPORT_SYMBOL(isppreview_query_brightness);
 
 /**
  * isppreview_get_brightness_range - Gets the range brightness value
@@ -1785,7 +1790,7 @@ EXPORT_SYMBOL(isppreview_print_status);
 /**
  * isp_preview_init - Module Initialization.
  **/
-static int __init isp_preview_init(void)
+int __init isp_preview_init(void)
 {
 	int i = 0;
 
@@ -1799,11 +1804,11 @@ static int __init isp_preview_init(void)
 	ispprev_obj.prev_inuse = 0;
 	mutex_init(&ispprev_obj.ispprev_mutex);
 
-	if (is_sil_rev_greater_than(OMAP3430_REV_ES1_0)) {
+	if (is_sil_rev_equal_to(OMAP3430_REV_ES2_0)) {
 		flr_wbal_coef0 = 0x23;
 		flr_wbal_coef1 = 0x20;
 		flr_wbal_coef2 = 0x20;
-		flr_wbal_coef3 = 0x30;
+		flr_wbal_coef3 = 0x39;
 	}
 
 	/* Init values */
@@ -1856,15 +1861,8 @@ static int __init isp_preview_init(void)
 /**
  * isp_preview_cleanup - Module Cleanup.
  **/
-static void isp_preview_cleanup(void)
+void __exit isp_preview_cleanup(void)
 {
 	kfree(prev_config_params);
 	prev_config_params = NULL;
 }
-
-module_init(isp_preview_init);
-module_exit(isp_preview_cleanup);
-
-MODULE_AUTHOR("Texas Instruments");
-MODULE_DESCRIPTION("ISP Preview Library");
-MODULE_LICENSE("GPL");

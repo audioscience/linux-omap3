@@ -150,4 +150,8 @@ void ispresizer_restore_context(void);
 
 void ispresizer_print_status(void);
 
+int __init isp_resizer_init(void);
+
+void __exit isp_resizer_cleanup(void);
+
 #endif		/* OMAP_ISP_RESIZER_H */

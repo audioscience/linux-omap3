@@ -114,4 +114,8 @@ void ispmmu_save_context(void);
 
 void ispmmu_restore_context(void);
 
+int __init ispmmu_init(void);
+
+void __exit ispmmu_cleanup(void);
+
 #endif /* OMAP_ISP_MMU_H */

@@ -45,8 +45,15 @@
 #include "ispccdc.h"
 #include "isph3a.h"
 #include "isphist.h"
+#include "isp_af.h"
 #include "isppreview.h"
 #include "ispresizer.h"
+
+/* Enum for progressive and interlaced field capture */
+enum capture_mode {
+	MODE_PROGRESSIVE,
+	MODE_INTERLACED
+};
 
 /* List of image formats supported via OMAP ISP */
 const static struct v4l2_fmtdesc isp_formats[] = {
@@ -115,7 +122,6 @@ static struct vcontrol {
 	}
 };
 
-
 /**
  * struct ispirq - Structure for containing callbacks to be called in ISP ISR.
  * @isp_callbk: Array which stores callback functions, indexed by the type of
@@ -131,9 +137,9 @@ static struct vcontrol {
  * CBK_LSC_ISR).
  */
 static struct ispirq {
-	isp_callback_t isp_callbk[9];
-	isp_vbq_callback_ptr isp_callbk_arg1[9];
-	void *isp_callbk_arg2[9];
+	isp_callback_t isp_callbk[CBK_END];
+	isp_vbq_callback_ptr isp_callbk_arg1[CBK_END];
+	void *isp_callbk_arg2[CBK_END];
 } ispirq_obj;
 
 /**
@@ -180,6 +186,9 @@ struct isp_sgdma ispsg;
  * @resizer_input_height: ISP Resizer module input image height.
  * @resizer_output_width: ISP Resizer module output image width.
  * @resizer_output_height: ISP Resizer module output image height.
+ * @mode: Interlaced or progressive capture.
+ * @current_field: Current field for interlaced capture.
+ * @input_pixelformat: Pixel format of decoder/sensor.
  */
 struct ispmodule {
 	unsigned int isp_pipeline;
@@ -198,6 +207,66 @@ struct ispmodule {
 	unsigned int resizer_input_height;
 	unsigned int resizer_output_width;
 	unsigned int resizer_output_height;
+	enum capture_mode mode;
+	int current_field;
+	__u32 input_pixelformat;
+};
+
+/**
+ * struct isp_std_config_params - Structure for storing standard information.
+ * @name: String to represent the standard.
+ * @num_pixels: Total number of pixels per line including hblank.
+ * @num_lines: Total number of lines per frame including vblank.
+ * @active_pixels: Number of active pixels per line.
+ * @active_lines: Number of active lines per frame.
+ * @fps: Frames per second.
+ * @pixelformat: Input pixel format.
+ * @field: Field format.
+ * @bytesperline: Total line size in bytes including any alignment adjustments.
+ * @sizeimage: Buffer size in bytes.
+ * @colorspace: V4L2 Colorspace.
+ */
+struct isp_std_config_params {
+	char name[30];
+	unsigned int num_pixels;
+	unsigned int num_lines;
+	unsigned int active_pixels;
+	unsigned int active_lines;
+	unsigned int fps;
+	__u32 pixelformat;
+	enum v4l2_field field;
+	__u32 bytesperline;
+	__u32 sizeimage;
+	enum v4l2_colorspace colorspace;
+};
+
+static struct isp_std_config_params std_params[] = {
+	{
+	 .name = "NTSC",
+	 .num_pixels = 858,
+	 .num_lines = 525,
+	 .active_pixels = 720,
+	 .active_lines = 480,
+	 .fps = 30,
+	 .pixelformat = V4L2_PIX_FMT_UYVY,
+	 .field = V4L2_FIELD_INTERLACED,
+	 .bytesperline = (720 * 2),
+	 .sizeimage = (720 * 2 * 480),
+	 .colorspace = V4L2_COLORSPACE_SMPTE170M,
+	},
+	{
+	 .name = "PAL",
+	 .num_pixels = 864,
+	 .num_lines = 625,
+	 .active_pixels = 720,
+	 .active_lines = 576,
+	 .fps = 25,
+	 .pixelformat = V4L2_PIX_FMT_UYVY,
+	 .field = V4L2_FIELD_INTERLACED,
+	 .bytesperline = (720 * 2),
+	 .sizeimage = (720 * 2 * 576),
+	 .colorspace = V4L2_COLORSPACE_SMPTE170M,
+	}
 };
 
 static struct ispmodule ispmodule_obj = {
@@ -213,6 +282,9 @@ static struct ispmodule ispmodule_obj = {
 		.colorspace = V4L2_COLORSPACE_JPEG,
 		.priv = 0,
 	},
+	.mode = MODE_PROGRESSIVE,
+	.current_field = 0,
+	.input_pixelformat = V4L2_PIX_FMT_UYVY,
 };
 
 /* Structure for saving/restoring ISP module registers */
@@ -400,6 +472,12 @@ int isp_set_callback(enum isp_callback_type type, isp_callback_t callback,
 					IRQ0ENABLE_H3A_AWB_DONE_IRQ,
 					ISP_IRQ0ENABLE);
 		break;
+	case CBK_H3A_AF_DONE:
+		omap_writel(IRQ0ENABLE_H3A_AF_DONE_IRQ, ISP_IRQ0STATUS);
+		omap_writel(omap_readl(ISP_IRQ0ENABLE)|
+				IRQ0ENABLE_H3A_AF_DONE_IRQ,
+				ISP_IRQ0ENABLE);
+		break;
 	case CBK_HIST_DONE:
 		omap_writel(IRQ0ENABLE_HIST_DONE_IRQ, ISP_IRQ0STATUS);
 		omap_writel(omap_readl(ISP_IRQ0ENABLE) |
@@ -477,6 +555,10 @@ int isp_unset_callback(enum isp_callback_type type)
 						~IRQ0ENABLE_H3A_AWB_DONE_IRQ,
 						ISP_IRQ0ENABLE);
 		break;
+	case CBK_H3A_AF_DONE:
+		omap_writel((omap_readl(ISP_IRQ0ENABLE)) &
+				(~IRQ0ENABLE_H3A_AF_DONE_IRQ), ISP_IRQ0ENABLE);
+		break;
 	case CBK_HIST_DONE:
 		omap_writel((omap_readl(ISP_IRQ0ENABLE)) &
 						~IRQ0ENABLE_HIST_DONE_IRQ,
@@ -510,6 +592,11 @@ EXPORT_SYMBOL(isp_unset_callback);
  **/
 int isp_request_interface(enum isp_interface_type if_t)
 {
+	enum isp_interface_type temp_if_t = if_t;
+
+	if (if_t == ISP_PARLL_YUV_BT)
+		if_t = ISP_PARLL;
+
 	if (isp_obj.if_status & if_t) {
 		DPRINTK_ISPCTRL("ISP_ERR : Requested Interface already \
 			allocated\n");
@@ -529,7 +616,7 @@ int isp_request_interface(enum isp_interface_type if_t)
 				((isp_obj.if_status == ISP_CSIB) &&
 				(if_t == ISP_CSIA)) ||
 				(isp_obj.if_status == 0)) {
-		isp_obj.if_status |= if_t;
+		isp_obj.if_status |= (if_t | temp_if_t);
 		return 0;
 	} else {
 		DPRINTK_ISPCTRL("ISP_ERR : Invalid Combination Serial- \
@@ -550,6 +637,9 @@ EXPORT_SYMBOL(isp_request_interface);
  **/
 int isp_free_interface(enum isp_interface_type if_t)
 {
+	if ((if_t == ISP_PARLL) || (if_t == ISP_PARLL_YUV_BT))
+		if_t |= (ISP_PARLL | ISP_PARLL_YUV_BT);
+
 	isp_obj.if_status &= ~if_t;
 	return 0;
 }
@@ -851,6 +941,7 @@ int isp_configure_interface(struct isp_interface_config *config)
 	ispctrl_val &= (ISPCTRL_PAR_SER_CLK_SEL_MASK);
 	switch (config->ccdc_par_ser) {
 	case ISP_PARLL:
+	case ISP_PARLL_YUV_BT:
 		ispctrl_val |= ISPCTRL_PAR_SER_CLK_SEL_PARALLEL;
 		ispctrl_val |= (config->u.par.par_clk_pol
 						<< ISPCTRL_PAR_CLK_POL_SHIFT);
@@ -935,6 +1026,12 @@ static irqreturn_t omap34xx_isp_isr(int irq, void *ispirq_disp)
 
 	spin_lock_irqsave(&isp_obj.lock, irqflags);
 
+	if (irqdis->isp_callbk[CBK_CATCHALL])
+		irqdis->isp_callbk[CBK_CATCHALL](
+			irqstatus,
+			irqdis->isp_callbk_arg1[CBK_CATCHALL],
+			irqdis->isp_callbk_arg2[CBK_CATCHALL]);
+
 	if ((irqstatus & MMU_ERR) == MMU_ERR) {
 		if (irqdis->isp_callbk[CBK_MMU_ERR])
 			irqdis->isp_callbk[CBK_MMU_ERR](irqstatus,
@@ -1000,6 +1097,14 @@ static irqreturn_t omap34xx_isp_isr(int irq, void *ispirq_disp)
 		is_irqhandled = 1;
 	}
 
+	if ((irqstatus & H3A_AF_DONE) == H3A_AF_DONE) {
+		if (irqdis->isp_callbk[CBK_H3A_AF_DONE])
+			irqdis->isp_callbk[CBK_H3A_AF_DONE](H3A_AF_DONE,
+				irqdis->isp_callbk_arg1[CBK_H3A_AF_DONE],
+				irqdis->isp_callbk_arg2[CBK_H3A_AF_DONE]);
+		is_irqhandled = 1;
+	}
+
 	if (irqstatus & LSC_PRE_ERR) {
 		printk(KERN_ERR "isp_sr: LSC_PRE_ERR \n");
 		omap_writel(irqstatus, ISP_IRQ0STATUS);
@@ -1050,6 +1155,7 @@ void isp_set_pipeline(int soc_type)
 
 	return;
 }
+EXPORT_SYMBOL(isp_set_pipeline);
 
 /**
  * omapisp_unset_callback - Unsets all the callbacks associated with ISP module
@@ -1073,6 +1179,7 @@ void omapisp_unset_callback()
 	}
 	omap_writel(omap_readl(ISP_IRQ0STATUS) | ISP_INT_CLR, ISP_IRQ0STATUS);
 }
+EXPORT_SYMBOL(omapisp_unset_callback);
 
 /**
  * isp_start - Starts ISP submodule
@@ -1088,6 +1195,7 @@ void isp_start(void)
 
 	return;
 }
+EXPORT_SYMBOL(isp_start);
 
 /**
  * isp_stop - Stops isp submodules
@@ -1142,6 +1250,7 @@ void isp_stop()
 	isp_restore_ctx();
 	}
 }
+EXPORT_SYMBOL(isp_stop);
 
 /**
  * isp_set_buf - Sets output address for submodules.
@@ -1169,6 +1278,14 @@ void isp_calc_pipeline(struct v4l2_pix_format *pix_input,
 					struct v4l2_pix_format *pix_output)
 {
 	ispmodule_obj.isp_pipeline = OMAP_ISP_CCDC;
+
+	if (pix_input->field == V4L2_FIELD_NONE)
+		ispmodule_obj.mode = MODE_PROGRESSIVE;	/* Progressive */
+	else
+		ispmodule_obj.mode = MODE_INTERLACED;	/* Interlaced */
+
+	ispmodule_obj.input_pixelformat = pix_input->pixelformat;
+
 	if ((pix_input->pixelformat == V4L2_PIX_FMT_SGRBG10) &&
 		(pix_output->pixelformat != V4L2_PIX_FMT_SGRBG10)) {
 		ispmodule_obj.isp_pipeline |= (OMAP_ISP_PREVIEW |
@@ -1179,9 +1296,14 @@ void isp_calc_pipeline(struct v4l2_pix_format *pix_input,
 	} else {
 		if (pix_input->pixelformat == V4L2_PIX_FMT_SGRBG10)
 			ispccdc_config_datapath(CCDC_RAW, CCDC_OTHERS_MEM);
-		else
-			ispccdc_config_datapath(CCDC_YUV_SYNC,
+		else {
+			if (isp_obj.if_status & ISP_PARLL_YUV_BT)
+				ispccdc_config_datapath(CCDC_YUV_BT,
 							CCDC_OTHERS_MEM);
+			else
+				ispccdc_config_datapath(CCDC_YUV_SYNC,
+							CCDC_OTHERS_MEM);
+		}
 	}
 	return;
 }
@@ -1214,6 +1336,32 @@ void isp_config_pipeline(struct v4l2_pix_format *pix_input,
 			ispmodule_obj.resizer_output_width,
 			ispmodule_obj.resizer_output_height);
 
+	if (pix_input->pixelformat == V4L2_PIX_FMT_UYVY)
+		ispccdc_config_y8pos(Y8POS_ODD);
+	else if (pix_input->pixelformat == V4L2_PIX_FMT_YUYV)
+		ispccdc_config_y8pos(Y8POS_EVEN);
+
+	if (((pix_input->pixelformat == V4L2_PIX_FMT_UYVY) &&
+			(pix_output->pixelformat == V4L2_PIX_FMT_UYVY)) ||
+		((pix_input->pixelformat == V4L2_PIX_FMT_YUYV) &&
+			(pix_output->pixelformat == V4L2_PIX_FMT_YUYV)))
+		/* input and output formats are in same order */
+		ispccdc_config_byteswap(0);
+	else if (((pix_input->pixelformat == V4L2_PIX_FMT_YUYV) &&
+			(pix_output->pixelformat == V4L2_PIX_FMT_UYVY)) ||
+		((pix_input->pixelformat == V4L2_PIX_FMT_UYVY) &&
+			(pix_output->pixelformat == V4L2_PIX_FMT_YUYV)))
+		/* input and output formats are in reverse order */
+		ispccdc_config_byteswap(1);
+
+	/*
+	 * Configure Pitch - This enables application to use a different pitch
+	 * other than active pixels per line.
+	 */
+	if (isp_obj.if_status & ISP_PARLL_YUV_BT)
+		ispccdc_config_outlineoffset(ispmodule_obj.pix.bytesperline,
+						0, 0);
+
 	if (pix_output->pixelformat == V4L2_PIX_FMT_UYVY) {
 		isppreview_config_ycpos(YCPOS_YCrYCb);
 		if (is_ispresizer_enabled())
@@ -1239,9 +1387,26 @@ void isp_vbq_done(unsigned long status, isp_vbq_callback_ptr arg1, void *arg2)
 	int notify = 0;
 	int rval = 0;
 	unsigned long flags;
+	unsigned long fld_stat = (omap_readl(ISPCCDC_SYN_MODE) >> 15) & 0x1;
 
 	switch (status) {
 	case CCDC_VD0:
+		if (ispmodule_obj.mode == MODE_INTERLACED) {
+			spin_lock(&isp_obj.isp_temp_buf_lock);
+			if (ispmodule_obj.current_field != fld_stat) {
+				if (fld_stat == 0)
+					ispmodule_obj.current_field = fld_stat;
+
+				spin_unlock(&isp_obj.isp_temp_buf_lock);
+				return;
+			}
+			spin_unlock(&isp_obj.isp_temp_buf_lock);
+
+			if (fld_stat == 0) {	/* Skip even fields */
+				return;
+			}
+		}
+
 		ispccdc_config_shadow_registers();
 		if ((ispmodule_obj.isp_pipeline & OMAP_ISP_RESIZER) ||
 			(ispmodule_obj.isp_pipeline & OMAP_ISP_PREVIEW))
@@ -1259,6 +1424,23 @@ void isp_vbq_done(unsigned long status, isp_vbq_callback_ptr arg1, void *arg2)
 		}
 		break;
 	case CCDC_VD1:
+		if (ispmodule_obj.mode == MODE_INTERLACED) {
+			spin_lock(&isp_obj.isp_temp_buf_lock);
+			if (ispmodule_obj.current_field != fld_stat) {
+				if (fld_stat == 0)
+					ispmodule_obj.current_field = fld_stat;
+
+				spin_unlock(&isp_obj.isp_temp_buf_lock);
+				return;
+			}
+
+			if (fld_stat == 0) {	/* Skip even fields */
+				return;
+			}
+
+			spin_unlock(&isp_obj.isp_temp_buf_lock);
+		}
+
 		if ((ispmodule_obj.isp_pipeline & OMAP_ISP_RESIZER) ||
 			(ispmodule_obj.isp_pipeline & OMAP_ISP_PREVIEW))
 			return;
@@ -1303,13 +1485,26 @@ void isp_vbq_done(unsigned long status, isp_vbq_callback_ptr arg1, void *arg2)
 		}
 		break;
 	case HS_VS:
-		spin_lock(&isp_obj.isp_temp_buf_lock);
-		if (ispmodule_obj.isp_temp_state == ISP_BUF_TRAN) {
-			isp_CCDC_VD01_enable();
-			ispmodule_obj.isp_temp_state = ISP_BUF_INIT;
+		if (ispmodule_obj.mode == MODE_INTERLACED) {
+			ispmodule_obj.current_field ^= 1;
+			spin_lock(&isp_obj.isp_temp_buf_lock);
+			if ((ispmodule_obj.isp_temp_state == ISP_BUF_TRAN) &&
+			    (fld_stat == 1)) {
+				isp_CCDC_VD01_enable();
+				ispmodule_obj.current_field = fld_stat;
+				ispmodule_obj.isp_temp_state = ISP_BUF_INIT;
+			}
+			spin_unlock(&isp_obj.isp_temp_buf_lock);
+			return;
+		} else {
+			spin_lock(&isp_obj.isp_temp_buf_lock);
+			if (ispmodule_obj.isp_temp_state == ISP_BUF_TRAN) {
+				isp_CCDC_VD01_enable();
+				ispmodule_obj.isp_temp_state = ISP_BUF_INIT;
+			}
+			spin_unlock(&isp_obj.isp_temp_buf_lock);
+			return;
 		}
-		spin_unlock(&isp_obj.isp_temp_buf_lock);
-		return;
 	default:
 		break;
 	}
@@ -1343,6 +1538,7 @@ void isp_sgdma_init()
 		ispsg.sg_state[sg].arg = NULL;
 	}
 }
+EXPORT_SYMBOL(isp_sgdma_init);
 
 /**
  * isp_sgdma_process - Sets operations and config for specified SG DMA
@@ -1447,6 +1643,7 @@ int isp_sgdma_queue(struct videobuf_dmabuf *vdma, struct videobuf_buffer *vb,
 
 	return 0;
 }
+EXPORT_SYMBOL(isp_sgdma_queue);
 
 /**
  * isp_vbq_prepare - Videobuffer queue prepare.
@@ -1476,6 +1673,7 @@ int isp_vbq_prepare(struct videobuf_queue *vbq, struct videobuf_buffer *vb,
 
 	return err;
 }
+EXPORT_SYMBOL(isp_vbq_prepare);
 
 /**
  * isp_vbq_release - Videobuffer queue release.
@@ -1488,6 +1686,7 @@ void isp_vbq_release(struct videobuf_queue *vbq, struct videobuf_buffer *vb)
 	ispsg.isp_addr_capture[vb->i] = (dma_addr_t) NULL;
 	return;
 }
+EXPORT_SYMBOL(isp_vbq_release);
 
 /**
  * isp_queryctrl - Query V4L2 control from existing controls in ISP.
@@ -1509,6 +1708,7 @@ int isp_queryctrl(struct v4l2_queryctrl *a)
 	*a = video_control[i].qc;
 	return 0;
 }
+EXPORT_SYMBOL(isp_queryctrl);
 
 /**
  * isp_g_ctrl - Gets value of the desired V4L2 control.
@@ -1541,6 +1741,7 @@ int isp_g_ctrl(struct v4l2_control *a)
 
 	return rval;
 }
+EXPORT_SYMBOL(isp_g_ctrl);
 
 /**
  * isp_s_ctrl - Sets value of the desired V4L2 control.
@@ -1582,6 +1783,7 @@ int isp_s_ctrl(struct v4l2_control *a)
 
 	return rval;
 }
+EXPORT_SYMBOL(isp_s_ctrl);
 
 /**
  * isp_handle_private - Handle all private ioctls for isp module.
@@ -1604,51 +1806,49 @@ int isp_handle_private(int cmd, void *arg)
 	case VIDIOC_PRIVATE_ISP_PRV_CFG:
 		rval = omap34xx_isp_preview_config(arg);
 		break;
-	case VIDIOC_PRIVATE_ISP_AEWB_CFG:
-		if (!arg)
-			rval = -EFAULT;
-		else {
-			struct isph3a_aewb_config *params;
-			params = (struct isph3a_aewb_config *) arg;
-			rval = isph3a_aewb_configure(params);
+	case VIDIOC_PRIVATE_ISP_AEWB_CFG: {
+		struct isph3a_aewb_config *params;
+		params = (struct isph3a_aewb_config *) arg;
+		rval = isph3a_aewb_configure(params);
 		}
 		break;
-	case VIDIOC_PRIVATE_ISP_AEWB_REQ:
-		if (!arg)
-			rval = -EFAULT;
-		else {
-			struct isph3a_aewb_data *data;
-			data = (struct isph3a_aewb_data *) arg;
-			rval = isph3a_aewb_request_statistics(data);
+	case VIDIOC_PRIVATE_ISP_AEWB_REQ: {
+		struct isph3a_aewb_data *data;
+		data = (struct isph3a_aewb_data *) arg;
+		rval = isph3a_aewb_request_statistics(data);
 		}
 		break;
-	case VIDIOC_PRIVATE_ISP_HIST_CFG:
-	if (!arg)
-			rval = -EFAULT;
-		else {
-			struct isp_hist_config *params;
-
-			params = (struct isp_hist_config *) arg;
-			rval = isp_hist_configure(params);
+	case VIDIOC_PRIVATE_ISP_HIST_CFG: {
+		struct isp_hist_config *params;
+		params = (struct isp_hist_config *) arg;
+		rval = isp_hist_configure(params);
 		}
 		break;
-	case VIDIOC_PRIVATE_ISP_HIST_REQ:
-	if (!arg)
-			rval = -EFAULT;
-		else {
-			struct isp_hist_data *data;
-
-			data = (struct isp_hist_data *) arg;
-			rval = isp_hist_request_statistics(data);
+	case VIDIOC_PRIVATE_ISP_HIST_REQ: {
+		struct isp_hist_data *data;
+		data = (struct isp_hist_data *) arg;
+		rval = isp_hist_request_statistics(data);
 		}
 		break;
+	case VIDIOC_PRIVATE_ISP_AF_CFG: {
+		struct af_configuration *params;
+		params = (struct af_configuration *) arg;
+		rval = isp_af_configure(params);
+		}
+	break;
+	case VIDIOC_PRIVATE_ISP_AF_REQ: {
+		struct isp_af_data *data;
+		data = (struct isp_af_data *) arg;
+		rval = isp_af_request_statistics(data);
+		}
+	break;
 	default:
 		rval = -EINVAL;
 		break;
 	}
-
 	return rval;
 }
+EXPORT_SYMBOL(isp_handle_private);
 
 /**
  * isp_enum_fmt_cap - Gets more information of chosen format index and type
@@ -1662,8 +1862,12 @@ int isp_enum_fmt_cap(struct v4l2_fmtdesc *f)
 	int index = f->index;
 	enum v4l2_buf_type type = f->type;
 	int rval = -EINVAL;
+	int num_formats = NUM_ISP_CAPTURE_FORMATS;
 
-	if (index >= NUM_ISP_CAPTURE_FORMATS)
+	if (ispmodule_obj.input_pixelformat != V4L2_PIX_FMT_SGRBG10)
+		num_formats--;
+
+	if (index >= num_formats)
 		goto err;
 
 	memset(f, 0, sizeof(*f));
@@ -1691,11 +1895,12 @@ EXPORT_SYMBOL(isp_enum_fmt_cap);
  * isp_g_fmt_cap - Gets current output image format.
  * @f: Pointer to V4L2 format structure to be filled with current output format
  **/
-void isp_g_fmt_cap(struct v4l2_format *f)
+void isp_g_fmt_cap(struct v4l2_pix_format *pix)
 {
-	f->fmt.pix = ispmodule_obj.pix;
+	*pix = ispmodule_obj.pix;
 	return;
 }
+EXPORT_SYMBOL(isp_g_fmt_cap);
 
 /**
  * isp_s_fmt_cap - Sets I/O formats and crop and configures pipeline in ISP
@@ -1769,6 +1974,7 @@ void isp_config_crop(struct v4l2_pix_format *croppix)
 
 	return;
 }
+EXPORT_SYMBOL(isp_config_crop);
 
 /**
  * isp_g_crop - Gets crop rectangle size and position.
@@ -1783,6 +1989,7 @@ int isp_g_crop(struct v4l2_crop *a)
 	crop->c = ispcroprect;
 	return 0;
 }
+EXPORT_SYMBOL(isp_g_crop);
 
 /**
  * isp_s_crop - Sets crop rectangle size and position and queues crop operation
@@ -1817,6 +2024,7 @@ int isp_s_crop(struct v4l2_crop *a, struct v4l2_pix_format *pix)
 out:
 	return rval;
 }
+EXPORT_SYMBOL(isp_s_crop);
 
 /**
  * isp_try_fmt_cap - Tries desired input/output image formats
@@ -1923,14 +2131,25 @@ int isp_try_fmt(struct v4l2_pix_format *pix_input,
 	if (ifmt == NUM_ISP_CAPTURE_FORMATS)
 		ifmt = 1;
 	pix_output->pixelformat = isp_formats[ifmt].pixelformat;
-	pix_output->field = V4L2_FIELD_NONE;
-	pix_output->bytesperline = pix_output->width * ISP_BYTES_PER_PIXEL;
-	pix_output->sizeimage = pix_output->bytesperline * pix_output->height;
+
+	if (isp_obj.if_status & ISP_PARLL_YUV_BT)
+		pix_output->field = pix_input->field;
+	else {
+		pix_output->field = V4L2_FIELD_NONE;
+		pix_output->bytesperline =
+				pix_output->width * ISP_BYTES_PER_PIXEL;
+	}
+
+	pix_output->sizeimage =
+		PAGE_ALIGN(pix_output->bytesperline * pix_output->height);
 	pix_output->priv = 0;
 	switch (pix_output->pixelformat) {
 	case V4L2_PIX_FMT_YUYV:
 	case V4L2_PIX_FMT_UYVY:
-		pix_output->colorspace = V4L2_COLORSPACE_JPEG;
+		if (isp_obj.if_status & ISP_PARLL_YUV_BT)
+			pix_output->colorspace = pix_input->colorspace;
+		else
+			pix_output->colorspace = V4L2_COLORSPACE_JPEG;
 		break;
 	default:
 		pix_output->colorspace = V4L2_COLORSPACE_SRGB;
@@ -1948,6 +2167,81 @@ int isp_try_fmt(struct v4l2_pix_format *pix_input,
 
 	return 0;
 }
+
+/**
+ * isp_configure_std - Configures ISP depending on standard.
+ * @std: Standard id
+ *
+ * Returns 0 if ISP is configured, error value if standard not supported.
+ */
+int isp_configure_std(v4l2_std_id std)
+{
+	struct isp_std_config_params *params;
+	int rval = 0;
+	struct v4l2_pix_format pix_input, pix_output;
+
+	if (std & V4L2_STD_NTSC)
+		params = &std_params[0];
+	else if (std & V4L2_STD_PAL)
+		params = &std_params[1];
+	else
+		return -EINVAL;
+
+	ispmodule_obj.pix.pixelformat = params->pixelformat;
+	ispmodule_obj.pix.width = params->active_pixels;
+	ispmodule_obj.pix.height = params->active_lines;
+	ispmodule_obj.pix.field = params->field;
+	ispmodule_obj.pix.bytesperline = params->bytesperline;
+	ispmodule_obj.pix.sizeimage = params->sizeimage;
+	ispmodule_obj.pix.colorspace = params->colorspace;
+
+	if ((std & V4L2_STD_NTSC) || (std & V4L2_STD_PAL)) {
+		pix_input = ispmodule_obj.pix;
+		pix_output = ispmodule_obj.pix;
+	} else
+		return -EINVAL;
+
+	rval = isp_s_fmt_cap(&pix_input, &pix_output);
+
+	return rval;
+}
+EXPORT_SYMBOL(isp_configure_std);
+
+/**
+ * isp_check_format - Checks for proper pixel parameters.
+ * @pixfmt: V4L2 pixel format to validate.
+ *
+ * Returns 0 if pixel formats are proper else returns error.
+ */
+int isp_check_format(struct v4l2_pix_format *pixfmt)
+{
+	u32 hpitch, vpitch;
+
+	if (pixfmt->bytesperline <= 0) {
+		DPRINTK_ISPCTRL("Invalid pitch\n");
+		return -EINVAL;
+	}
+
+	hpitch = pixfmt->bytesperline;
+	vpitch = pixfmt->sizeimage / hpitch;
+
+	/* Check for valid value of pitch */
+	if ((hpitch < ispmodule_obj.pix.width * 2) ||
+	    (vpitch < ispmodule_obj.pix.height)) {
+		DPRINTK_ISPCTRL("Invalid pitch\n");
+		return -EINVAL;
+	}
+	/* Check for 32 byte alignment */
+	if (hpitch != (hpitch & ~0x1F)) {
+		DPRINTK_ISPCTRL("Invalid pitch alignment\n");
+		return -EINVAL;
+	}
+	pixfmt->width = ispmodule_obj.pix.width;
+	pixfmt->height = ispmodule_obj.pix.height;
+	return 0;
+}
+EXPORT_SYMBOL(isp_check_format);
+
 /**
  * isp_save_ctx - Saves ISP, CCDC, HIST, H3A, PREV, RESZ & MMU context.
  *
@@ -2024,7 +2318,6 @@ int isp_get(void)
 	}
 	isp_obj.ref_count++;
 	mutex_unlock(&(isp_obj.isp_mutex));
-
 
 	DPRINTK_ISPCTRL("isp_get: new %d\n", isp_obj.ref_count);
 	return isp_obj.ref_count;
@@ -2106,16 +2399,24 @@ static int __init isp_init(void)
 
 	mutex_init(&(isp_obj.isp_mutex));
 	spin_lock_init(&isp_obj.isp_temp_buf_lock);
+	spin_lock_init(&isp_obj.lock);
 
 	if (request_irq(INT_34XX_CAM_IRQ, omap34xx_isp_isr, IRQF_SHARED,
 				"Omap 34xx Camera ISP", &ispirq_obj)) {
 		DPRINTK_ISPCTRL("Could not install ISR\n");
 		return -EINVAL;
-	} else {
-		spin_lock_init(&isp_obj.lock);
-		DPRINTK_ISPCTRL("-isp_init for Omap 3430 Camera ISP\n");
-		return 0;
 	}
+
+	isp_ccdc_init();
+	isp_hist_init();
+	isph3a_aewb_init();
+	ispmmu_init();
+	isp_preview_init();
+	isp_resizer_init();
+	isp_af_init();
+
+	DPRINTK_ISPCTRL("-isp_init for Omap 3430 Camera ISP\n");
+	return 0;
 }
 
 /**
@@ -2123,6 +2424,13 @@ static int __init isp_init(void)
  **/
 static void __exit isp_cleanup(void)
 {
+	isp_af_exit();
+	isp_resizer_cleanup();
+	isp_preview_cleanup();
+	ispmmu_cleanup();
+	isph3a_aewb_cleanup();
+	isp_hist_cleanup();
+	isp_ccdc_cleanup();
 	free_irq(INT_34XX_CAM_IRQ, &ispirq_obj);
 }
 

@@ -141,6 +141,120 @@ struct isp_hist_data {
 	u32 *hist_statistics_buf;	/* Pointer to pass to user */
 };
 
+/* Auto Focus related structs */
+
+#define AF_NUMBER_OF_COEF		11
+
+/* Flags for update field */
+#define REQUEST_STATISTICS		(1 << 0)
+#define LENS_DESIRED_POSITION	(1 << 1)
+#define LENS_CURRENT_POSITION	(1 << 2)
+
+/**
+ * struct isp_af_xtrastats - Extra statistics related to AF generated stats.
+ * @ts: Timestamp when the frame gets delivered to the user.
+ * @field_count: Field count of the frame delivered to the user.
+ * @lens_position: Lens position when the stats are being generated.
+ */
+struct isp_af_xtrastats {
+	struct timeval ts;
+	unsigned long field_count;
+	__u16 lens_position;
+};
+
+/**
+ * struct isp_af_data - AF statistics data to transfer between driver and user.
+ * @af_statistics_buf: Pointer to pass to user.
+ * @lens_current_position: Read value of lens absolute position.
+ * @desired_lens_direction: Lens desired location.
+ * @update: Bitwise flags to update parameters.
+ * @frame_number: Data for which frame is desired/given.
+ * @curr_frame: Current frame number being processed by AF module.
+ * @xtrastats: Extra statistics structure.
+ */
+struct isp_af_data {
+	void *af_statistics_buf;
+	__u16 lens_current_position;
+	__u16 desired_lens_direction;
+	__u16 update;
+	__u16 frame_number;
+	__u16 curr_frame;
+	struct isp_af_xtrastats xtrastats;
+};
+
+/* enum used for status of specific feature */
+enum af_alaw_enable {
+	H3A_AF_ALAW_DISABLE = 0,
+	H3A_AF_ALAW_ENABLE = 1
+};
+
+enum af_hmf_enable {
+	H3A_AF_HMF_DISABLE = 0,
+	H3A_AF_HMF_ENABLE = 1
+};
+
+enum af_config_flag {
+	H3A_AF_CFG_DISABLE = 0,
+	H3A_AF_CFG_ENABLE = 1
+};
+
+enum af_mode {
+	ACCUMULATOR_SUMMED = 0,
+	ACCUMULATOR_PEAK = 1
+};
+
+/* Red, Green, and blue pixel location in the AF windows */
+enum rgbpos {
+	GR_GB_BAYER = 0,	/* GR and GB as Bayer pattern */
+	RG_GB_BAYER = 1,	/* RG and GB as Bayer pattern */
+	GR_BG_BAYER = 2,	/* GR and BG as Bayer pattern */
+	RG_BG_BAYER = 3,	/* RG and BG as Bayer pattern */
+	GG_RB_CUSTOM = 4,	/* GG and RB as custom pattern */
+	RB_GG_CUSTOM = 5	/* RB and GG as custom pattern */
+};
+
+/* Contains the information regarding the Horizontal Median Filter */
+struct af_hmf {
+	enum af_hmf_enable enable;	/* Status of Horizontal Median Filter */
+	unsigned int threshold;	/* Threshhold Value for Horizontal Median
+				 * Filter
+				 */
+};
+
+/* Contains the information regarding the IIR Filters */
+struct af_iir {
+	unsigned int hz_start_pos;	/* IIR Start Register Value */
+	int coeff_set0[AF_NUMBER_OF_COEF];	/*
+						 * IIR Filter Coefficient for
+						 * Set 0
+						 */
+	int coeff_set1[AF_NUMBER_OF_COEF];	/*
+						 * IIR Filter Coefficient for
+						 * Set 1
+						 */
+};
+
+/* Contains the information regarding the Paxels Structure in AF Engine */
+struct af_paxel {
+	unsigned int width;	/* Width of the Paxel */
+	unsigned int height;	/* Height of the Paxel */
+	unsigned int hz_start;	/* Horizontal Start Position */
+	unsigned int vt_start;	/* Vertical Start Position */
+	unsigned int hz_cnt;	/* Horizontal Count */
+	unsigned int vt_cnt;	/* vertical Count */
+	unsigned int line_incr;	/* Line Increment */
+};
+/* Contains the parameters required for hardware set up of AF Engine */
+struct af_configuration {
+	enum af_alaw_enable alaw_enable;	/*ALWAW status */
+	struct af_hmf hmf_config;	/*HMF configurations */
+	enum rgbpos rgb_pos;		/*RGB Positions */
+	struct af_iir iir_config;	/*IIR filter configurations */
+	struct af_paxel paxel_config;	/*Paxel parameters */
+	enum af_mode mode;		/*Accumulator mode */
+	enum af_config_flag af_config; /*Flag indicates Engine is configured */
+};
+
 /* ISP CCDC structs */
 
 /* Abstraction layer CCDC configurations */

@@ -53,7 +53,6 @@
 #define MIN_SUB_INC		2
 #define MAX_SUB_INC		32
 
-
 /* ISPH3A REGISTERS bits */
 #define ISPH3A_PCR_AF_EN	(1 << 0)
 #define ISPH3A_PCR_AF_ALAW_EN	(1 << 1)
@@ -135,5 +134,9 @@ void isph3a_save_context(void);
 void isph3a_restore_context(void);
 
 void isph3a_update_wb(void);
+
+int __init isph3a_aewb_init(void);
+
+void __exit isph3a_aewb_cleanup(void);
 
 #endif		/* OMAP_ISP_H3A_H */

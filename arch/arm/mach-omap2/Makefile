@@ -61,6 +61,7 @@ obj-$(CONFIG_MACH_OMAP3EVM)		+= board-omap3evm.o \
 					   hsmmc.o \
 					   usb-musb.o usb-ehci.o \
 					   board-omap3evm-flash.o
+obj-$(CONFIG_MACH_OMAP3EVM_DC)		+= board-omap3evm-dc.o
 obj-$(CONFIG_MACH_OMAP3_BEAGLE)		+= board-omap3beagle.o \
 					   usb-musb.o usb-ehci.o \
 					   hsmmc.o

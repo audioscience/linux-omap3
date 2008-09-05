@@ -290,6 +290,17 @@ config VIDEO_OV9640
 	  OV9640 camera.  It is currently working with the TI OMAP2
 	  camera controller.
 
+config VIDEO_TVP5146
+	tristate "Texas Instruments TVP5146 video decoder"
+	depends on I2C && VIDEO_V4L2
+	---help---
+	  This is a Video4Linux2 sensor-level driver for the TI TVP5146
+	  decoder. It is currently working with the TI OMAP3 camera
+	  controller.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called tvp5146.
+
 config VIDEO_SAA7110
 	tristate "Philips SAA7110 video decoder"
 	depends on VIDEO_V4L1 && I2C

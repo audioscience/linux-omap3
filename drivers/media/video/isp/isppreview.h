@@ -59,7 +59,6 @@
 #define PREV_DARK_FRAME_CAPTURE		(1 << 10)
 #define PREV_DEFECT_COR			(1 << 11)
 
-
 #define ISP_NF_TABLE_SIZE 		(1 << 10)
 
 #define ISP_GAMMA_TABLE_SIZE 		(1 << 10)
@@ -94,7 +93,6 @@ enum preview_color_effect {
 	PREV_BW_COLOR = 1,
 	PREV_SEPIA_COLOR = 2
 };
-
 
 /**
  * struct ispprev_gtable - Structure for Gamma Correction.
@@ -259,7 +257,6 @@ void isppreview_enable_dcor(u8 enable);
 
 void isppreview_config_dcor(struct ispprev_dcor prev_dcor);
 
-
 void isppreview_config_cfa(struct ispprev_cfa);
 
 void isppreview_config_gammacorrn(struct ispprev_gtable);
@@ -345,5 +342,9 @@ static inline void isppreview_restore_context(void) {}
 int omap34xx_isp_preview_config(void *userspace_add);
 
 int omap34xx_isp_tables_update(struct isptables_update *isptables_struct);
+
+int __init isp_preview_init(void);
+
+void __exit isp_preview_cleanup(void);
 
 #endif/* OMAP_ISP_PREVIEW_H */
