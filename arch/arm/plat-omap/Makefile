@@ -13,8 +13,8 @@ obj-  :=
 obj-$(CONFIG_ARCH_OMAP16XX) += ocpi.o
 
 obj-$(CONFIG_OMAP_MCBSP) += mcbsp.o
-obj-$(CONFIG_ARCH_OMAP3) += omap-dss.o
-obj-$(CONFIG_VIDEO_OMAP_TVOUT) += omap-venc.o
+#obj-$(CONFIG_ARCH_OMAP3) += omap-dss.o
+#obj-$(CONFIG_VIDEO_OMAP_TVOUT) += omap-venc.o
 obj-$(CONFIG_CPU_FREQ) += cpu-omap.o
 obj-$(CONFIG_OMAP_DM_TIMER) += dmtimer.o
 obj-$(CONFIG_OMAP_BOOT_REASON) += bootreason.o

@@ -1755,7 +1755,6 @@ void omap_disp_get_all_clks(void)
 		/* restore dss context */
 		omap_disp_restore_ctx(OMAP_DSS_GENERIC);
 		omap_disp_restore_ctx(OMAP_DSS_DISPC_GENERIC);
-		omap_disp_restore_ctx(OMAP_GRAPHICS);
 		omap_disp_restore_ctx(OMAP_VIDEO1);
 		omap_disp_restore_ctx(OMAP_VIDEO2);
 
@@ -1921,7 +1920,6 @@ void omap_disp_get_dss(void)
 		/* restore dss context */
 		omap_disp_restore_ctx(OMAP_DSS_GENERIC);
 		omap_disp_restore_ctx(OMAP_DSS_DISPC_GENERIC);
-		omap_disp_restore_ctx(OMAP_GRAPHICS);
 		omap_disp_restore_ctx(OMAP_VIDEO1);
 		omap_disp_restore_ctx(OMAP_VIDEO2);
 
