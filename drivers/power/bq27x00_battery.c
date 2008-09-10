@@ -140,7 +140,8 @@ static int bq27x00_battery_temperature(struct bq27x00_device_info *di)
 		return ret;
 	}
 
-	return (temp >> 2) - 273;
+	/* Return temp in tenths of digree celsius as per linux power class */
+	return ((temp >> 2) - 273) * 10;
 }
 
 /*
