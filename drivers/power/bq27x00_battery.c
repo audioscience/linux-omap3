@@ -300,14 +300,28 @@ static int bq27x00_read(u8 reg, int *rt_value, int b_single,
  */
 static void bq27x00_battery_read_status(struct bq27x00_device_info *di)
 {
+	int temp_C, voltage_uV, current_uA, charge_rsoc;
+
 	if (di->update_time && time_before(jiffies, di->update_time +
 					msecs_to_jiffies(cache_time)))
 		return;
+
+	temp_C = di->temp_C;
+	voltage_uV = di->voltage_uV;
+	current_uA = di->current_uA;
+	charge_rsoc = di->charge_rsoc;
 
 	di->temp_C = bq27x00_battery_temperature(di);
 	di->voltage_uV = bq27x00_battery_voltage(di);
 	di->current_uA = bq27x00_battery_current(di);
 	di->charge_rsoc = bq27x00_battery_rsoc(di);
+
+	/* report change in power supply information */
+	if ((temp_C != di->temp_C) ||
+		(voltage_uV != di->voltage_uV) ||
+		(current_uA != di->current_uA) ||
+		(charge_rsoc != di->charge_rsoc))
+			power_supply_changed(&di->bat);
 
 	di->update_time = jiffies;
 
