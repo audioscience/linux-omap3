@@ -140,13 +140,17 @@ static void omap2_mcbsp2_mux_setup(void)
 
 static void omap2_mcbsp_request(unsigned int id)
 {
+	struct omap_mcbsp *mcbsp = mcbsp_ptr[id];
+
+	omap_mcbsp_clk_enable(mcbsp->clk);
+
 	if (cpu_is_omap2420() && (id == OMAP_MCBSP2))
 		omap2_mcbsp2_mux_setup();
 }
 
 /*
  * mcbsp power settings
- * mcbsp_id	: McBSP interface number
+ * id		: McBSP interface number
  * level	: power settings level
  */
 static void  mcbsp_power_settings(unsigned int id, int level)
@@ -168,7 +172,9 @@ static void  mcbsp_power_settings(unsigned int id, int level)
 
 static void omap2_mcbsp_free(unsigned int id)
 {
-	struct omap_mcbsp *mcbsp = mcbsp_ptr[id];
+	struct omap_mcbsp *mcbsp;
+	mcbsp = id_to_mcbsp_ptr(id);
+
 	if (!cpu_is_omap2420()) {
 		if (mcbsp->dma_rx_lch != -1) {
 			omap_free_dma_chain(mcbsp->dma_rx_lch);
@@ -181,6 +187,9 @@ static void omap2_mcbsp_free(unsigned int id)
 		}
 	mcbsp_power_settings(id, MCBSP2_SYSCONFIG_LVL2);
 	}
+
+	omap_mcbsp_clk_disable(mcbsp->clk);
+
 	return;
 }
 void omap2_mcbsp_config(unsigned int id,
@@ -687,6 +696,163 @@ int omap2_mcbsp_set_rrst(unsigned int id, u8 state)
 EXPORT_SYMBOL(omap2_mcbsp_set_rrst);
 
 /*
+ * Receive multichannel selection
+ * id		: McBSP Interface ID.
+ * state	: Enable/Disable multichannel for reception
+ */
+int omap2_mcbsp_rxmultich_enable(unsigned int id, u8 state)
+{
+	struct omap_mcbsp *mcbsp = mcbsp_ptr[id];
+	u32 io_base;
+
+	if (!omap_mcbsp_check_valid_id(id)) {
+		printk(KERN_ERR "%s: Invalid id (%d)\n", __func__, id + 1);
+		return -ENODEV;
+	}
+
+	io_base = mcbsp->io_base;
+
+	if (state == OMAP_MCBSP_RXMUTICH_ENABLE) {
+		/* All the 128 channels are enabled */
+		omap_mcbsp_write(io_base, OMAP_MCBSP_REG_MCR1,
+			omap_mcbsp_read(io_base,
+					 OMAP_MCBSP_REG_MCR1) & ~(RMCM));
+	} else if (state == OMAP_MCBSP_RXMUTICH_DISABLE) {
+		/*
+		 * All channels are disabled by default.
+		 * Required channels are selected by enabling
+		 * RP(A/B)BLK and RCER(A/B) appropriately.
+		 */
+		omap_mcbsp_write(io_base, OMAP_MCBSP_REG_MCR1,
+			omap_mcbsp_read(io_base, OMAP_MCBSP_REG_MCR1) | (RMCM));
+	} else {
+		printk(KERN_ERR "OMAP_McBSP: Invalid rxmultichannel state \n");
+		return -EINVAL;
+	}
+
+	return 0;
+
+}
+EXPORT_SYMBOL(omap2_mcbsp_rxmultich_enable);
+
+/*
+ * Transmit multichannel selection
+ * id		: McBSP interface ID
+ * state	: Enable/Disable multichannel mode for transmission
+ */
+int omap2_mcbsp_txmultich_enable(unsigned int id, u32 state)
+{
+
+	struct omap_mcbsp *mcbsp = mcbsp_ptr[id];
+	u32 io_base;
+
+	if (!omap_mcbsp_check_valid_id(id)) {
+		printk(KERN_ERR "%s: Invalid id (%d)\n", __func__, id + 1);
+		return -ENODEV;
+	}
+
+	io_base = mcbsp->io_base;
+
+	if (state == OMAP_MCBSP_TXMUTICH_ENABLE) {
+		/* All the 128 channels are enabled */
+		omap_mcbsp_write(io_base, OMAP_MCBSP_REG_MCR2,
+				  omap_mcbsp_read(io_base,
+					 OMAP_MCBSP_REG_MCR2) | (XMCM(0)));
+	} else if (state == OMAP_MCBSP_TXMUTICH_DISABLE) {
+		/*
+		 * All channels are disabled by default.
+		 * Required channels are selected by enabling
+		 * RP(A/B)BLK and RCER(A/B) appropriately.
+		 */
+		omap_mcbsp_write(io_base, OMAP_MCBSP_REG_MCR2,
+			omap_mcbsp_read(io_base,
+					 OMAP_MCBSP_REG_MCR2) | (XMCM(1)));
+	} else {
+		printk(KERN_ERR "OMAP_McBSP: Invalid rxmultichannel state \n");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL(omap2_mcbsp_txmultich_enable);
+
+/*
+ * Transmit multichannel configuration
+ * id		: McBSP interface No.
+ * part_mode	: Partition mode
+ * parta_enable	: channel to enable in partition A
+ * partb_enable	: channel to enable in partition B
+ * ch_enable	: channel enable
+ */
+int omap2_mcbsp_txmultich_cfg(unsigned int id, u8 part_mode, u8 parta_enable,
+					 u8 partb_enable, u32 ch_enable)
+{
+	struct omap_mcbsp *mcbsp = mcbsp_ptr[id];
+	u32 io_base;
+
+	if (!omap_mcbsp_check_valid_id(id)) {
+		printk(KERN_ERR "%s: Invalid id (%d)\n", __func__, id + 1);
+		return -ENODEV;
+	}
+
+	io_base = mcbsp->io_base;
+
+	/* check for valid partition mode */
+	if ((part_mode != OMAP_MCBSP_TWOPARTITION_MODE
+	     && part_mode != OMAP_MCBSP_EIGHTPARTITION_MODE))
+
+		return -EINVAL;
+
+	omap_mcbsp_write(io_base, OMAP_MCBSP_REG_MCR2,
+		(omap_mcbsp_read(io_base, OMAP_MCBSP_REG_MCR2) | part_mode |
+						parta_enable | partb_enable));
+	omap_mcbsp_write(io_base, OMAP_MCBSP_REG_XCERA,
+		(omap_mcbsp_read(io_base, OMAP_MCBSP_REG_XCERA) | ch_enable));
+
+	return 0;
+
+
+}
+EXPORT_SYMBOL(omap2_mcbsp_txmultich_cfg);
+
+/*
+ * Receive multichannel configuration
+ * id	: McBSP interface No.
+ * part_mode	: Partition mode
+ * parta_enable	: channel to enable in partition A
+ * partb_enable	: channel to enable in partition B
+ * ch_enable	: channel enable
+ */
+int omap2_mcbsp_rxmultich_cfg(unsigned int id, u8 part_mode,
+			       u8 parta_enable, u8 partb_enable, u32 ch_enable)
+{
+	struct omap_mcbsp *mcbsp = mcbsp_ptr[id];
+	u32 io_base;
+
+	if (!omap_mcbsp_check_valid_id(id)) {
+		printk(KERN_ERR "%s: Invalid id (%d)\n", __func__, id + 1);
+		return -ENODEV;
+	}
+
+	io_base = mcbsp->io_base;
+
+	/* check for valid partition mode */
+	if ((part_mode != OMAP_MCBSP_TWOPARTITION_MODE
+	     && part_mode != OMAP_MCBSP_EIGHTPARTITION_MODE))
+		return -EINVAL;
+
+	omap_mcbsp_write(io_base, OMAP_MCBSP_REG_MCR1,
+		(omap_mcbsp_read(io_base, OMAP_MCBSP_REG_MCR1) | part_mode |
+						parta_enable | partb_enable));
+	omap_mcbsp_write(io_base, OMAP_MCBSP_REG_RCERA,
+		(omap_mcbsp_read(io_base, OMAP_MCBSP_REG_RCERA) | ch_enable));
+
+	return 0;
+
+}
+EXPORT_SYMBOL(omap2_mcbsp_rxmultich_cfg);
+
+/*
  * Configure the receiver parameters
  * id		: McBSP Interface ID
  * rp		: DMA Receive parameters
@@ -699,11 +865,20 @@ int omap2_mcbsp_dma_recv_params(unsigned int id,
 	int err, chain_id = -1;
 	struct omap_dma_channel_params rx_params;
 	u32  dt = 0;
+#ifdef CONFIG_USE_MCBSP_FIFO
+	u32 mcbsp_fifo_size;
+#endif
 
 	if (!omap_mcbsp_check_valid_id(id)) {
 		printk(KERN_ERR "%s: Invalid id (%d)\n", __func__, id + 1);
 		return -ENODEV;
 	}
+#ifdef CONFIG_USE_MCBSP_FIFO
+	if (id == OMAP_MCBSP2)
+		mcbsp_fifo_size = MCBSP2_FIFO_SIZE;
+	else
+		mcbsp_fifo_size = MCBSP_FIFO_SIZE;
+#endif
 
 	mcbsp = id_to_mcbsp_ptr(id);
 	io_base = mcbsp->io_base;
@@ -720,8 +895,15 @@ int omap2_mcbsp_dma_recv_params(unsigned int id,
 
 	rx_params.read_prio = DMA_CH_PRIO_HIGH;
 	rx_params.write_prio = DMA_CH_PRIO_HIGH;
+/* If McBSP FIFO is used, do a packet sync DMA */
+#ifdef CONFIG_USE_MCBSP_FIFO
+	mcbsp->rx_config_done = 0;
+	rx_params.sync_mode = OMAP_DMA_SYNC_PACKET;
+	rx_params.src_fi = mcbsp_fifo_size;
+#else
 	rx_params.sync_mode = OMAP_DMA_SYNC_ELEMENT;
 	rx_params.src_fi = 0;
+#endif
 	rx_params.trigger = mcbsp->dma_rx_sync;
 	rx_params.src_or_dst_synch = 0x01;
 	rx_params.src_amode = OMAP_DMA_AMODE_CONSTANT;
@@ -755,6 +937,7 @@ int omap2_mcbsp_dma_recv_params(unsigned int id,
 		mcbsp->rx_word_length = 1;
 
 	mcbsp->rx_callback = rp->callback;
+	mcbsp->rx_params = rx_params;
 	/* request for a chain of dma channels for data reception */
 	if (mcbsp->dma_rx_lch == -1) {
 		err = omap_request_dma_chain(id, "McBSP RX",
@@ -793,6 +976,9 @@ int omap2_mcbsp_dma_trans_params(unsigned int id,
 	int err = 0, chain_id = -1;
 	u32 io_base;
 	u32 dt = 0;
+#ifdef CONFIG_USE_MCBSP_FIFO
+	u32 mcbsp_fifo_size;
+#endif
 
 	if (!omap_mcbsp_check_valid_id(id)) {
 		printk(KERN_ERR "%s: Invalid id (%d)\n", __func__, id + 1);
@@ -801,6 +987,12 @@ int omap2_mcbsp_dma_trans_params(unsigned int id,
 
 	mcbsp = id_to_mcbsp_ptr(id);
 	io_base = mcbsp->io_base;
+#ifdef CONFIG_USE_MCBSP_FIFO
+	if (id == OMAP_MCBSP2)
+		mcbsp_fifo_size = MCBSP2_FIFO_SIZE;
+	else
+		mcbsp_fifo_size = MCBSP_FIFO_SIZE;
+#endif
 
 	dt = tp->word_length1;
 	if ((dt != OMAP_MCBSP_WORD_8) && (dt != OMAP_MCBSP_WORD_16)
@@ -817,8 +1009,14 @@ int omap2_mcbsp_dma_trans_params(unsigned int id,
 
 	tx_params.read_prio = DMA_CH_PRIO_HIGH;
 	tx_params.write_prio = DMA_CH_PRIO_HIGH;
+/* IF McBSP FIFO is used, use packet sync DMA*/
+#ifdef CONFIG_USE_MCBSP_FIFO
+	tx_params.sync_mode = OMAP_DMA_SYNC_PACKET;
+	tx_params.dst_fi = mcbsp_fifo_size;
+#else
 	tx_params.sync_mode = OMAP_DMA_SYNC_ELEMENT;
 	tx_params.dst_fi = 0;
+#endif
 	tx_params.trigger = mcbsp->dma_tx_sync;
 	tx_params.src_or_dst_synch = 0;
 	/* Indexing is always in bytes - so multiply with dt */
@@ -870,6 +1068,9 @@ int omap2_mcbsp_dma_trans_params(unsigned int id,
 		if (err < 0)
 			return -EINVAL;
 	}
+#ifdef CONFIG_USE_MCBSP_FIFO
+	omap_mcbsp_write(io_base, OMAP_MCBSP_REG_THRSH2, (mcbsp_fifo_size - 1));
+#endif
 
 	return 0;
 }
@@ -891,6 +1092,11 @@ int omap2_mcbsp_receive_data(unsigned int id, void *cbdata,
 	int enable_rx = 0;
 	int e_count = 0;
 	int f_count = 0;
+#ifdef CONFIG_USE_MCBSP_FIFO
+	u32 thrsh1 = 256;	/* lowest value for McBSP threshold*/
+	u32 mcbsp_fifo_size;
+	int err;
+#endif
 
 	if (!omap_mcbsp_check_valid_id(id)) {
 		printk(KERN_ERR "%s: Invalid id (%d)\n", __func__, id + 1);
@@ -918,6 +1124,53 @@ int omap2_mcbsp_receive_data(unsigned int id, void *cbdata,
 	 * and f_count = number of frames = number of elements/e_count
 	 */
 	e_count = (buf_size / mcbsp->rx_word_length);
+
+	/* IF McBSP FIFO is used, change receive side configuration */
+#ifdef CONFIG_USE_MCBSP_FIFO
+	if (mcbsp->rx_config_done == 0) {
+		mcbsp->rx_config_done = 1;
+		if (id == OMAP_MCBSP2)
+			mcbsp_fifo_size = MCBSP2_FIFO_SIZE;
+		else
+			mcbsp_fifo_size = MCBSP_FIFO_SIZE;
+
+		if (e_count < mcbsp_fifo_size) {
+			thrsh1 = e_count;
+		} else {
+			/* Find the optimum threshold value for MCBSP
+					to transfer complete data*/
+			if ((e_count % mcbsp_fifo_size) == 0)
+				thrsh1 = mcbsp_fifo_size;
+			else if ((e_count % ((mcbsp_fifo_size * 3)/4)) == 0)
+				thrsh1 = (mcbsp_fifo_size * 3)/4;
+			else if ((e_count % ((mcbsp_fifo_size * 1)/2)) == 0)
+				thrsh1 = (mcbsp_fifo_size * 1)/2;
+			else if ((e_count % ((mcbsp_fifo_size * 1)/4)) == 0)
+				thrsh1 = (mcbsp_fifo_size * 1)/4;
+			else
+				thrsh1 = 1;
+		}
+
+		omap_mcbsp_write(io_base, OMAP_MCBSP_REG_THRSH1, (thrsh1-1));
+
+		if (thrsh1 != mcbsp_fifo_size) {
+			mcbsp->rx_params.src_fi = thrsh1;
+		/* if threshold =1, use element sync DMA */
+			if (thrsh1 == 1) {
+				mcbsp->rx_params.sync_mode =
+							 OMAP_DMA_SYNC_ELEMENT;
+				mcbsp->rx_params.src_fi = 0;
+			}
+			err = omap_modify_dma_chain_params(
+				mcbsp->dma_rx_lch, mcbsp->rx_params);
+			if (err < 0) {
+				printk(KERN_ERR "DMA reconfiguration failed\n");
+				return -EINVAL;
+			}
+		}
+	}
+#endif
+
 
 	if (mcbsp->rxskip_alt != OMAP_MCBSP_SKIP_NONE) {
 		/*
