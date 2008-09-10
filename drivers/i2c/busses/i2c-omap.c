@@ -71,6 +71,7 @@
 #define OMAP_I2C_IE_ARDY	(1 << 2)	/* Access ready int enable */
 #define OMAP_I2C_IE_NACK	(1 << 1)	/* No ack interrupt enable */
 #define OMAP_I2C_IE_AL		(1 << 0)	/* Arbitration lost int ena */
+#define OMAP_I2C_IE_AAS		(1 << 9)	/* I2C in slave mode interrupt*/
 
 /* I2C Status Register (OMAP_I2C_STAT): */
 #define OMAP_I2C_STAT_XDR	(1 << 14)	/* TX Buffer draining */
@@ -125,14 +126,25 @@
 
 /* I2C System Configuration Register (OMAP_I2C_SYSC): */
 #define OMAP_I2C_SYSC_SRST		(1 << 1)	/* Soft Reset */
-#define OMAP_I2C_SYSC_SRST		(1 << 1)	/* Soft Reset */
 #define OMAP_I2C_SYSC_SMART_IDLE	(2 << 3)
 #define OMAP_I2C_SYSC_CLK_ACT		(2 << 8)
 #define OMAP_I2C_SYSC_AUTO_IDLE		(1 <<  0)
 #define OMAP_I2C_WAKE_UP_ENABLE		(1 << 2)
 #define OMAP_I2C_WAKUP_EVENT		0x00006C1F
-#define OMAP_I2C_SYS_CONFIG_LVL1	1
-#define OMAP_I2C_SYS_CONFIG_LVL2	2
+#define OMAP_I2C_SYSC_LVL1		0x00000215
+#define OMAP_I2C_SYSC_LVL2		0x00000015
+
+
+#define	OMAP_I2C_SYS_CONFIG_LVL1 1
+#define	OMAP_I2C_SYS_CONFIG_LVL2 2
+
+/* Defines for SLAVE mode */
+#define OMAP_I2C_SLAVE_TX		1		/* I2C slave TX mode */
+#define OMAP_I2C_SLAVE_RX		0		/* I2C slave RX mode */
+#define OMAP_I2C_SLAVE_ADDR(slave_addr)	((slave_addr & 0x3FF) << 0)
+#define OMAP_I2C_MASTER_MODE		0
+#define OMAP_I2C_SLAVE_MODE		1
+#define IF_SLAVE_MODE(addr)		(addr & 0x8000)
 
 struct omap_i2c_dev {
 	struct device		*dev;
@@ -153,8 +165,14 @@ struct omap_i2c_dev {
 						 */
 	unsigned		rev1:1;
 	unsigned		b_hw:1;		/* bad h/w fixes */
-	unsigned		idle:1;
-	u16			iestate;	/* Saved interrupt register */
+	int			mode;		/* Master/Slave */
+	int			tx_mode;	/* slave tx or rx */
+	int			slave_tx;	/* if Slave TRX mode set 1 */
+	u16			psc;
+	u16			scll;
+	u16			sclh;
+	u32			fifo;
+	u32			irqmask;
 };
 
 static inline void omap_i2c_write_reg(struct omap_i2c_dev *i2c_dev,
@@ -173,17 +191,14 @@ static void i2c_power_settings(struct omap_i2c_dev *dev, int level)
 {
 	/* set I2C smart idle and auto idle */
 	if (level == OMAP_I2C_SYS_CONFIG_LVL1)
-		omap_i2c_write_reg(dev, OMAP_I2C_SYSC_REG,
-			OMAP_I2C_SYSC_AUTO_IDLE | OMAP_I2C_SYSC_SMART_IDLE |
-			OMAP_I2C_SYSC_CLK_ACT | OMAP_I2C_WAKE_UP_ENABLE);
+		omap_i2c_write_reg(dev, OMAP_I2C_SYSC_REG, OMAP_I2C_SYSC_LVL1);
 	/* clk activity both iclk and fclk off*/
 	if (level == OMAP_I2C_SYS_CONFIG_LVL2)
-		omap_i2c_write_reg(dev, OMAP_I2C_SYSC_REG,
-			OMAP_I2C_SYSC_AUTO_IDLE | OMAP_I2C_SYSC_SMART_IDLE
-			| OMAP_I2C_WAKE_UP_ENABLE);
+		omap_i2c_write_reg(dev, OMAP_I2C_SYSC_REG, OMAP_I2C_SYSC_LVL2);
+
 }
 
-static int __init omap_i2c_get_clocks(struct omap_i2c_dev *dev)
+static int omap_i2c_get_clocks(struct omap_i2c_dev *dev)
 {
 	if (cpu_is_omap16xx() || cpu_class_is_omap2()) {
 		dev->iclk = clk_get(dev->dev, "i2c_ick");
@@ -227,40 +242,39 @@ static void omap_i2c_put_clocks(struct omap_i2c_dev *dev)
 	}
 }
 
-static void omap_i2c_unidle(struct omap_i2c_dev *dev)
+static void omap_i2c_enable_clocks(struct omap_i2c_dev *dev)
 {
+
 	if (dev->iclk != NULL)
 		clk_enable(dev->iclk);
 	clk_enable(dev->fclk);
 	i2c_power_settings(dev, OMAP_I2C_SYS_CONFIG_LVL1);
-	dev->idle = 0;
-	if (dev->iestate)
-		omap_i2c_write_reg(dev, OMAP_I2C_IE_REG, dev->iestate);
 }
 
-static void omap_i2c_idle(struct omap_i2c_dev *dev)
+static void omap_i2c_disable_clocks(struct omap_i2c_dev *dev)
 {
-	u16 iv;
 
-	dev->iestate = omap_i2c_read_reg(dev, OMAP_I2C_IE_REG);
-	omap_i2c_write_reg(dev, OMAP_I2C_IE_REG, 0);
-	if (dev->rev1)
-		iv = omap_i2c_read_reg(dev, OMAP_I2C_IV_REG);
-	else
-		omap_i2c_write_reg(dev, OMAP_I2C_STAT_REG, dev->iestate);
-	/*
-	 * The wmb() is to ensure that the I2C interrupt mask write
-	 * reaches the I2C controller before the dev->idle store
-	 * occurs.
-	 */
-	wmb();
 	i2c_power_settings(dev, OMAP_I2C_SYS_CONFIG_LVL2);
-	dev->idle = 1;
-	clk_disable(dev->fclk);
+
 	if (dev->iclk != NULL)
 		clk_disable(dev->iclk);
+	clk_disable(dev->fclk);
 }
 
+static void  omap_i2c_ctx_restore(struct omap_i2c_dev *dev)
+{
+	omap_i2c_write_reg(dev, OMAP_I2C_CON_REG, 0);
+	/* SCL low and high time values */
+	omap_i2c_write_reg(dev, OMAP_I2C_SCLL_REG, dev->scll);
+	omap_i2c_write_reg(dev, OMAP_I2C_SCLH_REG, dev->sclh);
+	omap_i2c_write_reg(dev, OMAP_I2C_BUF_REG, dev->fifo);
+	/* Setup clock prescaler */
+	omap_i2c_write_reg(dev, OMAP_I2C_PSC_REG, dev->psc);
+
+	omap_i2c_write_reg(dev, OMAP_I2C_CON_REG, OMAP_I2C_CON_EN);
+	omap_i2c_write_reg(dev, OMAP_I2C_IE_REG, dev->irqmask);
+	omap_i2c_write_reg(dev, OMAP_I2C_IV_REG, OMAP_I2C_WAKUP_EVENT);
+}
 static int omap_i2c_init(struct omap_i2c_dev *dev)
 {
 	u16 psc = 0, scll = 0, sclh = 0;
@@ -278,7 +292,7 @@ static int omap_i2c_init(struct omap_i2c_dev *dev)
 		while (!(omap_i2c_read_reg(dev, OMAP_I2C_SYSS_REG) &
 			 OMAP_I2C_SYSS_RDONE)) {
 			if (time_after(jiffies, timeout)) {
-				dev_warn(dev->dev, "timeout waiting "
+				dev_warn(dev->dev, "timeout waiting"
 						"for controller reset\n");
 				return -ETIMEDOUT;
 			}
@@ -286,8 +300,6 @@ static int omap_i2c_init(struct omap_i2c_dev *dev)
 		}
 	}
 
-	/* Enabling wakeup events */
-	omap_i2c_write_reg(dev, OMAP_I2C_IV_REG, OMAP_I2C_WAKUP_EVENT);
 	omap_i2c_write_reg(dev, OMAP_I2C_CON_REG, 0);
 
 	if (cpu_class_is_omap1()) {
@@ -348,30 +360,21 @@ static int omap_i2c_init(struct omap_i2c_dev *dev)
 		sclh = fclk_rate / (dev->speed * 2) - 7 + psc;
 	}
 
-	/* Setup clock prescaler to obtain approx 12MHz I2C module clock: */
-	omap_i2c_write_reg(dev, OMAP_I2C_PSC_REG, psc);
+	dev->psc = psc;
+	dev->scll = scll;
+	dev->sclh = sclh;
 
-	/* SCL low and high time values */
-	omap_i2c_write_reg(dev, OMAP_I2C_SCLL_REG, scll);
-	omap_i2c_write_reg(dev, OMAP_I2C_SCLH_REG, sclh);
+	dev->fifo = ((dev->fifo_size - 1) << 8) | OMAP_I2C_BUF_RXFIF_CLR |
+				(dev->fifo_size - 1) | OMAP_I2C_BUF_TXFIF_CLR;
 
-	if (dev->fifo_size)
-		/* Note: setup required fifo size - 1 */
-		omap_i2c_write_reg(dev, OMAP_I2C_BUF_REG,
-					(dev->fifo_size - 1) << 8 | /* RTRSH */
-					OMAP_I2C_BUF_RXFIF_CLR |
-					(dev->fifo_size - 1) | /* XTRSH */
-					OMAP_I2C_BUF_TXFIF_CLR);
+	dev->irqmask = OMAP_I2C_IE_XRDY | OMAP_I2C_IE_RRDY |
+			 OMAP_I2C_IE_ARDY | OMAP_I2C_IE_NACK | OMAP_I2C_IE_AL |
+			((dev->fifo_size) ? (OMAP_I2C_IE_RDR |
+							 OMAP_I2C_IE_XDR) : 0);
 
 	/* Take the I2C module out of reset: */
 	omap_i2c_write_reg(dev, OMAP_I2C_CON_REG, OMAP_I2C_CON_EN);
 
-	/* Enable interrupts */
-	omap_i2c_write_reg(dev, OMAP_I2C_IE_REG,
-			(OMAP_I2C_IE_XRDY | OMAP_I2C_IE_RRDY |
-			OMAP_I2C_IE_ARDY | OMAP_I2C_IE_NACK |
-			OMAP_I2C_IE_AL)  | ((dev->fifo_size) ?
-				(OMAP_I2C_IE_RDR | OMAP_I2C_IE_XDR) : 0));
 	return 0;
 }
 
@@ -484,6 +487,7 @@ static int omap_i2c_xfer_msg(struct i2c_adapter *adap,
 	if (r == 0) {
 		dev_err(dev->dev, "controller timed out\n");
 		omap_i2c_init(dev);
+		omap_i2c_ctx_restore(dev);
 		return -ETIMEDOUT;
 	}
 
@@ -494,6 +498,7 @@ static int omap_i2c_xfer_msg(struct i2c_adapter *adap,
 	if (dev->cmd_err & (OMAP_I2C_STAT_AL | OMAP_I2C_STAT_ROVR |
 			    OMAP_I2C_STAT_XUDF)) {
 		omap_i2c_init(dev);
+		omap_i2c_ctx_restore(dev);
 		return -EIO;
 	}
 
@@ -510,6 +515,70 @@ static int omap_i2c_xfer_msg(struct i2c_adapter *adap,
 	return -EIO;
 }
 
+#ifdef CONFIG_OMAP_I2C_SLAVE
+
+/*
+ * I2C Slave recv mode transaction
+ * adap		: i2c adapter
+ * msg		: buffer pointer
+ *
+ */
+
+static int
+omap_i2c_slave_xfer_msg(struct i2c_adapter *adap, struct i2c_msg *msg)
+{
+	struct omap_i2c_dev *dev = i2c_get_adapdata(adap);
+	int r;
+	u16 w;
+
+	dev->buf = msg->buf;
+	/* First byte is used to store number of bytes recieved */
+	dev->buf++;
+	if (!(msg->flags & I2C_M_RD))
+		dev->slave_tx = 1;
+
+	dev->cmd_err = 0;
+	w = omap_i2c_read_reg(dev, OMAP_I2C_CON_REG);
+	w &= ~OMAP_I2C_CON_MST;
+	w |= OMAP_I2C_CON_EN;
+
+	/* Clear Rx and Tx FIFO */
+	omap_i2c_write_reg(dev, OMAP_I2C_BUF_REG,
+			OMAP_I2C_BUF_RXFIF_CLR | OMAP_I2C_BUF_TXFIF_CLR);
+
+	/* Enable slave mode interrupts */
+	omap_i2c_write_reg(dev, OMAP_I2C_IE_REG,
+		(OMAP_I2C_IE_RRDY | OMAP_I2C_IE_ARDY |
+			  OMAP_I2C_IE_AAS | OMAP_I2C_IE_XRDY));
+
+	init_completion(&dev->cmd_complete);
+
+	omap_i2c_write_reg(dev, OMAP_I2C_CON_REG, w);
+	omap_i2c_write_reg(dev, OMAP_I2C_CON_REG, OMAP_I2C_CON_EN);
+
+	/* wait for 5 seconds for complete timeout */
+	r = wait_for_completion_timeout(&dev->cmd_complete,
+					OMAP_I2C_TIMEOUT * 5);
+	if (r < 0)
+		return r;
+	else if (r == 0) {
+		dev_err(dev->dev, "controller timed out\n");
+		omap_i2c_init(dev);
+		omap_i2c_ctx_restore(dev);
+		return -ETIMEDOUT;
+	}
+
+	/* We have an error */
+	if (dev->cmd_err & (OMAP_I2C_STAT_ROVR | OMAP_I2C_STAT_XUDF))
+		return -EIO;
+
+	dev->tx_mode = OMAP_I2C_SLAVE_RX;
+	dev->buf_len = 0;
+	dev->slave_tx = 0;
+	return 0;
+}
+
+#endif
 
 /*
  * Prepare controller for a transaction and call omap_i2c_xfer_msg
@@ -522,23 +591,43 @@ omap_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 	int i;
 	int r;
 
-	omap_i2c_unidle(dev);
+	omap_i2c_enable_clocks(dev);
 
-	omap_i2c_init(dev);
+	 /*Initializes I2C device for each transfer*/
+	omap_i2c_ctx_restore(dev);
 
+	enable_irq(dev->irq);
+
+	/* REVISIT: initialize and use adap->retries. This is an optional
+	 * feature */
 	if ((r = omap_i2c_wait_for_bb(dev)) < 0)
 		goto out;
 
 	for (i = 0; i < num; i++) {
-		r = omap_i2c_xfer_msg(adap, &msgs[i], (i == (num - 1)));
-		if (r != 0)
-			break;
-	}
+#ifdef CONFIG_OMAP_I2C_SLAVE
+		if (IF_SLAVE_MODE(msgs[i].addr)) {
+			omap_i2c_write_reg(dev, OMAP_I2C_OA_REG,
+				OMAP_I2C_SLAVE_ADDR(msgs[i].addr & 0x03FF));
+			r = omap_i2c_slave_xfer_msg(adap, &msgs[i]);
+			if (r != 0)
+				break;
+		} else {
+#endif
+			r = omap_i2c_xfer_msg(adap, &msgs[i], (i == (num - 1)));
+			if (r != 0)
+				break;
+		}
 
-	if (r == 0)
-		r = num;
+		if (r == 0)
+			r = num;
+#ifdef CONFIG_OMAP_I2C_SLAVE
+	}
+#endif
 out:
-	omap_i2c_idle(dev);
+	disable_irq(dev->irq);
+	omap_i2c_disable_clocks(dev);
+	/* Default master mode */
+	dev->mode = OMAP_I2C_MASTER_MODE;
 	return r;
 }
 
@@ -565,17 +654,11 @@ omap_i2c_ack_stat(struct omap_i2c_dev *dev, u16 stat)
 	omap_i2c_write_reg(dev, OMAP_I2C_STAT_REG, stat);
 }
 
-/* rev1 devices are apparently only on some 15xx */
-#ifdef CONFIG_ARCH_OMAP15XX
-
 static irqreturn_t
 omap_i2c_rev1_isr(int this_irq, void *dev_id)
 {
 	struct omap_i2c_dev *dev = dev_id;
 	u16 iv, w;
-
-	if (dev->idle)
-		return IRQ_NONE;
 
 	iv = omap_i2c_read_reg(dev, OMAP_I2C_IV_REG);
 	switch (iv) {
@@ -622,9 +705,6 @@ omap_i2c_rev1_isr(int this_irq, void *dev_id)
 
 	return IRQ_HANDLED;
 }
-#else
-#define omap_i2c_rev1_isr		0
-#endif
 
 static irqreturn_t
 omap_i2c_isr(int this_irq, void *dev_id)
@@ -633,110 +713,198 @@ omap_i2c_isr(int this_irq, void *dev_id)
 	u16 bits;
 	u16 stat, w;
 	int err, count = 0;
-
-	if (dev->idle)
-		return IRQ_NONE;
-
-	bits = omap_i2c_read_reg(dev, OMAP_I2C_IE_REG);
-	while ((stat = (omap_i2c_read_reg(dev, OMAP_I2C_STAT_REG))) & bits) {
-		dev_dbg(dev->dev, "IRQ (ISR = 0x%04x)\n", stat);
-		if (count++ == 100) {
-			dev_warn(dev->dev, "Too much work in one IRQ\n");
-			break;
-		}
-
-		omap_i2c_write_reg(dev, OMAP_I2C_STAT_REG, stat);
-
-		err = 0;
-		if (stat & OMAP_I2C_STAT_NACK) {
-			err |= OMAP_I2C_STAT_NACK;
-			omap_i2c_write_reg(dev, OMAP_I2C_CON_REG,
-					   OMAP_I2C_CON_STP);
-		}
-		if (stat & OMAP_I2C_STAT_AL) {
-			dev_err(dev->dev, "Arbitration lost\n");
-			err |= OMAP_I2C_STAT_AL;
-		}
-		if (stat & (OMAP_I2C_STAT_ARDY | OMAP_I2C_STAT_NACK |
-					OMAP_I2C_STAT_AL))
-			omap_i2c_complete_cmd(dev, err);
-		if (stat & (OMAP_I2C_STAT_RRDY | OMAP_I2C_STAT_RDR)) {
-			u8 num_bytes = 1;
-			if (dev->fifo_size) {
-				num_bytes = (stat & OMAP_I2C_STAT_RRDY) ? dev->fifo_size :
-						omap_i2c_read_reg(dev, OMAP_I2C_BUFSTAT_REG);
+#ifdef CONFIG_OMAP_I2C_SLAVE
+	/*
+	 * default dev>mode is master mode,If slave interrupt recieved
+	 * set dev->mode to slave. It will be set to master mode again, when
+	 * slave transfer is over.
+	 */
+	if (dev->mode == OMAP_I2C_MASTER_MODE)
+		dev->mode = omap_i2c_read_reg(dev, OMAP_I2C_STAT_REG)
+						 & OMAP_I2C_STAT_AAS;
+	if (dev->mode == OMAP_I2C_MASTER_MODE) {
+#endif
+		bits = omap_i2c_read_reg(dev, OMAP_I2C_IE_REG);
+		while ((stat = (omap_i2c_read_reg(dev, OMAP_I2C_STAT_REG))) & bits) {
+			dev_dbg(dev->dev, "IRQ (ISR = 0x%04x)\n", stat);
+			if (count++ == 100) {
+				dev_warn(dev->dev, "Too much work in one IRQ\n");
+				break;
 			}
-			while (num_bytes) {
-				num_bytes--;
+
+			omap_i2c_write_reg(dev, OMAP_I2C_STAT_REG, stat);
+
+			err = 0;
+			if (stat & OMAP_I2C_STAT_NACK) {
+				err |= OMAP_I2C_STAT_NACK;
+				omap_i2c_write_reg(dev, OMAP_I2C_CON_REG,
+						   OMAP_I2C_CON_STP);
+			}
+			if (stat & OMAP_I2C_STAT_AL) {
+				dev_err(dev->dev, "Arbitration lost\n");
+				err |= OMAP_I2C_STAT_AL;
+			}
+			if (stat & (OMAP_I2C_STAT_ARDY | OMAP_I2C_STAT_NACK |
+						OMAP_I2C_STAT_AL))
+				omap_i2c_complete_cmd(dev, err);
+
+			if (stat & (OMAP_I2C_STAT_RRDY | OMAP_I2C_STAT_RDR)) {
+				u8 num_bytes = 1;
+				if (dev->fifo_size) {
+					num_bytes = (stat & OMAP_I2C_STAT_RRDY) ? dev->fifo_size :
+							omap_i2c_read_reg(dev, OMAP_I2C_BUFSTAT_REG);
+				}
+				while (num_bytes) {
+					num_bytes--;
+					w = omap_i2c_read_reg(dev, OMAP_I2C_DATA_REG);
+					if (dev->buf_len) {
+						*dev->buf++ = w;
+						dev->buf_len--;
+						/* data reg from 2430 is 8 bit wide */
+						if (!cpu_is_omap2430() &&
+								!cpu_is_omap34xx()) {
+							if (dev->buf_len) {
+								*dev->buf++ = w >> 8;
+								dev->buf_len--;
+							}
+						}
+					} else {
+						if (stat & OMAP_I2C_STAT_RRDY)
+							dev_err(dev->dev, "RRDY IRQ while no data"
+									"requested\n");
+						if (stat & OMAP_I2C_STAT_RDR)
+							dev_err(dev->dev, "RDR IRQ while no data"
+									"requested\n");
+						break;
+					}
+				}
+				omap_i2c_ack_stat(dev, stat & (OMAP_I2C_STAT_RRDY | OMAP_I2C_STAT_RDR));
+				continue;
+			}
+			if (stat & (OMAP_I2C_STAT_XRDY | OMAP_I2C_STAT_XDR)) {
+				u8 num_bytes = 1;
+				if (dev->fifo_size) {
+					num_bytes = (stat & OMAP_I2C_STAT_XRDY) ? dev->fifo_size :
+							omap_i2c_read_reg(dev, OMAP_I2C_BUFSTAT_REG);
+				}
+				while (num_bytes) {
+					num_bytes--;
+					w = 0;
+					if (dev->buf_len) {
+						w = *dev->buf++;
+						dev->buf_len--;
+						 /* data reg from 2430 is 8 bit wide */
+						if (!cpu_is_omap2430() &&
+								!cpu_is_omap34xx()) {
+							if (dev->buf_len) {
+								w |= *dev->buf++ << 8;
+								dev->buf_len--;
+							}
+						}
+					} else {
+						if (stat & OMAP_I2C_STAT_XRDY)
+							dev_err(dev->dev, "XRDY IRQ while no"
+									"data to send\n");
+						if (stat & OMAP_I2C_STAT_XDR)
+							dev_err(dev->dev, "XDR IRQ while no"
+									"data to send\n");
+						break;
+					}
+					omap_i2c_write_reg(dev, OMAP_I2C_DATA_REG, w);
+				}
+				omap_i2c_ack_stat(dev, stat &
+						(OMAP_I2C_STAT_XRDY |
+							 OMAP_I2C_STAT_XDR));
+				continue;
+			}
+			if (stat & OMAP_I2C_STAT_ROVR) {
+				dev_err(dev->dev, "Receive overrun\n");
+				dev->cmd_err |= OMAP_I2C_STAT_ROVR;
+			}
+			if (stat & OMAP_I2C_STAT_XUDF) {
+				dev_err(dev->dev, "Transmit overflow\n");
+				dev->cmd_err |= OMAP_I2C_STAT_XUDF;
+			}
+		}
+
+#ifdef CONFIG_OMAP_I2C_SLAVE
+	/* Slave Interrupt handler */
+	} else {
+
+		bits = omap_i2c_read_reg(dev, OMAP_I2C_IE_REG);
+
+		while ((stat = (omap_i2c_read_reg(dev,
+						OMAP_I2C_STAT_REG))) & bits) {
+
+			dev_dbg(dev->dev, "IRQ (ISR = 0x%04x)\n", stat);
+			if (count++ == 100) {
+				dev_warn(dev->dev, "Too much work in 1 IRQ\n");
+				break;
+			}
+
+			if (stat & OMAP_I2C_STAT_AAS) {
+				omap_i2c_ack_stat(dev, stat &
+							(OMAP_I2C_STAT_AAS));
+				continue;
+			}
+
+			if (stat & OMAP_I2C_STAT_ARDY) {
+				/* put recv data length in first byte of buf */
+				if (dev->tx_mode == OMAP_I2C_SLAVE_RX) {
+					dev->buf =
+						dev->buf - (dev->buf_len + 1);
+					*dev->buf = dev->buf_len ;
+					/*
+					 if slave is configured for transmission
+					 Dont send the ack to slave app. it will
+					 be acked when transmission finishes
+					*/
+					if (!(dev->slave_tx))
+						complete(&dev->cmd_complete);
+				} else
+					complete(&dev->cmd_complete);
+				omap_i2c_write_reg(dev, OMAP_I2C_STAT_REG,
+						(stat & OMAP_I2C_STAT_ARDY));
+				dev->buf_len = 0;
+				continue;
+			}
+
+			if (stat & (OMAP_I2C_STAT_RRDY)) {
+				dev->tx_mode = OMAP_I2C_SLAVE_RX;
 				w = omap_i2c_read_reg(dev, OMAP_I2C_DATA_REG);
-				if (dev->buf_len) {
-					*dev->buf++ = w;
-					dev->buf_len--;
-					/* Data reg from 2430 is 8 bit wide */
-					if (!cpu_is_omap2430() &&
-							!cpu_is_omap34xx()) {
-						if (dev->buf_len) {
-							*dev->buf++ = w >> 8;
-							dev->buf_len--;
-						}
-					}
-				} else {
-					if (stat & OMAP_I2C_STAT_RRDY)
-						dev_err(dev->dev, "RRDY IRQ while no data "
-								"requested\n");
-					if (stat & OMAP_I2C_STAT_RDR)
-						dev_err(dev->dev, "RDR IRQ while no data "
-								"requested\n");
-					break;
-				}
+				*dev->buf++ = w;
+				dev->buf_len++;
+				omap_i2c_ack_stat(dev,
+					stat & (OMAP_I2C_STAT_RRDY));
+				continue;
 			}
-			omap_i2c_ack_stat(dev, stat & (OMAP_I2C_STAT_RRDY | OMAP_I2C_STAT_RDR));
-			continue;
-		}
-		if (stat & (OMAP_I2C_STAT_XRDY | OMAP_I2C_STAT_XDR)) {
-			u8 num_bytes = 1;
-			if (dev->fifo_size) {
-				num_bytes = (stat & OMAP_I2C_STAT_XRDY) ? dev->fifo_size :
-						omap_i2c_read_reg(dev, OMAP_I2C_BUFSTAT_REG);
-			}
-			while (num_bytes) {
-				num_bytes--;
-				w = 0;
-				if (dev->buf_len) {
-					w = *dev->buf++;
-					dev->buf_len--;
-					/* Data reg from  2430 is 8 bit wide */
-					if (!cpu_is_omap2430() &&
-							!cpu_is_omap34xx()) {
-						if (dev->buf_len) {
-							w |= *dev->buf++ << 8;
-							dev->buf_len--;
-						}
-					}
-				} else {
-					if (stat & OMAP_I2C_STAT_XRDY)
-						dev_err(dev->dev, "XRDY IRQ while no "
-								"data to send\n");
-					if (stat & OMAP_I2C_STAT_XDR)
-						dev_err(dev->dev, "XDR IRQ while no "
-								"data to send\n");
-					break;
+			if (stat &  OMAP_I2C_STAT_XRDY) {
+				if (dev->tx_mode == OMAP_I2C_SLAVE_RX) {
+					dev->tx_mode = OMAP_I2C_SLAVE_TX;
+				/*
+				  indexing in the tx buffer, index no. will
+				  be stored in 2nd byte of buffer, add it
+				  to buffer pointer provided by slave
+				*/
+					dev->buf  += *(dev->buf + 1);
 				}
+				w = *dev->buf++;
 				omap_i2c_write_reg(dev, OMAP_I2C_DATA_REG, w);
+				omap_i2c_ack_stat(dev,
+						 stat & (OMAP_I2C_STAT_XRDY));
+				continue;
 			}
-			omap_i2c_ack_stat(dev, stat & (OMAP_I2C_STAT_XRDY | OMAP_I2C_STAT_XDR));
-			continue;
-		}
-		if (stat & OMAP_I2C_STAT_ROVR) {
-			dev_err(dev->dev, "Receive overrun\n");
-			dev->cmd_err |= OMAP_I2C_STAT_ROVR;
-		}
-		if (stat & OMAP_I2C_STAT_XUDF) {
-			dev_err(dev->dev, "Transmit underflow\n");
-			dev->cmd_err |= OMAP_I2C_STAT_XUDF;
+			if (stat & OMAP_I2C_STAT_ROVR) {
+				dev_err(dev->dev, "Receive overrun\n");
+				dev->cmd_err |= OMAP_I2C_STAT_ROVR;
+			}
+			if (stat & OMAP_I2C_STAT_XUDF) {
+				dev_err(dev->dev, "Transmit overflow\n");
+				dev->cmd_err |= OMAP_I2C_STAT_XUDF;
+			}
 		}
 	}
-
+#endif
 	return count ? IRQ_HANDLED : IRQ_NONE;
 }
 
@@ -793,7 +961,7 @@ omap_i2c_probe(struct platform_device *pdev)
 	if ((r = omap_i2c_get_clocks(dev)) != 0)
 		goto err_free_mem;
 
-	omap_i2c_unidle(dev);
+	omap_i2c_enable_clocks(dev);
 
 	if (cpu_is_omap15xx())
 		dev->rev1 = omap_i2c_read_reg(dev, OMAP_I2C_REV_REG) < 0x20;
@@ -813,6 +981,7 @@ omap_i2c_probe(struct platform_device *pdev)
 
 	/* reset ASAP, clearing any IRQs */
 	omap_i2c_init(dev);
+	omap_i2c_ctx_restore(dev);
 
 	r = request_irq(dev->irq, dev->rev1 ? omap_i2c_rev1_isr : omap_i2c_isr,
 			0, pdev->name, dev);
@@ -840,21 +1009,22 @@ omap_i2c_probe(struct platform_device *pdev)
 		dev_err(dev->dev, "failure adding adapter\n");
 		goto err_free_irq;
 	}
+	disable_irq(dev->irq);
 
-	omap_i2c_idle(dev);
+	omap_i2c_disable_clocks(dev);
 
 	return 0;
 
 err_free_irq:
 	free_irq(dev->irq, dev);
 err_unuse_clocks:
-	omap_i2c_write_reg(dev, OMAP_I2C_CON_REG, 0);
-	omap_i2c_idle(dev);
+	omap_i2c_disable_clocks(dev);
 	omap_i2c_put_clocks(dev);
 err_free_mem:
 	platform_set_drvdata(pdev, NULL);
 	kfree(dev);
 err_release_region:
+	omap_i2c_write_reg(dev, OMAP_I2C_CON_REG, 0);
 	release_mem_region(mem->start, (mem->end - mem->start) + 1);
 
 	return r;
@@ -870,7 +1040,9 @@ omap_i2c_remove(struct platform_device *pdev)
 
 	free_irq(dev->irq, dev);
 	i2c_del_adapter(&dev->adapter);
+	omap_i2c_enable_clocks(dev);
 	omap_i2c_write_reg(dev, OMAP_I2C_CON_REG, 0);
+	omap_i2c_disable_clocks(dev);
 	omap_i2c_put_clocks(dev);
 	kfree(dev);
 	mem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -904,4 +1076,3 @@ module_exit(omap_i2c_exit_driver);
 MODULE_AUTHOR("MontaVista Software, Inc. (and others)");
 MODULE_DESCRIPTION("TI OMAP I2C bus adapter");
 MODULE_LICENSE("GPL");
-MODULE_ALIAS("platform:i2c_omap");
