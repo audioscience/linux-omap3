@@ -1,7 +1,16 @@
 /*
  * drivers/media/video/omap34xxcam.h
  *
+ * Video-for-Linux (Version 2) Camera capture driver for OMAP34xx ISP.
+ *
  * Copyright (C) 2008 Texas Instruments.
+ * Copyright (C) 2008 Nokia.
+ *
+ * Contributors:
+ * 	Sameer Venkatraman <sameerv@ti.com>
+ * 	Mohit Jalori <mjalori@ti.com>
+ * 	Sakari Ailus <sakari.ailus@nokia.com>
+ * 	Tuukka Toivonen <tuukka.o.toivonen@nokia.com>
  *
  * This package is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -10,11 +19,6 @@
  * THIS PACKAGE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
  * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
- *
- * Video-for-Linux (Version 2) camera capture driver for OMAP34xx ISP.
- * Leverage omap24xx camera driver
- * Copyright (C) 2004 MontaVista Software, Inc.
- * Copyright (C) 2006 Texas Instruments.
  *
  */
 
@@ -44,6 +48,7 @@ struct omap34xxcam_videodev;
 struct omap34xxcam_sensor_config {
 	int xclk;
 	int sensor_isp;
+	u32 capture_mem;
 };
 
 struct omap34xxcam_lens_config {
@@ -90,7 +95,7 @@ struct omap34xxcam_hw_config {
  * @streaming: streaming file handle, if streaming is enabled
  */
 struct omap34xxcam_videodev {
-	struct mutex mutex;
+	struct mutex mutex; /* For serializing access to this structure */
 
 	struct omap34xxcam_device *cam;
 	struct v4l2_int_device master;
@@ -123,6 +128,8 @@ struct omap34xxcam_videodev {
 	struct omap34xxcam_hw_config slave_config[OMAP34XXCAM_SLAVE_FLASH + 1];
 
 	/*** capture data ***/
+	struct v4l2_fract want_timeperframe;
+	struct v4l2_pix_format want_pix;
 	/* file handle, if streaming is on */
 	struct file *streaming;
 };
@@ -144,7 +151,7 @@ struct omap34xxcam_videodev {
  * @ick: camera module ick clock information
  */
 struct omap34xxcam_device {
-	struct mutex mutex;
+	struct mutex mutex; /* For serializing access to this structure */
 	int sgdma_in_queue;
 	struct isp_sgdma sgdma;
 	int dma_notify;
@@ -174,7 +181,7 @@ struct omap34xxcam_device {
  * @vdev: our /dev/video specific structure
  */
 struct omap34xxcam_fh {
-	spinlock_t vbq_lock;
+	spinlock_t vbq_lock; /* For the videobuf queue */
 	struct videobuf_queue vbq;
 	struct v4l2_pix_format pix;
 	atomic_t field_count;

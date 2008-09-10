@@ -5,6 +5,10 @@
  *
  * Copyright (C) 2008 Texas Instruments, Inc.
  *
+ * Contributors:
+ * 	Leonides Martinez <leonides.martinez@ti.com>
+ * 	Sergio Aguirre <saaguirre@ti.com>
+ *
  * This package is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
@@ -22,11 +26,11 @@
 #include <linux/mm.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
+#include <linux/uaccess.h>
+#include <linux/io.h>
 #include <media/v4l2-dev.h>
 #include <asm/cacheflush.h>
-#include <asm/uaccess.h>
-#include <asm/io.h>
-#include <mach/io.h>
+
 #include "isp.h"
 #include "ispmmu.h"
 #include "ispreg.h"

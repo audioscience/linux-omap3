@@ -171,6 +171,7 @@ static int __init omap_cpu_init(struct cpufreq_policy *policy)
 
 	if (policy->cpu != 0)
 		return -EINVAL;
+
 	policy->cur = policy->min = policy->max = omap_getspeed(0);
 	policy->governor = CPUFREQ_DEFAULT_GOVERNOR;
 
@@ -183,8 +184,9 @@ static int __init omap_cpu_init(struct cpufreq_policy *policy)
 	} else {
 		policy->cpuinfo.min_freq = clk_round_rate(mpu_clk, 0) / 1000;
 		policy->cpuinfo.max_freq = clk_round_rate(mpu_clk,
-							 VERY_HI_RATE) / 1000;
+							VERY_HI_RATE) / 1000;
 	}
+
 	policy->cpuinfo.transition_latency = 100000;
 #if defined(CONFIG_ARCH_OMAP3) && defined(CONFIG_OMAP3_PM)
 	/* Request for VDD1 OPP3 by default */

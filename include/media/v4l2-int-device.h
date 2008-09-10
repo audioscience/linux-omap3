@@ -112,11 +112,6 @@ enum v4l2_if_type {
 	 * on certain image sensors.
 	 */
 	V4L2_IF_TYPE_BT656,
-	/*
-	 * Compact Camera Port (CCP) 2. CCP 2 class 0 is also known as
-	 * Camera Serial Interface (CSI) 1.
-	 */
-	V4L2_IF_TYPE_CCP2,
 };
 
 enum v4l2_if_type_bt656_mode {
@@ -163,106 +158,10 @@ struct v4l2_if_type_bt656 {
 	u32 clock_curr;
 };
 
-enum v4l2_if_type_ccp2_mode {
-	V4L2_IF_TYPE_CCP2_MODE_SERIAL = 0,
-	V4L2_IF_TYPE_CCP2_MODE_PARALLEL
-};
-
-enum v4l2_if_type_ccp2_edge {
-	V4L2_IF_TYPE_CCP2_EDGE_RISING = 0,
-	V4L2_IF_TYPE_CCP2_EDGE_FALLING
-};
-
-enum v4l2_if_type_ccp2_signalling {
-	V4L2_IF_TYPE_CCP2_SIGNALLING_DATA_CLOCK = 0,
-	V4L2_IF_TYPE_CCP2_SIGNALLING_DATA_STROBE
-};
-
-struct v4l2_if_type_ccp2 {
-	/*
-	 * CCP 2 class:
-	 *
-	 * 0: CCP 2 class 0 or CSI 1
-	 * 1: CCP 2 class 1 or 2
-	 *
-	 * These restrictions apply to CCP 2 class 0 / CSI 1:
-	 *
-	 * - Data / strobe signaling may not be used.
-	 *
-	 * - CRC may not be used.
-	 *
-	 * - The only logical channel which can be used is 0.
-	 *
-	 * - RAW6 and RAW7 data types may not be used.
-	 *
-	 * - DPCM (de)compression may not be used.
-	 */
-	unsigned class:1;
-	/*
-	 * 0: don't use crc
-	 * 1: use crc
-	 */
-	unsigned crc:1;
-	/*
-	 * 0: serial mode
-	 * 1: parallel mode
-	 */
-	unsigned mode:1;
-	/*
-	 * 0: output changes on clock rising edge
-	 * 1: output changes on clock falling edge
-	 *
-	 * Sampling must be done on opposite edge.
-	 *
-	 * FIXME: Does this affect data / strobe signalling??
-	 */
-	unsigned edge:1;
-	/*
-	 * 0: data / clock signalling
-	 * 1: data / strobe signalling
-	 */
-	unsigned signalling:1;
-	/*
-	 * 0: strobe / clock signal not inverted
-	 * 1: strobe / clock signal inverted
-	 */
-	unsigned strobe_clock_inv:1;
-	/*
-	 * Vertical sync edge at beginning of image data.
-	 *
-	 * 0: rising
-	 * 1: falling
-	 */
-	unsigned vs_edge:1;
-	/* Logical channel number; 0--7. */
-	unsigned channel:3;
-	/* V4L2_PIX_FMT_... */
-	u32 format;
-	/* Number of empty scanlines in the beginning of the frame. */
-	unsigned data_start:14;
-	/*
-	 * Number of scanlines of real pixel data, i.e. you'll, in the
-	 * end, get this many scanlines to your image.
-	 */
-	unsigned data_size:14;
-	/* In Hz. */
-	u32 clock_min;
-	u32 clock_max;
-	/* Desired external clock rate. */
-	u32 clock_curr;
-};
-
-enum v4l2_if_soc_cap{
-	V4L2_IF_CAP_RAW,
-	V4L2_IF_CAP_SOC
-};
-
 struct v4l2_ifparm {
-	enum v4l2_if_soc_cap capability;
 	enum v4l2_if_type if_type;
 	union {
 		struct v4l2_if_type_bt656 bt656;
-		struct v4l2_if_type_ccp2 ccp2;
 	} u;
 };
 
@@ -306,6 +205,8 @@ enum v4l2_int_ioctl_num {
 	vidioc_int_g_ifparm_num,
 	/* Does the slave need to be reset after VIDIOC_DQBUF? */
 	vidioc_int_g_needs_reset_num,
+	vidioc_int_enum_framesizes_num,
+	vidioc_int_enum_frameintervals_num,
 
 	/*
 	 *
@@ -393,6 +294,8 @@ V4L2_INT_WRAPPER_1(s_power, enum v4l2_power, );
 V4L2_INT_WRAPPER_1(g_priv, void, *);
 V4L2_INT_WRAPPER_1(g_ifparm, struct v4l2_ifparm, *);
 V4L2_INT_WRAPPER_1(g_needs_reset, void, *);
+V4L2_INT_WRAPPER_1(enum_framesizes, struct v4l2_frmsizeenum, *);
+V4L2_INT_WRAPPER_1(enum_frameintervals, struct v4l2_frmivalenum, *);
 
 V4L2_INT_WRAPPER_0(reset);
 V4L2_INT_WRAPPER_0(init);

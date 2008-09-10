@@ -250,7 +250,7 @@ DSP_STATUS SYNC_SetEvent(struct SYNC_OBJECT *hEvent)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct SYNC_OBJECT *pEvent = (struct SYNC_OBJECT *)hEvent;
-	u32 flags;
+	unsigned long flags;
 
 	GT_1trace(SYNC_debugMask, GT_6CLASS, "SYNC_SetEvent: hEvent 0x%x\n",
 		  hEvent);

@@ -5,6 +5,10 @@
  *
  * Copyright (C) 2008 Texas Instruments.
  *
+ * Contributors:
+ *	Sergio Aguirre <saaguirre@ti.com>
+ *	Troy Laramy <t-laramy@ti.com>
+ *
  * This package is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
@@ -22,9 +26,9 @@
 #include <linux/delay.h>
 #include <linux/types.h>
 #include <linux/dma-mapping.h>
-#include <asm/io.h>
+#include <linux/io.h>
+#include <linux/uaccess.h>
 #include <asm/cacheflush.h>
-#include <asm/uaccess.h>
 
 #include "isp.h"
 #include "ispreg.h"
@@ -204,14 +208,13 @@ static int isp_hist_reset_mem(void)
 	int i;
 
 	omap_writel((omap_readl(ISPHIST_CNT)) | ISPHIST_CNT_CLR_EN,
-		    ISPHIST_CNT);
+								ISPHIST_CNT);
 
-	for (i = 0; i < HIST_MEM_SIZE; i++) {
+	for (i = 0; i < HIST_MEM_SIZE; i++)
 		omap_readl(ISPHIST_DATA);
-	}
 
 	omap_writel((omap_readl(ISPHIST_CNT)) & ~ISPHIST_CNT_CLR_EN,
-		    ISPHIST_CNT);
+								ISPHIST_CNT);
 
 	return 0;
 }

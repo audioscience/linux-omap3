@@ -5,6 +5,11 @@
  * It has the OMAP HW register definitions.
  *
  * Copyright (C) 2008 Texas Instruments.
+ * Copyright (C) 2008 Nokia.
+ *
+ * Contributors:
+ * 	Tuukka Toivonen <tuukka.o.toivonen@nokia.com>
+ *	Thara Gopinath <thara@ti.com>
  *
  * This package is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -158,7 +163,7 @@
 #define ISPSBL_REG_BASE			0x480BD200
 
 #define ISPMMU_REG_OFFSET		0x00001400
-#define ISPMMU_REG_BASE		0x480BD400
+#define ISPMMU_REG_BASE			0x480BD400
 
 /* ISP module register offset */
 
@@ -250,8 +255,8 @@
 #define ISP_CBUFF_SYSCONFIG		ISPCBUFF_REG(0x010)
 #define ISP_CBUFF_IRQENABLE		ISPCBUFF_REG(0x01C)
 
-#define ISP_CBUFF0_CTRL		ISPCBUFF_REG(0x020)
-#define ISP_CBUFF1_CTRL		(ISP_CBUFF0_CTRL + (0x004))
+#define ISP_CBUFF0_CTRL			ISPCBUFF_REG(0x020)
+#define ISP_CBUFF1_CTRL			(ISP_CBUFF0_CTRL + (0x004))
 
 #define ISP_CBUFF0_START		ISPCBUFF_REG(0x040)
 #define ISP_CBUFF1_START		(ISP_CBUFF0_START + (0x004))
@@ -409,7 +414,7 @@
 #define ISPRSZ_PCR			0x480BD004
 #define ISPRSZ_CNT			0x480BD008
 #define ISPRSZ_OUT_SIZE			0x480BD00C
-#define ISPRSZ_IN_START				0x480BD010
+#define ISPRSZ_IN_START			0x480BD010
 #define ISPRSZ_IN_SIZE			0x480BD014
 #define ISPRSZ_SDR_INADD		0x480BD018
 #define ISPRSZ_SDR_INOFF		0x480BD01C
@@ -500,7 +505,7 @@
 #define ISPPRV_PCR_SDRPORT		(1 << 20)
 #define ISPPRV_PCR_SCOMP_EN		(1 << 21)
 #define ISPPRV_PCR_SCOMP_SFT_SHIFT	(22)
-#define ISPPRV_PCR_SCOMP_SFT_MASK	~(7 << 22)
+#define ISPPRV_PCR_SCOMP_SFT_MASK	(~(7 << 22))
 #define ISPPRV_PCR_GAMMA_BYPASS		(1 << 26)
 #define ISPPRV_PCR_DCOREN		(1 << 27)
 #define ISPPRV_PCR_DCCOUP		(1 << 28)
@@ -624,12 +629,12 @@
 
 #define ISP_SYSCONFIG_AUTOIDLE			0
 #define ISP_SYSCONFIG_SOFTRESET			(1 << 1)
-#define ISP_SYSCONFIG_MIdleMode_SHIFT		12
-#define ISP_SYSCONFIG_MIdleMode_ForceStandBy	0x0
-#define ISP_SYSCONFIG_MIdleMode_NoStandBy	0x1
-#define ISP_SYSCONFIG_MIdleMode_SmartStandBy	0x2
+#define ISP_SYSCONFIG_MIDLEMODE_SHIFT		12
+#define ISP_SYSCONFIG_MIDLEMODE_FORCESTANDBY	0x0
+#define ISP_SYSCONFIG_MIDLEMODE_NOSTANBY	0x1
+#define ISP_SYSCONFIG_MIDLEMODE_SMARTSTANDBY	0x2
 
-#define ISP_SYSSTATUS_ResetDone			0
+#define ISP_SYSSTATUS_RESETDONE			0
 
 #define IRQ0ENABLE_CSIA_IRQ			1
 #define IRQ0ENABLE_CSIA_LC1_IRQ			(1 << 1)
@@ -689,7 +694,7 @@
 #define TCTRL_PSTRB_REPLAY_DELAY		0
 #define TCTRL_PSTRB_REPLAY_COUNTER_SHIFT	25
 
-#define ISPCTRL_PAR_SER_CLK_SEL_parallel	0x0
+#define ISPCTRL_PAR_SER_CLK_SEL_PARALLEL	0x0
 #define ISPCTRL_PAR_SER_CLK_SEL_CSIA		0x1
 #define ISPCTRL_PAR_SER_CLK_SEL_CSIB		0x2
 #define ISPCTRL_PAR_SER_CLK_SEL_MASK		0xFFFFFFFC
@@ -725,16 +730,16 @@
 #define ISPCTRL_SBL_RD_RAM_EN		(1 << 18)
 #define ISPCTRL_SBL_WR1_RAM_EN		(1 << 19)
 #define ISPCTRL_SBL_WR0_RAM_EN		(1 << 20)
-#define ISPCTRL_SBL_AutoIdle		(1 << 21)
+#define ISPCTRL_SBL_AUTOIDLE		(1 << 21)
 #define ISPCTRL_SBL_SHARED_RPORTB	(1 << 28)
 #define ISPCTRL_JPEG_FLUSH		(1 << 30)
 #define ISPCTRL_CCDC_FLUSH		(1 << 31)
 
-#define ISPSECURE_SecureMode		0
+#define ISPSECURE_SECUREMODE		0
 
-#define ISPTCTRL_CTRL_DIV_Low		0x0
-#define ISPTCTRL_CTRL_DIV_High		0x1
-#define ISPTCTRL_CTRL_DIV_Bypass	0x1F
+#define ISPTCTRL_CTRL_DIV_LOW		0x0
+#define ISPTCTRL_CTRL_DIV_HIGH		0x1
+#define ISPTCTRL_CTRL_DIV_BYPASS	0x1F
 
 #define ISPTCTRL_CTRL_DIVA_SHIFT	0
 #define ISPTCTRL_CTRL_DIVA_MASK		(0x1F << ISPTCTRL_CTRL_DIVA_SHIFT)
@@ -743,7 +748,7 @@
 #define ISPTCTRL_CTRL_DIVB_MASK		(0x1F << ISPTCTRL_CTRL_DIVB_SHIFT)
 
 #define ISPTCTRL_CTRL_DIVC_SHIFT	10
-#define ISPTCTRL_CTRL_DIVC_NoClock	(0x0 << 10)
+#define ISPTCTRL_CTRL_DIVC_NOCLOCK	(0x0 << 10)
 
 #define ISPTCTRL_CTRL_SHUTEN		(1 << 21)
 #define ISPTCTRL_CTRL_PSTRBEN		(1 << 22)
@@ -752,7 +757,7 @@
 #define ISPTCTRL_CTRL_STRBPSTRBPOL	(1 << 26)
 
 #define ISPTCTRL_CTRL_INSEL_SHIFT	27
-#define ISPTCTRL_CTRL_INSEL_Parallel	(0x0 << 27)
+#define ISPTCTRL_CTRL_INSEL_PARALLEL	(0x0 << 27)
 #define ISPTCTRL_CTRL_INSEL_CSIA	(0x1 << 27)
 #define ISPTCTRL_CTRL_INSEL_CSIB	(0x2 << 27)
 
@@ -1146,10 +1151,10 @@
 #define ISPRSZ_YENH_ALGO_MASK			0x30000
 
 #define ISPH3A_PCR_AEW_ALAW_EN_SHIFT		1
-#define ISPH3A_PCR_AF_MED_TH_SHIFT			3
-#define ISPH3A_PCR_AF_RGBPOS_SHIFT			11
+#define ISPH3A_PCR_AF_MED_TH_SHIFT		3
+#define ISPH3A_PCR_AF_RGBPOS_SHIFT		11
 #define ISPH3A_PCR_AEW_AVE2LMT_SHIFT		22
-#define ISPH3A_PCR_AEW_AVE2LMT_MASK			0xFFC00000
+#define ISPH3A_PCR_AEW_AVE2LMT_MASK		0xFFC00000
 
 #define ISPH3A_AEWWIN1_WINHC_SHIFT		0
 #define ISPH3A_AEWWIN1_WINHC_MASK		0x3F
@@ -1262,15 +1267,15 @@
 #define ISPMMU_MMUCNTL_TWL_EN			(1<<2)
 #define ISPMMU_MMUCNTL_EMUTLBUPDATE		(1<<3)
 #define ISPMMU_AUTOIDLE				0x1
-#define ISPMMU_SIdlemode_Forceidle		0
-#define ISPMMU_SIdlemode_Noidle			1
-#define ISPMMU_SIdlemode_Smartidle		2
-#define ISPMMU_SIdlemode_Shift			3
+#define ISPMMU_SIDLEMODE_FORCEIDLE		0
+#define ISPMMU_SIDLEMODE_NOIDLE			1
+#define ISPMMU_SIDLEMODE_SMARTIDLE		2
+#define ISPMMU_SIDLEMODE_SHIFT			3
 
 #define ISPCSI1_AUTOIDLE			0x1
-#define ISPCSI1_MIdleMode_Shift			12
-#define ISPCSI1_MIdleMode_ForceStandBy		0x0
-#define ISPCSI1_MIdleMode_NoStandBy		0x1
-#define ISPCSI1_MIdleMode_SmartStandBy		0x2
+#define ISPCSI1_MIDLEMODE_SHIFT			12
+#define ISPCSI1_MIDLEMODE_FORCESTANDBY		0x0
+#define ISPCSI1_MIDLEMODE_NOSTANDBY		0x1
+#define ISPCSI1_MIDLEMODE_SMARTSTANDBY		0x2
 
 #endif	/* __ISPREG_H__ */

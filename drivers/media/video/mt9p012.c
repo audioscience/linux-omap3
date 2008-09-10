@@ -3,8 +3,11 @@
  *
  * mt9p012 sensor driver
  *
- *
  * Copyright (C) 2008 Texas Instruments.
+ *
+ * Contributors:
+ * 	Sameer Venkatraman <sameerv@ti.com>
+ * 	Martinez Leonides
  *
  * Leverage OV9640.c
  *
@@ -52,10 +55,10 @@ static unsigned long xclk_current = MT9P012_XCLK_NOM_1;
 
 /* list of image formats supported by mt9p012 sensor */
 const static struct v4l2_fmtdesc mt9p012_formats[] = {
-  {
-    .description    = "Bayer10 (GrR/BGb)",
-    .pixelformat    = V4L2_PIX_FMT_SGRBG10,
-  }
+	{
+		.description    = "Bayer10 (GrR/BGb)",
+		.pixelformat    = V4L2_PIX_FMT_SGRBG10,
+	}
 };
 
 #define NUM_CAPTURE_FORMATS ARRAY_SIZE(mt9p012_formats)
@@ -92,6 +95,43 @@ static struct mt9p012_reg set_analog_gain[] = {
 	 /* updating */
 	{.length = MT9P012_8BIT, .reg = REG_GROUPED_PAR_HOLD, .val = 0x00},
 	{.length = MT9P012_TOK_TERM, .reg = 0, .val = 0},
+};
+
+/*
+ * Common MT9P012 register initialization for all image sizes, pixel formats,
+ * and frame rates
+ */
+const static struct mt9p012_reg mt9p012_common[] = {
+	{MT9P012_8BIT, REG_SOFTWARE_RESET, 0x01},
+	{MT9P012_TOK_DELAY, 0x00, 5}, /* Delay = 5ms, min 2400 xcks */
+	{MT9P012_16BIT, REG_RESET_REGISTER, 0x10C8},
+	{MT9P012_8BIT, REG_GROUPED_PAR_HOLD, 0x01}, /* hold */
+	{MT9P012_16BIT, REG_ANALOG_GAIN_GREENR, 0x0020},
+	{MT9P012_16BIT, REG_ANALOG_GAIN_RED, 0x0020},
+	{MT9P012_16BIT, REG_ANALOG_GAIN_BLUE, 0x0020},
+	{MT9P012_16BIT, REG_ANALOG_GAIN_GREENB, 0x0020},
+	{MT9P012_16BIT, REG_DIGITAL_GAIN_GREENR, 0x0100},
+	{MT9P012_16BIT, REG_DIGITAL_GAIN_RED, 0x0100},
+	{MT9P012_16BIT, REG_DIGITAL_GAIN_BLUE, 0x0100},
+	{MT9P012_16BIT, REG_DIGITAL_GAIN_GREENB, 0x0100},
+	/* Recommended values for image quality, sensor Rev 1 */
+	{MT9P012_16BIT, 0x3088, 0x6FFB},
+	{MT9P012_16BIT, 0x308E, 0x2020},
+	{MT9P012_16BIT, 0x309E, 0x4400},
+	{MT9P012_16BIT, 0x30D4, 0x9080},
+	{MT9P012_16BIT, 0x3126, 0x00FF},
+	{MT9P012_16BIT, 0x3154, 0x1482},
+	{MT9P012_16BIT, 0x3158, 0x97C7},
+	{MT9P012_16BIT, 0x315A, 0x97C6},
+	{MT9P012_16BIT, 0x3162, 0x074C},
+	{MT9P012_16BIT, 0x3164, 0x0756},
+	{MT9P012_16BIT, 0x3166, 0x0760},
+	{MT9P012_16BIT, 0x316E, 0x8488},
+	{MT9P012_16BIT, 0x3172, 0x0003},
+	{MT9P012_16BIT, 0x30EA, 0x3F06},
+	{MT9P012_8BIT, REG_GROUPED_PAR_HOLD, 0x00}, /* update all at once */
+	{MT9P012_TOK_TERM, 0, 0}
+
 };
 
 /*
@@ -403,18 +443,7 @@ static struct mt9p012_reg set_fps[2];
  * @min_pll: minimum pll multiplier
  * @max_pll: maximum pll multiplier
  */
-static struct mt9p012_pll_settings {
-	u16	vt_pix_clk_div;
-	u16	vt_sys_clk_div;
-	u16	pre_pll_div;
-
-	u16	fine_int_tm;
-	u16	frame_lines;
-	u16	line_len;
-
-	u16	min_pll;
-	u16	max_pll;
-} all_pll_settings[] = {
+static struct mt9p012_pll_settings all_pll_settings[] = {
 	/* PLL_5MP */
 	{.vt_pix_clk_div = 4, .vt_sys_clk_div = 1, .pre_pll_div = 5,
 	.fine_int_tm = 882, .frame_lines = 2056, .line_len = 5372,
@@ -505,14 +534,6 @@ static struct vcontrol {
 	}
 };
 
-int mt9p012sensor_set_exposure_time(u32 exp_time,
-			struct v4l2_int_device *s,
-			struct vcontrol *lvc);
-
-int mt9p012sensor_set_gain(u16 gain,
-			struct v4l2_int_device *s,
-			struct vcontrol *lvc);
-
 /**
  * find_vctrl - Finds the requested ID in the video control structure array
  * @id: ID of control to search the video control array for
@@ -585,7 +606,7 @@ mt9p012_read_reg(struct i2c_client *client, u16 data_length, u16 reg, u32 *val)
 				(data[1] << 16) + (data[0] << 24);
 		return 0;
 	}
-	printk(KERN_ERR "read from offset 0x%x error %d", reg, err);
+	dev_err(&client->dev, "read from offset 0x%x error %d", reg, err);
 	return err;
 }
 /**
@@ -639,9 +660,10 @@ again:
 	if (err >= 0)
 		return 0;
 
-	printk(KERN_ERR "wrote 0x%x to offset 0x%x error %d", val, reg, err);
+	dev_err(&client->dev, "wrote 0x%x to offset 0x%x error %d", val, reg,
+									err);
 	if (retry <= I2C_RETRY_COUNT) {
-		printk(KERN_ERR "retry ... %d", retry);
+		dev_dbg(&client->dev, "retry ... %d", retry);
 		retry++;
 		set_current_state(TASK_UNINTERRUPTIBLE);
 		schedule_timeout(msecs_to_jiffies(20));
@@ -949,7 +971,7 @@ static int mt9p012_configure(struct v4l2_int_device *s)
 	isize = mt9p012_find_isize(pix->width);
 
 	/* common register initialization */
-	err = mt9p012_write_regs(client, sensor->pdata->default_regs);
+	err = mt9p012_write_regs(client, mt9p012_common);
 	if (err)
 		return err;
 
@@ -1001,18 +1023,105 @@ mt9p012_detect(struct i2c_client *client)
 	if (mt9p012_read_reg(client, MT9P012_8BIT, REG_REVISION_NUMBER, &rev))
 		return -ENODEV;
 
-	printk(KERN_INFO "model id detected 0x%x mfr 0x%x\n", model_id, mfr_id);
+	dev_info(&client->dev, "model id detected 0x%x mfr 0x%x\n", model_id,
+								mfr_id);
 	if ((model_id != MT9P012_MOD_ID) || (mfr_id != MT9P012_MFR_ID)) {
 		/* We didn't read the values we expected, so
 		 * this must not be an MT9P012.
 		 */
-	printk(KERN_WARNING "model id mismatch 0x%x mfr 0x%x\n",
-		model_id, mfr_id);
+		dev_warn(&client->dev, "model id mismatch 0x%x mfr 0x%x\n",
+			model_id, mfr_id);
 
 		return -ENODEV;
 	}
 	return 0;
 
+}
+
+/**
+ * mt9p012sensor_set_exposure_time - sets exposure time per input value
+ * @exp_time: exposure time to be set on device
+ * @s: pointer to standard V4L2 device structure
+ * @lvc: pointer to V4L2 exposure entry in video_controls array
+ *
+ * If the requested exposure time is within the allowed limits, the HW
+ * is configured to use the new exposure time, and the video_controls
+ * array is updated with the new current value.
+ * The function returns 0 upon success.  Otherwise an error code is
+ * returned.
+ */
+int
+mt9p012sensor_set_exposure_time(u32 exp_time, struct v4l2_int_device *s,
+						struct vcontrol *lvc)
+{
+	int err;
+	struct mt9p012_sensor *sensor = s->priv;
+	struct i2c_client *client = sensor->i2c_client;
+	u32 coarse_int_time = 0;
+
+	if ((exp_time < min_exposure_time) ||
+			(exp_time > max_exposure_time)) {
+		dev_err(&client->dev, "Exposure time not within the "
+			"legal range.\n");
+		dev_err(&client->dev, "Min time %d us Max time %d us",
+			min_exposure_time, max_exposure_time);
+		return -EINVAL;
+	}
+	coarse_int_time =
+		((((exp_time / 10) * (pix_clk_freq / 1000)) / 1000)
+		   - (all_pll_settings[current_pll_video].fine_int_tm
+		      / 10))
+		   / (all_pll_settings[current_pll_video].line_len
+		      / 10);
+
+	dev_dbg(&client->dev, "coarse_int_time calculated = %d\n",
+						coarse_int_time);
+
+	set_exposure_time[COARSE_INT_TIME_INDEX].val = coarse_int_time;
+	err = mt9p012_write_regs(client, set_exposure_time);
+
+	if (err)
+		dev_err(&client->dev, "Error setting exposure time %d\n",
+									err);
+	else
+		lvc->current_value = exp_time;
+
+	return err;
+}
+
+/**
+ * mt9p012sensor_set_gain - sets sensor analog gain per input value
+ * @gain: analog gain value to be set on device
+ * @s: pointer to standard V4L2 device structure
+ * @lvc: pointer to V4L2 analog gain entry in video_controls array
+ *
+ * If the requested analog gain is within the allowed limits, the HW
+ * is configured to use the new gain value, and the video_controls
+ * array is updated with the new current value.
+ * The function returns 0 upon success.  Otherwise an error code is
+ * returned.
+ */
+int
+mt9p012sensor_set_gain(u16 gain, struct v4l2_int_device *s,
+					struct vcontrol *lvc)
+{
+	int err;
+	struct mt9p012_sensor *sensor = s->priv;
+	struct i2c_client *client = sensor->i2c_client;
+
+	if ((gain < MIN_GAIN) || (gain > MAX_GAIN)) {
+		dev_err(&client->dev, "Gain not within the legal range");
+		return -EINVAL;
+	}
+	set_analog_gain[GAIN_INDEX].val = gain;
+	err = mt9p012_write_regs(client, set_analog_gain);
+	if (err) {
+		dev_err(&client->dev, "Error setting gain.%d", err);
+		return err;
+	} else
+		lvc->current_value = gain;
+
+	return err;
 }
 
 /**
@@ -1337,7 +1446,7 @@ static int ioctl_s_power(struct v4l2_int_device *s, enum v4l2_power on)
 	rval = ioctl_g_ifparm(s, &p);
 	if (rval) {
 		dev_err(&c->dev, "Unable to get if params\n");
-		return rval;	
+		return rval;
 	}
 
 	if (((on == V4L2_POWER_OFF) || (on == V4L2_POWER_STANDBY))
@@ -1353,7 +1462,7 @@ static int ioctl_s_power(struct v4l2_int_device *s, enum v4l2_power on)
 
 	rval = sensor->pdata->power_set(on);
 	if (rval < 0) {
-		dev_err(&c->dev, "Unable to set the power state: " DRIVER_NAME 
+		dev_err(&c->dev, "Unable to set the power state: " DRIVER_NAME
 								" sensor\n");
 		isp_set_xclk(0, MT9P012_USE_XCLKA);
 		return rval;
@@ -1365,7 +1474,7 @@ static int ioctl_s_power(struct v4l2_int_device *s, enum v4l2_power on)
 	if ((on == V4L2_POWER_ON) && (sensor->state == SENSOR_NOT_DETECTED)) {
 		rval = mt9p012_detect(c);
 		if (rval < 0) {
-			dev_err(&c->dev, "Unable to detect " DRIVER_NAME 
+			dev_err(&c->dev, "Unable to detect " DRIVER_NAME
 								" sensor\n");
 			sensor->state = SENSOR_NOT_DETECTED;
 			return rval;
@@ -1425,96 +1534,86 @@ static int ioctl_dev_init(struct v4l2_int_device *s)
 
 	return 0;
 }
-
 /**
- * mt9p012sensor_set_exposure_time - sets exposure time per input value
- * @exp_time: exposure time to be set on device
+ * ioctl_enum_framesizes - V4L2 sensor if handler for vidioc_int_enum_framesizes
  * @s: pointer to standard V4L2 device structure
- * @lvc: pointer to V4L2 exposure entry in video_controls array
+ * @frms: pointer to standard V4L2 framesizes enumeration structure
  *
- * If the requested exposure time is within the allowed limits, the HW
- * is configured to use the new exposure time, and the video_controls
- * array is updated with the new current value.
- * The function returns 0 upon success.  Otherwise an error code is
- * returned.
- */
-int
-mt9p012sensor_set_exposure_time(u32 exp_time,
-					struct v4l2_int_device *s,
-					struct vcontrol *lvc)
+ * Returns possible framesizes depending on choosen pixel format
+ **/
+static int ioctl_enum_framesizes(struct v4l2_int_device *s,
+					struct v4l2_frmsizeenum *frms)
 {
-	int err;
-	struct mt9p012_sensor *sensor = s->priv;
-	struct i2c_client *client = sensor->i2c_client;
-	u32 coarse_int_time = 0;
+	int ifmt;
 
-	if ((exp_time < min_exposure_time) ||
-			(exp_time > max_exposure_time)) {
-		printk(KERN_ERR "Exposure time not within the "
-			"legal range.\n");
-		printk(KERN_ERR "Exposure time must be between %d us",
-				min_exposure_time);
-		printk(KERN_ERR " and %d us\n",
-				max_exposure_time);
-		return -EINVAL;
+	for (ifmt = 0; ifmt < NUM_CAPTURE_FORMATS; ifmt++) {
+		if (frms->pixel_format == mt9p012_formats[ifmt].pixelformat)
+			break;
 	}
-	coarse_int_time =
-		((((exp_time / 10) * (pix_clk_freq / 1000)) / 1000)
-		   - (all_pll_settings[current_pll_video].fine_int_tm
-		      / 10))
-		   / (all_pll_settings[current_pll_video].line_len
-		      / 10);
+	/* Is requested pixelformat not found on sensor? */
+	if (ifmt == NUM_CAPTURE_FORMATS)
+		return -EINVAL;
 
-	DPRINTK("coarse_int_time calculated = %d\n", coarse_int_time);
+	/* Do we already reached all discrete framesizes? */
+	if (frms->index >= 5)
+		return -EINVAL;
 
-	set_exposure_time[COARSE_INT_TIME_INDEX].val = coarse_int_time;
-	err = mt9p012_write_regs(client, set_exposure_time);
+	frms->type = V4L2_FRMSIZE_TYPE_DISCRETE;
+	frms->discrete.width = mt9p012_sizes[frms->index].width;
+	frms->discrete.height = mt9p012_sizes[frms->index].height;
 
-	if (err)
-		DPRINTK("Error setting exposure time...%d\n", err);
-	else
-		lvc->current_value = exp_time;
-
-	return err;
+	return 0;
 }
 
-/**
- * mt9p012sensor_set_gain - sets sensor analog gain per input value
- * @gain: analog gain value to be set on device
- * @s: pointer to standard V4L2 device structure
- * @lvc: pointer to V4L2 analog gain entry in video_controls array
- *
- * If the requested analog gain is within the allowed limits, the HW
- * is configured to use the new gain value, and the video_controls
- * array is updated with the new current value.
- * The function returns 0 upon success.  Otherwise an error code is
- * returned.
- */
-int
-mt9p012sensor_set_gain(u16 gain,
-					struct v4l2_int_device *s,
-					struct vcontrol *lvc)
+const struct v4l2_fract mt9p012_frameintervals[] = {
+	{  .numerator = 1, .denominator = 11 },
+	{  .numerator = 1, .denominator = 15 },
+	{  .numerator = 1, .denominator = 20 },
+	{  .numerator = 1, .denominator = 25 },
+	{  .numerator = 1, .denominator = 30 },
+};
+
+static int ioctl_enum_frameintervals(struct v4l2_int_device *s,
+					struct v4l2_frmivalenum *frmi)
 {
-	int err;
-	struct mt9p012_sensor *sensor = s->priv;
-	struct i2c_client *client = sensor->i2c_client;
+	int ifmt;
 
-	if ((gain < MIN_GAIN) || (gain > MAX_GAIN)) {
-		DPRINTK("Gain not within the legal range...");
-		return -EINVAL;
+	for (ifmt = 0; ifmt < NUM_CAPTURE_FORMATS; ifmt++) {
+		if (frmi->pixel_format == mt9p012_formats[ifmt].pixelformat)
+			break;
 	}
-	set_analog_gain[GAIN_INDEX].val = gain;
-	err = mt9p012_write_regs(client, set_analog_gain);
-	if (err) {
-		DPRINTK("Error setting gain...%d", err);
-		return err;
-	} else
-		lvc->current_value = gain;
+	/* Is requested pixelformat not found on sensor? */
+	if (ifmt == NUM_CAPTURE_FORMATS)
+		return -EINVAL;
 
-	return err;
+	/* Do we already reached all discrete framesizes? */
+
+	if ((frmi->width == mt9p012_sizes[4].width) &&
+				(frmi->height == mt9p012_sizes[4].height)) {
+		/* FIXME: The only frameinterval supported by 5MP capture is
+		 * 1/11 fps
+		 */
+		if (frmi->index != 0)
+			return -EINVAL;
+	} else {
+		if (frmi->index >= 5)
+			return -EINVAL;
+	}
+
+	frmi->type = V4L2_FRMSIZE_TYPE_DISCRETE;
+	frmi->discrete.numerator =
+				mt9p012_frameintervals[frmi->index].numerator;
+	frmi->discrete.denominator =
+				mt9p012_frameintervals[frmi->index].denominator;
+
+	return 0;
 }
 
 static struct v4l2_int_ioctl_desc mt9p012_ioctl_desc[] = {
+	{ .num = vidioc_int_enum_framesizes_num,
+	  .func = (v4l2_int_ioctl_func *)ioctl_enum_framesizes },
+	{ .num = vidioc_int_enum_frameintervals_num,
+	  .func = (v4l2_int_ioctl_func *)ioctl_enum_frameintervals },
 	{ .num = vidioc_int_dev_init_num,
 	  .func = (v4l2_int_ioctl_func *)ioctl_dev_init },
 	{ .num = vidioc_int_dev_exit_num,
@@ -1580,7 +1679,7 @@ mt9p012_probe(struct i2c_client *client, const struct i2c_device_id *id)
 
 	sensor->pdata = client->dev.platform_data;
 
-	if (!sensor->pdata || !sensor->pdata->default_regs) {
+	if (!sensor->pdata) {
 		dev_err(&client->dev, "no platform data?\n");
 		return -ENODEV;
 	}

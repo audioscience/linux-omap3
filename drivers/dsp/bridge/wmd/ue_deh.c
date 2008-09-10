@@ -383,7 +383,7 @@ void CDECL WMD_DEH_Notify(struct DEH_MGR *hDehMgr, u32 ulEventMask,
 	status = CFG_GetHostResources(
 			(struct CFG_DEVNODE *)DRV_GetFirstDevExtension(),
 			&resources);
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		DBG_Trace(DBG_LEVEL7,
 			 "**Failed to get Host Resources in MMU ISR **\n");
 

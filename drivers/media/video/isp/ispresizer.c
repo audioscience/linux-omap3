@@ -5,6 +5,10 @@
  *
  * Copyright (C)2008 Texas Instruments, Inc.
  *
+ * Contributors:
+ * 	Sameer Venkatraman <sameerv@ti.com>
+ * 	Mohit Jalori <mjalori@ti.com>
+ *
  * This package is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
@@ -12,15 +16,12 @@
  * THIS PACKAGE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
  * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
- *
- * Resizer module for ISP driver on OMAP3430. It implements
- * the Resizer module APIs defined in ispresizer.h.
  */
 
+#include <linux/io.h>
 #include <linux/errno.h>
 #include <linux/types.h>
 #include <linux/delay.h>
-#include <asm/io.h>
 #include <linux/module.h>
 #include <linux/semaphore.h>
 
@@ -110,7 +111,7 @@ static struct isp_res {
 	u32 cropheight;
 	enum ispresizer_input resinput;
 	struct isprsz_coef coeflist;
-	struct mutex ispres_mutex;
+	struct mutex ispres_mutex; /* For checking/modifying res_inuse */
 } ispres_obj;
 
 /* Structure for saving/restoring resizer module registers */
@@ -299,9 +300,7 @@ EXPORT_SYMBOL(ispresizer_config_datapath);
  *
  * Calculates the horizontal and vertical resize ratio, number of pixels to
  * be cropped in the resizer module and checks the validity of various
- * parameters. This function internally calls trysize_calculation, which does
- * the actual calculations and populates required members of isp_res struct
- * Formula used for calculation is:-
+ * parameters. Formula used for calculation is:-
  *
  * 8-phase 4-tap mode :-
  * inputwidth = (32 * sph + (ow - 1) * hrsz + 16) >> 8 + 7
@@ -332,16 +331,21 @@ int ispresizer_try_size(u32 *input_width, u32 *input_height, u32 *output_w,
 	u32 rsz, rsz_7, rsz_4;
 	u32 sph;
 	u32 input_w, input_h;
-	u32 output;
 	int max_in_otf, max_out_7tap;
 	input_w = *input_width;
 	input_h = *input_height;
 
-	input_w = input_w - 6;
-	input_h = input_h - 6;
+	input_w -= 6;
+	input_h -= 6;
 
 	if (input_h > MAX_IN_HEIGHT)
 		return -EINVAL;
+
+	if (*output_w < 16)
+		*output_w = 16;
+
+	if (*output_h < 2)
+		*output_h = 2;
 
 	if (is_sil_rev_equal_to(OMAP3430_REV_ES1_0)) {
 		max_in_otf = MAX_IN_WIDTH_ONTHEFLY_MODE;
@@ -359,79 +363,83 @@ int ispresizer_try_size(u32 *input_width, u32 *input_height, u32 *output_w,
 			return -EINVAL;
 	}
 
-	*output_h = *output_h & 0xFFFFFFFE;
-	output = *output_h;
+	*output_h &= 0xfffffffe;
 	sph = DEFAULTSTPHASE;
 
-	rsz_7 = ((input_h - 7) * 256) / (output - 1);
-	rsz_4 = ((input_h - 4) * 256) / (output - 1);
+	rsz_7 = ((input_h - 7) * 256) / (*output_h - 1);
+	rsz_4 = ((input_h - 4) * 256) / (*output_h - 1);
 
-	rsz = (input_h * 256) / output;
+	rsz = (input_h * 256) / *output_h;
 
 	if (rsz <= MID_RESIZE_VALUE) {
 		rsz = rsz_4;
 		if (rsz < MINIMUM_RESIZE_VALUE) {
 			rsz = MINIMUM_RESIZE_VALUE;
-			output = (((input_h - 4) * 256) / rsz) + 1;
-			printk(KERN_ERR "\t ISP_ERR: rsz was less than min -"
-						" new op_h is = %d\n", output);
+			*output_h = (((input_h - 4) * 256) / rsz) + 1;
+			printk(KERN_INFO "%s: using output_h %d instead\n",
+			       __func__, *output_h);
 		}
 	} else {
 		rsz = rsz_7;
-		if (*(output_w) > max_out_7tap)
-			*(output_w) = max_out_7tap;
+		if (*output_w > max_out_7tap)
+			*output_w = max_out_7tap;
 		if (rsz > MAXIMUM_RESIZE_VALUE) {
 			rsz = MAXIMUM_RESIZE_VALUE;
-			output = (((input_h - 7) * 256) / rsz) + 1;
-			printk("\t ISP_ERR: rsz was more than max - new op_h"
-							" is %d\n", output);
+			*output_h = (((input_h - 7) * 256) / rsz) + 1;
+			printk(KERN_INFO "%s: using output_h %d instead\n",
+			       __func__, *output_h);
 		}
 	}
 
 	if (rsz > MID_RESIZE_VALUE)
-		input_h = (((64 * sph) + ((output - 1) * rsz) + 32) / 256) + 7;
+		input_h =
+			(((64 * sph) + ((*output_h - 1) * rsz) + 32) / 256) + 7;
 	else
-		input_h = (((32 * sph) + ((output - 1) * rsz) + 16) / 256) + 4;
+		input_h =
+			(((32 * sph) + ((*output_h - 1) * rsz) + 16) / 256) + 4;
 
-	ispres_obj.outputheight = output;
+	ispres_obj.outputheight = *output_h;
 	ispres_obj.v_resz = rsz;
 	ispres_obj.inputheight = input_h;
 	ispres_obj.ipht_crop = DEFAULTSTPIXEL;
 	ispres_obj.v_startphase = sph;
 
-	*output_w = *output_w & 0xFFFFFFF0;
-	output = *output_w;
+	*output_w &= 0xfffffff0;
 	sph = DEFAULTSTPHASE;
 
-	rsz_7 = ((input_w - 7) * 256) / (output - 1);
-	rsz_4 = ((input_w - 4) * 256) / (output - 1);
+	rsz_7 = ((input_w - 7) * 256) / (*output_w - 1);
+	rsz_4 = ((input_w - 4) * 256) / (*output_w - 1);
 
-	rsz = (input_w * 256) / output;
+	rsz = (input_w * 256) / *output_w;
 	if (rsz > MID_RESIZE_VALUE) {
 		rsz = rsz_7;
 		if (rsz > MAXIMUM_RESIZE_VALUE) {
 			rsz = MAXIMUM_RESIZE_VALUE;
-			output = (((input_w - 7) * 256) / rsz) + 1;
-			printk("\t ISP_ERR: rsz was greater than max - new"
-						" op_w is %d\n", output);
+			*output_w = (((input_w - 7) * 256) / rsz) + 1;
+			*output_w = (*output_w + 0xf) & 0xfffffff0;
+			printk(KERN_INFO "%s: using output_w %d instead\n",
+			       __func__, *output_w);
 		}
 	} else {
 		rsz = rsz_4;
 		if (rsz < MINIMUM_RESIZE_VALUE) {
 			rsz = MINIMUM_RESIZE_VALUE;
-			output = (((input_w - 4) * 256) / rsz) + 1;
-			printk("\t ISP_ERR: rsz was less than min - new op_w"
-							" is %d\n", output);
+			*output_w = (((input_w - 4) * 256) / rsz) + 1;
+			*output_w = (*output_w + 0xf) & 0xfffffff0;
+			printk(KERN_INFO "%s: using output_w %d instead\n",
+			       __func__, *output_w);
 		}
 	}
 
 	/* Recalculate input based on TRM equations */
 	if (rsz > MID_RESIZE_VALUE)
-		input_w = (((64 * sph) + ((output - 1) * rsz) + 32) / 256) + 7;
+		input_w =
+			(((64 * sph) + ((*output_w - 1) * rsz) + 32) / 256) + 7;
 	else
-		input_w = (((32 * sph) + ((output - 1) * rsz) + 16) / 256) + 7;
+		input_w =
+			(((32 * sph) + ((*output_w - 1) * rsz) + 16) / 256) + 7;
 
-	ispres_obj.outputwidth = output;
+	ispres_obj.outputwidth = *output_w;
 	ispres_obj.h_resz = rsz;
 	ispres_obj.inputwidth = input_w;
 	ispres_obj.ipwd_crop = DEFAULTSTPIXEL;
@@ -617,7 +625,7 @@ EXPORT_SYMBOL(ispresizer_enable);
  **/
 int ispresizer_busy(void)
 {
-	return (omap_readl(ISPRSZ_PCR) & ISPPRV_PCR_BUSY);
+	return omap_readl(ISPRSZ_PCR) & ISPPRV_PCR_BUSY;
 }
 EXPORT_SYMBOL(ispresizer_busy);
 

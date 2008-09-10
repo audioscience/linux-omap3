@@ -699,7 +699,7 @@ static int twl4030backupbatt_voltage(void)
 
 	req.channels = (1 << 9);
 	req.method = TWL4030_MADC_SW1;
-/*	twl4030_madc_conversion(&req);*/
+//	twl4030_madc_conversion(&req);
 	temp = (u16)req.rbuf[9];
 
 	return  (temp * BK_VOLT_STEP_SIZE) / BK_VOLT_PSR_R;

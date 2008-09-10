@@ -5,6 +5,14 @@
  * ISP interface and IRQ related APIs are defined here.
  *
  * Copyright (C) 2008 Texas Instruments.
+ * Copyright (C) 2008 Nokia.
+ *
+ * Contributors:
+ * 	Sameer Venkatraman <sameerv@ti.com>
+ * 	Mohit Jalori <mjalori@ti.com>
+ * 	Sakari Ailus <sakari.ailus@nokia.com>
+ * 	Tuukka Toivonen <tuukka.o.toivonen@nokia.com>
+ *	Toni Leinonen <toni.leinonen@nokia.com>
  *
  * This package is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -23,15 +31,13 @@
 #include <linux/interrupt.h>
 #include <linux/clk.h>
 #include <asm/irq.h>
-#include <asm/bitops.h>
-#include <asm/scatterlist.h>
+#include <linux/bitops.h>
+#include <linux/scatterlist.h>
 #include <asm/mach-types.h>
 #include <mach/clock.h>
 #include <mach/io.h>
-#include <linux/mm.h>
 #include <linux/device.h>
 #include <linux/videodev2.h>
-#include <media/v4l2-int-device.h>
 
 #include "isp.h"
 #include "ispmmu.h"
@@ -145,9 +151,9 @@ static struct ispirq {
  * This structure is used to store the OMAP ISP Control Information.
  */
 static struct isp {
-	spinlock_t lock;
-	spinlock_t isp_temp_buf_lock;
-	struct mutex isp_mutex;
+	spinlock_t lock;	/* For handling registered ISP callbacks */
+	spinlock_t isp_temp_buf_lock;	/* For handling isp buffers state */
+	struct mutex isp_mutex;	/* For handling ref_count field */
 	u8 if_status;
 	u8 interfacetype;
 	int ref_count;
@@ -303,7 +309,7 @@ static int off_mode;
  * @sgdma_state: Pointer to structure with the SGDMA state for each videobuffer
  * @func_ptr: Callback function pointer for SG-DMA management
  **/
-int isp_set_sgdma_callback(struct isp_sgdma_state *sgdma_state,
+static int isp_set_sgdma_callback(struct isp_sgdma_state *sgdma_state,
 						isp_vbq_callback_ptr func_ptr)
 {
 	if ((ispmodule_obj.isp_pipeline & OMAP_ISP_RESIZER) &&
@@ -578,12 +584,12 @@ u32 isp_set_xclk(u32 xclk, u8 xclksel)
 	u32 currentxclk;
 
 	if (xclk >= CM_CAM_MCLK_HZ) {
-		divisor = ISPTCTRL_CTRL_DIV_Bypass;
+		divisor = ISPTCTRL_CTRL_DIV_BYPASS;
 		currentxclk = CM_CAM_MCLK_HZ;
 	} else if (xclk >= 2) {
 		divisor = CM_CAM_MCLK_HZ / xclk;
-		if (divisor >= ISPTCTRL_CTRL_DIV_Bypass)
-			divisor = ISPTCTRL_CTRL_DIV_Bypass - 1;
+		if (divisor >= ISPTCTRL_CTRL_DIV_BYPASS)
+			divisor = ISPTCTRL_CTRL_DIV_BYPASS - 1;
 		currentxclk = CM_CAM_MCLK_HZ / divisor;
 	} else {
 		divisor = xclk;
@@ -673,52 +679,52 @@ void isp_power_settings(struct isp_sysc isp_sysconfig)
 {
 	if (isp_sysconfig.idle_mode) {
 		omap_writel(ISP_SYSCONFIG_AUTOIDLE |
-				(ISP_SYSCONFIG_MIdleMode_SmartStandBy <<
-				ISP_SYSCONFIG_MIdleMode_SHIFT),
+				(ISP_SYSCONFIG_MIDLEMODE_SMARTSTANDBY <<
+				ISP_SYSCONFIG_MIDLEMODE_SHIFT),
 				ISP_SYSCONFIG);
 
-		omap_writel(ISPMMU_AUTOIDLE | (ISPMMU_SIdlemode_Smartidle <<
-						ISPMMU_SIdlemode_Shift),
+		omap_writel(ISPMMU_AUTOIDLE | (ISPMMU_SIDLEMODE_SMARTIDLE <<
+						ISPMMU_SIDLEMODE_SHIFT),
 						ISPMMU_SYSCONFIG);
 		if (is_sil_rev_equal_to(OMAP3430_REV_ES1_0)) {
 			omap_writel(ISPCSI1_AUTOIDLE |
-					(ISPCSI1_MIdleMode_SmartStandBy <<
-					ISPCSI1_MIdleMode_Shift),
+					(ISPCSI1_MIDLEMODE_SMARTSTANDBY <<
+					ISPCSI1_MIDLEMODE_SHIFT),
 					ISP_CSIA_SYSCONFIG);
 			omap_writel(ISPCSI1_AUTOIDLE |
-					(ISPCSI1_MIdleMode_SmartStandBy <<
-					ISPCSI1_MIdleMode_Shift),
+					(ISPCSI1_MIDLEMODE_SMARTSTANDBY <<
+					ISPCSI1_MIDLEMODE_SHIFT),
 					ISP_CSIB_SYSCONFIG);
 		}
-		omap_writel(ISPCTRL_SBL_AutoIdle, ISP_CTRL);
+		omap_writel(ISPCTRL_SBL_AUTOIDLE, ISP_CTRL);
 
 	} else {
 		omap_writel(ISP_SYSCONFIG_AUTOIDLE |
-				(ISP_SYSCONFIG_MIdleMode_ForceStandBy <<
-				ISP_SYSCONFIG_MIdleMode_SHIFT),
+				(ISP_SYSCONFIG_MIDLEMODE_FORCESTANDBY <<
+				ISP_SYSCONFIG_MIDLEMODE_SHIFT),
 				ISP_SYSCONFIG);
 
 		omap_writel(ISPMMU_AUTOIDLE |
-			(ISPMMU_SIdlemode_Noidle << ISPMMU_SIdlemode_Shift),
+			(ISPMMU_SIDLEMODE_NOIDLE << ISPMMU_SIDLEMODE_SHIFT),
 							ISPMMU_SYSCONFIG);
 		if (is_sil_rev_equal_to(OMAP3430_REV_ES1_0)) {
 			omap_writel(ISPCSI1_AUTOIDLE |
-					(ISPCSI1_MIdleMode_ForceStandBy <<
-					ISPCSI1_MIdleMode_Shift),
+					(ISPCSI1_MIDLEMODE_FORCESTANDBY <<
+					ISPCSI1_MIDLEMODE_SHIFT),
 					ISP_CSIA_SYSCONFIG);
 
 			omap_writel(ISPCSI1_AUTOIDLE |
-					(ISPCSI1_MIdleMode_ForceStandBy <<
-					ISPCSI1_MIdleMode_Shift),
+					(ISPCSI1_MIDLEMODE_FORCESTANDBY <<
+					ISPCSI1_MIDLEMODE_SHIFT),
 					ISP_CSIB_SYSCONFIG);
 		}
 
-		omap_writel(ISPCTRL_SBL_AutoIdle, ISP_CTRL);
+		omap_writel(ISPCTRL_SBL_AUTOIDLE, ISP_CTRL);
 	}
 }
 EXPORT_SYMBOL(isp_power_settings);
 
-#define BIT_SET(var,shift,mask,val)		\
+#define BIT_SET(var, shift, mask, val)		\
 	do {					\
 		var = (var & ~(mask << shift))	\
 			| (val << shift);	\
@@ -745,22 +751,24 @@ static int isp_init_csi(struct isp_interface_config *config)
 	omap_writel(omap_readl(ISPCSI1_SYSCONFIG) | BIT(1), ISPCSI1_SYSCONFIG);
 	while (!(omap_readl(ISPCSI1_SYSSTATUS) & BIT(0))) {
 		udelay(10);
-		if(i++ > 10) break;
+		if (i++ > 10)
+			break;
 	}
 	if (!(omap_readl(ISPCSI1_SYSSTATUS) & BIT(0))) {
 		printk(KERN_WARNING
-		       "omap3_isp: timeout waiting for csi reset\n");
+			"omap3_isp: timeout waiting for csi reset\n");
 	}
 
 	/* CONTROL_CSIRXFE */
 	omap_writel(
-		(config->u.csi.signalling<<10) 	/* CSIb receiver data/clock or data/strobe mode */
-		| BIT(12)		/* Enable differential transceiver */
-		| BIT(13)		/* Disable reset */
+		/* CSIb receiver data/clock or data/strobe mode */
+		(config->u.csi.signalling << 10)
+		| BIT(12)	/* Enable differential transceiver */
+		| BIT(13)	/* Disable reset */
 #ifdef TERM_RESISTOR
-		| BIT(8)		/* Enable internal CSIb resistor (no effect) */
+		| BIT(8)	/* Enable internal CSIb resistor (no effect) */
 #endif
-/*		| BIT(7) */		/* Strobe/clock inversion (no effect) */
+/*		| BIT(7) */	/* Strobe/clock inversion (no effect) */
 	, CONTROL_CSIRXFE);
 
 #ifdef TERM_RESISTOR
@@ -773,21 +781,24 @@ static int isp_init_csi(struct isp_interface_config *config)
 
 	/* ISPCSI1_CTRL */
 	val = omap_readl(ISPCSI1_CTRL);
-	val &= ~BIT(11);		/* Enable VP only off -> extract embedded data to interconnect */
+	val &= ~BIT(11);	/* Enable VP only off ->
+				extract embedded data to interconnect */
 	BIT_SET(val, 8, 0x3, config->u.csi.vpclk);	/* Video port clock */
-/*	val |= BIT(3);	*/		/* Wait for FEC before disabling interface */
-	val |= BIT(2);			/* I/O cell output is parallel (no effect, but errata says should be enabled for class1/2) */
-	val |= BIT(12);			/* VP clock polarity to falling edge (needed or bad picture!) */
-
+/*	val |= BIT(3);	*/	/* Wait for FEC before disabling interface */
+	val |= BIT(2);		/* I/O cell output is parallel
+				(no effect, but errata says should be enabled
+				for class 1/2) */
+	val |= BIT(12);		/* VP clock polarity to falling edge
+				(needed or bad picture!) */
 
 	/* Data/strobe physical layer */
 	BIT_SET(val, 1, 1, config->u.csi.signalling);
 	BIT_SET(val, 10, 1, config->u.csi.strobe_clock_inv);
-        val |= BIT(4);                  /* Magic bit to enable CSI1 and strobe mode */
+	val |= BIT(4);		/* Magic bit to enable CSI1 and strobe mode */
 	omap_writel(val, ISPCSI1_CTRL);
 
 	/* ISPCSI1_LCx_CTRL logical channel #0 */
-	reg = ISPCSI1_LCx_CTRL(0);			/* reg = ISPCSI1_CTRL1; */
+	reg = ISPCSI1_LCx_CTRL(0);	/* reg = ISPCSI1_CTRL1; */
 	val = omap_readl(reg);
 	/* Format = RAW10+VP or RAW8+DPCM10+VP*/
 	BIT_SET(val, 3, 0x1f, format);
@@ -797,13 +808,13 @@ static int isp_init_csi(struct isp_interface_config *config)
 	omap_writel(val, reg);
 
 	/* ISPCSI1_DAT_START for logical channel #0 */
-	reg = ISPCSI1_LCx_DAT_START(0);			/* reg = ISPCSI1_DAT_START; */
+	reg = ISPCSI1_LCx_DAT_START(0);		/* reg = ISPCSI1_DAT_START; */
 	val = omap_readl(reg);
 	BIT_SET(val, 16, 0xfff, config->u.csi.data_start);
 	omap_writel(val, reg);
 
 	/* ISPCSI1_DAT_SIZE for logical channel #0 */
-	reg = ISPCSI1_LCx_DAT_SIZE(0);			/* reg = ISPCSI1_DAT_SIZE; */
+	reg = ISPCSI1_LCx_DAT_SIZE(0);		/* reg = ISPCSI1_DAT_SIZE; */
 	val = omap_readl(reg);
 	BIT_SET(val, 16, 0xfff, config->u.csi.data_size);
 	omap_writel(val, reg);
@@ -828,7 +839,7 @@ static int isp_init_csi(struct isp_interface_config *config)
 /**
  * isp_configure_interface - Configures ISP Control I/F related parameters.
  * @config: Pointer to structure containing the desired configuration for the
- *          ISP.
+ * 	ISP.
  *
  * Configures ISP control register (ISP_CTRL) with the values specified inside
  * the config structure. Controls:
@@ -851,10 +862,12 @@ int isp_configure_interface(struct isp_interface_config *config)
 	ispctrl_val &= (ISPCTRL_PAR_SER_CLK_SEL_MASK);
 	switch (config->ccdc_par_ser) {
 	case ISP_PARLL:
-		ispctrl_val |= ISPCTRL_PAR_SER_CLK_SEL_parallel;
-		ispctrl_val |= (config->u.par.par_clk_pol << ISPCTRL_PAR_CLK_POL_SHIFT);
+		ispctrl_val |= ISPCTRL_PAR_SER_CLK_SEL_PARALLEL;
+		ispctrl_val |= (config->u.par.par_clk_pol
+						<< ISPCTRL_PAR_CLK_POL_SHIFT);
 		ispctrl_val &= ~ISPCTRL_PAR_BRIDGE_BENDIAN;
-		ispctrl_val |= (config->u.par.par_bridge << ISPCTRL_PAR_BRIDGE_SHIFT);
+		ispctrl_val |= (config->u.par.par_bridge
+						<< ISPCTRL_PAR_BRIDGE_SHIFT);
 		break;
 	case ISP_CSIB:
 		ispctrl_val |= ISPCTRL_PAR_SER_CLK_SEL_CSIB;
@@ -1025,7 +1038,7 @@ static irqreturn_t omap34xx_isp_isr(int irq, void *ispirq_disp)
 		u32 ispcsi1_irqstatus;
 
 		ispcsi1_irqstatus = omap_readl(ISPCSI1_LC01_IRQSTATUS);
-		printk("%x\n", ispcsi1_irqstatus);
+		DPRINTK_ISPCTRL("%x\n", ispcsi1_irqstatus);
 	}
 
 out:
@@ -1062,6 +1075,7 @@ void isp_set_pipeline(int soc_type)
 
 	return;
 }
+EXPORT_SYMBOL(isp_open);
 
 /**
  * omapisp_unset_callback - Unsets all the callbacks associated with ISP module
@@ -1085,6 +1099,7 @@ void omapisp_unset_callback()
 	}
 	omap_writel(omap_readl(ISP_IRQ0STATUS) | ISP_INT_CLR, ISP_IRQ0STATUS);
 }
+EXPORT_SYMBOL(isp_close);
 
 /**
  * isp_start - Starts ISP submodule
@@ -1165,14 +1180,10 @@ void isp_set_buf(struct isp_sgdma_state *sgdma_state)
 	if ((ispmodule_obj.isp_pipeline & OMAP_ISP_RESIZER) &&
 						is_ispresizer_enabled())
 		ispresizer_set_outaddr(sgdma_state->isp_addr);
-	else
-
-	if ((ispmodule_obj.isp_pipeline & OMAP_ISP_PREVIEW) &&
+	else if ((ispmodule_obj.isp_pipeline & OMAP_ISP_PREVIEW) &&
 						is_isppreview_enabled())
 		isppreview_set_outaddr(sgdma_state->isp_addr);
-	else
-
-	if (ispmodule_obj.isp_pipeline & OMAP_ISP_CCDC)
+	else if (ispmodule_obj.isp_pipeline & OMAP_ISP_CCDC)
 		ispccdc_set_outaddr(sgdma_state->isp_addr);
 
 }
@@ -1376,7 +1387,7 @@ void isp_sgdma_process(struct isp_sgdma *sgdma, int irq, int *dma_notify,
 	unsigned long flags;
 	spin_lock_irqsave(&sgdma->lock, flags);
 
-	if ((NUM_SG_DMA - sgdma->free_sgdma) > 0) {
+	if (NUM_SG_DMA > sgdma->free_sgdma) {
 		sgdma_state = sgdma->sg_state +
 			(sgdma->next_sgdma + sgdma->free_sgdma) % NUM_SG_DMA;
 		if (!irq) {
@@ -2026,13 +2037,15 @@ int isp_get(void)
 	if (isp_obj.ref_count == 0) {
 		isp_obj.cam_ick = clk_get(&camera_dev, "cam_ick");
 		if (IS_ERR(isp_obj.cam_ick)) {
-			DPRINTK_ISPCTRL("ISP_ERR: clk_get for cam_ick failed\n");
+			DPRINTK_ISPCTRL("ISP_ERR: clk_get for "
+							"cam_ick failed\n");
 			ret_err = PTR_ERR(isp_obj.cam_ick);
 			goto out_clk_get_ick;
 		}
 		isp_obj.cam_mclk = clk_get(&camera_dev, "cam_mclk");
 		if (IS_ERR(isp_obj.cam_mclk)) {
-			DPRINTK_ISPCTRL("ISP_ERR: clk_get for cam_mclk failed\n");
+			DPRINTK_ISPCTRL("ISP_ERR: clk_get for "
+							"cam_mclk failed\n");
 			ret_err = PTR_ERR(isp_obj.cam_mclk);
 			goto out_clk_get_mclk;
 		}
@@ -2123,14 +2136,6 @@ void isp_restore_context(struct isp_reg *reg_list)
 }
 EXPORT_SYMBOL(isp_restore_context);
 
-int __init isp_ccdc_init(void);
-int __init isp_hist_init(void);
-int __init isph3a_aewb_init(void);
-int __init ispmmu_init(void);
-int __init isp_preview_init(void);
-int __init isp_resizer_init(void);
-int __init isp_af_init(void);
-
 /**
  * isp_init - ISP module initialization.
  **/
@@ -2161,15 +2166,6 @@ static int __init isp_init(void)
 	return 0;
 }
 EXPORT_SYMBOL(isp_sgdma_init);
-
-void __exit isp_ccdc_cleanup(void);
-void __exit isp_hist_cleanup(void);
-void __exit isph3a_aewb_cleanup(void);
-void __exit ispmmu_cleanup(void);
-void __exit isp_preview_cleanup(void);
-void __exit isp_hist_cleanup(void);
-void __exit isp_resizer_cleanup(void);
-void __exit isp_af_exit(void);
 
 /**
  * isp_cleanup - ISP module cleanup.
@@ -2203,8 +2199,8 @@ void isp_print_status(void)
 						omap_readl(CM_AUTOIDLE_CAM));
 	DPRINTK_ISPCTRL("###CM_CLKEN_PLL[18:16] should be 0x7, = 0x%x\n",
 						omap_readl(CM_CLKEN_PLL));
-	DPRINTK_ISPCTRL("###CM_CLKSEL2_PLL[18:8] should be 0x2D, [6:0] should \
-				be 1 = 0x%x\n", omap_readl(CM_CLKSEL2_PLL));
+	DPRINTK_ISPCTRL("###CM_CLKSEL2_PLL[18:8] should be 0x2D, [6:0] should "
+				"be 1 = 0x%x\n", omap_readl(CM_CLKSEL2_PLL));
 	DPRINTK_ISPCTRL("###CTRL_PADCONF_CAM_HS=0x%x\n",
 					omap_readl(CTRL_PADCONF_CAM_HS));
 	DPRINTK_ISPCTRL("###CTRL_PADCONF_CAM_XCLKA=0x%x\n",

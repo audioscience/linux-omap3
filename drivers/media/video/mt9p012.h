@@ -1,9 +1,12 @@
 /*
  * drivers/media/video/mt9p012.h
  *
- * Register definitions for the MT9P012 CameraChip.
+ * Register definitions for the MT9P012 camera sensor.
  *
- * Author: Sameer Venkatraman, Mohit Jalori (ti.com)
+ * Author:
+ * 	Sameer Venkatraman <sameerv@ti.com>
+ * 	Martinez Leonides
+ *
  *
  * Copyright (C) 2008 Texas Instruments.
  *
@@ -14,14 +17,7 @@
 
 #ifndef MT9P012_H
 #define MT9P012_H
-#include "isp/isppreview.h"
 
-#ifdef MT9P012_DEBUG
-#define DPRINTK(format,...)\
-	printk(KERN_ERR MOD_NAME format "\n", ## __VA_ARGS__)
-#else
-#define DPRINTK(format, ...)
-#endif
 
 #define MT9P012_I2C_ADDR		0x10
 
@@ -66,22 +62,22 @@
 #define REG_MANUFACTURER_ID		0x0003
 
 #define REG_MODE_SELECT			0x0100
-#define REG_IMAGE_ORIENTATION	0x0101
+#define REG_IMAGE_ORIENTATION		0x0101
 #define REG_SOFTWARE_RESET		0x0103
-#define REG_GROUPED_PAR_HOLD	0x0104
+#define REG_GROUPED_PAR_HOLD		0x0104
 
 #define REG_FINE_INT_TIME		0x0200
 #define REG_COARSE_INT_TIME		0x0202
 
-#define REG_ANALOG_GAIN_GLOBAL	0x0204
-#define REG_ANALOG_GAIN_GREENR	0x0206
+#define REG_ANALOG_GAIN_GLOBAL		0x0204
+#define REG_ANALOG_GAIN_GREENR		0x0206
 #define REG_ANALOG_GAIN_RED		0x0208
-#define REG_ANALOG_GAIN_BLUE	0x020A
-#define REG_ANALOG_GAIN_GREENB	0x020C
-#define REG_DIGITAL_GAIN_GREENR	0x020E
-#define REG_DIGITAL_GAIN_RED	0x0210
-#define REG_DIGITAL_GAIN_BLUE	0x0212
-#define REG_DIGITAL_GAIN_GREENB	0x0214
+#define REG_ANALOG_GAIN_BLUE		0x020A
+#define REG_ANALOG_GAIN_GREENB		0x020C
+#define REG_DIGITAL_GAIN_GREENR		0x020E
+#define REG_DIGITAL_GAIN_RED		0x0210
+#define REG_DIGITAL_GAIN_BLUE		0x0212
+#define REG_DIGITAL_GAIN_GREENB		0x0214
 
 #define REG_VT_PIX_CLK_DIV		0x0300
 #define REG_VT_SYS_CLK_DIV		0x0302
@@ -103,8 +99,8 @@
 #define REG_Y_ODD_INC			0x0386
 
 #define REG_SCALING_MODE		0x0400
-#define REG_SCALE_M				0x0404
-#define REG_SCALE_N				0x0406
+#define REG_SCALE_M			0x0404
+#define REG_SCALE_N			0x0406
 
 #define REG_ROW_SPEED			0x3016
 #define REG_RESET_REGISTER		0x301A
@@ -114,11 +110,11 @@
 #define REG_DATAPATH_STATUS		0x306A
 #define REG_DATAPATH_SELECT		0x306E
 
-#define REG_RESERVED_MFR_3064	0x3064
+#define REG_RESERVED_MFR_3064		0x3064
 #define REG_TEST_PATTERN		0x3070
 
 
-#define MT9P012_GAIN		0x00
+#define MT9P012_GAIN			0x00
 
 /*
  * The nominal xclk input frequency of the MT9P012 is 12MHz, maximum
@@ -129,8 +125,8 @@
 #define MT9P012_XCLK_NOM_1 12000000
 #define MT9P012_XCLK_NOM_2 24000000
 
-#define MT9P012_USE_XCLKA  0
-#define MT9P012_USE_XCLKB  1
+#define MT9P012_USE_XCLKA  	0
+#define MT9P012_USE_XCLKB  	1
 
 
 /* FPS Capabilities */
@@ -138,7 +134,7 @@
 #define MT9P012_DEF_FPS		15
 #define MT9P012_MAX_FPS		30
 
-#define MT9P012_I2C_DELAY   3
+#define MT9P012_I2C_DELAY   	3
 #define I2C_RETRY_COUNT		5
 
 /* Still capture 5 MP */
@@ -150,11 +146,11 @@
 
 
 /* Video mode, for D1 NTSC, D1 PAL */
-#define VIDEO_WIDTH_2X_BINN	    1296
+#define VIDEO_WIDTH_2X_BINN	1296
 #define VIDEO_HEIGHT_2X_BINN	972
 
 /* Sensor Video mode size for VGA, CIF, QVGA in 4x binning mode */
-#define VIDEO_WIDTH_4X_BINN		648
+#define VIDEO_WIDTH_4X_BINN	648
 #define VIDEO_HEIGHT_4X_BINN	486
 /* To improve image quality in VGA */
 #define CIF_PIXELS		(352 * 288)
@@ -170,24 +166,24 @@
 #define COARSE_INT_TIME_216_30FPS	1350
 #define COARSE_INT_TIME_648_30FPS	1350
 #define COARSE_INT_TIME_1296		1000
-#define COARSE_INT_TIME_3MP		    1700
-#define COARSE_INT_TIME_5MP		    1700
-#define COARSE_INT_TIME_INDEX	    1
-#define TST_PAT 0x0
+#define COARSE_INT_TIME_3MP		1700
+#define COARSE_INT_TIME_5MP		1700
+#define COARSE_INT_TIME_INDEX	    	1
+#define TST_PAT 			0x0
 
 /* Analog gain values */
 #define MIN_GAIN	0x08
 #define MAX_GAIN	0x7F
 #define DEF_GAIN	0x43
-#define GAIN_STEP   0x1
+#define GAIN_STEP   	0x1
 
 #define GAIN_INDEX	1
 
 /* Exposure time values */
 #define DEF_MIN_EXPOSURE	0x08
 #define DEF_MAX_EXPOSURE	0x7F
-#define DEF_EXPOSURE	    0x43
-#define EXPOSURE_STEP       1
+#define DEF_EXPOSURE	    	0x43
+#define EXPOSURE_STEP       	1
 
 #define SENSOR_DETECTED		1
 #define SENSOR_NOT_DETECTED	0
@@ -246,6 +242,30 @@ struct mt9p012_platform_data {
 	const struct mt9p012_reg *default_regs;
 	int (*ifparm)(struct v4l2_ifparm *p);
 	int (*priv_data_set)(void *);
+};
+
+/**
+ * struct mt9p012_pll_settings - struct for storage of sensor pll values
+ * @vt_pix_clk_div: vertical pixel clock divider
+ * @vt_sys_clk_div: veritcal system clock divider
+ * @pre_pll_div: pre pll divider
+ * @fine_int_tm: fine resolution interval time
+ * @frame_lines: number of lines in frame
+ * @line_len: number of pixels in line
+ * @min_pll: minimum pll multiplier
+ * @max_pll: maximum pll multiplier
+ */
+struct mt9p012_pll_settings {
+	u16	vt_pix_clk_div;
+	u16	vt_sys_clk_div;
+	u16	pre_pll_div;
+
+	u16	fine_int_tm;
+	u16	frame_lines;
+	u16	line_len;
+
+	u16	min_pll;
+	u16	max_pll;
 };
 
 /*

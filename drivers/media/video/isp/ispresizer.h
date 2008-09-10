@@ -1,9 +1,13 @@
 /*
  * drivers/media/video/isp/ispresizer.h
  *
- * Driver include file for Resizer module in TI's OMAP3430 Camera ISP
+ * Driver header file for Resizer module in TI's OMAP3430 Camera ISP
  *
  * Copyright (C) 2008 Texas Instruments, Inc.
+ *
+ * Contributors:
+ * 	Sameer Venkatraman <sameerv@ti.com>
+ * 	Mohit Jalori <mjalori@ti.com>
  *
  * This package is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -70,13 +74,13 @@ enum ispresizer_input {
 /**
  * struct isprsz_coef - Structure for resizer filter coeffcients.
  * @h_filter_coef_4tap: Horizontal filter coefficients for 8-phase/4-tap
- *                      mode (.5x-4x)
+ *			mode (.5x-4x)
  * @v_filter_coef_4tap: Vertical filter coefficients for 8-phase/4-tap
- *                      mode (.5x-4x)
+ *			mode (.5x-4x)
  * @h_filter_coef_7tap: Horizontal filter coefficients for 4-phase/7-tap
- *                      mode (.25x-.5x)
+ *			mode (.25x-.5x)
  * @v_filter_coef_7tap: Vertical filter coefficients for 4-phase/7-tap
- *                      mode (.25x-.5x)
+ *			mode (.25x-.5x)
  */
 struct isprsz_coef {
 	u16 h_filter_coef_4tap[32];
@@ -146,4 +150,4 @@ void ispresizer_restore_context(void);
 
 void ispresizer_print_status(void);
 
-#endif   /* OMAP_ISP_RESIZER_H */
+#endif		/* OMAP_ISP_RESIZER_H */

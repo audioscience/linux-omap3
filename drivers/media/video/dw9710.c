@@ -5,14 +5,14 @@
  *
  * Copyright (C) 2008 Texas Instruments.
  *
- * This package is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
+ * Contributors:
+ * 	Troy Laramy <t-laramy@ti.com>
+ * 	Mohit Jalori <mjalori@ti.com>
  *
- * THIS PACKAGE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
- * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
- * Copyright (C) 2008 Texas Instruments.
+ * This file is licensed under the terms of the GNU General Public License
+ * version 2. This program is licensed "as is" without any warranty of any
+ * kind, whether express or implied.
+ *
  */
 
 #include <linux/mutex.h>

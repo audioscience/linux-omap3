@@ -1,7 +1,7 @@
 /*
- * drivers/media/video/isp/redgamma_table.h
+ * drivers/media/video/isp/bluegamma_table.h
  *
- * Gamma Table values for Red for TI's OMAP3430 Camera ISP
+ * Gamma Table values for BLUE for TI's OMAP3430 Camera ISP
  *
  * Copyright (C) 2008 Texas Instruments, Inc.
  *

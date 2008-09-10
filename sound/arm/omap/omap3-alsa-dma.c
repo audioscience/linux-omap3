@@ -20,8 +20,8 @@
  */
 
 #include <linux/io.h>
-#include <asm/arch/dma.h>
-#include <asm/arch/mcbsp.h>
+#include <mach/dma.h>
+#include <mach/mcbsp.h>
 
 #include "omap-alsa-dma.h"
 #include "omap-alsa-twl4030.h"

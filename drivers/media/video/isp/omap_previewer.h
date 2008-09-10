@@ -1,9 +1,13 @@
 /*
  * drivers/media/video/isp/omap_previewer.h
  *
- * Include file for Preview module wrapper in TI's OMAP3430 ISP
+ * Header file for Preview module wrapper in TI's OMAP3430 ISP
  *
  * Copyright (C) 2008 Texas Instruments, Inc.
+ *
+ * Contributors:
+ * 	Leonides Martinez <leonides.martinez@ti.com>
+ * 	Sergio Aguirre <saaguirre@ti.com>
  *
  * This package is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -34,7 +38,7 @@
 							struct prev_cropsize)
 #define PREV_QUEUEBUF			_IOWR(PREV_IOC_BASE, 8,\
 							struct v4l2_buffer)
-#define PREV_IOC_MAXNR    8
+#define PREV_IOC_MAXNR			8
 
 #define LUMA_TABLE_SIZE			128
 #define GAMMA_TABLE_SIZE		1024
@@ -138,8 +142,8 @@ struct prev_device {
 	struct prev_params *params;
 	unsigned char opened;
 	struct completion wfc;
-	struct mutex prevwrap_mutex;
-	spinlock_t vbq_lock;
+	struct mutex prevwrap_mutex; /* For generic internal use */
+	spinlock_t vbq_lock;	/* For videobuffer queue handling */
 	struct videobuf_queue_ops vbq_ops;
 	dma_addr_t isp_addr_read;
 };

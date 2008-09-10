@@ -42,12 +42,21 @@
 #include <mach/dma.h>
 #include <mach/gpmc.h>
 #include <linux/i2c/twl4030-rtc.h>
+#include "ti-compat.h"
+
+#ifdef CONFIG_VIDEO_OMAP3
 #include <media/v4l2-int-device.h>
-#include <../drivers/media/video/mt9p012.h>
-#include <../drivers/media/video/dw9710.h>
 #include <../drivers/media/video/omap34xxcam.h>
 #include <../drivers/media/video/isp/ispreg.h>
-#include "ti-compat.h"
+#if defined(CONFIG_VIDEO_MT9P012) || defined(CONFIG_VIDEO_MT9P012_MODULE)
+#include <../drivers/media/video/mt9p012.h>
+#endif
+#endif
+
+#ifdef CONFIG_VIDEO_DW9710
+#include <../drivers/media/video/dw9710.h>
+#endif
+
 #ifdef CONFIG_OMAP3_PM
 #include "prcm-regs.h"
 #include <mach/prcm_34xx.h>
@@ -71,15 +80,15 @@
 #define TWL4030_MSECURE_GPIO 22
 
 #ifdef CONFIG_OMAP3_PM
-#define CONTROL_SYSC_SMARTIDLE  (0x2 << 3)
-#define CONTROL_SYSC_AUTOIDLE   (0x1)
+#define CONTROL_SYSC_SMARTIDLE	(0x2 << 3)
+#define CONTROL_SYSC_AUTOIDLE	(0x1)
 
-#define SDP3430_SMC91X_CS       3
-#define PRCM_INTERRUPT_MASK     (1 << 11)
-#define UART1_INTERRUPT_MASK    (1 << 8)
-#define UART2_INTERRUPT_MASK    (1 << 9)
-#define UART3_INTERRUPT_MASK    (1 << 10)
-#define TWL4030_MSECURE_GPIO    22
+#define SDP3430_SMC91X_CS	3
+#define PRCM_INTERRUPT_MASK	(1 << 11)
+#define UART1_INTERRUPT_MASK	(1 << 8)
+#define UART2_INTERRUPT_MASK	(1 << 9)
+#define UART3_INTERRUPT_MASK	(1 << 10)
+#define TWL4030_MSECURE_GPIO	22
 int console_detect(char *str);
 unsigned int uart_interrupt_mask_value;
 #endif
@@ -541,47 +550,35 @@ static struct spi_board_info sdp3430_spi_board_info[] __initdata = {
 	},
 };
 
+#ifdef CONFIG_VIDEO_DW9710
+static int dw9710_lens_power_set(enum v4l2_power power)
+{
+
+	return 0;
+}
+
+static int dw9710_lens_set_prv_data(void *priv)
+{
+	struct omap34xxcam_hw_config *hwc = priv;
+
+	hwc->dev_index = 0;
+	hwc->dev_minor = 0;
+	hwc->dev_type = OMAP34XXCAM_SLAVE_LENS;
+
+	return 0;
+}
+
+static struct dw9710_platform_data sdp3430_dw9710_platform_data = {
+	.power_set      = dw9710_lens_power_set,
+	.priv_data_set  = dw9710_lens_set_prv_data,
+};
+#endif
+
 #if defined(CONFIG_VIDEO_MT9P012) || defined(CONFIG_VIDEO_MT9P012_MODULE)
 static void __iomem *fpga_map_addr;
-/*
- * Common MT9P012 register initialization for all image sizes, pixel formats,
- * and frame rates
- */
-const static struct mt9p012_reg mt9p012_common[] = {
-	{MT9P012_8BIT, REG_SOFTWARE_RESET, 0x01},
-	{MT9P012_TOK_DELAY, 0x00, 5}, /* Delay = 5ms, min 2400 xcks */
-	{MT9P012_16BIT, REG_RESET_REGISTER, 0x10C8},
-	{MT9P012_8BIT, REG_GROUPED_PAR_HOLD, 0x01}, /* hold */
-	{MT9P012_16BIT, REG_ANALOG_GAIN_GREENR, 0x0020},
-	{MT9P012_16BIT, REG_ANALOG_GAIN_RED, 0x0020},
-	{MT9P012_16BIT, REG_ANALOG_GAIN_BLUE, 0x0020},
-	{MT9P012_16BIT, REG_ANALOG_GAIN_GREENB, 0x0020},
-	{MT9P012_16BIT, REG_DIGITAL_GAIN_GREENR, 0x0100},
-	{MT9P012_16BIT, REG_DIGITAL_GAIN_RED, 0x0100},
-	{MT9P012_16BIT, REG_DIGITAL_GAIN_BLUE, 0x0100},
-	{MT9P012_16BIT, REG_DIGITAL_GAIN_GREENB, 0x0100},
-	/* Recommended values for image quality, sensor Rev 1 */
-	{MT9P012_16BIT, 0x3088, 0x6FFB},
-	{MT9P012_16BIT, 0x308E, 0x2020},
-	{MT9P012_16BIT, 0x309E, 0x4400},
-	{MT9P012_16BIT, 0x30D4, 0x9080},
-	{MT9P012_16BIT, 0x3126, 0x00FF},
-	{MT9P012_16BIT, 0x3154, 0x1482},
-	{MT9P012_16BIT, 0x3158, 0x97C7},
-	{MT9P012_16BIT, 0x315A, 0x97C6},
-	{MT9P012_16BIT, 0x3162, 0x074C},
-	{MT9P012_16BIT, 0x3164, 0x0756},
-	{MT9P012_16BIT, 0x3166, 0x0760},
-	{MT9P012_16BIT, 0x316E, 0x8488},
-	{MT9P012_16BIT, 0x3172, 0x0003},
-	{MT9P012_16BIT, 0x30EA, 0x3F06},
-	{MT9P012_8BIT, REG_GROUPED_PAR_HOLD, 0x00}, /* update all at once */
-	{MT9P012_TOK_TERM, 0, 0}
-
-};
 
 static struct omap34xxcam_sensor_config cam_hwc = {
-	.sensor_isp = V4L2_IF_CAP_RAW,
+	.sensor_isp = 0,
 	.xclk = OMAP34XXCAM_XCLK_A,
 };
 
@@ -639,7 +636,6 @@ static struct isp_interface_config mt9p012_if_config = {
 
 static int mt9p012_sensor_power_set(enum v4l2_power power)
 {
-	u16 cam_fld_pad_config_reg_offset = 0x114;
 	switch (power) {
 	case V4L2_POWER_OFF:
 		/* Power Down Sequence */
@@ -669,16 +665,16 @@ static int mt9p012_sensor_power_set(enum v4l2_power power)
 		if (omap_request_gpio(MT9P012_RESET_GPIO) != 0)
 			return -EIO;
 
+		/* set to output mode */
+		omap_set_gpio_direction(MT9P012_STANDBY_GPIO, 0);
+		/* set to output mode */
+		omap_set_gpio_direction(MT9P012_RESET_GPIO, 0);
+
 		/* STANDBY_GPIO is active HIGH for set LOW to release */
 		omap_set_gpio_dataout(MT9P012_STANDBY_GPIO, 1);
 
 		/* nRESET is active LOW. set HIGH to release reset */
 		omap_set_gpio_dataout(MT9P012_RESET_GPIO, 1);
-
-		/* set to output mode */
-		omap_set_gpio_direction(MT9P012_STANDBY_GPIO, GPIO_DIR_OUTPUT);
-		/* set to output mode */
-		omap_set_gpio_direction(MT9P012_RESET_GPIO, GPIO_DIR_OUTPUT);
 
 		/* turn on digital power */
 		enable_fpga_vio_1v8(1);
@@ -706,8 +702,6 @@ static int mt9p012_sensor_power_set(enum v4l2_power power)
 		/* give sensor sometime to get out of the reset. Datasheet says
 		   2400 xclks. At 6 MHz, 400 usec are enough */
 		udelay(300);
-		omap_ctrl_writew(0x3B1C, cam_fld_pad_config_reg_offset);
-		omap_set_gpio_direction(MT9P012_RESET_GPIO, GPIO_DIR_INPUT);
 		break;
 	case V4L2_POWER_STANDBY:
 		/* stand by */
@@ -724,7 +718,6 @@ static int mt9p012_sensor_power_set(enum v4l2_power power)
 }
 
 static struct v4l2_ifparm ifparm = {
-	.capability = V4L2_IF_CAP_RAW,
 	.if_type = V4L2_IF_TYPE_BT656,
 	.u = {
 		.bt656 = {
@@ -746,37 +739,18 @@ static int mt9p012_ifparm(struct v4l2_ifparm *p)
 static struct mt9p012_platform_data sdp3430_mt9p012_platform_data = {
 	.power_set      = mt9p012_sensor_power_set,
 	.priv_data_set  = mt9p012_sensor_set_prv_data,
-	.default_regs   = mt9p012_common,
+	.default_regs   = NULL,
 	.ifparm         = mt9p012_ifparm,
 };
 
-static int dw9710_lens_power_set(enum v4l2_power power)
-{
-
-	return 0;
-}
-
-static int dw9710_lens_set_prv_data(void *priv)
-{
-	struct omap34xxcam_hw_config *hwc = priv;
-
-	hwc->dev_index = 0;
-	hwc->dev_minor = 0;
-	hwc->dev_type = OMAP34XXCAM_SLAVE_LENS;
-
-	return 0;
-}
-
-static struct dw9710_platform_data sdp3430_dw9710_platform_data = {
-	.power_set      = dw9710_lens_power_set,
-	.priv_data_set  = dw9710_lens_set_prv_data,
-};
 
 static struct i2c_board_info __initdata sdp3430_i2c_board_info[] = {
+#ifdef CONFIG_VIDEO_DW9710
 	{
 		I2C_BOARD_INFO(DW9710_NAME,  DW9710_AF_I2C_ADDR),
 		.platform_data = &sdp3430_dw9710_platform_data,
 	},
+#endif
 	{
 		I2C_BOARD_INFO("mt9p012", MT9P012_I2C_ADDR),
 		.platform_data = &sdp3430_mt9p012_platform_data,
@@ -784,6 +758,7 @@ static struct i2c_board_info __initdata sdp3430_i2c_board_info[] = {
 };
 
 #endif
+
 
 static struct platform_device sdp3430_lcd_device = {
 	.name		= "sdp2430_lcd",

@@ -205,7 +205,7 @@ DSP_STATUS DPC_Schedule(struct DPC_OBJECT *hDPC)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct DPC_OBJECT *pDPCObject = (struct DPC_OBJECT *)hDPC;
-	u32 flags;
+	unsigned long flags;
 
 	GT_1trace(DPC_DebugMask, GT_ENTER, "DPC_Schedule hDPC %x\n", hDPC);
 	if (MEM_IsValidHandle(hDPC, SIGNATURE)) {

@@ -1,9 +1,13 @@
 /*
  * drivers/media/video/isp/isppreview.h
  *
- * Driver include file for Preview module in TI's OMAP3430 Camera ISP
+ * Driver header file for Preview module in TI's OMAP3430 Camera ISP
  *
  * Copyright (C) 2008 Texas Instruments, Inc.
+ *
+ * Contributors:
+ *	Senthilvadivu Guruswamy <svadivu@ti.com>
+ *	Pallavi Kulkarni <p-kulkarni@ti.com>
  *
  * This package is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as

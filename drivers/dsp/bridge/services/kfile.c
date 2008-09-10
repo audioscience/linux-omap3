@@ -186,7 +186,7 @@ struct KFILE_FileObj *KFILE_Open(CONST char *pszFileName, CONST char *pszMode)
 			status = DSP_SOK;
 		}
 		set_fs(fs);
-		if (!DSP_SUCCEEDED(status)) {
+		if (DSP_FAILED(status)) {
 			/* free memory, and clear handle */
 			MEM_FreeObject(hFile);
 			hFile = NULL;

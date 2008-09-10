@@ -5,6 +5,10 @@
  *
  * Copyright (C) 2008 Texas Instruments.
  *
+ * Contributors:
+ *	Sergio Aguirre <saaguirre@ti.com>
+ *	Troy Laramy <t-laramy@ti.com>
+ *
  * This package is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
@@ -21,9 +25,9 @@
 #include <linux/errno.h>
 #include <linux/types.h>
 #include <linux/dma-mapping.h>
-#include <asm/io.h>
+#include <linux/io.h>
+#include <linux/uaccess.h>
 #include <asm/cacheflush.h>
-#include <asm/uaccess.h>
 
 #include "isp.h"
 #include "ispreg.h"
@@ -83,7 +87,7 @@ static struct isph3a_aewb_status {
 	u16 win_count;
 	u32 frame_count;
 	wait_queue_head_t stats_wait;
-	spinlock_t buffer_lock;
+	spinlock_t buffer_lock;		/* For stats buffers read/write sync */
 } aewbstat;
 
 /**
@@ -628,7 +632,7 @@ int isph3a_aewb_configure(struct isph3a_aewb_config *aewbcfg)
 	win_count = (aewbcfg->ver_win_count * aewbcfg->hor_win_count);
 	win_count += aewbcfg->hor_win_count;
 	ret = (win_count / 8);
-	win_count += (win_count % 8) ? 1: 0;
+	win_count += (win_count % 8) ? 1 : 0;
 	win_count += ret;
 
 	aewbstat.win_count = win_count;

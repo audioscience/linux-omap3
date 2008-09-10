@@ -110,7 +110,7 @@ typedef struct { volatile u32 offset[4096]; } __regbase32;
 #define DISPC_GFX_WINDOW_SKIP		0x0B4
 #define DISPC_GFX_TABLE_BA		0x0B8
 
-#define RFBI_SYSCONFIG			0x010
+#define RFBI_SYSCONFIG			0x010	
 
 /* The registers for the video pipelines are parameterized by the video pipeline
  * index: n=0 for VID1 and n=1 for VID2.
@@ -424,7 +424,7 @@ typedef struct { volatile u32 offset[4096]; } __regbase32;
 #define DISPC_VID_ATTRIBUTES_VIDROWREPEAT		18
 
 /*RFBI Sysconfig values */
-#define RFBI_SYSCONFIG_SIDLEMODE_SIDLE			(2 << 3)
+#define RFBI_SYSCONFIG_SIDLEMODE_SIDLE			(2 << 3)	
 
 /* VENC register offsets */
 #define VENC_F_CONTROL				0x0008
@@ -652,7 +652,7 @@ struct tvlcd_status_t {
 	int ltype;
 	int output_dev;
 	int status;
-};
+}; 
 
 /* color space conversion matrices */
 const static short int cc_bt601[3][3] = { {298, 409, 0},
@@ -685,7 +685,7 @@ const static short int cc_bt601_full[3][3] = { {256, 351, 0},
 #define DITHERING_OFF		29
 
 /* TVOUT Definitions */
-enum omap2_tvstandard {
+enum omap2_tvstandard {	
 	PAL_BDGHI = 0,
 	PAL_NC,
 	PAL_N,
@@ -840,7 +840,7 @@ int omap2_disp_lpr_disable(void);
 int omap2_disp_get_gfx_fifo_low_threshold(void);
 void omap2_disp_set_gfx_fifo_low_threshold(int thrs);
 int omap2_disp_get_gfx_fifo_high_threshold(void);
-void omap2_disp_set_gfx_fifo_high_threshold(int thrs);
+void omap2_disp_set_gfx_fifo_high_threshold(int thrs); 
 
 /* clk functions */
 extern void omap2_disp_put_all_clks(void);

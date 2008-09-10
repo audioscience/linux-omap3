@@ -129,129 +129,130 @@ config OMAP3_PM
        default n
 
 choice
- 	prompt "Choose Voltage Scale method"
- 	depends on ARCH_OMAP34XX && OMAP3430_ES2 && OMAP3_PM
- 	default OMAP_VOLT_SR_BYPASS
+	prompt "Choose Voltage Scale method"
+	depends on ARCH_OMAP34XX && OMAP3430_ES2 && OMAP3_PM
+	default OMAP_VOLT_SR_BYPASS
 
 config OMAP_VOLT_SR_BYPASS
- 	bool "Voltage Scale via Smart Reflex in bypass"
- 	depends on ARCH_OMAP3
- 	help
- 	Voltage scaling using direct register writes to OMAP3 voltage processor
+	bool "Voltage Scale via Smart Reflex in bypass"
+	depends on ARCH_OMAP3
+	help
+	Voltage scaling using direct register writes to OMAP3 voltage processor
 
 config OMAP_VOLT_SR
- 	bool "Voltage scaling using Smart Reflex convergence"
- 	depends on ARCH_OMAP3
- 	help
- 	Voltage scaling using error feedback on OMAP3 voltage processor
+	bool "Voltage scaling using Smart Reflex convergence"
+	depends on ARCH_OMAP3
+	help
+	Voltage scaling using error feedback on OMAP3 voltage processor
 
 config OMAP_VOLT_VSEL
- 	bool "Voltage scaling using VSEL writes"
- 	help
- 	Voltage scaling by OMAP2/3 I2C writes to Triton2 power chip
+	bool "Voltage scaling using VSEL writes"
+	help
+	Voltage scaling by OMAP2/3 I2C writes to Triton2 power chip
 
- config OMAP_VOLT_VMODE
- 	bool "Voltage scaling using VMODE pins"
- 	help
+config OMAP_VOLT_VMODE
+	bool "Voltage scaling using VMODE pins"
+	help
 	Voltage scaling using by OMAP2/3 VMODE pin toggling
- endchoice
+endchoice
 
- choice
- 	prompt "VDD1 OPP"
- 	depends on ARCH_OMAP34XX && OMAP3_PM
- 	default OMAP3ES2_VDD1_OPP1
+choice
+	prompt "VDD1 OPP"
+	depends on ARCH_OMAP34XX && OMAP3_PM
+	default OMAP3ES2_VDD1_OPP1
 
- config OMAP3ES2_VDD1_OPP1
- 	bool "MPU-125Mhz/DSP-90Mhz(OPP1)"
- 	depends on ARCH_OMAP34XX
- 	help
- 	  Select this option if you want to boot at OPP1.
+config OMAP3ES2_VDD1_OPP1
+	bool "MPU-125Mhz/DSP-90Mhz(OPP1)"
+	depends on ARCH_OMAP34XX
+	help
+	Select this option if you want to boot at OPP1.
 
- config OMAP3ES2_VDD1_OPP2
- 	bool "MPU-250Mhz/DSP-180Mhz(OPP2)"
- 	depends on ARCH_OMAP34XX
- 	help
- 	  Select this option if you want to boot at OPP2.
+config OMAP3ES2_VDD1_OPP2
+	bool "MPU-250Mhz/DSP-180Mhz(OPP2)"
+	depends on ARCH_OMAP34XX
+	help
+	Select this option if you want to boot at OPP2.
 
- config OMAP3ES2_VDD1_OPP3
- 	bool "MPU-500Mhz/DSP-360Mhz(OPP3)"
- 	depends on ARCH_OMAP34XX
- 	help
- 	  Select this option if you want to boot at OPP3.
+config OMAP3ES2_VDD1_OPP3
+	bool "MPU-500Mhz/DSP-360Mhz(OPP3)"
+	depends on ARCH_OMAP34XX
+	help
+	Select this option if you want to boot at OPP3.
 
- config OMAP3ES2_VDD1_OPP4
- 	bool "MPU-550Mhz/DSP-396Mhz(OPP4)"
- 	depends on ARCH_OMAP34XX
- 	help
- 	  Select this option if you want to boot at OPP4.
+config OMAP3ES2_VDD1_OPP4
+	bool "MPU-550Mhz/DSP-396Mhz(OPP4)"
+	depends on ARCH_OMAP34XX
+	help
+	Select this option if you want to boot at OPP4.
 
- config OMAP3ES2_VDD1_OPP5
- 	bool "MPU-600Mhz/DSP-430Mhz(OPP5)"
- 	depends on ARCH_OMAP34XX
- 	help
- 	  Select this option if you want to boot at OPP5.
+config OMAP3ES2_VDD1_OPP5
+	bool "MPU-600Mhz/DSP-430Mhz(OPP5)"
+	depends on ARCH_OMAP34XX
+	help
+	Select this option if you want to boot at OPP5.
 
- endchoice
+endchoice
 
- choice
- 	prompt "Select Max Frequency for VDD2 OPP3"
- 	depends on ARCH_OMAP34XX && OMAP3_PM
- 	default OMAP3_CORE_166MHZ
+choice
+	prompt "Select Max Frequency for VDD2 OPP3"
+	depends on ARCH_OMAP34XX && OMAP3_PM
+	default OMAP3_CORE_166MHZ
 
- config OMAP3_CORE_133MHZ
- 	bool "CORE at 133MHz"
- 	depends on ARCH_OMAP34XX
- 	help
- 	  Select this option to set Max CORE frequency to 133MHz (max DDR speed rating)
+config OMAP3_CORE_133MHZ
+	bool "CORE at 133MHz"
+	depends on ARCH_OMAP34XX
+	help
+	Select this option to set Max CORE frequency to 133MHz (max DDR speed rating).
 
- config OMAP3_CORE_166MHZ
+config OMAP3_CORE_166MHZ
 	bool "CORE at 166MHz"
- 	depends on ARCH_OMAP34XX
- 	help
- 	  Select this option to set Max CORE frequency to 166MHz (max DDR speed rating)
+	depends on ARCH_OMAP34XX
+	help
+	Select this option to set Max CORE frequency to 166MHz (max DDR speed rating)
 
- endchoice
+endchoice
 
- config OMAP3ES2_VDD2_OPP2
+config OMAP3ES2_VDD2_OPP2
 	boolean
 
- config OMAP3ES2_VDD2_OPP3
+config OMAP3ES2_VDD2_OPP3
 	boolean
 
- choice
- 	prompt "VDD2 OPP"
- 	depends on ARCH_OMAP34XX && OMAP3_PM
- 	default OMAP3ES2_VDD2_OPP3
+choice
+	prompt "VDD2 OPP"
+	depends on ARCH_OMAP34XX && OMAP3_PM
+	default OMAP3ES2_VDD2_OPP3
 
- config OMAP3ES2_VDD2_OPP2_L3_83MHZ
- 	bool "L3 83MHz (OPP2)"
- 	depends on ARCH_OMAP34XX && OMAP3_CORE_166MHZ
- 	select OMAP3ES2_VDD2_OPP2
- 	help
- 	  Select this option if you want to boot at VDD2 OPP2.
+config OMAP3ES2_VDD2_OPP2_L3_83MHZ
+	bool "L3 83MHz (OPP2)"
+	depends on ARCH_OMAP34XX && OMAP3_CORE_166MHZ
+	select OMAP3ES2_VDD2_OPP2
+	help
+	Select this option if you want to boot at VDD2 OPP2.
 
- config OMAP3ES2_VDD2_OPP3_L3_166MHZ
- 	bool "L3 166MHz (OPP3)"
- 	depends on ARCH_OMAP34XX && OMAP3_CORE_166MHZ
- 	select OMAP3ES2_VDD2_OPP3
- 	help
- 	  Select this option if you want to boot at VDD2 OPP3.
+config OMAP3ES2_VDD2_OPP3_L3_166MHZ
+	bool "L3 166MHz (OPP3)"
+	depends on ARCH_OMAP34XX && OMAP3_CORE_166MHZ
+	select OMAP3ES2_VDD2_OPP3
+	help
+	Select this option if you want to boot at VDD2 OPP3.
 
- config OMAP3ES2_VDD2_OPP2_L3_66MHZ
- 	bool "L3 66MHz (OPP2)"
- 	depends on ARCH_OMAP34XX && OMAP3_CORE_133MHZ
- 	select OMAP3ES2_VDD2_OPP2
- 	help
- 	  Select this option if you want to boot at VDD2 OPP2.
+config OMAP3ES2_VDD2_OPP2_L3_66MHZ
+	bool "L3 66MHz (OPP2)"
+	depends on ARCH_OMAP34XX && OMAP3_CORE_133MHZ
+	select OMAP3ES2_VDD2_OPP2
+	help
+	Select this option if you want to boot at VDD2 OPP2.
 
- config OMAP3ES2_VDD2_OPP3_L3_133MHZ
- 	bool "L3 133MHz (OPP3)"
- 	depends on ARCH_OMAP34XX && OMAP3_CORE_133MHZ
- 	select OMAP3ES2_VDD2_OPP3
- 	help
- 	  Select this option if you want to boot at VDD2 OPP3.
+config OMAP3ES2_VDD2_OPP3_L3_133MHZ
+	bool "L3 133MHz (OPP3)"
+	depends on ARCH_OMAP34XX && OMAP3_CORE_133MHZ
+	select OMAP3ES2_VDD2_OPP3
+	help
+	Select this option if you want to boot at VDD2 OPP3.
 
- endchoice
+endchoice
+
 config OMAP_TICK_GPTIMER
 	int "GPTIMER used for system tick timer"
 	depends on ARCH_OMAP2 || ARCH_OMAP3
@@ -267,25 +268,39 @@ config OMAP_TICK_GPTIMER
 	  due to hardware sensitivity to glitches on the OMAP 32kHz clock
 	  input.
 
+config TRACK_RESOURCES
+	bool "Enable resource tracking"
+	depends on ARCH_OMAP34XX && OMAP3_PM
+	default n
+	---help---
+	This option enables tracking of resources such as clock and voltage sources.
+
+config  AUTO_POWER_DOMAIN_CTRL
+	bool "Enable automatic power domain control"
+	depends on ARCH_OMAP34XX && OMAP3_PM
+	default n
+	---help---
+	This option enables automatic control of power domains through the clock framework.
+
 config MPU_OFF
-        bool "Enable MPU off in suspend/resume and cpuidle"
-        depends on ARCH_OMAP34XX  && OMAP3_PM
-        default y
-        ---help---
-        This option is for enabling MPU domain to go to OFF state in cpuidle and suspend/resume.
+	bool "Enable MPU off in suspend/resume and cpuidle"
+	depends on ARCH_OMAP34XX  && OMAP3_PM
+	default y
+	---help---
+	This option is for enabling MPU domain to go to OFF state in cpuidle and suspend/resume.
 
 config OMAP34XX_OFFMODE
-        bool "Enable OFF Mode for 3430"
-        depends on ARCH_OMAP34XX && OMAP3_PM
-        default y
-        ---help---
-        This option enables all off modes frameworks and allows power domains to go to off with context save/restore
+	bool "Enable OFF Mode for 3430"
+	depends on ARCH_OMAP34XX && OMAP3_PM
+	default y
+	---help---
+	This option enables all off modes frameworks and allows power domains to go to off with context save/restore.
 
 config CORE_OFF
-        bool "Enable CORE off"
-        depends on MPU_OFF && OMAP34XX_OFFMODE && OMAP3_PM
-        ---help---
-        This option is for enabling CORE domain to go to OFF state in suspend/resume
+	bool "Enable CORE off"
+	depends on MPU_OFF && OMAP34XX_OFFMODE && OMAP3_PM
+	---help---
+	This option is for enabling CORE domain to go to OFF state in suspend/resume.
 
 config CORE_OFF_CPUIDLE
         bool "Enable CORE off in cpuidle"
@@ -302,27 +317,13 @@ config SYSOFFMODE
         This option is for enabling sysoffmode when chip off happens
 
 config HW_SUP_TRANS
-        bool "OMAP3430 enable H/W supervised transition for clock domains"
-        depends on ARCH_OMAP3 && ARCH_OMAP34XX && OMAP3_PM
-        default y
-
-config TRACK_RESOURCES
-        bool "Enable resource tracking"
-        depends on ARCH_OMAP34XX && OMAP3_PM
-        default n
-        ---help---
-        This option enables tracking of resources such as clock and voltage sources.
-
-config  AUTO_POWER_DOMAIN_CTRL
-        bool "Enable automatic power domain control"
-        depends on ARCH_OMAP34XX && OMAP3_PM
-        default n
-        ---help---
-        This option enables automatic control of power domains through the clock framework.
+	bool "OMAP3430 enable H/W supervised transition for clock domains"
+	depends on ARCH_OMAP3 && ARCH_OMAP34XX && OMAP3_PM
+	default y
 
 config DISABLE_EMUDOMAIN_CONTROL
-        bool "Disable h/w supervised control of EMU clock domain"
-        depends on ARCH_OMAP34XX && OMAP3_PM
-        default y
-        ---help---
-        This option is for disabling h/w supervised control of EMU clock domain. Required for debugging using JTAG
+	bool "Disable h/w supervised control of EMU clock domain"
+	depends on ARCH_OMAP34XX && OMAP3_PM
+	default y
+	---help---
+	This option is for disabling h/w supervised control of EMU clock domain. Required for debugging using JTAG.

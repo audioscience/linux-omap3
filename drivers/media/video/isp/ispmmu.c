@@ -5,6 +5,10 @@
  *
  * Copyright (C) 2008 Texas Instruments.
  *
+ * Contributors:
+ *	Senthilvadivu Guruswamy <svadivu@ti.com>
+ *	Thara Gopinath <thara@ti.com>
+ *
  * This package is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
@@ -27,11 +31,11 @@
 #include <linux/dma-mapping.h>
 #include <linux/mm.h>
 
-#include <asm/io.h>
-#include <asm/byteorder.h>
-#include <asm/scatterlist.h>
-#include <asm/irq.h>
+#include <linux/io.h>
+#include <linux/scatterlist.h>
 #include <linux/semaphore.h>
+#include <asm/byteorder.h>
+#include <asm/irq.h>
 
 #include "isp.h"
 #include "ispreg.h"
@@ -107,7 +111,7 @@ static u32 ispmmu_set_pte(u32 *pte_addr, u32 phy_addr,
 	u32 pte = 0;
 
 	switch (mapattr.map_size) {
-	case PAGE :
+	case PAGE:
 		pte = ISPMMU_L1D_TYPE_PAGE << ISPMMU_L1D_TYPE_SHIFT;
 		pte |= (phy_addr >> ISPMMU_L1D_PAGE_ADDR_SHIFT)
 						<< ISPMMU_L1D_PAGE_ADDR_SHIFT;
@@ -178,7 +182,7 @@ static inline u32 page_aligned_addr(u32 addr)
  **/
 static inline u32 l2_page_paddr(u32 l2_table)
 {
-	return (l2_page_cache_p + (l2_table - l2_page_cache));
+	return l2_page_cache_p + (l2_table - l2_page_cache);
 }
 
 /**
@@ -276,9 +280,9 @@ static int free_l2_page_table(u32 l2_table)
 	DPRINTK_ISPMMU("Free l2 page table at 0x%x\n", l2_table);
 	for (i = 0; i < L2P_TABLE_NR; i++)
 		if (l2_table == (l2_page_cache + (i * L2P_TABLE_SIZE))) {
-			if (!l2p_table_allotted[i]) {
+			if (!l2p_table_allotted[i])
 				DPRINTK_ISPMMU("L2 page not in use\n");
-			}
+
 			l2p_table_allotted[i] = 0;
 			return 0;
 		}
@@ -303,6 +307,7 @@ dma_addr_t ispmmu_map(u32 p_addr, int size)
 	u32 p_addr_align, p_addr_align_end;
 	u32 pd;
 	u32 *l2_table;
+	dma_addr_t ret_addr;
 
 	DPRINTK_ISPMMU("map: p_addr = 0x%x, size = 0x%x\n", p_addr, size);
 
@@ -360,7 +365,8 @@ dma_addr_t ispmmu_map(u32 p_addr, int size)
 		(u32)((idx << 20) + (p_addr & (PAGE_SIZE - 1))));
 
 	omap_writel(1, ISPMMU_GFLUSH);
-	return (dma_addr_t)((idx << 20) + (p_addr & (PAGE_SIZE - 1)));
+	ret_addr = (dma_addr_t)((idx << 20) + (p_addr & (PAGE_SIZE - 1)));
+	return ret_addr;
 
 release_mem:
 	for (; i >= 0; i--) {
@@ -387,6 +393,7 @@ dma_addr_t ispmmu_map_sg(const struct scatterlist *sglist, int sglen)
 	int i, j, idx, num, sg_num = 0;
 	u32 pd, sg_element_addr;
 	u32 *l2_table;
+	dma_addr_t ret_addr;
 
 	DPRINTK_ISPMMU("Map_sg: sglen (num of pages) = %d\n", sglen);
 
@@ -442,8 +449,9 @@ dma_addr_t ispmmu_map_sg(const struct scatterlist *sglist, int sglen)
 						(PAGE_SIZE - 1))), idx);
 
 	omap_writel(1, ISPMMU_GFLUSH);
-	return (dma_addr_t)((idx << 20) + (sg_dma_address(sglist + 0) &
+	ret_addr = (dma_addr_t)((idx << 20) + (sg_dma_address(sglist + 0) &
 							(PAGE_SIZE - 1)));
+	return ret_addr;
 
 release_mem:
 	for (; i >= 0; i--) {

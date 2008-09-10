@@ -1110,7 +1110,7 @@ static DSP_STATUS AddOvlyNode(struct DSP_UUID *pUuid,
 		goto func_end;
 
 	status = DCD_GetObjectDef(hNldr->hDcdMgr, pUuid, objType, &objDef);
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	/* If overlay node, add to the list */
@@ -1583,7 +1583,7 @@ static DSP_STATUS LoadOvly(struct NLDR_NODEOBJECT *hNldrNode,
 	}
 
 	DBC_Assert(pRefCount != NULL);
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	if (pRefCount == NULL)

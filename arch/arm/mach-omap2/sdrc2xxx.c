@@ -24,9 +24,9 @@
 #include <linux/clk.h>
 #include <linux/io.h>
 
-#include <mach/sram.h>
 #include <mach/common.h>
 #include <mach/clock.h>
+#include <mach/sram.h>
 
 #include "prm.h"
 

@@ -315,8 +315,8 @@ struct v4l2_pix_format {
 /* see http://www.siliconimaging.com/RGB%20Bayer.htm */
 #define V4L2_PIX_FMT_SBGGR8  v4l2_fourcc('B', 'A', '8', '1') /*  8  BGBG.. GRGR.. */
 #define V4L2_PIX_FMT_SGBRG8  v4l2_fourcc('G', 'B', 'R', 'G') /*  8  GBGB.. RGRG.. */
-#define V4L2_PIX_FMT_SGRBG10 v4l2_fourcc('B','A','1','0')    /* 10bit raw bayer  */
-#define V4L2_PIX_FMT_SGRBG10DPCM8 v4l2_fourcc('B','D','1','0') /* 10bit raw bayer DPCM compressed to 8 bits */
+#define V4L2_PIX_FMT_SGRBG10 v4l2_fourcc('B', 'A', '1', '0') /* 10bit raw bayer  */
+#define V4L2_PIX_FMT_SGRBG10DPCM8 v4l2_fourcc('B', 'D', '1', '0') /* 10bit raw bayer DPCM compressed to 8 bits */
 #define V4L2_PIX_FMT_SBGGR16 v4l2_fourcc('B', 'Y', 'R', '2') /* 16  BGBG.. GRGR.. */
 
 /* compressed formats */
@@ -1296,13 +1296,6 @@ struct v4l2_sliced_vbi_data {
 	__u8    data[48];
 };
 
-/* VIDIOC_G_PRIV_MEM */
-struct v4l2_priv_mem {
-	__u32 offset;   /* offset to data */
-	__u32 length;   /* memory allocated to ptr or read length */
-	void *ptr;      /* pointer to allocated memory */
-};
-
 /*
  *	A G G R E G A T E   S T R U C T U R E S
  */
@@ -1357,6 +1350,13 @@ struct v4l2_chip_ident {
 	__u32 match_chip;  /* Match this chip, meaning determined by match_type */
 	__u32 ident;       /* chip identifier as specified in <media/v4l2-chip-ident.h> */
 	__u32 revision;    /* chip revision, chip specific */
+};
+
+/* VIDIOC_G_PRIV_MEM */
+struct v4l2_priv_mem {
+	__u32 offset;	/* offset to data */
+	__u32 length;	/* memory allocated to ptr or read length */
+	void *ptr;	/* pointer to allocated memory */
 };
 
 /*
@@ -1430,9 +1430,9 @@ struct v4l2_chip_ident {
 #define	VIDIOC_DBG_G_REGISTER 	_IOWR('V', 80, struct v4l2_register)
 
 #define VIDIOC_G_CHIP_IDENT     _IOWR('V', 81, struct v4l2_chip_ident)
-#define VIDIOC_G_PRIV_MEM       _IOWR ('V', 82, struct v4l2_priv_mem)
+#define VIDIOC_G_PRIV_MEM       _IOWR('V', 82, struct v4l2_priv_mem)
 #endif
-#define VIDIOC_S_HW_FREQ_SEEK	 _IOW('V', 82, struct v4l2_hw_freq_seek)
+#define VIDIOC_S_HW_FREQ_SEEK	 _IOW('V', 83, struct v4l2_hw_freq_seek)
 
 #ifdef __OLD_VIDIOC_
 /* for compatibility, will go away some day */

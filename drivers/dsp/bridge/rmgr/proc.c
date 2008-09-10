@@ -140,18 +140,23 @@
 #include <dbdcd.h>
 #include <dbreg.h>
 #include <msg.h>
-#include <pwr.h>
 #include <wmdioctl.h>
 
 /*  ----------------------------------- This */
 #include <proc.h>
+#include <pwr.h>
 
 #ifndef RES_CLEANUP_DISABLE
 #include <resourcecleanup.h>
 #endif
 #ifndef CONFIG_DISABLE_BRIDGE_PM
 #ifndef CONFIG_DISABLE_BRIDGE_DVFS
-#include <asm/arch/resource.h>
+#ifndef CONFIG_OMAP3_PM
+#include <mach/omap-pm.h>
+#include <mach/board-3430sdp.h>
+#else
+#include <mach/resource.h>
+#endif
 #endif
 #endif
 /*  ----------------------------------- Defines, Data Structures, Typedefs */
@@ -195,7 +200,9 @@ static u32 cRefs;
 
 #ifndef CONFIG_DISABLE_BRIDGE_PM
 #ifndef CONFIG_DISABLE_BRIDGE_DVFS
+#ifdef CONFIG_OMAP3_PM
 extern struct constraint_handle *mpu_constraint_handle;
+#endif
 #endif
 #endif
 
@@ -269,7 +276,7 @@ PROC_Attach(u32 uProcessor, OPTIONAL CONST struct DSP_PROCESSORATTRIN *pAttrIn,
 				 " DevType, 0x%x!\n", status);
 		}
 	}
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	/* If we made it this far, create the Proceesor object: */
@@ -307,7 +314,7 @@ PROC_Attach(u32 uProcessor, OPTIONAL CONST struct DSP_PROCESSORATTRIN *pAttrIn,
 			 " the DEV_ Interface fxns.\n", status);
 		MEM_FreeObject(pProcObject);
 	}
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	/* Create the Notification Object */
@@ -357,12 +364,12 @@ PROC_Attach(u32 uProcessor, OPTIONAL CONST struct DSP_PROCESSORATTRIN *pAttrIn,
 	}
 func_end:
 #ifndef RES_CLEANUP_DISABLE
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont;
 
 	PRCS_GetCurrentHandle(&hProcess);
 	res_status = CFG_GetObject((u32 *)&hDRVObject, REG_DRV_OBJECT);
-	if (!DSP_SUCCEEDED(res_status))
+	if (DSP_FAILED(res_status))
 		goto func_cont;
 
 	DRV_GetProcContext((u32)hProcess, (struct DRV_OBJECT *)hDRVObject,
@@ -451,7 +458,7 @@ DSP_STATUS PROC_AutoStart(struct CFG_DEVNODE *hDevNode,
 		 "Entered PROC_AutoStart, args:\n\t"
 		 "hDevNode: 0x%x\thDevObject: 0x%x\n", hDevNode, hDevObject);
 	/* Create a Dummy PROC Object */
-	if (!DSP_SUCCEEDED(CFG_GetObject((u32 *)&hMgrObject,
+	if (DSP_FAILED(CFG_GetObject((u32 *)&hMgrObject,
 	   REG_MGR_OBJECT))) {
 		GT_0trace(PROC_DebugMask, GT_7CLASS,
 			 "PROC_AutoStart: DSP_FAILED to "
@@ -486,12 +493,12 @@ DSP_STATUS PROC_AutoStart(struct CFG_DEVNODE *hDevNode,
 			 "PROC_AutoStart: Failed to "
 			 "get IntFxns \n");
 	}
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	/* Stop the Device, put it into standby mode */
 	status = PROC_Stop(hProcObject);
-	if (!DSP_SUCCEEDED(CFG_GetAutoStart(hDevNode, &dwAutoStart)) ||
+	if (DSP_FAILED(CFG_GetAutoStart(hDevNode, &dwAutoStart)) ||
 			   !dwAutoStart) {
 		status = DSP_EFAIL;
 		/* DSP_FAILED to Get s32 Fxn or Wmd Context */
@@ -787,7 +794,7 @@ DSP_STATUS PROC_GetResourceInfo(DSP_HPROCESSOR hProcessor, u32 uResourceType,
 	case DSP_RESOURCE_DYNSARAM:
 	case DSP_RESOURCE_DYNEXTERNAL:
 	case DSP_RESOURCE_DYNSRAM:
-		if (!DSP_SUCCEEDED(DEV_GetNodeManager(pProcObject->hDevObject,
+		if (DSP_FAILED(DEV_GetNodeManager(pProcObject->hDevObject,
 		   &hNodeMgr)))
 			goto func_end;
 
@@ -918,7 +925,7 @@ DSP_STATUS PROC_GetState(DSP_HPROCESSOR hProcessor,
 		if (DSP_SUCCEEDED(status) && hDehMgr) {
 			status = (*pProcObject->pIntfFxns->pfnDehGetInfo)
 				 (hDehMgr, &(pProcStatus->errInfo));
-			if (!DSP_SUCCEEDED(status)) {
+			if (DSP_FAILED(status)) {
 				GT_0trace(PROC_DebugMask, GT_7CLASS,
 					 "PROC_GetState: Failed "
 					 "retrieve exception info.\n");
@@ -1041,14 +1048,14 @@ DSP_STATUS PROC_Load(DSP_HPROCESSOR hProcessor, IN CONST s32 iArgc,
 			 "Client is already attached status 0x%x \n", status);
 		goto func_end;
 	}
-	if (!DSP_SUCCEEDED(DEV_GetCodMgr(pProcObject->hDevObject, &hCodMgr))) {
+	if (DSP_FAILED(DEV_GetCodMgr(pProcObject->hDevObject, &hCodMgr))) {
 		status = DSP_EFAIL;
 		GT_1trace(PROC_DebugMask, GT_7CLASS, "PROC_Load: DSP_FAILED in "
 			 "DEV_GetCodMgr status 0x%x \n", status);
 		goto func_end;
 	}
 	status = PROC_Stop(hProcessor);
-	if (!DSP_SUCCEEDED(status)) {
+	if (DSP_FAILED(status)) {
 		GT_1trace(PROC_DebugMask, GT_7CLASS,
 			 "PROC_Load: DSP_FAILED to Place the"
 			 " Processor in Stop Mode(PROC_STOP) status 0x%x \n",
@@ -1057,7 +1064,7 @@ DSP_STATUS PROC_Load(DSP_HPROCESSOR hProcessor, IN CONST s32 iArgc,
 	}
 	/* Place the board in the monitor state. */
 	status = PROC_Monitor(hProcessor);
-	if (!DSP_SUCCEEDED(status)) {
+	if (DSP_FAILED(status)) {
 		GT_1trace(PROC_DebugMask, GT_7CLASS,
 			 "PROC_Load: DSP_FAILED to Place the"
 			 " Processor in Monitor Mode(PROC_IDLE) status 0x%x\n",
@@ -1198,12 +1205,16 @@ DSP_STATUS PROC_Load(DSP_HPROCESSOR hProcessor, IN CONST s32 iArgc,
 #ifndef CONFIG_DISABLE_BRIDGE_PM
 #ifndef CONFIG_DISABLE_BRIDGE_DVFS
 	/* Boost the OPP level to Maximum level supported by baseport*/
+#ifndef CONFIG_OMAP3_PM
+	omap_pm_cpu_set_freq(vdd1_rate_table[VDD1_OPP5].speed);
+#else
 	if (constraint_set(mpu_constraint_handle, CO_VDD1_OPP5) != 0)
 		GT_1trace(PROC_DebugMask, GT_4CLASS, "PROC_Load:"
 			  "Constraint set of %d failed\n", CO_VDD1_OPP5);
 	else
 		GT_1trace(PROC_DebugMask, GT_4CLASS, "PROC_Load:"
 			 "Constraint set of %d passed\n", CO_VDD1_OPP5);
+#endif
 #endif
 #endif
 		status = COD_LoadBase(hCodMgr, iArgc, (char **)aArgv,
@@ -1226,6 +1237,9 @@ DSP_STATUS PROC_Load(DSP_HPROCESSOR hProcessor, IN CONST s32 iArgc,
 #ifndef CONFIG_DISABLE_BRIDGE_PM
 #ifndef CONFIG_DISABLE_BRIDGE_DVFS
 	/* Requesting the lowest opp supported by baseport*/
+#ifndef CONFIG_OMAP3_PM
+		omap_pm_cpu_set_freq(vdd1_rate_table[VDD1_OPP1].speed);
+#else
 		if (constraint_set(mpu_constraint_handle, CO_VDD1_OPP1) != 0)
 			GT_1trace(PROC_DebugMask, GT_4CLASS, "PROC_Load:"
 				 "Constraint setting of %d failed\n",
@@ -1234,6 +1248,7 @@ DSP_STATUS PROC_Load(DSP_HPROCESSOR hProcessor, IN CONST s32 iArgc,
 			GT_1trace(PROC_DebugMask, GT_4CLASS, "PROC_Load:"
 				 "Constraint setting  of %d passed\n",
 				 CO_VDD1_OPP1);
+#endif
 #endif
 #endif
 
@@ -1476,7 +1491,7 @@ DSP_STATUS PROC_RegisterNotify(DSP_HPROCESSOR hProcessor, u32 uEventMask,
 			status = (*pProcObject->pIntfFxns->pfnDehRegisterNotify)
 				 (hDehMgr, uEventMask, uNotifyType,
 				 hNotification);
-			if (!DSP_SUCCEEDED(status))
+			if (DSP_FAILED(status))
 				status = DSP_EFAIL;
 
 		}
@@ -1544,7 +1559,7 @@ DSP_STATUS PROC_Start(DSP_HPROCESSOR hProcessor)
 		goto func_end;
 	}
 	status = DEV_GetCodMgr(pProcObject->hDevObject, &hCodMgr);
-	if (!DSP_SUCCEEDED(status)) {
+	if (DSP_FAILED(status)) {
 		status = DSP_EFAIL;
 		GT_1trace(PROC_DebugMask, GT_7CLASS,
 			 "Processor Start DSP_FAILED "
@@ -1552,7 +1567,7 @@ DSP_STATUS PROC_Start(DSP_HPROCESSOR hProcessor)
 		goto func_cont;
 	}
 	status = COD_GetEntry(hCodMgr, &dwDspAddr);
-	if (!DSP_SUCCEEDED(status)) {
+	if (DSP_FAILED(status)) {
 		status = DSP_EFAIL;
 		GT_1trace(PROC_DebugMask, GT_7CLASS,
 			 "Processor Start  DSP_FAILED in "
@@ -1561,7 +1576,7 @@ DSP_STATUS PROC_Start(DSP_HPROCESSOR hProcessor)
 	}
 	status = (*pProcObject->pIntfFxns->pfnBrdStart)
 		 (pProcObject->hWmdContext, dwDspAddr);
-	if (!DSP_SUCCEEDED(status)) {
+	if (DSP_FAILED(status)) {
 		status = DSP_EFAIL;
 		GT_0trace(PROC_DebugMask, GT_7CLASS,
 			 "PROC_Start Failed to Start the board\n");
@@ -1734,13 +1749,13 @@ DSP_STATUS PROC_UnMap(DSP_HPROCESSOR hProcessor, void *pMapAddr)
 	GT_1trace(PROC_DebugMask, GT_ENTER,
 		   "PROC_UnMap DRV_GetDMMResElement "
 		   "pMapAddr:[0x%x]", pMapAddr);
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	/* Update the node and stream resource status */
 	PRCS_GetCurrentHandle(&hProcess);
 	res_status = CFG_GetObject((u32 *)&hDrvObject, REG_DRV_OBJECT);
-	if (!DSP_SUCCEEDED(res_status))
+	if (DSP_FAILED(res_status))
 		goto func_end;
 
 	DRV_GetProcContext((u32)hProcess, (struct DRV_OBJECT *)hDrvObject,

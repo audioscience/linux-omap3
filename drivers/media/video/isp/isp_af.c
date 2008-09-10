@@ -91,7 +91,7 @@ static struct isp_af_status {
 
 	u32 frame_count;
 	wait_queue_head_t stats_wait;
-	spinlock_t buffer_lock;
+	spinlock_t buffer_lock;		/* For stats buffers read/write sync */
 } afstat;
 
 struct af_device *af_dev_configptr;
@@ -793,7 +793,7 @@ void __exit isp_af_exit(void)
 	int i;
 
 	if (afstat.af_buff) {
-	/* Free buffers */
+		/* Free buffers */
 		for (i = 0; i < H3A_MAX_BUFF; i++) {
 			ispmmu_unmap(afstat.af_buff[i].ispmmu_addr);
 			dma_free_coherent(NULL,

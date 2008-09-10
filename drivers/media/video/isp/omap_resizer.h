@@ -1,9 +1,13 @@
 /*
- * drivers/media/video/omap/isp/omap_resizer.h
+ * drivers/media/video/isp/omap_resizer.h
  *
- * Include file for Resizer module wrapper in TI's OMAP3430 ISP
+ * Header file for Resizer module wrapper in TI's OMAP3430 ISP
  *
- * Copyright (C) 2007 Texas Instruments, Inc.
+ * Copyright (C) 2008 Texas Instruments, Inc.
+ *
+ * Contributors:
+ * 	Sergio Aguirre <saaguirre@ti.com>
+ * 	Troy Laramy <t-laramy@ti.com>
  *
  * This package is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -51,9 +55,8 @@
 #define RATIO_MULTIPLIER		256
 
 /* Bit position Macro */
-/* macro for bit set and clear */
-#define BITSET(variable, bit)		(variable) | (1 << bit)
-#define BITRESET(variable, bit)		(variable) & ~(0x00000001 << (bit))
+#define BITSET(variable, bit)		((variable) | (1 << bit))
+#define BITRESET(variable, bit)		((variable) & ~(0x00000001 << (bit)))
 #define SET_BIT_INPUTRAM		28
 #define SET_BIT_CBLIN			29
 #define SET_BIT_INPTYP			27

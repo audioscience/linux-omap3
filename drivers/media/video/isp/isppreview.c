@@ -5,6 +5,10 @@
  *
  * Copyright (C) 2008 Texas Instruments, Inc.
  *
+ * Contributors:
+ *	Senthilvadivu Guruswamy <svadivu@ti.com>
+ *	Pallavi Kulkarni <p-kulkarni@ti.com>
+ *
  * This package is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
@@ -14,16 +18,16 @@
  * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include <linux/io.h>
+#include <linux/errno.h>
 #include <linux/mutex.h>
 #include <linux/module.h>
-#include <linux/errno.h>
 #include <linux/types.h>
-#include <asm/io.h>
+#include <linux/uaccess.h>
 
 #include "isp.h"
 #include "ispreg.h"
 #include "isppreview.h"
-#include <asm/uaccess.h>
 
 static struct ispprev_nf prev_nf_t;
 static struct prev_params *params;
@@ -92,7 +96,7 @@ static struct ispprev_csc flr_prev_csc[] = {
 			{0x0, 0x0, 0x0}
 	},
 	{
-		{	/* CSC Coef Matrix Sepia*/
+		{	/* CSC Coef Matrix Sepia */
 			{19, 38, 7},
 			{0, 0, 0},
 			{0, 0, 0}
@@ -100,7 +104,7 @@ static struct ispprev_csc flr_prev_csc[] = {
 			{0x0, 0xE7, 0x14}
 	},
 	{
-		{	/* CSC Coef Matrix BW*/
+		{	/* CSC Coef Matrix BW */
 			{66, 129, 25},
 			{0, 0, 0},
 			{0, 0, 0}
@@ -179,7 +183,7 @@ static struct isp_prev {
 	u8 contrast;
 	enum preview_color_effect color;
 	enum cfa_fmt cfafmt;
-	struct mutex ispprev_mutex;
+	struct mutex ispprev_mutex; /* For checking/modifying prev_inuse */
 } ispprev_obj;
 
 /* Saved parameters */
@@ -429,7 +433,7 @@ EXPORT_SYMBOL(omap34xx_isp_preview_config);
 
 /**
  * omap34xx_isp_tables_update - Abstraction layer Tables update.
- * @isp_table_update: Pointer from Userspace to structure with flags and table
+ * @isptables_struct: Pointer from Userspace to structure with flags and table
  *                 data to update.
  **/
 int omap34xx_isp_tables_update(struct isptables_update *isptables_struct)
@@ -1680,7 +1684,7 @@ EXPORT_SYMBOL(isppreview_enable);
  **/
 int isppreview_busy(void)
 {
-	return (omap_readl(ISPPRV_PCR) & ISPPRV_PCR_BUSY);
+	return omap_readl(ISPPRV_PCR) & ISPPRV_PCR_BUSY;
 }
 EXPORT_SYMBOL(isppreview_busy);
 

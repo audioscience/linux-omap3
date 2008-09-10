@@ -759,7 +759,7 @@
 
 #define PRCM_WAKEUP_T2_KEYPAD	0x1
 #define PRCM_WAKEUP_TOUCHSCREEN	0x2
-#define PRCM_WAKEUP_UART	0x4
+#define PRCM_WAKEUP_UART		0x4
 
 /* PRM_VC_SMPS_SA */
 #define PRM_VC_SMPS_SA1_SHIFT	16
@@ -780,43 +780,43 @@
 #define PRM_VC_SMPS_CMDRA0_MASK		(0xFF << 0)
 
 /* PRM_VC_CMD_VAL_0 specific bits */
-#define PRM_VC_CMD_VAL0_ON		0x30
+#define PRM_VC_CMD_VAL0_ON			0x30
 #define PRM_VC_CMD_VAL0_ONLP		0x18
-#define PRM_VC_CMD_VAL0_RET		0x18
-#define PRM_VC_CMD_VAL0_OFF		0x18
+#define PRM_VC_CMD_VAL0_RET			0x18
+#define PRM_VC_CMD_VAL0_OFF			0x18
 
 /* PRM_VC_CMD_VAL_1 specific bits */
-#define PRM_VC_CMD_VAL1_ON		0x2C
+#define PRM_VC_CMD_VAL1_ON			0x2C
 #define PRM_VC_CMD_VAL1_ONLP		0x18
-#define PRM_VC_CMD_VAL1_RET		0x18
-#define PRM_VC_CMD_VAL1_OFF		0x18
+#define PRM_VC_CMD_VAL1_RET			0x18
+#define PRM_VC_CMD_VAL1_OFF			0x18
 
-#define PRM_VC_CMD_ON_SHIFT		24
-#define PRM_VC_CMD_ON_MASK		(0xFF << 24)
+#define PRM_VC_CMD_ON_SHIFT			24
+#define PRM_VC_CMD_ON_MASK			(0xFF << 24)
 #define PRM_VC_CMD_ONLP_SHIFT		16
 #define PRM_VC_CMD_ONLP_MASK		(0xFF << 16)
 #define PRM_VC_CMD_RET_SHIFT		8
-#define PRM_VC_CMD_RET_MASK		(0xFF << 8)
+#define PRM_VC_CMD_RET_MASK			(0xFF << 8)
 #define PRM_VC_CMD_OFF_SHIFT		0
-#define PRM_VC_CMD_OFF_MASK		(0xFF << 0)
+#define PRM_VC_CMD_OFF_MASK			(0xFF << 0)
 
 /* PRM_VC_BYPASS_VAL */
-#define PRM_VC_BYPASS_VALID		(0x1 << 24)
-#define PRM_VC_BYPASS_DATA_SHIFT	16
-#define PRM_VC_BYPASS_DATA_MASK		(0xFF << 16)
-#define PRM_VC_BYPASS_REGADDR_SHIFT	8
-#define PRM_VC_BYPASS_REGADDR_MASK	(0xFF << 8)
+#define PRM_VC_BYPASS_VALID				(0x1 << 24)
+#define PRM_VC_BYPASS_DATA_SHIFT		16
+#define PRM_VC_BYPASS_DATA_MASK			(0xFF << 16)
+#define PRM_VC_BYPASS_REGADDR_SHIFT		8
+#define PRM_VC_BYPASS_REGADDR_MASK		(0xFF << 8)
 #define PRM_VC_BYPASS_SLAVEADDR_SHIFT	0
 #define PRM_VC_BYPASS_SLAVEADDR_MASK	(0x7F << 0)
 
 /* PRM_VC_CH_CONF */
-#define PRM_VC_CH_CONF_CMD1		(0x1 << 20)
-#define PRM_VC_CH_CONF_RAV1		(0x1 << 17)
+#define PRM_VC_CH_CONF_CMD1			(0x1 << 20)
+#define PRM_VC_CH_CONF_RAV1			(0x1 << 17)
 
 /* PRM_VC_I2C_CFG */
 #define PRM_VC_I2C_CFG_MCODE		0x0
-#define PRM_VC_I2C_CFG_HSEN		(0x1 << 3)
-#define PRM_VC_I2C_CFG_SREN		(0x1 << 4)
+#define PRM_VC_I2C_CFG_HSEN			(0x1 << 3)
+#define PRM_VC_I2C_CFG_SREN			(0x1 << 4)
 #define PRM_VC_I2C_CFG_HSMASTER		(0x1 << 5)
 
 /* PRM_VOLTCTRL */
@@ -828,8 +828,8 @@
 
 /* Constants to define setup durations */
 #define PRM_CLKSETUP_DURATION		0xFF
-#define PRM_VOLTSETUP_TIME2		0xFFF
-#define PRM_VOLTSETUP_TIME1		0xFFF
+#define PRM_VOLTSETUP_TIME2			0xFFF
+#define PRM_VOLTSETUP_TIME1			0xFFF
 #define PRM_VOLTOFFSET_DURATION		0xFF
 #define PRM_VOLTSETUP2_DURATION		0xFF
 
@@ -838,22 +838,22 @@
 #define PRM_VOLTSETUP_TIME1_OFFSET	0
 
 /* PRM_POLCTRL */
-#define PRM_POL_SYSOFFMODE		0x8
+#define PRM_POL_SYSOFFMODE			0x8
 
 /* PRM_IRQENABLE_MPU */
 #define PRM_VC_TIMEOUTERR_EN		(0x1 << 24)
-#define PRM_VC_RAERR_EN			(0x1 << 23)
-#define PRM_VC_SAERR_EN			(0x1 << 22)
+#define PRM_VC_RAERR_EN				(0x1 << 23)
+#define PRM_VC_SAERR_EN				(0x1 << 22)
 
 /* PRM_IRQSTATUS_MPU */
 #define PRM_VC_TIMEOUTERR_ST		(0x1 << 24)
-#define PRM_VC_RAERR_ST			(0x1 << 23)
-#define PRM_VC_SAERR_ST			(0x1 << 22)
+#define PRM_VC_RAERR_ST				(0x1 << 23)
+#define PRM_VC_SAERR_ST				(0x1 << 22)
 
 /* T2 SMART REFLEX */
-#define R_SRI2C_SLAVE_ADDR		0x12
-#define R_VDD1_SR_CONTROL		0x00
-#define R_VDD2_SR_CONTROL		0x01
+#define R_SRI2C_SLAVE_ADDR			0x12
+#define R_VDD1_SR_CONTROL			0x00
+#define R_VDD2_SR_CONTROL			0x01
 #define T2_SMPS_UPDATE_DELAY		360	/* In uSec */
 
 /* GPTimer wait delay */

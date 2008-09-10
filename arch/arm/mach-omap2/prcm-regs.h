@@ -27,20 +27,20 @@
 
 /* 16 bit uses LDRH/STRH, base +/- offset_8 */
 typedef struct { volatile u16 offset[256]; } __regbase16;
-#define __REGV16(vaddr)         ((__regbase16 *)((vaddr)&~0xff)) \
-					->offset[((vaddr)&0xff)>>1]
-#define __REG16(paddr)          __REGV16(io_p2v(paddr))
+#define __REGV16(vaddr)			((__regbase16 *)((vaddr)&~0xff)) \
+										->offset[((vaddr)&0xff)>>1]
+#define __REG16(paddr)			__REGV16(io_p2v(paddr))
 
 /* 8/32 bit uses LDR/STR, base +/- offset_12 */
 typedef struct { volatile u8 offset[4096]; } __regbase8;
-#define __REGV8(vaddr)          ((__regbase8  *)((vaddr)&~4095)) \
-					->offset[((vaddr)&4095)>>0]
-#define __REG8(paddr)           __REGV8(io_p2v(paddr))
+#define __REGV8(vaddr)			((__regbase8  *)((vaddr)&~4095)) \
+									->offset[((vaddr)&4095)>>0]
+#define __REG8(paddr)			__REGV8(io_p2v(paddr))
 
 typedef struct { volatile u32 offset[4096]; } __regbase32;
-#define __REGV32(vaddr)         ((__regbase32 *)((vaddr)&~4095)) \
-					->offset[((vaddr)&4095)>>2]
-#define __REG32(paddr)          __REGV32(io_p2v(paddr))
+#define __REGV32(vaddr)			((__regbase32 *)((vaddr)&~4095)) \
+									->offset[((vaddr)&4095)>>2]
+#define __REG32(paddr)			__REGV32(io_p2v(paddr))
 
 
 #define PRM_REG32(offset)	__REG32(PRM_BASE + (offset))
@@ -353,9 +353,9 @@ typedef struct { volatile u32 offset[4096]; } __regbase32;
 
 #else
 
-#define __REG8(paddr)           io_p2v(paddr)
-#define __REG16(paddr)          io_p2v(paddr)
-#define __REG32(paddr)          io_p2v(paddr)
+#define __REG8(paddr)			io_p2v(paddr)
+#define __REG16(paddr)			io_p2v(paddr)
+#define __REG32(paddr)			io_p2v(paddr)
 
 #endif
 

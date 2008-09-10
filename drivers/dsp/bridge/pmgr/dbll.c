@@ -708,7 +708,7 @@ DSP_STATUS DBLL_open(struct DBLL_TarObj *target, char *file, DBLL_Flags flags,
 	/*
 	 *  Set up objects needed by the dynamic loader
 	 */
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont;
 
 	/* Stream */
@@ -836,7 +836,7 @@ DSP_STATUS DBLL_readSect(struct DBLL_LibraryObj *lib, char *name,
 		}
 	}
 
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont;
 
 	uByteSize = 1;

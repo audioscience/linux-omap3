@@ -328,6 +328,7 @@ static inline int omap242x_sram_init(void)
 	return 0;
 }
 #endif
+
 #ifdef CONFIG_ARCH_OMAP2430
 int __init omap243x_sram_init(void)
 {

@@ -29,8 +29,8 @@
 #include <linux/uaccess.h>
 #include <linux/io.h>
 
-#include <asm/hardware.h>
-#include <asm/arch/dma.h>
+#include <mach/hardware.h>
+#include <mach/dma.h>
 #include <asm/mach-types.h>
 
 #include <sound/core.h>
@@ -38,11 +38,11 @@
 #include <sound/pcm.h>
 #include <sound/control.h>
 
-#include <asm/arch/omap-alsa.h>
+#include <mach/omap-alsa.h>
 #include <linux/i2c/twl4030.h>
 #if defined(CONFIG_ARCH_OMAP243X) || defined(CONFIG_ARCH_OMAP3430)
-#include <asm/arch/mcbsp.h>
-#include <asm/arch/clock.h>
+#include <mach/mcbsp.h>
+#include <mach/clock.h>
 #else
 #error "Unsupported configuration"
 #endif

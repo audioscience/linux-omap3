@@ -5,6 +5,10 @@
  *
  * Copyright (C) 2008 Texas Instruments, Inc.
  *
+ * Contributors:
+ *	Senthilvadivu Guruswamy <svadivu@ti.com>
+ *	Pallavi Kulkarni <p-kulkarni@ti.com>
+ *
  * This package is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
@@ -22,9 +26,9 @@
 #include <linux/types.h>
 #include <asm/mach-types.h>
 #include <mach/clock.h>
-#include <asm/io.h>
-#include <asm/scatterlist.h>
-#include <asm/uaccess.h>
+#include <linux/io.h>
+#include <linux/scatterlist.h>
+#include <linux/uaccess.h>
 
 #include "isp.h"
 #include "ispreg.h"
@@ -76,7 +80,7 @@ static struct isp_ccdc {
 	u8 syncif_ipmod;
 	u8 obclamp_en;
 	u8 lsc_en;
-	struct mutex mutexlock;
+	struct mutex mutexlock; /* For checking/modifying ccdc_inuse */
 } ispccdc_obj;
 
 static struct ispccdc_lsc_config lsc_config;
@@ -1161,13 +1165,13 @@ int ispccdc_config_size(u32 input_w, u32 input_h, u32 output_w, u32 output_h)
 					ISPCCDC_VDINT_1_SHIFT), ISPCCDC_VDINT);
 
 	} else if (ispccdc_obj.ccdc_outfmt == CCDC_OTHERS_MEM) {
-		if (!cpu_is_omap3410()) {
-			omap_writel(1 << ISPCCDC_HORZ_INFO_SPH_SHIFT |
+		if (cpu_is_omap3410()) {
+			omap_writel(0 << ISPCCDC_HORZ_INFO_SPH_SHIFT |
 						((ispccdc_obj.ccdcout_w - 1) <<
 						ISPCCDC_HORZ_INFO_NPH_SHIFT),
 						ISPCCDC_HORZ_INFO);
 		} else {
-			omap_writel(0 << ISPCCDC_HORZ_INFO_SPH_SHIFT |
+			omap_writel(1 << ISPCCDC_HORZ_INFO_SPH_SHIFT |
 						((ispccdc_obj.ccdcout_w - 1) <<
 						ISPCCDC_HORZ_INFO_NPH_SHIFT),
 						ISPCCDC_HORZ_INFO);
@@ -1333,7 +1337,7 @@ EXPORT_SYMBOL(ispccdc_enable);
  **/
 int ispccdc_busy(void)
 {
-	return (omap_readl(ISPCCDC_PCR) & ISPCCDC_PCR_BUSY);
+	return omap_readl(ISPCCDC_PCR) & ISPCCDC_PCR_BUSY;
 }
 EXPORT_SYMBOL(ispccdc_busy);
 

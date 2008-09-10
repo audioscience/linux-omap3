@@ -5,6 +5,10 @@
  *
  * Copyright (C) 2008 Texas Instruments.
  *
+ * Contributors:
+ *	Senthilvadivu Guruswamy <svadivu@ti.com>
+ *	Thara Gopinath <thara@ti.com>
+ *
  * This package is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
@@ -35,7 +39,7 @@
 #define ISPMMU_L2D_M_ACCESSBASED	(1 << 11)
 #define ISPMMU_L2D_E_BIGENDIAN		(1 << 9)
 #define ISPMMU_L2D_ES_SHIFT		4
-#define ISPMMU_L2D_ES_MASK		~(3 << 4)
+#define ISPMMU_L2D_ES_MASK		(~(3 << 4))
 #define ISPMMU_L2D_ES_8BIT		0
 #define ISPMMU_L2D_ES_16BIT		1
 #define ISPMMU_L2D_ES_32BIT		2
@@ -68,7 +72,7 @@
 #define ISPMMU_TTB_MISALIGN_SIZE	0x3000
 
 #ifdef CONFIG_ARCH_OMAP3410
-#include <asm/scatterlist.h>
+#include <linux/scatterlist.h>
 #endif
 
 enum ISPMMU_MAP_ENDIAN {
@@ -111,4 +115,3 @@ void ispmmu_save_context(void);
 void ispmmu_restore_context(void);
 
 #endif /* OMAP_ISP_MMU_H */
-

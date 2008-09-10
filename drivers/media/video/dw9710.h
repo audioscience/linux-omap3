@@ -1,20 +1,20 @@
 /*
  * drivers/media/video/dw9710.h
  *
- * Copyright (C) 2008 Texas Instruments.
- *
- * This package is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * THIS PACKAGE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
- * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
- * Copyright (C) 2007 Texas Instruments.
- *
  * Register defines for Auto Focus device
  *
+ * Copyright (C) 2008 Texas Instruments.
+ *
+ * Contributors:
+ * 	Troy Laramy <t-laramy@ti.com>
+ * 	Mohit Jalori <mjalori@ti.com>
+ *
+ * This file is licensed under the terms of the GNU General Public License
+ * version 2. This program is licensed "as is" without any warranty of any
+ * kind, whether express or implied.
+ *
  */
+
 #ifndef CAMAF_DW9710_H
 #define CAMAF_DW9710_H
 
@@ -32,23 +32,13 @@
 #define CAMAF_DW9710_DATA_R(ARG)	(((ARG) >> 6) & 0xFF)
 #define CAMAF_FREQUENCY_EQ1(mclk)     	((u16)(mclk/16000))
 
-
-
-/* ioctls definition */
-#define		AF_IOC_BASE			       'R'
-#define		AF_IOC_MAXNR				2
-
-/*Ioctl options which are to be passed while calling the ioctl*/
-#define	AF_SET_POSITION		_IOWR(AF_IOC_BASE, 1, int)
-#define	AF_GET_POSITION		_IOWR(AF_IOC_BASE, 2, int)
-
 /* State of lens */
-#define LENS_DETECTED 1
-#define LENS_NOT_DETECTED 0
+#define LENS_DETECTED 		1
+#define LENS_NOT_DETECTED	0
 
 /* Focus control values */
-#define DEF_LENS_POSN	    0x7F
-#define LENS_POSN_STEP      1
+#define DEF_LENS_POSN		0x7F
+#define LENS_POSN_STEP		1
 
 
 /**

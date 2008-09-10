@@ -343,7 +343,7 @@ DSP_STATUS DEV_CreateDevice(OUT struct DEV_OBJECT **phDevObject,
 		/* Create CMM mgr even if Msg Mgr not impl.  */
 		status = CMM_Create(&pDevObject->hCmmMgr,
 				   (struct DEV_OBJECT *)pDevObject, NULL);
-		if (!DSP_SUCCEEDED(status)) {
+		if (DSP_FAILED(status)) {
 			GT_0trace(debugMask, GT_7CLASS,
 				  "DEV_Create: Failed to Create SM "
 				  "Manager\n");
@@ -362,7 +362,7 @@ DSP_STATUS DEV_CreateDevice(OUT struct DEV_OBJECT **phDevObject,
 		/* Create DMM mgr .  */
 		status = DMM_Create(&pDevObject->hDmmMgr,
 				   (struct DEV_OBJECT *)pDevObject, NULL);
-		if (!DSP_SUCCEEDED(status)) {
+		if (DSP_FAILED(status)) {
 			GT_0trace(debugMask, GT_7CLASS,
 				  "DEV_Create: Failed to Create DMM "
 				  "Manager\n");
@@ -432,7 +432,7 @@ DSP_STATUS CDECL DEV_Create2(struct DEV_OBJECT *hDevObject)
 	/* There can be only one Node Manager per DEV object */
 	DBC_Assert(!pDevObject->hNodeMgr);
 	status = NODE_CreateMgr(&pDevObject->hNodeMgr, hDevObject);
-	if (!DSP_SUCCEEDED(status)) {
+	if (DSP_FAILED(status)) {
 		GT_1trace(debugMask, GT_7CLASS,
 			 "DEV_Create2: NODE_CreateMgr failed, "
 			 "0x%x!\n", status);

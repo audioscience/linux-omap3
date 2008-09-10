@@ -46,7 +46,6 @@
 #include <linux/dma-mapping.h>
 #include <media/v4l2-dev.h>
 #include <media/v4l2-ioctl.h>
-
 #ifdef CONFIG_PM
 #include <linux/notifier.h>
 #include <linux/pm.h>

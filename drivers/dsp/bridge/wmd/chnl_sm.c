@@ -335,7 +335,7 @@ DSP_STATUS WMD_CHNL_CancelIO(struct CHNL_OBJECT *hChnl)
 	} else {
 		status = DSP_EHANDLE;
 	}
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	 /*  Mark this channel as cancelled, to prevent further IORequests or
@@ -589,7 +589,7 @@ DSP_STATUS WMD_CHNL_FlushIO(struct CHNL_OBJECT *hChnl, u32 dwTimeOut)
 			      DSP_SUCCEEDED(status)) {
 				status = WMD_CHNL_GetIOC(hChnl, dwTimeOut,
 							 &chnlIOC);
-				if (!DSP_SUCCEEDED(status))
+				if (DSP_FAILED(status))
 					continue;
 
 				if (chnlIOC.status & CHNL_IOCSTATTIMEOUT)
@@ -669,7 +669,7 @@ DSP_STATUS WMD_CHNL_GetIOC(struct CHNL_OBJECT *hChnl, u32 dwTimeOut,
 			status = CHNL_E_NOIOC;
 
 	}
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	ioc.status = CHNL_IOCSTATCOMPLETE;
@@ -898,7 +898,7 @@ DSP_STATUS WMD_CHNL_Open(OUT struct CHNL_OBJECT **phChnl,
 			}
 		}
 	}
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	DBC_Assert(uChnlId < pChnlMgr->cChannels);

@@ -1,9 +1,12 @@
 /*
- * arch/arm/plat-omap/include/mach/isp_user.h
+ * include/asm-arm/arch-omap/isp_user.h
  *
  * Include file for OMAP ISP module in TI's OMAP3430.
  *
  * Copyright (C) 2008 Texas Instruments, Inc.
+ *
+ * Contributors:
+ *	Mohit Jalori <mjalori@ti.com>
  *
  * This package is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -135,9 +138,7 @@ struct isp_hist_config {
 };
 
 struct isp_hist_data {
-
 	u32 *hist_statistics_buf;	/* Pointer to pass to user */
-
 };
 
 /* Auto Focus related structs */
@@ -253,7 +254,6 @@ struct af_configuration {
 	enum af_mode mode;		/*Accumulator mode */
 	enum af_config_flag af_config; /*Flag indicates Engine is configured */
 };
-
 
 /* ISP CCDC structs */
 
@@ -377,7 +377,6 @@ struct ispccdc_vp {
 	enum vpif_freq freq_sel;
 };
 
-
 /**
  * ispccdc_culling - Structure for Culling parameters.
  * @v_pattern: Vertical culling pattern.
@@ -415,7 +414,7 @@ struct ispccdc_update_config {
 	u8 *lsc;
 };
 
-/* Preivew configuration */
+/* Preview configuration */
 
 /*Abstraction layer preview configurations*/
 #define ISP_ABS_PREV_LUMAENH		(1 << 0)
@@ -615,4 +614,4 @@ struct ispprv_update_config {
 	u32 *blue_gamma;
 };
 
-#endif
+#endif /* OMAP_ISP_USER_H */

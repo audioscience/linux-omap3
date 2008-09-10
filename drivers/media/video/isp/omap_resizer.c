@@ -1,9 +1,13 @@
 /*
- * drivers/media/video/omap/isp/omap_resizer.c
+ * drivers/media/video/isp/omap_resizer.c
  *
  * Wrapper for Resizer module in TI's OMAP3430 ISP
  *
- * Copyright (C) 2007 Texas Instruments, Inc.
+ * Copyright (C) 2008 Texas Instruments, Inc.
+ *
+ * Contributors:
+ * 	Sergio Aguirre <saaguirre@ti.com>
+ * 	Troy Laramy <t-laramy@ti.com>
  *
  * This package is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -22,13 +26,10 @@
 #include <linux/mm.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
-#include <linux/time.h>
+#include <linux/io.h>
+#include <linux/uaccess.h>
 #include <media/v4l2-dev.h>
 #include <asm/cacheflush.h>
-#include <asm/uaccess.h>
-#include <asm/io.h>
-#include <mach/io.h>
-#include <asm/scatterlist.h>
 
 #include "isp.h"
 #include "ispmmu.h"

@@ -5,6 +5,13 @@
  * TI's OMAP3430 Camera ISP
  *
  * Copyright (C) 2008 Texas Instruments.
+ * Copyright (C) 2008 Nokia.
+ *
+ * Contributors:
+ * 	Sameer Venkatraman <sameerv@ti.com>
+ * 	Mohit Jalori <mjalori@ti.com>
+ * 	Sakari Ailus <sakari.ailus@nokia.com>
+ * 	Tuukka Toivonen <tuukka.o.toivonen@nokia.com>
  *
  * This package is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -14,6 +21,7 @@
  * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
  * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
+
 #ifndef OMAP_ISP_TOP_H
 #define OMAP_ISP_TOP_H
 #include <media/videobuf-dma-sg.h>
@@ -156,7 +164,7 @@ struct isp_sgdma_state {
  */
 struct isp_sgdma {
 	dma_addr_t isp_addr_capture[VIDEO_MAX_FRAME];
-	spinlock_t lock;
+	spinlock_t lock;	/* For handling current buffer */
 	int free_sgdma;
 	int next_sgdma;
 	struct isp_sgdma_state sg_state[NUM_SG_DMA];
@@ -318,5 +326,23 @@ void isp_save_ctx(void);
 void isp_restore_ctx(void);
 
 void isp_print_status(void);
+
+
+int __init isp_ccdc_init(void);
+int __init isp_hist_init(void);
+int __init isph3a_aewb_init(void);
+int __init ispmmu_init(void);
+int __init isp_preview_init(void);
+int __init isp_resizer_init(void);
+int __init isp_af_init(void);
+
+void __exit isp_ccdc_cleanup(void);
+void __exit isp_hist_cleanup(void);
+void __exit isph3a_aewb_cleanup(void);
+void __exit ispmmu_cleanup(void);
+void __exit isp_preview_cleanup(void);
+void __exit isp_hist_cleanup(void);
+void __exit isp_resizer_cleanup(void);
+void __exit isp_af_exit(void);
 
 #endif	/* OMAP_ISP_TOP_H */
