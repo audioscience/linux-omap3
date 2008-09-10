@@ -27,6 +27,7 @@
 #include <mach/prcm_34xx.h>
 #include <asm/io.h>
 #include <mach/gpmc.h>
+#include <mach/power_companion.h>
 
 #include "prcm-regs.h"
 #include "ti-compat.h"

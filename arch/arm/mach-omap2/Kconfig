@@ -130,8 +130,8 @@ config OMAP3_PM
 
 choice
 	prompt "Choose Voltage Scale method"
-	depends on ARCH_OMAP34XX && OMAP3430_ES2 && OMAP3_PM
-	default OMAP_VOLT_SR_BYPASS
+	depends on ARCH_OMAP34XX && OMAP3_PM
+	default OMAP_VOLT_VSEL
 
 config OMAP_VOLT_SR_BYPASS
 	bool "Voltage Scale via Smart Reflex in bypass"
