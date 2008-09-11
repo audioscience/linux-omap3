@@ -42,6 +42,9 @@ static DEFINE_MUTEX(input_mutex);
 
 static struct input_handler *input_table[8];
 
+extern void schedule_console_callback(void);
+extern int do_poke_blanked_console;
+
 static inline int is_event_supported(unsigned int code,
 				     unsigned long *bm, unsigned int max)
 {
@@ -267,6 +270,9 @@ void input_event(struct input_dev *dev,
 		 unsigned int type, unsigned int code, int value)
 {
 	unsigned long flags;
+
+	do_poke_blanked_console = 1;
+	schedule_console_callback();
 
 	if (is_event_supported(type, dev->evbit, EV_MAX)) {
 
