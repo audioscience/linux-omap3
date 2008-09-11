@@ -102,7 +102,7 @@ struct domain_registers dom_reg[PRCM_NUM_DOMAINS] = {
 			{0x43FFFE01,	(u32 *)&CM_FCLKEN1_CORE},
 			{0x7FFFFED3, 	(u32 *)&CM_ICLKEN1_CORE},
 			{0x7FFFFFF7, 	(u32 *)&CM_IDLEST1_CORE},
-			{0x7FFFFED1,	(u32 *)&CM_AUTOIDLE1_CORE},
+			{0x7FFFFED9,	(u32 *)&CM_AUTOIDLE1_CORE},
 			{0x433FFE10,	(u32 *)&PM_WKEN1_CORE},
 			{0x433FFE10,	(u32 *)&PM_WKST1_CORE},
 			{0x0F,		(u32 *)&CM_CLKSTCTRL_CORE},
@@ -384,8 +384,8 @@ struct reg_def clksel_reg[PRCM_NO_OF_CLKS] = {
 	{0x38, (u32 *)&CM_CLKOUT_CTRL},	/* SYS_CLOCKOUT2 */
 	{0x7, (u32 *)&CM_CLKSEL_SGX},	/* SGX_L3_FCLK */
 	{0xF00, (u32 *)&CM_CLKSEL_CORE},	/* SSI */
-	{0x180000, (u32 *)&CM_CLKSEL1_PLL_MPU},	/* DPLL1_FCLK */
-	{0x180000, (u32 *)&CM_CLKSEL1_PLL_IVA2},	/* DPLL2_FCLK */
+	{0x380000, (u32 *)&CM_CLKSEL1_PLL_MPU},	/* DPLL1_FCLK */
+	{0x380000, (u32 *)&CM_CLKSEL1_PLL_IVA2},	/* DPLL2_FCLK */
 	{0x78, (u32 *)&CM_CLKSEL_WKUP}, 	/* USIM_FCLK */
 
 };
@@ -484,7 +484,7 @@ u32 div_arr[] = {
 	/* sgx divs */
 	3, 4, 6, 0, 0, 0,
 	/* SSI divs */
-	1, 2, 3, 4, 5, 6,
+	1, 2, 3, 4, 6, 8,
 	/* dpll1 fclk divs */
 	1, 2, 4, 0, 0, 0,
 	/* dpll2 fclk divs */
@@ -4217,6 +4217,7 @@ int prcm_set_chip_power_mode(struct system_power_state *target_state,
 {
 	int ret;
 	struct system_power_state current_state;
+	u32 sdrc_power_register;
 	u8 state;
 	u32 prcm_id;
 
@@ -4356,9 +4357,20 @@ int prcm_set_chip_power_mode(struct system_power_state *target_state,
 	PM_WKEN_WKUP |= 0x100;
 #endif /* #ifdef IOPAD_WKUP */
 
+	if (!is_device_type_gp() && is_sil_rev_equal_to(OMAP3430_REV_ES3_0)) {
+		sdrc_power_register = SDRC_PWR;
+		SDRC_PWR &= ~(SDRC_PWR_AUTOCOUNT_MASK | SDRC_PWR_CLKCTRL_MASK);
+		SDRC_PWR |= 0x120;
+		if (target_state->core_state == PRCM_CORE_OFF)
+			save_scratchpad_contents();
+	}
+
 	/* Jump to SRAM to execute idle */
 	if (ret == PRCM_PASS)
 		omap_sram_idle();
+
+	if (!is_device_type_gp() && is_sil_rev_equal_to(OMAP3430_REV_ES3_0))
+		SDRC_PWR = sdrc_power_register;
 
 #ifdef IOPAD_WKUP
 	/* Disabling IO_PAD capabilities */

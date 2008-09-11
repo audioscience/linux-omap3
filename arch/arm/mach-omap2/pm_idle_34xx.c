@@ -425,6 +425,7 @@ static int omap3_enter_idle(struct cpuidle_device *dev,
 	u8 cur_per_state, cur_neon_state, pre_neon_state, pre_per_state;
 	struct timespec ts_preidle, ts_postidle, ts_idle;
 	u32 fclken_core, iclken_core, fclken_per, iclken_per;
+	u32 sdrc_power_register;
 	int wakeup_latency;
 	int core_sleep_flg = 0;
 #ifdef CONFIG_ENABLE_SWLATENCY_MEASURE
@@ -607,12 +608,22 @@ static int omap3_enter_idle(struct cpuidle_device *dev,
 #ifdef CONFIG_DISABLE_HFCLK
 	PRM_CLKSRC_CTRL |= 0x18; /* set sysclk to stop */
 #endif /* #ifdef CONFIG_DISABLE_HFCLK */
+	if (!is_device_type_gp() && is_sil_rev_equal_to(OMAP3430_REV_ES3_0)) {
+		sdrc_power_register = SDRC_PWR;
+		SDRC_PWR &= ~(SDRC_PWR_AUTOCOUNT_MASK | SDRC_PWR_CLKCTRL_MASK);
+		SDRC_PWR |= 0x120;
+		if (target_state.core_state == PRCM_CORE_OFF)
+			save_scratchpad_contents();
+	}
 
 #ifdef CONFIG_ENABLE_SWLATENCY_MEASURE
 	sw_latency_arr[swlat_arr_wrptr].sleep_end = omap_32k_sync_timer_read();
 	idle_status++;
 #endif /* #ifdef CONFIG_ENABLE_SWLATENCY_MEASURE */
 	omap_sram_idle();
+
+	if (!is_device_type_gp() && is_sil_rev_equal_to(OMAP3430_REV_ES3_0))
+		SDRC_PWR = sdrc_power_register;
 
 restore:
 #ifdef CONFIG_DISABLE_HFCLK

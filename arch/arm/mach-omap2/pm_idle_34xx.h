@@ -48,6 +48,7 @@ extern int enable_debug;
 extern int lpr_enabled;
 extern void omap2_gp_timer_program_next_event(unsigned long cycles);
 extern void omap_sram_idle(void);
+extern void save_scratchpad_contents(void);
 extern unsigned long omap_32k_sync_timer_read(void);
 extern struct system_power_state target_state;
 
