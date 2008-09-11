@@ -343,7 +343,7 @@ static int snd_card_omap_alsa_open(struct snd_pcm_substream *substream)
 
 	ADEBUG();
 	chip->s[stream_id].stream = substream;
-	alsa_codec_config->codec_clock_on();
+	alsa_codec_config->codec_clock_on(1);
 	if (stream_id == SNDRV_PCM_STREAM_PLAYBACK)
 		runtime->hw = *(alsa_codec_config->snd_omap_alsa_playback);
 	else
@@ -375,7 +375,7 @@ static int snd_card_omap_alsa_close(struct snd_pcm_substream *substream)
 	struct snd_card_omap_codec *chip = snd_pcm_substream_chip(substream);
 
 	ADEBUG();
-	alsa_codec_config->codec_clock_off();
+	alsa_codec_config->codec_clock_off(1);
 	chip->s[substream->pstr->stream].stream = NULL;
 
 	return 0;
@@ -479,7 +479,7 @@ int snd_omap_alsa_suspend(struct platform_device *pdev, pm_message_t state)
 						SNDRV_CTL_POWER_D3hot);
 			snd_pcm_suspend_all(chip->pcm);
 			/* Mutes and turn clock off */
-			alsa_codec_config->codec_clock_off();
+			alsa_codec_config->codec_clock_off(0);
 			snd_omap_suspend_mixer();
 		}
 	}
@@ -495,7 +495,7 @@ int snd_omap_alsa_resume(struct platform_device *pdev)
 		chip = card->private_data;
 		if (chip->card->power_state != SNDRV_CTL_POWER_D0) {
 			snd_power_change_state(chip->card, SNDRV_CTL_POWER_D0);
-			alsa_codec_config->codec_clock_on();
+			alsa_codec_config->codec_clock_on(0);
 			snd_omap_resume_mixer();
 		}
 	}
@@ -541,7 +541,7 @@ int snd_omap_alsa_post_probe(struct platform_device *pdev,
 	alsa_codec_config	= config;
 	if (alsa_codec_config && alsa_codec_config->codec_clock_setup)
 	alsa_codec_config->codec_clock_setup();
-	alsa_codec_config->codec_clock_on();
+	alsa_codec_config->codec_clock_on(1);
 
 	if (!(cpu_is_omap2430() || cpu_is_omap34xx())) {
 	omap_mcbsp_request(AUDIO_MCBSP);
@@ -553,7 +553,7 @@ int snd_omap_alsa_post_probe(struct platform_device *pdev,
 	if (alsa_codec_config && alsa_codec_config->codec_configure_dev)
 		alsa_codec_config->codec_configure_dev();
 
-	alsa_codec_config->codec_clock_off();
+	alsa_codec_config->codec_clock_off(1);
 
 	/* register the soundcard */
 	card = snd_card_new(-1, id, THIS_MODULE, sizeof(alsa_codec));

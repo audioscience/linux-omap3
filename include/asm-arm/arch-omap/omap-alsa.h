@@ -123,8 +123,8 @@ struct omap_alsa_codec_config {
 	int	(*codec_set_samplerate)(long);
 	int	(*codec_set_stereomode)(int, int);
 	void	(*codec_clock_setup)(void);
-	int	(*codec_clock_on)(void);
-	int 	(*codec_clock_off)(void);
+	int	(*codec_clock_on)(int);
+	int 	(*codec_clock_off)(int);
 	int	(*get_default_samplerate)(void);
 };
 

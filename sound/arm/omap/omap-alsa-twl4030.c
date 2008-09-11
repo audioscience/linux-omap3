@@ -1664,15 +1664,17 @@ static int twl4030_default_samplerate(void)
 /*
  * omap_twl4030_initialize
  */
-static int omap_twl4030_initialize(void)
+static int omap_twl4030_initialize(int interface_enable)
 {
 	int ret = 0;
 
-	omap_mcbsp_set_io_type(AUDIO_MCBSP, 0);
-	ret = omap_mcbsp_request(AUDIO_MCBSP);
-	if (unlikely(ret)) {
-		printk(KERN_ERR " Request for MCBSP Failed[%d]\n", ret);
-		goto initialize_exit_path1;
+	if (interface_enable) {
+		omap_mcbsp_set_io_type(AUDIO_MCBSP, 0);
+		ret = omap_mcbsp_request(AUDIO_MCBSP);
+		if (unlikely(ret)) {
+			printk(KERN_ERR " Request for MCBSP Failed[%d]\n", ret);
+			goto initialize_exit_path1;
+		}
 	}
 
 #ifdef TWL_DUMP_REGISTERS
@@ -1711,14 +1713,12 @@ static int omap_twl4030_initialize(void)
 		printk(KERN_ERR "a2 twl4030_codec_off failed [%d]\n", ret);
 		goto initialize_exit_path2;
 	}
-	ret = twl4030_conf_data_interface();
-	if (ret) {
-		printk(KERN_ERR "Codec Data init failed [%d]\n", ret);
-		goto initialize_exit_path2;
-	}
-	if (ret) {
-		printk(KERN_ERR "register of ISR failed [%d]\n", ret);
-		goto initialize_exit_path3;
+	if (interface_enable) {
+		ret = twl4030_conf_data_interface();
+		if (ret) {
+			printk(KERN_ERR "Codec Data init failed [%d]\n", ret);
+			goto initialize_exit_path2;
+		}
 	}
 	ret = twl4030_codec_on();
 	if (unlikely(ret)) {
@@ -1760,10 +1760,12 @@ initialize_exit_path1:
 /*
  * omap_twl4030_shutdown
  */
-static int omap_twl4030_shutdown(void)
+static int omap_twl4030_shutdown(int interface_disable)
 {
-	(void)omap2_mcbsp_reset(AUDIO_MCBSP);
-	omap_mcbsp_free(AUDIO_MCBSP);
+	if (interface_disable) {
+		(void)omap2_mcbsp_reset(AUDIO_MCBSP);
+		omap_mcbsp_free(AUDIO_MCBSP);
+	}
 	twl4030_unconfigure();
 	return 0;
 }
@@ -1879,7 +1881,6 @@ int __devinit omap_twl4030_probe(struct platform_device *pdev)
 		codec_cfg->codec_set_stereomode = twl4030_stereomode_set;
 		codec_cfg->codec_clock_on = omap_twl4030_initialize;
 		codec_cfg->codec_clock_off = omap_twl4030_shutdown;
-		codec_cfg->get_default_samplerate = twl4030_default_samplerate;
 		codec_cfg->get_default_samplerate = twl4030_default_samplerate;
 		ret = snd_omap_alsa_post_probe(pdev, codec_cfg);
 	} else {
