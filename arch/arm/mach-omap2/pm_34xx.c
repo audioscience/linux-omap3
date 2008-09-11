@@ -45,6 +45,7 @@
 #include <linux/tick.h>
 #include <asm/arch/resource.h>
 #include <asm/arch/prcm_34xx.h>
+#include <asm/arch/cpu.h>
 #ifdef CONFIG_OMAP34XX_OFFMODE
 #include <asm/arch/io.h>
 #endif /* #ifdef CONFIG_OMAP34XX_OFFMODE */
@@ -602,7 +603,10 @@ void save_scratchpad_contents(void)
 	/* Get virtual address of SCRATCHPAD */
 	scratchpad_address = (u32 *) io_p2v(SCRATCHPAD);
 	/* Get Restore pointer to jump to while waking up from OFF */
-	restore_address = get_restore_pointer();
+	if (is_sil_rev_equal_to(OMAP3430_REV_ES3_0))
+		restore_address = get_es3_restore_pointer();
+	else
+		restore_address = get_restore_pointer();
 	/* Convert it to physical address */
 	restore_address = (u32 *) io_v2p(restore_address);
 	/* Get address where registers are saved in SDRAM */

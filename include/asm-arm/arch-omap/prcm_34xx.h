@@ -859,6 +859,9 @@
 /* GPTimer wait delay */
 #define GPTIMER_WAIT_DELAY		50	/* In usec */
 
+#define SDRC_PWR_AUTOCOUNT_MASK		(0xFFFF << 8)
+#define SDRC_PWR_CLKCTRL_MASK		(0x3 << 4)
+
 #define PRCM_SAVE(x) prcm_sleep_save[PRCM_SLEEP_SAVE_##x] = x
 #define PRCM_RESTORE(x) x = prcm_sleep_save[PRCM_SLEEP_SAVE_##x]
 #define PRCM_SHOW(x) prcm_sleep_save[PRCM_SLEEP_SAVE_##x]
@@ -1191,5 +1194,6 @@ extern int sr_voltagescale_vcbypass(u32 target_opp, u8 vsel);
 extern void prcm_printreg(u32 domainid);
 extern void omap_clear_dma(int lch);
 extern void omap3_save_secure_ram_context(u32 target_state);
+extern void save_scratchpad_contents(void);
 
 #endif

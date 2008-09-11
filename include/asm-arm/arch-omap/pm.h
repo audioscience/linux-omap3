@@ -170,6 +170,7 @@ extern void restore_sram_functions(void);
 extern void save_scratchpad_contents(void);
 extern void clear_scratchpad_contents(void);
 extern u32 *get_restore_pointer(void);
+extern u32 *get_es3_restore_pointer(void);
 
 #ifdef CONFIG_OMAP_SERIAL_WAKE
 extern void omap_serial_wake_trigger(int enable);
