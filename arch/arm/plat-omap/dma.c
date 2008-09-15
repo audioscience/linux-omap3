@@ -712,6 +712,7 @@ int omap_request_dma(int dev_id, const char *dev_name,
 	chan->dev_name = dev_name;
 	chan->callback = callback;
 	chan->data = data;
+	chan->flags = 0;
 
 #ifndef CONFIG_ARCH_OMAP1
 	if (cpu_class_is_omap2()) {
@@ -1233,7 +1234,7 @@ int omap_request_dma_chain(int dev_id, const char *dev_name,
 	/* request and reserve DMA channels for the chain */
 	for (i = 0; i < no_of_chans; i++) {
 		err = omap_request_dma(dev_id, dev_name,
-					callback, 0, &channels[i]);
+					callback, NULL, &channels[i]);
 		if (err < 0) {
 			int j;
 			for (j = 0; j < i; j++)
