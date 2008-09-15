@@ -1708,7 +1708,10 @@ static int omap34xxcam_probe(struct platform_device *pdev)
 	isp_sysconfig.reset = 0;
 	isp_sysconfig.idle_mode = 1;
 	isp_power_settings(isp_sysconfig);
-	isp_put();
+	/*
+	 * TODO: This is workaround for clk_enable crash, need to address
+	 */
+/*	isp_put();*/
 
 	for (i = 0; i < OMAP34XXCAM_VIDEODEVS; i++) {
 		struct omap34xxcam_videodev *vdev = &cam->vdevs[i];
@@ -1774,7 +1777,10 @@ static int omap34xxcam_remove(struct platform_device *pdev)
 		release_mem_region(cam->mmio_base_phys, cam->mmio_size);
 		cam->mmio_base_phys = 0;
 	}
-
+	/*
+	 * TODO: This is workaround for clk_enable crash, need to address
+	 */
+	isp_put();
 	kfree(cam);
 
 	return 0;

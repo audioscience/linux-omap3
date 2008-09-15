@@ -189,6 +189,7 @@ struct isp_sgdma ispsg;
  * @mode: Interlaced or progressive capture.
  * @current_field: Current field for interlaced capture.
  * @input_pixelformat: Pixel format of decoder/sensor.
+ * @prev_irq: Stores the previous interrupt - HS_VS, CCDC_VD0 or CCDC_VD1.
  */
 struct ispmodule {
 	unsigned int isp_pipeline;
@@ -210,6 +211,7 @@ struct ispmodule {
 	enum capture_mode mode;
 	int current_field;
 	__u32 input_pixelformat;
+	enum isp_irqevents prev_irq;
 };
 
 /**
@@ -285,6 +287,7 @@ static struct ispmodule ispmodule_obj = {
 	.mode = MODE_PROGRESSIVE,
 	.current_field = 0,
 	.input_pixelformat = V4L2_PIX_FMT_UYVY,
+	.prev_irq = HS_VS,
 };
 
 /* Structure for saving/restoring ISP module registers */
@@ -1393,18 +1396,13 @@ void isp_vbq_done(unsigned long status, isp_vbq_callback_ptr arg1, void *arg2)
 	case CCDC_VD0:
 		if (ispmodule_obj.mode == MODE_INTERLACED) {
 			spin_lock(&isp_obj.isp_temp_buf_lock);
-			if (ispmodule_obj.current_field != fld_stat) {
-				if (fld_stat == 0)
-					ispmodule_obj.current_field = fld_stat;
-
+			/* Skip even fields */
+			if (ispmodule_obj.current_field == 0) {
 				spin_unlock(&isp_obj.isp_temp_buf_lock);
 				return;
 			}
+			ispmodule_obj.prev_irq = CCDC_VD0;
 			spin_unlock(&isp_obj.isp_temp_buf_lock);
-
-			if (fld_stat == 0) {	/* Skip even fields */
-				return;
-			}
 		}
 
 		ispccdc_config_shadow_registers();
@@ -1426,18 +1424,12 @@ void isp_vbq_done(unsigned long status, isp_vbq_callback_ptr arg1, void *arg2)
 	case CCDC_VD1:
 		if (ispmodule_obj.mode == MODE_INTERLACED) {
 			spin_lock(&isp_obj.isp_temp_buf_lock);
-			if (ispmodule_obj.current_field != fld_stat) {
-				if (fld_stat == 0)
-					ispmodule_obj.current_field = fld_stat;
-
+			/* Skip even fields */
+			if (ispmodule_obj.current_field == 0) {
 				spin_unlock(&isp_obj.isp_temp_buf_lock);
 				return;
 			}
-
-			if (fld_stat == 0) {	/* Skip even fields */
-				return;
-			}
-
+			ispmodule_obj.prev_irq = CCDC_VD1;
 			spin_unlock(&isp_obj.isp_temp_buf_lock);
 		}
 
@@ -1486,10 +1478,47 @@ void isp_vbq_done(unsigned long status, isp_vbq_callback_ptr arg1, void *arg2)
 		break;
 	case HS_VS:
 		if (ispmodule_obj.mode == MODE_INTERLACED) {
-			ispmodule_obj.current_field ^= 1;
 			spin_lock(&isp_obj.isp_temp_buf_lock);
+			if (ispmodule_obj.prev_irq == CCDC_VD1) {
+				/*
+				 * VD0 interrupt is missed but VD1 interrupt
+				 * is processed because of plug-in/plug-out
+				 * of cable. Handle this condition gracefully
+				 * by running the code as if VD0 has occurred.
+				 * In normal condition, interrupts will occur
+				 * in the following order:
+				 * HS_VS of fld 0 (ignored)
+				 * CCDC_VD1 (at line 50) of fld 0 (ignored)
+				 * CCDC_VD0 (at last line) of fld 0 (ignored)
+				 * HS_VS of fld 1 (processed)
+				 * CCDC_VD1 (at line 50) of fld 1 (processed)
+				 * CCDC_VD0 (at last line) of fld 1 (processed)
+				 */
+				if (ispmodule_obj.isp_temp_state
+						== ISP_BUF_INIT) {
+					spin_unlock(
+						&isp_obj.isp_temp_buf_lock);
+					spin_lock_irqsave(&ispsg.lock,
+								flags);
+					ispsg.free_sgdma++;
+					if (ispsg.free_sgdma > NUM_SG_DMA)
+						ispsg.free_sgdma = NUM_SG_DMA;
+					spin_unlock_irqrestore(&ispsg.lock,
+									flags);
+
+					rval = arg1(vb);
+
+					if (rval)
+						isp_sgdma_process(&ispsg, 1,
+								&notify, arg1);
+
+					spin_lock(&isp_obj.isp_temp_buf_lock);
+				}
+			}
+			ispmodule_obj.prev_irq = HS_VS;
+			ispmodule_obj.current_field ^= 1;
 			if ((ispmodule_obj.isp_temp_state == ISP_BUF_TRAN) &&
-			    (fld_stat == 1)) {
+					(fld_stat == 1)) {
 				isp_CCDC_VD01_enable();
 				ispmodule_obj.current_field = fld_stat;
 				ispmodule_obj.isp_temp_state = ISP_BUF_INIT;

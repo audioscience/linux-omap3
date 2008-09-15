@@ -1253,10 +1253,10 @@ int ispccdc_config_size(u32 input_w, u32 input_h, u32 output_w, u32 output_h)
 							ODDODD,
 							1);
 
-			omap_writel((((0) &
+			omap_writel(((((ispccdc_obj.ccdcout_h >> 1) - 1) &
 					ISPCCDC_VDINT_0_MASK) <<
 					ISPCCDC_VDINT_0_SHIFT) |
-					((0 & ISPCCDC_VDINT_1_MASK) <<
+					((50 & ISPCCDC_VDINT_1_MASK) <<
 					ISPCCDC_VDINT_1_SHIFT), ISPCCDC_VDINT);
 		}
 	} else if (ispccdc_obj.ccdc_outfmt == CCDC_OTHERS_VP_MEM) {
