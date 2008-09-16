@@ -1,5 +1,5 @@
 /*
- * include/asm-arm/arch-omap/omap-dss.h
+ * include/asm-arm/arch-omap/display.h
  *
  * Copyright (C) 2004-2005 Texas Instruments.
  * Copyright (C) 2006 Texas Instruments.
@@ -8,37 +8,16 @@
  * version 2. This program is licensed "as is" without any warranty of any
  * kind, whether express or implied.
 
- * Leveraged from original Linux 2.6 framebuffer driver for OMAP24xx
+ * Leveraged from original Linux 2.6 framebuffer driver for OMAP
  * Author: Andy Lowe (source@mvista.com)
  * Copyright (C) 2004 MontaVista Software, Inc.
  *
  */
 
-#ifndef	__ASM_ARCH_OMAP_DISP_H
-#define	__ASM_ARCH_OMAP_DISP_H
+#ifndef	__OMAP_DSS_H
+#define	__OMAP_DSS_H
 
-/* 16 bit uses LDRH/STRH, base +/- offset_8 */
-typedef struct {
-	volatile u16 offset[256];
-} __regbase16;
-#define __REGV16(vaddr)		(((__regbase16 *)((vaddr)&~0xff)) \
-					->offset[((vaddr)&0xff)>>1])
-#define __REG16(paddr)		 __REGV16(io_p2v(paddr))
-
-/* 8/32 bit uses LDR/STR, base +/- offset_12 */
-typedef struct {
-	volatile u8 offset[4096];
-} __regbase8;
-#define __REGV8(vaddr)		(((__regbase8  *)((vaddr)&~4095)) \
-					->offset[((vaddr)&4095)>>0])
-#define __REG8(paddr)		 __REGV8(io_p2v(paddr))
-
-typedef struct {
-	volatile u32 offset[4096];
-} __regbase32;
-#define __REGV32(vaddr)		(((__regbase32 *)((vaddr)&~4095)) \
-					->offset[((vaddr)&4095)>>2])
-#define __REG32(paddr)		__REGV32(io_p2v(paddr))
+#include <linux/videodev.h>
 
 /*physical memory map definitions */
 	/* display subsystem */
@@ -59,9 +38,9 @@ typedef struct {
 #define DSS_SYSSTATUS			0x014
 #define DSS_CONTROL			0x040
 #ifdef CONFIG_ARCH_OMAP3430
-#define DSS_SDI_CONTROL			0x044	/* omap3430 specific */
-#define DSS_PLL_CONTROL			0x048	/* omap3430 specific */
-#endif				/* CONFIG_ARCH_OMAP3430 */
+#define DSS_SDI_CONTROL		0x044 /* omap3430 specific */
+#define DSS_PLL_CONTROL		0x048 /* omap3430 specific */
+#endif /* CONFIG_ARCH_OMAP3430 */
 #define DSS_PSA_LCD_REG_1		0x050
 #define DSS_PSA_LCD_REG_2		0x054
 #define DSS_PSA_VIDEO_REG		0x058
@@ -141,7 +120,7 @@ typedef struct {
 #define DISPC_CPR_B			0x228
 
 /* bit fields within selected registers */
-#define DSS_CONTROL_VENC_OUT				(1 << 6)
+#define DSS_CONTROL_VENC_OUT			(1 << 6)
 #define DSS_CONTROL_TV_REF				(1 << 5)
 #define DSS_CONTROL_DAC_DEMEN				(1 << 4)
 #define DSS_CONTROL_VENC_CLOCK_4X_ENABLE		(1 << 3)
@@ -369,7 +348,7 @@ typedef struct {
 #define DISPC_GFX_FIFO_THRESHOLD_HIGH_SHIFT		16
 #define DISPC_GFX_FIFO_THRESHOLD_LOW			0x1FF
 #define DISPC_GFX_FIFO_THRESHOLD_LOW_SHIFT		0
-#endif				/* CONFIG_ARCH_OMAP3430 */
+#endif /* CONFIG_ARCH_OMAP3430 */
 
 #define DISPC_VID_POSITION_VIDPOSY			(0x7FF << 16)
 #define DISPC_VID_POSITION_VIDPOSY_SHIFT		16
@@ -465,59 +444,14 @@ typedef struct {
 #define VENC_FCONTROL_RESET			(1<<8)
 
 /* Rotation using VRFB */
-#define SMS_ROT_VIRT_BASE(context, degree)	(0x70000000 		\
+#define SMS_ROT_VIRT_BASE(context, degree)	0x70000000 		\
 						| 0x4000000 * (context)	\
-						| 0x1000000 * (degree/90))
+						| 0x1000000 * (degree/90)
 #define	SMS_IMAGEHEIGHT_OFFSET			16
 #define	SMS_IMAGEWIDTH_OFFSET			0
 #define	SMS_PH_OFFSET				8
 #define	SMS_PW_OFFSET				4
 #define	SMS_PS_OFFSET				0
-
-#ifdef CONFIG_ARCH_OMAP3
-#define IO_OFFSET               0x90000000
-/* Works for the entire IO Map */
-#define IO_ADDRESS(pa)          ((pa) + IO_OFFSET)
-#define io_p2v(pa)              ((pa) + IO_OFFSET)
-#define io_v2p(va)              ((va) - IO_OFFSET)
-
-#define L4_PHYS         L4_34XX_BASE	/* 0x48000000 */
-#define L4_VIRT         (L4_PHYS + IO_OFFSET)	/* 0xD8000000 */
-#define L4_SIZE         SZ_4M	/* 1MB of 128MB used, want 1MB sect */
-
-#define L4_WK_PHYS      L4_WK_34XX_BASE	/* 0x48300000 */
-#define L4_WK_VIRT      (L4_WK_PHYS + IO_OFFSET)	/* 0xD8300000 */
-#define L4_WK_SIZE      SZ_1M
-
-#define L4_PER_PHYS     L4_PER_34XX_BASE	/* 0x49000000 */
-#define L4_PER_VIRT     (L4_PER_PHYS + IO_OFFSET)	/* 0xD9000000 */
-#define L4_PER_SIZE     SZ_1M
-
-#define L4_EMU_PHYS     L4_EMU_34XX_BASE	/* 0x54000000 */
-#define L4_EMU_VIRT     (L4_EMU_PHYS + IO_OFFSET)	/* 0xE4000000 */
-#define L4_EMU_SIZE     SZ_1M
-
-#define GFX_PHYS        GFX_34XX_BASE	/* 0x50000000 */
-#define GFX_VIRT        (GFX_PHYS + IO_OFFSET)	/* 0xE0000000 */
-#define GFX_SIZE        SZ_64K
-
-#define L3_PHYS         L3_34XX_BASE	/* 0x68000000 */
-#define L3_VIRT         (L3_PHYS + IO_OFFSET)	/* 0xF8000000 */
-#define L3_SIZE         SZ_1M	/* 81kB of 128MB used, want 1MB sect */
-
-#define SMS_PHYS        OMAP343X_SMS_BASE	/* 0x6C000000 */
-#define SMS_VIRT        (SMS_PHYS + IO_OFFSET)	/* 0xFC000000 */
-#define SMS_SIZE        SZ_1M
-
-#define SDRC_PHYS       OMAP343X_SDRC_BASE	/* 0x6D000000 */
-#define SDRC_VIRT       (SDRC_PHYS + IO_OFFSET)	/* 0xFD000000 */
-#define SDRC_SIZE       SZ_1M
-
-#define GPMC_PHYS       OMAP34XX_GPMC_BASE	/* 0x6E000000 */
-#define GPMC_VIRT       (GPMC_PHYS + IO_OFFSET)	/* 0xFE000000 */
-#define GPMC_SIZE       SZ_1M
-
-#endif
 
 #ifdef CONFIG_ARCH_OMAP2420
 #define OMAP_SMS_BASE	(L3_24XX_BASE + 0x8000)
@@ -526,7 +460,7 @@ typedef struct {
 #define OMAP_SMS_BASE	OMAP243X_SMS_PHYS
 #endif
 #ifdef CONFIG_ARCH_OMAP3430
-#define OMAP_SMS_BASE	SMS_PHYS
+#define OMAP_SMS_BASE	OMAP343X_SMS_PHYS
 #endif
 
 #define	SMS_ROT0_PHYSICAL_BA(context)	__REG32(OMAP_SMS_BASE + 0x188 \
@@ -552,139 +486,140 @@ typedef struct {
 #endif
 
 /* Structure to store and restore the DSS registers */
-struct omap_dispc_regs {
-	u32 revision;		/* 0x000 */
+struct omap_dispc_regs
+{
+	u32 revision;			/* 0x000 */
 	u32 res1[3];
 	u32 sysconfig;		/* 0x010 */
 	u32 sysstatus;		/* 0x014 */
 	u32 irqstatus;		/* 0x018 */
 	u32 irqenable;		/* 0x01C */
 	u32 res2[8];
-	u32 control;		/* 0x040 */
-	u32 config;		/* 0x044 */
-	u32 capable;		/* 0x048 */
-	u32 default_color0;	/* 0x04C */
-	u32 default_color1;	/* 0x050 */
-	u32 trans_color0;	/* 0x054 */
-	u32 trans_color1;	/* 0x058 */
-	u32 line_status;	/* 0x05C */
-	u32 line_number;	/* 0x060 */
-	u32 timing_h;		/* 0x064 */
-	u32 timing_v;		/* 0x068 */
-	u32 pol_freq;		/* 0x06C */
-	u32 divisor;		/* 0x070 */
-	u32 global_alpha;	/* 0x074 */
-	u32 size_dig;		/* 0x078 */
-	u32 size_lcd;		/* 0x07C */
-	u32 gfx_ba0;		/* 0x080 */
-	u32 gfx_ba1;		/* 0x084 */
-	u32 gfx_position;	/* 0x088 */
-	u32 gfx_size;		/* 0x08C */
+	u32 control;			/* 0x040 */
+	u32 config;			/* 0x044 */
+	u32 capable;			/* 0x048 */
+	u32 default_color0;		/* 0x04C */
+	u32 default_color1;		/* 0x050 */
+	u32 trans_color0;		/* 0x054 */
+	u32 trans_color1;		/* 0x058 */
+	u32 line_status;		/* 0x05C */
+	u32 line_number;		/* 0x060 */
+	u32 timing_h;			/* 0x064 */
+	u32 timing_v;			/* 0x068 */
+	u32 pol_freq;			/* 0x06C */
+	u32 divisor;			/* 0x070 */
+	u32 global_alpha;		/* 0x074 */
+	u32 size_dig;			/* 0x078 */
+	u32 size_lcd;			/* 0x07C */
+	u32 gfx_ba0;			/* 0x080 */
+	u32 gfx_ba1;			/* 0x084 */
+	u32 gfx_position;		/* 0x088 */
+	u32 gfx_size;			/* 0x08C */
 	u32 res4[4];
-	u32 gfx_attributes;	/* 0x0A0 */
+	u32 gfx_attributes;		/* 0x0A0 */
 	u32 gfx_fifo_threshold;	/* 0x0A4 */
-	u32 gfx_fifo_size;	/* 0x0A8 */
-	u32 gfx_row_inc;	/* 0x0AC */
-	u32 gfx_pixel_inc;	/* 0x0B0 */
-	u32 gfx_window_skip;	/* 0x0B4 */
-	u32 gfx_table_ba;	/* 0x0B8 */
-	u32 vid1_ba0;		/* 0x0BC */
-	u32 vid1_ba1;		/* 0x0C0 */
-	u32 vid1_position;	/* 0x0C4 */
+	u32 gfx_fifo_size;		/* 0x0A8 */
+	u32 gfx_row_inc;		/* 0x0AC */
+	u32 gfx_pixel_inc;		/* 0x0B0 */
+	u32 gfx_window_skip;		/* 0x0B4 */
+	u32 gfx_table_ba;		/* 0x0B8 */
+	u32 vid1_ba0;			/* 0x0BC */
+	u32 vid1_ba1;			/* 0x0C0 */
+	u32 vid1_position;		/* 0x0C4 */
 	u32 vid1_size;		/* 0x0C8 */
-	u32 vid1_attributes;	/* 0x0CC */
+	u32 vid1_attributes;		/* 0x0CC */
 	u32 vid1_fifo_threshold;	/* 0x0D0 */
-	u32 vid1_fifo_size;	/* 0x0D4 */
-	u32 vid1_row_inc;	/* 0x0D8 */
-	u32 vid1_pixel_inc;	/* 0x0DC */
-	u32 vid1_fir;		/* 0x0E0 */
+	u32 vid1_fifo_size;		/* 0x0D4 */
+	u32 vid1_row_inc;		/* 0x0D8 */
+	u32 vid1_pixel_inc;		/* 0x0DC */
+	u32 vid1_fir;			/* 0x0E0 */
 	u32 vid1_picture_size;	/* 0x0E4 */
 	u32 vid1_accu0;		/* 0x0E8 */
 	u32 vid1_accu1;		/* 0x0EC */
-	u32 vid1_fir_coef_h0;	/* 0x0F0 */
+	u32 vid1_fir_coef_h0;		/* 0x0F0 */
 	u32 vid1_fir_coef_hv0;	/* 0x0F4 */
-	u32 vid1_fir_coef_h1;	/* 0x0F8 */
+	u32 vid1_fir_coef_h1;		/* 0x0F8 */
 	u32 vid1_fir_coef_hv1;	/* 0x0FC */
-	u32 vid1_fir_coef_h2;	/* 0x100 */
+	u32 vid1_fir_coef_h2;		/* 0x100 */
 	u32 vid1_fir_coef_hv2;	/* 0x104 */
-	u32 vid1_fir_coef_h3;	/* 0x108 */
+	u32 vid1_fir_coef_h3;		/* 0x108 */
 	u32 vid1_fir_coef_hv3;	/* 0x10C */
-	u32 vid1_fir_coef_h4;	/* 0x110 */
+	u32 vid1_fir_coef_h4;		/* 0x110 */
 	u32 vid1_fir_coef_hv4;	/* 0x114 */
-	u32 vid1_fir_coef_h5;	/* 0x118 */
+	u32 vid1_fir_coef_h5;		/* 0x118 */
 	u32 vid1_fir_coef_hv5;	/* 0x11C */
-	u32 vid1_fir_coef_h6;	/* 0x120 */
+	u32 vid1_fir_coef_h6;		/* 0x120 */
 	u32 vid1_fir_coef_hv6;	/* 0x124 */
-	u32 vid1_fir_coef_h7;	/* 0x128 */
+	u32 vid1_fir_coef_h7;		/* 0x128 */
 	u32 vid1_fir_coef_hv7;	/* 0x12C */
-	u32 vid1_conv_coef0;	/* 0x130 */
-	u32 vid1_conv_coef1;	/* 0x134 */
-	u32 vid1_conv_coef2;	/* 0x138 */
-	u32 vid1_conv_coef3;	/* 0x13C */
-	u32 vid1_conv_coef4;	/* 0x140 */
+	u32 vid1_conv_coef0;		/* 0x130 */
+	u32 vid1_conv_coef1;		/* 0x134 */
+	u32 vid1_conv_coef2;		/* 0x138 */
+	u32 vid1_conv_coef3;		/* 0x13C */
+	u32 vid1_conv_coef4;		/* 0x140 */
 	u32 res5[2];
-	u32 vid2_ba0;		/* 0x14C */
-	u32 vid2_ba1;		/* 0x150 */
-	u32 vid2_position;	/* 0x154 */
+	u32 vid2_ba0;			/* 0x14C */
+	u32 vid2_ba1;			/* 0x150 */
+	u32 vid2_position;		/* 0x154 */
 	u32 vid2_size;		/* 0x158 */
-	u32 vid2_attributes;	/* 0x15C */
+	u32 vid2_attributes;		/* 0x15C */
 	u32 vid2_fifo_threshold;	/* 0x160 */
-	u32 vid2_fifo_size;	/* 0x164 */
-	u32 vid2_row_inc;	/* 0x168 */
-	u32 vid2_pixel_inc;	/* 0x16C */
-	u32 vid2_fir;		/* 0x170 */
+	u32 vid2_fifo_size;		/* 0x164 */
+	u32 vid2_row_inc;		/* 0x168 */
+	u32 vid2_pixel_inc;		/* 0x16C */
+	u32 vid2_fir;			/* 0x170 */
 	u32 vid2_picture_size;	/* 0x174 */
 	u32 vid2_accu0;		/* 0x178 */
 	u32 vid2_accu1;		/* 0x17C */
-	u32 vid2_fir_coef_h0;	/* 0x180 */
+	u32 vid2_fir_coef_h0;		/* 0x180 */
 	u32 vid2_fir_coef_hv0;	/* 0x184 */
-	u32 vid2_fir_coef_h1;	/* 0x188 */
+	u32 vid2_fir_coef_h1;		/* 0x188 */
 	u32 vid2_fir_coef_hv1;	/* 0x18C */
-	u32 vid2_fir_coef_h2;	/* 0x190 */
+	u32 vid2_fir_coef_h2;		/* 0x190 */
 	u32 vid2_fir_coef_hv2;	/* 0x194 */
-	u32 vid2_fir_coef_h3;	/* 0x198 */
+	u32 vid2_fir_coef_h3;		/* 0x198 */
 	u32 vid2_fir_coef_hv3;	/* 0x19C */
-	u32 vid2_fir_coef_h4;	/* 0x1A0 */
+	u32 vid2_fir_coef_h4;		/* 0x1A0 */
 	u32 vid2_fir_coef_hv4;	/* 0x1A4 */
-	u32 vid2_fir_coef_h5;	/* 0x1A8 */
+	u32 vid2_fir_coef_h5;		/* 0x1A8 */
 	u32 vid2_fir_coef_hv5;	/* 0x1AC */
-	u32 vid2_fir_coef_h6;	/* 0x1B0 */
+	u32 vid2_fir_coef_h6;		/* 0x1B0 */
 	u32 vid2_fir_coef_hv6;	/* 0x1B4 */
-	u32 vid2_fir_coef_h7;	/* 0x1B8 */
+	u32 vid2_fir_coef_h7;		/* 0x1B8 */
 	u32 vid2_fir_coef_hv7;	/* 0x1BC */
-	u32 vid2_conv_coef0;	/* 0x1C0 */
-	u32 vid2_conv_coef1;	/* 0x1C4 */
-	u32 vid2_conv_coef2;	/* 0x1C8 */
-	u32 vid2_conv_coef3;	/* 0x1CC */
-	u32 vid2_conv_coef4;	/* 0x1D0 */
-	u32 data_cycle1;	/* 0x1D4 */
-	u32 data_cycle2;	/* 0x1D8 */
-	u32 data_cycle3;	/* 0x1DC */
+	u32 vid2_conv_coef0;		/* 0x1C0 */
+	u32 vid2_conv_coef1;		/* 0x1C4 */
+	u32 vid2_conv_coef2;		/* 0x1C8 */
+	u32 vid2_conv_coef3;		/* 0x1CC */
+	u32 vid2_conv_coef4;		/* 0x1D0 */
+	u32 data_cycle1;		/* 0x1D4 */
+	u32 data_cycle2;		/* 0x1D8 */
+	u32 data_cycle3;		/* 0x1DC */
 #ifdef CONFIG_ARCH_OMAP3430
 	/* omap3430 specific registers */
-	u32 vid1_fir_coef_v0;	/* 0x1E0 */
-	u32 vid1_fir_coef_v1;	/* 0x1E4 */
-	u32 vid1_fir_coef_v2;	/* 0x1E8 */
-	u32 vid1_fir_coef_v3;	/* 0x1EC */
-	u32 vid1_fir_coef_v4;	/* 0x1F0 */
-	u32 vid1_fir_coef_v5;	/* 0x1F4 */
-	u32 vid1_fir_coef_v6;	/* 0x1F8 */
-	u32 vid1_fir_coef_v7;	/* 0x1FC */
-	u32 vid2_fir_coef_v0;	/* 0x200 */
-	u32 vid2_fir_coef_v1;	/* 0x204 */
-	u32 vid2_fir_coef_v2;	/* 0x208 */
-	u32 vid2_fir_coef_v3;	/* 0x20C */
-	u32 vid2_fir_coef_v4;	/* 0x210 */
-	u32 vid2_fir_coef_v5;	/* 0x214 */
-	u32 vid2_fir_coef_v6;	/* 0x218 */
-	u32 vid2_fir_coef_v7;	/* 0x21C */
-	u32 cpr_coef_r;		/* 0x220 */
-	u32 cpr_coef_g;		/* 0x224 */
-	u32 cpr_coef_b;		/* 0x228 */
-	u32 gfx_preload;	/* 0x22C */
-	u32 vid1_preload;	/* 0x230 */
-	u32 vid2_preload;	/* 0x234 */
-#endif				/* CONFIG_ARCH_OMAP3430 */
+	u32 vid1_fir_coef_v0;		/* 0x1E0 */
+	u32 vid1_fir_coef_v1;		/* 0x1E4 */
+	u32 vid1_fir_coef_v2;		/* 0x1E8 */
+	u32 vid1_fir_coef_v3;		/* 0x1EC */
+	u32 vid1_fir_coef_v4;		/* 0x1F0 */
+	u32 vid1_fir_coef_v5;		/* 0x1F4 */
+	u32 vid1_fir_coef_v6;		/* 0x1F8 */
+	u32 vid1_fir_coef_v7;		/* 0x1FC */
+	u32 vid2_fir_coef_v0;		/* 0x200 */
+	u32 vid2_fir_coef_v1;		/* 0x204 */
+	u32 vid2_fir_coef_v2;		/* 0x208 */
+	u32 vid2_fir_coef_v3;		/* 0x20C */
+	u32 vid2_fir_coef_v4;		/* 0x210 */
+	u32 vid2_fir_coef_v5;		/* 0x214 */
+	u32 vid2_fir_coef_v6;		/* 0x218 */
+	u32 vid2_fir_coef_v7;		/* 0x21C */
+	u32 cpr_coef_r;			/* 0x220 */
+	u32 cpr_coef_g;			/* 0x224 */
+	u32 cpr_coef_b;			/* 0x228 */
+	u32 gfx_preload;		/* 0x22C */
+	u32 vid1_preload;		/* 0x230 */
+	u32 vid2_preload;		/* 0x234 */
+#endif /* CONFIG_ARCH_OMAP3430 */
 };
 
 /* WARN: read-only registers omitted! */
@@ -729,9 +664,6 @@ const static short int cc_bt601_full[3][3] = { {256, 351, 0},
 
 #define OMAP_OUTPUT_LCD	4
 #define OMAP_OUTPUT_TV		5
-
-#define OMAP_DMA_0		0
-#define OMAP_DMA_1		1
 
 /* Dithering enable/disable */
 #define DITHERING_ON		28
@@ -784,79 +716,22 @@ enum omap_tvstandard {
 #define SIDE_H          1
 #define SIDE_W          0
 
-/* Color Conversion macros */
-#define FULL_COLOR_RANGE 	1
-#define CC_BT601	 	0
-#define CC_BT709		2
-#define CC_BT601_FULL		3
-
 /* GFX FIFO thresholds */
 #define RMODE_GFX_FIFO_HIGH_THRES       0x3FC
 #define RMODE_GFX_FIFO_LOW_THRES        0x3BC
 
-/* Data structures to communicate between HAL and driver files. */
-struct omap_video_params {
-	int video_layer;
-	unsigned long vid_position;
-	unsigned long vid_size;
-	unsigned long vid_picture_size;
-};
-struct omap_scaling_params {
-	int video_layer;
-	int win_height;
-	int win_width;
-	int crop_height;
-	int crop_width;
-	int flicker_filter;
-};
-struct omap_dma_params {
-	int video_layer;
-	int dma_num;
-	int row_inc_value;
-	int pixel_inc_value;
-};
-
-/* Color conversion matrix  */
-extern short int current_colorconv_values[2][3][3];
-
-/* Encoders and Outputs specific Definitions*/
-#define MAX_CHANNEL             2	/* No of Overlays */
+/* Following are added for the new interface */
+#define MAX_CHANNEL             2       /* No of Overlays */
 #define MAX_CHAR                20
 #define MAX_ENCODER_DEVICE      3
 #define MAX_MODE		10
 #define MAX_OUTPUT		3
-
-struct omap_encoder_device;
-
-struct omap_enc_output_ops {
-	int count;
-	char *(*enumoutput) (int index, void *data);
-	int (*setoutput) (int index, char *mode_name, void *data);
-	int (*getoutput) (void *data);
-};
-
-struct omap_enc_mode_ops {
-	int (*setmode) (char *mode_name, void *data);
-	char *(*getmode) (void *data);
-};
-
 struct omap_encoder_device {
-	u8 name[MAX_CHAR];
-	int channel_id;
-	struct omap_enc_output_ops *output_ops;
-	struct omap_enc_mode_ops *mode_ops;
-	int current_output;
-	int no_outputs;
+	char enc_name[MAX_CHAR];
 	int (*initialize) (void *data);
 	int (*deinitialize) (void *data);
-};
-
-struct channel_obj {
-	int channel_no;
-	int num_encoders;
-	struct omap_encoder_device *enc_devices[MAX_ENCODER_DEVICE];
-	int current_encoder;
-	int current_mode;
+	int (*set_mode) (char *mode_name, void *data);
+	int (*set_output) (char *output_name, void *data);
 };
 
 struct omap_mode_info {
@@ -868,116 +743,157 @@ struct omap_mode_info {
 	u16 vfp, vbp, vsw;
 	void *priv_data;
 };
+
 struct omap_output_info {
 	char name[MAX_CHAR];
-	void *mode;
+	struct omap_mode_info *mode;
 	u8 no_modes;
 	u8 current_mode;
 	int data_lines;
 };
 
+struct omap_channel_info {
+	struct omap_output_info *output[3];
+	struct omap_encoder_device *enc_dev[3];
+	u8 no_outputs;
+	u8 current_enc; /* Index of the current encoder */
+};
+
+extern short int current_colorconv_values[2][3][3];
+
 /* input layer APIs */
-int omap_disp_request_layer(int ltype);
-void omap_disp_release_layer(int ltype);
-void omap_disp_disable_layer(int ltype);
-void omap_disp_enable_layer(int ltype);
-int omap_disp_reg_sync_bit(int output_dev);
+extern int omap_disp_request_layer (int ltype);
+extern void omap_disp_release_layer (int ltype);
+extern void omap_disp_disable_layer (int ltype);
+extern void omap_disp_enable_layer (int ltype);
+extern void omap_disp_config_vlayer (int ltype, struct v4l2_pix_format *pix,
+					struct v4l2_rect *crop,
+					struct v4l2_window *win,
+					int rotation_deg, int mirroring);
+extern int omap_disp_reg_sync_bit(int output_dev);
+extern void omap_disp_config_gfxlayer (u32 size_x, u32 size_y,
+					int color_depth);
+extern void omap_disp_start_vlayer (int ltype, struct v4l2_pix_format *pix,
+					struct v4l2_rect *crop, struct v4l2_window *win,
+					unsigned long fb_base_phys,
+					int rotation_deg, int mirroring);
+extern void omap_disp_start_gfxlayer (void);
 
 /* output device APIs */
-void omap_disp_get_panel_size(int output_dev, int *witdth, int *height);
-void omap_disp_set_panel_size(int output_dev, int witdth, int height);
-void omap_disp_disable_output_dev(int output_dev);
-void omap_disp_enable_output_dev(int output_dev);
-void omap_disp_set_dssfclk(void);
+extern void omap_disp_get_panel_size (int output_dev, int *witdth,
+					int *height);
+extern void omap_disp_set_panel_size (int output_dev, int witdth,
+					int height);
+extern void omap_disp_disable_output_dev (int output_dev);
+extern void omap_disp_enable_output_dev (int output_dev);
+extern void omap_disp_config_lcd (u32 clkdiv, u32 hbp, u32 hfp, u32 hsw,
+		u32 vbp, u32 vfp, u32 vsw);
+extern void omap_disp_lcdcfg_polfreq(u32 hsync_high, u32 vsync_high,
+		u32 acb,u32 ipc, u32 onoff);
+extern void omap_disp_set_pcd (u32 pcd);
+extern void omap_disp_set_dssfclk (void);
+extern void omap_disp_set_tvstandard (int tvstandard);
+extern int omap_disp_get_tvstandard (void);
+extern void omap_disp_get_tvlcd(struct tvlcd_status_t *status);
+extern void omap_disp_set_tvlcd(int status);
+extern void omap_disp_set_dithering (int dither_state);
 #if defined(CONFIG_ARCH_OMAP2430) || defined(CONFIG_ARCH_OMAP3430)
-void omap_disp_set_tvref(int tvref_state);
+extern void omap_disp_set_tvref (int tvref_state);
 #endif
-int omap_disp_get_vrfb_offset(u32, u32, int);
+extern int omap_disp_get_dithering (void);
+
+extern void omap_disp_set_lcddatalines (int no_of_lines);
+extern int omap_disp_get_lcddatalines (void);
 
 /* connection of input layers to output devices */
-int omap_disp_get_output_dev(int ltype);
-void omap_disp_set_dma_params(int ltype, int output_dev,
-			       u32 ba0, u32 ba1, u32 row_inc, u32 pix_inc);
+extern int omap_disp_get_output_dev (int ltype);
+extern void omap_disp_set_output_dev (int ltype, int output_dev);
+extern void omap_disp_set_dma_params (int ltype, int output_dev,
+					u32 ba0, u32 ba1, u32 row_inc,
+					u32 pix_inc);
 
 /* DSS power management */
-void omap_disp_get_dss(void);
-void omap_disp_put_dss(void);
+extern void omap_disp_get_dss (void);
+extern void omap_disp_put_dss (void);
 
 /* Color conversion */
-void omap_disp_set_default_colorconv(int ltype, int color_space);
-void omap_disp_set_colorconv(int v, int full_range_conversion);
+void omap_disp_set_default_colorconv (int ltype,
+					struct v4l2_pix_format *pix);
+void omap_disp_set_colorconv (int ltype, struct v4l2_pix_format *pix);
+
 /* background color */
-void omap_disp_set_bg_color(int output_dev, int color);
-void omap_disp_get_bg_color(int output_dev, int *color);
+extern void omap_disp_set_bg_color (int output_dev, int color);
+extern void omap_disp_get_bg_color (int output_dev, int *color);
 
 /* transparent color key */
-void omap_disp_set_colorkey(int output_dev, int key_type, int key_val);
-void omap_disp_get_colorkey(int output_dev, int *key_type, int *key_val);
-void omap_disp_enable_colorkey(int output_dev);
-void omap_disp_disable_colorkey(int output_dev);
+extern void omap_disp_set_colorkey (int output_dev, int key_type,
+					int key_val);
+extern void omap_disp_get_colorkey (int output_dev, int *key_type,
+					int *key_val);
+extern void omap_disp_enable_colorkey (int output_dev);
+extern void omap_disp_disable_colorkey (int output_dev);
 
 /* alpha blending */
 int omap_disp_get_alphablend(int output_dev);
-void omap_disp_set_alphablend(int output_dev, int value);
+void omap_disp_set_alphablend(int output_dev,int value);
 unsigned char omap_disp_get_global_alphablend_value(int ltype);
-void omap_disp_set_global_alphablend_value(int ltype, int value);
+void omap_disp_set_global_alphablend_value(int ltype,int value);
+
+/* other helpers */
+extern void omap_disp_set_gfx_palette (u32 palette_ba);
+extern void omap_disp_pixels_per_clock (unsigned int *nom,
+					 unsigned int *den);
 
 /* rotation APIs */
-int omap_disp_set_vrfb(int context, u32 phy_addr,
-			u32 width, u32 height, u32 bytes_per_pixel);
+extern int omap_disp_set_vrfb (int context, u32 phy_addr,
+				u32 width, u32 height, u32 bytes_per_pixel);
 
 /* display controller register synchronization */
-void omap_disp_reg_sync(int output_dev);
-int omap_disp_reg_sync_done(int output_dev);
+void omap_disp_reg_sync (int output_dev);
+extern int omap_disp_reg_sync_done (int output_dev);
 
 /* disable LCD and TV outputs and sync with next frame */
-void omap_disp_disable(unsigned long timeout_ticks);
+extern void omap_disp_disable (unsigned long timeout_ticks);
 
 /* interrupt handling */
-typedef void (*omap_disp_isr_t) (void *arg, struct pt_regs *regs,
-				  u32 irqstatus);
-int omap_disp_register_isr(omap_disp_isr_t isr, void *arg,
-			    unsigned int mask);
-int omap_disp_unregister_isr(omap_disp_isr_t isr);
-int omap_disp_irqenable(omap_disp_isr_t isr, unsigned int mask);
-int omap_disp_irqdisable(omap_disp_isr_t isr, unsigned int mask);
-void omap_disp_save_initstate(int layer);
+typedef void (*omap_disp_isr_t) (void *arg, struct pt_regs * regs, u32 irqstatus);
+extern int omap_disp_register_isr (omap_disp_isr_t isr, void *arg,
+					unsigned int mask);
+extern int omap_disp_unregister_isr (omap_disp_isr_t isr);
+extern int omap_disp_irqenable(omap_disp_isr_t isr,unsigned int mask);
+extern int omap_disp_irqdisable(omap_disp_isr_t isr,unsigned int mask);
+extern void omap_disp_save_initstate (int layer);
+extern void omap_disp_restore_initstate (int layer);
+
+/* LPR */
+int omap_disp_lpr_enable(void);
+int omap_disp_lpr_disable(void);
+int omap_disp_get_gfx_fifo_low_threshold(void);
+void omap_disp_set_gfx_fifo_low_threshold(int thrs);
+int omap_disp_get_gfx_fifo_high_threshold(void);
+void omap_disp_set_gfx_fifo_high_threshold(int thrs);
 
 /* clk functions */
-void omap_disp_put_all_clks(void);
-void omap_disp_get_all_clks(void);
-void omap_disp_start_video_layer(int);
-void omap_disp_set_addr(int ltype, u32 lcd_phys_addr, u32 tv_phys_addr_f0,
-			 u32 tv_phys_addr_f1);
+extern void omap_disp_put_all_clks(void);
+extern void omap_disp_get_all_clks(void);
 
-/* Video parameters functions */
-void omap_disp_set_vidattributes(unsigned int video_layer,
-				  unsigned int vid_attributes);
-void omap_disp_set_fifothreshold(unsigned int video_layer);
-void omap_disp_set_scaling(struct omap_scaling_params *scale_params);
-void omap_disp_set_vid_params(struct omap_video_params *vid_params);
-void set_dma_layer_parameters(int dma_num, int video_layer,
-			      int row_inc_value, int pixel_inc_value);
-void omap_disp_set_row_pix_inc_values(int video_layer, int row_inc_value,
-				       int pixel_inc_value);
-void set_crop_layer_parameters(int video_layer, int cropwidth,
-			       int cropheight);
-void omap_set_crop_layer_parameters(int video_layer, int cropwidth,
-				     int cropheight);
+extern void omap_disp_power_on_tv(void);
 
-/* Output and Standard releated functions */
+extern int omap_disp_get_vrfb_offset(u32, u32, int);
+
+extern void omap_disp_start_video_layer(int);
+
+extern void omap_disp_set_addr(int ltype, u32 lcd_phys_addr, u32 tv_phys_addr_f0, u32 tv_phys_addr_f1);
+
 int omap_disp_set_mode(int ch_no, char *buffer);
-char *omap_disp_get_mode(int ch_no);
-int omap_disp_set_output(int ch_no, int index);
-int omap_disp_get_output(int ch_no, int *index);
-int omap_disp_enum_output(int ch_no, int index, char *name);
 
-/* Register/Unregister encoders */
-int omap_register_encoder(struct omap_encoder_device
-			   *encoder);
-int omap_unregister_encoder(struct omap_encoder_device
-			     *encoder);
+char* omap_disp_get_mode(int ch_no);
 
+int omap_disp_set_output(int ch_no, char *buffer);
+
+char* omap_disp_get_output(int ch_no);
+void omap_set_tvstandard(char *buffer);
+int omap_disp_get_vidn_status(int ltype);
 /*------------------ end of exposed values and APIs -------------------------*/
 
-#endif				/* __ASM_ARCH_OMAP_DISP_H */
+#endif /* __OMAP_DSS_H */

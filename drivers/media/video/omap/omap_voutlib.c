@@ -1,5 +1,5 @@
 /*
- * drivers/media/video/omap2/omap2_lib.c
+ * drivers/media/video/omap/omap_voutlib.c
  *
  * Copyright (C) 2005 Texas Instruments.
  *
@@ -7,9 +7,9 @@
  * version 2. This program is licensed "as is" without any warranty of any
  * kind, whether express or implied.
  *
- * Based on the OMAP2 camera driver
+ * Based on the OMAP camera driver
  * Video-for-Linux (Version 2) camera capture driver for
- * the OMAP24xx camera controller.
+ * the OMAP camera controller.
  *
  * Author: Andy Lowe (source@mvista.com)
  *
@@ -30,11 +30,12 @@
 #include <linux/kdev_t.h>
 #include <linux/types.h>
 #include <linux/wait.h>
-#include <linux/videodev2.h>
-#include <linux/semaphore.h>
+#include <linux/videodev.h>
 
 #include <asm/arch/omap-dss.h>
+
 #include <asm/byteorder.h>
+#include <asm/semaphore.h>
 
 /* Return the default overlay cropping rectangle in crop given the image
  * size in pix and the video display size in fbuf.  The default
@@ -54,7 +55,7 @@ void omap_vout_default_crop(struct v4l2_pix_format *pix,
 	crop->left = ((pix->width - crop->width) >> 1) & ~1;
 	crop->top = ((pix->height - crop->height) >> 1) & ~1;
 }
-EXPORT_SYMBOL_GPL(omap_vout_default_crop);
+
 /* Given a new render window in new_win, adjust the window to the
  * nearest supported configuration.  The adjusted window parameters are
  * returned in new_win.
@@ -99,7 +100,6 @@ int omap_vout_try_window(struct v4l2_framebuffer *fbuf,
 	new_win->field = /*V4L2_FIELD_NONE*/V4L2_FIELD_ANY;
 	return 0;
 }
-EXPORT_SYMBOL_GPL(omap_vout_try_window);
 
 /* Given a new render window in new_win, adjust the window to the
  * nearest supported configuration.  The image cropping window in crop
@@ -116,8 +116,9 @@ int omap_vout_new_window(struct v4l2_rect *crop,
 	int err;
 
 	err = omap_vout_try_window(fbuf, new_win);
-	if (err)
+	if (err) {
 		return err;
+	}
 
 	/* update our preview window */
 	win->w = new_win->w;
@@ -125,16 +126,16 @@ int omap_vout_new_window(struct v4l2_rect *crop,
 	win->chromakey = new_win->chromakey;
 
 	/* adjust the cropping window to allow for resizing limitations */
-	if ((crop->height/win->w.height) >= 2) {
+	if (crop->height / win->w.height >= 2) {
 		/* The maximum vertical downsizing ratio is 2:1 */
 		crop->height = win->w.height * 2;
 	}
-	if ((crop->width/win->w.width) >= 2) {
+	if (crop->width / win->w.width >= 2) {
 		/* The maximum horizontal downsizing ratio is 2:1 */
 		crop->width = win->w.width * 2;
 	}
 	if (crop->width > 768) {
-		/* The OMAP2420 vertical resizing line buffer is 768 pixels
+		/* The OMAP vertical resizing line buffer is 768 pixels
 		 * wide.  If the cropped image is wider than 768 pixels then it
 		 * cannot be vertically resized.
 		 */
@@ -143,7 +144,6 @@ int omap_vout_new_window(struct v4l2_rect *crop,
 	}
 	return 0;
 }
-EXPORT_SYMBOL_GPL(omap_vout_new_window);
 
 /* Given a new cropping rectangle in new_crop, adjust the cropping rectangle to
  * the nearest supported configuration.  The image render window in win will
@@ -232,16 +232,16 @@ int omap_vout_new_crop(struct v4l2_pix_format *pix,
 	}
 
 	/* Check for resizing constraints */
-	if ((try_crop.height/win->w.height) >= 2) {
+	if (try_crop.height / win->w.height >= 2) {
 		/* The maximum vertical downsizing ratio is 2:1 */
 		try_crop.height = win->w.height * 2;
 	}
-	if ((try_crop.width/win->w.width) >= 2) {
+	if (try_crop.width/ win->w.width >= 2) {
 		/* The maximum horizontal downsizing ratio is 2:1 */
 		try_crop.width = win->w.width * 2;
 	}
 	if (try_crop.width > 768) {
-		/* The OMAP2420 vertical resizing line buffer is 768 pixels
+		/* The OMAP vertical resizing line buffer is 768 pixels
 		 * wide.  If the cropped image is wider than 768 pixels then it
 		 * cannot be vertically resized.
 		 */
@@ -253,7 +253,6 @@ int omap_vout_new_crop(struct v4l2_pix_format *pix,
 	*crop = try_crop;
 	return 0;
 }
-EXPORT_SYMBOL_GPL(omap_vout_new_crop);
 
 /* Given a new format in pix and fbuf,  crop and win
  * structures are initialized to default values. crop
@@ -277,8 +276,13 @@ void omap_vout_new_format(struct v4l2_pix_format *pix,
 	win->w.left = ((fbuf->fmt.width - win->w.width) >> 1) & ~1;
 	win->w.top = ((fbuf->fmt.height - win->w.height) >> 1) & ~1;
 }
+
+EXPORT_SYMBOL_GPL(omap_vout_default_crop);
+EXPORT_SYMBOL_GPL(omap_vout_try_window);
+EXPORT_SYMBOL_GPL(omap_vout_new_window);
+EXPORT_SYMBOL_GPL(omap_vout_new_crop);
 EXPORT_SYMBOL_GPL(omap_vout_new_format);
 
 MODULE_AUTHOR("Texas Instruments.");
 MODULE_DESCRIPTION("OMAP Video library");
-MODULE_LICENSE("GPL");
+MODULE_LICENSE ("GPL");

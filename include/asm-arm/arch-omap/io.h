@@ -147,7 +147,6 @@
 #define OMAP343X_SDRC_VIRT	0xFD000000
 #define OMAP343X_SDRC_SIZE	SZ_1M
 
-
 #define IO_OFFSET		0x90000000
 #define IO_ADDRESS(pa)		((pa) + IO_OFFSET)/* Works for L3 and L4 */
 #define OMAP2_IO_ADDRESS(pa)	((pa) + IO_OFFSET)/* Works for L3 and L4 */
@@ -185,6 +184,23 @@
 #define omap_writeb(v,a)	(*(volatile unsigned char  *)IO_ADDRESS(a) = (v))
 #define omap_writew(v,a)	(*(volatile unsigned short *)IO_ADDRESS(a) = (v))
 #define omap_writel(v,a)	(*(volatile unsigned int   *)IO_ADDRESS(a) = (v))
+
+/* 16 bit uses LDRH/STRH, base +/- offset_8 */
+typedef struct { volatile u16 offset[256]; } __regbase16;
+#define __REGV16(vaddr)         ((__regbase16 *)((vaddr)&~0xff)) \
+	                                        ->offset[((vaddr)&0xff)>>1]
+#define __REG16(paddr)          __REGV16(io_p2v(paddr))
+
+/* 8/32 bit uses LDR/STR, base +/- offset_12 */
+typedef struct { volatile u8 offset[4096]; } __regbase8;
+#define __REGV8(vaddr)          ((__regbase8  *)((vaddr)&~4095)) \
+	                                        ->offset[((vaddr)&4095)>>0]
+#define __REG8(paddr)           __REGV8(io_p2v(paddr))
+
+typedef struct { volatile u32 offset[4096]; } __regbase32;
+#define __REGV32(vaddr)         ((__regbase32 *)((vaddr)&~4095)) \
+	                                        ->offset[((vaddr)&4095)>>2]
+#define __REG32(paddr)          __REGV32(io_p2v(paddr))
 
 struct omap_sdrc_params;
 

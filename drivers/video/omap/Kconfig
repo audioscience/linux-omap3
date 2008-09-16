@@ -74,4 +74,17 @@ config FB_OMAP_DMA_TUNE
           answer yes. Answer no if you have a dedicated video
           memory, or don't use any of the accelerated features.
 
+config OMAP3EVM_LCD_VGA
+	tristate "OMAP3 EVM VGA Display"
+	depends on MACH_OMAP3EVM
+	default FB_OMAP
+
+config OMAP_USE_DSI_PLL
+	tristate "OMAP 3430 DSI PLL for pixel clock generation"
+	depends on ARCH_OMAP34XX
+
+config TFP410_DVI_ENCODER
+	bool "TFP410 DVI encoder"
+	depends on ARCH_OMAP34XX
+	default FB_OMAP
 

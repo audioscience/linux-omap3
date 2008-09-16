@@ -1,5 +1,5 @@
 /*
- * drivers/media/video/omap2/omap2_def.h
+ * drivers/media/video/omap/omap_voutdef.h
  *
  * Copyright (C) 2005 Texas Instruments.
  *
@@ -50,20 +50,15 @@ struct omap_vout_device {
 	unsigned long framebuffer_size;
 #endif
 
-	/* we don't allow to change image fmt/size once buffer has
-	 * been allocated
-	 */
+	/* we don't allow to change image fmt/size once buffer has been allocated */
 	int buffer_allocated;
 	/* allow to reuse previosuly allocated buffer which is big enough */
 	int buffer_size;
 	/* keep buffer info accross opens */
-	unsigned long buf_virt_addr[VIDEO_MAX_FRAME];
-	unsigned long buf_phy_addr[VIDEO_MAX_FRAME];
+	unsigned long buf_virt_addr[VIDEO_MAX_FRAME], buf_phy_addr[VIDEO_MAX_FRAME];
 	unsigned int buf_memory_type;
 
-	/* we don't allow to request new buffer when old buffers are
-	 * still mmaped
-	 */
+	/* we don't allow to request new buffer when old buffers are still mmaped */
 	int mmap_count;
 
 	spinlock_t vbq_lock;		/* spinlock for videobuf queues */
@@ -124,7 +119,7 @@ struct omap_vout_fh {
 /* auxiliary display buffer type */
 struct aux_disp_buf {
 	int index;
-	void *data;
+	void * data;
 };
 
 struct aux_disp_queue_hdr {
@@ -151,20 +146,15 @@ struct omap3_aux_disp_device {
 	unsigned long framebuffer_size;
 #endif
 
-	/* we don't allow to change image fmt/size once buffer
-	 * has been allocated
-	 */
+	/* we don't allow to change image fmt/size once buffer has been allocated */
 	int buffer_allocated;
 	/* allow to reuse previosuly allocated buffer which is big enough */
 	int buffer_size;
 	/* keep buffer info accross opens */
-	unsigned long buf_virt_addr[VIDEO_MAX_FRAME];
-	unsigned long buf_phy_addr[VIDEO_MAX_FRAME];
+	unsigned long buf_virt_addr[VIDEO_MAX_FRAME], buf_phy_addr[VIDEO_MAX_FRAME];
 	unsigned int buf_memory_type;
 
-	/* we don't allow to request new buffer when old buffers
-	 * are still mmaped
-	 */
+	/* we don't allow to request new buffer when old buffers are still mmaped */
 	int mmap_count;
 
 	spinlock_t vbq_lock;		/* spinlock for videobuf queues */

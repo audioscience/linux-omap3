@@ -247,8 +247,8 @@ config OMAP_SERIAL_WAKE
 
 config VIDEO_OMAP_TVOUT
 	bool "TV out support"
-	depends on VIDEO_OMAP3
-	default VIDEO_OMAP3
+	depends on ARCH_OMAP3
+	default y
 
 endmenu
 

@@ -1,5 +1,5 @@
 /*
- * arch/arm/plat-omap2/omap-dss.c
+ * arch/arm/plat-omap/omap-dss.c
  *
  * Copyright (C) 2005-2006 Texas Instruments, Inc.
  *
@@ -31,33 +31,32 @@
 #include <linux/irq.h>
 #include <asm/arch/hardware.h>
 #include <asm/arch/omap-dss.h>
+#include <asm/arch/omap-venc.h>
 #include <asm/arch/clock.h>
 #ifdef CONFIG_TRACK_RESOURCES
 #include <linux/device.h>
 #endif
+#include <linux/semaphore.h>
 
-#undef DEBUG
-
-#ifdef DEBUG
-#define DEBUGP printk
-#else
-#define DEBUGP(fmt, a...)
-#endif
-
-/* TODO This is a power management macro.  Currently not defined */
 #define CONFIG_OMAP34XX_OFFMODE
+
+#ifdef CONFIG_ARCH_OMAP34XX
+extern int lpr_enabled;
+#endif
 
 /* usage count for DSS power management */
 static int disp_usage;
+#ifndef CONFIG_ARCH_OMAP3410
+static int omap_current_tvstandard = NTSC_M;
+#endif
 static spinlock_t dss_lock;
 short int current_colorconv_values[2][3][3];
-EXPORT_SYMBOL(current_colorconv_values);
 static struct omap_dss_regs dss_ctx;
-
 static struct clk *dss1f_scale;
+static struct tvlcd_status_t tvlcd_status;
+
 static struct clk *dss1f, *dss1i;
-static int m_clk_rate = 24000000 * 4;
-#if defined(CONFIG_OMAP_USE_DSI_PLL) || defined(CONFIG_OMAP_DSI)
+#if defined (CONFIG_OMAP_USE_DSI_PLL) || defined (CONFIG_OMAP_DSI)
 static struct clk *dss2f;
 #endif
 
@@ -79,12 +78,12 @@ static struct layer_t {
 	int size_x;
 	int size_y;
 } layer[DSS_CTX_NUMBER] = {
-	{
-	.ctx_valid = 0,}, {
-	.ctx_valid = 0,}, {
-	.ctx_valid = 0,}, {
-	.ctx_valid = 0,}, {
-.ctx_valid = 0,},};
+	{.ctx_valid = 0,},
+	{.ctx_valid = 0,},
+	{.ctx_valid = 0,},
+	{.ctx_valid = 0,},
+	{.ctx_valid = 0,},
+};
 
 #define MAX_ISR_NR   8
 static int omap_disp_irq;
@@ -94,32 +93,13 @@ static struct {
 	unsigned int mask;
 } registered_isr[MAX_ISR_NR];
 
-/* Required function delcalarations */
-static void omap_disp_restore_ctx(int ltype);
-static void disp_save_ctx(int ltype);
+/* VRFB offset computation parameters */
+#define SIDE_H		1
+#define SIDE_W		0
 
-/*
- * Modes and Encoders supported by DSS
- */
-struct channel_obj channels[] = {
-	{0, 0, {NULL, NULL, NULL}, 0, 0},
-#ifndef CONFIG_ARCH_OMAP3410
-	{0, 0, {NULL, NULL, NULL}, 0, 0}
-#endif
-};
-
-/* This mode structure lists all the modes supported by DSS
- */
-struct omap_mode_info modes[] = {
-	{"ntsc_m", 720, 482, 0, 0, 0, 0, 0, 0, 0, 0, NULL},
-	{"ntsc_j", 720, 482, 0, 0, 0, 0, 0, 0, 0, 0, NULL},
-	{"ntsc_443", 720, 482, 0, 0, 0, 0, 0, 0, 0, 0, NULL},
-	{"pal_bdghi", 720, 574, 0, 0, 0, 0, 0, 0, 0, 0, NULL},
-	{"pal_nc", 720, 574, 0, 0, 0, 0, 0, 0, 0, 0, NULL},
-	{"pal_n", 720, 574, 0, 0, 0, 0, 0, 0, 0, 0, NULL},
-	{"pal_m", 720, 482, 0, 0, 0, 0, 0, 0, 0, 0, NULL},
-	{"pal_60", 720, 482, 0, 0, 0, 0, 0, 0, 0, 0, NULL}
-};
+/* GFX FIFO thresholds */
+#define RMODE_GFX_FIFO_HIGH_THRES	0x3FC
+#define RMODE_GFX_FIFO_LOW_THRES	0x3BC
 
 #ifdef CONFIG_TRACK_RESOURCES
 /* device name needed for resource tracking layer */
@@ -133,16 +113,21 @@ struct device display_dev = {
 /*
  * DSS register I/O routines
  */
-static inline u32 dss_reg_in(u32 offset)
+static __inline__ u32
+dss_reg_in(u32 offset)
 {
-	return omap_readl(DSS_REG_BASE + DSS_REG_OFFSET + offset);
+	return  omap_readl(DSS_REG_BASE + DSS_REG_OFFSET + offset);
 }
-static inline u32 dss_reg_out(u32 offset, u32 val)
+
+static __inline__ u32
+dss_reg_out(u32 offset, u32 val)
 {
-	omap_writel(val, DSS_REG_BASE + DSS_REG_OFFSET + offset);
+	omap_writel(val,DSS_REG_BASE + DSS_REG_OFFSET + offset);
 	return val;
 }
-static inline u32 dss_reg_merge(u32 offset, u32 val, u32 mask)
+
+static __inline__ u32
+dss_reg_merge(u32 offset, u32 val, u32 mask)
 {
 	u32 addr = DSS_REG_BASE + DSS_REG_OFFSET + offset;
 	u32 new_val = (omap_readl(addr) & ~mask) | (val & mask);
@@ -154,16 +139,21 @@ static inline u32 dss_reg_merge(u32 offset, u32 val, u32 mask)
 /*
  * Display controller register I/O routines
  */
-static inline u32 dispc_reg_in(u32 offset)
+static __inline__ u32
+dispc_reg_in(u32 offset)
 {
 	return omap_readl(DSS_REG_BASE + DISPC_REG_OFFSET + offset);
 }
-static inline u32 dispc_reg_out(u32 offset, u32 val)
+
+static __inline__ u32
+dispc_reg_out(u32 offset, u32 val)
 {
 	omap_writel(val, DSS_REG_BASE + DISPC_REG_OFFSET + offset);
 	return val;
 }
-static inline u32 dispc_reg_merge(u32 offset, u32 val, u32 mask)
+
+static __inline__ u32
+dispc_reg_merge(u32 offset, u32 val, u32 mask)
 {
 	u32 addr = DSS_REG_BASE + DISPC_REG_OFFSET + offset;
 	u32 new_val = (omap_readl(addr) & ~mask) | (val & mask);
@@ -175,973 +165,365 @@ static inline u32 dispc_reg_merge(u32 offset, u32 val, u32 mask)
 /*
  * RFBI controller register I/O routines
  */
-static inline u32 rfbi_reg_in(u32 offset)
+static __inline__ u32
+rfbi_reg_in(u32 offset)
 {
 	return omap_readl(DSS_REG_BASE + RFBI_REG_OFFSET + offset);
 }
-static inline u32 rfbi_reg_out(u32 offset, u32 val)
+
+static __inline__ u32
+rfbi_reg_out(u32 offset, u32 val)
 {
 	omap_writel(val, DSS_REG_BASE + RFBI_REG_OFFSET + offset);
 	return val;
 }
 
 /*
- * DSI Proto Engine register I/O routines
-  */
-static inline u32 dsiproto_reg_in(u32 offset)
-{
-	u32 val;
-	val = omap_readl(DSI_PROTO_ENG_REG_BASE + offset);
-	return val;
-}
-static inline u32 dsiproto_reg_out(u32 offset, u32 val)
-{
-	omap_writel(val, DSI_PROTO_ENG_REG_BASE + offset);
-	return val;
-}
-
-/*
- * DSI PLL register I/O routines
+ * VENC register I/O Routines
  */
-static inline u32 dsipll_reg_in(u32 offset)
+static __inline__ u32
+venc_reg_in(u32 offset)
 {
-	u32 val;
-	val = omap_readl(DSI_PLL_CONTROLLER_REG_BASE + offset);
+	return omap_readl(DSS_REG_BASE + VENC_REG_OFFSET + offset);
+}
+
+static __inline__ u32
+venc_reg_out(u32 offset, u32 val)
+{
+	omap_writel(val, DSS_REG_BASE + VENC_REG_OFFSET + offset);
 	return val;
 }
-static inline u32 dsipll_reg_out(u32 offset, u32 val)
+
+static __inline__ u32
+venc_reg_merge(u32 offset, u32 val, u32 mask)
 {
-	omap_writel(val, DSI_PLL_CONTROLLER_REG_BASE + offset);
-	return val;
+	u32 addr = DSS_REG_BASE + VENC_REG_OFFSET + offset;
+	u32 new_val = (omap_readl(addr) & ~mask) | (val & mask);
+
+	omap_writel(new_val, addr);
+	return new_val;
 }
-
-/*---------------------------------------------------------------------------*/
-/* Local Helper Functions */
-
-/* DSS Interrupt master service routine. */
-static irqreturn_t
-omap_disp_master_isr(int irq, void *arg, struct pt_regs *regs)
-{
-	unsigned long dispc_irqstatus = dispc_reg_in(DISPC_IRQSTATUS);
-	int i;
-
-	for (i = 0; i < MAX_ISR_NR; i++) {
-		if (registered_isr[i].isr == NULL)
-			continue;
-		if (registered_isr[i].mask & dispc_irqstatus)
-			registered_isr[i].isr(registered_isr[i].arg, regs,
-					      dispc_irqstatus);
-	}
-	/* ack the interrupt */
-	dispc_reg_out(DISPC_IRQSTATUS, dispc_irqstatus);
-	return IRQ_HANDLED;
-}
-
 /*
- * Sync Lost interrupt handler
+ * Encoder device structure parameters
  */
-static void
-disp_synclost_isr(void *arg, struct pt_regs *regs, u32 irqstatus)
-{
-	u32 i;
-
-#ifndef CONFIG_ARCH_OMAP3410
-	struct omap_encoder_device *enc_dev;
+extern struct omap_encoder_device lcd_enc;
+extern struct omap_encoder_device tv_enc;
+static int m_clk_rate = 24000000*4;
+struct omap_mode_info lcd_modes[] = {
+	{"VGA", 480, 640, 96000000, 4, 64, 74, 3, 2, 2, 1, NULL}
+};
+#ifdef CONFIG_TFP410_DVI_ENCODER
+extern struct omap_encoder_device dvi_enc;
+struct omap_mode_info dvi_modes[] = {
+	{"720P", 1280, 720, 148500000, 2, 0x3F, 0xFF, 0x31, 0x5, 0x14,
+		0x4, NULL},
+	{"480P", 720, 480, 60000000, 2, 0x18, 0x60, 0x28, 0x0A, 0x20,
+		0x3, NULL}
+};
 #endif
-	i = 0;
-	printk(KERN_WARNING "Sync Lost %x\n",
-	       dispc_reg_in(DISPC_IRQSTATUS));
-	arg = NULL;
-	regs = NULL;
-
-	/*
-	 * Disable and Clear all the interrupts before we start
-	 */
-	dispc_reg_out(DISPC_IRQENABLE, 0x00000000);
-	dispc_reg_out(DISPC_IRQSTATUS, 0x0000FFFF);
-
-	/* disable the display controller */
-	omap_disp_disable(HZ / 2);
-
-	/*
-	 * Update the state of the display controller.
-	 */
-	dss_ctx.dispc.sysconfig &= ~DISPC_SYSCONFIG_SOFTRESET;
-	dss_ctx.dispc.control &= ~(DISPC_CONTROL_GODIGITAL);
-
-	dispc_reg_out(DISPC_SYSCONFIG, DISPC_SYSCONFIG_SOFTRESET);
-	while (!(dispc_reg_in(DISPC_SYSSTATUS) & DISPC_SYSSTATUS_RESETDONE)) {
-		udelay(100);
-		if (i++ > 5) {
-			printk(KERN_WARNING
-			       "Failed to soft reset the DSS !! \n");
-			break;
-		}
+struct omap_mode_info tv_modes[] = {
+	{"ntsc_m", 720, 482, 0, 0, 0, 0, 0, 0, 0, 0, NULL},
+	{"ntsc_j", 720, 482, 0, 0, 0, 0, 0, 0, 0, 0, NULL},
+	{"ntsc_443", 720, 482, 0, 0, 0, 0, 0, 0, 0, 0, NULL},
+	{"pal_bdghi", 720, 574, 0, 0, 0, 0, 0, 0, 0, 0, NULL},
+	{"pal_nc", 720, 574, 0, 0, 0, 0, 0, 0, 0, 0, NULL},
+	{"pal_n", 720, 574, 0, 0, 0, 0, 0, 0, 0, 0, NULL},
+	{"pal_m", 720, 482, 0, 0, 0, 0, 0, 0, 0, 0, NULL},
+	{"pal_60", 720, 482, 0, 0, 0, 0, 0, 0, 0, 0, NULL}
+};
+struct omap_output_info ch0_output[] = {
+	{"LCD", lcd_modes, ARRAY_SIZE(lcd_modes), 0,
+		LCD_DATA_LINE_18BIT
 	}
-
-	/* Configure the encoders for the default standard */
-	for (i = 0; i < ARRAY_SIZE(channels); i++) {
-		enc_dev = channels[i].enc_devices[channels[i].
-			current_encoder];
-		if (enc_dev && enc_dev->mode_ops->setmode)
-			enc_dev->mode_ops->setmode(modes[channels[i].
-				current_mode].name, enc_dev);
+#ifdef CONFIG_TFP410_DVI_ENCODER
+	,{"DVI", dvi_modes, ARRAY_SIZE(dvi_modes), 0,
+		LCD_DATA_LINE_24BIT
 	}
-	/* Restore the registers */
-	omap_disp_restore_ctx(OMAP_DSS_DISPC_GENERIC);
-	omap_disp_restore_ctx(OMAP_GRAPHICS);
-	omap_disp_restore_ctx(OMAP_VIDEO1);
-	omap_disp_restore_ctx(OMAP_VIDEO2);
-
-	/* enable the display controller */
-	if (layer[OMAP_DSS_DISPC_GENERIC].ctx_valid)
-		dispc_reg_out(DISPC_CONTROL, dss_ctx.dispc.control);
-
-	omap_disp_reg_sync(OMAP_OUTPUT_TV);
-
-}
-
-/*
- * Save the DSS state before doing a GO LCD/DIGITAL
- */
-static void disp_save_ctx(int ltype)
-{
-	int v1 = 0, v2 = 1;
-	struct omap_dispc_regs *dispc = &dss_ctx.dispc;
-
-	switch (ltype) {
-	case OMAP_DSS_GENERIC:
-		dss_ctx.sysconfig = dss_reg_in(DSS_SYSCONFIG);
-		dss_ctx.control = dss_reg_in(DSS_CONTROL);
-#ifdef CONFIG_ARCH_OMAP3430
-		dss_ctx.sdi_control = dss_reg_in(DSS_SDI_CONTROL);
-		dss_ctx.pll_control = dss_reg_in(DSS_PLL_CONTROL);
 #endif
-		break;
-
-	case OMAP_DSS_DISPC_GENERIC:
-		dispc->revision = dispc_reg_in(DISPC_REVISION);
-		dispc->sysconfig = dispc_reg_in(DISPC_SYSCONFIG);
-		dispc->sysstatus = dispc_reg_in(DISPC_SYSSTATUS);
-		dispc->irqstatus = dispc_reg_in(DISPC_IRQSTATUS);
-		dispc->irqenable = dispc_reg_in(DISPC_IRQENABLE);
-		dispc->control = dispc_reg_in(DISPC_CONTROL);
-		dispc->config = dispc_reg_in(DISPC_CONFIG);
-		dispc->capable = dispc_reg_in(DISPC_CAPABLE);
-		dispc->default_color0 = dispc_reg_in(DISPC_DEFAULT_COLOR0);
-		dispc->default_color1 = dispc_reg_in(DISPC_DEFAULT_COLOR1);
-		dispc->trans_color0 = dispc_reg_in(DISPC_TRANS_COLOR0);
-		dispc->trans_color1 = dispc_reg_in(DISPC_TRANS_COLOR1);
-		dispc->line_status = dispc_reg_in(DISPC_LINE_STATUS);
-		dispc->line_number = dispc_reg_in(DISPC_LINE_NUMBER);
-		dispc->data_cycle1 = dispc_reg_in(DISPC_DATA_CYCLE1);
-		dispc->data_cycle2 = dispc_reg_in(DISPC_DATA_CYCLE2);
-		dispc->data_cycle3 = dispc_reg_in(DISPC_DATA_CYCLE3);
-		dispc->timing_h = dispc_reg_in(DISPC_TIMING_H);
-		dispc->timing_v = dispc_reg_in(DISPC_TIMING_V);
-		dispc->pol_freq = dispc_reg_in(DISPC_POL_FREQ);
-		dispc->divisor = dispc_reg_in(DISPC_DIVISOR);
-		dispc->global_alpha = dispc_reg_in(DISPC_GLOBAL_ALPHA);
-		dispc->size_lcd = dispc_reg_in(DISPC_SIZE_LCD);
-		dispc->size_dig = dispc_reg_in(DISPC_SIZE_DIG);
-
-	case OMAP_VIDEO1:
-		dispc->vid1_ba0 = dispc_reg_in(DISPC_VID_BA0(v1));
-		dispc->vid1_ba1 = dispc_reg_in(DISPC_VID_BA0(v1));
-		dispc->vid1_position =
-		    dispc_reg_in(DISPC_VID_POSITION(v1));
-		dispc->vid1_size = dispc_reg_in(DISPC_VID_SIZE(v1));
-		dispc->vid1_attributes =
-		    dispc_reg_in(DISPC_VID_ATTRIBUTES(v1));
-		dispc->vid1_fifo_size =
-		    dispc_reg_in(DISPC_VID_FIFO_SIZE(v1));
-		dispc->vid1_fifo_threshold =
-		    dispc_reg_in(DISPC_VID_FIFO_THRESHOLD(v1));
-		dispc->vid1_row_inc = dispc_reg_in(DISPC_VID_ROW_INC(v1));
-		dispc->vid1_pixel_inc =
-		    dispc_reg_in(DISPC_VID_PIXEL_INC(v1));
-		dispc->vid1_fir = dispc_reg_in(DISPC_VID_FIR(v1));
-		dispc->vid1_accu0 = dispc_reg_in(DISPC_VID_ACCU0(v1));
-		dispc->vid1_accu1 = dispc_reg_in(DISPC_VID_ACCU1(v1));
-		dispc->vid1_picture_size =
-		    dispc_reg_in(DISPC_VID_PICTURE_SIZE(v1));
-		dispc->vid1_fir_coef_h0 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_H(v1, 0));
-		dispc->vid1_fir_coef_h1 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_H(v1, 1));
-		dispc->vid1_fir_coef_h2 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_H(v1, 2));
-		dispc->vid1_fir_coef_h3 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_H(v1, 3));
-		dispc->vid1_fir_coef_h4 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_H(v1, 4));
-		dispc->vid1_fir_coef_h5 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_H(v1, 5));
-		dispc->vid1_fir_coef_h6 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_H(v1, 6));
-		dispc->vid1_fir_coef_h7 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_H(v1, 7));
-		dispc->vid1_fir_coef_hv0 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_HV(v1, 0));
-		dispc->vid1_fir_coef_hv1 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_HV(v1, 1));
-		dispc->vid1_fir_coef_hv2 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_HV(v1, 2));
-		dispc->vid1_fir_coef_hv3 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_HV(v1, 3));
-		dispc->vid1_fir_coef_hv4 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_HV(v1, 4));
-		dispc->vid1_fir_coef_hv5 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_HV(v1, 5));
-		dispc->vid1_fir_coef_hv6 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_HV(v1, 6));
-		dispc->vid1_fir_coef_hv7 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_HV(v1, 7));
-		dispc->vid1_conv_coef0 =
-		    dispc_reg_in(DISPC_VID_CONV_COEF0(v1));
-		dispc->vid1_conv_coef1 =
-		    dispc_reg_in(DISPC_VID_CONV_COEF1(v1));
-		dispc->vid1_conv_coef2 =
-		    dispc_reg_in(DISPC_VID_CONV_COEF2(v1));
-		dispc->vid1_conv_coef3 =
-		    dispc_reg_in(DISPC_VID_CONV_COEF3(v1));
-		dispc->vid1_conv_coef4 =
-		    dispc_reg_in(DISPC_VID_CONV_COEF4(v1));
-		break;
-
-	case OMAP_VIDEO2:
-		dispc->vid2_ba0 = dispc_reg_in(DISPC_VID_BA0(v2));
-		dispc->vid2_ba1 = dispc_reg_in(DISPC_VID_BA1(v2));
-		dispc->vid2_position =
-		    dispc_reg_in(DISPC_VID_POSITION(v2));
-		dispc->vid2_size = dispc_reg_in(DISPC_VID_SIZE(v2));
-		dispc->vid2_attributes =
-		    dispc_reg_in(DISPC_VID_ATTRIBUTES(v2));
-		dispc->vid2_fifo_size =
-		    dispc_reg_in(DISPC_VID_FIFO_SIZE(v2));
-		dispc->vid2_fifo_threshold =
-		    dispc_reg_in(DISPC_VID_FIFO_THRESHOLD(v2));
-		dispc->vid2_row_inc = dispc_reg_in(DISPC_VID_ROW_INC(v2));
-		dispc->vid2_pixel_inc =
-		    dispc_reg_in(DISPC_VID_PIXEL_INC(v2));
-		dispc->vid2_fir = dispc_reg_in(DISPC_VID_FIR(v2));
-		dispc->vid2_accu0 = dispc_reg_in(DISPC_VID_ACCU0(v2));
-		dispc->vid2_accu1 = dispc_reg_in(DISPC_VID_ACCU1(v2));
-		dispc->vid2_picture_size =
-		    dispc_reg_in(DISPC_VID_PICTURE_SIZE(v2));
-		dispc->vid2_fir_coef_h0 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_H(v2, 0));
-		dispc->vid2_fir_coef_h1 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_H(v2, 1));
-		dispc->vid2_fir_coef_h2 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_H(v2, 2));
-		dispc->vid2_fir_coef_h3 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_H(v2, 3));
-		dispc->vid2_fir_coef_h4 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_H(v2, 4));
-		dispc->vid2_fir_coef_h5 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_H(v2, 5));
-		dispc->vid2_fir_coef_h6 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_H(v2, 6));
-		dispc->vid2_fir_coef_h7 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_H(v2, 7));
-		dispc->vid2_fir_coef_hv0 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_HV(v2, 0));
-		dispc->vid2_fir_coef_hv1 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_HV(v2, 1));
-		dispc->vid2_fir_coef_hv2 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_HV(v2, 2));
-		dispc->vid2_fir_coef_hv3 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_HV(v2, 3));
-		dispc->vid2_fir_coef_hv4 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_HV(v2, 4));
-		dispc->vid2_fir_coef_hv5 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_HV(v2, 5));
-		dispc->vid2_fir_coef_hv6 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_HV(v2, 6));
-		dispc->vid2_fir_coef_hv7 =
-		    dispc_reg_in(DISPC_VID_FIR_COEF_HV(v2, 7));
-		dispc->vid2_conv_coef0 =
-		    dispc_reg_in(DISPC_VID_CONV_COEF0(v2));
-		dispc->vid2_conv_coef1 =
-		    dispc_reg_in(DISPC_VID_CONV_COEF1(v2));
-		dispc->vid2_conv_coef2 =
-		    dispc_reg_in(DISPC_VID_CONV_COEF2(v2));
-		dispc->vid2_conv_coef3 =
-		    dispc_reg_in(DISPC_VID_CONV_COEF3(v2));
-		dispc->vid2_conv_coef4 =
-		    dispc_reg_in(DISPC_VID_CONV_COEF4(v2));
-		break;
-	}
-	layer[ltype].ctx_valid = 1;
-}
-
-void config_disp_clocks(int sleep_state)
-{
-#ifdef CONFIG_TRACK_RESOURCES
-	struct device *dev = &display_dev;
+};
+struct omap_output_info ch1_output[] = {
+	{"SVIDEO", tv_modes, ARRAY_SIZE(tv_modes), 0,
+		LCD_DATA_LINE_18BIT}
+};
+struct omap_channel_info channels[MAX_CHANNEL] = {
+	{
+		{&ch0_output[0],
+#ifdef CONFIG_TFP410_DVI_ENCODER
+		 &ch0_output[1],
+#endif
+		 NULL
+		},
+#ifdef CONFIG_TFP410_DVI_ENCODER
+		{&lcd_enc, &dvi_enc, NULL}, ARRAY_SIZE(ch0_output), 0},
 #else
-	struct device *dev = NULL;
+                {&lcd_enc, NULL, NULL}, ARRAY_SIZE(ch0_output), 0},
 #endif
-	static int start = 1;
-	/*int (*clk_onoff)(struct clk *clk) = NULL; */
-	if (start) {
-#ifndef CONFIG_OMAP_USE_DSI_PLL
-		omap_disp_set_dssfclk();
-#endif
-		dss1i = clk_get(dev, "dss_ick");
-		dss1f =
-		    clk_get(dev,
-			    cpu_is_omap34xx()? "dss1_alwon_fck" :
-			    "dss1_fck");
-		if (IS_ERR(dss1i) || IS_ERR(dss1f)) {
-			printk(KERN_WARNING
-			       "Could not get DSS clocks  \n");
-			return;
-		}
-#if defined(CONFIG_OMAP_USE_DSI_PLL) || defined(CONFIG_OMAP_DSI)
-		dss2f = clk_get(dev, "dss2_fck");
-		if (IS_ERR(dss2f)) {
-			printk(KERN_WARNING "Could not get DSS2 FCLK\n");
-			return;
-		}
-#endif
-		start = 0;
+	{
+		{&ch1_output[0]},
+		{&tv_enc}, ARRAY_SIZE(ch1_output), 0
 	}
-	if (sleep_state == 1) {
-		clk_disable(dss1i);
-		clk_disable(dss1f);
-	} else {
-		if (clk_enable(dss1i) != 0) {
-			printk(KERN_WARNING "Unable to enable DSS ICLK\n");
-			return;
-		}
-		if (clk_enable(dss1f) != 0) {
-			printk(KERN_WARNING "Unable to enable DSS FCLK\n");
-			return;
-		}
-#ifndef CONFIG_OMAP_USE_DSI_PLL
-#ifdef CONFIG_OMAP_DSI
-		if (clk_enable(dss2f) != 0) {
-			printk(KERN_WARNING "Unable to enable DSS FCLK\n");
-			return;
-		}
+};
+
+#ifdef CONFIG_FB_OMAP
+extern int omapfb_store_timing_info(u32 clk, u32 hbp, u32 hfp, u32 hsw,
+                                        u32 vbp, u32 vfp, u32 vsw);
 #endif
-#endif
-	}
-}
-
-/* This function turns on/off the clocks needed for TV-out.
- *  - 2430SDP: Controls the dss_54m_fck
- *  - 3430SDP: Controls the dss_tv_fck
- *  - 3430LAB: Controls both dss_tv_fck and dss_96m_fck.
- *             By default Labrador turns off the 96MHz DAC clock for
- *             power saving reasons.
- */
-#ifndef CONFIG_ARCH_OMAP3410
-static void disp_ll_config_tv_clocks(int sleep_state)
-{
-	static int start = 1;
-	static struct clk *tv_clk;
-#ifdef CONFIG_MACH_OMAP_3430LABRADOR
-	static struct clk *dac_clk;
-#endif
-	static int disabled;
-	static int enabled;
-
-	if (start) {
-#ifdef CONFIG_MACH_OMAP_2430SDP
-		tv_clk = clk_get(NULL, "dss_54m_fck");
-#endif
-#if defined(CONFIG_MACH_OMAP_3430SDP) ||  defined(CONFIG_MACH_OMAP3EVM) \
-	|| defined(CONFIG_MACH_OMAP_3430LABRADOR)
-		tv_clk = clk_get(NULL, "dss_tv_fck");
-#endif
-#if defined(CONFIG_MACH_OMAP_3430LABRADOR)
-		dac_clk = clk_get(NULL, "dss_96m_fck");
-		if (IS_ERR(dac_clk)) {
-			printk(KERN_WARNING
-			       "\n UNABLE to get dss 96MHz fclk \n");
-			return;
-		}
-#endif
-		if (IS_ERR(tv_clk)) {
-			printk(KERN_WARNING
-			       "\n UNABLE to get dss TV fclk \n");
-			return;
-		}
-		start = 0;
-	}
-
-	if (sleep_state == 1) {
-		if (disabled == 0) {
-			clk_disable(tv_clk);
-#if defined(CONFIG_MACH_OMAP_3430LABRADOR)
-			clk_disable(dac_clk);
-#endif
-			disabled = 1;
-		}
-		enabled = 0;
-	} else {
-		if (enabled == 0) {
-			if (clk_enable(tv_clk) != 0) {
-				printk(KERN_WARNING
-				       "\n UNABLE to enable dss TV fclk \n");
-				return;
-			}
-#if defined(CONFIG_MACH_OMAP_3430LABRADOR)
-			if (clk_enable(dac_clk) != 0) {
-				printk(KERN_WARNING
-				       "\n UNABLE to enable dss 96MHz fclk \n");
-				return;
-			}
-#endif
-			enabled = 1;
-		}
-		disabled = 0;
-	}
-}
-#endif
-
-/* Function used to find the VRFB Alignement */
-static inline u32 pages_per_side(u32 img_side, u32 page_exp)
-{
-	/*  page_side = 2 ^ page_exp
-	 * (page_side - 1) is added for rounding up
-	 */
-	return (u32) (img_side + (1 << page_exp) - 1) >> page_exp;
-}
-
-/* Update the color conversion matrix */
-static void update_colorconv_mtx(int v, const short int mtx[3][3])
-{
-	int i, j;
-	for (i = 0; i < 3; i++)
-		for (j = 0; j < 3; j++)
-			current_colorconv_values[v][i][j] = mtx[i][j];
-}
-
-/* Write the horizontal and vertical resizing coefficients to the display
- * controller registers.  Each coefficient is a signed 8-bit integer in the
- * range [-128, 127] except for the middle coefficient (vc[1][i] and hc[3][i])
- * which is an unsigned 8-bit integer in the range [0, 255].  The first index of
- * the matrix is the coefficient number (0 to 2 vertical or 0 to 4 horizontal)
- * and the second index is the phase (0 to 7).
- */
-void disp_set_resize(int v, short int *vc, short int *hc, int v_scale_dir)
-{
-	int i;
-	unsigned long reg;
-
-	for (i = 0; i < 8; i++) {
-		reg =
-		    (*(hc + (8 * 0) + i) & 0xff) |
-		    ((*(hc + (8 * 1) + i) & 0xff)
-		     << 8)
-		    | ((*(hc + (8 * 2) + i) & 0xff) << 16) |
-		    ((*(hc + (8 * 3) + i) & 0xff) << 24);
-		dispc_reg_out(DISPC_VID_FIR_COEF_H(v, i), reg);
-
-		if (!v_scale_dir) {
-			reg =
-			    (*(hc + (8 * 4) + i) & 0xff) |
-			    ((*(vc + (1 * 8) + i) & 0xff) << 8)
-			    | ((*(vc + (8 * 2) + i) & 0xff) << 16)
-			    | ((*(vc + (3 * 8) + i) & 0xff) << 24);
-			dispc_reg_out(DISPC_VID_FIR_COEF_HV(v, i), reg);
-
-			reg = (*(vc + (8 * 0) + i) & 0xff)
-			    | ((*(vc + (4 * 8) + i) & 0xff) << 8);
-			dispc_reg_out(DISPC_VID_FIR_COEF_V(v, i), reg);
-		} else {
-			reg = (*(hc + (8 * 4) + i) & 0xff)
-			    | ((*(vc + (0 * 8) + i) & 0xff) << 8)
-			    | ((*(vc + (8 * 1) + i) & 0xff) << 16)
-			    | ((*(vc + (2 * 8) + i) & 0xff) << 24);
-			dispc_reg_out(DISPC_VID_FIR_COEF_HV(v, i), reg);
-		}
-	}
-}
-
-#ifdef CONFIG_OMAP_USE_DSI_PLL
-/* DSI Helper Functions */
-int disp_lock_dsi_pll(u32 M, u32 N, u32 M3, u32 M4, u32 freqsel)
-{
-
-	u32 count = 1000, val;
-	val = ((M4 << 23) | (M3 << 19) | (M << 8) | (N << 1) | (1));
-	dsipll_reg_out(DSI_PLL_CONFIGURATION1, val);
-	val =
-	    ((0 << 20) | (0 << 19) | (1 << 18) | (0 << 17) | (1 << 16) |
-	     (0 << 14) | (1 << 13) | (0 << 12) | (0 << 11) | (0 << 8) |
-	     (freqsel << 1));
-
-	dsipll_reg_out(DSI_PLL_CONFIGURATION2, val);
-
-	dsipll_reg_out(DSI_PLL_GO, 1);
-
-	while ((dsipll_reg_in(DSI_PLL_GO) != 0) && (--count))
-		udelay(100);
-
-	if (count == 0) {
-		printk(KERN_WARNING "GO bit not cleared\n");
-		return 0;
-	}
-
-	count = 1000;
-	while (((dsipll_reg_in(DSI_PLL_STATUS) & 0x2) != 0x2) && (--count))
-		udelay(100);
-
-	if (count == 0) {
-		printk(KERN_WARNING "DSI PLL lock request failed = %X\n",
-		       dsipll_reg_in(DSI_PLL_STATUS));
-		return 0;
-	}
-
-	return 1;
-}
-
-void disp_switch_to_dsipll_clk_source(void)
-{
-	u32 val;
-	/*Switch DISPC FCLK to DSI PLL HS divider */
-	val = dss_reg_in(DSS_CONTROL);
-	val = val | (1 << 1) | (1 << 0);
-	dss_reg_out(DSS_CONTROL, val);
-}
-
-int disp_power_dsi_pll(u32 cmd)
-{
-	u32 val, count = 10000;
-	/* send the power command */
-	val = dsiproto_reg_in(DSI_CLK_CTRL);
-	val = ((val & ~(3 << 30)) | (cmd << 30));
-	dsiproto_reg_out(DSI_CLK_CTRL, val);
-
-	/* Check whether the power status is changed */
-	do {
-		val = dsiproto_reg_in(DSI_CLK_CTRL);
-		val = ((val & 0x30000000) >> 28);
-		udelay(100);
-	} while ((val != cmd) && (--count));
-
-	return count;
-}
-
-void disp_enable_dss2fck(void)
-{
-	if (clk_enable(dss2f) != 0) {
-		printk(KERN_WARNING "Unable to enable DSS2 FCLK\n");
-		return;
-	}
-}
-
-void disp_disable_dss2fck(void)
-{
-	clk_disable(dss2f);
-}
-#endif
-
-/* Configure the panel size in the DSS according
- * to the mode selected in decoder
- */
+void omap_set_tvstandard(char *buffer);
 int disp_set_dss_mode(int ch_no, int mode_index)
 {
 	struct omap_dispc_regs *dispc = &dss_ctx.dispc;
-	struct omap_mode_info *mode = NULL;
+	struct omap_mode_info *mode=NULL;
+	int enc_index;
 	u32 size;
 
 	dispc->control = dispc_reg_in(DISPC_CONTROL);
 
-	mode = &modes[mode_index];
+	enc_index = channels[ch_no].current_enc;
+	mode = &channels[ch_no].output[enc_index]->mode[mode_index];
+	if(ch_no == 0) {
+		/* Set the Clock */
+		clk_disable(dss1f);
+		m_clk_rate = mode->clk_rate;
+		omap_disp_set_dssfclk();
 
-	if (ch_no == 1) {
+		size = ((mode->width - 1) << DISPC_SIZE_LCD_PPL_SHIFT)
+			& DISPC_SIZE_LCD_PPL;
+		size |= ((mode->height - 1) << DISPC_SIZE_LCD_LPP_SHIFT)
+			& DISPC_SIZE_LCD_LPP;
+
+		if (mode->hbp > 255)
+			mode->hbp = 255;
+		if (mode->hfp > 255)
+			mode->hfp = 255;
+		if (mode->hsw > 63)
+			mode->hsw = 63;
+		if (mode->vbp > 255)
+			mode->vbp = 255;
+		if (mode->vfp > 255)
+			mode->vfp = 255;
+		if (mode->vsw > 63)
+			mode->vsw = 63;
+
+		dispc->timing_h = (mode->hbp << DISPC_TIMING_H_HBP_SHIFT) |
+			(mode->hfp << DISPC_TIMING_H_HFP_SHIFT)	|
+			(mode->hsw << DISPC_TIMING_H_HSW_SHIFT);
+		dispc->timing_v = (mode->vbp << DISPC_TIMING_V_VBP_SHIFT) |
+			(mode->vfp << DISPC_TIMING_V_VFP_SHIFT)	|
+			(mode->vsw << DISPC_TIMING_V_VSW_SHIFT);
+
+		dispc->size_lcd = size;
+		dispc->divisor = (1 << DISPC_DIVISOR_LCD_SHIFT)
+			| (mode->clk_div << DISPC_DIVISOR_PCD_SHIFT);
+		clk_enable(dss1f);
+
+#ifdef CONFIG_FB_OMAP
+		omapfb_store_timing_info(mode->clk_div, mode->hbp,
+				mode->hfp, mode->hsw, mode->vbp,
+				mode->vfp, mode->vsw);
+#endif
+	} else if(ch_no == 1) {
 		size = ((mode->width - 1) << DISPC_SIZE_DIG_PPL_SHIFT) &
-		    DISPC_SIZE_DIG_PPL;
-		size |=
-		    (((mode->height >> 1) - 1) << DISPC_SIZE_DIG_LPP_SHIFT)
-		    & DISPC_SIZE_DIG_LPP;
+			DISPC_SIZE_DIG_PPL;
+		size |= (((mode->height>>1) - 1) << DISPC_SIZE_DIG_LPP_SHIFT)
+			& DISPC_SIZE_DIG_LPP;
 
 		dispc->size_dig = size;
 		dispc_reg_out(DISPC_SIZE_DIG, dispc->size_dig);
+		omap_set_tvstandard((char*)mode->name);
 	}
+
+	/* Restore irqenable register */
+	dispc_reg_out(DISPC_SIZE_LCD, dispc->size_lcd);
+	dispc_reg_out(DISPC_SIZE_DIG, dispc->size_dig);
+	dispc_reg_out(DISPC_TIMING_H, dispc->timing_h);
+	dispc_reg_out(DISPC_TIMING_V, dispc->timing_v);
+	dispc_reg_out(DISPC_DIVISOR, dispc->divisor);
 
 	/* enable the display controller */
 	if (layer[OMAP_DSS_DISPC_GENERIC].ctx_valid)
 		dispc_reg_out(DISPC_CONTROL, dss_ctx.dispc.control);
 
-	omap_disp_reg_sync(OMAP_OUTPUT_TV);
+	omap_disp_reg_sync(OMAP_OUTPUT_LCD);
+	if ((omap_disp_get_output_dev(OMAP_GRAPHICS) ==
+				OMAP_OUTPUT_TV) ||
+			(omap_disp_get_output_dev(OMAP_VIDEO1) ==
+			 OMAP_OUTPUT_TV) ||
+			(omap_disp_get_output_dev(OMAP_VIDEO2) ==
+			 OMAP_OUTPUT_TV)){
+		omap_disp_reg_sync(OMAP_OUTPUT_TV);
+	}
 
 	dispc->size_dig = dispc_reg_in(DISPC_SIZE_DIG);
+	dispc->size_lcd = dispc_reg_in(DISPC_SIZE_LCD);
+	dispc->timing_h = dispc_reg_in(DISPC_TIMING_H);
+	dispc->timing_v = dispc_reg_in(DISPC_TIMING_V);
+	dispc->divisor = dispc_reg_in(DISPC_DIVISOR);
 
 	return 0;
 }
 
-/* Set the DSS register according to the output selected
- */
 int disp_set_dss_output(int ch_no, char *buffer)
 {
+	int no_output, i;
 	/* Only supported output is S-Video */
-	if (ch_no == 1) {
+	if(ch_no == 1) {
 		/* Composite and S-Video Related Changes needs to be
 		   done here */
+	} else {
+		no_output = channels[ch_no].no_outputs;
+
+		for (i = 0 ; i < no_output; i ++) {
+			if(strncmp(channels[ch_no].output[i]->name, buffer,
+					MAX_CHAR) == 0)
+				break;
+		}
+
+		omap_disp_set_lcddatalines(channels[ch_no].output[i]->
+						data_lines);
 	}
 	return 0;
 }
 
-/*---------------------------------------------------------------------------*/
-/* Exported Functions */
-
-/* Register the encoder with the DSS */
-int omap_register_encoder(struct omap_encoder_device
-			   *encoder)
-{
-	struct channel_obj *channel = &channels[encoder->channel_id];
-	int err = -EINVAL;
-	struct omap_encoder_device *enc_dev;
-
-	if (channel == NULL)
-		err = -EINVAL;
-	if (channel->num_encoders < MAX_ENCODER_DEVICE) {
-		channel->enc_devices[channel->num_encoders++] = encoder;
-		err = 0;
-	}
-	enc_dev = channel->enc_devices[channel->current_encoder];
-	if (channel->current_encoder == ((channel->num_encoders) - 1))
-		err = enc_dev->initialize(enc_dev);
-	return err;
-}
-EXPORT_SYMBOL(omap_register_encoder);
-/* omap_unregister_decoder : This function will be called by the decoder
- * driver to un-register its functionalities.
- */
-int omap_unregister_encoder(struct omap_encoder_device
-			     *encoder)
-{
-	int i, j = 0, err = 0;
-	struct channel_obj *channel = &channels[encoder->channel_id];
-
-	for (i = 0; i < channel->num_encoders; i++) {
-		if (encoder == channel->enc_devices[i]) {
-			if (channel->
-			    enc_devices[channel->current_encoder] ==
-			    encoder)
-				return -EBUSY;
-			channel->enc_devices[i] = NULL;
-			for (j = i; j < channel->num_encoders - 1; j++)
-				channel->enc_devices[j] =
-				    channel->enc_devices[j + 1];
-			channel->num_encoders--;
-			break;
-		}
-	}
-	return err;
-}
-EXPORT_SYMBOL(omap_unregister_encoder);
-
-/* Exported function to select the Mode in
- * the current selected encoder
- */
 int omap_disp_set_mode(int ch_no, char *buffer)
 {
-	struct omap_encoder_device *enc_dev = NULL;
-	struct omap_mode_info *mode;
-	int i;
-
-	if (ch_no >= MAX_CHANNEL || ch_no < 0)
-		return -EINVAL;
-
-	if (channels[ch_no].num_encoders <= 0)
-		return -EINVAL;
-	/* Check whether the mode is supported by DSS or not */
-	for (i = 0; i < ARRAY_SIZE(modes); i++) {
-		mode = &modes[i];
-		if (!(strcmp(mode->name, buffer)))
-			break;
-	}
-
-	if (i == ARRAY_SIZE(modes))
-		return -EINVAL;
-	/* Get the handle of the current encoder device */
-	enc_dev =
-	    channels[ch_no].enc_devices[channels[ch_no].current_encoder];
-	/* Set the mode in current encoder device  */
-	if (enc_dev->mode_ops->setmode)
-		if (enc_dev->mode_ops->setmode(buffer, enc_dev))
-			return -EINVAL;
-	/* Set the mode in DSS */
-	disp_set_dss_mode(ch_no, i);
-	channels[ch_no].current_mode = i;
-
-	return 0;
-}
-EXPORT_SYMBOL(omap_disp_set_mode);
-
-/* Exported function to Get the current selected mode */
-char *omap_disp_get_mode(int ch_no)
-{
 	struct omap_encoder_device *enc_dev;
+	struct omap_mode_info *mode;
+	int i, no_modes, ret = 0;
 
-	if (channels[ch_no].num_encoders <= 0)
-		return NULL;
-	/* Get the handle of the current encoder device */
-	enc_dev =
-	    channels[ch_no].enc_devices[channels[ch_no].current_encoder];
-	/* Set the mode in current encoder device  */
-	if (enc_dev->mode_ops->getmode)
-		return enc_dev->mode_ops->getmode(enc_dev);
-	else
-		return NULL;
-}
-EXPORT_SYMBOL(omap_disp_get_mode);
-
-/* Exported Function to enumerate all the outputs supported by DSS */
-int omap_disp_enum_output(int ch_no, int index, char *name)
-{
-	struct omap_encoder_device *enc_dev = NULL;
-	int index_count = 0;
-	int i, j;
-	char *str;
-
-	if (channels[ch_no].num_encoders <= 0)
-		return -EINVAL;
-	/* Reach the encoder from the list of encoders */
-	for (i = 0; i < channels[ch_no].num_encoders; i++) {
-		enc_dev = channels[ch_no].enc_devices[i];
-		index_count += enc_dev->no_outputs;
-		if (index_count > index)
-			break;
-	}
-	if (i == channels[ch_no].num_encoders)
+	if(ch_no >= MAX_CHANNEL || ch_no < 0)
 		return -EINVAL;
 
-	/* Get the output index number of the encoder; */
-	for (j = 0; j < i; j++) {
-		enc_dev = channels[ch_no].enc_devices[j];
-		index = index - enc_dev->no_outputs;
-	}
-
-	if (enc_dev->output_ops->enumoutput) {
-		str = enc_dev->output_ops->enumoutput(index, enc_dev);
-		strcpy(name, str);
-		return 0;
-	} else
-		return -EINVAL;
-}
-EXPORT_SYMBOL(omap_disp_enum_output);
-
-/* Exported function to set the particular output of the DSS
- * It will iterate through all the encoders for setting the
- * output
- */
-int omap_disp_set_output(int ch_no, int index)
-{
-	struct omap_encoder_device *enc_dev = NULL, *prev_enc_dev = NULL;
-	int i, j, index_count = 0;
-	char mode_name[25], *str;
-
-	if (ch_no >= MAX_CHANNEL || ch_no < 0)
+	if(channels[ch_no].current_enc > MAX_ENCODER_DEVICE ||
+			!channels[ch_no].output)
 		return -EINVAL;
 
-	/* Find the encoder for the requested output */
-	for (i = 0; i < channels[ch_no].num_encoders; i++) {
-		enc_dev = channels[ch_no].enc_devices[i];
-		index_count += enc_dev->no_outputs;
-		if (index_count > index)
+	/* Set mode in Encoder */
+	enc_dev = channels[ch_no].enc_dev[channels[ch_no].current_enc];
+
+	if (!enc_dev)
+		return -EINVAL;
+
+	no_modes = channels[ch_no].output[channels[ch_no].current_enc]->
+		no_modes;
+	mode = channels[ch_no].output[channels[ch_no].current_enc]->mode;
+
+	if(!mode)
+		return -EINVAL;
+
+	for (i = 0 ; i < no_modes ; i ++) {
+		if(strncmp(mode[i].name, buffer, MAX_CHAR) == 0)
 			break;
 	}
 
-	if (i == channels[ch_no].num_encoders)
+	if(i == no_modes)
 		return -EINVAL;
-	/* Find the index number of the encoder output */
-	for (j = 0; j < i; j++) {
-		enc_dev = channels[ch_no].enc_devices[j];
-		index = index - enc_dev->no_outputs;
-	}
 
-	/* Get the previous encoder device and de-initialize it */
-	prev_enc_dev =
-	    channels[ch_no].enc_devices[channels[ch_no].current_encoder];
-
-	if (prev_enc_dev->deinitialize)
-		prev_enc_dev->deinitialize(enc_dev);
-
-	/* Set the new encoder as the current encoder */
-	channels[ch_no].current_encoder = i;
-
-	str = enc_dev->output_ops->enumoutput(index, enc_dev);
-	disp_set_dss_output(ch_no, str);
-
-	/* Initialize the new encoder */
-	if (enc_dev->initialize)
-		enc_dev->initialize(enc_dev);
-	/* Set the output of the new encoder */
-	if (enc_dev->output_ops->setoutput)
-		if ((enc_dev->output_ops->setoutput(index, mode_name, enc_dev) <
-		     0))
-			return -EINVAL;
-
-	/* Set the DSS panel size according to the mode set in the
-	 * encoder for the selected output
-	 */
-	for (i = 0; i < ARRAY_SIZE(modes); i++) {
-		if (!(strcmp(modes[i].name, mode_name))) {
-			disp_set_dss_mode(ch_no, i);
-			channels[ch_no].current_mode = i;
+	/* Call Encoder Set mode Function to Set the mode */
+	if(enc_dev && enc_dev->set_mode) {
+		ret = enc_dev->set_mode(buffer, enc_dev);
+		if(ret < 0) {
+			return ret;
 		}
 	}
 
+	/* Set the mode in DSS */
+	disp_set_dss_mode(ch_no, i);
+
+	/* Set the current mode to this one */
+	channels[ch_no].output[channels[ch_no].current_enc]->current_mode = i;
+
 	return 0;
 }
-EXPORT_SYMBOL(omap_disp_set_output);
 
-/* Exported Function to get the output of DSS */
-int omap_disp_get_output(int ch_no, int *index)
+char* omap_disp_get_mode(int ch_no)
+{
+	struct omap_output_info *output;
+
+	if(ch_no >= MAX_CHANNEL || ch_no < 0 || channels[ch_no].current_enc >
+			MAX_ENCODER_DEVICE)
+		return NULL;
+
+	output = channels[ch_no].output[channels[ch_no].current_enc];
+
+	if(!output)
+		return NULL;
+
+	if(!output->mode)
+		return NULL;
+
+	return output->mode[output->current_mode].name;
+}
+
+int omap_disp_set_output(int ch_no, char *buffer)
 {
 	struct omap_encoder_device *enc_dev;
-	int i;
-	int enc_index = 0;
+	struct omap_output_info *output=NULL;
+	int no_output=0, i, ret = 0;
 
-	if (channels[ch_no].num_encoders <= 0)
+	if(ch_no >= MAX_CHANNEL || ch_no < 0 || channels[ch_no].current_enc >
+			MAX_ENCODER_DEVICE)
 		return -EINVAL;
-	enc_dev =
-	    channels[ch_no].enc_devices[channels[ch_no].current_encoder];
 
-	for (i = 0; i < channels[ch_no].current_encoder; i++) {
-		 enc_index +=
-			channels[ch_no].enc_devices[i]->no_outputs;
+	/* Set output in Encoder */
+	enc_dev = channels[ch_no].enc_dev[channels[ch_no].current_enc];
+	if (!enc_dev)
+		return -EINVAL;
+
+	no_output = channels[ch_no].no_outputs;
+
+	for (i = 0 ; i < no_output; i ++) {
+		if(strncmp(channels[ch_no].output[i]->name, buffer, MAX_CHAR)
+				== 0)
+			break;
 	}
-	enc_index += enc_dev->current_output;
-	*index = enc_index;
 
-	if (enc_dev->output_ops->getoutput)
-		return enc_dev->output_ops->getoutput(enc_dev);
+	if(i == no_output)
+		return -EINVAL;
+
+	/* De-initialize current encoder */
+	enc_dev->deinitialize(enc_dev);
+
+	/* Initialize New encoder */
+	enc_dev = channels[ch_no].enc_dev[i];
+
+	/* Set the mode in DSS */
+	disp_set_dss_output(ch_no, buffer);
+
+	enc_dev->initialize(enc_dev);
+
+	/* Call Encoder Set mode Function to Set the mode */
+	if(enc_dev && enc_dev->set_output) {
+		ret = enc_dev->set_output(buffer, enc_dev);
+		if(ret < 0)
+			return ret;
+	}
+
+	/* Set the current encoder to this one */
+	channels[ch_no].current_enc = i;
+
+	/* Set the default mode in this output */
+	output = channels[ch_no].output[i];
+	omap_disp_set_mode(ch_no,
+		output->mode[output->current_mode].name);
 
 	return 0;
 }
-EXPORT_SYMBOL(omap_disp_get_output);
-/*---------------------------------------------------------------------------*/
-/* Exported Functions */
-/*
- * Functions for setting video attributes
- */
-void omap_disp_set_vidattributes(unsigned int video_layer,
-				  unsigned int vid_attributes)
+
+char* omap_disp_get_output(int ch_no)
 {
-	dispc_reg_out(DISPC_VID_ATTRIBUTES(video_layer), vid_attributes);
+	struct omap_output_info *output;
+
+	if(ch_no >= MAX_CHANNEL || ch_no < 0 || channels[ch_no].current_enc >
+			MAX_ENCODER_DEVICE)
+		return NULL;
+
+	output = channels[ch_no].output[channels[ch_no].current_enc];
+
+	if (!output)
+		return NULL;
+
+	return (char *)output->name;
 }
-EXPORT_SYMBOL(omap_disp_set_vidattributes);
-
-/* Function for setting the DMS threshold */
-void omap_disp_set_fifothreshold(unsigned int video_layer)
-{
-	/* Set FIFO threshold to 0xFF (high) and 0xFF -
-	 *(16x4bytes) = 0xC0 (low)
-	 * dispc_reg_out(DISPC_VID_FIFO_THRESHOLD(v),0x00FF00C0);
-	 */
-	dispc_reg_out(DISPC_VID_FIFO_THRESHOLD(video_layer), 0x03FC03BC);
-}
-EXPORT_SYMBOL(omap_disp_set_fifothreshold);
-
-/* Set the scaling parameters */
-void omap_disp_set_scaling(struct omap_scaling_params *scale_params)
-{
-	unsigned long firvinc, firhinc;
-	int v_scale_dir = 0;
-
-	/* horizontal and vertical upscale resizing matrix */
-	const static short int hvc_u[5][8] =
-	    { {0, 0, -1, -2, -9, -5, -2, -1},
-	{0, -8, -11, -11, 73, 51, 30, 13},
-	{128, 124, 112, 95, 73, 95, 112, 124},
-	{0, 13, 30, 51, -9, -11, -11, -8},
-	{0, -1, -2, -5, 0, -2, -1, 0}
-	};
-	/* Vertical downscale resizing matrix */
-	const static short int vc_d[3][8] =
-	    { {36, 40, 45, 50, 18, 23, 27, 31},
-	{56, 57, 56, 55, 55, 55, 56, 57},
-	{36, 31, 27, 23, 55, 50, 45, 40}
-	};
-	/* horizontal down scale resizing matrix */
-	const static short int hc_d[5][8] =
-	    { {0, 4, 8, -12, -9, -7, -5, -2},
-	{36, 40, 44, 48, 17, 22, 27, 31},
-	{56, 55, 54, 53, 52, 53, 54, 55},
-	{36, 31, 27, 22, 51, 48, 44, 40},
-	{0, -2, -5, -7, 17, 12, 8, 4}
-	};
-
-	short int *vc = (short int *) hvc_u;
-	short int *hc = (short int *) hvc_u;
-
-	if (scale_params->win_width < scale_params->crop_width)
-		hc = (short int *) hc_d;
-	if (scale_params->win_height < scale_params->crop_height
-	    || scale_params->flicker_filter == 1) {
-		vc = (short int *) vc_d;
-		v_scale_dir = 1;
-	}
-	disp_set_resize(scale_params->video_layer, vc, hc, v_scale_dir);
-
-	dispc_reg_out(DISPC_VID_ACCU0(scale_params->video_layer), 0);
-	if (scale_params->flicker_filter == 1)
-		dispc_reg_out(DISPC_VID_ACCU1(scale_params->video_layer),
-			      0x01000000);
-	else
-		dispc_reg_out(DISPC_VID_ACCU1(scale_params->video_layer),
-			      0);
-	firhinc = (1024 * (scale_params->crop_width - 1))
-	    / (scale_params->win_width - 1);
-	if (firhinc < 1)
-		firhinc = 1;
-	else if (firhinc > 2047)
-		firhinc = 2047;
-	firvinc = (1024 * (scale_params->crop_height - 1))
-	    / (scale_params->win_height - 1);
-	if (firvinc < 1)
-		firvinc = 1;
-	else if (firvinc > 2047)
-		firvinc = 2047;
-
-	if (scale_params->flicker_filter == 0)
-		dispc_reg_out(DISPC_VID_FIR(scale_params->video_layer),
-			      firhinc | (firvinc << 16));
-	else
-		dispc_reg_out(DISPC_VID_FIR(scale_params->video_layer),
-			      0x08000000);
-}
-EXPORT_SYMBOL(omap_disp_set_scaling);
-
-/* Set the video parameters */
-void omap_disp_set_vid_params(struct omap_video_params *vid_params)
-{
-	dispc_reg_out(DISPC_VID_SIZE(vid_params->video_layer),
-		      vid_params->vid_size);
-	dispc_reg_out(DISPC_VID_PICTURE_SIZE(vid_params->video_layer),
-		      vid_params->vid_picture_size);
-	dispc_reg_out(DISPC_VID_POSITION(vid_params->video_layer),
-		      vid_params->vid_position);
-}
-EXPORT_SYMBOL(omap_disp_set_vid_params);
-
-/* Set the row increment and pixel increment values */
-void omap_disp_set_row_pix_inc_values(int video_layer, int row_inc_value,
-				       int pixel_inc_value)
-{
-	dispc_reg_out(DISPC_VID_ROW_INC(video_layer), row_inc_value);
-	dispc_reg_out(DISPC_VID_PIXEL_INC(video_layer), pixel_inc_value);
-}
-EXPORT_SYMBOL(omap_disp_set_row_pix_inc_values);
-
-/* Set the cropping parameters in the software structure */
-void omap_set_crop_layer_parameters(int video_layer, int cropwidth,
-				     int cropheight)
-{
-	layer[video_layer].size_x = cropwidth;
-	layer[video_layer].size_y = cropheight;
-}
-EXPORT_SYMBOL(omap_set_crop_layer_parameters);
 
 /* Write the color space conversion coefficients to the display controller
  * registers.  Each coefficient is a signed 11-bit integer in the range
@@ -1151,14 +533,17 @@ EXPORT_SYMBOL(omap_set_crop_layer_parameters);
  *	[ BY  BCr  BCb ]
  */
 
-void omap_disp_set_colorconv(int v, int full_range_conversion)
+static void
+set_colorconv(int v,int colorspace)
 {
 	unsigned long ccreg;
 	short int mtx[3][3];
-	int i, j;
-	for (i = 0; i < 3; i++)
-		for (j = 0; j < 3; j++)
+	int i,j;
+	for(i=0;i<3;i++)
+		for(j=0;j<3;j++){
 			mtx[i][j] = current_colorconv_values[v][i][j];
+		}
+
 	ccreg = (mtx[0][0] & 0x7ff) | ((mtx[0][1] & 0x7ff) << 16);
 	dispc_reg_out(DISPC_VID_CONV_COEF0(v), ccreg);
 	ccreg = (mtx[0][2] & 0x7ff) | ((mtx[1][0] & 0x7ff) << 16);
@@ -1170,152 +555,373 @@ void omap_disp_set_colorconv(int v, int full_range_conversion)
 	ccreg = mtx[2][2] & 0x7ff;
 	dispc_reg_out(DISPC_VID_CONV_COEF4(v), ccreg);
 
-	if (full_range_conversion) {
+	if(colorspace == V4L2_COLORSPACE_JPEG ||
+			colorspace == V4L2_COLORSPACE_SRGB){
 		dispc_reg_merge(DISPC_VID_ATTRIBUTES(v),
-				DISPC_VID_ATTRIBUTES_VIDFULLRANGE,
-				DISPC_VID_ATTRIBUTES_VIDFULLRANGE);
+			DISPC_VID_ATTRIBUTES_VIDFULLRANGE,
+			DISPC_VID_ATTRIBUTES_VIDFULLRANGE);
 	}
-
 }
-EXPORT_SYMBOL(omap_disp_set_colorconv);
 
-void omap_disp_set_default_colorconv(int ltype, int color_space)
+static void
+update_colorconv_mtx(int v,const short int mtx[3][3])
+{
+	int i,j;
+	for(i=0;i<3;i++)
+		for(j=0;j<3;j++)
+			current_colorconv_values[v][i][j] = mtx[i][j];
+}
+
+void
+omap_disp_set_default_colorconv(int ltype, struct v4l2_pix_format *pix)
 {
 	int v;
 
-	if (ltype == OMAP_VIDEO1)
-		v = 0;
-	else if (ltype == OMAP_VIDEO2)
-		v = 1;
-	else
-		return;
+	if (ltype == OMAP_VIDEO1) v = 0;
+	else if (ltype == OMAP_VIDEO2) v = 1;
+	else return;
 
-	switch (color_space) {
-	case CC_BT601:
+	switch (pix->colorspace) {
+	case V4L2_COLORSPACE_SMPTE170M:
+	case V4L2_COLORSPACE_SMPTE240M:
+	case V4L2_COLORSPACE_BT878:
+	case V4L2_COLORSPACE_470_SYSTEM_M:
+	case V4L2_COLORSPACE_470_SYSTEM_BG:
 		/* luma (Y) range lower limit is 16, BT.601 standard */
-		update_colorconv_mtx(v, cc_bt601);
-		omap_disp_set_colorconv(v, !FULL_COLOR_RANGE);
+		update_colorconv_mtx(v,cc_bt601);
+		set_colorconv(v,pix->colorspace);
 		break;
-	case CC_BT709:
+	case V4L2_COLORSPACE_REC709:
 		/* luma (Y) range lower limit is 16, BT.709 standard */
-		update_colorconv_mtx(v, cc_bt709);
-		omap_disp_set_colorconv(v, !FULL_COLOR_RANGE);
+		update_colorconv_mtx(v,cc_bt709);
+		set_colorconv(v,pix->colorspace);
 		break;
-	case CC_BT601_FULL:
+	case V4L2_COLORSPACE_JPEG:
+	case V4L2_COLORSPACE_SRGB:
 		/* full luma (Y) range, assume BT.601 standard */
-		update_colorconv_mtx(v, cc_bt601_full);
-		omap_disp_set_colorconv(v, FULL_COLOR_RANGE);
+		update_colorconv_mtx(v,cc_bt601_full);
+		set_colorconv(v,pix->colorspace);
 		break;
 	}
 }
-EXPORT_SYMBOL(omap_disp_set_default_colorconv);
 
-void omap_disp_get_panel_size(int output_dev, int *width, int *height)
+void
+omap_disp_set_colorconv(int ltype, struct v4l2_pix_format *pix)
+{
+	int v;
+
+	if (ltype == OMAP_VIDEO1) v = 0;
+	else if (ltype == OMAP_VIDEO2) v = 1;
+	else return;
+
+	set_colorconv(v,pix->colorspace);
+}
+
+/* Write the horizontal and vertical resizing coefficients to the display
+ * controller registers.  Each coefficient is a signed 8-bit integer in the
+ * range [-128, 127] except for the middle coefficient (vc[1][i] and hc[3][i])
+ * which is an unsigned 8-bit integer in the range [0, 255].  The first index of
+ * the matrix is the coefficient number (0 to 2 vertical or 0 to 4 horizontal)
+ * and the second index is the phase (0 to 7).
+ */
+static void
+omap_disp_set_resize(int v, short int *vc, short int *hc, int v_scale_dir)
+{
+	int i;
+	unsigned long reg;
+
+	for (i = 0; i < 8; i++) {
+		reg = (*(hc+(8*0)+i) & 0xff) | ((*(hc+(8*1)+i) & 0xff) << 8)
+			| ((*(hc+(8*2)+i) & 0xff) << 16) | ((*(hc+(8*3)+i) & 0xff) << 24);
+		dispc_reg_out(DISPC_VID_FIR_COEF_H(v, i), reg);
+
+		if(!v_scale_dir) {
+			reg = (*(hc+(8*4)+i) & 0xff) | ((*(vc+(1*8)+i) & 0xff) << 8)
+				| ((*(vc+(8*2)+i) & 0xff) << 16) | ((*(vc+(3*8)+i) & 0xff) << 24);
+			dispc_reg_out(DISPC_VID_FIR_COEF_HV(v, i), reg);
+
+			reg = (*(vc+(8*0)+i) & 0xff) | ((*(vc+(4*8)+i) & 0xff) << 8);
+			dispc_reg_out(DISPC_VID_FIR_COEF_V(v,i),reg);
+		} else {
+			reg = (*(hc+(8*4)+i) & 0xff) | ((*(vc+(0*8)+i) & 0xff) << 8)
+				| ((*(vc+(8*1)+i) & 0xff) << 16) | ((*(vc+(2*8)+i) & 0xff) << 24);
+			dispc_reg_out(DISPC_VID_FIR_COEF_HV(v, i), reg);
+		}
+	}
+}
+
+/*---------------------------------------------------------------------------*/
+void
+omap_disp_get_panel_size(int output_dev, int *width, int *height)
 {
 	unsigned long size;
 
 	if (output_dev == OMAP_OUTPUT_TV) {
 		size = dispc_reg_in(DISPC_SIZE_DIG);
 		*width = 1 + ((size & DISPC_SIZE_DIG_PPL)
-			      >> DISPC_SIZE_DIG_PPL_SHIFT);
+				>> DISPC_SIZE_DIG_PPL_SHIFT);
 		*height = 1 + ((size & DISPC_SIZE_DIG_LPP)
-			       >> DISPC_SIZE_DIG_LPP_SHIFT);
+				>> DISPC_SIZE_DIG_LPP_SHIFT);
 		*height = *height << 1;
 	}
+	else if (output_dev == OMAP_OUTPUT_LCD) {
+		size = dispc_reg_in(DISPC_SIZE_LCD);
+		*width = 1 + ((size & DISPC_SIZE_LCD_PPL)
+				>> DISPC_SIZE_LCD_PPL_SHIFT);
+		*height = 1 + ((size & DISPC_SIZE_LCD_LPP)
+				>> DISPC_SIZE_LCD_LPP_SHIFT);
+	}
 }
-EXPORT_SYMBOL(omap_disp_get_panel_size);
 
-void omap_disp_set_panel_size(int output_dev, int width, int height)
+void
+omap_disp_set_panel_size(int output_dev, int width, int height)
 {
 	unsigned long size;
 
 	if (output_dev == OMAP_OUTPUT_TV) {
 		height = height >> 1;
-		size = ((width - 1) << DISPC_SIZE_DIG_PPL_SHIFT)
-		    & DISPC_SIZE_DIG_PPL;
+		size = ((width - 1) << DISPC_SIZE_DIG_PPL_SHIFT) &  DISPC_SIZE_DIG_PPL;
 		size |= ((height - 1) << DISPC_SIZE_DIG_LPP_SHIFT)
-		    & DISPC_SIZE_DIG_LPP;
+									& DISPC_SIZE_DIG_LPP;
 		dispc_reg_out(DISPC_SIZE_DIG, size);
 	}
+	else if (output_dev == OMAP_OUTPUT_LCD) {
+		size = ((width - 1) << DISPC_SIZE_LCD_PPL_SHIFT) & DISPC_SIZE_LCD_PPL;
+		size |= ((height - 1) << DISPC_SIZE_LCD_LPP_SHIFT)
+									& DISPC_SIZE_LCD_LPP;
+		dispc_reg_out(DISPC_SIZE_LCD, size);
+	}
 }
-EXPORT_SYMBOL(omap_disp_set_panel_size);
 
-/* Turn off the video1, or video2 layer. */
-void omap_disp_disable_layer(int ltype)
+static int graphics_in_use;
+
+/* Turn off the GFX, or video1, or video2 layer. */
+void
+omap_disp_disable_layer(int ltype)
 {
 	unsigned long attributes;
 	int digital, v;
 
-	if (ltype == OMAP_VIDEO1)
-		v = 0;
-	else if (ltype == OMAP_VIDEO2)
-		v = 1;
-	else
-		return;
+	if (ltype == OMAP_GRAPHICS) {
+		attributes = dispc_reg_merge(DISPC_GFX_ATTRIBUTES, 0,
+				DISPC_GFX_ATTRIBUTES_ENABLE);
+		digital = attributes & DISPC_GFX_ATTRIBUTES_GFXCHANNELOUT;
+		graphics_in_use = 0;
+	}
+	else {
+		if (ltype == OMAP_VIDEO1) v = 0;
+		else if (ltype == OMAP_VIDEO2) v = 1;
+		else return;
 
-	attributes = dispc_reg_merge(DISPC_VID_ATTRIBUTES(v), 0,
-				     DISPC_VID_ATTRIBUTES_ENABLE);
-	digital = attributes & DISPC_VID_ATTRIBUTES_VIDCHANNELOUT;
-
+		attributes = dispc_reg_merge(DISPC_VID_ATTRIBUTES(v), 0,
+			DISPC_VID_ATTRIBUTES_ENABLE);
+		digital = attributes & DISPC_VID_ATTRIBUTES_VIDCHANNELOUT;
+	}
 	if (digital) {
 		/* digital output */
-		dispc_reg_merge(DISPC_CONTROL, DISPC_CONTROL_GODIGITAL,
-				DISPC_CONTROL_GODIGITAL);
+		omap_disp_reg_sync(OMAP_OUTPUT_TV);
 	}
+	else {
+		/* LCD */
+		omap_disp_reg_sync(OMAP_OUTPUT_LCD);
+	}
+
 	dispc_reg_merge(DISPC_CONTROL, 0,
-			DISPC_CONTROL_OVERLAYOPTIMIZATION);
+			 DISPC_CONTROL_OVERLAYOPTIMIZATION);
 }
-EXPORT_SYMBOL(omap_disp_disable_layer);
 
 /* Turn on the GFX, or video1, or video2 layer. */
-void omap_disp_enable_layer(int ltype)
+void
+omap_disp_enable_layer(int ltype)
 {
 	unsigned long attributes;
 	int digital, v;
 
-	if (ltype == OMAP_VIDEO1)
-		v = 0;
-	else if (ltype == OMAP_VIDEO2)
-		v = 1;
-	else
-		return;
+	if (ltype == OMAP_GRAPHICS) {
+		attributes = dispc_reg_merge(DISPC_GFX_ATTRIBUTES,
+			DISPC_GFX_ATTRIBUTES_ENABLE, DISPC_GFX_ATTRIBUTES_ENABLE);
+		digital = attributes & DISPC_GFX_ATTRIBUTES_GFXCHANNELOUT;
+		graphics_in_use = 1;
+	}
+	else {
+		if (ltype == OMAP_VIDEO1) v = 0;
+		else if (ltype == OMAP_VIDEO2) v = 1;
+		else return;
 
-	attributes = dispc_reg_merge(DISPC_VID_ATTRIBUTES(v),
-				     DISPC_VID_ATTRIBUTES_ENABLE,
-				     DISPC_VID_ATTRIBUTES_ENABLE);
-	digital = attributes & DISPC_VID_ATTRIBUTES_VIDCHANNELOUT;
-
+		attributes = dispc_reg_merge(DISPC_VID_ATTRIBUTES(v),
+			DISPC_VID_ATTRIBUTES_ENABLE, DISPC_VID_ATTRIBUTES_ENABLE);
+		digital = attributes & DISPC_VID_ATTRIBUTES_VIDCHANNELOUT;
+	}
 	if (digital) {
 		/* digital output */
-		dispc_reg_merge(DISPC_CONTROL, DISPC_CONTROL_GODIGITAL,
-				DISPC_CONTROL_GODIGITAL);
+		omap_disp_reg_sync(OMAP_OUTPUT_TV);
+	}
+	else {
+		/* LCD */
+		omap_disp_reg_sync(OMAP_OUTPUT_LCD);
 	}
 }
-EXPORT_SYMBOL(omap_disp_enable_layer);
+
+/*
+ * Save the DSS state before doing a GO LCD/DIGITAL
+ */
+
+void
+omap_disp_save_ctx(int ltype)
+{
+	int v1=0, v2=1;
+	struct omap_dispc_regs *dispc = &dss_ctx.dispc;
+
+	switch(ltype){
+	case OMAP_DSS_GENERIC:
+		dss_ctx.sysconfig = dss_reg_in(DSS_SYSCONFIG);
+		dss_ctx.control = dss_reg_in(DSS_CONTROL);
+#ifdef CONFIG_ARCH_OMAP3430
+		dss_ctx.sdi_control = dss_reg_in(DSS_SDI_CONTROL);
+		dss_ctx.pll_control = dss_reg_in(DSS_PLL_CONTROL);
+#endif
+		break;
+
+	case OMAP_DSS_DISPC_GENERIC:
+		dispc->revision  = dispc_reg_in(DISPC_REVISION);
+		dispc->sysconfig = dispc_reg_in(DISPC_SYSCONFIG);
+		dispc->sysstatus = dispc_reg_in(DISPC_SYSSTATUS);
+		dispc->irqstatus = dispc_reg_in(DISPC_IRQSTATUS);
+		dispc->irqenable = dispc_reg_in(DISPC_IRQENABLE);
+		dispc->control   = dispc_reg_in(DISPC_CONTROL);
+		dispc->config    = dispc_reg_in(DISPC_CONFIG);
+		dispc->capable   = dispc_reg_in(DISPC_CAPABLE);
+		dispc->default_color0 = dispc_reg_in(DISPC_DEFAULT_COLOR0);
+		dispc->default_color1 = dispc_reg_in(DISPC_DEFAULT_COLOR1);
+		dispc->trans_color0   = dispc_reg_in(DISPC_TRANS_COLOR0);
+		dispc->trans_color1   = dispc_reg_in(DISPC_TRANS_COLOR1);
+		dispc->line_status    = dispc_reg_in(DISPC_LINE_STATUS);
+		dispc->line_number    = dispc_reg_in(DISPC_LINE_NUMBER);
+		dispc->data_cycle1    = dispc_reg_in(DISPC_DATA_CYCLE1);
+		dispc->data_cycle2    = dispc_reg_in(DISPC_DATA_CYCLE2);
+		dispc->data_cycle3    = dispc_reg_in(DISPC_DATA_CYCLE3);
+		dispc->timing_h = dispc_reg_in(DISPC_TIMING_H);
+		dispc->timing_v = dispc_reg_in(DISPC_TIMING_V);
+		dispc->pol_freq = dispc_reg_in(DISPC_POL_FREQ);
+		dispc->divisor  = dispc_reg_in(DISPC_DIVISOR);
+		dispc->global_alpha = dispc_reg_in(DISPC_GLOBAL_ALPHA);
+		dispc->size_lcd = dispc_reg_in(DISPC_SIZE_LCD);
+		dispc->size_dig = dispc_reg_in(DISPC_SIZE_DIG);
+
+	case OMAP_GRAPHICS:
+		dispc->gfx_ba0  = dispc_reg_in(DISPC_GFX_BA0);
+		dispc->gfx_ba1  = dispc_reg_in(DISPC_GFX_BA1);
+		dispc->gfx_position   = dispc_reg_in(DISPC_GFX_POSITION);
+		dispc->gfx_size       = dispc_reg_in(DISPC_GFX_SIZE);
+		dispc->gfx_attributes = dispc_reg_in(DISPC_GFX_ATTRIBUTES);
+		dispc->gfx_fifo_size  = dispc_reg_in(DISPC_GFX_FIFO_SIZE);
+		dispc->gfx_fifo_threshold = dispc_reg_in(DISPC_GFX_FIFO_THRESHOLD);
+		dispc->gfx_row_inc        = dispc_reg_in(DISPC_GFX_ROW_INC);
+		dispc->gfx_pixel_inc      = dispc_reg_in(DISPC_GFX_PIXEL_INC);
+		dispc->gfx_window_skip    = dispc_reg_in(DISPC_GFX_WINDOW_SKIP);
+		dispc->gfx_table_ba       = dispc_reg_in(DISPC_GFX_TABLE_BA);
+	break;
+
+	case OMAP_VIDEO1:
+		dispc->vid1_ba0 = dispc_reg_in(DISPC_VID_BA0(v1));
+		dispc->vid1_ba1 = dispc_reg_in(DISPC_VID_BA0(v1));
+		dispc->vid1_position = dispc_reg_in(DISPC_VID_POSITION(v1));
+		dispc->vid1_size = dispc_reg_in(DISPC_VID_SIZE(v1));
+		dispc->vid1_attributes = dispc_reg_in(DISPC_VID_ATTRIBUTES(v1));
+		dispc->vid1_fifo_size  = dispc_reg_in(DISPC_VID_FIFO_SIZE(v1));
+		dispc->vid1_fifo_threshold = dispc_reg_in(DISPC_VID_FIFO_THRESHOLD(v1));
+		dispc->vid1_row_inc   = dispc_reg_in(DISPC_VID_ROW_INC(v1));
+		dispc->vid1_pixel_inc = dispc_reg_in(DISPC_VID_PIXEL_INC(v1));
+		dispc->vid1_fir 	     = dispc_reg_in(DISPC_VID_FIR(v1));
+		dispc->vid1_accu0 = dispc_reg_in(DISPC_VID_ACCU0(v1));
+		dispc->vid1_accu1 = dispc_reg_in(DISPC_VID_ACCU1(v1));
+		dispc->vid1_picture_size = dispc_reg_in(DISPC_VID_PICTURE_SIZE(v1));
+		dispc->vid1_fir_coef_h0  = dispc_reg_in(DISPC_VID_FIR_COEF_H(v1,0));
+		dispc->vid1_fir_coef_h1  = dispc_reg_in(DISPC_VID_FIR_COEF_H(v1,1));
+		dispc->vid1_fir_coef_h2  = dispc_reg_in(DISPC_VID_FIR_COEF_H(v1,2));
+		dispc->vid1_fir_coef_h3  = dispc_reg_in(DISPC_VID_FIR_COEF_H(v1,3));
+		dispc->vid1_fir_coef_h4  = dispc_reg_in(DISPC_VID_FIR_COEF_H(v1,4));
+		dispc->vid1_fir_coef_h5  = dispc_reg_in(DISPC_VID_FIR_COEF_H(v1,5));
+		dispc->vid1_fir_coef_h6  = dispc_reg_in(DISPC_VID_FIR_COEF_H(v1,6));
+		dispc->vid1_fir_coef_h7  = dispc_reg_in(DISPC_VID_FIR_COEF_H(v1,7));
+		dispc->vid1_fir_coef_hv0 = dispc_reg_in(DISPC_VID_FIR_COEF_HV(v1,0));
+		dispc->vid1_fir_coef_hv1 = dispc_reg_in(DISPC_VID_FIR_COEF_HV(v1,1));
+		dispc->vid1_fir_coef_hv2 = dispc_reg_in(DISPC_VID_FIR_COEF_HV(v1,2));
+		dispc->vid1_fir_coef_hv3 = dispc_reg_in(DISPC_VID_FIR_COEF_HV(v1,3));
+		dispc->vid1_fir_coef_hv4 = dispc_reg_in(DISPC_VID_FIR_COEF_HV(v1,4));
+		dispc->vid1_fir_coef_hv5 = dispc_reg_in(DISPC_VID_FIR_COEF_HV(v1,5));
+		dispc->vid1_fir_coef_hv6 = dispc_reg_in(DISPC_VID_FIR_COEF_HV(v1,6));
+		dispc->vid1_fir_coef_hv7 = dispc_reg_in(DISPC_VID_FIR_COEF_HV(v1,7));
+		dispc->vid1_conv_coef0   = dispc_reg_in(DISPC_VID_CONV_COEF0(v1));
+		dispc->vid1_conv_coef1   = dispc_reg_in(DISPC_VID_CONV_COEF1(v1));
+		dispc->vid1_conv_coef2   = dispc_reg_in(DISPC_VID_CONV_COEF2(v1));
+		dispc->vid1_conv_coef3   = dispc_reg_in(DISPC_VID_CONV_COEF3(v1));
+		dispc->vid1_conv_coef4   = dispc_reg_in(DISPC_VID_CONV_COEF4(v1));
+	break;
+
+	case OMAP_VIDEO2:
+		dispc->vid2_ba0 = dispc_reg_in(DISPC_VID_BA0(v2));
+		dispc->vid2_ba1 = dispc_reg_in(DISPC_VID_BA1(v2));
+		dispc->vid2_position = dispc_reg_in(DISPC_VID_POSITION(v2));
+		dispc->vid2_size = dispc_reg_in(DISPC_VID_SIZE(v2));
+		dispc->vid2_attributes = dispc_reg_in(DISPC_VID_ATTRIBUTES(v2));
+		dispc->vid2_fifo_size  = dispc_reg_in(DISPC_VID_FIFO_SIZE(v2));
+		dispc->vid2_fifo_threshold = dispc_reg_in(DISPC_VID_FIFO_THRESHOLD(v2));
+		dispc->vid2_row_inc   = dispc_reg_in(DISPC_VID_ROW_INC(v2));
+		dispc->vid2_pixel_inc = dispc_reg_in(DISPC_VID_PIXEL_INC(v2));
+		dispc->vid2_fir = dispc_reg_in(DISPC_VID_FIR(v2));
+		dispc->vid2_accu0 = dispc_reg_in(DISPC_VID_ACCU0(v2));
+		dispc->vid2_accu1 = dispc_reg_in(DISPC_VID_ACCU1(v2));
+		dispc->vid2_picture_size = dispc_reg_in(DISPC_VID_PICTURE_SIZE(v2));
+		dispc->vid2_fir_coef_h0  = dispc_reg_in(DISPC_VID_FIR_COEF_H(v2,0));
+		dispc->vid2_fir_coef_h1  = dispc_reg_in(DISPC_VID_FIR_COEF_H(v2,1));
+		dispc->vid2_fir_coef_h2  = dispc_reg_in(DISPC_VID_FIR_COEF_H(v2,2));
+		dispc->vid2_fir_coef_h3  = dispc_reg_in(DISPC_VID_FIR_COEF_H(v2,3));
+		dispc->vid2_fir_coef_h4  = dispc_reg_in(DISPC_VID_FIR_COEF_H(v2,4));
+		dispc->vid2_fir_coef_h5  = dispc_reg_in(DISPC_VID_FIR_COEF_H(v2,5));
+		dispc->vid2_fir_coef_h6  = dispc_reg_in(DISPC_VID_FIR_COEF_H(v2,6));
+		dispc->vid2_fir_coef_h7  = dispc_reg_in(DISPC_VID_FIR_COEF_H(v2,7));
+		dispc->vid2_fir_coef_hv0 = dispc_reg_in(DISPC_VID_FIR_COEF_HV(v2,0));
+		dispc->vid2_fir_coef_hv1 = dispc_reg_in(DISPC_VID_FIR_COEF_HV(v2,1));
+		dispc->vid2_fir_coef_hv2 = dispc_reg_in(DISPC_VID_FIR_COEF_HV(v2,2));
+		dispc->vid2_fir_coef_hv3 = dispc_reg_in(DISPC_VID_FIR_COEF_HV(v2,3));
+		dispc->vid2_fir_coef_hv4 = dispc_reg_in(DISPC_VID_FIR_COEF_HV(v2,4));
+		dispc->vid2_fir_coef_hv5 = dispc_reg_in(DISPC_VID_FIR_COEF_HV(v2,5));
+		dispc->vid2_fir_coef_hv6 = dispc_reg_in(DISPC_VID_FIR_COEF_HV(v2,6));
+		dispc->vid2_fir_coef_hv7 = dispc_reg_in(DISPC_VID_FIR_COEF_HV(v2,7));
+		dispc->vid2_conv_coef0   = dispc_reg_in(DISPC_VID_CONV_COEF0(v2));
+		dispc->vid2_conv_coef1   = dispc_reg_in(DISPC_VID_CONV_COEF1(v2));
+		dispc->vid2_conv_coef2   = dispc_reg_in(DISPC_VID_CONV_COEF2(v2));
+		dispc->vid2_conv_coef3   = dispc_reg_in(DISPC_VID_CONV_COEF3(v2));
+		dispc->vid2_conv_coef4   = dispc_reg_in(DISPC_VID_CONV_COEF4(v2));
+	break;
+	}
+	layer[ltype].ctx_valid = 1;
+}
 
 void omap_disp_save_initstate(int ltype)
 {
 	unsigned long flags;
 
 	spin_lock_irqsave(&dss_lock, flags);
-	disp_save_ctx(ltype);
+	omap_disp_save_ctx(ltype);
 	spin_unlock_irqrestore(&dss_lock, flags);
 }
-EXPORT_SYMBOL(omap_disp_save_initstate);
 
 /*
  *  NOte, that VENC registers are not restored here
  *  Note, that DISPC_CONTROL register is not restored here
  */
-static void omap_disp_restore_ctx(int ltype)
+void
+omap_disp_restore_ctx(int ltype)
 {
-	int v1 = 0, v2 = 1;
+	int v1=0, v2=1;
 	struct omap_dispc_regs *dispc = &dss_ctx.dispc;
 
 	if (layer[ltype].ctx_valid == 0)
 		return;
 
-	switch (ltype) {
+	switch(ltype){
 	case OMAP_DSS_GENERIC:
 		dss_reg_out(DSS_SYSCONFIG, dss_ctx.sysconfig);
 		dss_reg_out(DSS_CONTROL, dss_ctx.control);
@@ -1341,7 +947,7 @@ static void omap_disp_restore_ctx(int ltype)
 		dispc_reg_out(DISPC_TIMING_V, dispc->timing_v);
 		dispc_reg_out(DISPC_POL_FREQ, dispc->pol_freq);
 		dispc_reg_out(DISPC_DIVISOR, dispc->divisor);
-		dispc_reg_out(DISPC_GLOBAL_ALPHA, dispc->global_alpha);
+		dispc_reg_out(DISPC_GLOBAL_ALPHA,dispc->global_alpha);
 		dispc_reg_out(DISPC_SIZE_LCD, dispc->size_lcd);
 		dispc_reg_out(DISPC_SIZE_DIG, dispc->size_dig);
 		break;
@@ -1352,179 +958,196 @@ static void omap_disp_restore_ctx(int ltype)
 		dispc_reg_out(DISPC_GFX_POSITION, dispc->gfx_position);
 		dispc_reg_out(DISPC_GFX_SIZE, dispc->gfx_size);
 		dispc_reg_out(DISPC_GFX_ATTRIBUTES, dispc->gfx_attributes);
-		dispc_reg_out(DISPC_GFX_FIFO_SIZE, dispc->gfx_fifo_size);
-		dispc_reg_out(DISPC_GFX_FIFO_THRESHOLD,
-			      dispc->gfx_fifo_threshold);
+		dispc_reg_out(DISPC_GFX_FIFO_SIZE,dispc->gfx_fifo_size);
+		dispc_reg_out(DISPC_GFX_FIFO_THRESHOLD, dispc->gfx_fifo_threshold);
 		dispc_reg_out(DISPC_GFX_ROW_INC, dispc->gfx_row_inc);
 		dispc_reg_out(DISPC_GFX_PIXEL_INC, dispc->gfx_pixel_inc);
-		dispc_reg_out(DISPC_GFX_WINDOW_SKIP,
-			      dispc->gfx_window_skip);
+		dispc_reg_out(DISPC_GFX_WINDOW_SKIP, dispc->gfx_window_skip);
 		dispc_reg_out(DISPC_GFX_TABLE_BA, dispc->gfx_table_ba);
-		break;
+
+	break;
 
 	case OMAP_VIDEO1:
 		dispc_reg_out(DISPC_VID_BA0(v1), dispc->vid1_ba0);
 		dispc_reg_out(DISPC_VID_BA1(v1), dispc->vid1_ba1);
-		dispc_reg_out(DISPC_VID_POSITION(v1),
-			      dispc->vid1_position);
+		dispc_reg_out(DISPC_VID_POSITION(v1), dispc->vid1_position);
 		dispc_reg_out(DISPC_VID_SIZE(v1), dispc->vid1_size);
-		dispc_reg_out(DISPC_VID_ATTRIBUTES(v1),
-			      dispc->vid1_attributes);
-		dispc_reg_out(DISPC_VID_FIFO_THRESHOLD(v1),
-			      dispc->vid1_fifo_threshold);
+		dispc_reg_out(DISPC_VID_ATTRIBUTES(v1), dispc->vid1_attributes);
+		dispc_reg_out(DISPC_VID_FIFO_THRESHOLD(v1),dispc->vid1_fifo_threshold);
 		dispc_reg_out(DISPC_VID_ROW_INC(v1), dispc->vid1_row_inc);
-		dispc_reg_out(DISPC_VID_PIXEL_INC(v1),
-			      dispc->vid1_pixel_inc);
+		dispc_reg_out(DISPC_VID_PIXEL_INC(v1), dispc->vid1_pixel_inc);
 		dispc_reg_out(DISPC_VID_FIR(v1), dispc->vid1_fir);
 		dispc_reg_out(DISPC_VID_ACCU0(v1), dispc->vid1_accu0);
 		dispc_reg_out(DISPC_VID_ACCU1(v1), dispc->vid1_accu1);
-		dispc_reg_out(DISPC_VID_PICTURE_SIZE(v1),
-			      dispc->vid1_picture_size);
+		dispc_reg_out(DISPC_VID_PICTURE_SIZE(v1), dispc->vid1_picture_size);
 
-		dispc_reg_out(DISPC_VID_FIR_COEF_H(v1, 0),
-			      dispc->vid1_fir_coef_h0);
-		dispc_reg_out(DISPC_VID_FIR_COEF_H(v1, 1),
-			      dispc->vid1_fir_coef_h1);
-		dispc_reg_out(DISPC_VID_FIR_COEF_H(v1, 2),
-			      dispc->vid1_fir_coef_h2);
-		dispc_reg_out(DISPC_VID_FIR_COEF_H(v1, 3),
-			      dispc->vid1_fir_coef_h3);
-		dispc_reg_out(DISPC_VID_FIR_COEF_H(v1, 4),
-			      dispc->vid1_fir_coef_h4);
-		dispc_reg_out(DISPC_VID_FIR_COEF_H(v1, 5),
-			      dispc->vid1_fir_coef_h5);
-		dispc_reg_out(DISPC_VID_FIR_COEF_H(v1, 6),
-			      dispc->vid1_fir_coef_h6);
-		dispc_reg_out(DISPC_VID_FIR_COEF_H(v1, 7),
-			      dispc->vid1_fir_coef_h7);
+		dispc_reg_out(DISPC_VID_FIR_COEF_H(v1,0), dispc->vid1_fir_coef_h0);
+		dispc_reg_out(DISPC_VID_FIR_COEF_H(v1,1), dispc->vid1_fir_coef_h1);
+		dispc_reg_out(DISPC_VID_FIR_COEF_H(v1,2), dispc->vid1_fir_coef_h2);
+		dispc_reg_out(DISPC_VID_FIR_COEF_H(v1,3), dispc->vid1_fir_coef_h3);
+		dispc_reg_out(DISPC_VID_FIR_COEF_H(v1,4), dispc->vid1_fir_coef_h4);
+		dispc_reg_out(DISPC_VID_FIR_COEF_H(v1,5), dispc->vid1_fir_coef_h5);
+		dispc_reg_out(DISPC_VID_FIR_COEF_H(v1,6), dispc->vid1_fir_coef_h6);
+		dispc_reg_out(DISPC_VID_FIR_COEF_H(v1,7), dispc->vid1_fir_coef_h7);
 
-		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v1, 0),
-			      dispc->vid1_fir_coef_hv0);
-		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v1, 1),
-			      dispc->vid1_fir_coef_hv1);
-		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v1, 2),
-			      dispc->vid1_fir_coef_hv2);
-		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v1, 3),
-			      dispc->vid1_fir_coef_hv3);
-		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v1, 4),
-			      dispc->vid1_fir_coef_hv4);
-		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v1, 5),
-			      dispc->vid1_fir_coef_hv5);
-		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v1, 6),
-			      dispc->vid1_fir_coef_hv6);
-		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v1, 7),
-			      dispc->vid1_fir_coef_hv7);
+		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v1,0), dispc->vid1_fir_coef_hv0);
+		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v1,1), dispc->vid1_fir_coef_hv1);
+		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v1,2), dispc->vid1_fir_coef_hv2);
+		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v1,3), dispc->vid1_fir_coef_hv3);
+		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v1,4), dispc->vid1_fir_coef_hv4);
+		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v1,5), dispc->vid1_fir_coef_hv5);
+		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v1,6), dispc->vid1_fir_coef_hv6);
+		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v1,7), dispc->vid1_fir_coef_hv7);
 
-		dispc_reg_out(DISPC_VID_CONV_COEF0(v1),
-			      dispc->vid1_conv_coef0);
-		dispc_reg_out(DISPC_VID_CONV_COEF1(v1),
-			      dispc->vid1_conv_coef1);
-		dispc_reg_out(DISPC_VID_CONV_COEF2(v1),
-			      dispc->vid1_conv_coef2);
-		dispc_reg_out(DISPC_VID_CONV_COEF3(v1),
-			      dispc->vid1_conv_coef3);
-		dispc_reg_out(DISPC_VID_CONV_COEF4(v1),
-			      dispc->vid1_conv_coef4);
-		break;
+		dispc_reg_out(DISPC_VID_CONV_COEF0(v1), dispc->vid1_conv_coef0);
+		dispc_reg_out(DISPC_VID_CONV_COEF1(v1), dispc->vid1_conv_coef1);
+		dispc_reg_out(DISPC_VID_CONV_COEF2(v1), dispc->vid1_conv_coef2);
+		dispc_reg_out(DISPC_VID_CONV_COEF3(v1), dispc->vid1_conv_coef3);
+		dispc_reg_out(DISPC_VID_CONV_COEF4(v1), dispc->vid1_conv_coef4);
+	break;
 
 	case OMAP_VIDEO2:
 		dispc_reg_out(DISPC_VID_BA0(v2), dispc->vid2_ba0);
 		dispc_reg_out(DISPC_VID_BA1(v2), dispc->vid2_ba1);
-		dispc_reg_out(DISPC_VID_POSITION(v2),
-			      dispc->vid2_position);
+		dispc_reg_out(DISPC_VID_POSITION(v2), dispc->vid2_position);
 		dispc_reg_out(DISPC_VID_SIZE(v2), dispc->vid2_size);
-		dispc_reg_out(DISPC_VID_ATTRIBUTES(v2),
-			      dispc->vid2_attributes);
-		dispc_reg_out(DISPC_VID_FIFO_THRESHOLD(v2),
-			      dispc->vid2_fifo_threshold);
+		dispc_reg_out(DISPC_VID_ATTRIBUTES(v2), dispc->vid2_attributes);
+		dispc_reg_out(DISPC_VID_FIFO_THRESHOLD(v2),dispc->vid2_fifo_threshold);
 		dispc_reg_out(DISPC_VID_ROW_INC(v2), dispc->vid2_row_inc);
-		dispc_reg_out(DISPC_VID_PIXEL_INC(v2),
-			      dispc->vid2_pixel_inc);
+		dispc_reg_out(DISPC_VID_PIXEL_INC(v2), dispc->vid2_pixel_inc);
 		dispc_reg_out(DISPC_VID_FIR(v2), dispc->vid2_fir);
 		dispc_reg_out(DISPC_VID_ACCU0(v2), dispc->vid2_accu0);
 		dispc_reg_out(DISPC_VID_ACCU1(v2), dispc->vid2_accu1);
-		dispc_reg_out(DISPC_VID_PICTURE_SIZE(v2),
-			      dispc->vid2_picture_size);
+		dispc_reg_out(DISPC_VID_PICTURE_SIZE(v2), dispc->vid2_picture_size);
 
-		dispc_reg_out(DISPC_VID_FIR_COEF_H(v2, 0),
-			      dispc->vid2_fir_coef_h0);
-		dispc_reg_out(DISPC_VID_FIR_COEF_H(v2, 1),
-			      dispc->vid2_fir_coef_h1);
-		dispc_reg_out(DISPC_VID_FIR_COEF_H(v2, 2),
-			      dispc->vid2_fir_coef_h2);
-		dispc_reg_out(DISPC_VID_FIR_COEF_H(v2, 3),
-			      dispc->vid2_fir_coef_h3);
-		dispc_reg_out(DISPC_VID_FIR_COEF_H(v2, 4),
-			      dispc->vid2_fir_coef_h4);
-		dispc_reg_out(DISPC_VID_FIR_COEF_H(v2, 5),
-			      dispc->vid2_fir_coef_h5);
-		dispc_reg_out(DISPC_VID_FIR_COEF_H(v2, 6),
-			      dispc->vid2_fir_coef_h6);
-		dispc_reg_out(DISPC_VID_FIR_COEF_H(v2, 7),
-			      dispc->vid2_fir_coef_h7);
+		dispc_reg_out(DISPC_VID_FIR_COEF_H(v2,0), dispc->vid2_fir_coef_h0);
+		dispc_reg_out(DISPC_VID_FIR_COEF_H(v2,1), dispc->vid2_fir_coef_h1);
+		dispc_reg_out(DISPC_VID_FIR_COEF_H(v2,2), dispc->vid2_fir_coef_h2);
+		dispc_reg_out(DISPC_VID_FIR_COEF_H(v2,3), dispc->vid2_fir_coef_h3);
+		dispc_reg_out(DISPC_VID_FIR_COEF_H(v2,4), dispc->vid2_fir_coef_h4);
+		dispc_reg_out(DISPC_VID_FIR_COEF_H(v2,5), dispc->vid2_fir_coef_h5);
+		dispc_reg_out(DISPC_VID_FIR_COEF_H(v2,6), dispc->vid2_fir_coef_h6);
+		dispc_reg_out(DISPC_VID_FIR_COEF_H(v2,7), dispc->vid2_fir_coef_h7);
 
-		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v2, 0),
-			      dispc->vid2_fir_coef_hv0);
-		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v2, 1),
-			      dispc->vid2_fir_coef_hv1);
-		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v2, 2),
-			      dispc->vid2_fir_coef_hv2);
-		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v2, 3),
-			      dispc->vid2_fir_coef_hv3);
-		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v2, 4),
-			      dispc->vid2_fir_coef_hv4);
-		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v2, 5),
-			      dispc->vid2_fir_coef_hv5);
-		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v2, 6),
-			      dispc->vid2_fir_coef_hv6);
-		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v2, 7),
-			      dispc->vid2_fir_coef_hv7);
+		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v2,0), dispc->vid2_fir_coef_hv0);
+		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v2,1), dispc->vid2_fir_coef_hv1);
+		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v2,2), dispc->vid2_fir_coef_hv2);
+		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v2,3), dispc->vid2_fir_coef_hv3);
+		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v2,4), dispc->vid2_fir_coef_hv4);
+		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v2,5), dispc->vid2_fir_coef_hv5);
+		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v2,6), dispc->vid2_fir_coef_hv6);
+		dispc_reg_out(DISPC_VID_FIR_COEF_HV(v2,7), dispc->vid2_fir_coef_hv7);
 
-		dispc_reg_out(DISPC_VID_CONV_COEF0(v2),
-			      dispc->vid2_conv_coef0);
-		dispc_reg_out(DISPC_VID_CONV_COEF1(v2),
-			      dispc->vid2_conv_coef1);
-		dispc_reg_out(DISPC_VID_CONV_COEF2(v2),
-			      dispc->vid2_conv_coef2);
-		dispc_reg_out(DISPC_VID_CONV_COEF3(v2),
-			      dispc->vid2_conv_coef3);
-		dispc_reg_out(DISPC_VID_CONV_COEF4(v2),
-			      dispc->vid2_conv_coef4);
-		break;
+		dispc_reg_out(DISPC_VID_CONV_COEF0(v2), dispc->vid2_conv_coef0);
+		dispc_reg_out(DISPC_VID_CONV_COEF1(v2), dispc->vid2_conv_coef1);
+		dispc_reg_out(DISPC_VID_CONV_COEF2(v2), dispc->vid2_conv_coef2);
+		dispc_reg_out(DISPC_VID_CONV_COEF3(v2), dispc->vid2_conv_coef3);
+		dispc_reg_out(DISPC_VID_CONV_COEF4(v2), dispc->vid2_conv_coef4);
+	break;
 	}
 }
 
-int omap_disp_get_vrfb_offset(u32 img_len, u32 bytes_per_pixel, int side)
+/*
+ * Sync Lost interrupt handler
+ */
+static void
+omap_synclost_isr(void *arg, struct pt_regs *regs, u32 irqstatus)
 {
-	int page_width_exp, page_height_exp, pixel_size_exp, offset = 0;
+	int i=0;
+	printk(KERN_WARNING "Sync Lost LCD %x\n",dispc_reg_in(DISPC_IRQSTATUS));
+	arg = NULL; regs = NULL;
+
+	/*
+	 * Disable and Clear all the interrupts before we start
+	 */
+	dispc_reg_out(DISPC_IRQENABLE, 0x00000000);
+	dispc_reg_out(DISPC_IRQSTATUS, 0x0000FFFF);
+
+	/* disable the display controller */
+	omap_disp_disable(HZ/5);
+
+	/*
+	 * Update the state of the display controller.
+	 */
+	dss_ctx.dispc.sysconfig &= ~DISPC_SYSCONFIG_SOFTRESET;
+	dss_ctx.dispc.control   &= ~(DISPC_CONTROL_GODIGITAL |
+				     DISPC_CONTROL_GOLCD);
+
+        i = 0;
+
+        dispc_reg_out(DISPC_SYSCONFIG, DISPC_SYSCONFIG_SOFTRESET);
+        while (!(dispc_reg_in(DISPC_SYSSTATUS) & DISPC_SYSSTATUS_RESETDONE)) {
+                udelay (100);
+                if (i++ > 5)
+                {
+                        printk(KERN_WARNING "Failed to soft reset the DSS !! \n");
+                        break;
+                }
+        }
+
+	/* Configure the VENC for the default standard */
+	if ((omap_disp_get_output_dev(OMAP_GRAPHICS) == OMAP_OUTPUT_TV) ||
+            (omap_disp_get_output_dev(OMAP_VIDEO1) == OMAP_OUTPUT_TV) ||
+            (omap_disp_get_output_dev(OMAP_VIDEO2) == OMAP_OUTPUT_TV)){
+		omap_disp_set_tvstandard(omap_current_tvstandard);
+	}
+
+	/* Restore the registers */
+	omap_disp_restore_ctx(OMAP_DSS_DISPC_GENERIC);
+	omap_disp_restore_ctx(OMAP_GRAPHICS);
+	omap_disp_restore_ctx(OMAP_VIDEO1);
+	omap_disp_restore_ctx(OMAP_VIDEO2);
+
+	/* enable the display controller */
+	if (layer[OMAP_DSS_DISPC_GENERIC].ctx_valid)
+		dispc_reg_out(DISPC_CONTROL, dss_ctx.dispc.control);
+
+	omap_disp_reg_sync(OMAP_OUTPUT_LCD);
+	if ((omap_disp_get_output_dev(OMAP_GRAPHICS) == OMAP_OUTPUT_TV) ||
+            (omap_disp_get_output_dev(OMAP_VIDEO1) == OMAP_OUTPUT_TV) ||
+            (omap_disp_get_output_dev(OMAP_VIDEO2) == OMAP_OUTPUT_TV)){
+		omap_disp_reg_sync(OMAP_OUTPUT_TV);
+	}
+}
+
+static inline u32
+pages_per_side(u32 img_side, u32 page_exp)
+{
+	/*  page_side = 2 ^ page_exp
+	 * (page_side - 1) is added for rounding up
+	 */
+	return (u32) (img_side + (1<<page_exp) - 1) >> page_exp;
+}
+
+int omap_disp_get_vrfb_offset(u32 img_len, u32 bytes_per_pixel,int side)
+{
+	int page_width_exp, page_height_exp, pixel_size_exp,offset =0;
 
 	/* Maximum supported is 4 bytes (RGB32) */
 	if (bytes_per_pixel > 4)
 		return -EINVAL;
 
-	page_width_exp = PAGE_WIDTH_EXP;
+	page_width_exp  = PAGE_WIDTH_EXP;
 	page_height_exp = PAGE_HEIGHT_EXP;
-	pixel_size_exp = bytes_per_pixel >> 1;
+	pixel_size_exp  = bytes_per_pixel >> 1;
 
-	if (side == SIDE_W) {
-		offset = ((1 << page_width_exp) *
-		(pages_per_side(img_len * bytes_per_pixel, page_width_exp)))
-		>> pixel_size_exp;	/* in pixels */
+	if(side == SIDE_W) {
+		offset = ((1<<page_width_exp) * (pages_per_side(img_len *
+				bytes_per_pixel, page_width_exp))) >>
+			pixel_size_exp;	/* in pixels */
 	} else {
-		offset = (1 << page_height_exp) *
-		    (pages_per_side(img_len, page_height_exp));
+		offset = (1<<page_height_exp) *
+		 (pages_per_side(img_len, page_height_exp));
 	}
 
-	return offset;
+	return (offset);
 }
-EXPORT_SYMBOL(omap_disp_get_vrfb_offset);
 
-void
-omap_disp_set_addr(int ltype, u32 lcd_phys_addr, u32 tv_phys_addr_f0,
-		    u32 tv_phys_addr_f1)
+void omap_disp_set_addr(int ltype, u32 lcd_phys_addr, u32 tv_phys_addr_f0,
+		u32 tv_phys_addr_f1)
 {
-	int v;
-	v = (ltype == OMAP_VIDEO1) ? 0 : 1;
+	int v=0;
+	v = (ltype == OMAP_VIDEO1)?0:1;
 	layer[ltype].dma[0].ba0 = lcd_phys_addr;
 	layer[ltype].dma[0].ba1 = lcd_phys_addr;
 
@@ -1536,33 +1159,930 @@ omap_disp_set_addr(int ltype, u32 lcd_phys_addr, u32 tv_phys_addr_f0,
 
 	dispc_reg_out(DISPC_VID_BA0(v), tv_phys_addr_f0);
 
-	if (omap_disp_get_output_dev(ltype) == OMAP_OUTPUT_TV) {
+	if (omap_disp_get_output_dev(ltype) == OMAP_OUTPUT_TV){
 		dispc_reg_out(DISPC_VID_BA0(v), layer[ltype].dma[1].ba0);
 		dispc_reg_out(DISPC_VID_BA1(v), layer[ltype].dma[1].ba1);
 		dispc_reg_merge(DISPC_VID_ATTRIBUTES(v),
 				DISPC_VID_ATTRIBUTES_ENABLE,
 				DISPC_VID_ATTRIBUTES_ENABLE);
-		dispc_reg_merge(DISPC_CONTROL, DISPC_CONTROL_GODIGITAL,
-				DISPC_CONTROL_GODIGITAL);
+		omap_disp_reg_sync(OMAP_OUTPUT_TV);
+	} else {
+		dispc_reg_out(DISPC_VID_BA0(v), layer[ltype].dma[0].ba0);
+		dispc_reg_out(DISPC_VID_BA1(v), layer[ltype].dma[0].ba1);
+		dispc_reg_merge(DISPC_VID_ATTRIBUTES(v),
+				DISPC_VID_ATTRIBUTES_ENABLE,
+				DISPC_VID_ATTRIBUTES_ENABLE);
+		omap_disp_reg_sync(OMAP_OUTPUT_LCD);
 	}
 }
-EXPORT_SYMBOL(omap_disp_set_addr);
 
 void omap_disp_start_video_layer(int ltype)
 {
+	int bytesperpixel = 0, gfx_format, v, overlay_opt_enable = 0;
+	int gfx_posX, gfx_posY, vid_posX, vid_posY;
+	int gfx_sizeX, gfx_sizeY, vid_sizeX, vid_sizeY;
+	int screen_width, screen_height;
+	int X, Y, skip_val;
+	int gfx_pix_inc, gfx_row_inc;
+	int  overlay_opt_delta = 0;
 
-	if (ltype != OMAP_VIDEO1 && ltype != OMAP_VIDEO2)
-		return;
+	gfx_format = dispc_reg_in(DISPC_GFX_ATTRIBUTES);
+
+	switch (gfx_format & DISPC_GFX_ATTRIBUTES_GFXFORMAT) {
+		case DISPC_GFX_ATTRIBUTES_GFXFORMAT_BITMAP1:
+		case DISPC_GFX_ATTRIBUTES_GFXFORMAT_BITMAP2:
+		case DISPC_GFX_ATTRIBUTES_GFXFORMAT_BITMAP4:
+		case DISPC_GFX_ATTRIBUTES_GFXFORMAT_BITMAP8:
+			bytesperpixel = 1;
+			break;
+		case DISPC_GFX_ATTRIBUTES_GFXFORMAT_RGB12:
+		case DISPC_GFX_ATTRIBUTES_GFXFORMAT_RGB16:
+			bytesperpixel = 2;
+			break;
+		case DISPC_GFX_ATTRIBUTES_GFXFORMAT_RGB24:
+		default:
+			bytesperpixel = 4;
+			break;
+	}
+
+        if (ltype == OMAP_VIDEO1) v = 0;
+        else if (ltype == OMAP_VIDEO2) v = 1;
+        else return;
+
+	if (omap_disp_get_output_dev(ltype) == OMAP_OUTPUT_TV) {
+		if(is_sil_rev_less_than(OMAP3430_REV_ES2_0)){
+			if (!(dispc_reg_in(DISPC_CONFIG) &
+						DISPC_CONFIG_TCKDIGENABLE))
+				overlay_opt_enable = 1;
+		} else {
+			if ((!(dispc_reg_in(DISPC_CONFIG) &
+					DISPC_CONFIG_TCKDIGENABLE)) &&
+					(!(dispc_reg_in(DISPC_CONFIG) &
+					DISPC_CONFIG_TVALPHAENABLE)))
+				overlay_opt_enable = 1;
+		}
+	} else {
+		/* if not enabled transparency enable overlay optimization */
+		if(is_sil_rev_less_than(OMAP3430_REV_ES2_0)){
+			if (!(dispc_reg_in(DISPC_CONFIG) &
+						DISPC_CONFIG_TCKLCDENABLE))
+				overlay_opt_enable = 1;
+		} else {
+			if ((!(dispc_reg_in(DISPC_CONFIG) &
+					DISPC_CONFIG_TCKLCDENABLE)) &&
+					(!(dispc_reg_in(DISPC_CONFIG) &
+					DISPC_CONFIG_LCDALPHAENABLE)))
+				overlay_opt_enable = 1;
+		}
+	}
+
+	/** if GFX pipeline enabled and no transparency enabled
+	 * check for overlapping of GFX and Video pipelines to
+	 * enable overlay optimization
+	 */
+	if ((dispc_reg_in(DISPC_GFX_ATTRIBUTES) & DISPC_GFX_ATTRIBUTES_ENABLE)
+			&& overlay_opt_enable && (ltype == OMAP_VIDEO1)) {
+
+		gfx_posX = (dispc_reg_in(DISPC_GFX_POSITION) &
+				DISPC_GFX_POSITION_GFXPOSX) >>
+			DISPC_GFX_POSITION_GFXPOSX_SHIFT;
+		gfx_posY = (dispc_reg_in(DISPC_GFX_POSITION) &
+				DISPC_GFX_POSITION_GFXPOSY) >>
+			DISPC_GFX_POSITION_GFXPOSY_SHIFT;
+		gfx_sizeX = (dispc_reg_in(DISPC_GFX_SIZE) &
+				DISPC_GFX_SIZE_GFXSIZEX) >>
+			DISPC_GFX_SIZE_GFXSIZEX_SHIFT;
+		gfx_sizeY = (dispc_reg_in(DISPC_GFX_SIZE) &
+				DISPC_GFX_SIZE_GFXSIZEY) >>
+			DISPC_GFX_SIZE_GFXSIZEY_SHIFT;
+		vid_posX = (dispc_reg_in(DISPC_VID_POSITION(v)) &
+				DISPC_VID_POSITION_VIDPOSX) >>
+			DISPC_VID_POSITION_VIDPOSX_SHIFT;
+		vid_posY = (dispc_reg_in(DISPC_VID_POSITION(v)) &
+				DISPC_VID_POSITION_VIDPOSY) >>
+			DISPC_VID_POSITION_VIDPOSY_SHIFT;
+		vid_sizeX = ((dispc_reg_in(DISPC_VID_SIZE(v)) &
+					DISPC_VID_SIZE_VIDSIZEX) >>
+				DISPC_VID_SIZE_VIDSIZEX_SHIFT) + 1;
+		vid_sizeY = ((dispc_reg_in(DISPC_VID_SIZE(v)) &
+					DISPC_VID_SIZE_VIDSIZEY) >>
+				DISPC_VID_SIZE_VIDSIZEY_SHIFT) + 1;
+		gfx_pix_inc = dispc_reg_in(DISPC_GFX_PIXEL_INC);
+		gfx_row_inc =  dispc_reg_in(DISPC_GFX_ROW_INC);
+
+		omap_disp_get_panel_size(omap_disp_get_output_dev(ltype),
+				&screen_width, &screen_height);
+
+		if (((gfx_posX + gfx_sizeX) <= vid_posX) ||
+				((gfx_posY + gfx_sizeY) <= vid_posY)) {
+			overlay_opt_enable = 0;
+		}
+	} else {
+		overlay_opt_enable = 0;
+	}
+
+	/* Enable overlay optimization */
+	if (overlay_opt_enable) {
+		X = vid_sizeX;
+
+		if ((vid_posX == 0) && (gfx_sizeX <= (vid_posX + vid_sizeX))) {
+			X = gfx_sizeX + 1;
+			Y = vid_sizeY + 1;
+			skip_val = Y * ((X - 1) * (gfx_pix_inc - 1 +
+					bytesperpixel) + (gfx_row_inc - 1 +
+					bytesperpixel));
+			goto skip;
+		}
+
+		if ((vid_posX + vid_sizeX) >= gfx_sizeX) {
+			X = gfx_sizeX - vid_posX + 1;
+		}
+
+		if ((vid_posX == 0) || (gfx_sizeX <= (vid_posX + vid_sizeX))) {
+			overlay_opt_delta = 0;
+		} else {
+			overlay_opt_delta = 1;
+		}
+		skip_val = (X * (gfx_pix_inc + bytesperpixel - 1) +
+				overlay_opt_delta);
+
+skip:           /*dispc_reg_out(DISPC_GFX_WINDOW_SKIP,skip_val);
+		dispc_reg_merge(DISPC_CONTROL,
+				DISPC_CONTROL_OVERLAYOPTIMIZATION,
+				DISPC_CONTROL_OVERLAYOPTIMIZATION);*/
+		;;
+	}
 
 	/* Enable the Video layer and set the Go Bit */
 	omap_disp_enable_layer(ltype);
 }
-EXPORT_SYMBOL(omap_disp_start_video_layer);
+
+/* Flip the video overlay framebuffer.  The video overlay window may initially
+ * be either enabled or disabled.  The overlay window will be enabled by this
+ * routine.  fb_base_phys is the physical base address of the framebuffer for
+ * the video overlay.  The address programmed into the base address register of
+ * the video overlay window is calculated based on the cropped size and the full
+ * size of the overlay framebuffer.
+ */
+void
+omap_disp_start_vlayer(int ltype, struct v4l2_pix_format *pix,
+			struct v4l2_rect *crop, struct v4l2_window *win,
+			unsigned long fb_base_phys,
+			int rotation_deg, int mirroring)
+{
+	unsigned long cropped_base_phys;
+	int v, ps = 2,temp_ps=2,vr_ps = 1;
+	int offset=0, ctop=0, cleft=0, line_length=0;
+	int overlay_opt_delta, overlay_opt_enable = 0;
+	int gfx_posX, gfx_posY, vid_posX, vid_posY;
+	int gfx_sizeX, gfx_sizeY, vid_sizeX, vid_sizeY;
+	int screen_width, screen_height;
+	int bytesperpixel;
+	int X, Y, skip_val;
+	int gfx_pix_inc, gfx_row_inc;
+	u32 gfx_format;
+	int flicker_filter = 0;
+
+	gfx_format = dispc_reg_in(DISPC_GFX_ATTRIBUTES);
+
+	if ((omap_disp_get_output_dev(ltype) == OMAP_OUTPUT_TV) &&
+			((win->w.width == crop->width) && (win->w.height == crop->height)))
+		flicker_filter = 1;
+
+	switch (gfx_format & DISPC_GFX_ATTRIBUTES_GFXFORMAT) {
+		case DISPC_GFX_ATTRIBUTES_GFXFORMAT_BITMAP1:
+		case DISPC_GFX_ATTRIBUTES_GFXFORMAT_BITMAP2:
+		case DISPC_GFX_ATTRIBUTES_GFXFORMAT_BITMAP4:
+		case DISPC_GFX_ATTRIBUTES_GFXFORMAT_BITMAP8:
+			bytesperpixel = 1;
+			break;
+		case DISPC_GFX_ATTRIBUTES_GFXFORMAT_RGB12:
+		case DISPC_GFX_ATTRIBUTES_GFXFORMAT_RGB16:
+			bytesperpixel = 2;
+			break;
+		case DISPC_GFX_ATTRIBUTES_GFXFORMAT_RGB24:
+		default:
+			bytesperpixel = 4;
+			break;
+	}
+
+	if (ltype == OMAP_VIDEO1) v = 0;
+	else if (ltype == OMAP_VIDEO2) v = 1;
+	else return;
+
+	/*
+	 * If pixel format is YUV then PS = 4, for RGB16 PS = 2 RGB24 Unpack PS =4
+	 */
+
+	if (V4L2_PIX_FMT_YUYV == pix->pixelformat ||
+			V4L2_PIX_FMT_UYVY == pix->pixelformat) {
+		if (rotation_deg >= 0 || mirroring == 1) {
+			/*
+			 * ps    - Actual pixel size for YUYV/UYVY for VRFB/Mirroring is 4 bytes
+			 * vr_ps - Virtually pixel size for YUYV/UYVY  is 2 bytes
+			 */
+			ps    = 4;
+			vr_ps = 2;
+		}
+		else
+			ps = 2; /* otherwise the pixel size is 2 byte */
+	}
+	else if(V4L2_PIX_FMT_RGB32 == pix->pixelformat) ps = 4;
+	else if(V4L2_PIX_FMT_RGB24 == pix->pixelformat) ps = 3;
+
+	/*
+	 * If rotation is selected then compute the rotation parameters
+	 */
+	if (rotation_deg >= 0) {
+		line_length = MAX_PIXELS_PER_LINE;
+		ctop  = (pix->height - crop->height) - crop->top;
+		cleft = (pix->width - crop->width) - crop->left;
+	}
+	else {
+		line_length = pix->width;
+	}
+	switch (rotation_deg) {
+		case 90:
+			offset = (omap_disp_get_vrfb_offset(pix->width,ps,SIDE_H) - (pix->width/vr_ps)) * ps * line_length;
+			temp_ps = ps/vr_ps;
+			if (mirroring == 0) {
+				cropped_base_phys = fb_base_phys + offset +
+					line_length * temp_ps * cleft + crop->top * temp_ps;
+			}
+			else{
+				cropped_base_phys =
+					fb_base_phys + offset +
+					line_length * temp_ps * cleft + crop->top * temp_ps +
+					(line_length * ( (crop->width/(vr_ps)) - 1) * ps);
+			}
+			break;
+
+		case 180:
+			offset = (omap_disp_get_vrfb_offset(pix->height,ps,SIDE_H) - pix->height) * ps * line_length +
+				(omap_disp_get_vrfb_offset(pix->width,ps,SIDE_W) - (pix->width/vr_ps)) * ps;
+			if (mirroring == 0) {
+				cropped_base_phys = fb_base_phys + offset +
+					(line_length * ps * ctop) + (cleft/vr_ps) * ps;
+			}
+			else {
+				cropped_base_phys =
+					fb_base_phys + offset + (line_length * ps * ctop) +
+					(cleft/vr_ps) * ps +
+					(line_length * (crop->height - 1) * ps);
+			}
+			break;
+
+		case 270:
+			offset = (omap_disp_get_vrfb_offset(pix->height,ps,SIDE_W) - pix->height) * ps;
+			temp_ps = ps/vr_ps;
+			if (mirroring == 0) {
+				cropped_base_phys = fb_base_phys + offset +
+					line_length * temp_ps * crop->left + ctop * ps;
+			}
+			else {
+				cropped_base_phys =
+					fb_base_phys + offset + line_length * temp_ps * crop->left +
+					ctop * ps +
+					(line_length * ( (crop->width/vr_ps) - 1) * ps);
+			}
+			break;
+
+		case 0:
+			if (mirroring == 0) {
+				cropped_base_phys = fb_base_phys
+					+ (line_length * ps) * crop->top + (crop->left/vr_ps) * ps;
+			}
+			else {
+				cropped_base_phys =
+					fb_base_phys + (line_length * ps) * crop->top +
+					(crop->left/vr_ps) * ps +
+					(line_length * (crop->height - 1) * ps);
+			}
+			break;
+
+		default:
+			if (mirroring == 0) {
+				cropped_base_phys = fb_base_phys
+					+ line_length * ps * crop->top + crop->left * ps;
+			}
+			else {
+				cropped_base_phys = fb_base_phys
+					+ (line_length * ps * crop->top) / vr_ps +
+					(crop->left * ps) / vr_ps +
+					((crop->width / vr_ps) - 1) * ps;
+			}
+			break;
+	}
+
+	/*
+	 * We store the information in the layer structure for : If user
+	 * dynamically switches the pipeline from LCD to TV or vice versa
+	 * we should have the necessary configurations for the output device
+	 * (LCD/TV)
+	 */
+
+	/*
+	 * For LCD BA0 and BA1 are same
+	 */
+	layer[ltype].dma[0].ba0 = cropped_base_phys;
+	layer[ltype].dma[0].ba1 = cropped_base_phys;
+
+	/*
+	 * Store BA0 BA1 for TV, BA1 points to the alternate row
+	 */
+	layer[ltype].dma[1].ba0 = cropped_base_phys;
+
+	if (flicker_filter == 1){
+		layer[ltype].dma[1].ba1 = cropped_base_phys;
+	} else if(rotation_deg >= 0){
+		if(mirroring == 1)
+			layer[ltype].dma[1].ba1 = cropped_base_phys - line_length * ps;
+		else
+			layer[ltype].dma[1].ba1 = cropped_base_phys + line_length * ps;
+	} else {
+		if (mirroring == 1)
+			layer[ltype].dma[1].ba1 = cropped_base_phys + line_length * ps/vr_ps;
+		else
+			layer[ltype].dma[1].ba1 = cropped_base_phys + line_length * ps;
+	}
+
+	/* If output path is set to TV */
+	if (omap_disp_get_output_dev(ltype) == OMAP_OUTPUT_TV) {
+		dispc_reg_out(DISPC_VID_BA0(v), cropped_base_phys);
+		if(flicker_filter == 1){
+			dispc_reg_out(DISPC_VID_BA1(v), cropped_base_phys);
+		} else {
+			if(rotation_deg >= 0){
+				if(mirroring == 1)
+					dispc_reg_out(DISPC_VID_BA1(v),	cropped_base_phys -
+							line_length * ps);
+				else
+					dispc_reg_out(DISPC_VID_BA1(v),	cropped_base_phys +
+							line_length * ps);
+			}
+			else{
+				if(mirroring ==1)
+					dispc_reg_out(DISPC_VID_BA1(v),	cropped_base_phys +
+							line_length * ps/vr_ps);
+				else
+					dispc_reg_out(DISPC_VID_BA1(v),	cropped_base_phys +
+							line_length * ps);
+			}
+		}
+
+		dispc_reg_merge(DISPC_VID_ATTRIBUTES(v),
+				DISPC_VID_ATTRIBUTES_ENABLE,
+				DISPC_VID_ATTRIBUTES_ENABLE);
+		omap_disp_reg_sync(OMAP_OUTPUT_TV);
+		/* if not enabled transparency and alpha blending enable overlay optimization */
+		if(is_sil_rev_less_than(OMAP3430_REV_ES2_0)){
+			if (!(dispc_reg_in(DISPC_CONFIG) & DISPC_CONFIG_TCKDIGENABLE))
+				overlay_opt_enable = 1;
+		}
+		else {
+			if ((!(dispc_reg_in(DISPC_CONFIG) & DISPC_CONFIG_TCKDIGENABLE)) && (!(dispc_reg_in(DISPC_CONFIG) & DISPC_CONFIG_TVALPHAENABLE)))
+				overlay_opt_enable = 1;
+		}
+	}
+	/* If output path is set to LCD */
+	else {
+		dispc_reg_out(DISPC_VID_BA0(v), cropped_base_phys);
+		dispc_reg_out(DISPC_VID_BA1(v), cropped_base_phys);
+		dispc_reg_merge(DISPC_VID_ATTRIBUTES(v),
+				DISPC_VID_ATTRIBUTES_ENABLE,
+				DISPC_VID_ATTRIBUTES_ENABLE);
+		omap_disp_reg_sync(OMAP_OUTPUT_LCD);
+		/* if not enabled transparency enable overlay optimization */
+		if(is_sil_rev_less_than(OMAP3430_REV_ES2_0)){
+			if (!(dispc_reg_in(DISPC_CONFIG) & DISPC_CONFIG_TCKLCDENABLE))
+				overlay_opt_enable = 1;
+		}
+		else {
+			if ((!(dispc_reg_in(DISPC_CONFIG) & DISPC_CONFIG_TCKLCDENABLE)) && (!(dispc_reg_in(DISPC_CONFIG) & DISPC_CONFIG_LCDALPHAENABLE)))
+				overlay_opt_enable = 1;
+		}
+	}
+
+	/** if GFX pipeline enabled and no transparency enabled
+	 * check for overlapping of GFX and Video pipelines to
+	 * enable overlay optimization
+	 */
+	if ((dispc_reg_in(DISPC_GFX_ATTRIBUTES) & DISPC_GFX_ATTRIBUTES_ENABLE	) && overlay_opt_enable && (ltype == OMAP_VIDEO1)) {
+
+		gfx_posX = (dispc_reg_in(DISPC_GFX_POSITION) & DISPC_GFX_POSITION_GFXPOSX) >> DISPC_GFX_POSITION_GFXPOSX_SHIFT;
+		gfx_posY = (dispc_reg_in(DISPC_GFX_POSITION) & DISPC_GFX_POSITION_GFXPOSY) >> DISPC_GFX_POSITION_GFXPOSY_SHIFT;
+		gfx_sizeX = (dispc_reg_in(DISPC_GFX_SIZE) & DISPC_GFX_SIZE_GFXSIZEX) >> DISPC_GFX_SIZE_GFXSIZEX_SHIFT;
+		gfx_sizeY = (dispc_reg_in(DISPC_GFX_SIZE) & DISPC_GFX_SIZE_GFXSIZEY) >> DISPC_GFX_SIZE_GFXSIZEY_SHIFT;
+		vid_posX = (dispc_reg_in(DISPC_VID_POSITION(v)) & DISPC_VID_POSITION_VIDPOSX) >> DISPC_VID_POSITION_VIDPOSX_SHIFT;
+		vid_posY = (dispc_reg_in(DISPC_VID_POSITION(v)) & DISPC_VID_POSITION_VIDPOSY) >> DISPC_VID_POSITION_VIDPOSY_SHIFT;
+		vid_sizeX = ((dispc_reg_in(DISPC_VID_SIZE(v)) & DISPC_VID_SIZE_VIDSIZEX) >> DISPC_VID_SIZE_VIDSIZEX_SHIFT) + 1;
+		vid_sizeY = ((dispc_reg_in(DISPC_VID_SIZE(v)) & DISPC_VID_SIZE_VIDSIZEY) >> DISPC_VID_SIZE_VIDSIZEY_SHIFT) + 1;
+		gfx_pix_inc = dispc_reg_in(DISPC_GFX_PIXEL_INC);
+		gfx_row_inc =  dispc_reg_in(DISPC_GFX_ROW_INC);
+
+		omap_disp_get_panel_size(omap_disp_get_output_dev(ltype), &screen_width, &screen_height);
+
+		if (((gfx_posX + gfx_sizeX) <= vid_posX) || ((gfx_posY + gfx_sizeY) <= vid_posY)) {
+			overlay_opt_enable = 0;
+		}
+	}
+	else {
+		overlay_opt_enable = 0;
+	}
+
+	/* Enable overlay optimization */
+	if (overlay_opt_enable) {
+		X = vid_sizeX;
+
+		if ((vid_posX == 0) && (gfx_sizeX <= (vid_posX + vid_sizeX))) {
+			X = gfx_sizeX + 1;
+			Y = vid_sizeY + 1;
+			skip_val = Y * ((X - 1) * (gfx_pix_inc - 1 + bytesperpixel) +
+					(gfx_row_inc - 1 + bytesperpixel));
+			goto skip;
+		}
+
+		if ((vid_posX + vid_sizeX) >= gfx_sizeX) {
+			X = gfx_sizeX - vid_posX + 1;
+		}
+
+		if ((vid_posX == 0) || (gfx_sizeX <= (vid_posX + vid_sizeX))) {
+			overlay_opt_delta = 0;
+		}
+		else {
+			overlay_opt_delta = 1;
+		}
+		skip_val = (X * (gfx_pix_inc + bytesperpixel - 1) + overlay_opt_delta);
+
+skip:	        /*dispc_reg_out(DISPC_GFX_WINDOW_SKIP,skip_val);
+		dispc_reg_merge(DISPC_CONTROL, DISPC_CONTROL_OVERLAYOPTIMIZATION,
+				DISPC_CONTROL_OVERLAYOPTIMIZATION);*/
+		;
+	}
+}
+
+/* Configure VIDEO1 or VIDEO2 layer parameters*/
+void
+omap_disp_config_vlayer(int ltype, struct v4l2_pix_format *pix,
+			 struct v4l2_rect *crop, struct v4l2_window *win,
+			 int rotation_deg, int mirroring)
+{
+	int vid_position_x, vid_position_y, ps = 2,vr_ps = 1;
+	unsigned long vid_position, vid_size, vid_picture_size;
+	unsigned long vid_attributes;
+	unsigned long firvinc, firhinc;
+	int winheight, winwidth, cropheight, cropwidth, pixheight, pixwidth;
+	int cleft, ctop;
+	int panelwidth, panelheight, row_inc_value=0, pixel_inc_value=0;
+	int flicker_filter = 0;
+	int v_scale_dir = 0;
+
+	/* horizontal and vertical upscale resizing matrix */
+	const static short int hvc_u[5][8] =
+	{ { 0,   0,  -1,  -2,  -9,  -5,  -2,  -1 },
+		{   0,  -8, -11, -11,  73,  51,  30,  13 },
+		{ 128, 124, 112,  95,  73,  95, 112, 124 },
+		{   0,  13,  30,  51,  -9, -11, -11,  -8 },
+		{   0,  -1,  -2,  -5,   0,  -2,  -1,   0 } };
+	/* Vertical downscale resizing matrix */
+	const static short int vc_d[3][8] =
+	{ {   36,   40,  45,  50,   18,   23,   27,   31 },
+		{ 56, 57, 56,  55,  55,  55, 56, 57 },
+		{   36,   31,   27,   23,  55,  50,  45,   40 } };
+	/* horizontal down scale resizing matrix */
+	const static short int hc_d[5][8] =
+	{ {   0,  4,  8,  -12,   -9,  -7,  -5,  -2 },
+		{   36,  40,  44,  48,  17, 22, 27, 31 },
+		{ 56, 55, 54,  53,  52,  53, 54, 55 },
+		{   36,  31, 27, 22,  51,  48,  44,  40 },
+		{   0,   -2,  -5,  -7,  17,  12,  8,  4 } };
+
+	short int* vc= (short int *) hvc_u;
+	short int* hc= (short int *) hvc_u;
+
+	int v;
+
+	if (ltype == OMAP_VIDEO1) v = 0;
+	else if (ltype == OMAP_VIDEO2) v = 1;
+	else return;
+
+	if ((omap_disp_get_output_dev(ltype) == OMAP_OUTPUT_TV) &&
+			((win->w.width == crop->width) && (win->w.height == crop->height)))
+		flicker_filter = 1;
+
+	/* make sure the video overlay is disabled before we reconfigure it */
+	omap_disp_disable_layer(ltype);
+
+	/* configure the video attributes register */
+	vid_attributes = 0;
+	switch (pix->pixelformat) {
+		case V4L2_PIX_FMT_YUYV:
+		case V4L2_PIX_FMT_UYVY:
+			if(pix->pixelformat == V4L2_PIX_FMT_YUYV){
+				vid_attributes |= DISPC_VID_ATTRIBUTES_VIDFORMAT_YUV2;
+				vid_attributes |= DISPC_VID_ATTRIBUTES_VIDCOLORCONVENABLE;
+			}
+			else{
+				vid_attributes |= DISPC_VID_ATTRIBUTES_VIDFORMAT_UYVY;
+				vid_attributes |= DISPC_VID_ATTRIBUTES_VIDCOLORCONVENABLE;
+			}
+
+			if (mirroring == 1 || rotation_deg >=0){
+				/*
+				 * ps      - In VRFB space the pixel size for YUYV/UYVY is 4 bytes
+				 * vr_ps - Actual pixel size for YUYV/UYVY  is 2 bytes
+				 */
+				ps = 4;vr_ps = 2;
+			}
+			if (rotation_deg >= 0) {
+				if(mirroring == 1){
+					vid_attributes |= (rotation_deg == 90)?
+						((0x3) << DISPC_VID_ATTRIBUTES_VIDROT):
+						(rotation_deg == 270)?((0x1) << DISPC_VID_ATTRIBUTES_VIDROT):
+						(rotation_deg == 0)?(0x2 << DISPC_VID_ATTRIBUTES_VIDROT):
+						(0<<DISPC_VID_ATTRIBUTES_VIDROT);
+				}
+				else{
+					vid_attributes |= (rotation_deg == 90)?
+						((0x3) << DISPC_VID_ATTRIBUTES_VIDROT):
+						(rotation_deg == 270)?((0x1) << DISPC_VID_ATTRIBUTES_VIDROT):
+						((rotation_deg / 90) << DISPC_VID_ATTRIBUTES_VIDROT);
+				}
+				vid_attributes |= (rotation_deg == 90 || rotation_deg == 270)?
+					(1 << DISPC_VID_ATTRIBUTES_VIDROWREPEAT):
+					(0 << DISPC_VID_ATTRIBUTES_VIDROWREPEAT);
+			}
+			if (mirroring == 1 && rotation_deg == -1){
+				vid_attributes |= (0x2 << DISPC_VID_ATTRIBUTES_VIDROT);
+			}
+
+			break;
+		case V4L2_PIX_FMT_RGB24:
+			ps = 3; /* pixel size is 3 bytes */
+			vid_attributes |= DISPC_VID_ATTRIBUTES_VIDFORMAT_RGB24P;
+			vid_attributes |= ((dispc_reg_in(DISPC_GFX_ATTRIBUTES) &
+						DISPC_GFX_ATTRIBUTES_GFXREPLICATIONENABLE)
+					<< DISPC_GFX_ATTRIBUTES_GFXREPEN);
+			break;
+
+			/* The picture format is a bit confusing in V4L2.. as per the V4L2 spec
+			 * RGB32 and BGR32 are always with alpha bits enabled.. (i.e always in
+			 * packed mode) */
+		case V4L2_PIX_FMT_RGB32:
+			ps = 4; /* pixel size is 4 bytes */
+			if ((is_sil_rev_less_than(OMAP3430_REV_ES2_0)) || (ltype == OMAP_VIDEO1)) {
+				vid_attributes |= DISPC_VID_ATTRIBUTES_VIDFORMAT_RGB24;
+				vid_attributes |= ((dispc_reg_in(DISPC_GFX_ATTRIBUTES) &
+							DISPC_GFX_ATTRIBUTES_GFXREPLICATIONENABLE)
+						<< DISPC_GFX_ATTRIBUTES_GFXREPEN);
+			}
+			else {
+				vid_attributes |= DISPC_VID_ATTRIBUTES_VIDFORMAT_ARGB32;
+				vid_attributes |= DISPC_VID_ATTRIBUTES_VIDENDIANNESS;
+			}
+			break;
+		case V4L2_PIX_FMT_BGR32:
+			ps = 4; /* pixel size is 4 bytes */
+			if ((is_sil_rev_less_than(OMAP3430_REV_ES2_0)) || (ltype == OMAP_VIDEO1)) {
+				vid_attributes |= DISPC_VID_ATTRIBUTES_VIDFORMAT_RGB24;
+				vid_attributes |= ((dispc_reg_in(DISPC_GFX_ATTRIBUTES) &
+							DISPC_GFX_ATTRIBUTES_GFXREPLICATIONENABLE)
+						<< DISPC_GFX_ATTRIBUTES_GFXREPEN);
+			}
+			else {
+				vid_attributes |= DISPC_VID_ATTRIBUTES_VIDFORMAT_ARGB32;
+			}
+			break;
+		case V4L2_PIX_FMT_RGB565:
+		default:
+			ps = 2; /* pixel size is 2 bytes */
+			vid_attributes |= DISPC_VID_ATTRIBUTES_VIDFORMAT_RGB16;
+			vid_attributes |= ((dispc_reg_in(DISPC_GFX_ATTRIBUTES) &
+						DISPC_GFX_ATTRIBUTES_GFXREPLICATIONENABLE)
+					<< DISPC_GFX_ATTRIBUTES_GFXREPEN);
+			break;
+		case V4L2_PIX_FMT_RGB565X:
+			ps = 2; /* pixel size is 2 bytes */
+			vid_attributes |= DISPC_VID_ATTRIBUTES_VIDFORMAT_RGB16;
+			vid_attributes |= DISPC_VID_ATTRIBUTES_VIDENDIANNESS;
+			vid_attributes |= ((dispc_reg_in(DISPC_GFX_ATTRIBUTES) &
+						DISPC_GFX_ATTRIBUTES_GFXREPLICATIONENABLE)
+					<< DISPC_GFX_ATTRIBUTES_GFXREPEN);
+			break;
+	}
+
+	if (omap_disp_get_output_dev(ltype) == OMAP_OUTPUT_TV)
+		vid_attributes |= DISPC_VID_ATTRIBUTES_VIDCHANNELOUT;
+
+	/* Enable 16 x 32 burst size */
+	vid_attributes |= DISPC_VID_ATTRIBUTES_VIDBURSTSIZE_BURST16X32;
+
+	/* Set FIFO threshold to 0xFF (high) and 0xFF - (16x4bytes) = 0xC0 (low)*/
+	/* dispc_reg_out(DISPC_VID_FIFO_THRESHOLD(v),0x00FF00C0); */
+	dispc_reg_out(DISPC_VID_FIFO_THRESHOLD(v),0x03FC03BC);
+
+	/* Set the color converion parameters */
+	set_colorconv(v,pix->colorspace);
+
+	if (rotation_deg == 90 || rotation_deg == 270) {
+		winheight = win->w.width;
+		winwidth = win->w.height;
+		cropheight = crop->width;
+		cropwidth = crop->height;
+		pixheight = pix->width;
+		pixwidth = pix->height;
+		cleft = crop->top;
+		ctop = crop->left;
+	} else {
+		winwidth = win->w.width;
+		winheight = win->w.height;
+		cropwidth = crop->width;
+		cropheight = crop->height;
+		pixheight = pix->height;
+		pixwidth = pix->width;
+		ctop = crop->top;
+		cleft = crop->left;
+	}
+
+#ifdef DMA_DECIMATE
+	printk("winwidth = %d \n",win->w.width);
+	printk("winheight = %d \n",win->w.height);
+	printk("pixwidth = %d \n",pix->width);
+	printk("pixheigth = %d \n",pix->height);
+	printk("cropwidth = %d \n",crop->width);
+	printk("cropheigth = %d \n",crop->height);
+	printk("croptop = %d \n",crop->top);
+	printk("cropleft = %d \n",crop->left);
+#endif
+
+	if (winwidth != cropwidth) {
+		vid_attributes |= DISPC_VID_ATTRIBUTES_VIDRESIZEENABLE_HRESIZE;
+		if (winwidth < cropwidth){
+			vid_attributes |= DISPC_VID_ATTRIBUTES_VIDHRESIZECONF;
+			hc = (short int *) hc_d;
+		}
+	}
+	if (winheight != cropheight) {
+		vid_attributes |= DISPC_VID_ATTRIBUTES_VIDRESIZEENABLE_VRESIZE;
+		if (winheight < cropheight){
+			vid_attributes |= DISPC_VID_ATTRIBUTES_VIDVRESIZECONF;
+			vc = (short int *) vc_d;
+			v_scale_dir = 1;
+		}
+		else {
+			/* Use Five tap filter for vertical up scaling */
+			vid_attributes |= DISPC_VID_ATTRIBUTES_VIDVERTICALTAPS;
+		}
+
+	}
+
+	if (flicker_filter == 1) {
+		vid_attributes |= DISPC_VID_ATTRIBUTES_VIDRESIZEENABLE_VRESIZE;
+		vid_attributes |= DISPC_VID_ATTRIBUTES_VIDVRESIZECONF;
+		vc = (short int *) vc_d;
+	}
+	dispc_reg_out(DISPC_VID_ATTRIBUTES(v), vid_attributes);
+
+	/* initialize the resizing filter */
+	omap_disp_set_resize(v, vc, hc,v_scale_dir);
+
+	dispc_reg_out(DISPC_VID_ACCU0(v), 0);
+	if(flicker_filter == 1)
+		dispc_reg_out(DISPC_VID_ACCU1(v), 0x01000000);
+	else
+		dispc_reg_out(DISPC_VID_ACCU1(v), 0);
+	firhinc = (1024 * (cropwidth - 1)) / (winwidth - 1);
+	if (firhinc < 1)
+		firhinc = 1;
+	else if (firhinc > 2047)
+		firhinc = 2047;
+	firvinc = (1024 * (cropheight - 1)) / (winheight - 1);
+	if (firvinc < 1)
+		firvinc = 1;
+	else if (firvinc > 2047)
+		firvinc = 2047;
+
+	if(flicker_filter == 0)
+		dispc_reg_out(DISPC_VID_FIR(v), firhinc | (firvinc << 16));
+	else
+		dispc_reg_out(DISPC_VID_FIR(v), 0x08000000);
+
+	omap_disp_get_panel_size(omap_disp_get_output_dev(ltype), &panelwidth,
+			&panelheight);
+
+	/* configure the target window on the display */
+	switch (rotation_deg) {
+
+		case 90:
+			vid_position_y = (panelheight - win->w.width) - win->w.left;
+			vid_position_x = win->w.top;
+			break;
+
+		case 180:
+			vid_position_x = (panelwidth - win->w.width) - win->w.left;
+			vid_position_y = (panelheight - win->w.height) - win->w.top;
+			break;
+
+		case 270:
+			vid_position_y = win->w.left;
+			vid_position_x = (panelwidth - win->w.height) - win->w.top;
+			break;
+
+		default:
+			vid_position_x = win->w.left;
+			vid_position_y = win->w.top;
+			break;
+	}
+
+	if (omap_disp_get_output_dev(ltype) == OMAP_OUTPUT_TV)
+		vid_position_y = vid_position_y/2;
+
+	/*
+	 * 	If Scaling is enabled for TV then the window height should be divided by two
+	 */
+
+	if (((omap_disp_get_output_dev(ltype) == OMAP_OUTPUT_TV) &&
+				(winheight != cropheight)) || flicker_filter) {
+		vid_size = (((winwidth - 1) << DISPC_VID_SIZE_VIDSIZEX_SHIFT)
+				& DISPC_VID_SIZE_VIDSIZEX)
+			| ((((winheight - 1)/2) << DISPC_VID_SIZE_VIDSIZEY_SHIFT)
+					& DISPC_VID_SIZE_VIDSIZEY);
+	} else {
+		vid_size = (((winwidth - 1) << DISPC_VID_SIZE_VIDSIZEX_SHIFT)
+				& DISPC_VID_SIZE_VIDSIZEX)
+			| (((winheight - 1) << DISPC_VID_SIZE_VIDSIZEY_SHIFT)
+					& DISPC_VID_SIZE_VIDSIZEY);
+#ifdef DMA_DECIMATE
+		vid_size = (((winwidth - 1)/2 << DISPC_VID_SIZE_VIDSIZEX_SHIFT)
+				& DISPC_VID_SIZE_VIDSIZEX)
+			| ((((winheight - 1)/2) << DISPC_VID_SIZE_VIDSIZEY_SHIFT)
+					& DISPC_VID_SIZE_VIDSIZEY);
+#endif
+	}
+
+	/* configure the source window in the framebuffer */
+	if(flicker_filter == 1){
+		vid_picture_size =
+			(((cropwidth - 1) << DISPC_VID_PICTURE_SIZE_VIDORGSIZEX_SHIFT)
+			 & DISPC_VID_PICTURE_SIZE_VIDORGSIZEX) |
+			(((cropheight - 1) << DISPC_VID_PICTURE_SIZE_VIDORGSIZEY_SHIFT)
+			 & DISPC_VID_PICTURE_SIZE_VIDORGSIZEY);
+	} else if((omap_disp_get_output_dev(ltype) == OMAP_OUTPUT_TV) && (flicker_filter == 0)) {
+		vid_picture_size =
+			(((cropwidth -
+			   1) << DISPC_VID_PICTURE_SIZE_VIDORGSIZEX_SHIFT)
+			 & DISPC_VID_PICTURE_SIZE_VIDORGSIZEX) |
+			(((cropheight / 2 -
+			   1) << DISPC_VID_PICTURE_SIZE_VIDORGSIZEY_SHIFT)
+			 & DISPC_VID_PICTURE_SIZE_VIDORGSIZEY);
+	} else {
+		vid_picture_size =
+			(((cropwidth -
+			   1) << DISPC_VID_PICTURE_SIZE_VIDORGSIZEX_SHIFT)
+			 & DISPC_VID_PICTURE_SIZE_VIDORGSIZEX) |
+			(((cropheight -
+			   1) << DISPC_VID_PICTURE_SIZE_VIDORGSIZEY_SHIFT)
+			 & DISPC_VID_PICTURE_SIZE_VIDORGSIZEY);
+#ifdef DMA_DECIMATE
+		vid_picture_size =
+			(((cropwidth / 2 -
+			   1) << DISPC_VID_PICTURE_SIZE_VIDORGSIZEX_SHIFT)
+			 & DISPC_VID_PICTURE_SIZE_VIDORGSIZEX) |
+			(((cropheight / 2 -
+			   1) << DISPC_VID_PICTURE_SIZE_VIDORGSIZEY_SHIFT)
+			 & DISPC_VID_PICTURE_SIZE_VIDORGSIZEY);
+#endif
+	}
+
+	switch (mirroring) {
+		case 0:		/* No mirroring */
+			if (rotation_deg == 90 || rotation_deg == 270) {
+				row_inc_value =
+					1 + (MAX_PIXELS_PER_LINE - pixwidth +
+							(pixwidth - cropwidth - cleft) + cleft) * ps;
+
+			}
+			else if (rotation_deg == 180 || rotation_deg == 0) {
+				if (V4L2_PIX_FMT_YUYV == pix->pixelformat
+						|| V4L2_PIX_FMT_UYVY == pix->pixelformat)
+					row_inc_value =
+						1 + (MAX_PIXELS_PER_LINE -
+								(pixwidth/ vr_ps) + ((pixwidth - cropwidth - cleft)/vr_ps)
+								+ (cleft / vr_ps) ) * ps;
+
+				else
+					row_inc_value =
+						1 + (MAX_PIXELS_PER_LINE - pixwidth +
+								(pixwidth -
+								 cropwidth - cleft) + cleft) * ps;
+#ifdef DMA_DECIMATE
+				row_inc_value = row_inc_value + (MAX_PIXELS_PER_LINE * ps);
+#endif
+			}
+			else {
+				row_inc_value = 1 + (pix->width * ps) - cropwidth * ps;
+#ifdef DMA_DECIMATE
+				row_inc_value = row_inc_value + ((pix->width + 1) * ps);
+#endif
+			}
+			pixel_inc_value = 1;
+#ifdef DMA_DECIMATE
+			pixel_inc_value = 1+ (1* ps);
+#endif
+			break;
+
+		case 1:		/* Mirroring */
+			if (rotation_deg == 90 || rotation_deg == 270) {
+				row_inc_value = (-(MAX_PIXELS_PER_LINE + cropwidth) * ps) + 1;
+				pixel_inc_value = 1;
+			} else if (rotation_deg == 180 || rotation_deg == 0) {
+				row_inc_value = (-(MAX_PIXELS_PER_LINE + (cropwidth / vr_ps))
+						* ps) + 1;
+				pixel_inc_value = 1;
+			} else {
+				row_inc_value =
+					2 * ((cropwidth / vr_ps) -
+							1) * ps + 1 +
+					((pix->width * ps) / vr_ps) -
+					(cropwidth / vr_ps) * ps;
+				pixel_inc_value = (-2 * ps) + 1;
+			}
+			break;
+	}			/* Mirroring Switch */
+
+	/*
+	 * For LCD row inc and pixel inc
+	 */
+
+	layer[ltype].dma[0].row_inc = row_inc_value;
+	layer[ltype].dma[0].pix_inc = pixel_inc_value;
+
+	if (omap_disp_get_output_dev(ltype) == OMAP_OUTPUT_LCD || flicker_filter == 1) {
+		dispc_reg_out(DISPC_VID_ROW_INC(v), row_inc_value);
+		dispc_reg_out(DISPC_VID_PIXEL_INC(v), pixel_inc_value);
+	}
+
+	/*
+	 * For TV the row increment should be done twice as the
+	 * TV operates in interlaced mode
+	 */
+
+	else {
+		if (rotation_deg >= 0){
+			if(mirroring ==1) row_inc_value = row_inc_value -
+				MAX_PIXELS_PER_LINE * ps;
+			else	row_inc_value = row_inc_value + MAX_PIXELS_PER_LINE * ps;
+		}
+		else{
+			if(mirroring ==1) row_inc_value = row_inc_value +
+				pix->width * ps / vr_ps;
+			else	row_inc_value = row_inc_value + pix->width * ps;
+		}
+		dispc_reg_out(DISPC_VID_ROW_INC(v), row_inc_value);
+		dispc_reg_out(DISPC_VID_PIXEL_INC(v), pixel_inc_value);
+	}
+
+	/*
+	 * Store BA0 BA1 for TV, BA1 points to the alternate row
+	 */
+	if(flicker_filter == 1){
+		layer[ltype].dma[1].row_inc = row_inc_value;
+	} else if (rotation_deg >= 0){
+		if(mirroring ==1)
+			layer[ltype].dma[1].row_inc = row_inc_value -
+				MAX_PIXELS_PER_LINE * ps;
+		else
+			layer[ltype].dma[1].row_inc = row_inc_value +
+				MAX_PIXELS_PER_LINE * ps;
+	}
+	else{
+		if(mirroring ==1)
+			layer[ltype].dma[1].row_inc =
+				row_inc_value + pix->width * ps/vr_ps;
+		else	row_inc_value = row_inc_value + pix->width * ps;
+
+	}
+	layer[ltype].dma[1].pix_inc = pixel_inc_value;
+	layer[ltype].size_x = cropwidth;
+	layer[ltype].size_y = cropheight;
+
+	vid_position = ((vid_position_x << DISPC_VID_POSITION_VIDPOSX_SHIFT)
+			& DISPC_VID_POSITION_VIDPOSX)
+		| ((vid_position_y << DISPC_VID_POSITION_VIDPOSY_SHIFT)
+				& DISPC_VID_POSITION_VIDPOSY);
+
+	dispc_reg_out(DISPC_VID_POSITION(v), vid_position);
+	dispc_reg_out(DISPC_VID_SIZE(v), vid_size);
+	dispc_reg_out(DISPC_VID_PICTURE_SIZE(v), vid_picture_size);
+	omap_disp_save_initstate(ltype);
+
+}
 
 /* Many display controller registers are shadowed. Setting the GO bit causes
  * changes to these registers to take effect in hardware.
  */
-void omap_disp_reg_sync(int output_dev)
+void
+omap_disp_reg_sync(int output_dev)
 {
 	unsigned long timeout;
 	if (output_dev == OMAP_OUTPUT_LCD)
@@ -1575,15 +2095,15 @@ void omap_disp_reg_sync(int output_dev)
 	timeout = HZ / 3;
 	timeout += jiffies;
 	while (omap_disp_reg_sync_bit(output_dev) &&
-			time_before(jiffies, timeout)) {
+					time_before(jiffies, timeout)) {
 		if ((!in_interrupt()) && (!irqs_disabled())) {
 			set_current_state(TASK_INTERRUPTIBLE);
 			schedule_timeout(10);
 
 		}
 	}
+
 }
-EXPORT_SYMBOL(omap_disp_reg_sync);
 
 /* This function provides the status of the GO bit. After the GO bit is set
  * through software, register changes take affect at the next VFP (vertical
@@ -1592,7 +2112,8 @@ EXPORT_SYMBOL(omap_disp_reg_sync);
  * drivers to poll the status of the GO bit, and wait until it is reset if they
  * wish to.
  */
-int omap_disp_reg_sync_done(int output_dev)
+int
+omap_disp_reg_sync_done(int output_dev)
 {
 	u32 control = dispc_reg_in(DISPC_CONTROL);
 
@@ -1601,49 +2122,360 @@ int omap_disp_reg_sync_done(int output_dev)
 	else
 		return ~(control & DISPC_CONTROL_GODIGITAL);
 }
-EXPORT_SYMBOL(omap_disp_reg_sync_done);
 
-void omap_disp_disable(unsigned long timeout_ticks)
+/* This function turns on/off the clocks needed for TV-out.
+ *  - 2430SDP: Controls the dss_54m_fck
+ *  - 3430SDP: Controls the dss_tv_fck
+ *  - 3430LAB: Controls both dss_tv_fck and dss_96m_fck.
+ *             By default Labrador turns off the 96MHz DAC clock for
+ *             power saving reasons.
+ */
+#ifndef CONFIG_ARCH_OMAP3410
+static void
+omap_ll_config_tv_clocks(int sleep_state)
+{
+	static int start = 1;
+	static struct clk *tv_clk;
+#ifdef CONFIG_MACH_OMAP_3430LABRADOR
+	static struct clk *dac_clk;
+#endif
+	static int disabled = 0;
+	static int enabled = 0;
+
+	if(start) {
+#ifdef CONFIG_MACH_OMAP_2430SDP
+		tv_clk = clk_get(NULL,"dss_54m_fck");
+#endif
+#if defined(CONFIG_MACH_OMAP_3430SDP) ||  defined(CONFIG_MACH_OMAP3EVM) || defined(CONFIG_MACH_OMAP_3430LABRADOR)
+		tv_clk = clk_get(NULL,"dss_tv_fck");
+#endif
+#if defined(CONFIG_MACH_OMAP_3430LABRADOR)
+		dac_clk = clk_get(NULL,"dss_96m_fck");
+		if(IS_ERR(dac_clk)) {
+			printk("\n UNABLE to get dss 96MHz fclk \n");
+			return;
+		}
+#endif
+		if(IS_ERR(tv_clk)) {
+			printk("\n UNABLE to get dss TV fclk \n");
+			return;
+		}
+		start = 0;
+	}
+
+	if (sleep_state == 1) {
+		if (disabled == 0) {
+			clk_disable(tv_clk);
+#if defined(CONFIG_MACH_OMAP_3430LABRADOR)
+			clk_disable(dac_clk);
+#endif
+			disabled = 1;
+		}
+		enabled = 0;
+	}
+	else {
+		if (enabled == 0) {
+			if(clk_enable(tv_clk) != 0) {
+				printk("\n UNABLE to enable dss TV fclk \n");
+				return;
+			}
+#if defined(CONFIG_MACH_OMAP_3430LABRADOR)
+			if(clk_enable(dac_clk) != 0) {
+				printk("\n UNABLE to enable dss 96MHz fclk \n");
+				return;
+			}
+#endif
+			enabled = 1;
+		}
+		disabled = 0;
+	}
+}
+#endif
+
+/*
+ * Disable the display controller. May be called in interrupt or process
+ * context. However, this function should not be called with interrupts
+ * disabled as jiffies will not increment.
+ */
+void
+omap_disp_disable(unsigned long timeout_ticks)
 {
 	unsigned long timeout;
 
 	if (dispc_reg_in(DISPC_CONTROL)
-	    & (DISPC_CONTROL_DIGITALENABLE | DISPC_CONTROL_LCDENABLE)) {
+			& (DISPC_CONTROL_DIGITALENABLE | DISPC_CONTROL_LCDENABLE))
+	{
 		/* disable the display controller */
 		dispc_reg_merge(DISPC_CONTROL, 0,
-				DISPC_CONTROL_DIGITALENABLE |
-				DISPC_CONTROL_LCDENABLE);
+				DISPC_CONTROL_DIGITALENABLE | DISPC_CONTROL_LCDENABLE);
 
 		/* wait for any frame in progress to complete */
-		dispc_reg_out(DISPC_IRQSTATUS, DISPC_IRQSTATUS_FRAMEDONE);
+		dispc_reg_out(DISPC_IRQSTATUS,
+				DISPC_IRQSTATUS_FRAMEDONE);
 		timeout = jiffies + timeout_ticks;
-		while (!(dispc_reg_in(DISPC_IRQSTATUS)
-			 & DISPC_IRQSTATUS_FRAMEDONE)
-		       && time_before(jiffies, timeout)) {
+		while(!(dispc_reg_in(DISPC_IRQSTATUS)
+					& DISPC_IRQSTATUS_FRAMEDONE)
+				&& time_before(jiffies, timeout))
+		{
 			int a_ctx = (in_atomic() || irqs_disabled()
-				     || in_interrupt());
+					|| in_interrupt());
 			if (!a_ctx) {
 				set_current_state(TASK_INTERRUPTIBLE);
 				schedule_timeout(1);
 			} else
 				udelay(100);
 		}
-#ifdef CONFIG_FB
 		if (!(dispc_reg_in(DISPC_IRQSTATUS)
-		      & DISPC_IRQSTATUS_FRAMEDONE)) {
-			DEBUGP(KERN_WARNING "DSS Library: timeout waiting for "
-			       "frame-done interrupt\n");
+					& DISPC_IRQSTATUS_FRAMEDONE)) {
+			printk(KERN_WARNING "timeout waiting for "
+					"frame-done interrupt\n");
 		}
-#endif
 #ifndef CONFIG_ARCH_OMAP3410
-		disp_ll_config_tv_clocks(1);
+		omap_ll_config_tv_clocks(1);
 #endif
 	}
 
 	return;
 }
-EXPORT_SYMBOL(omap_disp_disable);
 
+void
+omap_disp_set_gfx_palette(u32 palette_ba)
+{
+	dispc_reg_out(DISPC_GFX_TABLE_BA, palette_ba);
+	dispc_reg_merge(DISPC_CONFIG, DISPC_CONFIG_LOADMODE_PGTABUSETB,
+			DISPC_CONFIG_LOADMODE_PGTABUSETB);
+}
+
+/* Configure Graphics layer parameters */
+void
+omap_disp_config_gfxlayer(u32 size_x, u32 size_y, int color_depth)
+{
+	u32 config = 0;
+	u32 gfx_attributes = 0, gfx_fifo_threshold = 0, gfx_format = 0;
+	u32 gfx_position = 0, gfx_window_skip = 0;
+
+	config = dispc_reg_in(DISPC_CONFIG);
+
+	config |= (DISPC_CONFIG_LOADMODE_PGTABUSETB |
+			DISPC_CONFIG_LOADMODE_FRDATLEFR);
+
+	/* This driver doesn't currently support the video windows, so
+	 * we force the palette/gamma table to be a palette table and
+	 * force both video windows to be disabled.
+	 */
+	config &= ~DISPC_CONFIG_PALETTEGAMMATABLE;
+
+	gfx_attributes = DISPC_GFX_ATTRIBUTES_GFXBURSTSIZE_BURST16X32;
+
+	/* enable the graphics window only if its size is not zero */
+#if 0
+	if (size_x > 0 && size_y > 0)
+		gfx_attributes |= DISPC_GFX_ATTRIBUTES_ENABLE;
+#endif
+
+	gfx_fifo_threshold =
+		(RMODE_GFX_FIFO_HIGH_THRES << DISPC_GFX_FIFO_THRESHOLD_HIGH_SHIFT) |
+		(RMODE_GFX_FIFO_LOW_THRES << DISPC_GFX_FIFO_THRESHOLD_LOW_SHIFT);
+
+	gfx_position = 0;
+	gfx_window_skip = 0;
+
+	switch(color_depth) {
+		case 1:
+			gfx_format = DISPC_GFX_ATTRIBUTES_GFXFORMAT_BITMAP1;
+			break;
+		case 2:
+			gfx_format = DISPC_GFX_ATTRIBUTES_GFXFORMAT_BITMAP2;
+			break;
+		case 4:
+			gfx_format = DISPC_GFX_ATTRIBUTES_GFXFORMAT_BITMAP4;
+			break;
+		case 8:
+			gfx_format = DISPC_GFX_ATTRIBUTES_GFXFORMAT_BITMAP8;
+			break;
+		case 12:
+			gfx_format = DISPC_GFX_ATTRIBUTES_GFXFORMAT_RGB12;
+			break;
+		case 16:
+			gfx_format = DISPC_GFX_ATTRIBUTES_GFXFORMAT_RGB16;
+			break;
+		case 24:
+			gfx_format = DISPC_GFX_ATTRIBUTES_GFXFORMAT_RGB24;
+			break;
+		case 32:
+			gfx_format = DISPC_GFX_ATTRIBUTES_GFXFORMAT_RGBA32;
+			break;
+		default:
+			gfx_format = dispc_reg_in(DISPC_GFX_ATTRIBUTES)
+				& DISPC_GFX_ATTRIBUTES_GFXFORMAT;
+			break;
+	}
+
+	gfx_attributes |= gfx_format;
+
+	dispc_reg_out(DISPC_GFX_FIFO_THRESHOLD, gfx_fifo_threshold);
+	dispc_reg_out(DISPC_GFX_POSITION, gfx_position);
+	dispc_reg_out(DISPC_GFX_WINDOW_SKIP, gfx_window_skip);
+
+	dispc_reg_out(DISPC_CONFIG, config);
+	dispc_reg_out(DISPC_GFX_ATTRIBUTES, gfx_attributes);
+
+	layer[OMAP_GRAPHICS].size_x = size_x;
+	layer[OMAP_GRAPHICS].size_y = size_y;
+}
+
+/* Calculate the number of pixels sent to the display per pixel clock as
+ * (nom/den) pixels per clock.
+ */
+void
+omap_disp_pixels_per_clock(unsigned int *nom, unsigned int *den)
+{
+	u32 dispc_control;
+
+	dispc_control = dispc_reg_in(DISPC_CONTROL);
+
+	if (dispc_control & DISPC_CONTROL_STNTFT) {
+		/* active display (TFT) */
+		if (dispc_control & DISPC_CONTROL_TDMENABLE) {
+			/* TFT with TDM */
+			switch (dispc_control & DISPC_CONTROL_TDMCYCLEFORMAT) {
+				case DISPC_CONTROL_TDMCYCLEFORMAT_1CYCPERPIX:
+					*nom = 1;
+					*den = 1;
+					break;
+				case DISPC_CONTROL_TDMCYCLEFORMAT_2CYCPERPIX:
+					*nom = 1;
+					*den = 2;
+					break;
+				case DISPC_CONTROL_TDMCYCLEFORMAT_3CYCPERPIX:
+					*nom = 1;
+					*den = 3;
+					break;
+				case DISPC_CONTROL_TDMCYCLEFORMAT_3CYCPER2PIX:
+					*nom = 2;
+					*den = 3;
+					break;
+			}
+		}
+		else {
+			/* TFT without TDM */
+			*nom = 1;
+			*den = 1;
+		}
+	}
+	else {
+		/* passive display (STN) */
+		if (dispc_control & DISPC_CONTROL_MONOCOLOR) {
+			/* STN mono */
+			if (dispc_control & DISPC_CONTROL_M8B) {
+				/* 8 pixels per pixclock */
+				*nom = 8;
+				*den = 1;
+			}
+			else {
+				/* 4 pixels per pixclock */
+				*nom = 4;
+				*den = 1;
+			}
+		}
+		else {
+			/* STN color--8 pixels per 3 pixclocks */
+			*nom = 8;
+			*den = 3;
+		}
+	}
+}
+
+/* Configure the signal configuration for LCD panel */
+void
+omap_disp_lcdcfg_polfreq(u32 hsync_high, u32 vsync_high,
+				u32 acb,u32 ipc, u32 onoff)
+{
+	u32 pol_freq = 0;
+	/* set the sync polarity */
+	if (!hsync_high)
+		pol_freq &=  ~DISPC_POL_FREQ_IHS;
+	else
+		pol_freq |=  DISPC_POL_FREQ_IHS;
+	if (!vsync_high)
+		pol_freq &= ~DISPC_POL_FREQ_IVS;
+	else
+		pol_freq |=  DISPC_POL_FREQ_IVS;
+
+	pol_freq |= acb | (ipc << DISPC_POL_FREQ_IPC_SHIFT) <<
+		(onoff << DISPC_POL_FREQ_ONOFF_SHIFT) ;
+	dispc_reg_out(DISPC_POL_FREQ, pol_freq);
+
+#ifdef CONFIG_OMAP34XX_OFFMODE
+	/* set the sync polarity */
+	if (!hsync_high)
+		pol_freq &=  ~DISPC_POL_FREQ_IHS;
+	else
+		pol_freq |=  DISPC_POL_FREQ_IHS;
+
+	if (!vsync_high)
+		pol_freq &= ~DISPC_POL_FREQ_IVS;
+	else
+		pol_freq |=  DISPC_POL_FREQ_IVS;
+
+	pol_freq |= acb | (ipc << DISPC_POL_FREQ_IPC_SHIFT) <<
+		(onoff << DISPC_POL_FREQ_ONOFF_SHIFT) ;
+	dispc_reg_out(DISPC_POL_FREQ, pol_freq);
+#endif /* #ifdef CONFIG_OMAP34XX_OFFMODE */
+
+}
+
+/* Configure LCD parameters */
+void
+omap_disp_config_lcd(u32 clkdiv, u32 hbp, u32 hfp, u32 hsw,
+					u32 vbp, u32 vfp, u32 vsw)
+{
+	u32 control, divisor, timing_h, timing_v;
+	divisor = (1 << DISPC_DIVISOR_LCD_SHIFT)
+		| (clkdiv << DISPC_DIVISOR_PCD_SHIFT);
+
+#ifdef CONFIG_OMAP_DSI
+	return ;
+#endif
+
+	if (hbp > 255) hbp = 255;
+	if (hfp > 255) hfp = 255;
+	if (hsw > 63)  hsw = 63;
+	if (vbp > 255) vbp = 255;
+	if (vfp > 255) vfp = 255;
+	if (vsw > 63)  vsw = 63;
+
+	timing_h = (hbp << DISPC_TIMING_H_HBP_SHIFT) | (hfp << DISPC_TIMING_H_HFP_SHIFT)
+		| (hsw << DISPC_TIMING_H_HSW_SHIFT);
+	timing_v = (vbp << DISPC_TIMING_V_VBP_SHIFT) | (vfp << DISPC_TIMING_V_VFP_SHIFT)
+		| (vsw << DISPC_TIMING_V_VSW_SHIFT);
+
+	dispc_reg_out(DISPC_TIMING_H, timing_h);
+	dispc_reg_out(DISPC_TIMING_V, timing_v);
+	dispc_reg_out(DISPC_DIVISOR, divisor);
+	control = dispc_reg_in(DISPC_CONTROL);
+#if defined(CONFIG_MACH_OMAP_3430LABRADOR) || defined(CONFIG_MACH_OMAP3EVM)
+	control |= DISPC_CONTROL_TFTDATALINES_OALSB18B;
+#else
+	control |= DISPC_CONTROL_TFTDATALINES_OALSB16B;
+#endif
+	control |= DISPC_CONTROL_GPOUT1	| DISPC_CONTROL_GPOUT0
+		| DISPC_CONTROL_STNTFT;
+
+	dispc_reg_out(DISPC_CONTROL, control);
+
+}
+
+/* Set the pixel clock divisor for the LCD */
+void
+omap_disp_set_pcd(u32 pcd)
+{
+#ifdef CONFIG_OMAP_DSI
+	return ;
+#endif
+	dispc_reg_out(DISPC_DIVISOR, (1 << DISPC_DIVISOR_LCD_SHIFT) |
+			(pcd << DISPC_DIVISOR_PCD_SHIFT));
+}
 #ifndef CONFIG_OMAP_USE_DSI_PLL
 /*
  * Set the DSS Functional clock
@@ -1651,106 +2483,256 @@ EXPORT_SYMBOL(omap_disp_disable);
  * For TV the Pixel clock required is 13.5Mhz
  * For LCD the Pixel clock is 6Mhz
  */
-void omap_disp_set_dssfclk(void)
+void
+omap_disp_set_dssfclk(void)
 {
 	/* TODO set the LCD pixel clock rate based on the LCD configuration */
 #ifdef CONFIG_VIDEO_OMAP_TVOUT
-	static int TV_pixel_clk = 14000000;	/* rounded 13.5 to 14 */
+	static int TV_pixel_clk  = 14000000; /* rounded 13.5 to 14*/
 #endif
-	u32 ask_clkrate = 0, sup_clkrate = 0, tgt_clkrate = 0, i;
+	u32 ask_clkrate=0,sup_clkrate=0,tgt_clkrate=0,i;
 
-	/*ask_clkrate = LCD_pixel_clk * 4; */
+	/*ask_clkrate = LCD_pixel_clk * 4;*/
 	ask_clkrate = m_clk_rate;
 
 #ifdef CONFIG_VIDEO_OMAP_TVOUT
-	if (ask_clkrate < (TV_pixel_clk * 4))
+	if(ask_clkrate < (TV_pixel_clk * 4))
 		ask_clkrate = TV_pixel_clk * 4;
 #endif
 
 	tgt_clkrate = ask_clkrate;
 
 	sup_clkrate = clk_round_rate(dss1f_scale, ask_clkrate);
-	if (is_sil_rev_less_than(OMAP3430_REV_ES2_0)) {
-		if (clk_get_rate(dss1f_scale) == 96000000) {
-			/*96M already, dont do anything for ES 1.0 */
+	if(is_sil_rev_less_than(OMAP3430_REV_ES2_0)){
+		if(clk_get_rate(dss1f_scale) == 96000000){
+			/*96M already, dont do anything for ES 1.0*/
 			return;
 		}
-	} else {
-		for (i = 1; i <= 20; i++) {
-			sup_clkrate =
-			    clk_round_rate(dss1f_scale, ask_clkrate);
-			if (sup_clkrate >= tgt_clkrate)
-				break;
+	}else
+	{
+		for(i=1;i<=20;i++){
+			sup_clkrate = clk_round_rate(dss1f_scale, ask_clkrate);
+			if(sup_clkrate >= tgt_clkrate) break;
 			ask_clkrate = ask_clkrate + 1000000;
 		}
-		if (clk_set_rate(dss1f_scale, sup_clkrate) == -EINVAL)
+		if(clk_set_rate(dss1f_scale,sup_clkrate)==-EINVAL)
 			printk(KERN_ERR "Unable to set the DSS"
-			       "functional clock to %d\n", sup_clkrate);
+					"functional clock to %d\n",sup_clkrate);
 	}
 	return;
 }
-EXPORT_SYMBOL(omap_disp_set_dssfclk);
 #else
-void omap_disp_use_dsi_pll(void)
+/*
+ * DSI Proto Engine register I/O routines
+ */
+static __inline__ u32
+dsiproto_reg_in(u32 offset)
 {
-	disp_enable_dss2fck();
+	u32 val;
+	val = omap_readl(DSI_PROTO_ENG_REG_BASE + offset);
+	return  val;
+}
+static __inline__ u32
+dsiproto_reg_out(u32 offset, u32 val)
+{
+	omap_writel(val, DSI_PROTO_ENG_REG_BASE + offset);
+	return val;
+}
+/*
+ * DSI PLL register I/O routines
+ */
+static __inline__ u32
+dsipll_reg_in(u32 offset)
+{
+	u32 val;
+	val = omap_readl(DSI_PLL_CONTROLLER_REG_BASE + offset);
+	return  val;
+}
+static __inline__ u32
+dsipll_reg_out(u32 offset, u32 val)
+{
+	omap_writel(val, DSI_PLL_CONTROLLER_REG_BASE + offset);
+	return val;
+}
+int omap_lock_dsi_pll ( u32 M, u32 N, u32 M3, u32 M4, u32 freqsel)
+{
+
+	u32 count = 1000, val;
+	val =  ((M4<<23)|(M3<<19)|(M<<8)|(N<<1)|(1));
+	dsipll_reg_out(DSI_PLL_CONFIGURATION1, val);
+	val =  ((0<<20)|(0<<19)|(1<<18)|(0<<17)|(1<<16)|(0<<14)|
+                        (1<<13)|(0<<12)|(0<<11)|(0<< 8)|(freqsel<<1));
+
+	dsipll_reg_out(DSI_PLL_CONFIGURATION2, val);
+
+	dsipll_reg_out(DSI_PLL_GO, 1);
+
+	while ((dsipll_reg_in(DSI_PLL_GO) != 0) && (--count))
+		udelay(100);
+
+	if (count == 0) {
+		printk ("GO bit not cleared\n");
+		return 0;
+	}
+
+	count = 1000;
+	while (((dsipll_reg_in(DSI_PLL_STATUS) & 0x2 ) != 0x2) && (--count) )
+		udelay(100);
+
+	if (count == 0)  {
+		printk ("DSI PLL lock request failed = %X\n", dsipll_reg_in(DSI_PLL_STATUS) );
+		return 0;
+	}
+
+	return 1;
+}
+void omap_switch_to_dsipll_clk_source (void)
+{
+	u32 val;
+	/*Switch DISPC FCLK to DSI PLL HS divider */
+	val = dss_reg_in(DSS_CONTROL);
+	val = val | (1<<1) | (1<<0);
+	dss_reg_out(DSS_CONTROL, val);
+}
+int omap_power_dsi_pll (u32 cmd)
+{
+	u32 val, count = 10000;
+	/* send the power command */
+ 	val = dsiproto_reg_in(DSI_CLK_CTRL);
+	val = ((val & ~(3 << 30)) | (cmd << 30));
+        dsiproto_reg_out(DSI_CLK_CTRL,val);
+
+	/* Check whether the power status is changed */
+	do
+	{
+		val = dsiproto_reg_in(DSI_CLK_CTRL);
+		val = ((val & 0x30000000) >> 28);
+	    	udelay(100);
+	}while( (val != cmd) && (--count));
+
+	return count;
+}
+
+void
+omap_disp_enable_dss2fck (void)
+{
+	if(clk_enable(dss2f) != 0) {
+		printk("Unable to enable DSS2 FCLK\n");
+		return;
+	}
+}
+
+void
+omap_disp_disable_dss2fck (void)
+{
+	clk_disable(dss2f);
+}
+
+void
+omap_disp_use_dsi_pll(void)
+{
+	omap_disp_enable_dss2fck ();
 	/*Command to change to ON state for both PLL and HSDIVISER
 	 * (no clock output to the DSI complex I/O)
 	 */
-	if (!disp_power_dsi_pll(2)) {
-		printk(KERN_WARNING "Unable to power DSI PLL\n");
+	if (! omap_power_dsi_pll (2)) {
+		printk ("Unable to power DSI PLL\n");
 		return;
 	}
 #ifndef CONFIG_OMAP_DVI_SUPPORT
-	if (disp_lock_dsi_pll(270, 12, 4, 0, 3)) {	/* Generate 108 MHz */
+	if (omap_lock_dsi_pll(270, 12, 4, 0, 3 ) ) {/* Generate 108 MHz */
 #else
-	if (disp_lock_dsi_pll(297, 12, 3, 0, 3)) {	/* Generate 148.5 MHz */
+	if (omap_lock_dsi_pll(297, 12, 3, 0, 3 ) ) {/* Generate 148.5 MHz */
 #endif
-		omap_disp_disable_layer(OMAP_GRAPHICS);
-		disp_switch_to_dsipll_clk_source();
-		omap_disp_enable_layer(OMAP_GRAPHICS);
+		omap_disp_disable_layer (OMAP_GRAPHICS);
+		omap_switch_to_dsipll_clk_source ();
+		omap_disp_enable_layer (OMAP_GRAPHICS);
 	} else {
-		printk(KERN_ERR "FATAL ERROR: DSI PLL lock failed = %X\n",
-		       dsipll_reg_in(DSI_PLL_STATUS));
+		printk ("FATAL ERROR: DSI PLL lock failed = %X\n",  dsipll_reg_in(DSI_PLL_STATUS));
 	}
 
 }
+
 #endif
+static void
+omap_ll_config_disp_clocks(int sleep_state)
+{
+#ifdef CONFIG_TRACK_RESOURCES
+	struct device *dev = &display_dev;
+#else
+	struct device *dev = NULL;
+#endif
+	static int start = 1;
+	/*int (*clk_onoff)(struct clk *clk) = NULL; */
+	if(start){
+#ifndef CONFIG_OMAP_USE_DSI_PLL
+		omap_disp_set_dssfclk();
+#endif
+		dss1i = clk_get(dev,"dss_ick");
+		dss1f = clk_get(dev, cpu_is_omap34xx()? "dss1_alwon_fck" :
+				"dss1_fck");
+		if(IS_ERR(dss1i) || IS_ERR(dss1f)) {
+			printk("Could not get DSS clocks\n");
+			return;
+		}
+#if defined(CONFIG_OMAP_USE_DSI_PLL) || defined(CONFIG_OMAP_DSI)
+		dss2f = clk_get(dev,"dss2_fck");
+		if(IS_ERR(dss2f)) {
+			printk("Could not get DSS2 FCLK\n");
+			return;
+		}
+#endif
+		start = 0;
+	}
+	if(sleep_state == 1){
+		clk_disable(dss1i);
+		clk_disable(dss1f);
+	}
+	else {
+		if(clk_enable(dss1i) != 0) {
+			printk("Unable to enable DSS ICLK\n");
+			return;
+		}
+		if(clk_enable(dss1f) != 0) {
+			printk("Unable to enable DSS FCLK\n");
+			return;
+		}
+#ifndef CONFIG_OMAP_USE_DSI_PLL
+#ifdef CONFIG_OMAP_DSI
+		if(clk_enable(dss2f) != 0) {
+			printk("Unable to enable DSS FCLK\n");
+			return;
+		}
+#endif
+#endif
+	}
+}
 
 /* This function must be called by any driver that needs to use the display
  * controller before calling any routine that accesses the display controller
  * registers. It increments the count of the number of users of the display
  * controller, and turns the clocks ON only when required.
  */
-void omap_disp_get_all_clks(void)
+void
+omap_disp_get_all_clks(void)
 {
 	u32 idle_dispc;
 #ifdef CONFIG_HW_SUP_TRANS
 	u32 idle_dss;
-#endif				/* #ifdef CONFIG_HW_SUP_TRANS */
-#ifndef CONFIG_ARCH_OMAP3410
-	struct omap_encoder_device *enc_dev;
-#endif
+#endif /* #ifdef CONFIG_HW_SUP_TRANS */
+
 	spin_lock(&dss_lock);
 	if (disp_usage == 0) {
 		/* turn on DSS clock */
-		config_disp_clocks(0);
+		omap_ll_config_disp_clocks(0);
 #ifndef CONFIG_ARCH_OMAP3410
 		omap_disp_set_tvref(TVREF_ON);
-		disp_ll_config_tv_clocks(0);
+		omap_ll_config_tv_clocks(0);
 #endif
 #ifdef CONFIG_OMAP34XX_OFFMODE
-#ifndef CONFIG_ARCH_OMAP3410
 		/* Set the TV standard first */
-		if (channels[1].num_encoders > 0) {
-			enc_dev =
-			    channels[1].enc_devices[channels[1]
-						.current_encoder];
-			if (enc_dev && enc_dev->mode_ops->setmode)
-				enc_dev->mode_ops->
-				    setmode(modes[channels[1].current_mode]
-						.name, enc_dev);
-		}
+#ifndef CONFIG_ARCH_OMAP3410
+		omap_disp_set_tvstandard(omap_current_tvstandard);
 #endif
 		/* restore dss context */
 		omap_disp_restore_ctx(OMAP_DSS_GENERIC);
@@ -1758,13 +2740,13 @@ void omap_disp_get_all_clks(void)
 		omap_disp_restore_ctx(OMAP_VIDEO1);
 		omap_disp_restore_ctx(OMAP_VIDEO2);
 
-#endif				/* #ifdef CONFIG_OMAP34XX_OFFMODE */
+#endif /* #ifdef CONFIG_OMAP34XX_OFFMODE */
 #ifdef CONFIG_HW_SUP_TRANS
 		/* Set smart idle for Display subsystem */
 		idle_dss = dss_reg_in(DSS_SYSCONFIG);
 		idle_dss |= DSS_SYSCONFIG_AUTOIDLE;
 		dss_reg_out(DSS_SYSCONFIG, idle_dss);
-#endif				/* #ifdef CONFIG_HW_SUP_TRANS */
+#endif /* #ifdef CONFIG_HW_SUP_TRANS */
 
 		/* Set smart idle, autoidle for Display controller */
 		idle_dispc = dispc_reg_in(DISPC_SYSCONFIG);
@@ -1773,37 +2755,32 @@ void omap_disp_get_all_clks(void)
 
 #ifdef CONFIG_HW_SUP_TRANS
 		idle_dispc |= (DISPC_SYSCONFIG_MIDLEMODE_SSTANDBY |
-			       DISPC_SYSCONFIG_SIDLEMODE_SIDLE |
-			       DISPC_SYSCONFIG_ENABLE_WKUP);
+				DISPC_SYSCONFIG_SIDLEMODE_SIDLE |
+				DISPC_SYSCONFIG_ENABLE_WKUP);
 		idle_dispc |= DISPC_SYSCONFIG_AUTOIDLE;
 #else
 		idle_dispc |= DISPC_SYSCONFIG_MIDLEMODE_NSTANDBY |
-		    DISPC_SYSCONFIG_SIDLEMODE_NIDLE;
-#endif				/* #ifdef CONFIG_HW_SUP_TRANS */
+			DISPC_SYSCONFIG_SIDLEMODE_NIDLE;
+#endif /* #ifdef CONFIG_HW_SUP_TRANS */
 
 		dispc_reg_out(DISPC_SYSCONFIG, idle_dispc);
 #ifdef CONFIG_OMAP34XX_OFFMODE
 		dispc_reg_out(DISPC_CONTROL, dss_ctx.dispc.control);
-#endif				/* #ifdef CONFIG_OMAP34XX_OFFMODE */
-	} else {
+#endif /* #ifdef CONFIG_OMAP34XX_OFFMODE */
+	}
+	else {
 		/* enable the TV clocks, since we are not if they are */
 #ifndef CONFIG_ARCH_OMAP3410
 		omap_disp_set_tvref(TVREF_ON);
-		disp_ll_config_tv_clocks(0);
-		enc_dev =
-		    channels[1].enc_devices[channels[1].current_encoder];
-		if (enc_dev && enc_dev->mode_ops->setmode) {
-		/* Set the default standard to ntsc_m */
-			enc_dev->mode_ops->
-				setmode(modes[channels[1].current_mode]
-					.name, enc_dev);
+		omap_ll_config_tv_clocks(0);
+		{
+			omap_disp_set_tvstandard(omap_current_tvstandard);
 		}
 #endif
 	}
 	disp_usage++;
 	spin_unlock(&dss_lock);
 }
-EXPORT_SYMBOL(omap_disp_get_all_clks);
 
 /* This function must be called by a driver when it not going to use the
  * display controller anymore. E.g., when a driver suspends, it must call
@@ -1811,16 +2788,16 @@ EXPORT_SYMBOL(omap_disp_get_all_clks);
  * It decrements the count of the number of users of the display
  * controller, and turns the clocks OFF when not required.
  */
-void omap_disp_put_all_clks(void)
+void
+omap_disp_put_all_clks(void)
 {
 #ifndef CONFIG_HW_SUP_TRANS
 	u32 idle_dss;
-#endif				/* #ifndef CONFIG_HW_SUP_TRANS */
+#endif /* #ifndef CONFIG_HW_SUP_TRANS */
 
 	spin_lock(&dss_lock);
 	if (disp_usage == 0) {
-		printk(KERN_ERR
-		       "trying to put DSS when usage count is zero\n");
+		printk(KERN_ERR "trying to put DSS when usage count is zero\n");
 		spin_unlock(&dss_lock);
 		return;
 	}
@@ -1830,106 +2807,77 @@ void omap_disp_put_all_clks(void)
 	if (disp_usage == 0) {
 #ifdef CONFIG_OMAP34XX_OFFMODE
 		/* save dss context */
-		disp_save_ctx(OMAP_DSS_GENERIC);
-		disp_save_ctx(OMAP_DSS_DISPC_GENERIC);
-		disp_save_ctx(OMAP_GRAPHICS);
-		disp_save_ctx(OMAP_VIDEO1);
-		disp_save_ctx(OMAP_VIDEO2);
-#endif				/* #ifdef CONFIG_OMAP34XX_OFFMODE */
+		omap_disp_save_ctx(OMAP_DSS_GENERIC);
+		omap_disp_save_ctx(OMAP_DSS_DISPC_GENERIC);
+		omap_disp_save_ctx(OMAP_GRAPHICS);
+		omap_disp_save_ctx(OMAP_VIDEO1);
+		omap_disp_save_ctx(OMAP_VIDEO2);
+#endif /* #ifdef CONFIG_OMAP34XX_OFFMODE */
 #ifndef CONFIG_HW_SUP_TRANS
 		idle_dss = dispc_reg_in(DISPC_SYSCONFIG);
-		idle_dss &=
-		    ~(DISPC_SYSCONFIG_MIDLEMODE |
-		      DISPC_SYSCONFIG_SIDLEMODE);
-		idle_dss |=
-		    DISPC_SYSCONFIG_MIDLEMODE_SSTANDBY |
-		    DISPC_SYSCONFIG_SIDLEMODE_SIDLE;
+		idle_dss &= ~(DISPC_SYSCONFIG_MIDLEMODE | DISPC_SYSCONFIG_SIDLEMODE);
+		idle_dss |= DISPC_SYSCONFIG_MIDLEMODE_SSTANDBY |
+			DISPC_SYSCONFIG_SIDLEMODE_SIDLE;
 		dispc_reg_out(DISPC_SYSCONFIG, idle_dss);
-#endif				/* #ifdef CONFIG_HW_SUP_TRANS */
+#endif /* #ifdef CONFIG_HW_SUP_TRANS */
 
-		omap_disp_disable(HZ / 2);
+		omap_disp_disable(HZ/5);
 		/* turn off TV clocks */
 #ifndef CONFIG_ARCH_OMAP3410
-		disp_ll_config_tv_clocks(1);
+		omap_ll_config_tv_clocks(1);
 		omap_disp_set_tvref(TVREF_OFF);
 #endif
 		mdelay(4);
 
-		config_disp_clocks(1);
+		omap_ll_config_disp_clocks(1);
 	}
 	spin_unlock(&dss_lock);
 }
-EXPORT_SYMBOL(omap_disp_put_all_clks);
 
 /* This function must be called by any driver that needs to use the display
  * controller before calling any routine that accesses the display controller
  * registers. It increments the count of the number of users of the display
  * controller, and turns the clocks ON only when required.
  */
-void omap_disp_get_dss(void)
+void
+omap_disp_get_dss(void)
 {
 	u32 idle_dispc;
-	u32 i;
 #ifdef CONFIG_HW_SUP_TRANS
 	u32 idle_dss;
-#endif				/* #ifdef CONFIG_HW_SUP_TRANS */
-	struct omap_encoder_device *enc_dev;
-	unsigned int panel_width, panel_height, size = 0;
-	struct omap_dispc_regs *dispc = &dss_ctx.dispc;
-	struct channel_obj *channel = &channels[1];
+#endif /* #ifdef CONFIG_HW_SUP_TRANS */
 
 	spin_lock(&dss_lock);
 	if (disp_usage == 0) {
 		/* turn on DSS clock */
-		config_disp_clocks(0);
+		omap_ll_config_disp_clocks(0);
 #ifndef CONFIG_ARCH_OMAP3410
 
-		omap_disp_set_tvref(TVREF_ON);
-		disp_ll_config_tv_clocks(0);
+		if ((omap_disp_get_output_dev(OMAP_GRAPHICS) == OMAP_OUTPUT_TV) ||
+				(omap_disp_get_output_dev(OMAP_VIDEO1) == OMAP_OUTPUT_TV) ||
+				(omap_disp_get_output_dev(OMAP_VIDEO2) == OMAP_OUTPUT_TV))
+		{
+			omap_disp_set_tvref(TVREF_ON);
+			omap_ll_config_tv_clocks(0);
+#ifdef CONFIG_OMAP34XX_OFFMODE
+			omap_disp_set_tvstandard(omap_current_tvstandard);
+#endif
+		}
 #endif
 #ifdef CONFIG_OMAP34XX_OFFMODE
-
-		/* Set the current mode for all the channels and
-		 * Set the panel size accordingly
-		 */
-		for (i = 0; i < ARRAY_SIZE(channels); i++) {
-			enc_dev =
-				channels[i].enc_devices[channels[i].
-						current_encoder];
-			if (enc_dev && enc_dev->mode_ops->setmode) {
-				enc_dev->mode_ops->
-					setmode(modes[channels[i].
-					current_mode].name, enc_dev);
-				panel_width = modes[channel->
-					current_mode].width;
-				panel_height =
-					modes[channel->current_mode]
-						.height;
-				if (i == i) {
-					panel_height = panel_height>>1;
-					size = ((panel_width - 1) <<
-						DISPC_SIZE_DIG_PPL_SHIFT)
-						& DISPC_SIZE_DIG_PPL;
-					size |= ((panel_height - 1)
-						<< DISPC_SIZE_DIG_LPP_SHIFT)
-						& DISPC_SIZE_DIG_LPP;
-					dispc->size_dig = (size);
-				}
-			}
-		}
 		/* restore dss context */
 		omap_disp_restore_ctx(OMAP_DSS_GENERIC);
 		omap_disp_restore_ctx(OMAP_DSS_DISPC_GENERIC);
 		omap_disp_restore_ctx(OMAP_VIDEO1);
 		omap_disp_restore_ctx(OMAP_VIDEO2);
 
-#endif				/* #ifdef CONFIG_OMAP34XX_OFFMODE */
+#endif /* #ifdef CONFIG_OMAP34XX_OFFMODE */
 #ifdef CONFIG_HW_SUP_TRANS
 		/* Set smart idle for Display subsystem */
 		idle_dss = dss_reg_in(DSS_SYSCONFIG);
 		idle_dss |= DSS_SYSCONFIG_AUTOIDLE;
 		dss_reg_out(DSS_SYSCONFIG, idle_dss);
-#endif				/* #ifdef CONFIG_HW_SUP_TRANS */
+#endif /* #ifdef CONFIG_HW_SUP_TRANS */
 
 		/* Set smart idle, autoidle for Display controller */
 		idle_dispc = dispc_reg_in(DISPC_SYSCONFIG);
@@ -1938,23 +2886,22 @@ void omap_disp_get_dss(void)
 
 #ifdef CONFIG_HW_SUP_TRANS
 		idle_dispc |= (DISPC_SYSCONFIG_MIDLEMODE_SSTANDBY |
-			       DISPC_SYSCONFIG_SIDLEMODE_SIDLE |
-			       DISPC_SYSCONFIG_ENABLE_WKUP);
+				DISPC_SYSCONFIG_SIDLEMODE_SIDLE |
+				DISPC_SYSCONFIG_ENABLE_WKUP);
 		idle_dispc |= DISPC_SYSCONFIG_AUTOIDLE;
 #else
 		idle_dispc |= DISPC_SYSCONFIG_MIDLEMODE_NSTANDBY |
-		    DISPC_SYSCONFIG_SIDLEMODE_NIDLE;
-#endif				/* #ifdef CONFIG_HW_SUP_TRANS */
+			DISPC_SYSCONFIG_SIDLEMODE_NIDLE;
+#endif /* #ifdef CONFIG_HW_SUP_TRANS */
 
 		dispc_reg_out(DISPC_SYSCONFIG, idle_dispc);
 #ifdef CONFIG_OMAP34XX_OFFMODE
 		dispc_reg_out(DISPC_CONTROL, dss_ctx.dispc.control);
-#endif				/* #ifdef CONFIG_OMAP34XX_OFFMODE */
+#endif /* #ifdef CONFIG_OMAP34XX_OFFMODE */
 	}
 	disp_usage++;
 	spin_unlock(&dss_lock);
 }
-EXPORT_SYMBOL(omap_disp_get_dss);
 
 /* This function must be called by a driver when it not going to use the
  * display controller anymore. E.g., when a driver suspends, it must call
@@ -1962,16 +2909,16 @@ EXPORT_SYMBOL(omap_disp_get_dss);
  * It decrements the count of the number of users of the display
  * controller, and turns the clocks OFF when not required.
  */
-void omap_disp_put_dss(void)
+		void
+omap_disp_put_dss(void)
 {
 #ifndef CONFIG_HW_SUP_TRANS
 	u32 idle_dss;
-#endif				/* #ifndef CONFIG_HW_SUP_TRANS */
+#endif /* #ifndef CONFIG_HW_SUP_TRANS */
 
 	spin_lock(&dss_lock);
 	if (disp_usage == 0) {
-		printk(KERN_ERR
-		       "trying to put DSS when usage count is zero\n");
+		printk(KERN_ERR "trying to put DSS when usage count is zero\n");
 		spin_unlock(&dss_lock);
 		return;
 	}
@@ -1981,44 +2928,40 @@ void omap_disp_put_dss(void)
 	if (disp_usage == 0) {
 #ifdef CONFIG_OMAP34XX_OFFMODE
 		/* save dss context */
-		disp_save_ctx(OMAP_DSS_GENERIC);
-		disp_save_ctx(OMAP_DSS_DISPC_GENERIC);
-		disp_save_ctx(OMAP_GRAPHICS);
-		disp_save_ctx(OMAP_VIDEO1);
-		disp_save_ctx(OMAP_VIDEO2);
-#endif				/* #ifdef CONFIG_OMAP34XX_OFFMODE */
+		omap_disp_save_ctx(OMAP_DSS_GENERIC);
+		omap_disp_save_ctx(OMAP_DSS_DISPC_GENERIC);
+		omap_disp_save_ctx(OMAP_GRAPHICS);
+		omap_disp_save_ctx(OMAP_VIDEO1);
+		omap_disp_save_ctx(OMAP_VIDEO2);
+#endif /* #ifdef CONFIG_OMAP34XX_OFFMODE */
 #ifndef CONFIG_HW_SUP_TRANS
 		idle_dss = dispc_reg_in(DISPC_SYSCONFIG);
-		idle_dss &=
-		    ~(DISPC_SYSCONFIG_MIDLEMODE |
-		      DISPC_SYSCONFIG_SIDLEMODE);
-		idle_dss |=
-		    DISPC_SYSCONFIG_MIDLEMODE_SSTANDBY |
-		    DISPC_SYSCONFIG_SIDLEMODE_SIDLE;
+		idle_dss &= ~(DISPC_SYSCONFIG_MIDLEMODE | DISPC_SYSCONFIG_SIDLEMODE);
+		idle_dss |= DISPC_SYSCONFIG_MIDLEMODE_SSTANDBY |
+			DISPC_SYSCONFIG_SIDLEMODE_SIDLE;
 		dispc_reg_out(DISPC_SYSCONFIG, idle_dss);
-#endif				/* #ifdef CONFIG_HW_SUP_TRANS */
+#endif /* #ifdef CONFIG_HW_SUP_TRANS */
 
-		omap_disp_disable(HZ / 2);
+		omap_disp_disable(HZ/5);
 #ifndef CONFIG_ARCH_OMAP3410
 		{
-			disp_ll_config_tv_clocks(1);
+			omap_ll_config_tv_clocks(1);
 			omap_disp_set_tvref(TVREF_OFF);
 		}
 #endif
 		mdelay(4);
-		config_disp_clocks(1);
+		omap_ll_config_disp_clocks(1);
 	}
 	spin_unlock(&dss_lock);
 }
-EXPORT_SYMBOL(omap_disp_put_dss);
 
 /* This function must be called by any driver that wishes to use a particular
  * display pipeline (layer).
  */
-int omap_disp_request_layer(int ltype)
+int
+omap_disp_request_layer(int ltype)
 {
-	int ret;
-	ret = 0;
+	int ret = 0;
 
 	spin_lock(&dss_lock);
 	if (!layer[ltype].in_use) {
@@ -2029,23 +2972,23 @@ int omap_disp_request_layer(int ltype)
 
 	return ret;
 }
-EXPORT_SYMBOL(omap_disp_request_layer);
 
 /* This function must be called by a driver when it is done using a particular
  * display pipeline (layer).
  */
-void omap_disp_release_layer(int ltype)
+void
+omap_disp_release_layer(int ltype)
 {
 	spin_lock(&dss_lock);
 	layer[ltype].in_use = 0;
 	layer[ltype].ctx_valid = 0;
 	spin_unlock(&dss_lock);
 }
-EXPORT_SYMBOL(omap_disp_release_layer);
 
 /* Used to enable LCDENABLE or DIGITALENABLE of the display controller.
  */
-void omap_disp_enable_output_dev(int output_dev)
+void
+omap_disp_enable_output_dev(int output_dev)
 {
 	if (output_dev == OMAP_OUTPUT_LCD) {
 		dispc_reg_merge(DISPC_CONTROL, DISPC_CONTROL_LCDENABLE,
@@ -2058,11 +3001,11 @@ void omap_disp_enable_output_dev(int output_dev)
 	}
 #endif
 }
-EXPORT_SYMBOL(omap_disp_enable_output_dev);
 
 /* Used to disable LCDENABLE or DIGITALENABLE of the display controller.
  */
-void omap_disp_disable_output_dev(int output_dev)
+void
+omap_disp_disable_output_dev(int output_dev)
 {
 	if (output_dev == OMAP_OUTPUT_LCD) {
 		dispc_reg_merge(DISPC_CONTROL, ~DISPC_CONTROL_LCDENABLE,
@@ -2070,19 +3013,195 @@ void omap_disp_disable_output_dev(int output_dev)
 	}
 #ifndef CONFIG_ARCH_OMAP3410
 	else if (output_dev == OMAP_OUTPUT_TV) {
-		dispc_reg_merge(DISPC_CONTROL,
-				~DISPC_CONTROL_DIGITALENABLE,
+		dispc_reg_merge(DISPC_CONTROL, ~DISPC_CONTROL_DIGITALENABLE,
 				DISPC_CONTROL_DIGITALENABLE);
 	}
 #endif
 }
-EXPORT_SYMBOL(omap_disp_disable_output_dev);
 
-int omap_disp_get_output_dev(int ltype)
+int
+omap_disp_get_output_dev(int ltype)
 {
 	return layer[ltype].output_dev;
 }
-EXPORT_SYMBOL(omap_disp_get_output_dev);
+
+int omap_disp_get_gfx_fifo_low_threshold(void)
+{
+	return ((dispc_reg_in(DISPC_GFX_FIFO_THRESHOLD) &
+				DISPC_GFX_FIFO_THRESHOLD_LOW) >>
+			DISPC_GFX_FIFO_THRESHOLD_LOW_SHIFT);
+}
+
+void omap_disp_set_gfx_fifo_low_threshold(int thrs)
+{
+	dispc_reg_merge(DISPC_GFX_FIFO_THRESHOLD,
+			thrs << DISPC_GFX_FIFO_THRESHOLD_LOW_SHIFT,
+			DISPC_GFX_FIFO_THRESHOLD_LOW);
+	omap_disp_reg_sync(OMAP_OUTPUT_LCD);
+}
+
+int omap_disp_get_gfx_fifo_high_threshold(void)
+{
+	return ((dispc_reg_in(DISPC_GFX_FIFO_THRESHOLD) &
+				DISPC_GFX_FIFO_THRESHOLD_HIGH) >>
+			DISPC_GFX_FIFO_THRESHOLD_HIGH_SHIFT);
+}
+
+void omap_disp_set_gfx_fifo_high_threshold(int thrs)
+{
+	dispc_reg_merge(DISPC_GFX_FIFO_THRESHOLD,
+			thrs << DISPC_GFX_FIFO_THRESHOLD_HIGH_SHIFT,
+			DISPC_GFX_FIFO_THRESHOLD_HIGH);
+	omap_disp_reg_sync(OMAP_OUTPUT_LCD);
+}
+
+/* This is used to dynamically switch the output of a particular layer to
+ * either the LCD or TV.
+ */
+void
+omap_disp_set_output_dev(int ltype, int output_dev)
+{
+	struct omap_disp_dma_params *dma_param = 0;
+	int vid_pic_size = 0;
+	int val = (output_dev == OMAP_OUTPUT_LCD) ? 0 : ~0;
+
+	layer[ltype].output_dev = output_dev;
+
+	switch(ltype) {
+	case OMAP_GRAPHICS:
+		if (layer[ltype].in_use) {
+			if (output_dev == OMAP_OUTPUT_LCD) {
+				int gfx_size = 0;
+				dma_param = &layer[OMAP_GRAPHICS].dma[0];
+
+				gfx_size = (((layer[OMAP_GRAPHICS].size_x - 1)
+						<< DISPC_GFX_SIZE_GFXSIZEX_SHIFT)
+					      & DISPC_GFX_SIZE_GFXSIZEX)
+					   | (((layer[OMAP_GRAPHICS].size_y - 1)
+						<< DISPC_GFX_SIZE_GFXSIZEY_SHIFT)
+					      & DISPC_GFX_SIZE_GFXSIZEY);
+				dispc_reg_out(DISPC_GFX_SIZE, gfx_size);
+
+			}
+#ifndef CONFIG_ARCH_OMAP3410
+			else if (output_dev == OMAP_OUTPUT_TV) {
+				int gfx_size = 0;
+				dma_param = &layer[OMAP_GRAPHICS].dma[1];
+				/* dividing the size_y by two,
+				 * because TV operates in interleaved mode
+				 */
+				gfx_size = (((layer[OMAP_GRAPHICS].size_x - 1)
+						<< DISPC_GFX_SIZE_GFXSIZEX_SHIFT)
+					      & DISPC_GFX_SIZE_GFXSIZEX)
+					   | (((layer[OMAP_GRAPHICS].size_y/2 - 1)
+						<< DISPC_GFX_SIZE_GFXSIZEY_SHIFT)
+					      & DISPC_GFX_SIZE_GFXSIZEY);
+
+			/* move graphics display position to cover
+	 		 * TV overscan
+	 		 */
+				dispc_reg_out(DISPC_GFX_SIZE, gfx_size);
+			}
+#endif
+
+			dispc_reg_out(DISPC_GFX_BA0, dma_param->ba0);
+			dispc_reg_out(DISPC_GFX_BA1, dma_param->ba1);
+			dispc_reg_out(DISPC_GFX_ROW_INC, dma_param->row_inc);
+			dispc_reg_out(DISPC_GFX_PIXEL_INC, dma_param->pix_inc);
+		}
+
+		dispc_reg_merge(DISPC_GFX_ATTRIBUTES,
+				DISPC_GFX_ATTRIBUTES_GFXCHANNELOUT & val,
+				DISPC_GFX_ATTRIBUTES_GFXCHANNELOUT);
+
+		if (layer[ltype].in_use) omap_disp_reg_sync(output_dev);
+		break;
+
+	case OMAP_VIDEO1:
+		if (layer[ltype].in_use){
+			tvlcd_status.output_dev = output_dev;
+			tvlcd_status.ltype = ltype;
+			tvlcd_status.status = TVLCD_STOP;
+			if (output_dev == OMAP_OUTPUT_LCD) {
+				dma_param = &layer[OMAP_VIDEO1].dma[0];
+				vid_pic_size =
+					(((layer[OMAP_VIDEO1].size_x -
+					1) << DISPC_VID_PICTURE_SIZE_VIDORGSIZEX_SHIFT)
+					& DISPC_VID_PICTURE_SIZE_VIDORGSIZEX) |
+					(((layer[OMAP_VIDEO1].size_y -
+					1) << DISPC_VID_PICTURE_SIZE_VIDORGSIZEY_SHIFT)
+					& DISPC_VID_PICTURE_SIZE_VIDORGSIZEY);
+				dispc_reg_out(DISPC_VID_PICTURE_SIZE(0), vid_pic_size);
+				}
+#ifndef CONFIG_ARCH_OMAP3410
+			 else if (output_dev == OMAP_OUTPUT_TV) {
+				dma_param = &layer[OMAP_VIDEO1].dma[1];
+				vid_pic_size =
+					(((layer[OMAP_VIDEO1].size_x -
+					1) << DISPC_VID_PICTURE_SIZE_VIDORGSIZEX_SHIFT)
+					& DISPC_VID_PICTURE_SIZE_VIDORGSIZEX) |
+					(((layer[OMAP_VIDEO1].size_y / 2 -
+					1) << DISPC_VID_PICTURE_SIZE_VIDORGSIZEY_SHIFT)
+					& DISPC_VID_PICTURE_SIZE_VIDORGSIZEY);
+				dispc_reg_out(DISPC_VID_PICTURE_SIZE(0), vid_pic_size);
+			}
+#endif
+
+			dispc_reg_out(DISPC_VID_BA0(0), dma_param->ba0);
+			dispc_reg_out(DISPC_VID_BA1(0), dma_param->ba1);
+			dispc_reg_out(DISPC_VID_ROW_INC(0), dma_param->row_inc);
+			dispc_reg_out(DISPC_VID_PIXEL_INC(0), dma_param->pix_inc);
+
+			dispc_reg_merge(DISPC_VID_ATTRIBUTES(0),
+				DISPC_VID_ATTRIBUTES_VIDCHANNELOUT & val,
+				DISPC_VID_ATTRIBUTES_VIDCHANNELOUT);
+			break;
+		}
+
+	case OMAP_VIDEO2:
+		if (layer[ltype].in_use){
+
+			tvlcd_status.output_dev = output_dev;
+			tvlcd_status.ltype = ltype;
+			tvlcd_status.status = TVLCD_STOP;
+			if (output_dev == OMAP_OUTPUT_LCD) {
+				dma_param = &layer[OMAP_VIDEO2].dma[0];
+				vid_pic_size =
+					(((layer[OMAP_VIDEO2].size_x -
+					1) << DISPC_VID_PICTURE_SIZE_VIDORGSIZEX_SHIFT)
+					& DISPC_VID_PICTURE_SIZE_VIDORGSIZEX) |
+					(((layer[OMAP_VIDEO2].size_y -
+					1) << DISPC_VID_PICTURE_SIZE_VIDORGSIZEY_SHIFT)
+					& DISPC_VID_PICTURE_SIZE_VIDORGSIZEY);
+				dispc_reg_out(DISPC_VID_PICTURE_SIZE(1), vid_pic_size);
+			}
+#ifndef CONFIG_ARCH_OMAP3410
+			 else if (output_dev == OMAP_OUTPUT_TV) {
+				dma_param = &layer[OMAP_VIDEO2].dma[1];
+				vid_pic_size =
+					(((layer[OMAP_VIDEO2].size_x -
+					1) << DISPC_VID_PICTURE_SIZE_VIDORGSIZEX_SHIFT)
+					& DISPC_VID_PICTURE_SIZE_VIDORGSIZEX) |
+					(((layer[OMAP_VIDEO2].size_y / 2 -
+					1) << DISPC_VID_PICTURE_SIZE_VIDORGSIZEY_SHIFT)
+					& DISPC_VID_PICTURE_SIZE_VIDORGSIZEY);
+				dispc_reg_out(DISPC_VID_PICTURE_SIZE(1), vid_pic_size);
+			}
+#endif
+
+			dispc_reg_out(DISPC_VID_BA0(1), dma_param->ba0);
+			dispc_reg_out(DISPC_VID_BA1(1), dma_param->ba1);
+			dispc_reg_out(DISPC_VID_ROW_INC(1), dma_param->row_inc);
+			dispc_reg_out(DISPC_VID_PIXEL_INC(1), dma_param->pix_inc);
+
+			dispc_reg_merge(DISPC_VID_ATTRIBUTES(1),
+				DISPC_VID_ATTRIBUTES_VIDCHANNELOUT & val,
+				DISPC_VID_ATTRIBUTES_VIDCHANNELOUT);
+			break;
+		}
+	}
+
+}
 
 /* Used to save the DMA parameter settings for a particular layer to be
  * displayed on a particular output device. These values help the
@@ -2105,54 +3224,156 @@ omap_disp_set_dma_params(int ltype, int output_dev,
 	dma->row_inc = row_inc;
 	dma->pix_inc = pix_inc;
 }
-EXPORT_SYMBOL(omap_disp_set_dma_params);
+
+void
+omap_disp_start_gfxlayer(void)
+{
+	omap_disp_set_output_dev(OMAP_GRAPHICS,
+			layer[OMAP_GRAPHICS].output_dev);
+	omap_disp_enable_layer(OMAP_GRAPHICS);
+}
 
 /* Sets the background color */
-void omap_disp_set_bg_color(int output_dev, int color)
+void
+omap_disp_set_bg_color(int output_dev, int color)
 {
+	if (output_dev == OMAP_OUTPUT_LCD)
+		dispc_reg_out(DISPC_DEFAULT_COLOR0, color);
 #ifndef CONFIG_ARCH_OMAP3410
-	if (output_dev == OMAP_OUTPUT_TV)
+	else if (output_dev == OMAP_OUTPUT_TV)
 		dispc_reg_out(DISPC_DEFAULT_COLOR1, color);
 #endif
 
 	omap_disp_reg_sync(output_dev);
 }
-EXPORT_SYMBOL(omap_disp_set_bg_color);
 
 /* Returns the current background color */
-void omap_disp_get_bg_color(int output_dev, int *color)
+void
+omap_disp_get_bg_color(int output_dev, int *color)
 {
+	if (output_dev == OMAP_OUTPUT_LCD)
+		*color = dispc_reg_in(DISPC_DEFAULT_COLOR0);
 #ifndef CONFIG_ARCH_OMAP3410
-	if (output_dev == OMAP_OUTPUT_TV)
+	else if (output_dev == OMAP_OUTPUT_TV)
 		*color = dispc_reg_in(DISPC_DEFAULT_COLOR1);
 #endif
 }
-EXPORT_SYMBOL(omap_disp_get_bg_color);
 
-#if defined(CONFIG_ARCH_OMAP2430) || defined(CONFIG_ARCH_OMAP3430) \
-	&& !defined(CONFIG_ARCH_OMAP3410)
-/* Turn on/off the TV reference voltage from OMAP */
-void omap_disp_set_tvref(int tvref_state)
+/* Enable/Disable the Dithering block */
+void
+omap_disp_set_dithering(int dither_state)
 {
-	switch (tvref_state) {
-	case TVREF_ON:
-		dss_reg_out(DSS_CONTROL, (dss_reg_in(DSS_CONTROL)
-					  | DSS_CONTROL_TV_REF));
-		break;
-	case TVREF_OFF:
-		dss_reg_out(DSS_CONTROL, (dss_reg_in(DSS_CONTROL) &
-					  ~(DSS_CONTROL_TV_REF)));
-		break;
+	omap_disp_get_dss();
+	switch(dither_state){
+	case DITHERING_ON:
+		dispc_reg_out(DISPC_CONTROL,
+			(dispc_reg_in(DISPC_CONTROL) | DISPC_CONTROL_TFTDITHERENABLE));
+	break;
+	case DITHERING_OFF:
+		dispc_reg_out(DISPC_CONTROL,
+			(dispc_reg_in(DISPC_CONTROL) & ~DISPC_CONTROL_TFTDITHERENABLE));
+	break;
+	}
+	omap_disp_reg_sync(OMAP_OUTPUT_LCD);
+	// omap_disp_reg_sync(OMAP_OUTPUT_TV);
+	omap_disp_put_dss();
+}
+
+/* Get the Dithering state */
+int
+omap_disp_get_dithering(void)
+{
+	omap_disp_get_dss();
+	if(dispc_reg_in(DISPC_CONTROL) & 0x00000080){
+		return(DITHERING_ON);
+	}
+	else{
+		return(DITHERING_OFF);
+	}
+	omap_disp_put_dss();
+}
+
+/* Get the number of data lines connected to LCD panel*/
+int
+omap_disp_get_lcddatalines(void)
+{
+	u32 tft_data_lines=0;
+
+	omap_disp_get_dss();
+	tft_data_lines = dispc_reg_in(DISPC_CONTROL)
+		& (DISPC_CONTROL_TFTDATALINES);
+
+	switch(tft_data_lines){
+		case DISPC_CONTROL_TFTDATALINES_OALSB12B:
+			return(LCD_DATA_LINE_12BIT);
+		case DISPC_CONTROL_TFTDATALINES_OALSB16B:
+			return(LCD_DATA_LINE_16BIT);
+		case DISPC_CONTROL_TFTDATALINES_OALSB18B:
+			return(LCD_DATA_LINE_18BIT);
+		case DISPC_CONTROL_TFTDATALINES_OALSB24B:
+			return(LCD_DATA_LINE_24BIT);
+	}
+	omap_disp_put_dss();
+	return(LCD_DATA_LINE_16BIT);
+}
+
+/* Set number of data lines to be connected to LCD panel*/
+void
+omap_disp_set_lcddatalines(int no_of_lines)
+{
+	omap_disp_get_dss();
+	dispc_reg_out(DISPC_CONTROL,
+		(dispc_reg_in(DISPC_CONTROL) & ~DISPC_CONTROL_TFTDATALINES));
+
+	switch(no_of_lines){
+	case LCD_DATA_LINE_12BIT:
+		dispc_reg_out(DISPC_CONTROL,
+			(dispc_reg_in(DISPC_CONTROL)
+				| DISPC_CONTROL_TFTDATALINES_OALSB12B));
+	break;
+	case LCD_DATA_LINE_16BIT:
+		dispc_reg_out(DISPC_CONTROL,
+			(dispc_reg_in(DISPC_CONTROL)
+				| DISPC_CONTROL_TFTDATALINES_OALSB16B));
+	break;
+	case LCD_DATA_LINE_18BIT:
+		dispc_reg_out(DISPC_CONTROL,
+			(dispc_reg_in(DISPC_CONTROL)
+					| DISPC_CONTROL_TFTDATALINES_OALSB18B));
+	break;
+	case LCD_DATA_LINE_24BIT:
+		dispc_reg_out(DISPC_CONTROL,
+			(dispc_reg_in(DISPC_CONTROL)
+					| DISPC_CONTROL_TFTDATALINES_OALSB24B));
+	break;
+	}
+	omap_disp_reg_sync(OMAP_OUTPUT_LCD);
+	omap_disp_put_dss();
+}
+
+#if defined(CONFIG_ARCH_OMAP2430) || defined(CONFIG_ARCH_OMAP3430) && !defined(CONFIG_ARCH_OMAP3410)
+/* Turn on/off the TV reference voltage from OMAP */
+void
+omap_disp_set_tvref(int tvref_state)
+{
+	switch(tvref_state){
+		case TVREF_ON:
+			dss_reg_out(DSS_CONTROL,(dss_reg_in(DSS_CONTROL)
+						| DSS_CONTROL_TV_REF));
+			break;
+		case TVREF_OFF:
+			dss_reg_out(DSS_CONTROL, (dss_reg_in(DSS_CONTROL) &
+						~(DSS_CONTROL_TV_REF)));
+			break;
 	}
 }
-EXPORT_SYMBOL(omap_disp_set_tvref);
 #endif
 
 /* Sets the SMS settings for rotation using the VRFB.
  */
 int
 omap_disp_set_vrfb(int context, u32 phy_addr,
-		    u32 width, u32 height, u32 bytes_per_pixel)
+			u32 width, u32 height, u32 bytes_per_pixel)
 {
 	int page_width_exp, page_height_exp, pixel_size_exp;
 
@@ -2163,36 +3384,230 @@ omap_disp_set_vrfb(int context, u32 phy_addr,
 	page_height_exp = PAGE_HEIGHT_EXP;
 	pixel_size_exp = bytes_per_pixel >> 1;
 
-	width = ((1 << page_width_exp) *
+	width = ((1<<page_width_exp) *
 		 (pages_per_side(width * bytes_per_pixel, page_width_exp))
-	    ) >> pixel_size_exp;
+		) >> pixel_size_exp;	// in pixels
 
-	height = (1 << page_height_exp) *
-	    (pages_per_side(height, page_height_exp));
+	height = (1<<page_height_exp) *
+		 (pages_per_side(height, page_height_exp));
 
 	SMS_ROT0_PHYSICAL_BA(context) = phy_addr;
 	SMS_ROT0_SIZE(context) = 0;
-	SMS_ROT0_SIZE(context) |= (width << SMS_IMAGEWIDTH_OFFSET)
-	    | (height << SMS_IMAGEHEIGHT_OFFSET);
+	SMS_ROT0_SIZE(context)	|= (width << SMS_IMAGEWIDTH_OFFSET)
+				| (height << SMS_IMAGEHEIGHT_OFFSET);
 	SMS_ROT_CONTROL(context) = 0;
 
 	SMS_ROT_CONTROL(context) |= pixel_size_exp << SMS_PS_OFFSET
-	    | (page_width_exp - pixel_size_exp) << SMS_PW_OFFSET
-	    | page_height_exp << SMS_PH_OFFSET;
+			| (page_width_exp - pixel_size_exp) << SMS_PW_OFFSET
+			| page_height_exp << SMS_PH_OFFSET;
 
 	return 0;
 }
-EXPORT_SYMBOL(omap_disp_set_vrfb);
+
+#ifndef CONFIG_ARCH_OMAP3410
+/* Sets VENC registers for TV operation.
+*/
+static void
+config_venc(struct tv_standard_config *tvstd)
+{
+	venc_reg_out(VENC_LLEN, tvstd->venc_llen);
+	venc_reg_out(VENC_FLENS, tvstd->venc_flens);
+	venc_reg_out(VENC_HFLTR_CTRL, tvstd->venc_hfltr_ctrl);
+	venc_reg_out(VENC_CC_CARR_WSS_CARR, tvstd->venc_cc_carr_wss_carr);
+	venc_reg_out(VENC_C_PHASE, tvstd->venc_c_phase);
+	venc_reg_out(VENC_GAIN_U, tvstd->venc_gain_u);
+	venc_reg_out(VENC_GAIN_V, tvstd->venc_gain_v);
+	venc_reg_out(VENC_GAIN_Y, tvstd->venc_gain_y);
+	venc_reg_out(VENC_BLACK_LEVEL, tvstd->venc_black_level);
+	venc_reg_out(VENC_BLANK_LEVEL, tvstd->venc_blank_level);
+	venc_reg_out(VENC_X_COLOR, tvstd->venc_x_color);
+	venc_reg_out(VENC_M_CONTROL, tvstd->venc_m_control);
+	venc_reg_out(VENC_BSTAMP_WSS_DATA, tvstd->venc_bstamp_wss_data);
+	venc_reg_out(VENC_S_CARR, tvstd->venc_s_carr);
+	venc_reg_out(VENC_LINE21, tvstd->venc_line21);
+	venc_reg_out(VENC_LN_SEL, tvstd->venc_ln_sel);
+	venc_reg_out(VENC_L21_WC_CTL, tvstd->venc_l21_wc_ctl);
+	venc_reg_out(VENC_HTRIGGER_VTRIGGER, tvstd->venc_htrigger_vtrigger);
+	venc_reg_out(VENC_SAVID_EAVID, tvstd->venc_savid_eavid);
+	venc_reg_out(VENC_FLEN_FAL, tvstd->venc_flen_fal);
+	venc_reg_out(VENC_LAL_PHASE_RESET, tvstd->venc_lal_phase_reset);
+	venc_reg_out(VENC_HS_INT_START_STOP_X,
+			tvstd->venc_hs_int_start_stop_x);
+	venc_reg_out(VENC_HS_EXT_START_STOP_X,
+			tvstd->venc_hs_ext_start_stop_x);
+	venc_reg_out(VENC_VS_INT_START_X, tvstd->venc_vs_int_start_x);
+	venc_reg_out(VENC_VS_INT_STOP_X_VS_INT_START_Y,
+			tvstd-> venc_vs_int_stop_x_vs_int_start_y);
+	venc_reg_out(VENC_VS_INT_STOP_Y_VS_EXT_START_X,
+			tvstd->venc_vs_int_stop_y_vs_ext_start_x);
+	venc_reg_out(VENC_VS_EXT_STOP_X_VS_EXT_START_Y,
+			tvstd->venc_vs_ext_stop_x_vs_ext_start_y);
+	venc_reg_out(VENC_VS_EXT_STOP_Y, tvstd->venc_vs_ext_stop_y);
+	venc_reg_out(VENC_AVID_START_STOP_X, tvstd->venc_avid_start_stop_x);
+	venc_reg_out(VENC_AVID_START_STOP_Y, tvstd->venc_avid_start_stop_y);
+	venc_reg_out(VENC_FID_INT_START_X_FID_INT_START_Y,
+			tvstd-> venc_fid_int_start_x_fid_int_start_y);
+	venc_reg_out(VENC_FID_INT_OFFSET_Y_FID_EXT_START_X,
+			tvstd->venc_fid_int_offset_y_fid_ext_start_x);
+	venc_reg_out(VENC_FID_EXT_START_Y_FID_EXT_OFFSET_Y,
+			tvstd->venc_fid_ext_start_y_fid_ext_offset_y);
+	venc_reg_out(VENC_TVDETGP_INT_START_STOP_X,
+			tvstd->venc_tvdetgp_int_start_stop_x);
+	venc_reg_out(VENC_TVDETGP_INT_START_STOP_Y,
+			tvstd->venc_tvdetgp_int_start_stop_y);
+	venc_reg_out(VENC_GEN_CTRL, tvstd->venc_gen_ctrl);
+	venc_reg_out(VENC_DAC_TST, tvstd->venc_dac_tst);
+	venc_reg_out(VENC_DAC, venc_reg_in(VENC_DAC));
+	venc_reg_out(VENC_F_CONTROL, F_CONTROL_GEN);
+	venc_reg_out(VENC_SYNC_CONTROL,SYNC_CONTROL_GEN);
+}
+
+int
+omap_disp_get_tvstandard(void)
+{
+	return(omap_current_tvstandard);
+}
+
+#else
+int
+omap_disp_get_tvstandard(void){ return 0; }
+#endif
+
+void
+omap_disp_get_tvlcd(struct tvlcd_status_t *status)
+{
+	status->status = tvlcd_status.status;
+	status->output_dev = tvlcd_status.output_dev;
+	status->ltype = tvlcd_status.ltype;
+}
+
+int omap_disp_get_vidn_status(int ltype)
+{
+	int v, v_attr;
+
+	if (ltype == OMAP_VIDEO1) v = 0;
+	else if (ltype == OMAP_VIDEO2) v = 1;
+	else return 0;
+
+	v_attr = dispc_reg_in(DISPC_VID_ATTRIBUTES(v));
+	return (v_attr & DISPC_VID_ATTRIBUTES_ENABLE);
+
+}
+void
+omap_disp_set_tvlcd(int status)
+{
+	tvlcd_status.status = status;
+}
+
+#ifndef CONFIG_ARCH_OMAP3410
+void omap_set_tvstandard(char *buffer)
+{
+	int tv_std=0;
+
+	if (!buffer)
+		return;
+
+	if (strncmp(buffer, "pal_bdghi", 9) == 0)
+		tv_std = PAL_BDGHI;
+	else if (strncmp(buffer, "pal_nc", 6) == 0)
+		tv_std = PAL_NC;
+	else if (strncmp(buffer, "pal_n", 5) == 0)
+		tv_std = PAL_N;
+	else if (strncmp(buffer, "pal_m", 5) == 0)
+		tv_std = PAL_M;
+	else if (strncmp(buffer, "pal_60", 6) == 0)
+		tv_std = PAL_60;
+	else if (strncmp(buffer, "ntsc_m", 6) == 0)
+		tv_std = NTSC_M;
+	else if (strncmp(buffer, "ntsc_j", 6) == 0)
+		tv_std = NTSC_J;
+	else if (strncmp(buffer, "ntsc_443", 8) == 0)
+		tv_std = NTSC_443;
+
+        if ((omap_disp_get_output_dev(OMAP_GRAPHICS) == OMAP_OUTPUT_TV) ||
+            (omap_disp_get_output_dev(OMAP_VIDEO1) == OMAP_OUTPUT_TV) ||
+            (omap_disp_get_output_dev(OMAP_VIDEO2) == OMAP_OUTPUT_TV)){
+ 		omap_disp_set_tvstandard(tv_std);
+	}
+}
+
+void
+omap_disp_set_tvstandard(int tvstandard)
+{
+	int a_ctx;
+	struct omap_dispc_regs *dispc = &dss_ctx.dispc;
+	omap_current_tvstandard = tvstandard;
+	switch (tvstandard) {
+		case PAL_BDGHI:
+			config_venc(&pal_bdghi_cfg);
+			omap_disp_set_panel_size(OMAP_OUTPUT_TV, 720, 574);
+			break;
+		case PAL_NC:
+			config_venc(&pal_nc_cfg);
+			break;
+		case PAL_N:
+			config_venc(&pal_n_cfg);
+			break;
+		case PAL_M:
+			config_venc(&pal_m_cfg);
+			break;
+		case PAL_60:
+			config_venc(&pal_60_cfg);
+			omap_disp_set_panel_size(OMAP_OUTPUT_TV, 720, 574);
+			break;
+		case NTSC_M:
+			config_venc(&ntsc_m_cfg);
+			omap_disp_set_panel_size(OMAP_OUTPUT_TV, 720, 482);
+			break;
+		case NTSC_J:
+			config_venc(&ntsc_j_cfg);
+			break;
+		case NTSC_443:
+			config_venc(&ntsc_443_cfg);
+			omap_disp_set_panel_size(OMAP_OUTPUT_TV, 720, 480);
+			break;
+	}
+	dispc->size_dig = dispc_reg_in(DISPC_SIZE_DIG);
+	{
+		a_ctx = (in_atomic() || irqs_disabled()
+				|| in_interrupt());
+		if (!a_ctx) {
+			msleep(50);
+		} else {
+			udelay(100);
+		}
+	}
+	omap_disp_enable_output_dev(OMAP_OUTPUT_TV);
+}
+#else
+void omap_set_tvstandard(char *name)
+{
+	return;
+}
+void omap_disp_set_tvstandard(int tvstandard)
+{
+	return ;
+}
+#endif
 
 /* Sets the transparency color key type and value.
 */
-void omap_disp_set_colorkey(int output_dev, int key_type, int key_val)
+void
+omap_disp_set_colorkey(int output_dev, int key_type, int key_val)
 {
-#ifndef CONFIG_ARCH_OMAP3410
-	if (output_dev == OMAP_OUTPUT_TV) {
+	if (output_dev == OMAP_OUTPUT_LCD) {
 		if (key_type == OMAP_VIDEO_SOURCE)
-			dispc_reg_merge(DISPC_CONFIG,
-					DISPC_CONFIG_TCKDIGSELECTION,
+			dispc_reg_merge(DISPC_CONFIG, DISPC_CONFIG_TCKLCDSELECTION,
+					DISPC_CONFIG_TCKLCDSELECTION);
+		else
+			dispc_reg_merge(DISPC_CONFIG, 0,
+					DISPC_CONFIG_TCKLCDSELECTION);
+		dispc_reg_out(DISPC_TRANS_COLOR0, key_val);
+	}
+#ifndef CONFIG_ARCH_OMAP3410
+	else if (output_dev == OMAP_OUTPUT_TV) {
+		if (key_type == OMAP_VIDEO_SOURCE)
+			dispc_reg_merge(DISPC_CONFIG, DISPC_CONFIG_TCKDIGSELECTION,
 					DISPC_CONFIG_TCKDIGSELECTION);
 		else
 			dispc_reg_merge(DISPC_CONFIG, 0,
@@ -2203,17 +3618,22 @@ void omap_disp_set_colorkey(int output_dev, int key_type, int key_val)
 
 	omap_disp_reg_sync(output_dev);
 }
-EXPORT_SYMBOL(omap_disp_set_colorkey);
 
 /* Returns the current transparency color key type and value.
 */
-void omap_disp_get_colorkey(int output_dev, int *key_type, int *key_val)
+void
+omap_disp_get_colorkey(int output_dev, int *key_type, int *key_val)
 {
-
+	if (output_dev == OMAP_OUTPUT_LCD) {
+		if (dispc_reg_in(DISPC_CONFIG) & DISPC_CONFIG_TCKLCDSELECTION)
+			*key_type = OMAP_VIDEO_SOURCE;
+		else
+			*key_type = OMAP_GFX_DESTINATION;
+		*key_val = dispc_reg_in(DISPC_TRANS_COLOR0);
+	}
 #ifndef CONFIG_ARCH_OMAP3410
-	if (output_dev == OMAP_OUTPUT_TV) {
-		if (dispc_reg_in(DISPC_CONFIG) &
-		    DISPC_CONFIG_TCKDIGSELECTION)
+	else if (output_dev == OMAP_OUTPUT_TV) {
+		if (dispc_reg_in(DISPC_CONFIG) & DISPC_CONFIG_TCKDIGSELECTION)
 			*key_type = OMAP_VIDEO_SOURCE;
 		else
 			*key_type = OMAP_GFX_DESTINATION;
@@ -2221,93 +3641,120 @@ void omap_disp_get_colorkey(int output_dev, int *key_type, int *key_val)
 	}
 #endif
 }
-EXPORT_SYMBOL(omap_disp_get_colorkey);
 
-void omap_disp_enable_colorkey(int output_dev)
+void
+omap_disp_enable_colorkey(int output_dev)
 {
-
+	if (output_dev == OMAP_OUTPUT_LCD)
+		dispc_reg_merge(DISPC_CONFIG, DISPC_CONFIG_TCKLCDENABLE,
+				DISPC_CONFIG_TCKLCDENABLE);
 #ifndef CONFIG_ARCH_OMAP3410
-	if (output_dev == OMAP_OUTPUT_TV)
+	else if (output_dev == OMAP_OUTPUT_TV)
 		dispc_reg_merge(DISPC_CONFIG, DISPC_CONFIG_TCKDIGENABLE,
 				DISPC_CONFIG_TCKDIGENABLE);
 #endif
 
 	omap_disp_reg_sync(output_dev);
 }
-EXPORT_SYMBOL(omap_disp_enable_colorkey);
 
-void omap_disp_disable_colorkey(int output_dev)
+void
+omap_disp_disable_colorkey(int output_dev)
 {
+	if (output_dev == OMAP_OUTPUT_LCD)
+		dispc_reg_merge(DISPC_CONFIG, ~DISPC_CONFIG_TCKLCDENABLE,
+				DISPC_CONFIG_TCKLCDENABLE);
 #ifndef CONFIG_ARCH_OMAP3410
-	if (output_dev == OMAP_OUTPUT_TV)
+	else if (output_dev == OMAP_OUTPUT_TV)
 		dispc_reg_merge(DISPC_CONFIG, ~DISPC_CONFIG_TCKDIGENABLE,
 				DISPC_CONFIG_TCKDIGENABLE);
 #endif
 
 	omap_disp_reg_sync(output_dev);
 }
-EXPORT_SYMBOL(omap_disp_disable_colorkey);
-
 #ifdef CONFIG_ARCH_OMAP34XX
-void omap_disp_set_alphablend(int output_dev, int value)
+void
+omap_disp_set_alphablend(int output_dev,int value)
 {
-
-#ifndef CONFIG_ARCH_OMAP3410
-	if (output_dev == OMAP_OUTPUT_TV) {
+	if (output_dev == OMAP_OUTPUT_LCD) {
 		if (value)
-			dispc_reg_merge(DISPC_CONFIG,
-					DISPC_CONFIG_TVALPHAENABLE,
+			dispc_reg_merge(DISPC_CONFIG, DISPC_CONFIG_LCDALPHAENABLE,
+					DISPC_CONFIG_LCDALPHAENABLE);
+		else
+			dispc_reg_merge(DISPC_CONFIG, ~DISPC_CONFIG_LCDALPHAENABLE,
+					DISPC_CONFIG_LCDALPHAENABLE);
+	}
+#ifndef CONFIG_ARCH_OMAP3410
+	else if (output_dev == OMAP_OUTPUT_TV) {
+		if (value)
+			dispc_reg_merge(DISPC_CONFIG, DISPC_CONFIG_TVALPHAENABLE,
 					DISPC_CONFIG_TVALPHAENABLE);
 		else
-			dispc_reg_merge(DISPC_CONFIG,
-					~DISPC_CONFIG_TVALPHAENABLE,
+			dispc_reg_merge(DISPC_CONFIG, ~DISPC_CONFIG_TVALPHAENABLE,
 					DISPC_CONFIG_TVALPHAENABLE);
 	}
 #endif
 	omap_disp_reg_sync(output_dev);
 }
-EXPORT_SYMBOL(omap_disp_set_alphablend);
 
-void omap_disp_set_global_alphablend_value(int ltype, int value)
+void
+omap_disp_set_global_alphablend_value(int ltype,int value)
 {
-	u32  alpha_value;
-	alpha_value = 0;
+	unsigned int alpha_value;
 
-	if (ltype == OMAP_VIDEO2) {
+	if (ltype == OMAP_GRAPHICS) {
 		alpha_value = dispc_reg_in(DISPC_GLOBAL_ALPHA);
-		alpha_value &= (~DISPC_GLOBAL_ALPHA_VID2_GALPHA);
-		alpha_value |=
-		    (value << DISPC_GLOBAL_ALPHA_VID2_GALPHA_SHIFT);
-		dispc_reg_out(DISPC_GLOBAL_ALPHA, alpha_value);
+		alpha_value &= (~DISPC_GLOBAL_ALPHA_GFX_GALPHA);
+		alpha_value |= (value << DISPC_GLOBAL_ALPHA_GFX_GALPHA_SHIFT);
+		dispc_reg_out(DISPC_GLOBAL_ALPHA,alpha_value);
 
 	}
+	else if (ltype == OMAP_VIDEO2) {
+		alpha_value = dispc_reg_in(DISPC_GLOBAL_ALPHA);
+		alpha_value &= (~DISPC_GLOBAL_ALPHA_VID2_GALPHA);
+		alpha_value |= (value << DISPC_GLOBAL_ALPHA_VID2_GALPHA_SHIFT);
+		dispc_reg_out(DISPC_GLOBAL_ALPHA,alpha_value);
+
+	}
+	if(layer[ltype].output_dev == OMAP_OUTPUT_LCD)
+		omap_disp_reg_sync(OMAP_OUTPUT_LCD);
 #ifndef CONFIG_ARCH_OMAP3410
-	omap_disp_reg_sync(OMAP_OUTPUT_TV);
+	else
+		omap_disp_reg_sync(OMAP_OUTPUT_TV);
 #endif
 }
-EXPORT_SYMBOL(omap_disp_set_global_alphablend_value);
 
-unsigned char omap_disp_get_global_alphablend_value(int ltype)
+unsigned char
+omap_disp_get_global_alphablend_value(int ltype)
 {
-	u32  alpha_value;
-	alpha_value = 0;
+	unsigned int alpha_value = 0;
 
-	if (ltype == OMAP_VIDEO2) {
+	if (ltype == OMAP_GRAPHICS) {
+		alpha_value = dispc_reg_in(DISPC_GLOBAL_ALPHA);
+		alpha_value &= (DISPC_GLOBAL_ALPHA_GFX_GALPHA);
+		alpha_value = alpha_value >>
+			DISPC_GLOBAL_ALPHA_GFX_GALPHA_SHIFT;
+	} else if (ltype == OMAP_VIDEO2) {
 		alpha_value = dispc_reg_in(DISPC_GLOBAL_ALPHA);
 		alpha_value &= (DISPC_GLOBAL_ALPHA_VID2_GALPHA);
 		alpha_value = alpha_value >>
-		    DISPC_GLOBAL_ALPHA_VID2_GALPHA_SHIFT;
+			DISPC_GLOBAL_ALPHA_VID2_GALPHA_SHIFT;
 	}
 	return (unsigned char) alpha_value;
 }
-EXPORT_SYMBOL(omap_disp_get_global_alphablend_value);
 
-int omap_disp_get_alphablend(int output_dev)
+int
+omap_disp_get_alphablend(int output_dev)
 {
 
+	if (output_dev == OMAP_OUTPUT_LCD) {
+		if(dispc_reg_in(DISPC_CONFIG) & 0x00040000)
+			return 1;
+		else
+			return 0;
+	}
 #ifndef CONFIG_ARCH_OMAP3410
-	if (output_dev == OMAP_OUTPUT_TV) {
-		if (dispc_reg_in(DISPC_CONFIG) & 0x00080000)
+	else if (output_dev == OMAP_OUTPUT_TV) {
+		if(dispc_reg_in(DISPC_CONFIG) & 0x00080000)
 			return 1;
 		else
 			return 0;
@@ -2315,24 +3762,83 @@ int omap_disp_get_alphablend(int output_dev)
 #endif
 	return 0;
 }
-EXPORT_SYMBOL(omap_disp_get_alphablend);
 #endif
 
-int omap_disp_reg_sync_bit(int output_dev)
+int
+omap_disp_reg_sync_bit(int output_dev)
 {
-	u32 control = dispc_reg_in(DISPC_CONTROL);
+	u32 control = dispc_reg_in (DISPC_CONTROL);
 
-	if (output_dev == OMAP_OUTPUT_LCD)
+	if(output_dev == OMAP_OUTPUT_LCD){
 		return (control & DISPC_CONTROL_GOLCD) >> 5;
-	else
+	} else {
 		return (control & DISPC_CONTROL_GODIGITAL) >> 6;
+	}
 }
-EXPORT_SYMBOL(omap_disp_reg_sync_bit);
+
+/*
+ * This function is required for 2420 errata 1.97
+ */
+
+#ifndef CONFIG_ARCH_OMAP3410
+static void
+omap_reset_venc(void)
+{
+	u32 i=0;
+	struct clk *dss_tv_fck;
+#ifdef CONFIG_MACH_OMAP_2430SDP
+	dss_tv_fck = clk_get(NULL,"dss_54m_fck");
+#endif
+#if defined(CONFIG_MACH_OMAP_3430SDP) ||  defined(CONFIG_MACH_OMAP3EVM) || defined(CONFIG_MACH_OMAP_3430LABRADOR)
+#ifdef CONFIG_TRACK_RESOURCES
+	dss_tv_fck = clk_get(&display_dev,"dss_tv_fck");
+#else
+	dss_tv_fck = clk_get(NULL,"dss_tv_fck");
+#endif
+#endif
+
+	if(IS_ERR(dss_tv_fck)){
+		printk("\n UNABLE to get dss TV fclk \n");
+		return;
+	}
+
+	/* Enable VENC clock  */
+	if(clk_enable(dss_tv_fck) != 0) {
+		printk("\n UNABLE to enable dss TV fclk \n");
+		return;
+	}
+
+	/*
+	 * Write 1 to the 8th bit of the F_Control register to reset the VENC
+	 */
+	venc_reg_merge(VENC_F_CONTROL, VENC_FCONTROL_RESET, VENC_FCONTROL_RESET);
+
+	/* wait for reset to complete */
+	while ((venc_reg_in(VENC_F_CONTROL)  & VENC_FCONTROL_RESET) == 0x00000100)
+	{
+		udelay(10);
+		if(i++ >10) break;
+	}
+
+	if (venc_reg_in(VENC_F_CONTROL) & VENC_FCONTROL_RESET)
+	{
+		printk(KERN_WARNING
+				"omap_disp: timeout waiting for venc reset\n");
+
+		/* remove the reset */
+		venc_reg_merge(VENC_F_CONTROL,(0<<8),VENC_FCONTROL_RESET);
+	}
+
+	/* disable the VENC clock */
+	clk_disable(dss_tv_fck);
+}
+#endif
 
 /*
  * Enables an IRQ in DSPC_IRQENABLE.
  */
-int omap_disp_irqenable(omap_disp_isr_t isr, unsigned int mask)
+int
+omap_disp_irqenable(omap_disp_isr_t isr,unsigned int mask)
 {
 	int i;
 	unsigned long flags;
@@ -2344,9 +3850,7 @@ int omap_disp_irqenable(omap_disp_isr_t isr, unsigned int mask)
 	for (i = 0; i < MAX_ISR_NR; i++) {
 		if (registered_isr[i].isr == isr) {
 			registered_isr[i].mask |= mask;
-			dispc_reg_out(DISPC_IRQENABLE,
-				      dispc_reg_in(DISPC_IRQENABLE) |
-				      mask);
+			dispc_reg_out(DISPC_IRQENABLE,dispc_reg_in(DISPC_IRQENABLE) | mask);
 			spin_unlock_irqrestore(&dss_lock, flags);
 			return 0;
 		}
@@ -2354,29 +3858,27 @@ int omap_disp_irqenable(omap_disp_isr_t isr, unsigned int mask)
 	spin_unlock_irqrestore(&dss_lock, flags);
 	return -EBUSY;
 }
-EXPORT_SYMBOL(omap_disp_irqenable);
 
 /*
  * Disables an IRQ in DISPC_IRQENABLE,
  * The IRQ will be active if any other ISR is still using the same.
  * mask : should contain '0' for irq to be disable and rest should be '1'.
  */
-int omap_disp_irqdisable(omap_disp_isr_t isr, unsigned int mask)
+int
+omap_disp_irqdisable(omap_disp_isr_t isr,unsigned int mask)
 {
 	int i;
 	unsigned long flags;
-	unsigned int new_mask;
-	new_mask = 0;
+	unsigned int new_mask = 0;
 
 	if (omap_disp_irq == 0)
 		return -EINVAL;
 
 	spin_lock_irqsave(&dss_lock, flags);
 	for (i = 0; i < MAX_ISR_NR; i++)
-		if (registered_isr[i].isr == isr)
-			break;
+		if (registered_isr[i].isr == isr) break;
 
-	if (i == MAX_ISR_NR) {
+	if(i == MAX_ISR_NR){
 		spin_unlock_irqrestore(&dss_lock, flags);
 		return -EINVAL;
 	}
@@ -2384,14 +3886,14 @@ int omap_disp_irqdisable(omap_disp_isr_t isr, unsigned int mask)
 	registered_isr[i].mask &= mask;
 
 	/* disable an IRQ if every one wishes to do so */
-	for (i = 0; i < MAX_ISR_NR; i++)
+	for (i = 0; i < MAX_ISR_NR; i++){
 		new_mask |= registered_isr[i].mask;
+	}
 
 	dispc_reg_out(DISPC_IRQENABLE, new_mask);
 	spin_unlock_irqrestore(&dss_lock, flags);
 	return -EBUSY;
 }
-EXPORT_SYMBOL(omap_disp_irqdisable);
 
 /* Display controller interrupts are handled first by this display library.
  * Drivers that need to use certain interrupts should register their ISRs and
@@ -2406,9 +3908,7 @@ omap_disp_register_isr(omap_disp_isr_t isr, void *arg, unsigned int mask)
 	if (omap_disp_irq == 0 || isr == 0 || arg == 0)
 		return -EINVAL;
 
-	/* Clear all the interrupt, so that you dont get an immediate
-	 * interrupt
-	 */
+	/* Clear all the interrupt, so that you dont get an immediate interrupt*/
 	dispc_reg_out(DISPC_IRQSTATUS, 0xFFFFFFFF);
 	spin_lock_irqsave(&dss_lock, flags);
 	for (i = 0; i < MAX_ISR_NR; i++) {
@@ -2419,9 +3919,7 @@ omap_disp_register_isr(omap_disp_isr_t isr, void *arg, unsigned int mask)
 
 			/* Clear previous interrupts if any */
 			dispc_reg_out(DISPC_IRQSTATUS, mask);
-			dispc_reg_out(DISPC_IRQENABLE,
-				      dispc_reg_in(DISPC_IRQENABLE) |
-				      mask);
+			dispc_reg_out(DISPC_IRQENABLE,dispc_reg_in(DISPC_IRQENABLE) | mask);
 			spin_unlock_irqrestore(&dss_lock, flags);
 			return 0;
 		}
@@ -2429,15 +3927,14 @@ omap_disp_register_isr(omap_disp_isr_t isr, void *arg, unsigned int mask)
 	spin_unlock_irqrestore(&dss_lock, flags);
 	return -EBUSY;
 }
-EXPORT_SYMBOL(omap_disp_register_isr);
 
-int omap_disp_unregister_isr(omap_disp_isr_t isr)
+int
+omap_disp_unregister_isr(omap_disp_isr_t isr)
 {
-	int i, j;
+	int i,j;
 	unsigned long flags;
-	unsigned int new_mask;
+	unsigned int new_mask =0;
 
-	new_mask = 0;
 	if (omap_disp_irq == 0)
 		return -EINVAL;
 
@@ -2448,11 +3945,10 @@ int omap_disp_unregister_isr(omap_disp_isr_t isr)
 			registered_isr[i].arg = NULL;
 			registered_isr[i].mask = 0;
 
-			/* The interrupt may no longer be valid, re-set
-			 * the IRQENABLE */
-			for (j = 0; j < MAX_ISR_NR; j++)
+			/* The interrupt may no longer be valid, re-set the IRQENABLE */
+			for (j = 0; j < MAX_ISR_NR; j++){
 				new_mask |= registered_isr[j].mask;
-
+			}
 			dispc_reg_out(DISPC_IRQENABLE, new_mask);
 			spin_unlock_irqrestore(&dss_lock, flags);
 			return 0;
@@ -2461,44 +3957,70 @@ int omap_disp_unregister_isr(omap_disp_isr_t isr)
 	spin_unlock_irqrestore(&dss_lock, flags);
 	return -EINVAL;
 }
-EXPORT_SYMBOL(omap_disp_unregister_isr);
 
-int __init omap_disp_init(void)
+/* DSS Interrupt master service routine. */
+static irqreturn_t
+omap_disp_master_isr(int irq, void *arg, struct pt_regs *regs)
 {
-	int rev, i;
+	unsigned long dispc_irqstatus = dispc_reg_in(DISPC_IRQSTATUS);
+	int i;
+
+	for (i = 0; i < MAX_ISR_NR; i++) {
+		if (registered_isr[i].isr == NULL)
+			continue;
+		if (registered_isr[i].mask & dispc_irqstatus)
+			registered_isr[i].isr(registered_isr[i].arg, regs, dispc_irqstatus);
+	}
+
+	/* ack the interrupt */
+	dispc_reg_out(DISPC_IRQSTATUS, dispc_irqstatus);
+
+	return IRQ_HANDLED;
+}
+
+int __init
+omap_disp_init(void)
+{
+	int rev,i;
 	u32 dss_control;
 
 	spin_lock_init(&dss_lock);
 
 	/* Required for scale call */
 #ifdef CONFIG_TRACK_RESOURCES
-	dss1f_scale =
-	    clk_get(&display_dev,
-		    cpu_is_omap34xx()? "dss1_alwon_fck" : "dss1_fck");
+	dss1f_scale = clk_get(&display_dev, cpu_is_omap34xx()? "dss1_alwon_fck"
+			: "dss1_fck");
 #else
-	dss1f_scale =
-	    clk_get(NULL,
-		    cpu_is_omap34xx()? "dss1_alwon_fck" : "dss1_fck");
+	dss1f_scale = clk_get(NULL, cpu_is_omap34xx()? "dss1_alwon_fck" :
+				"dss1_fck");
 #endif
-	if (IS_ERR(dss1f_scale)) {
-		printk(KERN_WARNING "Could not get DSS1 FCLK\n");
+	if(IS_ERR(dss1f_scale)) {
+		printk("Could not get DSS1 FCLK\n");
 		return PTR_ERR(dss1f_scale);
 	}
 
 	omap_disp_get_all_clks();
 
 	/* disable the display controller */
-	omap_disp_disable(HZ / 5);
+	omap_disp_disable(HZ/5);
 
 	rev = dss_reg_in(DSS_REVISION);
 	printk(KERN_INFO "OMAP Display hardware version %d.%d\n",
-	       (rev & DISPC_REVISION_MAJOR) >> DISPC_REVISION_MAJOR_SHIFT,
-	       (rev & DISPC_REVISION_MINOR) >> DISPC_REVISION_MINOR_SHIFT);
+		(rev & DISPC_REVISION_MAJOR) >> DISPC_REVISION_MAJOR_SHIFT,
+		(rev & DISPC_REVISION_MINOR) >> DISPC_REVISION_MINOR_SHIFT);
 
+	/* Disable RFBI mode, which is not currently supported. */
+	dispc_reg_merge(DISPC_CONTROL, 0, DISPC_CONTROL_RFBIMODE);
+
+	/* For 2420 VENC errata 1.97 */
+	/* For 2430 VENC errata 1.20 */
+#ifndef CONFIG_ARCH_OMAP3410
+	omap_reset_venc();
+#endif
 	/* enable DAC_DEMEN and VENC_4X_CLOCK in DSS for TV operation */
 	dss_control = dss_reg_in(DSS_CONTROL);
 
-	/* Should be replaced by FPGA register read  ADD A 2420 ifdef here */
+	/* Should be replaced by FPGA register read  ADD A 2420 ifdef here*/
 
 #ifdef CONFIG_ARCH_OMAP2420
 	dss_control |= (DSS_CONTROL_DAC_DEMEN |
@@ -2517,17 +4039,14 @@ int __init omap_disp_init(void)
 #endif
 #endif
 
-#if defined(CONFIG_MACH_OMAP_3430SDP) ||  defined(CONFIG_MACH_OMAP3EVM) \
-	|| defined(CONFIG_MACH_OMAP_3430LABRADOR)
+#if defined(CONFIG_MACH_OMAP_3430SDP) ||  defined(CONFIG_MACH_OMAP3EVM) || defined(CONFIG_MACH_OMAP_3430LABRADOR)
 	/* enabling S-video connector for 3430 SDP */
 #ifndef CONFIG_ARCH_OMAP3410
 	dss_control |= (DSS_CONTROL_DAC_DEMEN | DSS_CONTROL_TV_REF |
-			DSS_CONTROL_VENC_CLOCK_4X_ENABLE |
-			DSS_CONTROL_VENC_OUT);
+		DSS_CONTROL_VENC_CLOCK_4X_ENABLE | DSS_CONTROL_VENC_OUT);
 #else
 	dss_control |= (DSS_CONTROL_DAC_DEMEN |
-			DSS_CONTROL_VENC_CLOCK_4X_ENABLE |
-			DSS_CONTROL_VENC_OUT);
+		DSS_CONTROL_VENC_CLOCK_4X_ENABLE | DSS_CONTROL_VENC_OUT);
 #endif
 #endif
 
@@ -2535,7 +4054,7 @@ int __init omap_disp_init(void)
 	dss_reg_out(DSS_CONTROL, dss_control);
 
 	/* By default, all layers go to LCD */
-	layer[OMAP_GRAPHICS].output_dev = OMAP_OUTPUT_TV;
+	layer[OMAP_GRAPHICS].output_dev = OMAP_OUTPUT_LCD;
 	layer[OMAP_VIDEO1].output_dev = OMAP_OUTPUT_TV;
 	layer[OMAP_VIDEO2].output_dev = OMAP_OUTPUT_TV;
 
@@ -2544,47 +4063,520 @@ int __init omap_disp_init(void)
 	 * by default the color space is set to JPEG
 	 */
 
-	update_colorconv_mtx(0, cc_bt601_full);
-	omap_disp_set_colorconv(0, FULL_COLOR_RANGE);
+	update_colorconv_mtx(0,cc_bt601_full);
+	set_colorconv(0,V4L2_COLORSPACE_JPEG);
 
-	update_colorconv_mtx(1, cc_bt601_full);
-	omap_disp_set_colorconv(1, FULL_COLOR_RANGE);
+	update_colorconv_mtx(1,cc_bt601_full);
+	set_colorconv(1,V4L2_COLORSPACE_JPEG);
 
 	/* Disable the Alpha blending for both TV and LCD
 	 * Also set the global alpha value for both
 	 * graphics and video2 pipeline to 255(Completely Opaque)
 	 */
-	omap_disp_set_alphablend(OMAP_OUTPUT_TV, 0);
+	omap_disp_set_alphablend(OMAP_OUTPUT_LCD,0);
+	omap_disp_set_alphablend(OMAP_OUTPUT_TV,0);
 
-	omap_disp_set_global_alphablend_value(OMAP_VIDEO2, 0xFF);
+	omap_disp_set_global_alphablend_value(OMAP_GRAPHICS,0xFF);
+	omap_disp_set_global_alphablend_value(OMAP_VIDEO2,0xFF);
 
+	/* Set the default background color to be black*/
+	omap_disp_set_bg_color(OMAP_OUTPUT_LCD, 0x000000);
 #ifndef CONFIG_ARCH_OMAP3410
 	omap_disp_set_bg_color(OMAP_OUTPUT_TV, 0x000000);
 #endif
 
-	if (request_irq(INT_24XX_DSS_IRQ, (void *) omap_disp_master_isr,
-			IRQF_SHARED, "OMAP Display", registered_isr)) {
+	if (request_irq(INT_24XX_DSS_IRQ, (void *)omap_disp_master_isr,
+				IRQF_SHARED, "OMAP Display",
+				registered_isr)) {
 		printk(KERN_WARNING "omap_disp: request_irq failed\n");
 		omap_disp_irq = 0;
 	} else {
 		omap_disp_irq = 1;
-		for (i = 0; i < MAX_ISR_NR; i++) {
-			registered_isr[i].isr = NULL;
+		for(i=0;i<MAX_ISR_NR;i++){
+			registered_isr[i].isr  = NULL;
 			registered_isr[i].mask = 0;
 		}
 		/* Clear all the pending interrupts, if any */
 		dispc_reg_out(DISPC_IRQSTATUS, 0xFFFFFFFF);
-		omap_disp_register_isr(disp_synclost_isr, layer,
-					DISPC_IRQSTATUS_SYNCLOST);
+		omap_disp_register_isr(omap_synclost_isr, layer,
+				DISPC_IRQSTATUS_SYNCLOST);
 	}
 
-	omap_disp_register_isr(disp_synclost_isr, layer,
-				DISPC_IRQSTATUS_SYNCLOST);
+	omap_disp_register_isr(omap_synclost_isr, layer,
+			DISPC_IRQSTATUS_SYNCLOST);
 	omap_disp_put_all_clks();
 
 	return 0;
 
 }
 
+#ifdef CONFIG_ARCH_OMAP34XX
+
+/*
+ * optimal precalculated frequency for DSS1_ALWON_CLK. The freq is optimal
+ * in the sense that there is a divider that gives pixel clock rate closest to
+ * the lowest possible pixel clock rate for a given panel
+ */
+#ifdef CONFIG_FB_OMAP_LCD_VGA
+#define LPR_DSS1_ALWON_FCLK_OPT_FREQ	96000000
+#define LPR_DSS_LOGIC_DIV		2
+#define LPR_HBP				79
+#define LPR_HFP				59
+#define LPR_HSW				2
+#define LPR_VBP				0
+#define LPR_VFP				0
+#define LPR_VSW				1
+#define LPR_GFX_FIFO_LOW_THRES		0x99C
+#define LPR_GFX_FIFO_HIGH_THRES		0xB9C
+#else
+/* These values are validated only on 3430 ES2 */
+/* Might not work on 3430 ES1 */
+#  define LPR_DSS1_ALWON_FCLK_OPT_FREQ	108000000
+#  define LPR_DSS_LOGIC_DIV		9
+#  define LPR_HBP			31
+#  define LPR_HFP			37
+#  define LPR_HSW			3
+#  define LPR_VBP			8
+#  define LPR_VFP			2
+#  define LPR_VSW			1
+#define LPR_GFX_FIFO_LOW_THRES		0x7F8
+#define LPR_GFX_FIFO_HIGH_THRES		0xB9C
+#endif /* CONFIG_FB_OMAP_LCD_VGA */
+
+#define LPR_DEFAULT_FPS	60
+
+#ifdef CONFIG_MACH_OMAP_3430SDP
+
+#endif /* CONFIG_MACH_OMAP_3430SDP */
+
+struct dss_run_mode {
+	int rate;
+	int divisors;
+	int timing_h;
+	int timing_v;
+};
+
+static struct dss_run_mode rmode;
+int lpr_enabled;
+
+/*
+ * if set, the lowest dss logic frequency to achieve given(lowest) pixel clock
+ * frequency is set. Otherwise 'lpr_lowest_dss_logic_freq' value is used.
+ * The flag is set by default and can be reset via sysfs interface
+ */
+int lpr_lowest_dss_logic_freq_enabled = 1;
+
+/*
+ * dss logic freq. initially initialized to be equal to DSS1_ALWON_FCLK.
+ * the value may be adjusted via sysfs interface if needed
+ */
+int lpr_dss_logic_freq = LPR_DSS1_ALWON_FCLK_OPT_FREQ;
+
+/* FPS value in LPR. may be adjusted via sysfs interface */
+int lpr_fps = LPR_DEFAULT_FPS;
+
+static DECLARE_MUTEX(lpr_mutex);
+
+/*
+ * adjust porches and pulses to get desired FPS after pixel clock is adjusted
+ * to LPR value
+ */
+static void lpr_set_fps(int fps)
+{
+	int timing_h, timing_v;
+
+	if (lpr_lowest_dss_logic_freq_enabled) {
+
+		/* adjust porches and pulses to get 60 FPS */
+		timing_h = ((LPR_HBP - 1) << DISPC_TIMING_H_HBP_SHIFT) |
+			((LPR_HFP - 1) << DISPC_TIMING_H_HFP_SHIFT) |
+			((LPR_HSW - 1) << DISPC_TIMING_H_HSW_SHIFT);
+		timing_v = (LPR_VBP << DISPC_TIMING_V_VBP_SHIFT) |
+			(LPR_VFP << DISPC_TIMING_V_VFP_SHIFT) |
+			(LPR_VSW << DISPC_TIMING_V_VSW_SHIFT);
+
+		dispc_reg_merge(DISPC_TIMING_H, timing_h,
+				(DISPC_TIMING_H_HBP |
+				 DISPC_TIMING_H_HFP |
+				 DISPC_TIMING_H_HSW));
+
+		dispc_reg_merge(DISPC_TIMING_V, timing_v,
+				(DISPC_TIMING_V_VBP |
+				 DISPC_TIMING_V_VFP |
+				 DISPC_TIMING_V_VSW));
+
+	}
+	return;
+}
+
+/**
+ * lpr_set_dss_logic_freq - chose lcd div and pcd based on user input
+ *
+ * If lpr_lowest_dss_logic_freq_enabled flag is set (default) the routine sets
+ * dss logic frequency equal to twice pixel clock frequency. If the default
+ * setup does not work for an application (dss logic frequency equal to twice
+ * pixel clock frequency is not enough) user can affect the settings using
+ * sysfs interface:
+ * if lpr_lowest_dss_logic_freq_enabled flag is reset the logic frequency is
+ * set to user specified value (may be adjusted using sysfs interface).
+ * Default value in this case is DSS1_ALWON_FCLK frequency.
+ */
+static int lpr_set_dss_logic_freq(void)
+{
+	int lcd_div, pcd;
+
+	if (lpr_lowest_dss_logic_freq_enabled) {
+		/*
+		 * set pcd and lcd div to get lowest _both_ pixel clock freq
+		 * _and_ logic frequency
+		 */
+		pcd = 2;
+		lcd_div = LPR_DSS_LOGIC_DIV;
+	} else {
+		/* set requested DSS logic freq */
+#if 0
+		TODO, not tested!
+
+			lcd_div = LPR_DSS1_ALWON_FCLK_OPT_FREQ / lpr_dss_logic_freq;
+		if (lcd_div < 1)
+			return -EINVAL;
+
+		logic_freq = LPR_DSS1_ALWON_FCLK_OPT_FREQ / lcd_div;
+
+		/*
+		 * (LPR_DSS1_ALWON_FCLK_OPT_FREQ / LPR_DSS_LOGIC_DIV) gives best
+		 * minimal pixel clock freq for a panel
+		 */
+		pcd = logic_freq / (LPR_DSS1_ALWON_FCLK_OPT_FREQ / LPR_DSS_LOGIC_DIV);
+		if (pcd < 1)
+			return -EINVAL;
+#else
+		return -ENOTSUPP;
+#endif /* 0 */
+	}
+
+	dispc_reg_merge(DISPC_DIVISOR,
+			(lcd_div << DISPC_DIVISOR_LCD_SHIFT) |
+			(pcd << DISPC_DIVISOR_PCD_SHIFT),
+			DISPC_DIVISOR_LCD | DISPC_DIVISOR_PCD);
+
+	return 0;
+}
+
+void omap_disp_power_on_tv(void)
+{
+        if ((omap_disp_get_output_dev(OMAP_GRAPHICS) == OMAP_OUTPUT_TV) ||
+            (omap_disp_get_output_dev(OMAP_VIDEO1) == OMAP_OUTPUT_TV) ||
+            (omap_disp_get_output_dev(OMAP_VIDEO2) == OMAP_OUTPUT_TV)) {
+                omap_ll_config_tv_clocks(0);
+                omap_disp_set_tvstandard(omap_current_tvstandard);
+                omap_disp_reg_sync(OMAP_OUTPUT_TV);
+        }
+}
+
+/**
+ * omap_disp_lpr_enable - trigger Low Power Refresh mode
+ *
+ * TODO: desc of LPR
+ */
+int omap_disp_lpr_enable(void)
+{
+	int dss1_rate;
+	int gfx_fifo_thresholds;
+	int rc = 0;
+	int v_attr;
+	int digitalen;
+	unsigned long flags;
+
+	/* Cannot enable lpr if DSS is inactive */
+	if (!graphics_in_use)
+		return -1;
+
+	down(&lpr_mutex);
+
+	if (lpr_enabled)
+		goto lpr_out;
+	/*
+	 * Check whether LPR can be triggered
+	 *   - gfx pipeline is routed to LCD
+	 *   - both video pipelines are disabled (this allows FIFOs merge)
+	 */
+
+	/* may be more meaningful error code is required */
+	if (omap_disp_get_output_dev(OMAP_GRAPHICS) != OMAP_OUTPUT_LCD) {
+		rc = -1;
+		goto lpr_out;
+	}
+
+	omap_disp_get_dss();
+
+	v_attr = dispc_reg_in(DISPC_VID_ATTRIBUTES(0)) |
+		 dispc_reg_in(DISPC_VID_ATTRIBUTES(1));
+
+	if (v_attr & DISPC_VID_ATTRIBUTES_ENABLE) {
+		rc = -1;
+		goto lpr_out_clk;
+	}
+
+	/*
+	 * currently DSS is running on DSS1 by default. just warn if it has
+	 * changed in the future
+	 */
+	if (dss_reg_in(DSS_CONTROL) & DSS_CONTROL_APLL_CLK)
+		BUG();
+
+	/* save run mode rate */
+	rmode.rate = dss1_rate = clk_get_rate(dss1f);
+
+	digitalen = dispc_reg_in(DISPC_CONTROL) & DISPC_CONTROL_DIGITALENABLE;
+
+	/* disable DSS before adjusting DSS clock */
+	omap_disp_disable(HZ/5);
+
+	/* set DSS1_ALWON_FCLK freq */
+	rc = clk_set_rate(dss1f, LPR_DSS1_ALWON_FCLK_OPT_FREQ);
+	if (rc != 0)
+		goto lpr_out_clk_en;
+
+	rmode.divisors = (dispc_reg_in(DISPC_DIVISOR) & (DISPC_DIVISOR_LCD |
+							 DISPC_DIVISOR_PCD));
+
+	rmode.timing_h = (dispc_reg_in(DISPC_TIMING_H) & (DISPC_TIMING_H_HBP |
+							DISPC_TIMING_H_HFP |
+							DISPC_TIMING_H_HSW));
+
+	rmode.timing_v = (dispc_reg_in(DISPC_TIMING_V) & (DISPC_TIMING_V_VBP |
+							DISPC_TIMING_V_VFP |
+							DISPC_TIMING_V_VSW));
+
+	/* chose lcd div and pcd based on user input */
+	rc = lpr_set_dss_logic_freq();
+	if (rc != 0)
+		goto lpr_out_clk_en_rate;
+
+	lpr_set_fps(lpr_fps);
+
+	/* set up LPR default  FIFO thresholds */
+	gfx_fifo_thresholds =
+	     (LPR_GFX_FIFO_HIGH_THRES << DISPC_GFX_FIFO_THRESHOLD_HIGH_SHIFT) |
+	     (LPR_GFX_FIFO_LOW_THRES << DISPC_GFX_FIFO_THRESHOLD_LOW_SHIFT);
+
+	dispc_reg_merge(DISPC_GFX_FIFO_THRESHOLD, gfx_fifo_thresholds,
+			(DISPC_GFX_FIFO_THRESHOLD_HIGH |
+			 DISPC_GFX_FIFO_THRESHOLD_LOW));
+
+	dispc_reg_merge(DISPC_CONFIG, DISPC_CONFIG_FIFOMERGE,
+			DISPC_CONFIG_FIFOMERGE);
+
+	/*
+	 * save LPR configuration of DISPC and GFX register in case synclost
+	 * happens during LPR. If synclost happens LPR parameters get reset
+	 * to last-known-good LPR parameters
+	 *
+	 * may be useful to restore known-good parameters if FIFO underrun
+	 * occurs as well
+	 */
+	omap_disp_save_ctx(OMAP_GRAPHICS);
+
+	spin_lock_irqsave(&dss_lock, flags);
+	omap_disp_enable_output_dev(OMAP_OUTPUT_LCD);
+	if (digitalen)
+		omap_disp_enable_output_dev(OMAP_OUTPUT_TV);
+
+	omap_disp_save_ctx(OMAP_DSS_DISPC_GENERIC);
+	spin_unlock_irqrestore(&dss_lock, flags);
+
+	/* let LPR settings to take effect */
+	omap_disp_reg_sync(OMAP_OUTPUT_LCD);
+
+	lpr_enabled = 1;
+
+	omap_disp_put_dss();
+	up(&lpr_mutex);
+
+	return 0;
+
+lpr_out_clk_en_rate:
+	clk_set_rate(dss1f, rmode.rate);
+
+lpr_out_clk_en:
+	omap_disp_enable_output_dev(OMAP_OUTPUT_LCD);
+	if (digitalen)
+		omap_disp_enable_output_dev(OMAP_OUTPUT_TV);
+lpr_out_clk:
+	omap_disp_put_dss();
+lpr_out:
+	up(&lpr_mutex);
+	return rc;
+}
+
+int omap_disp_lpr_disable(void)
+{
+	int rc = 0;
+	int gfx_fifo_thresholds;
+	int digitalen;
+	unsigned long flags;
+
+	if (!graphics_in_use)
+		return -1;
+
+	down(&lpr_mutex);
+
+	if (!lpr_enabled) {
+		up(&lpr_mutex);
+		return rc;
+	}
+
+	omap_disp_get_dss();
+
+	/* restore DSS  divisors */
+	dispc_reg_merge(DISPC_DIVISOR, rmode.divisors,
+			DISPC_DIVISOR_LCD | DISPC_DIVISOR_PCD);
+
+	/* split FIFOs and restore FIFO thresholds */
+	dispc_reg_merge(DISPC_CONFIG, 0, DISPC_CONFIG_FIFOMERGE);
+
+	gfx_fifo_thresholds =
+	(RMODE_GFX_FIFO_HIGH_THRES << DISPC_GFX_FIFO_THRESHOLD_HIGH_SHIFT) |
+	(RMODE_GFX_FIFO_LOW_THRES << DISPC_GFX_FIFO_THRESHOLD_LOW_SHIFT);
+
+	dispc_reg_merge(DISPC_GFX_FIFO_THRESHOLD, gfx_fifo_thresholds,
+			(DISPC_GFX_FIFO_THRESHOLD_HIGH |
+			 DISPC_GFX_FIFO_THRESHOLD_LOW));
+
+	dispc_reg_merge(DISPC_TIMING_H, rmode.timing_h, (DISPC_TIMING_H_HBP |
+				DISPC_TIMING_H_HFP |
+				DISPC_TIMING_H_HSW));
+
+	dispc_reg_merge(DISPC_TIMING_V, rmode.timing_v, (DISPC_TIMING_V_VBP |
+				DISPC_TIMING_V_VFP |
+				DISPC_TIMING_V_VSW));
+	/* TODO: adjust porches and pulses if bigger fps is not acceptable */
+
+	digitalen = dispc_reg_in(DISPC_CONTROL) & DISPC_CONTROL_DIGITALENABLE;
+
+	/* disable DSS before adjusting DSS clock */
+	omap_disp_disable(HZ/5);
+
+	/* restore DSS run mode rate */
+	rc = clk_set_rate(dss1f, rmode.rate);
+
+	omap_disp_save_ctx(OMAP_GRAPHICS);
+
+	spin_lock_irqsave(&dss_lock, flags);
+	omap_disp_enable_output_dev(OMAP_OUTPUT_LCD);
+	if (digitalen)
+		omap_disp_enable_output_dev(OMAP_OUTPUT_TV);
+
+	omap_disp_save_ctx(OMAP_DSS_DISPC_GENERIC);
+	spin_unlock_irqrestore(&dss_lock, flags);
+
+	omap_disp_reg_sync(OMAP_OUTPUT_LCD);
+
+	omap_disp_put_dss();
+
+	lpr_enabled = 0;
+
+	up(&lpr_mutex);
+	return rc;
+}
+#endif /* CONFIG_ARCH_OMAP34XX */
+
+#ifdef CONFIG_MACH_OMAP3EVM
+void omap_disp_replication_enable ( void )
+{
+    u32 attributes;
+    attributes = dispc_reg_in (DISPC_GFX_ATTRIBUTES);
+
+    /* Enable GFX repilcation to make 16-bit colour as 18-bit colour. */
+    attributes |= DISPC_GFX_ATTRIBUTES_GFXREPLICATIONENABLE;
+    dispc_reg_out (DISPC_GFX_ATTRIBUTES, attributes);
+}
+EXPORT_SYMBOL(omap_disp_replication_enable);
+#endif
+
 /* Start before devices */
 subsys_initcall(omap_disp_init);
+
+EXPORT_SYMBOL(omap_disp_request_layer);
+EXPORT_SYMBOL(omap_disp_release_layer);
+EXPORT_SYMBOL(omap_disp_disable_layer);
+EXPORT_SYMBOL(omap_disp_enable_layer);
+EXPORT_SYMBOL(omap_disp_config_vlayer);
+EXPORT_SYMBOL(omap_disp_config_gfxlayer);
+EXPORT_SYMBOL(omap_disp_start_vlayer);
+EXPORT_SYMBOL(omap_disp_start_gfxlayer);
+
+EXPORT_SYMBOL(omap_disp_set_bg_color);
+EXPORT_SYMBOL(omap_disp_get_bg_color);
+EXPORT_SYMBOL(omap_disp_set_dithering);
+EXPORT_SYMBOL(omap_disp_get_dithering);
+EXPORT_SYMBOL(omap_disp_get_panel_size);
+EXPORT_SYMBOL(omap_disp_set_panel_size);
+EXPORT_SYMBOL(omap_disp_disable_output_dev);
+EXPORT_SYMBOL(omap_disp_enable_output_dev);
+EXPORT_SYMBOL(omap_disp_set_tvstandard);
+EXPORT_SYMBOL(omap_disp_get_tvstandard);
+EXPORT_SYMBOL(omap_disp_set_tvlcd);
+EXPORT_SYMBOL(omap_disp_get_tvlcd);
+EXPORT_SYMBOL(omap_disp_config_lcd);
+EXPORT_SYMBOL(omap_disp_lcdcfg_polfreq);
+EXPORT_SYMBOL(omap_disp_set_pcd);
+EXPORT_SYMBOL(omap_disp_get_vidn_status);
+EXPORT_SYMBOL(omap_disp_set_dma_params);
+EXPORT_SYMBOL(omap_disp_get_output_dev);
+EXPORT_SYMBOL(omap_disp_set_output_dev);
+
+#ifdef CONFIG_ARCH_OMAP34XX
+EXPORT_SYMBOL(omap_disp_set_alphablend);
+EXPORT_SYMBOL(omap_disp_get_alphablend);
+EXPORT_SYMBOL(omap_disp_set_global_alphablend_value);
+EXPORT_SYMBOL(omap_disp_get_global_alphablend_value);
+#endif
+
+EXPORT_SYMBOL(omap_ll_config_disp_clocks);
+#ifndef CONFIG_OMAP_USE_DSI_PLL
+EXPORT_SYMBOL(omap_disp_set_dssfclk);
+#endif
+EXPORT_SYMBOL(omap_disp_get_dss);
+EXPORT_SYMBOL(omap_disp_put_dss);
+
+EXPORT_SYMBOL(omap_disp_get_all_clks);
+EXPORT_SYMBOL(omap_disp_put_all_clks);
+
+EXPORT_SYMBOL(omap_disp_set_default_colorconv);
+EXPORT_SYMBOL(omap_disp_set_colorconv);
+EXPORT_SYMBOL(omap_disp_set_colorkey);
+EXPORT_SYMBOL(omap_disp_get_colorkey);
+EXPORT_SYMBOL(omap_disp_enable_colorkey);
+EXPORT_SYMBOL(omap_disp_disable_colorkey);
+EXPORT_SYMBOL(omap_disp_reg_sync_bit);
+
+EXPORT_SYMBOL(omap_disp_set_gfx_palette);
+EXPORT_SYMBOL(omap_disp_pixels_per_clock);
+
+EXPORT_SYMBOL(omap_disp_set_vrfb);
+EXPORT_SYMBOL(omap_disp_save_initstate);
+EXPORT_SYMBOL(omap_disp_reg_sync);
+EXPORT_SYMBOL(omap_disp_reg_sync_done);
+EXPORT_SYMBOL(omap_disp_disable);
+
+EXPORT_SYMBOL(omap_disp_register_isr);
+EXPORT_SYMBOL(omap_disp_unregister_isr);
+EXPORT_SYMBOL(omap_disp_irqenable);
+EXPORT_SYMBOL(omap_disp_irqdisable);
+
+EXPORT_SYMBOL(current_colorconv_values);
+
+EXPORT_SYMBOL(omap_disp_power_on_tv);
+
+EXPORT_SYMBOL(omap_disp_get_vrfb_offset);
+
+EXPORT_SYMBOL(omap_disp_start_video_layer);
+
+EXPORT_SYMBOL(omap_disp_set_addr);
+
+EXPORT_SYMBOL(omap_disp_set_mode);
+EXPORT_SYMBOL(omap_disp_get_mode);
+EXPORT_SYMBOL(omap_disp_set_output);
+EXPORT_SYMBOL(omap_disp_get_output);
