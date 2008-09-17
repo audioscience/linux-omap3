@@ -674,7 +674,10 @@ static int musb_proc_write(struct file *file, const char __user *buffer,
 		musb_writeb(mbase, MUSB_DEVCTL, reg);
 #ifdef CONFIG_TWL4030_USB_HS_ULPI
 		/* twl4030 quirk: repeat the command to set the session bit */
-		musb_writeb(mbase, MUSB_DEVCTL, reg);
+		mdelay(100);
+		if (!(musb_readb(mbase, MUSB_DEVCTL) &
+					MUSB_DEVCTL_SESSION))
+			musb_writeb(mbase, MUSB_DEVCTL, reg);
 #endif
 		break;
 
