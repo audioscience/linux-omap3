@@ -493,11 +493,11 @@ typedef struct { volatile u32 offset[4096]; } __regbase32;
 #define OMAP_SMS_BASE	OMAP343X_SMS_PHYS
 #endif
 
-#define	SMS_ROT0_PHYSICAL_BA(context)	__REG32(OMAP_SMS_BASE + 0x188 \
+#define	SMS_ROT0_PHYSICAL_BA(context)   (OMAP_SMS_BASE + 0x188 \
 						+ 0x10 * context)
-#define	SMS_ROT_CONTROL(context)	__REG32(OMAP_SMS_BASE + 0x180 \
+#define	SMS_ROT_CONTROL(context)	(OMAP_SMS_BASE + 0x180 \
 						+ 0x10 * context)
-#define	SMS_ROT0_SIZE(context)		__REG32(OMAP_SMS_BASE + 0x184 \
+#define	SMS_ROT0_SIZE(context)		(OMAP_SMS_BASE + 0x184 \
 						+ 0x10 * context)
 
 /* Structure to store and restore the DSS registers */
