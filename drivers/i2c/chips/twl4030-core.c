@@ -113,6 +113,20 @@
 #define TWL4030_BASEADD_PM_RECEIVER	0x005B
 #define TWL4030_BASEADD_RTC		0x001C
 #define TWL4030_BASEADD_SECURED_REG	0x0000
+/* Triton Identification */
+#define TWL4030_REG_IDCODE_7_0		0x0
+#define TWL4030_REG_IDCODE_15_8		0x1
+#define TWL4030_REG_IDCODE_23_16	0x2
+#define TWL4030_REG_IDCODE_31_24	0x3
+#define TWL4030_REG_UNLOCK_TEST		0x12
+#define TWL4030_VAL_UNLOCK_TEST		0x49
+
+#define TWL4030_IDCODE_ES1_0		0x0009002F
+#define TWL4030_IDCODE_ES2_0		0x1009002F
+#define TWL4030_IDCODE_ES2_1		0x2009002F
+#define TWL4030_IDCODE_ES3_0		0x4009002F
+#define TWL4030_IDCODE_ES3_1		0x5009002F
+#define TWL5030_IDCODE_ES1_0		0x0009802F
 
 /* Triton Core internal information (END) */
 
@@ -143,6 +157,8 @@ static void do_twl4030_irq(unsigned int irq, irq_desc_t *desc);
 static void twl_init_irq(void);
 
 /* Data Structures */
+/* Global variable to hold TWL id */
+static u32 twl_id = 0x0;
 /* To have info on T2 IRQ substem activated or not */
 static unsigned char twl_irq_used = FREE;
 static struct completion irq_event;
@@ -894,9 +910,183 @@ static void twl_init_irq(void)
 		pr_err("%s[%d][%d]\n", msg, res, __LINE__);
 }
 
+/**
+ * @brief get_twl_type - Get the TWL type from a given value.
+ *
+ * @param rev - The value from which the TWL type has to be extracted.
+ *
+ * @return  - TWL type corresponding to the given value.
+ **/
+static inline int get_twl_type(u32 rev)
+{
+	return (rev & TWL_TYPE_MASK);
+}
+
+/**
+ * @brief get_twl_rev - Get the TWL revision from a given value.
+ *
+ * @param rev - The value from which the TWL revision has to be extracted.
+ *
+ * @return  - TWL revision corresponding to the given value.
+ **/
+static inline int get_twl_rev(u32 rev)
+{
+	return (rev & TWL_REV_MASK);
+}
+
+/**
+ * @brief is_twl_4030 - Checks whether the TWL is 4030.
+ *
+ * @return 1 if TWL is 4030, 0 if it is not.
+ **/
+inline int is_twl4030(void)
+{
+	if ((twl_id & TWL_TYPE_MASK) == (TWL4030_REV_ES2_0 & TWL_TYPE_MASK))
+		return 1;
+	return 0;
+}
+EXPORT_SYMBOL(is_twl4030);
+
+/**
+ * @brief is_twl_5030 - Checks whether the TWL is 5030.
+ *
+ * @return 1 if TWL is 4030, 0 if it is not.
+ **/
+inline int is_twl5030(void)
+{
+	if ((twl_id & TWL_TYPE_MASK) == (TWL5030_REV_ES1_0 & TWL_TYPE_MASK))
+		return 1;
+	return 0;
+}
+EXPORT_SYMBOL(is_twl5030);
+
+/**
+ * @brief is_twl_rev_equal_to - Checks whether the TWL revision
+ *		is a give value.
+ *
+ * @param rev - The revision value against which the TWL revision
+ *		has to be checked
+ *
+ * @return  - 1 if passed in revision and system revision matches
+ *		 0 if not.
+ **/
+inline int is_twl_rev_equal_to(u32 rev)
+{
+	if ((get_twl_type(twl_id) == get_twl_type(rev)) &&
+			(get_twl_rev(twl_id) == get_twl_rev(rev)))
+		return 1;
+	return 0;
+}
+EXPORT_SYMBOL(is_twl_rev_equal_to);
+
+/**
+ * @brief is_twl_rev_less_than - Checks whether the TWL revision
+ *		is less than a given value.
+ *
+ * @param rev - The revision value against which the TWL revision
+ *		has to be checked
+ *
+ * @return  - 1 if  system revision is less than the passed in revision
+ *		 0 if not.
+ **/
+inline int is_twl_rev_less_than(u32 rev)
+{
+	if ((get_twl_type(twl_id) == get_twl_type(rev)) &&
+			(get_twl_rev(twl_id) < get_twl_rev(rev)))
+		return 1;
+	return 0;
+}
+EXPORT_SYMBOL(is_twl_rev_less_than);
+
+/**
+ * @brief is_twl_rev_greater_than - Checks whether the TWL revision
+ *		is greater than a given value.
+ *
+ * @param rev - The revision value against which the TWL revision
+ *		has to be checked
+ *
+ * @return  - 1 if  system revision is greater than the passed in revision
+ *		 0 if not.
+ **/
+inline int is_twl_rev_greater_than(u32 rev)
+{
+	if ((get_twl_type(twl_id) == get_twl_type(rev)) &&
+			(get_twl_rev(twl_id) > get_twl_rev(rev)))
+		return 1;
+	return 0;
+
+}
+EXPORT_SYMBOL(is_twl_rev_greater_than);
+
 static int __init twl4030_init(void)
 {
-	return i2c_add_driver(&twl4030_driver);
+	int res;
+
+	u32 triton2_id = 0;
+	char *msg = "I2C read failed";
+	u8 idcode_31_24 = 0;
+	u8 idcode_23_16 = 0;
+	u8 idcode_15_8 = 0;
+	u8 idcode_7_0 = 0;
+
+	if ((res = i2c_add_driver(&twl4030_driver))) {
+		printk(KERN_ERR "TWL4030: Driver registration failed \n");
+		return res;
+	}
+
+	pr_info(KERN_INFO "TWL4030: Driver registration complete.\n");
+
+	/* Triton identification */
+	res = twl4030_i2c_write_u8(TWL4030_MODULE_INTBR, TWL4030_VAL_UNLOCK_TEST,
+						TWL4030_REG_UNLOCK_TEST);
+	if (res < 0)
+		pr_err("%s[%d][%d]\n", msg, res, __LINE__);
+
+	res = twl4030_i2c_read_u8(TWL4030_MODULE_INTBR, &idcode_31_24,
+						TWL4030_REG_IDCODE_31_24);
+	if (res)
+		pr_err("%s[%d][%d]\n", msg, res, __LINE__);
+
+	res = twl4030_i2c_read_u8(TWL4030_MODULE_INTBR, &idcode_23_16,
+						TWL4030_REG_IDCODE_23_16);
+	if (res)
+		pr_err("%s[%d][%d]\n", msg, res, __LINE__);
+
+	res = twl4030_i2c_read_u8(TWL4030_MODULE_INTBR,
+					&idcode_15_8, TWL4030_REG_IDCODE_15_8);
+	if (res)
+		pr_err("%s[%d][%d]\n", msg, res, __LINE__);
+
+	res = twl4030_i2c_read_u8(TWL4030_MODULE_INTBR,
+					&idcode_7_0, TWL4030_REG_IDCODE_7_0);
+	if (res)
+		pr_err("%s[%d][%d]\n", msg, res, __LINE__);
+
+	triton2_id = (((u32)idcode_31_24 << 24) |
+			((u32)idcode_23_16 << 16) | ((u32)idcode_15_8 << 8)
+							| ((u32)idcode_7_0));
+	switch (triton2_id) {
+	case TWL5030_IDCODE_ES1_0:
+	case TWL4030_IDCODE_ES1_0:
+		twl_id = TWL5030_REV_ES1_0;
+		break;
+	case TWL4030_IDCODE_ES2_0:
+		twl_id = TWL4030_REV_ES2_0;
+		break;
+	case TWL4030_IDCODE_ES2_1:
+		twl_id = TWL4030_REV_ES2_1;
+		break;
+	case TWL4030_IDCODE_ES3_0:
+		twl_id = TWL4030_REV_ES3_0;
+		break;
+	case TWL4030_IDCODE_ES3_1:
+		twl_id = TWL4030_REV_ES3_1;
+		break;
+	default:
+		twl_id = TWL5030_REV_ES1_0;
+		break;
+	}
+	return 0;
 }
 
 static void __exit twl4030_exit(void)
