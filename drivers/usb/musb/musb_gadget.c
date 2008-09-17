@@ -1726,7 +1726,7 @@ int usb_gadget_register_driver(struct usb_gadget_driver *driver)
 
 	spin_unlock_irqrestore(&musb->lock, flags);
 
-	if (retval == 0)
+	if (retval == 0) {
 		retval = driver->bind(&musb->g);
 		if (retval != 0) {
 			DBG(3, "bind to driver %s failed --> %d\n",
@@ -1736,7 +1736,6 @@ int usb_gadget_register_driver(struct usb_gadget_driver *driver)
 		}
 
 	/* start peripheral and/or OTG engines */
-	if (retval == 0) {
 
 #if defined(CONFIG_OMAP34XX_OFFMODE) && !defined(CONFIG_USB_MUSB_HDRC_MODULE)
 		/* Restore context of MUSB from OFF mode
