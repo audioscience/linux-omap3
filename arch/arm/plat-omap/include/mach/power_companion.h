@@ -17,7 +17,7 @@
 #ifndef __ASM_ARM_ARCH_OMAP2_POWER_COMPANION_H
 #define __ASM_ARM_ARCH_OMAP2_POWER_COMPANION_H
 
-#include <mach/twl4030.h>
+#include <linux/i2c/twl4030.h>
 
 #define PM_MASTER	TWL4030_MODULE_PM_MASTER
 #define PM_RECEIVER	TWL4030_MODULE_PM_RECEIVER
@@ -36,6 +36,8 @@ int set_bits_companion_reg(u8 mod_no, u8 value, u8 reg);
 int clear_bits_companion_reg(u8 mod_no, u8 value, u8 reg);
 int set_voltage_level(u8 vdd, u8 vsel);
 int twl4030_ldo_set_voltage(u8 ldo_index, u8 level);
+int is_twl4030(void);
+int is_twl5030(void);
 
 #define PHY_TO_OFF_PM_MASTER(p)		(p - 0x36)
 #define PHY_TO_OFF_PM_RECIEVER(p)	(p - 0x5b)
@@ -117,7 +119,7 @@ int twl4030_vaux3_ldo_unuse(void);
 
 /* sequence script */
 #define R_SEQ_ADD_A2S	PHY_TO_OFF_PM_MASTER(0x55)
-#define R_SEQ_ADD_SA12	PHY_TO_OFF_PM_MASTER(0x56)
+#define R_SEQ_ADD_S2A12	PHY_TO_OFF_PM_MASTER(0x56)
 #define	R_SEQ_ADD_S2A3	PHY_TO_OFF_PM_MASTER(0x57)
 #define	R_SEQ_ADD_WARM	PHY_TO_OFF_PM_MASTER(0x58)
 #define R_MEMORY_ADDRESS	PHY_TO_OFF_PM_MASTER(0x59)

@@ -220,7 +220,6 @@ int omap_mcbsp_request(unsigned int id)
 		return -ENODEV;
 	}
 	mcbsp = id_to_mcbsp_ptr(id);
-	clk_enable(mcbsp->clk);
 
 	if (mcbsp->pdata && mcbsp->pdata->ops && mcbsp->pdata->ops->request)
 		mcbsp->pdata->ops->request(id);
@@ -278,8 +277,6 @@ void omap_mcbsp_free(unsigned int id)
 
 	if (mcbsp->pdata && mcbsp->pdata->ops && mcbsp->pdata->ops->free)
 		mcbsp->pdata->ops->free(id);
-
-	clk_disable(mcbsp->clk);
 
 	spin_lock(&mcbsp->lock);
 	if (mcbsp->free) {

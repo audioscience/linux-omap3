@@ -653,7 +653,8 @@ static int twl4030battery_temperature(void)
 			temp = -3;
 	}
 
-	return temp + 1;
+	/* Return temp in tenths of digree celsius as per linux power class */
+	return (temp + 1) * 10;
 }
 
 /*

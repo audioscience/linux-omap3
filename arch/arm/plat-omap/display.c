@@ -1669,7 +1669,7 @@ omap24xx_ll_config_tv_clocks(int sleep_state)
 		}
 
 		if (sleep_state == 1) {
-				if (disabled == 0) {	
+				if ((disabled == 0) && (enabled == 1)) {
 						clk_disable(tv_clk);
 #if defined(CONFIG_MACH_OMAP_LDP)
 						clk_disable(dac_clk);
@@ -2031,7 +2031,7 @@ omap2_disp_set_dssfclk(void)
 	tgt_clkrate = ask_clkrate;
 
 	// sup_clkrate = clk_round_rate(dss1f_scale, ask_clkrate);
-	sup_clkrate = clk_round_rate(dpll4_scale, ask_clkrate);
+	sup_clkrate = clk_round_rate(dss1f_scale, ask_clkrate);
 	if(is_sil_rev_less_than(OMAP3430_REV_ES2_0)){
 		if(clk_get_rate(dss1f_scale) == 96000000){
 			/*96M already, dont do anything for ES 1.0*/
@@ -2040,12 +2040,12 @@ omap2_disp_set_dssfclk(void)
 	}else 
 	{
 		for(i=1;i<=20;i++){
-			sup_clkrate = clk_round_rate(dpll4_scale, ask_clkrate);
+			sup_clkrate = clk_round_rate(dss1f_scale, ask_clkrate);
 			if(sup_clkrate >= tgt_clkrate) break;
 			ask_clkrate = ask_clkrate + 1000000;
 		}
 		printk("DSS:clk set: ask=%d, tgt=%d, sup=%d \n",ask_clkrate,tgt_clkrate,sup_clkrate);
-		if(clk_set_rate(dpll4_scale,sup_clkrate)==-EINVAL)
+		if (clk_set_rate(dss1f_scale, sup_clkrate) == -EINVAL)
 			printk(KERN_ERR "Unable to set the DSS"
 					"functional clock to %d\n",sup_clkrate);
 	}
@@ -3361,11 +3361,11 @@ omap2_disp_init(void)
 	dss1f_scale = clk_get(&display_dev, "dss1_alwon_fck");
 #else
 	dss1f_scale = clk_get(NULL, "dss1_alwon_fck");
-#if 1	
+#if 0
 	dpll4_scale = clk_get(NULL, "dpll4_m4x2_ck");
 #endif
 #endif
-#if 1
+#if 0
 	if(IS_ERR(dpll4_scale)) {
 		printk("Could not get DPLL4 FCLK\n");
 		return PTR_ERR(dpll4_scale);

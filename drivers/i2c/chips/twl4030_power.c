@@ -26,7 +26,8 @@
 #include <mach/mux.h>
 #include <mach/prcm_34xx.h>
 #include <linux/semaphore.h>
-#include <mach/twl4030.h>
+#include <linux/i2c/twl4030.h>
+#include <mach/resource.h>
 
 struct twl4030_power_registers {
 	u8 dev_grp_address;
@@ -48,9 +49,9 @@ struct twl4030_power_registers twl4030_ldo_info[] = {
  {TWL4030_VINTANA2_DEV_GRP, TWL4030_VINTANA2_DEDICATED}, /* VINTANA2_ID*/
  {TWL4030_VINTDIG_DEV_GRP, TWL4030_VINTDIG_DEDICATED},	/* VINTDIG_ID*/
  {TWL4030_VIO_DEV_GRP, TWL4030_VIO_VSEL},		/* VIO_ID*/
- {TWL4030_VUSB1V5_DEV_GRP, (u8) NULL},			/* VUSB1V5_ID*/
- {TWL4030_VUSB1V8_DEV_GRP, (u8) NULL},			/* VUSB1V8_ID*/
- {TWL4030_VUSB3V1_DEV_GRP, (u8) NULL},			/* VUSB3V1_ID*/
+ {TWL4030_VUSB1V5_DEV_GRP, 0},			/* VUSB1V5_ID*/
+ {TWL4030_VUSB1V8_DEV_GRP, 0},			/* VUSB1V8_ID*/
+ {TWL4030_VUSB3V1_DEV_GRP, 0},			/* VUSB3V1_ID*/
 };
 
 /* Note: H4 uses the Menelaus companion chip.  Currently it is assumed u-boot
@@ -64,6 +65,8 @@ struct twl4030_power_registers twl4030_ldo_info[] = {
 int power_companion_initialized = 0;
 
 struct semaphore pwr_reg_lock;
+
+#ifndef CONFIG_OMAP3_PM
 
 static int vaux1_ldo_use_count;
 
@@ -209,6 +212,8 @@ int twl4030_vaux3_ldo_unuse(void)
 }
 EXPORT_SYMBOL(twl4030_vaux3_ldo_unuse);
 
+#endif /* CONFIG_OMAP3_PM */
+
 int enable_vmode_companion_voltage_scaling(int vdd, int floor, int roof,
 								int mode)
 {
@@ -347,6 +352,9 @@ int set_voltage_level(u8 vdd, u8 vsel)
 {
 	int e = 0;
 
+	if (power_companion_initialized == 0)
+		return 0;
+
 	/* Disabling the SmartReflex */
 	e = clear_bits_companion_reg(PM_RECEIVER,
 					DCDC_GLOBAL_CFG_ENABLE_SRFLX,
@@ -443,24 +451,21 @@ union triton_pmb_message{
 
 static int config_sleep_wake_sequence(void)
 {
-#ifndef CONFIG_DISABLE_HFCLK
-	#define A2S_I 2
-#else
-	#define A2S_I 4
-#endif /* #ifndef CONFIG_DISABLE_HFCLK */
 
-	#define AS2_J 4
 #if defined(CONFIG_MACH_OMAP_3430SDP) || defined(CONFIG_MACH_OMAP_LDP)
-#ifndef CONFIG_DISABLE_HFCLK
-	#define S2A_I 2
+	#define A2S_I 2
+	#define S2A_I 3
 #else
-	#define S2A_I 4
-#endif /* #ifndef CONFIG_DISABLE_HFCLK */
-
-#else
+	#define A2S_I 2
 	#define S2A_I 3
 #endif
+
+	#define AS2_J 4
 	#define S2A_J 4
+
+	int e = 0, i = 0, j = 0;
+	u8 data;
+
 #if defined(CONFIG_MACH_OMAP_3430SDP) || defined(CONFIG_MACH_OMAP_LDP)
 /*
 *	Power Bus Message Format
@@ -475,71 +480,60 @@ static int config_sleep_wake_sequence(void)
 */
 
 	union triton_pmb_message sleep_on_seq[A2S_I] = {
-#ifndef CONFIG_DISABLE_HFCLK
-		{DEV_GRP_P1 | MSG_TYPE_SINGULAR | 0x0F << RES_ID_SHIFT |
-		RES_STATE_OFF | 0x04 << DELAY_SHIFT | 0x2C},
-		{DEV_GRP_P1 | MSG_TYPE_SINGULAR | 0x10 << RES_ID_SHIFT |
-		RES_STATE_OFF | 0x02 << DELAY_SHIFT | 0x3F}
-	};
-#else
-		{DEV_GRP_P1 | MSG_TYPE_SINGULAR | 0x0F << RES_ID_SHIFT |
-		RES_STATE_OFF | 0x04 << DELAY_SHIFT | 0x2C},
-		{DEV_GRP_P1 | MSG_TYPE_SINGULAR | 0x10 << RES_ID_SHIFT |
-		RES_STATE_OFF | 0x02 << DELAY_SHIFT | 0x2D},
-		{DEV_GRP_P1 | MSG_TYPE_SINGULAR | 0x07 << RES_ID_SHIFT |
-		RES_STATE_OFF | 0x03 << DELAY_SHIFT | 0x2E},
-		{DEV_GRP_P1 | MSG_TYPE_SINGULAR | 0x19 << RES_ID_SHIFT |
-		RES_STATE_OFF | 0x03 << DELAY_SHIFT | 0x3F}
-	};
-#endif /* #ifndef CONFIG_DISABLE_HFCLK */
+		{DEV_GRP_NULL | MSG_TYPE_BROADCAST | RES_GRP_RC | RES_TYPE2_R0 |
+		RES_TYPE_R7 | RES_STATE_SLEEP | 0x04 << DELAY_SHIFT | 0x2C},
+		{DEV_GRP_NULL | MSG_TYPE_BROADCAST | RES_GRP_ALL |
+		RES_TYPE2_R0 | RES_TYPE_R7 | RES_STATE_SLEEP |
+				0x02 << DELAY_SHIFT | 0x3F} };
 
 	union triton_pmb_message sleep_off_seq[S2A_I] = {
-#ifndef CONFIG_DISABLE_HFCLK
-		{DEV_GRP_P1 | MSG_TYPE_SINGULAR | 0x0F << RES_ID_SHIFT |
-		RES_STATE_ACTIVE | 0x04 << DELAY_SHIFT | 0x30},
-		{DEV_GRP_P1 | MSG_TYPE_SINGULAR | 0x10 << RES_ID_SHIFT |
-		RES_STATE_ACTIVE | 0x02 << DELAY_SHIFT | 0x3F}
-	};
-#else
-		{DEV_GRP_P1 | MSG_TYPE_SINGULAR | 0x07 << RES_ID_SHIFT |
-		RES_STATE_ACTIVE | 0x30 << DELAY_SHIFT | 0x30},
-		{DEV_GRP_P1 | MSG_TYPE_SINGULAR | 0x0F << RES_ID_SHIFT |
+		{DEV_GRP_NULL | MSG_TYPE_BROADCAST | RES_GRP_RC | RES_TYPE2_R0 |
+		RES_TYPE_R7 | RES_STATE_ACTIVE | 0x37 << DELAY_SHIFT | 0x3F},
+		{DEV_GRP_NULL | MSG_TYPE_SINGULAR | 0x17 << RES_ID_SHIFT |
 		RES_STATE_ACTIVE | 0x30 << DELAY_SHIFT | 0x31},
-		{DEV_GRP_P1 | MSG_TYPE_SINGULAR | 0x10 << RES_ID_SHIFT |
-		RES_STATE_ACTIVE | 0x37 << DELAY_SHIFT | 0x32},
-		{DEV_GRP_P1 | MSG_TYPE_SINGULAR | 0x19 << RES_ID_SHIFT |
-		RES_STATE_ACTIVE | 0x3 << DELAY_SHIFT | 0x3F}
-	};
-#endif /* #ifndef CONFIG_DISABLE_HFCLK */
+		{DEV_GRP_NULL | MSG_TYPE_BROADCAST | RES_GRP_ALL |
+		RES_TYPE2_R0 | RES_TYPE_R7 | RES_STATE_ACTIVE |
+				0x02 << DELAY_SHIFT | 0x3F} };
+
+	/* Set HFCLKOUT DEV_GRP to P3*/
+	e |= t2_out(PM_RECEIVER, 0x80, R_HFCLKOUT_DEV_GRP);
+	e |= t2_out(PM_RECEIVER, 0x20, TWL4030_VDD1_DEV_GRP);
+	e |= t2_out(PM_RECEIVER, 0x20, TWL4030_VDD2_DEV_GRP);
+
+	e |= t2_out(PM_RECEIVER, 0x00, TWL4030_VDD1_REMAP);
+	e |= t2_out(PM_RECEIVER, 0x00, TWL4030_VDD2_REMAP);
+	e |= t2_out(PM_RECEIVER, 0x00, TWL4030_VPLL1_REMAP);
+	e |= t2_out(PM_RECEIVER, 0x00, TWL4030_HFCLKOUT_REMAP);
+	
+	/* Set SLEEP to ACTIVE SEQ address for P1 and P2 */
+	e |= t2_out(PM_MASTER, 0x30, R_SEQ_ADD_S2A12);
 
 #else
 	union triton_pmb_message sleep_on_seq[A2S_I] = {
 		{DEV_GRP_NULL | MSG_TYPE_BROADCAST | RES_GRP_RC | RES_TYPE2_R0 |
 		RES_TYPE_R7 | RES_STATE_SLEEP | 0x04 << DELAY_SHIFT | 0x2C},
 		{DEV_GRP_NULL | MSG_TYPE_BROADCAST | RES_GRP_ALL | RES_TYPE2_R0 |
-		RES_TYPE_R7 | RES_STATE_SLEEP | 0x02 << DELAY_SHIFT | 0x3F}
-	};
+		RES_TYPE_R7 | RES_STATE_SLEEP | 0x02 << DELAY_SHIFT | 0x3F}};
 
 	union triton_pmb_message sleep_off_seq[S2A_I] = {
 		{DEV_GRP_NULL | MSG_TYPE_SINGULAR | 0x17 << RES_ID_SHIFT |
-		RES_STATE_ACTIVE | 0x30 << DELAY_SHIFT | 0x2F},
+		RES_STATE_ACTIVE | 0x30 << DELAY_SHIFT | 0x30},
 		{DEV_GRP_NULL | MSG_TYPE_BROADCAST | RES_GRP_PP_PR | RES_TYPE2_R0 |
-		RES_TYPE_R7 | RES_STATE_ACTIVE | 0x37 << DELAY_SHIFT | 0x30},
+		RES_TYPE_R7 | RES_STATE_ACTIVE | 0x37 << DELAY_SHIFT | 0x31},
 		{DEV_GRP_NULL | MSG_TYPE_BROADCAST | RES_GRP_ALL | RES_TYPE2_R0 |
-		RES_TYPE_R7 | RES_STATE_ACTIVE | 0x02 << DELAY_SHIFT | 0x3F}
-	};
-#endif
-	int e = 0, i = 0, j = 0;
-	u8 data;
+		RES_TYPE_R7 | RES_STATE_ACTIVE | 0x02 << DELAY_SHIFT | 0x3F}};
+
 	/* CLKREQ is pulled high on the 2430SDP, therefore, we need to take
 	 * it out of the HFCLKOUT DEV_GRP for P1 else HFCLKOUT can't be stopped.
 	 */
 	e |= t2_out(PM_RECEIVER, 0x20, R_HFCLKOUT_DEV_GRP);
 
+	/* Set SLEEP to ACTIVE SEQ address for P1 and P2 */
+	e |= t2_out(PM_MASTER, 0x2F, R_SEQ_ADD_S2A12);
+
+#endif
 	/* Set ACTIVE to SLEEP SEQ address in T2 memory*/
 	e |= t2_out(PM_MASTER, 0x2B, R_SEQ_ADD_A2S);
-	/* Set SLEEP to ACTIVE SEQ address for P1 and P2 */
-	e |= t2_out(PM_MASTER, 0x2F, R_SEQ_ADD_SA12);
 	/* Set SLEEP to ACTIVE SEQ address for P3 */
 	e |= t2_out(PM_MASTER, 0x2F, R_SEQ_ADD_S2A3);
 	/* Install Active->Sleep (A2S) sequence */
@@ -575,16 +569,6 @@ static int config_sleep_wake_sequence(void)
 		j = 0;
 		i++;
 	}
-#if defined(CONFIG_MACH_OMAP_3430SDP) || defined(CONFIG_MACH_OMAP_LDP)
-	/* Disabling AC charger effect on sleep-active transitions */
-	e |= t2_in(PM_MASTER, &data, R_CFG_P1_TRANSITION);
-	data &= 0x0;
-	e |= t2_out(PM_MASTER, data , R_CFG_P1_TRANSITION);
-#endif
-	/* P1/P2/P3 LVL_WAKEUP should be on LEVEL */
-	e |= t2_out(PM_MASTER, LVL_WAKEUP, R_P1_SW_EVENTS);
-	e |= t2_out(PM_MASTER, LVL_WAKEUP, R_P2_SW_EVENTS);
-	e |= t2_out(PM_MASTER, LVL_WAKEUP, R_P3_SW_EVENTS);
 
 	if (e)
 		printk(KERN_ERR "TWL4030 Power Companion seq config error\n");
@@ -597,6 +581,9 @@ static int config_warmreset_sequence(void)
 {
 	#define WRST_I 6
 	#define WRST_J 4
+	
+	int e = 0, i = 0, j = 0;
+	u8 data;
 
 #if defined(CONFIG_MACH_OMAP_3430SDP) || defined(CONFIG_MACH_OMAP_LDP)
 
@@ -616,41 +603,21 @@ static int config_warmreset_sequence(void)
 	};
 #endif
 
-	int e = 0, i = 0, j = 0;
-	u8 data, rd_data;
-
 	/* Set WARM RESET SEQ address for P1 */
 	e |= t2_out(PM_MASTER, 0x38, R_SEQ_ADD_WARM);
 
 	/* Install Warm Reset sequence */
 	while (i < WRST_I) {
 		while (j < WRST_J) {
-			/* set starting t2-addr */
 			data = (((0x38 + i) << 2) + j);
-			/* sel t2-addr */
 			e |= t2_out(PM_MASTER, data, R_MEMORY_ADDRESS);
-			/* get data */
 			data = t2_wrst_seq[i].msg_byte[3 - j];
-			/* put into t2-addr */
 			e |= t2_out(PM_MASTER, data, R_MEMORY_DATA);
 			j++;
 		}
 		j = 0;
 		i++;
 	}
-
-	/* P1/P2/P3 enable WARMRESET */
-	e |= t2_in(PM_MASTER, &rd_data, R_P1_SW_EVENTS);
-	rd_data |= ENABLE_WARMRESET;
-	e |= t2_out(PM_MASTER, rd_data, R_P1_SW_EVENTS);
-
-	e |= t2_in(PM_MASTER, &rd_data, R_P2_SW_EVENTS);
-	rd_data |= ENABLE_WARMRESET;
-	e |= t2_out(PM_MASTER, rd_data, R_P2_SW_EVENTS);
-
-	e |= t2_in(PM_MASTER, &rd_data, R_P3_SW_EVENTS);
-	rd_data |= ENABLE_WARMRESET;
-	e |= t2_out(PM_MASTER, rd_data, R_P3_SW_EVENTS);
 
 	if (e)
 		printk(KERN_ERR "TWL4030 Power Companion Warmreset\
@@ -664,6 +631,21 @@ int  twl4030_ldo_set_voltage(u8 ldo_index, u8 level)
 	int result = 0;
 	u8 dev_grp_register, dev_grp_value;
 	u8 vsel_register, vsel_value;
+	if ((ldo_index == TWL4030_VAUX2_ID) && is_twl4030()) {
+		switch (level) {
+		case T2_VAUX2_OFF:
+		case T2_VAUX2_1V30:
+		case T2_VAUX2_1V50:
+		case T2_VAUX2_1V80:
+		case T2_VAUX2_2V50:
+		case T2_VAUX2_2V80:
+					break;
+		default:
+			printk(KERN_ERR"Triton2 does not support"
+						" this Voltage = %d\n",level - 1);
+			return 0;
+		}
+	}
 
 	if (ldo_index >= TWL4030_LDO_MAX_ID)
 		return -1;
@@ -679,14 +661,13 @@ int  twl4030_ldo_set_voltage(u8 ldo_index, u8 level)
 		vsel_value = level - 1;
 	}
 
-	if (dev_grp_register != (u8)NULL)
+	if (dev_grp_register != 0)
 		result = twl4030_i2c_write_u8(PM_RECEIVER,
 			dev_grp_value, dev_grp_register);
 
-	if (vsel_register != (u8)NULL)
+	if (vsel_register != 0)
 		result = twl4030_i2c_write_u8(PM_RECEIVER,
 			vsel_value, vsel_register);
-
 	return result;
 }
 EXPORT_SYMBOL(twl4030_ldo_set_voltage);
@@ -694,6 +675,7 @@ EXPORT_SYMBOL(twl4030_ldo_set_voltage);
 int power_companion_init(void)
 {
 	struct clk *osc;
+	u8 data;
 	u32 rate, ctrl = HFCLK_FREQ_26_MHZ;
 	int e = 0;
 
@@ -715,11 +697,25 @@ int power_companion_init(void)
 	init_MUTEX(&pwr_reg_lock);
 
 	e |= unprotect_pm_master();
+#if defined(CONFIG_MACH_OMAP_3430SDP) || defined(CONFIG_MACH_OMAP_LDP)
+	/* Disabling AC charger effect on sleep-active transitions */
+	e |= t2_in(PM_MASTER, &data, R_CFG_P1_TRANSITION);
+	data &= 0x0;
+	e |= t2_out(PM_MASTER, data , R_CFG_P1_TRANSITION);
+#endif
+
 	e |= t2_out(PM_MASTER, ctrl, R_CFG_BOOT); /* effect->MADC+USB ck en */
 	e |= init_pwr_intc();
 	e |= config_sleep_wake_sequence(); /* Set action for P1-SLEEP1 */
 	e |= config_warmreset_sequence(); /* Set action for WARMRESET */
 	e |= protect_pm_master();
+
+	/* P1/P2/P3 enable LVL_WAKEUP & WARMRESET */
+	data = LVL_WAKEUP | ENABLE_WARMRESET;
+	e |= t2_out(PM_MASTER, data, R_P1_SW_EVENTS);
+	e |= t2_out(PM_MASTER, data, R_P2_SW_EVENTS);
+	e |= t2_out(PM_MASTER, data, R_P3_SW_EVENTS);
+
 
 #ifdef CONFIG_OMAP_VOLT_VMODE
 	if (cpu_is_omap24xx())

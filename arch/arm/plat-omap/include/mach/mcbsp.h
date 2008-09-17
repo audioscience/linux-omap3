@@ -26,9 +26,13 @@
 
 #include <linux/completion.h>
 #include <linux/spinlock.h>
+#include <mach/dma.h>
 
 #include <mach/hardware.h>
 #include <mach/clock.h>
+
+#define MCBSP_FIFO_SIZE 64
+#define MCBSP2_FIFO_SIZE 1024
 
 #define OMAP730_MCBSP1_BASE	0xfffb1000
 #define OMAP730_MCBSP2_BASE	0xfffb1800
@@ -130,6 +134,8 @@
 #define OMAP_MCBSP_REG_XCERG	0x74
 #define OMAP_MCBSP_REG_XCERH	0x78
 #define OMAP_MCBSP_REG_SYSCON	0x8C
+#define OMAP_MCBSP_REG_THRSH2	0x90
+#define OMAP_MCBSP_REG_THRSH1	0x94
 #define OMAP_MCBSP_REG_IRQSTAT	0xA0
 #define OMAP_MCBSP_REG_IRQEN	0xA4
 #define OMAP_MCBSP_REG_WKUPEN	0xA8
@@ -331,6 +337,18 @@
 #define OMAP_MCBSP_MSBFIRST			0
 #define OMAP_MCBSP_LSBFIRST			1
 
+/* Multi-Channel partition mode */
+#define OMAP_MCBSP_TWOPARTITION_MODE		0
+#define OMAP_MCBSP_EIGHTPARTITION_MODE		1
+
+/* Rx Multichannel selection */
+#define OMAP_MCBSP_RXMUTICH_DISABLE		0
+#define OMAP_MCBSP_RXMUTICH_ENABLE		1
+
+/* Tx Multichannel selection */
+#define OMAP_MCBSP_TXMUTICH_DISABLE		0
+#define OMAP_MCBSP_TXMUTICH_ENABLE		1
+
 #define OMAP_MCBSP_FRAMELEN_N(NUM_WORDS)	((NUM_WORDS - 1) & 0x7F)
 
 struct omap_mcbsp_cfg_param {
@@ -511,6 +529,8 @@ struct omap_mcbsp {
 	int  rx_dma_chain_state;
 	int  tx_dma_chain_state;
 	int  interface_mode; /* Master / Slave */
+	struct omap_dma_channel_params rx_params; /* Used For Rx FIFO */
+	int rx_config_done;
 };
 extern struct omap_mcbsp **mcbsp_ptr;
 extern int omap_mcbsp_count;
@@ -565,4 +585,10 @@ int omap2_mcbsp_params_cfg(unsigned int id, int interface_mode,
 				struct omap_mcbsp_cfg_param *rp,
 				struct omap_mcbsp_cfg_param  *tp,
 				struct omap_mcbsp_srg_fsg_cfg *param);
+int omap2_mcbsp_rxmultich_enable(unsigned int id, u8 state);
+int omap2_mcbsp_txmultich_enable(unsigned int id, u32 state);
+int omap2_mcbsp_txmultich_cfg(unsigned int id, u8 part_mode, u8 parta_enable,
+						u8 partb_enable, u32 ch_enable);
+int omap2_mcbsp_txmultich_cfg(unsigned int id, u8 part_mode, u8 parta_enable,
+						u8 partb_enable, u32 ch_enable);
 #endif

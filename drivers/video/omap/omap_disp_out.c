@@ -521,7 +521,7 @@ void disable_backlight(void)
 }
 EXPORT_SYMBOL(disable_backlight);
 
-#ifdef CONFIG_MACH_OMAP_3430LABRADOR
+#ifdef CONFIG_MACH_OMAP_LDP
 static void
 enable_dvi_output(void)
 {

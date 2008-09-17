@@ -420,7 +420,7 @@ static int __init msecure_init(void)
 
 #ifdef CONFIG_RTC_DRV_TWL4030
 	/* 3430ES2.0 doesn't have msecure/gpio-22 line connected to T2 */
-	if (omap_device_type() == OMAP2_DEVICE_TYPE_GP &&
+	if (omap_type() == OMAP2_DEVICE_TYPE_GP &&
 			system_rev < OMAP3430_REV_ES2_0) {
 		u32 msecure_pad_config_reg = omap_ctrl_base_get() + 0xA3C;
 		int mux_mask = 0x04;

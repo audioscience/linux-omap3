@@ -114,7 +114,7 @@ struct triton_ins {
 
 #define CONFIG_DISABLE_HFCLK	1
 
-#if defined(CONFIG_MACH_OMAP_3430SDP) || defined(CONFIG_MACH_OMAP_3430LABRADOR)
+#if defined(CONFIG_MACH_OMAP_3430SDP) || defined(CONFIG_MACH_OMAP_LDP)
 
 struct triton_ins sleep_on_seq[] __initdata = {
 	{MSG_SINGULAR(DEV_GRP_P1, 0xf, RES_STATE_OFF), 4},
@@ -245,7 +245,7 @@ static int __init config_sleep_wake_sequence(void)
 	err |= twl4030_write_script(0x2F, sleep_off_seq,
 					ARRAY_SIZE(sleep_off_seq));
 
-#if defined(CONFIG_MACH_OMAP_3430SDP) || defined(CONFIG_MACH_OMAP_3430LABRADOR)
+#if defined(CONFIG_MACH_OMAP_3430SDP) || defined(CONFIG_MACH_OMAP_LDP)
 	/* Disabling AC charger effect on sleep-active transitions */
 	err |= twl4030_i2c_read_u8(TWL4030_MODULE_PM_MASTER, &data,
 					R_CFG_P1_TRANSITION);
