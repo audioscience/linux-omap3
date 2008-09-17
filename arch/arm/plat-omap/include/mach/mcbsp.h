@@ -43,6 +43,9 @@
 
 #define OMAP24XX_MCBSP1_BASE	0x48074000
 #define OMAP24XX_MCBSP2_BASE	0x48076000
+#define OMAP2430_MCBSP3_BASE	0x4808c000
+#define OMAP2430_MCBSP4_BASE	0x4808e000
+#define OMAP2430_MCBSP5_BASE	0x48096000
 
 #define OMAP34XX_MCBSP1_BASE	0x48074000
 #define OMAP34XX_MCBSP2_BASE	0x49022000
@@ -460,8 +463,7 @@ struct omap_mcbsp_ops {
 };
 
 struct omap_mcbsp_platform_data {
-	u32 virt_base;
-	u32 phy_base;
+	unsigned long phy_base;
 	u8 dma_rx_sync, dma_tx_sync;
 	u16 rx_irq, tx_irq;
 	struct omap_mcbsp_ops *ops;
@@ -470,7 +472,8 @@ struct omap_mcbsp_platform_data {
 
 struct omap_mcbsp {
 	struct device *dev;
-	u32 io_base;
+	unsigned long phys_base;
+	void __iomem *io_base;
 	u8 id;
 	u8 free;
 	omap_mcbsp_word_length rx_word_length;
@@ -539,8 +542,8 @@ int omap_mcbsp_pollread(unsigned int id, u16 * buf);
 int omap_mcbsp_pollwrite(unsigned int id, u16 buf);
 int omap_mcbsp_set_io_type(unsigned int id, omap_mcbsp_io_type_t io_type);
 
-void omap_mcbsp_write(u32 io_base, u16 reg, u32 val);
-int omap_mcbsp_read(u32 io_base, u16 reg);
+void omap_mcbsp_write(void __iomem *io_base, u16 reg, u32 val);
+int omap_mcbsp_read(void __iomem *io_base, u16 reg);
 
 int omap2_mcbsp_stop_datatx(unsigned int id);
 int omap2_mcbsp_stop_datarx(u32 id);

@@ -109,7 +109,7 @@ static irqreturn_t prcm_interrupt_handler (int irq, void *dev_id)
 		cm_write_mod_reg(fclk, OMAP3430_PER_MOD, CM_FCLKEN);
 	}
 
-	if (is_sil_rev_greater_than(OMAP3430_REV_ES1_0)) {
+	if (system_rev > OMAP3430_REV_ES1_0) {
 		/* USBHOST */
 		wkst = prm_read_mod_reg(OMAP3430ES2_USBHOST_MOD, PM_WKST);
 		if (wkst) {
@@ -166,12 +166,19 @@ static void omap_sram_idle(void)
 		printk(KERN_ERR "Invalid mpu state in sram_idle\n");
 		return;
 	}
+	/* Disable smartreflex before entering WFI */
+	disable_smartreflex(SR1);
+	disable_smartreflex(SR2);
 
 	omap2_gpio_prepare_for_retention();
 
 	_omap_sram_idle(NULL, save_state);
 
 	omap2_gpio_resume_after_retention();
+
+	/* Enable smartreflex after WFI */
+	enable_smartreflex(SR1);
+	enable_smartreflex(SR2);
 }
 
 /*
@@ -187,7 +194,7 @@ static int omap3_fclks_active(void)
 
 	fck_core1 = cm_read_mod_reg(CORE_MOD,
 				    CM_FCLKEN1);
-	if (is_sil_rev_greater_than(OMAP3430_REV_ES1_0)) {
+	if (system_rev > OMAP3430_REV_ES1_0) {
 		fck_core3 = cm_read_mod_reg(CORE_MOD,
 					    OMAP3430ES2_CM_FCLKEN3);
 		fck_sgx = cm_read_mod_reg(OMAP3430ES2_SGX_MOD,
@@ -297,10 +304,6 @@ static int omap3_pm_suspend(void)
 	struct power_state *pwrst;
 	int state, ret = 0;
 
-	/* XXX Disable smartreflex before entering suspend */
-	disable_smartreflex(SR1);
-	disable_smartreflex(SR2);
-
 	/* Read current next_pwrsts */
 	list_for_each_entry(pwrst, &pwrst_list, node)
 		pwrst->saved_state = pwrdm_read_next_pwrst(pwrst->pwrdm);
@@ -331,10 +334,6 @@ restore:
 	else
 		printk(KERN_INFO "Successfully put all powerdomains "
 		       "to target state\n");
-
-	/* XXX Enable smartreflex after suspend */
-	enable_smartreflex(SR1);
-	enable_smartreflex(SR2);
 
 	return ret;
 }
@@ -377,7 +376,7 @@ static void __init prcm_setup_regs(void)
 	prm_write_mod_reg(0, OMAP3430_NEON_MOD, PM_WKDEP);
 	prm_write_mod_reg(0, OMAP3430_CAM_MOD, PM_WKDEP);
 	prm_write_mod_reg(0, OMAP3430_PER_MOD, PM_WKDEP);
-	if (is_sil_rev_greater_than(OMAP3430_REV_ES1_0)) {
+	if (system_rev > OMAP3430_REV_ES1_0) {
 		prm_write_mod_reg(0, OMAP3430ES2_SGX_MOD, PM_WKDEP);
 		prm_write_mod_reg(0, OMAP3430ES2_USBHOST_MOD, PM_WKDEP);
 	} else
@@ -427,7 +426,7 @@ static void __init prcm_setup_regs(void)
 		OMAP3430_AUTO_DES1,
 		CORE_MOD, CM_AUTOIDLE2);
 
-	if (is_sil_rev_greater_than(OMAP3430_REV_ES1_0)) {
+	if (system_rev > OMAP3430_REV_ES1_0) {
 		cm_write_mod_reg(
 			OMAP3430ES2_AUTO_USBTLL,
 			CORE_MOD, CM_AUTOIDLE3);
@@ -474,7 +473,7 @@ static void __init prcm_setup_regs(void)
 		OMAP3430_PER_MOD,
 		CM_AUTOIDLE);
 
-	if (is_sil_rev_greater_than(OMAP3430_REV_ES1_0)) {
+	if (system_rev > OMAP3430_REV_ES1_0) {
 		cm_write_mod_reg(
 			OMAP3430ES2_AUTO_USBHOST,
 			OMAP3430ES2_USBHOST_MOD,

@@ -1728,12 +1728,12 @@ int usb_gadget_register_driver(struct usb_gadget_driver *driver)
 
 	if (retval == 0)
 		retval = driver->bind(&musb->g);
-	if (retval != 0) {
-		DBG(3, "bind to driver %s failed --> %d\n",
-			driver->driver.name, retval);
-		musb->gadget_driver = NULL;
-		musb->g.dev.driver = NULL;
-	}
+		if (retval != 0) {
+			DBG(3, "bind to driver %s failed --> %d\n",
+					driver->driver.name, retval);
+			musb->gadget_driver = NULL;
+			musb->g.dev.driver = NULL;
+		}
 
 	/* start peripheral and/or OTG engines */
 	if (retval == 0) {

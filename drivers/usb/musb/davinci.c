@@ -32,8 +32,8 @@
 #include <linux/io.h>
 
 #include <mach/hardware.h>
-#include <mach/memory.h>
 #include <mach/gpio.h>
+#include <asm/memory.h>
 #include <asm/mach-types.h>
 
 #include "musb_core.h"

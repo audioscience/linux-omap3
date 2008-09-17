@@ -190,7 +190,8 @@ enum musb_g_ep0_state {
  * directly with the "flat" model, or after setting up an index register.
  */
 
-#if defined(CONFIG_ARCH_DAVINCI)
+#if defined(CONFIG_ARCH_DAVINCI) || defined(CONFIG_ARCH_OMAP2430) \
+		|| defined(CONFIG_ARCH_OMAP3430)
 /* REVISIT indexed access seemed to
  * misbehave (on DaVinci) for at least peripheral IN ...
  */
@@ -303,6 +304,7 @@ static inline struct usb_request *next_out_request(struct musb_hw_ep *hw_ep)
  * struct musb - Driver instance data.
  */
 struct musb {
+	/* device lock */
 	spinlock_t		lock;
 	struct clk		*clock;
 	irqreturn_t		(*isr)(int, void *);
@@ -426,7 +428,7 @@ struct musb {
 	struct usb_gadget_driver *gadget_driver;	/* its driver */
 #endif
 
-	struct musb_hdrc_config *config;
+	struct musb_hdrc_config	*config;
 
 #ifdef MUSB_CONFIG_PROC_FS
 	struct proc_dir_entry *proc_entry;

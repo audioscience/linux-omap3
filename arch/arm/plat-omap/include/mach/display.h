@@ -21,32 +21,35 @@
 
 /* hack for __REG32 */
 #include <linux/io.h>
+
+#if 0
 #ifndef __ASSEMBLER__
 /* 16 bit uses LDRH/STRH, base +/- offset_8 */
 typedef struct { volatile u16 offset[256]; } __regbase16;
 #define __REGV16(vaddr)		((__regbase16 *)((vaddr)&~0xff)) \
 					->offset[((vaddr)&0xff)>>1]
-#define __REG16(paddr)          __REGV16(io_p2v(paddr))
+#define __REG16(paddr)          __REGV16(OMAP2_IO_ADDRESS(paddr))
 
 /* 8/32 bit uses LDR/STR, base +/- offset_12 */
 typedef struct { volatile u8 offset[4096]; } __regbase8;
 #define __REGV8(vaddr)		((__regbase8  *)((vaddr)&~4095)) \
 					->offset[((vaddr)&4095)>>0]
-#define __REG8(paddr)		__REGV8(io_p2v(paddr))
+#define __REG8(paddr)		__REGV8(OMAP2_IO_ADDRESS(paddr))
 
 typedef struct { volatile u32 offset[4096]; } __regbase32;
 #define __REGV32(vaddr)		((__regbase32 *)((vaddr)&~4095)) \
 					->offset[((vaddr)&4095)>>2]
-#define __REG32(paddr)		__REGV32(io_p2v(paddr))
+#define __REG32(paddr)		__REGV32(OMAP2_IO_ADDRESS(paddr))
 
 #else
 
-#define __REG8(paddr)		io_p2v(paddr)
-#define __REG16(paddr)		io_p2v(paddr)
-#define __REG32(paddr)		io_p2v(paddr)
+#define __REG8(paddr)		OMAP2_IO_ADDRESS(paddr)
+#define __REG16(paddr)		OMAP2_IO_ADDRESS(paddr)
+#define __REG32(paddr)		OMAP2_IO_ADDRESS(paddr)
 
 #endif
 
+#endif
 
 
 /*physical memory map definitions */
@@ -493,11 +496,11 @@ typedef struct { volatile u32 offset[4096]; } __regbase32;
 #define OMAP_SMS_BASE	OMAP343X_SMS_PHYS
 #endif
 
-#define	SMS_ROT0_PHYSICAL_BA(context)	__REG32(OMAP_SMS_BASE + 0x188 \
+#define	SMS_ROT0_PHYSICAL_BA(context)	OMAP2_IO_ADDRESS(OMAP_SMS_BASE + 0x188 \
 						+ 0x10 * context)
-#define	SMS_ROT_CONTROL(context)	__REG32(OMAP_SMS_BASE + 0x180 \
+#define	SMS_ROT_CONTROL(context)	OMAP2_IO_ADDRESS(OMAP_SMS_BASE + 0x180 \
 						+ 0x10 * context)
-#define	SMS_ROT0_SIZE(context)		__REG32(OMAP_SMS_BASE + 0x184 \
+#define	SMS_ROT0_SIZE(context)		OMAP2_IO_ADDRESS(OMAP_SMS_BASE + 0x184 \
 						+ 0x10 * context)
 
 /* Structure to store and restore the DSS registers */

@@ -364,12 +364,14 @@ static int dma_channel_abort(struct dma_channel *pChannel)
 		if (pImplChannel->transmit) {
 
 			csr = musb_readw(mbase,
-				MUSB_EP_OFFSET(pImplChannel->epnum, MUSB_TXCSR));
+				MUSB_EP_OFFSET(pImplChannel->epnum,
+						MUSB_TXCSR));
 			csr &= ~(MUSB_TXCSR_AUTOSET |
 				 MUSB_TXCSR_DMAENAB |
 				 MUSB_TXCSR_DMAMODE);
 			musb_writew(mbase,
-				MUSB_EP_OFFSET(pImplChannel->epnum, MUSB_TXCSR),
+				MUSB_EP_OFFSET(pImplChannel->epnum,
+						MUSB_TXCSR),
 				csr);
 		} else {
 #ifdef CONFIG_MUSB_USE_SYSTEM_DMA_RX
@@ -380,12 +382,14 @@ static int dma_channel_abort(struct dma_channel *pChannel)
 			}
 #endif
 			csr = musb_readw(mbase,
-				MUSB_EP_OFFSET(pImplChannel->epnum, MUSB_RXCSR));
+				MUSB_EP_OFFSET(pImplChannel->epnum,
+						MUSB_RXCSR));
 			csr &= ~(MUSB_RXCSR_AUTOCLEAR |
 				 MUSB_RXCSR_DMAENAB |
 				 MUSB_RXCSR_DMAMODE);
 			musb_writew(mbase,
-				MUSB_EP_OFFSET(pImplChannel->epnum, MUSB_RXCSR),
+				MUSB_EP_OFFSET(pImplChannel->epnum,
+						MUSB_RXCSR),
 				csr);
 		}
 
@@ -454,7 +458,7 @@ static irqreturn_t dma_controller_irq(int irq, void *private_data)
 					pImplChannel->len,
 					(pChannel->actual_len
 						< pImplChannel->len) ?
-					"=> reconfig 0": "=> complete");
+					"=> reconfig 0" : "=> complete");
 
 				devctl = musb_readb(mbase, MUSB_DEVCTL);
 

@@ -2796,6 +2796,7 @@ omap2_disp_set_vrfb(int context, u32 phy_addr,
 	height = (1<<page_height_exp) *
 		 (pages_per_side(height, page_height_exp));
 	
+#if 0
 	SMS_ROT0_PHYSICAL_BA(context) = phy_addr;
 	SMS_ROT0_SIZE(context) = 0;
 	SMS_ROT0_SIZE(context)	|= (width << SMS_IMAGEWIDTH_OFFSET)
@@ -2805,7 +2806,8 @@ omap2_disp_set_vrfb(int context, u32 phy_addr,
 	SMS_ROT_CONTROL(context) |= pixel_size_exp << SMS_PS_OFFSET
 			| (page_width_exp - pixel_size_exp) << SMS_PW_OFFSET
 			| page_height_exp << SMS_PH_OFFSET;
-	
+#endif
+
 	return 0;
 }
 
