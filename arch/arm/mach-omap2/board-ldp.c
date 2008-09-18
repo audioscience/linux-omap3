@@ -285,6 +285,7 @@ static struct omap_kp_platform_data ldp_kp_data = {
 	.keymap 	= ldp_twl4030_keymap,
 	.keymapsize 	= ARRAY_SIZE(ldp_twl4030_keymap),
 	.rep		= 1,
+	.irq		= TWL4030_MODIRQ_KEYPAD,
 	/* Use row_gpios as a way to pass the OMAP GPIO keymap pointer */
 	.row_gpios	= ldp_omap_gpio_keymap,
 };

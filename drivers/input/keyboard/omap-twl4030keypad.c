@@ -38,6 +38,7 @@
 #include <linux/i2c.h>
 #include <linux/i2c/twl4030.h>
 #include <linux/irq.h>
+#include <mach/gpio.h>
 #include <mach/keypad.h>
 #include "twl4030-keypad.h"
 
@@ -241,7 +242,7 @@ static irqreturn_t do_kp_irq(int irq, void *_kp)
 }
 
 #ifdef CONFIG_MACH_OMAP_LDP
-static void omap_gpio_kp_scan(void)
+static void omap_gpio_kp_scan(struct omap_keypad *kp)
 {
 	unsigned int new_gpio;
 	int idx = 0, chg = 0, key, state;
@@ -254,7 +255,7 @@ static void omap_gpio_kp_scan(void)
 		if (chg) {
 			key = GET_KEY(omap_gpios[idx]);
 			state = (new_gpio == 0);
-			input_report_key(omap_twl4030kp, key, state);
+			input_report_key(kp->omap_twl4030kp, key, state);
 		}
 
 		if (!new_gpio)
@@ -281,10 +282,12 @@ static void omap_gpio_kp_scan(void)
 /*
  * Keypad interrupt handler for OMAP GPIO's.
  */
-static irqreturn_t do_kp_gpio_irq(int irq, void *dev_id)
+static irqreturn_t do_kp_gpio_irq(int irq, void *_kp)
 {
+	struct omap_keypad *kp = _kp;
+
 	/* Scan keypad for any changes in GPIO keys. */
-	omap_gpio_kp_scan();
+	omap_gpio_kp_scan(kp);
 
 	return IRQ_HANDLED;
 }
@@ -292,10 +295,12 @@ static irqreturn_t do_kp_gpio_irq(int irq, void *dev_id)
 
 static void omap_gpio_kp_timer(unsigned long arg)
 {
-	omap_gpio_kp_scan();
+	struct omap_keypad *kp = (struct omap_keypad*)arg;
+	omap_gpio_kp_scan(kp);
 }
 
-static int omap_gpio_kp_probe(unsigned int *gpio_keymap)
+static int
+omap_gpio_kp_probe(struct omap_keypad *kp, unsigned int *gpio_keymap)
 {
 	int i, idx = 0, irq_idx = 0;
 
@@ -321,18 +326,18 @@ static int omap_gpio_kp_probe(unsigned int *gpio_keymap)
 	while (omap_gpios[irq_idx] != 0) {
 		if (request_irq(OMAP_GPIO_IRQ(GET_GPIO(omap_gpios[irq_idx])),
 				do_kp_gpio_irq, IRQF_TRIGGER_FALLING,
-				"omap-keypad", NULL) < 0)
+				"omap-keypad", kp) < 0)
 			goto err2;
 		irq_idx++;
 	}
 
 	/* Initialize GPIO timer */
 	gpio_timer.function = omap_gpio_kp_timer;
-	gpio_timer.data     = (unsigned long)NULL;
+	gpio_timer.data     = (unsigned long)kp;
 	init_timer(&gpio_timer);
 
 	/* scan current key state */
-	omap_gpio_kp_scan();
+	omap_gpio_kp_scan(kp);
 
 	return 0;
 
@@ -503,7 +508,7 @@ static int __init omap_kp_probe(struct platform_device *pdev)
 		goto err4;
 
 #ifdef CONFIG_MACH_OMAP_LDP
-	omap_gpio_kp_probe(pdata->row_gpios);
+	omap_gpio_kp_probe(kp, pdata->row_gpios);
 #endif
 
 	return ret;
