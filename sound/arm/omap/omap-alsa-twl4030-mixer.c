@@ -813,7 +813,7 @@ static int snd_capture_source_put(struct snd_kcontrol *kcontrol,
 
 /* Controls Registered */
 
-static struct snd_kcontrol_new twl4030_control[] __devinitdata = {
+static struct snd_kcontrol_new twl4030_control[] = {
 	/* Output Control*/
 	{
 		.name   = "T2 Master codec Sample Rate",
