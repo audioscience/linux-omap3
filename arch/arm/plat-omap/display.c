@@ -2804,7 +2804,7 @@ omap2_disp_set_vrfb(int context, u32 phy_addr,
 			(height << SMS_IMAGEHEIGHT_OFFSET),
 			SMS_ROT0_SIZE(context));
 
-	omap_writel(0, SMS_ROT_CONTROL);
+	omap_writel(0, SMS_ROT_CONTROL(context));
 
 	omap_writel( (pixel_size_exp << SMS_PS_OFFSET)
 		| ((page_width_exp - pixel_size_exp) << SMS_PW_OFFSET)
