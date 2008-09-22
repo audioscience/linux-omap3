@@ -1,5 +1,5 @@
 /*
- * bridge/inc/gs.h
+ * gs.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

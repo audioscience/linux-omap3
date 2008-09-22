@@ -1,5 +1,5 @@
 /*
- * dspbridge/mpu_driver/src/dynload/module_list.h
+ * module_list.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

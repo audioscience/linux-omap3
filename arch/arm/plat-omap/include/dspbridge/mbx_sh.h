@@ -1,5 +1,5 @@
 /*
- * bridge/inc/mbx_sh.h
+ * mbx_sh.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

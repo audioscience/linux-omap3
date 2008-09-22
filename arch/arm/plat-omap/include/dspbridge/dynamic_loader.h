@@ -1,5 +1,5 @@
 /*
- * bridge/inc/dynamic_loader.h
+ * dynamic_loader.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

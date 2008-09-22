@@ -1,5 +1,5 @@
 /*
- * linux/drivers/dsp/bridge/hw/omap3/dspss/IVA1RegAcM.h
+ * IVA2RegAcM.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

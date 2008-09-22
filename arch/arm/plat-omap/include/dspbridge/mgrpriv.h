@@ -1,5 +1,5 @@
 /*
- * bridge/inc/mgrpriv.h
+ * mgrpriv.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

@@ -1,5 +1,5 @@
 /*
- * bridge/inc/io_sm.h
+ * io_sm.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

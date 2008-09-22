@@ -1,5 +1,5 @@
 /*
- * bridge/inc/mem.h
+ * mem.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

@@ -1,5 +1,5 @@
 /*
- * bridge/inc/list.h
+ * list.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

@@ -1,5 +1,5 @@
 /*
- * bridge/inc/dspdrv.h
+ * dspdrv.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
