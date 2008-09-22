@@ -1,5 +1,5 @@
 /*
- * bridge/inc/host_os.h
+ * host_os.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

@@ -1,5 +1,5 @@
 /*
- * bridge/inc/getsection.h
+ * getsection.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

@@ -1,5 +1,5 @@
 /*
- * dspbridge/inc/chnl_sm.h
+ * chnl_sm.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *

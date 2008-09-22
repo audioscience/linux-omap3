@@ -1,5 +1,5 @@
 /*
- * bridge/inc/msg.h
+ * msg.h
  *
  * DSP-BIOS Bridge driver support functions for TI OMAP processors.
  *
