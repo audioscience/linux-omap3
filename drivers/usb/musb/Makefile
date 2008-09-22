@@ -64,7 +64,7 @@ endif
 
 # Debugging
 
-ifeq ($(CONFIG_USB_MUSB_DEBUG),y)
+ifeq ($(CONFIG_ARCH_OMAP3430),y)
 	EXTRA_CFLAGS += -DDEBUG
 	EXTRA_CFLAGS += -DMUSB_DEBUG=1
 endif
