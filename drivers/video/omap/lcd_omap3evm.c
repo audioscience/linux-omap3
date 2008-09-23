@@ -59,18 +59,26 @@ static int omap3evm_panel_init(struct lcd_panel *panel,
 	omap_request_gpio(LCD_PANEL_INI);
 	omap_request_gpio(LCD_PANEL_RESB);
 	omap_request_gpio(LCD_PANEL_QVGA);
+	omap_request_gpio(LCD_PANEL_ENABLE_GPIO); /* ENVDD */
 
 	omap_set_gpio_direction(LCD_PANEL_LR, 0);
 	omap_set_gpio_direction(LCD_PANEL_UD, 0);
 	omap_set_gpio_direction(LCD_PANEL_INI, 0);
 	omap_set_gpio_direction(LCD_PANEL_RESB, 0);
 	omap_set_gpio_direction(LCD_PANEL_QVGA, 0);
+	omap_set_gpio_direction(LCD_PANEL_ENABLE_GPIO, 0); /* output */
 
-	twl4030_i2c_write_u8(TWL4030_MODULE_LED, 0x11, TWL_LED_LEDEN);
-	twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 0x01, TWL_PWMA_PWMAON);
-	twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 0x02, TWL_PWMA_PWMAOFF);
+	twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 0x7F, 0);
+	twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 0x7F, 1);
+	twl4030_i2c_write_u8(TWL4030_MODULE_PWMB, 0x7F, 0);
+	twl4030_i2c_write_u8(TWL4030_MODULE_PWMB, 0x7F, 1);
+
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+			ENABLE_VPLL2_DEDICATED, TWL4030_VPLL2_DEDICATED);
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+			ENABLE_VPLL2_DEV_GRP, TWL4030_VPLL2_DEV_GRP);
+
 	bklight_level = 100;
-
 	omap_set_gpio_dataout(LCD_PANEL_RESB, 1);
 	omap_set_gpio_dataout(LCD_PANEL_INI, 1);
 	omap_set_gpio_dataout(LCD_PANEL_QVGA, 0);

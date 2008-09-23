@@ -1572,13 +1572,13 @@ void omap_disp_reg_sync(int output_dev)
 		dispc_reg_merge(DISPC_CONTROL, DISPC_CONTROL_GODIGITAL,
 				DISPC_CONTROL_GODIGITAL);
 
-	timeout = HZ / 3;
-	timeout += jiffies;
-	while (omap_disp_reg_sync_bit(output_dev) &&
-			time_before(jiffies, timeout)) {
-		if ((!in_interrupt()) && (!irqs_disabled())) {
+	if ((!in_interrupt()) && (!irqs_disabled())) {
+		timeout = HZ / 3;
+		timeout += jiffies;
+		while (omap_disp_reg_sync_bit(output_dev) &&
+				time_before(jiffies, timeout)) {
 			set_current_state(TASK_INTERRUPTIBLE);
-			schedule_timeout(10);
+			schedule_timeout(1);
 
 		}
 	}

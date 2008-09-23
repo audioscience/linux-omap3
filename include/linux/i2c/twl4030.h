@@ -83,6 +83,10 @@
 #define TWL4030_VAUX2_DEDICATED		0x1E
 #define TWL4030_VAUX3_DEV_GRP		0x1F
 #define TWL4030_VAUX3_DEDICATED		0x22
+#define TWL4030_VAUX4_DEV_GRP           0x23
+#define TWL4030_VAUX4_DEDICATED         0x26
+#define TWL4030_VPLL2_DEV_GRP           0x33
+#define TWL4030_VPLL2_DEDICATED         0x36
 
 /* TWL4030 GPIO interrupt definitions */
 
