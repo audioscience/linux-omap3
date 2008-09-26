@@ -883,6 +883,22 @@ static void __init prcm_setup_regs(void)
 	omap3_d2d_idle();
 }
 
+void omap3_pm_off_mode_enable(int enable)
+{
+	struct power_state *pwrst;
+	u32 state;
+
+	if (enable)
+		state = PWRDM_POWER_OFF;
+	else
+		state = PWRDM_POWER_RET;
+
+	list_for_each_entry(pwrst, &pwrst_list, node) {
+		pwrst->next_state = state;
+		set_pwrdm_state(pwrst->pwrdm, state);
+	}
+}
+
 int omap3_pm_get_suspend_state(struct powerdomain *pwrdm)
 {
 	struct power_state *pwrst;
