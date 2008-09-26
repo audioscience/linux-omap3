@@ -26,17 +26,43 @@
 #include <asm/system.h>
 #include <asm/arch/clock.h>
 
+#if defined(CONFIG_ARCH_OMAP3) && defined(CONFIG_OMAP3_PM)
+#include <mach/resource.h>
+#endif
+
 #define VERY_HI_RATE	900000000
 
 static struct cpufreq_frequency_table *freq_table;
 
 #ifdef CONFIG_ARCH_OMAP1
 #define MPU_CLK		"mpu"
+#elif CONFIG_ARCH_OMAP3
+#define MPU_CLK		"virt_vdd1_prcm_set"
 #else
 #define MPU_CLK		"virt_prcm_set"
 #endif
 
 static struct clk *mpu_clk;
+
+#if defined(CONFIG_ARCH_OMAP3) && defined(CONFIG_OMAP3_PM)
+struct constraint_handle *vdd1_handle;
+
+int cpufreq_pre_func(struct notifier_block *n, unsigned long event, void *ptr);
+int cpufreq_post_func(struct notifier_block *n, unsigned long event, void *ptr);
+static struct notifier_block cpufreq_pre = {
+	cpufreq_pre_func,
+	NULL,
+};
+static struct notifier_block cpufreq_post = {
+	cpufreq_post_func,
+	NULL,
+};
+static struct constraint_id cnstr_id_vdd1 = {
+	.type = RES_OPP_CO,
+	.data = (void *)"vdd1_opp",
+};
+
+#endif /* CONFIG_ARCH_OMAP3 && CONFIG_OMAP3_PM */
 
 /* TODO: Add support for SDRAM timing changes */
 
@@ -55,6 +81,8 @@ int omap_verify_speed(struct cpufreq_policy *policy)
 	policy->max = clk_round_rate(mpu_clk, policy->max * 1000) / 1000;
 	cpufreq_verify_within_limits(policy, policy->cpuinfo.min_freq,
 				     policy->cpuinfo.max_freq);
+	clk_put(mpu_clk);
+
 	return 0;
 }
 
@@ -75,6 +103,9 @@ static int omap_target(struct cpufreq_policy *policy,
 {
 	struct cpufreq_freqs freqs;
 	int ret = 0;
+#if defined(CONFIG_ARCH_OMAP3) && defined(CONFIG_OMAP3_PM)
+	int ind = 0;
+#endif
 
 	/* Ensure desired rate is within allowed range.  Some govenors
 	 * (ondemand) will just pass target_freq=0 to get the minimum. */
@@ -90,16 +121,45 @@ static int omap_target(struct cpufreq_policy *policy,
 	if (freqs.old == freqs.new)
 		return ret;
 
+#ifdef CONFIG_ARCH_OMAP1
 	cpufreq_notify_transition(&freqs, CPUFREQ_PRECHANGE);
-#ifdef CONFIG_CPU_FREQ_DEBUG
-	printk(KERN_DEBUG "cpufreq-omap: transition: %u --> %u\n",
-	       freqs.old, freqs.new);
-#endif
-	ret = clk_set_rate(mpu_clk, freqs.new * 1000);
+	ret = clk_set_rate(mpu_clk, target_freq * 1000);
 	cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
-
+#elif defined(CONFIG_ARCH_OMAP3) && defined(CONFIG_OMAP3_PM)
+	for (ind = 0; ind < max_vdd1_opp; ind++) {
+		if (vdd1_arm_dsp_freq[ind][0] >= freqs.new/1000) {
+			constraint_set(vdd1_handle,
+				vdd1_arm_dsp_freq[ind][2]);
+			break;
+		}
+	}
+#endif
 	return ret;
 }
+
+#if defined(CONFIG_ARCH_OMAP3) && defined(CONFIG_OMAP3_PM)
+static struct cpufreq_freqs freqs_notify;
+int cpufreq_pre_func(struct notifier_block *n, unsigned long event, void *ptr)
+{
+	int ind = 0;
+
+	freqs_notify.old = omap_getspeed(0);
+	for (ind = 0; ind < max_vdd1_opp; ind++) {
+		if (vdd1_arm_dsp_freq[ind][2] == event) {
+			freqs_notify.new = vdd1_arm_dsp_freq[ind][0] * 1000;
+			break;
+		}
+	}
+	cpufreq_notify_transition(&freqs_notify, CPUFREQ_PRECHANGE);
+	return 0;
+}
+
+int cpufreq_post_func(struct notifier_block *n, unsigned long event, void *ptr)
+{
+	cpufreq_notify_transition(&freqs_notify, CPUFREQ_POSTCHANGE);
+	return 0;
+}
+#endif
 
 static int __init omap_cpu_init(struct cpufreq_policy *policy)
 {
@@ -111,8 +171,8 @@ static int __init omap_cpu_init(struct cpufreq_policy *policy)
 
 	if (policy->cpu != 0)
 		return -EINVAL;
-
 	policy->cur = policy->min = policy->max = omap_getspeed(0);
+	policy->governor = CPUFREQ_DEFAULT_GOVERNOR;
 
 	clk_init_cpufreq_table(&freq_table);
 	if (freq_table) {
@@ -123,12 +183,18 @@ static int __init omap_cpu_init(struct cpufreq_policy *policy)
 	} else {
 		policy->cpuinfo.min_freq = clk_round_rate(mpu_clk, 0) / 1000;
 		policy->cpuinfo.max_freq = clk_round_rate(mpu_clk,
-							VERY_HI_RATE) / 1000;
+							 VERY_HI_RATE) / 1000;
 	}
-
-	/* FIXME: what's the actual transition time? */
-	policy->cpuinfo.transition_latency = 10 * 1000 * 1000;
-
+	policy->cpuinfo.transition_latency = 100000;
+#if defined(CONFIG_ARCH_OMAP3) && defined(CONFIG_OMAP3_PM)
+	/* Request for VDD1 OPP3 by default */
+	vdd1_handle = constraint_get("cpufreq-drv", &cnstr_id_vdd1);
+	constraint_set(vdd1_handle, CO_VDD1_OPP3);
+	constraint_register_pre_notification(vdd1_handle, &cpufreq_pre,
+							max_vdd1_opp+1);
+	constraint_register_post_notification(vdd1_handle, &cpufreq_post,
+							max_vdd1_opp+1);
+#endif
 	return 0;
 }
 
@@ -160,11 +226,3 @@ static int __init omap_cpufreq_init(void)
 }
 
 arch_initcall(omap_cpufreq_init);
-
-/*
- * if ever we want to remove this, upon cleanup call:
- *
- * cpufreq_unregister_driver()
- * cpufreq_frequency_table_put_attr()
- */
-
