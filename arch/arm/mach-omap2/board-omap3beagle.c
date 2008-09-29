@@ -46,6 +46,8 @@
 #include <mach/mux.h>
 #include <mach/omap-pm.h>
 #include <mach/clock.h>
+#include <mach/omapfb.h>
+#include <mach/display.h>
 
 #include "twl4030-generic-scripts.h"
 #include "mmc-twl4030.h"
@@ -243,15 +245,6 @@ static void __init omap3_beagle_init_irq(void)
 	omap_gpio_init();
 }
 
-static struct platform_device omap3_beagle_lcd_device = {
-	.name		= "omap3beagle_lcd",
-	.id		= -1,
-};
-
-static struct omap_lcd_config omap3_beagle_lcd_config __initdata = {
-	.ctrl_name	= "internal",
-};
-
 static struct gpio_led gpio_leds[] = {
 	{
 		.name			= "beagleboard::usr0",
@@ -305,13 +298,93 @@ static struct platform_device keys_gpio = {
 	},
 };
 
+/* DSS */
+
+static int beagle_enable_dvi(struct omap_display *display)
+{
+	if (display->hw_config.panel_reset_gpio != -1)
+		gpio_direction_output(display->hw_config.panel_reset_gpio, 1);
+
+	return 0;
+}
+
+static void beagle_disable_dvi(struct omap_display *display)
+{
+	if (display->hw_config.panel_reset_gpio != -1)
+		gpio_direction_output(display->hw_config.panel_reset_gpio, 0);
+}
+
+static struct omap_display_data beagle_display_data_dvi = {
+	.type = OMAP_DISPLAY_TYPE_DPI,
+	.name = "dvi",
+	.panel_name = "panel-generic",
+	.u.dpi.data_lines = 24,
+	.panel_reset_gpio = 170,
+	.panel_enable = beagle_enable_dvi,
+	.panel_disable = beagle_disable_dvi,
+};
+
+static int beagle_panel_enable_tv(struct omap_display *display)
+{
+#define ENABLE_VDAC_DEDICATED           0x03
+#define ENABLE_VDAC_DEV_GRP             0x20
+
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+			ENABLE_VDAC_DEDICATED,
+			TWL4030_VDAC_DEDICATED);
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+			ENABLE_VDAC_DEV_GRP, TWL4030_VDAC_DEV_GRP);
+
+	return 0;
+}
+
+static void beagle_panel_disable_tv(struct omap_display *display)
+{
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0x00,
+			TWL4030_VDAC_DEDICATED);
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0x00,
+			TWL4030_VDAC_DEV_GRP);
+}
+
+static struct omap_display_data beagle_display_data_tv = {
+	.type = OMAP_DISPLAY_TYPE_VENC,
+	.name = "tv",
+	.u.venc.type = OMAP_DSS_VENC_TYPE_SVIDEO,
+	.panel_enable = beagle_panel_enable_tv,
+	.panel_disable = beagle_panel_disable_tv,
+};
+
+static struct omap_dss_platform_data beagle_dss_data = {
+	.num_displays = 2,
+	.displays = {
+		&beagle_display_data_dvi,
+		&beagle_display_data_tv,
+	}
+};
+
+static struct platform_device beagle_dss_device = {
+	.name          = "omap-dss",
+	.id            = -1,
+	.dev            = {
+		.platform_data = &beagle_dss_data,
+	},
+};
+
+static void __init beagle_display_init(void)
+{
+	int r;
+
+	r = gpio_request(beagle_display_data_dvi.panel_reset_gpio, "DVI reset");
+	if (r < 0)
+		printk(KERN_ERR "Unable to get DVI reset GPIO\n");
+}
+
 static struct omap_board_config_kernel omap3_beagle_config[] __initdata = {
 	{ OMAP_TAG_UART,	&omap3_beagle_uart_config },
-	{ OMAP_TAG_LCD,		&omap3_beagle_lcd_config },
 };
 
 static struct platform_device *omap3_beagle_devices[] __initdata = {
-	&omap3_beagle_lcd_device,
+	&beagle_dss_device,
 	&leds_gpio,
 	&keys_gpio,
 };
@@ -364,18 +437,17 @@ static void __init omap3_beagle_init(void)
 	omap_serial_init();
 
 	omap_cfg_reg(J25_34XX_GPIO170);
-	gpio_request(170, "DVI_nPD");
-	/* REVISIT leave DVI powered down until it's needed ... */
-	gpio_direction_output(170, true);
 
 	usb_musb_init();
 	usb_ehci_init();
 	omap3beagle_flash_init();
+	beagle_display_init();
 }
 
 static void __init omap3_beagle_map_io(void)
 {
 	omap2_set_globals_35xx();
+	omap2_set_sdram_vram(1280 * 1024 * 4 * 3, 0);
 	omap2_map_common_io();
 }
 
