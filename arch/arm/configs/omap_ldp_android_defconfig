@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.26-omap1
-# Sun Sep 28 17:49:26 2008
+# Tue Sep 30 21:42:57 2008
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -946,7 +946,8 @@ CONFIG_FB_SYS_FOPS=y
 # CONFIG_FB_GOLDFISH is not set
 CONFIG_FB_VIRTUAL=y
 CONFIG_FB_OMAP=y
-# CONFIG_FB_OMAP_LCD_VGA is not set
+# CONFIG_FB_OMAP_LCD_WVGA is not set
+CONFIG_FB_OMAP_LCD_VGA=y
 # CONFIG_FB_OMAP_LCDC_EXTERNAL is not set
 # CONFIG_FB_OMAP_BOOTLOADER_INIT is not set
 CONFIG_FB_OMAP_CONSISTENT_DMA_SIZE=14
