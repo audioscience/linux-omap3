@@ -1101,9 +1101,8 @@ static int twl4030_bci_battery_probe(struct  platform_device *dev)
 bk_batt_failed:
 	power_supply_unregister(&di->bat);
 batt_failed:
-	free_irq(TWL4030_MODIRQ_PWR, di);
+	free_irq(TWL4030_PWRIRQ_CHG_PRES, di);
 chg_irq_fail:
-prev_setup_err:
 	free_irq(TWL4030_MODIRQ_BCI, NULL);
 batt_irq_fail:
 voltage_setup_fail:

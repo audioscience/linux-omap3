@@ -444,7 +444,7 @@ static int __devinit twl4030_rtc_probe(struct platform_device *pdev)
 
 
 out2:
-	free_irq(TWL4030_MODIRQ_PWR, rtc);
+	free_irq(TWL4030_PWRIRQ_RTC, rtc);
 out1:
 	rtc_device_unregister(rtc);
 out0:
