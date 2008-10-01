@@ -208,6 +208,13 @@ config OMAP_32K_TIMER_HZ
 	  Kernel internal timer frequency should be a divisor of 32768,
 	  such as 64 or 128.
 
+config OMAP3_DEBOBS
+	bool "OMAP 3430 Debug observability support"
+	depends on ARCH_OMAP3 && DEBUG_FS
+	default n
+	help
+	  Use ETK pads for debug observability
+
 config OMAP_TICK_GPTIMER
 	int "GPTIMER used for system tick timer"
 	depends on ARCH_OMAP2 || ARCH_OMAP3
