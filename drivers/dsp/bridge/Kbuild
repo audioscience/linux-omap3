@@ -47,15 +47,15 @@ ccflags-y += -D_TI_ -D_DB_TIOMAP -DOMAP_3430 -D__KERNEL__ -DTMS32060 \
 		-DCHNL_MESSAGES -DUSE_LEVEL_1_MACROS -D__MPU__
 
 #Header files
-ccflags-y += -Idrivers/dsp/dspbridge/mpu_driver/src/services
-ccflags-y += -Idrivers/dsp/dspbridge/mpu_driver/src/wmd/wmdchnl/ \
-		-Idrivers/dsp/dspbridge/mpu_driver/src/wmd/
-ccflags-y += -Idrivers/dsp/dspbridge/mpu_driver/src/pmgr/
-ccflags-y += -Idrivers/dsp/dspbridge/mpu_driver/src/rmgr/
-ccflags-y += -Iinclude -Idrivers/dsp/dspbridge/mpu_driver/inc
-ccflags-y += -Idrivers/dsp/dspbridge/mpu_driver/src/hw/inc \
-		-Idrivers/dsp/dspbridge/mpu_driver/src/hw/mmu \
-		-Idrivers/dsp/dspbridge/mpu_driver/src/hw/prcm \
-		-Idrivers/dsp/dspbridge/mpu_driver/src/hw/ocp \
-		-Idrivers/dsp/dspbridge/mpu_driver/src/hw/dspss \
-		-Idrivers/dsp/dspbridge/mpu_driver/src/hw/mbox
+ccflags-y += -Idrivers/dsp/bridge/services
+ccflags-y += -Idrivers/dsp/bridge/wmd/wmdchnl/ \
+		-Idrivers/dsp/bridge/wmd/
+ccflags-y += -Idrivers/dsp/bridge/pmgr/
+ccflags-y += -Idrivers/dsp/bridge/rmgr/
+ccflags-y += -Iinclude -Iarch/arm/plat-omap/include/dspbridge
+ccflags-y += -Idrivers/dsp/bridge/hw/inc \
+		-Idrivers/dsp/bridge/hw/mmu \
+		-Idrivers/dsp/bridge/hw/prcm \
+		-Idrivers/dsp/bridge/hw/ocp \
+		-Idrivers/dsp/bridge/hw/dspss \
+		-Idrivers/dsp/bridge/hw/mbox

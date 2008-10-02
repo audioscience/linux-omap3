@@ -1199,7 +1199,7 @@ source "drivers/dca/Kconfig"
 
 source "drivers/uio/Kconfig"
 
-source "drivers/dsp/dspbridge/Kconfig"
+source "drivers/dsp/bridge/Kconfig"
 
 if ARCH_OMAP
 source "drivers/cbus/Kconfig"

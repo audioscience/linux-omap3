@@ -104,7 +104,7 @@ source "drivers/android/Kconfig"
 
 source "drivers/uio/Kconfig"
 
-source "drivers/dsp/dspbridge/Kconfig"
+source "drivers/dsp/bridge/Kconfig"
 
 source "drivers/xen/Kconfig"
 endmenu
