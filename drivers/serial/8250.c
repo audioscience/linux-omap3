@@ -51,11 +51,12 @@ unsigned long isr8250_activity;
 #endif
 
 #ifdef CONFIG_ARCH_OMAP34XX
-#define OMAP_MDR1_DISABLE 0x07
-#define OMAP_460800_DIV   0x08
-#define OMAP_921600_DIV   0x04
-#define OMAP_MDR1_MODE13X 0x03
-#define OMAP_MDR1_MODE16X 0x00
+#define OMAP_MDR1_DISABLE	0x07
+#define OMAP_9600_DIV		0x138
+#define OMAP_460800_DIV		0x08
+#define OMAP_921600_DIV		0x04
+#define OMAP_MDR1_MODE16X	0x00
+#define OMAP_MDR1_MODE13X	0x03
 #endif
 
 /*
@@ -2072,8 +2073,16 @@ static unsigned int serial8250_get_divisor(struct uart_port *port, unsigned int 
 	    baud == (port->uartclk/4))
 		quot = 0x8001;
 	else if ((port->flags & UPF_MAGIC_MULTIPLIER) &&
-		 baud == (port->uartclk/8))
+		baud == (port->uartclk/8))
 		quot = 0x8002;
+#ifdef CONFIG_ARCH_OMAP34XX
+	else if ((port->type == PORT_16654) && (baud == 9600))
+		quot = OMAP_9600_DIV;
+	else if ((port->type == PORT_16654) && (baud == 460800))
+		quot = OMAP_460800_DIV;
+	else if ((port->type == PORT_16654) && (baud == 921600))
+		quot = OMAP_921600_DIV;
+#endif
 	else
 		quot = uart_get_divisor(port, baud);
 
@@ -2119,9 +2128,13 @@ serial8250_set_termios(struct uart_port *port, struct ktermios *termios,
 	/*
 	 * Ask the core to calculate the divisor for us.
 	 */
+#ifdef CONFIG_ARCH_OMAP34XX
+	baud = uart_get_baud_rate(port, termios, old, 0, port->uartclk / 13);
+#else
 	baud = uart_get_baud_rate(port, termios, old, 0, port->uartclk/16);
-	quot = serial8250_get_divisor(port, baud);
+#endif
 
+	quot = serial8250_get_divisor(port, baud);
 	/*
 	 * Oxford Semi 952 rev B workaround
 	 */
@@ -2233,6 +2246,14 @@ serial8250_set_termios(struct uart_port *port, struct ktermios *termios,
 	}
 
 	serial_dl_write(up, quot);
+#ifdef CONFIG_ARCH_OMAP34XX
+	/* Omap34XX needs baudrates upper to 230400 for work
+	   with modems */
+	if ((baud > 230400))
+		serial_out(up, UART_OMAP_MDR1, OMAP_MDR1_MODE13X);
+	else
+		serial_out(up, UART_OMAP_MDR1, OMAP_MDR1_MODE16X);
+#endif
 
 	/*
 	 * LCR DLAB must be set to enable 64-byte FIFO mode. If the FCR

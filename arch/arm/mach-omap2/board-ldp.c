@@ -60,15 +60,24 @@
 #define CONTROL_SYSC_AUTOIDLE   (0x1)
 
 #define PRCM_INTERRUPT_MASK     (1 << 11)
+#endif
+
 #define UART1_INTERRUPT_MASK    (1 << 8)
 #define UART2_INTERRUPT_MASK    (1 << 9)
 #define UART3_INTERRUPT_MASK    (1 << 10)
 #define TWL4030_MSECURE_GPIO    22
+
+#define OMAP_CTRL_READADDR	0x48002000
+#define OMAP_MMC1_DAT4		0x150
+#define OMAP_MMC1_DAT5		0x152
+
+#define OMAP_MMC1_DAT4_GPIO	126
+#define OMAP_MMC1_DAT5_GPIO	127
+
 int console_detect(char *str);
 unsigned int uart_interrupt_mask_value;
 u32 *console_padconf_reg;
 bool console_detected;
-#endif
 
 static struct resource ldp_smc911x_resources[] = {
 	[0] = {
@@ -407,6 +416,30 @@ static int ads7846_vaux_control(int vaux_cntrl)
 	return ret;
 }
 
+/**
+ * @brief modem_uart_config : Request & sets GPIO IO pads
+ *
+ * @return - void
+ */
+static void modem_uart_config(void)
+{
+	/* Set the padconfig */
+	omap_writew(0x011c, OMAP_CTRL_READADDR + OMAP_MMC1_DAT4);
+	omap_writew(0x010c, OMAP_CTRL_READADDR + OMAP_MMC1_DAT5);
+
+	/* Set GPIO for conection with Neptune modem */
+
+	/* GPIO_126 is modem_nRst */
+	omap_request_gpio(OMAP_MMC1_DAT4_GPIO);
+	omap_set_gpio_direction(OMAP_MMC1_DAT4_GPIO, 1);
+	omap_set_gpio_dataout(OMAP_MMC1_DAT4_GPIO, 1);
+
+	/* GPIO_127 s  modem_nPwron */
+	omap_request_gpio(OMAP_MMC1_DAT5_GPIO);
+	omap_set_gpio_direction(OMAP_MMC1_DAT5_GPIO, 0);
+	omap_set_gpio_dataout(OMAP_MMC1_DAT5_GPIO, 0);
+}
+
 static struct ads7846_platform_data tsc2046_config __initdata = {
 	.x_max			= 0x0fff,
 	.y_max			= 0x0fff,
@@ -549,6 +582,7 @@ static void __init omap_ldp_init(void)
 	omap_serial_init();
 	usb_musb_init();
 	hsmmc_init();
+	modem_uart_config();
 }
 
 static void __init omap_ldp_map_io(void)
