@@ -74,8 +74,8 @@
 
 	extern BOOL NLDR_Init(void);
 	extern DSP_STATUS NLDR_Load(struct NLDR_NODEOBJECT *hNldrNode,
-				    NLDR_PHASE phase);
+				    enum NLDR_PHASE phase);
 	extern DSP_STATUS NLDR_Unload(struct NLDR_NODEOBJECT *hNldrNode,
-				      NLDR_PHASE phase);
+				    enum NLDR_PHASE phase);
 
 #endif				/* NLDR_ */

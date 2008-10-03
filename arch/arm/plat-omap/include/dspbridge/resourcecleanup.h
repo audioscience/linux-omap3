@@ -33,7 +33,7 @@ extern DSP_STATUS DRV_RemoveAllDMMResElements(HANDLE pCtxt);
 extern DSP_STATUS DRV_RemoveAllNodeResElements(HANDLE pCtxt);
 
 extern DSP_STATUS DRV_ProcUpdatestate(HANDLE pCtxt,
-				      GPP_PROC_RES_STATE resState);
+				      enum GPP_PROC_RES_STATE resState);
 
 extern DSP_STATUS DRV_ProcSetPID(HANDLE pCtxt, s32 hProcess);
 
@@ -104,6 +104,6 @@ extern DSP_STATUS DRV_InsertDSPHEAPResElement(HANDLE hDSPHEAPRes,
 
 extern DSP_STATUS DRV_ProcDisplayResInfo(u8 *pBuf, u32 *pSize);
 
-extern NODE_STATE NODE_GetState(HANDLE hNode);
+extern enum NODE_STATE NODE_GetState(HANDLE hNode);
 
 #endif

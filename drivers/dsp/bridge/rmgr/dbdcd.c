@@ -112,7 +112,7 @@ extern struct GT_Mask curTrace;
 static s32 Atoi(char *pszBuf);
 
 static DSP_STATUS GetAttrsFromBuf(char *pszBuf, u32 ulBufSize,
-				  DSP_DCDOBJTYPE objType,
+				  enum DSP_DCDOBJTYPE objType,
 				  struct DCD_GENERICOBJ *pGenObj);
 
 static void CompressBuf(char *pszBuf, u32 ulBufSize, s32 cCharSize);
@@ -125,7 +125,7 @@ static DSP_STATUS GetDepLibInfo(IN struct DCD_MANAGER *hDcdMgr,
 				OPTIONAL OUT u16 *pNumPersLibs,
 				OPTIONAL OUT struct DSP_UUID *pDepLibUuids,
 				OPTIONAL OUT BOOL *pPersistentDepLibs,
-				IN NLDR_PHASE phase);
+				IN enum NLDR_PHASE phase);
 
 /*
  *  ======== DCD_AutoRegister ========
@@ -281,7 +281,7 @@ DSP_STATUS DCD_DestroyManager(IN struct DCD_MANAGER *hDcdMgr)
  *  Purpose:
  *      Enumerates objects in the DCD.
  */
-DSP_STATUS DCD_EnumerateObject(IN s32 cIndex, IN DSP_DCDOBJTYPE objType,
+DSP_STATUS DCD_EnumerateObject(IN s32 cIndex, IN enum DSP_DCDOBJTYPE objType,
 			       OUT struct DSP_UUID *pUuid)
 {
 	DSP_STATUS status = DSP_SOK;
@@ -411,7 +411,7 @@ void DCD_Exit(void)
 DSP_STATUS DCD_GetDepLibs(IN struct DCD_MANAGER *hDcdMgr,
 			 IN struct DSP_UUID *pUuid,
 			 u16 numLibs, OUT struct DSP_UUID *pDepLibUuids,
-			 OUT BOOL *pPersistentDepLibs, IN NLDR_PHASE phase)
+			 OUT BOOL *pPersistentDepLibs, IN enum NLDR_PHASE phase)
 {
 	DSP_STATUS status = DSP_SOK;
 
@@ -435,7 +435,7 @@ DSP_STATUS DCD_GetDepLibs(IN struct DCD_MANAGER *hDcdMgr,
  */
 DSP_STATUS DCD_GetNumDepLibs(IN struct DCD_MANAGER *hDcdMgr,
 			    IN struct DSP_UUID *pUuid, OUT u16 *pNumLibs,
-			    OUT u16 *pNumPersLibs, IN NLDR_PHASE phase)
+			    OUT u16 *pNumPersLibs, IN enum NLDR_PHASE phase)
 {
 	DSP_STATUS status = DSP_SOK;
 
@@ -462,7 +462,7 @@ DSP_STATUS DCD_GetNumDepLibs(IN struct DCD_MANAGER *hDcdMgr,
  */
 DSP_STATUS DCD_GetObjectDef(IN struct DCD_MANAGER *hDcdMgr,
 			   IN struct DSP_UUID *pObjUuid,
-			   IN DSP_DCDOBJTYPE objType,
+			   IN enum DSP_DCDOBJTYPE objType,
 			   OUT struct DCD_GENERICOBJ *pObjDef)
 {
 	struct DCD_MANAGER *pDcdMgr = hDcdMgr;	/* pointer to DCD manager */
@@ -758,7 +758,7 @@ func_end:
 DSP_STATUS DCD_GetLibraryName(IN struct DCD_MANAGER *hDcdMgr,
 			     IN struct DSP_UUID *pUuid,
 			     IN OUT char *pstrLibName, IN OUT u32 *pdwSize,
-			     NLDR_PHASE phase, OUT BOOL *fPhaseSplit)
+			     enum NLDR_PHASE phase, OUT BOOL *fPhaseSplit)
 {
 	char szRegKey[REG_MAXREGPATHLENGTH];
 	char szUuid[MAXUUIDLEN];
@@ -926,7 +926,7 @@ BOOL DCD_Init(void)
  *      If pszPathName == NULL, unregister the specified DCD object.
  */
 DSP_STATUS DCD_RegisterObject(IN struct DSP_UUID *pUuid,
-			     IN DSP_DCDOBJTYPE objType,
+			     IN enum DSP_DCDOBJTYPE objType,
 			     IN char *pszPathName)
 {
 	DSP_STATUS status = DSP_SOK;
@@ -1035,7 +1035,7 @@ DSP_STATUS DCD_RegisterObject(IN struct DSP_UUID *pUuid,
  *  perform actual object de-registration.
  */
 DSP_STATUS DCD_UnregisterObject(IN struct DSP_UUID *pUuid,
-				IN DSP_DCDOBJTYPE objType)
+				IN enum DSP_DCDOBJTYPE objType)
 {
 	DSP_STATUS status = DSP_SOK;
 
@@ -1129,7 +1129,7 @@ static s32 Atoi(char *pszBuf)
  *      buffer has been converted from DSP format to GPP format.
  */
 static DSP_STATUS GetAttrsFromBuf(char *pszBuf, u32 ulBufSize,
-				 DSP_DCDOBJTYPE objType,
+				 enum DSP_DCDOBJTYPE objType,
 				 struct DCD_GENERICOBJ *pGenObj)
 {
 	DSP_STATUS status = DSP_SOK;
@@ -1481,7 +1481,7 @@ static DSP_STATUS GetDepLibInfo(IN struct DCD_MANAGER *hDcdMgr,
 				OPTIONAL OUT u16 *pNumPersLibs,
 				OPTIONAL OUT struct DSP_UUID *pDepLibUuids,
 				OPTIONAL OUT BOOL *pPersistentDepLibs,
-				NLDR_PHASE phase)
+				enum NLDR_PHASE phase)
 {
 	struct DCD_MANAGER *pDcdMgr = hDcdMgr;	/* pointer to DCD manager */
 	char *pszCoffBuf = NULL;

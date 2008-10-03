@@ -52,11 +52,10 @@ typedef long HW_STATUS;
 *
 * -----------------------------------------------------------------------------
 */
-typedef enum HW_SetClear {
+enum HW_SetClear_t {
     HW_CLEAR,
     HW_SET
-
-} HW_SetClear_t ;
+} ;
 
 /* ----------------------------------------------------------------------------
 * TYPE:         HW_Endianism_t
@@ -66,11 +65,11 @@ typedef enum HW_SetClear {
 *
 * -----------------------------------------------------------------------------
 */
-typedef enum HW_Endianism {
+enum HW_Endianism_t {
     HW_LITTLE_ENDIAN,
     HW_BIG_ENDIAN
 
-} HW_Endianism_t;
+} ;
 
 /* ----------------------------------------------------------------------------
 * TYPE:         HW_ElementSize_t
@@ -80,13 +79,13 @@ typedef enum HW_Endianism {
 *
 * -----------------------------------------------------------------------------
 */
-typedef enum HW_ElementSize {
+enum HW_ElementSize_t {
     HW_ELEM_SIZE_8BIT,
     HW_ELEM_SIZE_16BIT,
     HW_ELEM_SIZE_32BIT,
     HW_ELEM_SIZE_64BIT
 
-} HW_ElementSize_t;
+} ;
 
 /* ----------------------------------------------------------------------------
 * TYPE:         HW_IdleMode_t
@@ -95,10 +94,10 @@ typedef enum HW_ElementSize {
 *
 * -----------------------------------------------------------------------------
 */
-	typedef enum HW_IdleMode {
+	enum HW_IdleMode_t {
 		HW_FORCE_IDLE,
 		HW_NO_IDLE,
 		HW_SMART_IDLE
-	} HW_IdleMode_t;
+	} ;
 
 #endif  /* __HW_DEFS_H */

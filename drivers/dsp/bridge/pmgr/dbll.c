@@ -1002,8 +1002,9 @@ static DSP_STATUS dofOpen(struct DBLL_LibraryObj *zlLib)
  */
 static u16 nameHash(void *key, u16 maxBucket)
 {
-	char *name = (char *)key;
+	u16 ret;
 	u16 hash;
+	char *name = (char *)key;
 
 	DBC_Require(name != NULL);
 
@@ -1014,7 +1015,9 @@ static u16 nameHash(void *key, u16 maxBucket)
 		hash ^= *name++;
 	}
 
-	return (hash % maxBucket);
+	ret = hash % maxBucket;
+
+	return ret;
 }
 
 /*
@@ -1108,6 +1111,7 @@ static int setFilePosn(struct Dynamic_Loader_Stream *this, unsigned int pos)
 static struct dynload_symbol *findSymbol(struct Dynamic_Loader_Sym *this,
 					const char *name)
 {
+	struct dynload_symbol *retSym;
 	struct DBLLSymbol *pSymbol = (struct DBLLSymbol *)this;
 	struct DBLL_LibraryObj *lib;
 	struct DBLL_Symbol *pSym = NULL;
@@ -1119,7 +1123,8 @@ static struct dynload_symbol *findSymbol(struct Dynamic_Loader_Sym *this,
 
 	if (lib != NULL) {
 		if (lib->pTarget->attrs.symLookup) {
-		/* Check current lib + base lib + dep lib + persistent lib */
+			/* Check current lib + base lib + dep lib +
+			 * persistent lib */
 			status = (*(lib->pTarget->attrs.symLookup))
 				 (lib->pTarget->attrs.symHandle,
 				 lib->pTarget->attrs.symArg,
@@ -1142,7 +1147,9 @@ static struct dynload_symbol *findSymbol(struct Dynamic_Loader_Sym *this,
 	}
 
 	DBC_Assert((status && (pSym != NULL)) || (!status && (pSym == NULL)));
-	return (struct dynload_symbol *)pSym;
+
+	retSym = (struct dynload_symbol *)pSym;
+	return retSym;
 }
 
 /*
@@ -1152,6 +1159,7 @@ static struct dynload_symbol *findInSymbolTable(struct Dynamic_Loader_Sym *this,
 						const char *name,
 						unsigned moduleid)
 {
+	struct dynload_symbol *retSym;
 	struct DBLLSymbol *pSymbol = (struct DBLLSymbol *)this;
 	struct DBLL_LibraryObj *lib;
 	struct Symbol *sym;
@@ -1163,7 +1171,8 @@ static struct dynload_symbol *findInSymbolTable(struct Dynamic_Loader_Sym *this,
 
 	sym = (struct Symbol *)GH_find(lib->symTab, (char *) name);
 
-	return (struct dynload_symbol *)&sym->value;
+	retSym = (struct dynload_symbol *)&sym->value;
+	return retSym;
 }
 
 /*

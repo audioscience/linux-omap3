@@ -122,11 +122,9 @@ struct MAILBOX_CONTEXT {
 *		 box Specified. if there are no messages in the mailbox
 *		 then and error is returned.
 */
-extern HW_STATUS HW_MBOX_MsgRead(
-		      const u32	 baseAddress,
-		      const HW_MBOX_Id_t   mailBoxId,
-		      u32 *const	pReadValue
-		  );
+extern HW_STATUS HW_MBOX_MsgRead(const u32 baseAddress,
+				const HW_MBOX_Id_t mailBoxId,
+				u32 *const pReadValue);
 
 /*
 * FUNCTION      : HW_MBOX_MsgWrite

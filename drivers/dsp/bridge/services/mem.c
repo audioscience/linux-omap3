@@ -269,7 +269,7 @@ void *MEM_ExtPhysMemAlloc(u32 bytes, u32 align, OUT u32 *pPhysAddr)
  *  Purpose:
  *      Allocate memory from the paged or non-paged pools.
  */
-void *MEM_Alloc(u32 cBytes, MEM_POOLATTRS type)
+void *MEM_Alloc(u32 cBytes, enum MEM_POOLATTRS type)
 {
 	struct memInfo *pMem = NULL;
 
@@ -375,7 +375,7 @@ void *MEM_AllocPhysMem(u32 cBytes, u32 ulAlign, OUT u32 *pPhysicalAddress)
  *  Purpose:
  *      Allocate zero-initialized memory from the paged or non-paged pools.
  */
-void *MEM_Calloc(u32 cBytes, MEM_POOLATTRS type)
+void *MEM_Calloc(u32 cBytes, enum MEM_POOLATTRS type)
 {
 	struct memInfo *pMem = NULL;
 

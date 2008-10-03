@@ -39,7 +39,7 @@
 	/*typedef struct MSG_QUEUE *MSG_HQUEUE;*/
 
 /* Function prototype for callback to be called on RMS_EXIT message received */
-	typedef void(CDECL * MSG_ONEXIT) (HANDLE h, s32 nStatus);
+	typedef void(CDECL *MSG_ONEXIT) (HANDLE h, s32 nStatus);
 
 #endif				/* MSGDEFS_ */
 

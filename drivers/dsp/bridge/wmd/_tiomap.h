@@ -256,15 +256,15 @@ static const struct MAP_L4PERIPHERAL L4PeripheralTable[] = {
 #define MBX_PM_MAX_RESOURCES 11
 
 /*  Power Management Commands*/
-typedef enum {
+enum BPWR_ExtClockCmd {
 	BPWR_DisableClock = 0,
 	BPWR_EnableClock,
 	BPWR_DisableAutoIdle,
 	BPWR_EnableAutoIdle
-} BPWR_ExtClockCmd;
+} ;
 
 /* OMAP242x specific resources*/
-typedef enum {
+enum BPWR_ExtClockId {
 	BPWR_GPTimer5 = 0x10,
 	BPWR_GPTimer6,
 	BPWR_GPTimer7,
@@ -276,7 +276,7 @@ typedef enum {
 	BPWR_MCBSP4,
 	BPWR_MCBSP5,
 	BPWR_SSI = 0x20
-} BPWR_ExtClockId;
+} ;
 
 static const u32 BPWR_CLKID[] = {
 	(u32) BPWR_GPTimer5,
@@ -294,8 +294,8 @@ static const u32 BPWR_CLKID[] = {
 
 struct BPWR_Clk_t {
 	u32 clkId;
-	SERVICES_ClkId funClk;
-	SERVICES_ClkId intClk;
+	enum SERVICES_ClkId funClk;
+	enum SERVICES_ClkId intClk;
 } ;
 
 static const struct BPWR_Clk_t BPWR_Clks[] = {
@@ -323,15 +323,15 @@ static const struct BPWR_Clk_t BPWR_Clks[] = {
  *  Identify the kind of interrupt: either FIQ/IRQ   -
  *  ----------------------------------------------------
  */
-typedef enum {
+enum INTH_InterruptKind_t {
 	INTH_IRQ = 0,
 	INTH_FIQ = 1
-} INTH_InterruptKind_t;
+} ;
 
-typedef enum {
+enum INTH_SensitiveEdge_t {
 	FALLING_EDGE_SENSITIVE = 0,
 	LOW_LEVEL_SENSITIVE = 1
-} INTH_SensitiveEdge_t;
+} ;
 
 /*  ------------------------------------------------------
  *  Bit definition of  Interrupt  Level  Registers       -
@@ -370,9 +370,10 @@ typedef enum {
 #define SetBit(reg, mask)               (reg |= mask)
 
 #define SetGroupBits16(reg, position, width, value) \
-    reg &= ~((0xFFFF >> (16 - (width))) << (position)) ; \
-    reg |= ((value & (0xFFFF >> (16 - (width)))) \
-    << (position))
+	do {\
+		reg &= ~((0xFFFF >> (16 - (width))) << (position)) ; \
+		reg |= ((value & (0xFFFF >> (16 - (width)))) << (position)); \
+	} while (0);
 
 #define ClearBitIndex(reg, index)   (reg &= ~(1 << (index)))
 

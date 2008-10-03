@@ -175,7 +175,7 @@ struct PROC_OBJECT {
 	u32 uAttachCount;	/* Processor attach count */
 	u32 uProcessor;	/* Processor number */
 	u32 uTimeout;		/* Time out count */
-	DSP_PROCSTATE sState;	/* Processor state */
+	enum DSP_PROCSTATE sState;	/* Processor state */
 	u32 ulUnit;		/* DDSP unit number */
 	BOOL bIsAlreadyAttached;	/*
 					 * True if the Device below has
@@ -652,10 +652,9 @@ DSP_STATUS PROC_Detach(DSP_HPROCESSOR hProcessor)
 	res_status = CFG_GetObject((u32 *)&hDRVObject, REG_DRV_OBJECT);
 	/* res_status = CFG_GetObject(REG_DRV_OBJECT, (u32*)&hDRVObject); */
 	if (DSP_SUCCEEDED(res_status)) {
-	    DRV_GetProcContext(hProcess, hDRVObject, &pPctxt, NULL, 0);
-	    if (pPctxt != NULL)
-		pPctxt->hProcessor = NULL;
-
+		DRV_GetProcContext(hProcess, hDRVObject, &pPctxt, NULL, 0);
+		if (pPctxt != NULL)
+			pPctxt->hProcessor = NULL;
 	}
 #endif
 	} else {
@@ -726,7 +725,7 @@ DSP_STATUS PROC_FlushMemory(DSP_HPROCESSOR hProcessor, void *pMpuAddr,
 {
 	/* Keep STATUS here for future additions to this function */
 	DSP_STATUS status = DSP_SOK;
-	DSP_FLUSHTYPE FlushMemType = PROC_WRITEBACK_INVALIDATE_MEM;
+	enum DSP_FLUSHTYPE FlushMemType = PROC_WRITEBACK_INVALIDATE_MEM;
 	DBC_Require(cRefs > 0);
 
 	GT_4trace(PROC_DebugMask, GT_ENTER,
@@ -753,7 +752,7 @@ DSP_STATUS PROC_InvalidateMemory(DSP_HPROCESSOR hProcessor, void *pMpuAddr,
 {
 	/* Keep STATUS here for future additions to this function */
 	DSP_STATUS status = DSP_SOK;
-	DSP_FLUSHTYPE FlushMemType = PROC_INVALIDATE_MEM;
+	enum DSP_FLUSHTYPE FlushMemType = PROC_INVALIDATE_MEM;
 	DBC_Require(cRefs > 0);
 	GT_3trace(PROC_DebugMask, GT_ENTER,
 		 "Entered PROC_InvalidateMemory, args:\n\t"
@@ -809,7 +808,8 @@ DSP_STATUS PROC_GetResourceInfo(DSP_HPROCESSOR hProcessor, u32 uResourceType,
 			if (DSP_SUCCEEDED(NLDR_GetRmmManager(hNldr, &rmm))) {
 				DBC_Assert(rmm != NULL);
 				status = DSP_EVALUE;
-				if (RMM_stat(rmm, (DSP_MEMTYPE) uResourceType,
+				if (RMM_stat(rmm,
+				   (enum DSP_MEMTYPE)uResourceType,
 				   (struct DSP_MEMSTAT *)&(pResourceInfo->
 				   result.memStat)))
 					status = DSP_SOK;
@@ -1135,7 +1135,7 @@ DSP_STATUS PROC_Load(DSP_HPROCESSOR hProcessor, IN CONST s32 iArgc,
 		status = MGR_GetDCDHandle(pProcObject->hMgrObject,
 					 (u32 *)&hDCDHandle);
 		if (DSP_SUCCEEDED(status)) {
-			 /*  Auto register nodes in specified COFF
+			/*  Auto register nodes in specified COFF
 			 *  file.  If registration did not fail,
 			 *  (status = DSP_SOK or DSP_EDCDNOAUTOREGISTER)
 			 *  save the name of the COFF file for
@@ -1243,10 +1243,12 @@ DSP_STATUS PROC_Load(DSP_HPROCESSOR hProcessor, IN CONST s32 iArgc,
 	/* Requesting the lowest opp supported by baseport*/
 		if (constraint_set(mpu_constraint_handle, CO_VDD1_OPP1) != 0)
 			GT_1trace(PROC_DebugMask, GT_4CLASS, "PROC_Load:"
-			     "Constraint setting of %d failed\n", CO_VDD1_OPP1);
+				 "Constraint setting of %d failed\n",
+				 CO_VDD1_OPP1);
 		else
 			GT_1trace(PROC_DebugMask, GT_4CLASS, "PROC_Load:"
-			     "Constraint setting of %d passed\n", CO_VDD1_OPP1);
+				 "Constraint setting  of %d passed\n",
+				 CO_VDD1_OPP1);
 #endif
 #endif
 
@@ -1271,8 +1273,8 @@ DSP_STATUS PROC_Load(DSP_HPROCESSOR hProcessor, IN CONST s32 iArgc,
 	if (DSP_SUCCEEDED(status)) {
 		status = PROC_GetProcessorId(hProcessor, &uProcId);
 		if (uProcId == DSP_UNIT) {
-			 /* Use all available DSP address space after EXTMEM
-			   * for DMM */
+			/* Use all available DSP address space after EXTMEM
+			 * for DMM */
 			if (DSP_SUCCEEDED(status)) {
 				status = COD_GetSymValue(hCodMgr, EXTEND,
 								&dwExtEnd);
@@ -1746,23 +1748,23 @@ DSP_STATUS PROC_UnMap(DSP_HPROCESSOR hProcessor, void *pMapAddr)
 			 (pProcObject->hWmdContext, vaAlign, sizeAlign);
 	}
 #ifndef RES_CLEANUP_DISABLE
-	 GT_1trace(PROC_DebugMask, GT_ENTER,
+	GT_1trace(PROC_DebugMask, GT_ENTER,
 		   "PROC_UnMap DRV_GetDMMResElement "
 		   "pMapAddr:[0x%x]", pMapAddr);
-	 if (!DSP_SUCCEEDED(status))
-		 goto func_end;
+	if (!DSP_SUCCEEDED(status))
+		goto func_end;
 
-	 /* Update the node and stream resource status */
-	 PRCS_GetCurrentHandle(&hProcess);
-	 res_status = CFG_GetObject((u32 *)&hDrvObject, REG_DRV_OBJECT);
-	 if (!DSP_SUCCEEDED(res_status))
-		 goto func_end;
+	/* Update the node and stream resource status */
+	PRCS_GetCurrentHandle(&hProcess);
+	res_status = CFG_GetObject((u32 *)&hDrvObject, REG_DRV_OBJECT);
+	if (!DSP_SUCCEEDED(res_status))
+		goto func_end;
 
-	 DRV_GetProcContext(hProcess, hDrvObject, &pCtxt, NULL, (u32)pMapAddr);
-	 if (pCtxt != NULL) {
-		 if (DRV_GetDMMResElement((u32)pMapAddr, &dmmRes, pCtxt) !=
+	DRV_GetProcContext(hProcess, hDrvObject, &pCtxt, NULL, (u32)pMapAddr);
+	if (pCtxt != NULL) {
+		if (DRV_GetDMMResElement((u32)pMapAddr, &dmmRes, pCtxt) !=
 		   DSP_ENOTFOUND)
-			 DRV_RemoveDMMResElement(dmmRes, pCtxt);
+			DRV_RemoveDMMResElement(dmmRes, pCtxt);
 	}
 func_end:
 #endif

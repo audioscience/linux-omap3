@@ -114,11 +114,11 @@ struct loadMonStruct {
 
 	typedef u32 SMWORD;
 
-	typedef enum {
+	enum SHM_DESCTYPE {
 		SHM_CURROPP = 0,
 		SHM_OPPINFO = 1,
 		SHM_GETOPP = 2,		/* Get DSP requested OPP info */
-	} SHM_DESCTYPE;
+	} ;
 
 /* Structure in shared between DSP and PC for communication.*/
 	struct SHM {

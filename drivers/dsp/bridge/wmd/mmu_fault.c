@@ -106,8 +106,9 @@ void MMU_FaultIsr(IN void *pRefData)
 			 (struct CFG_DEVNODE *)DRV_GetFirstDevExtension(),
 			 &resources);
 		if (!DSP_SUCCEEDED(status))
-		DBG_Trace(DBG_LEVEL7,
-			 "**Failed to get Host Resources in MMU ISR **\n");
+			DBG_Trace(DBG_LEVEL7,
+				 "**Failed to get Host Resources "
+				 "in MMU ISR **\n");
 		if (MMU_CheckIfFault(pDevContext)) {
 			printk(KERN_INFO "***** DSPMMU FAULT ***** IRQStatus "
 				"0x%x\n", dmmuEventMask);

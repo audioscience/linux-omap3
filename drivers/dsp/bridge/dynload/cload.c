@@ -190,10 +190,10 @@ extern int Dynamic_Load_Module(struct Dynamic_Loader_Stream *module,
 			if ((!dl_state.dload_errcount) &&
 			   (dl_state.dfile_hdr.df_entry_secn != DN_UNDEF)) {
 				if (init != NULL) {
-				if (!init->execute(init,
-				   dl_state.dfile_hdr.df_entrypt))
-					dload_error(&dl_state,
-						"Init->Execute Failed");
+					if (!init->execute(init,
+					   dl_state.dfile_hdr.df_entrypt))
+						dload_error(&dl_state,
+						    "Init->Execute Failed");
 				} else {
 					dload_error(&dl_state, "init is NULL");
 				}
@@ -301,9 +301,9 @@ Dynamic_Open_Module(struct Dynamic_Loader_Stream *module,
 			if ((!dl_state.dload_errcount)
 			    && (dl_state.dfile_hdr.df_entry_secn != DN_UNDEF))
 				if (!init->execute(init,
-				    dl_state.dfile_hdr.df_entrypt))
-				    dload_error(&dl_state,
-				    "Init->Execute Failed");
+				   dl_state.dfile_hdr.df_entrypt))
+					dload_error(&dl_state,
+					    "Init->Execute Failed");
 			init->release(init);
 		}
 
@@ -853,7 +853,8 @@ static void dload_symbols(struct dload_state *dlthis)
 					 * defined. Check for revision clash
 					 * before proceeding.		*/
 					if (chk_revision_mix(dlthis, sname)) {
-					/* If revision IDs are mixed, return */
+						/* If revision IDs are mixed,
+						 * return */
 						return;
 					}
 #endif
@@ -1209,9 +1210,9 @@ static void dload_data(struct dload_state *dlthis)
 #ifdef OPT_ZERO_COPY_LOADER
 				bZeroCopy = FALSE;
 				if (DLOAD_SECT_TYPE(sptr) != DLOAD_CINIT) {
-				dlthis->myio->writemem(dlthis->myio, &pDest,
-						lptr->load_addr + image_offset,
-						lptr, 0);
+					dlthis->myio->writemem(dlthis->myio,
+						&pDest, lptr->load_addr +
+						image_offset, lptr, 0);
 				bZeroCopy = (pDest != ibuf.bufr);
 				}
 #endif

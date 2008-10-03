@@ -71,7 +71,7 @@
 #include <strmdefs.h>
 #include <dbdcd.h>
 
-typedef union {
+union Trapped_Args {
 
 	/* MGR Module */
 	struct {
@@ -90,17 +90,17 @@ typedef union {
 
 	struct {
 		struct DSP_UUID *pUuid;
-		DSP_DCDOBJTYPE objType;
+		enum DSP_DCDOBJTYPE objType;
 		char *pszPathName;
 	} ARGS_MGR_REGISTEROBJECT;
 
 	struct {
 		struct DSP_UUID *pUuid;
-		DSP_DCDOBJTYPE objType;
+		enum DSP_DCDOBJTYPE objType;
 	} ARGS_MGR_UNREGISTEROBJECT;
 
 	struct {
-		struct DSP_NOTIFICATION* *aNotifications;
+		struct DSP_NOTIFICATION **aNotifications;
 		u32 uCount;
 		u32 *puIndex;
 		u32 uTimeout;
@@ -394,7 +394,7 @@ typedef union {
 
 	struct {
 		DSP_HPROCESSOR hProcessor;
-		struct CMM_OBJECT* *phCmmMgr;
+		struct CMM_OBJECT **phCmmMgr;
 	} ARGS_CMM_GETHANDLE;
 
 	struct {
@@ -405,13 +405,13 @@ typedef union {
 	/* MEM Module */
 	struct {
 		u32 cBytes;
-		MEM_POOLATTRS type;
+		enum MEM_POOLATTRS type;
 		void *pMem;
 	} ARGS_MEM_ALLOC;
 
 	struct {
 		u32 cBytes;
-		MEM_POOLATTRS type;
+		enum MEM_POOLATTRS type;
 		void *pMem;
 	} ARGS_MEM_CALLOC;
 
@@ -435,8 +435,7 @@ typedef union {
 		s32 cArgc;
 		char **ppArgv;
 	} ARGS_UTIL_TESTDLL;
-
-} Trapped_Args;
+} ;
 
 #define CMD_BASE		    1
 

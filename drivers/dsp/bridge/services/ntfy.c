@@ -103,7 +103,7 @@ static void DeleteNotify(struct NOTIFICATION *pNotify);
  *  Purpose:
  *      Create an empty list of notifications.
  */
-DSP_STATUS NTFY_Create(struct NTFY_OBJECT* *phNtfy)
+DSP_STATUS NTFY_Create(struct NTFY_OBJECT **phNtfy)
 {
 	struct NTFY_OBJECT *pNtfy;
 	DSP_STATUS status = DSP_SOK;
@@ -257,7 +257,7 @@ DSP_STATUS NTFY_Register(struct NTFY_OBJECT *hNtfy,
 
 	pNotify = (struct NOTIFICATION *)LST_First(hNtfy->notifyList);
 	while (pNotify != NULL) {
-		 /* If there is more than one notification type, each
+		/* If there is more than one notification type, each
 		 * type may require its own handler code.  */
 
 		if (hNotification->handle == pNotify->hSync) {

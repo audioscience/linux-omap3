@@ -334,7 +334,8 @@
  *  Ensures:
  */
 	extern DSP_STATUS IO_SHMsetting(IN struct IO_MGR *hIOMgr,
-					IN SHM_DESCTYPE desc, IN void *pArgs);
+					IN enum SHM_DESCTYPE desc,
+					IN void *pArgs);
 
 /*
  *  Misc functions for the CHNL_IO shared memory library:

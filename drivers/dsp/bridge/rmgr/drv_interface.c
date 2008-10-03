@@ -155,10 +155,10 @@ static struct omap34xx_bridge_suspend_data bridge_suspend_data;
 int omap34xxbridge_suspend_lockout(struct omap34xx_bridge_suspend_data *s,
 				  struct file *f)
 {
-    if ((s)->suspended) {
-	if ((f)->f_flags & O_NONBLOCK)
-	    return DSP_EDPMSUSPEND;
-	wait_event_interruptible((s)->suspend_wq, (s)->suspended == 0);
+	if ((s)->suspended) {
+		if ((f)->f_flags & O_NONBLOCK)
+			return DSP_EDPMSUSPEND;
+		wait_event_interruptible((s)->suspend_wq, (s)->suspended == 0);
 	}
 	return 0;
 }
@@ -583,7 +583,7 @@ int bridge_open(struct inode *ip, struct file *filp)
 
 	DRV_GetProcCtxtList(&pCtxtclosed, hDrvObject);
 	while (pCtxtclosed != NULL) {
-		tsk = find_task_by_pid(pCtxtclosed->pid);
+		tsk = find_task_by_vpid(pCtxtclosed->pid);
 		/*if ((tsk == NULL) || (tsk->exit_state == 16))*/
 		if ((tsk == NULL) || (tsk->exit_state == EXIT_ZOMBIE)) {
 			/* || (tsk->exit_state == EXIT_DEAD)*/
@@ -687,7 +687,7 @@ int bridge_ioctl(struct inode *ip, struct file *filp, unsigned int code,
 {
 	int status;
 	u32 retval = DSP_SOK;
-	Trapped_Args pBufIn;
+	union Trapped_Args pBufIn;
 
 	DBC_Require(filp != 0);
 #ifndef DISABLE_BRIDGE_PM
@@ -702,8 +702,8 @@ int bridge_ioctl(struct inode *ip, struct file *filp, unsigned int code,
 	/* Deduct one for the CMD_BASE. */
 	code = (code - 1);
 
-	status = copy_from_user(&pBufIn,
-				(Trapped_Args *)args, sizeof(Trapped_Args));
+	status = copy_from_user(&pBufIn, (union Trapped_Args *)args,
+				sizeof(union Trapped_Args));
 
 	if (status >= 0) {
 		status = WCD_CallDevIOCtl(code, &pBufIn, &retval);

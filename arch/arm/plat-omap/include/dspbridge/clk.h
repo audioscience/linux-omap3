@@ -31,7 +31,7 @@
 	/* Generic TIMER object: */
 	/*typedef struct TIMER_OBJECT *TIMER_HOBJECT;*/
 	struct TIMER_OBJECT;
-	typedef enum {
+	enum SERVICES_ClkId {
 		SERVICESCLK_iva2_ck = 0,
 		SERVICESCLK_mailbox_ick,
 		SERVICESCLK_gpt5_fck,
@@ -59,7 +59,7 @@
 		SERVICESCLK_sys_32k_ck,
 		SERVICESCLK_sys_ck,
 		SERVICESCLK_NOT_DEFINED
-	} SERVICES_ClkId;
+	} ;
 
 /*
  *  ======== CLK_Exit ========
@@ -100,7 +100,7 @@
  *  Requires:
  *  Ensures:
  */
-	extern DSP_STATUS CLK_Enable(IN SERVICES_ClkId clk_id);
+	extern DSP_STATUS CLK_Enable(IN enum SERVICES_ClkId clk_id);
 
 /*
  *  ======== CLK_Disable ========
@@ -113,7 +113,7 @@
  *  Requires:
  *  Ensures:
  */
-	extern DSP_STATUS CLK_Disable(IN SERVICES_ClkId clk_id);
+	extern DSP_STATUS CLK_Disable(IN enum SERVICES_ClkId clk_id);
 
 /*
  *  ======== CLK_GetRate ========
@@ -126,7 +126,8 @@
  *  Requires:
  *  Ensures:
  */
-	extern DSP_STATUS CLK_GetRate(IN SERVICES_ClkId clk_id, u32 *speedMhz);
+	extern DSP_STATUS CLK_GetRate(IN enum SERVICES_ClkId clk_id,
+				     u32 *speedMhz);
 /*
  *  ======== CLK_Set_32KHz ========
  *  Purpose:
@@ -138,7 +139,7 @@
  *  Requires:
  *  Ensures:
  */
-	extern DSP_STATUS CLK_Set_32KHz(IN SERVICES_ClkId clk_id);
+	extern DSP_STATUS CLK_Set_32KHz(IN enum SERVICES_ClkId clk_id);
 	extern void SSI_Clk_Prepare(BOOL FLAG);
 
 /*
@@ -152,7 +153,7 @@
  *  Requires:
  *  Ensures:
  */
-	extern s32 CLK_Get_UseCnt(IN SERVICES_ClkId clk_id);
+	extern s32 CLK_Get_UseCnt(IN enum SERVICES_ClkId clk_id);
 /*	extern DSP_STATUS CLK_AutoIdleCtrl(IN SERVICES_ClkId clk_id,s32 cmd); */
 
 #endif				/* _SYNC_H */

@@ -31,19 +31,19 @@
 #include <linux/types.h>
 
 /* EXPORTED TYPES */
-	typedef enum HW_DSPSYSC_BootMode {
+	enum HW_DSPSYSC_BootMode_t {
 		HW_DSPSYSC_DIRECTBOOT = 0x0,
 		HW_DSPSYSC_IDLEBOOT = 0x1,
 		HW_DSPSYSC_SELFLOOPBOOT = 0x2,
 		HW_DSPSYSC_USRBOOTSTRAP = 0x3,
 		HW_DSPSYSC_DEFAULTRESTORE = 0x4
-	} HW_DSPSYSC_BootMode_t;
+	} ;
 
 #define HW_DSP_IDLEBOOT_ADDR   0x007E0000
 
 /* EXPORTED FUNCTIONS */
 	extern HW_STATUS HW_DSPSS_BootModeSet(const u32 baseAddress,
-						HW_DSPSYSC_BootMode_t bootMode,
-						const u32 bootAddress);
+					enum HW_DSPSYSC_BootMode_t bootMode,
+					const u32 bootAddress);
 
 #endif				/* __HW_DSPSS_H */

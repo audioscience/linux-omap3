@@ -103,15 +103,15 @@
  *  Function prototypes for writing memory to a DSP system, allocating
  *  and freeing DSP memory.
  */
-	typedef u32(CDECL * COD_WRITEFXN) (void *pPrivRef, u32 ulDspAddr,
+	typedef u32(CDECL *COD_WRITEFXN) (void *pPrivRef, u32 ulDspAddr,
 					     void *pBuf, u32 ulNumBytes,
 					     u32 nMemSpace);
 
-	typedef BOOL(CDECL * COD_ALLOCFXN) (void *pPrivRef, u32 space,
+	typedef BOOL(CDECL *COD_ALLOCFXN) (void *pPrivRef, u32 space,
 					    u32 ulNumBytes, u32 ulAlign,
 					    u32 *ulDspAddr, BOOL fReserved);
 
-	typedef BOOL(CDECL * COD_FREEFXN) (void *pPrivReg, u32 ulDspAddr,
+	typedef BOOL(CDECL *COD_FREEFXN) (void *pPrivReg, u32 ulDspAddr,
 					   u32 space, u32 ulNumBytes,
 					   BOOL fReserved);
 

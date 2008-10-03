@@ -93,7 +93,7 @@
 #include <devdefs.h>
 
 /* Notification callback for DEV clients BRD and CHNL */
-	typedef void(CDECL * DEV_CALLBACK) (void *pArb, u32 ulStatus);
+	typedef void(CDECL *DEV_CALLBACK) (void *pArb, u32 ulStatus);
 
 /*
  *  ======== DEV_BrdWriteFxn ========

@@ -32,11 +32,11 @@
 #define MEMDEFS_
 
 /* Memory Pool Attributes: */
-	typedef enum {
+	enum MEM_POOLATTRS {
 		MEM_PAGED = 0,
 		MEM_NONPAGED = 1,
 		MEM_LARGEVIRTMEM = 2
-	} MEM_POOLATTRS;
+	} ;
 
 /*
  *  MEM_VIRTUALSEGID is used by Node & Strm to access virtual address space in

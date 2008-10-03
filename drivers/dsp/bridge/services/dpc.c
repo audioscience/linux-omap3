@@ -122,7 +122,8 @@ DSP_STATUS DPC_Create(OUT struct DPC_OBJECT **phDPC, DPC_PROC pfnDPC,
 			pDPCObject->numRequestedMax = 0;
 			pDPCObject->cEntryCount = 0;
 #endif
-			pDPCObject->dpc_lock = SPIN_LOCK_UNLOCKED;
+			pDPCObject->dpc_lock =
+				__SPIN_LOCK_UNLOCKED(pDPCObject.dpc_lock);
 			*phDPC = pDPCObject;
 		} else {
 			GT_0trace(DPC_DebugMask, GT_6CLASS,
@@ -205,7 +206,7 @@ DSP_STATUS DPC_Schedule(struct DPC_OBJECT *hDPC)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct DPC_OBJECT *pDPCObject = (struct DPC_OBJECT *)hDPC;
-	u32 flags;
+	unsigned long flags;
 
 	GT_1trace(DPC_DebugMask, GT_ENTER, "DPC_Schedule hDPC %x\n", hDPC);
 	if (MEM_IsValidHandle(hDPC, SIGNATURE)) {

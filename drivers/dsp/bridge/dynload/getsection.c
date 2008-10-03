@@ -157,13 +157,13 @@ DLOAD_module_info DLOAD_module_open(struct Dynamic_Loader_Stream *module,
 	/* Check that mandatory arguments are present */
 	if (!module || !syms) {
 		if (syms != 0)
-		dload_syms_error(syms, "Required parameter is NULL");
+			dload_syms_error(syms, "Required parameter is NULL");
 
 		return NULL;
 	}
 
 	dlthis = (struct dload_state *)
-		  syms->Allocate(syms, sizeof(struct dload_state));
+		 syms->Allocate(syms, sizeof(struct dload_state));
 	if (!dlthis) {
 		/* not enough storage */
 		dload_syms_error(syms, "Can't allocate module info");

@@ -290,7 +290,7 @@ struct NLDR_NODEOBJECT {
 	s32 nPersLib;		/* Number of persistent libraries */
 	/* Path in lib dependency tree */
 	struct DBLL_LibraryObj *libPath[MAXDEPTH + 1];
-	NLDR_PHASE phase;	/* Node phase currently being loaded */
+	enum NLDR_PHASE phase;	/* Node phase currently being loaded */
 
 	/*
 	 *  Dynamic loading memory segments for data and code of each phase.
@@ -332,7 +332,8 @@ static u32 cRefs;		/* module reference count */
 
 static DSP_STATUS AddOvlyInfo(void *handle, struct DBLL_SectInfo *sectInfo,
 			     u32 addr, u32 nBytes);
-static DSP_STATUS AddOvlyNode(struct DSP_UUID *pUuid, DSP_DCDOBJTYPE objType,
+static DSP_STATUS AddOvlyNode(struct DSP_UUID *pUuid,
+			     enum DSP_DCDOBJTYPE objType,
 			     IN void *handle);
 static DSP_STATUS AddOvlySect(struct NLDR_OBJECT *hNldr,
 			      struct OvlySect **pList,
@@ -347,8 +348,9 @@ static BOOL GetSymbolValue(void *handle, void *pArg, void *rmmHandle,
 static DSP_STATUS LoadLib(struct NLDR_NODEOBJECT *hNldrNode,
 			 struct LibNode *root, struct DSP_UUID uuid,
 			 BOOL rootPersistent, struct DBLL_LibraryObj **libPath,
-			 NLDR_PHASE phase, u16 depth);
-static DSP_STATUS LoadOvly(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase);
+			 enum NLDR_PHASE phase, u16 depth);
+static DSP_STATUS LoadOvly(struct NLDR_NODEOBJECT *hNldrNode,
+			  enum NLDR_PHASE phase);
 static DSP_STATUS RemoteAlloc(void **pRef, u16 memType, u32 size,
 			     u32 align, u32 *dspAddr,
 			     OPTIONAL s32 segmentId, OPTIONAL s32 req,
@@ -357,7 +359,8 @@ static DSP_STATUS RemoteFree(void **pRef, u16 space, u32 dspAddr,
 			    u32 size, BOOL reserve);
 
 static void UnloadLib(struct NLDR_NODEOBJECT *hNldrNode, struct LibNode *root);
-static void UnloadOvly(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase);
+static void UnloadOvly(struct NLDR_NODEOBJECT *hNldrNode,
+		      enum NLDR_PHASE phase);
 static BOOL findInPersistentLibArray(struct NLDR_NODEOBJECT *hNldrNode,
 				    struct DBLL_LibraryObj *lib);
 static u32 findLcm(u32 a, u32 b);
@@ -909,7 +912,7 @@ BOOL NLDR_Init(void)
 /*
  *  ======== NLDR_Load ========
  */
-DSP_STATUS NLDR_Load(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase)
+DSP_STATUS NLDR_Load(struct NLDR_NODEOBJECT *hNldrNode, enum NLDR_PHASE phase)
 {
 	struct NLDR_OBJECT *hNldr;
 	struct DSP_UUID libUUID;
@@ -969,7 +972,7 @@ DSP_STATUS NLDR_Load(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase)
 /*
  *  ======== NLDR_Unload ========
  */
-DSP_STATUS NLDR_Unload(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase)
+DSP_STATUS NLDR_Unload(struct NLDR_NODEOBJECT *hNldrNode, enum NLDR_PHASE phase)
 {
 	DSP_STATUS status = DSP_SOK;
 	struct LibNode *pRootLib = NULL;
@@ -1048,9 +1051,11 @@ static DSP_STATUS AddOvlyInfo(void *handle, struct DBLL_SectInfo *sectInfo,
 	if (!(i < hNldr->nOvlyNodes))
 		goto func_end;
 
-	/* Determine which phase this section belongs to. */
 	for (pch = pSectName + 1; *pch && *pch != seps; pch++) {
+		/* Determine which phase
+		 * this section belongs to */
 	}
+
 	if (*pch) {
 		pch++;	/* Skip over the ':' */
 		if (CSL_Strncmp(pch, PCREATE, CSL_Strlen(PCREATE)) == 0) {
@@ -1093,7 +1098,8 @@ func_end:
  *  ======== AddOvlyNode =========
  *  Callback function passed to DCD_GetObjects.
  */
-static DSP_STATUS AddOvlyNode(struct DSP_UUID *pUuid, DSP_DCDOBJTYPE objType,
+static DSP_STATUS AddOvlyNode(struct DSP_UUID *pUuid,
+			     enum DSP_DCDOBJTYPE objType,
 			     IN void *handle)
 {
 	struct NLDR_OBJECT *hNldr = (struct NLDR_OBJECT *)handle;
@@ -1313,7 +1319,7 @@ static BOOL GetSymbolValue(void *handle, void *pArg, void *rmmHandle,
 static DSP_STATUS LoadLib(struct NLDR_NODEOBJECT *hNldrNode,
 			 struct LibNode *root, struct DSP_UUID uuid,
 			 BOOL rootPersistent, struct DBLL_LibraryObj **libPath,
-			 NLDR_PHASE phase, u16 depth)
+			 enum NLDR_PHASE phase, u16 depth)
 {
 	struct NLDR_OBJECT *hNldr = hNldrNode->pNldr;
 	u16 nLibs = 0;	/* Number of dependent libraries */
@@ -1530,7 +1536,8 @@ static DSP_STATUS LoadLib(struct NLDR_NODEOBJECT *hNldrNode,
 /*
  *  ======== LoadOvly ========
  */
-static DSP_STATUS LoadOvly(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase)
+static DSP_STATUS LoadOvly(struct NLDR_NODEOBJECT *hNldrNode,
+			  enum NLDR_PHASE phase)
 {
 	struct NLDR_OBJECT *hNldr = hNldrNode->pNldr;
 	struct OvlyNode *pONode = NULL;
@@ -1850,7 +1857,7 @@ static void UnloadLib(struct NLDR_NODEOBJECT *hNldrNode, struct LibNode *root)
 /*
  *  ======== UnloadOvly ========
  */
-static void UnloadOvly(struct NLDR_NODEOBJECT *hNldrNode, NLDR_PHASE phase)
+static void UnloadOvly(struct NLDR_NODEOBJECT *hNldrNode, enum NLDR_PHASE phase)
 {
 	struct NLDR_OBJECT *hNldr = hNldrNode->pNldr;
 	struct OvlyNode *pONode = NULL;
@@ -1938,8 +1945,11 @@ static BOOL findInPersistentLibArray(struct NLDR_NODEOBJECT *hNldrNode,
  */
 static u32 findLcm(u32 a, u32 b)
 {
+	u32 retVal;
 
-	return (a * b / findGcf(a, b));
+	retVal = a * b / findGcf(a, b);
+
+	return retVal;
 }
 
 /*

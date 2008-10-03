@@ -92,7 +92,7 @@
  *      the size requested.
  */
 #ifdef __KERNEL__
-	extern void *MEM_Alloc(IN u32 cBytes, IN MEM_POOLATTRS type);
+	extern void *MEM_Alloc(IN u32 cBytes, IN enum MEM_POOLATTRS type);
 #else
 #define MEM_Alloc(size, type) malloc(size)
 #endif
@@ -161,7 +161,7 @@
  *      The returned pointer, if not NULL, points to a valid memory block
  *      of the size requested.
  */
-	extern void *MEM_Calloc(IN u32 cBytes, IN MEM_POOLATTRS type);
+	extern void *MEM_Calloc(IN u32 cBytes, IN enum MEM_POOLATTRS type);
 
 /*
  *  ======== MEM_Exit ========

@@ -123,7 +123,7 @@ DSP_STATUS handle_hibernation_fromDSP(struct WMD_DEV_CONTEXT *pDevContext)
 	u16 usCount = TIHELEN_ACKTIMEOUT;
 	struct CFG_HOSTRES resources;
 	DSP_STATUS status = DSP_SOK;
-	HW_PwrState_t pwrState;
+	enum HW_PwrState_t pwrState;
 	u32 opplevel;
 	struct IO_MGR *hIOMgr;
 
@@ -169,9 +169,10 @@ DSP_STATUS handle_hibernation_fromDSP(struct WMD_DEV_CONTEXT *pDevContext)
 			/* Set the OPP to low level before moving to OFF mode */
 			if (opplevel != CO_VDD1_OPP1) {
 					DBG_Trace(DBG_LEVEL5,
-					   "Tiomap_pwr.c - DSP requested OPP "
-					   "= %d, MPU requesting low OPP %d "
-					   "instead\n", opplevel, CO_VDD1_OPP1);
+						"Tiomap_pwr.c - DSP requested"
+						" OPP = %d, MPU requesting low"
+						" OPP %d instead\n", opplevel,
+						CO_VDD1_OPP1);
 				if (constraint_set(dsp_constraint_handle,
 						  CO_VDD1_OPP1) != 0) {
 					DBG_Trace(DBG_LEVEL7,
@@ -204,8 +205,8 @@ DSP_STATUS SleepDSP(struct WMD_DEV_CONTEXT *pDevContext, IN u32 dwCmd,
 #ifndef DISABLE_BRIDGE_PM
 	struct CFG_HOSTRES resources;
 	u16 usCount = TIHELEN_ACKTIMEOUT;
-	HW_PwrState_t pwrState;
-	HW_PwrState_t targetPwrState;
+	enum HW_PwrState_t pwrState;
+	enum HW_PwrState_t targetPwrState;
 
 	status = CFG_GetHostResources(
 		 (struct CFG_DEVNODE *)DRV_GetFirstDevExtension(), &resources);
@@ -245,7 +246,7 @@ DSP_STATUS SleepDSP(struct WMD_DEV_CONTEXT *pDevContext, IN u32 dwCmd,
 	case BRD_DSP_HIBERNATION:
 		/* Already in Hibernation, so just return */
 		DBG_Trace(DBG_LEVEL7, "SleepDSP- DSP already in "
-			 "hibernation %x\n", pwrState);
+			 "hibernation\n");
 		return DSP_SOK;
 	case BRD_STOPPED:
 		DBG_Trace(DBG_LEVEL7,
@@ -298,7 +299,7 @@ DSP_STATUS WakeDSP(struct WMD_DEV_CONTEXT *pDevContext, IN void *pArgs)
 	DSP_STATUS status = DSP_SOK;
 #ifndef DISABLE_BRIDGE_PM
 	struct CFG_HOSTRES resources;
-	HW_PwrState_t pwrState;
+	enum HW_PwrState_t pwrState;
 
 	status = CFG_GetHostResources(
 		 (struct CFG_DEVNODE *)DRV_GetFirstDevExtension(), &resources);

@@ -439,7 +439,7 @@ Bool RMM_init(void)
 /*
  *  ======== RMM_stat ========
  */
-Bool RMM_stat(struct RMM_TargetObj *target, DSP_MEMTYPE segid,
+Bool RMM_stat(struct RMM_TargetObj *target, enum DSP_MEMTYPE segid,
 	     struct DSP_MEMSTAT *pMemStatBuf)
 {
 	struct RMM_Header *head;

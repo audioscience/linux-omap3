@@ -55,11 +55,11 @@
 * DESCRIPTION:  Enumerated Type used to specify whether to follow CPU/TLB
 * 		Element size
 */
-typedef enum HW_MMUMixedSize {
-    HW_MMU_TLBES,
-    HW_MMU_CPUES
+enum HW_MMUMixedSize_t {
+	HW_MMU_TLBES,
+	HW_MMU_CPUES
 
-} HW_MMUMixedSize_t;
+} ;
 
 /*
 * TYPE:	 HW_MMUMapAttrs_t
@@ -67,15 +67,10 @@ typedef enum HW_MMUMixedSize {
 * DESCRIPTION:  Struct containing MMU mapping attributes
 */
 struct HW_MMUMapAttrs_t {
-    HW_Endianism_t     endianism;
-    HW_ElementSize_t   elementSize;
-    HW_MMUMixedSize_t  mixedSize;
+	enum HW_Endianism_t     endianism;
+	enum HW_ElementSize_t   elementSize;
+	enum HW_MMUMixedSize_t  mixedSize;
 } ;
-
-/*
- * EXPORTED VARIABLES
- */
-
 
 /*
  * EXPORTED FUNCTIONS
@@ -127,8 +122,8 @@ extern HW_STATUS HW_MMU_TLBAdd(const u32     baseAddress,
 				  u32	   pageSize,
 				  u32	    entryNum,
 				  struct HW_MMUMapAttrs_t *mapAttrs,
-				  HW_SetClear_t    preservedBit,
-				  HW_SetClear_t    validBit);
+				  enum HW_SetClear_t    preservedBit,
+				  enum HW_SetClear_t    validBit);
 
 
 /* For PTEs */
@@ -144,42 +139,51 @@ extern HW_STATUS HW_MMU_PteClear(const u32   pgTblVa,
 
 static inline u32 HW_MMU_PteAddrL1(u32 L1_base, u32 va)
 {
-    u32 VA_31_to_20;
+	u32 pteAddr;
+	u32 VA_31_to_20;
 
-    VA_31_to_20  = va >> (20 - 2); /* Left-shift by 2 here itself */
-    VA_31_to_20 &= 0xFFFFFFFCUL;
+	VA_31_to_20  = va >> (20 - 2); /* Left-shift by 2 here itself */
+	VA_31_to_20 &= 0xFFFFFFFCUL;
+	pteAddr = L1_base + VA_31_to_20;
 
-    /* return ( (L1_base & 0xFFFFC000) | VA_31_to_20 ); */
-    return (L1_base + VA_31_to_20);
+	return pteAddr;
 }
 
 static inline u32 HW_MMU_PteAddrL2(u32 L2_base, u32 va)
 {
-    return ((L2_base & 0xFFFFFC00) | ((va >> 10) & 0x3FC));
+	u32 pteAddr;
+
+	pteAddr = (L2_base & 0xFFFFFC00) | ((va >> 10) & 0x3FC);
+
+	return pteAddr;
 }
 
 static inline u32 HW_MMU_PteCoarseL1(u32 pteVal)
 {
-    return (pteVal & 0xFFFFFC00);
+	u32 pteCoarse;
+
+	pteCoarse = pteVal & 0xFFFFFC00;
+
+	return pteCoarse;
 }
 
 static inline u32 HW_MMU_PteSizeL1(u32 pteVal)
 {
-    u32 pteSize = 0;
+	u32 pteSize = 0;
 
-    if ((pteVal & 0x3) == 0x1) {
-	/* Points to L2 PT */
-	pteSize = HW_MMU_COARSE_PAGE_SIZE;
-    }
+	if ((pteVal & 0x3) == 0x1) {
+		/* Points to L2 PT */
+		pteSize = HW_MMU_COARSE_PAGE_SIZE;
+	}
 
-    if ((pteVal & 0x3) == 0x2) {
-	if (pteVal & (1 << 18))
-	    pteSize = HW_PAGE_SIZE_16MB;
-	else
-	    pteSize = HW_PAGE_SIZE_1MB;
-    }
+	if ((pteVal & 0x3) == 0x2) {
+		if (pteVal & (1 << 18))
+			pteSize = HW_PAGE_SIZE_16MB;
+		else
+			pteSize = HW_PAGE_SIZE_1MB;
+	}
 
-    return pteSize;
+	return pteSize;
 }
 
 static inline u32 HW_MMU_PteSizeL2(u32 pteVal)

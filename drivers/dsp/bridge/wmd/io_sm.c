@@ -1119,8 +1119,8 @@ void IO_RequestChnl(struct IO_MGR *pIOMgr, struct CHNL_OBJECT *pChnl,
 	pChnlMgr = pIOMgr->hChnlMgr;
 	sm = pIOMgr->pSharedMem;
 	if (iMode == IO_INPUT) {
-		 /*  Assertion fires if CHNL_AddIOReq() called on a stream
-		  * which was cancelled, or attached to a dead board: */
+		/*  Assertion fires if CHNL_AddIOReq() called on a stream
+		 * which was cancelled, or attached to a dead board: */
 		DBC_Assert((pChnl->dwState == CHNL_STATEREADY) ||
 			  (pChnl->dwState == CHNL_STATEEOS));
 		/* Indicate to the DSP we have a buffer available for input: */
@@ -1129,8 +1129,8 @@ void IO_RequestChnl(struct IO_MGR *pIOMgr, struct CHNL_OBJECT *pChnl,
 		/* Interrupt DSP:  *//* IO_InterruptDSP(pIOMgr->hWmdContext); */
 		*pwMbVal = MBX_PCPY_CLASS;
 	} else if (iMode == IO_OUTPUT) {
-		 /*  This assertion fails if CHNL_AddIOReq() was called on a
-		  * stream which was cancelled, or attached to a dead board: */
+		/*  This assertion fails if CHNL_AddIOReq() was called on a
+		 * stream which was cancelled, or attached to a dead board: */
 		DBC_Assert((pChnl->dwState & ~CHNL_STATEEOS) ==
 			  CHNL_STATEREADY);
 		/* Record the fact that we have a buffer available for
@@ -1744,7 +1744,7 @@ void IO_IntrDSP2(IN struct IO_MGR *pIOMgr, IN u16 wMbVal)
  *  Purpose:
  *      Sets the requested SHM setting.
  */
-DSP_STATUS IO_SHMsetting(IN struct IO_MGR *hIOMgr, IN SHM_DESCTYPE desc,
+DSP_STATUS IO_SHMsetting(IN struct IO_MGR *hIOMgr, IN enum SHM_DESCTYPE desc,
 			 IN void *pArgs)
 {
 	u32 i;
@@ -1855,7 +1855,7 @@ void PrintDSPDebugTrace(struct IO_MGR *hIOMgr)
 			hIOMgr->ulGPPReadPointer += ulNewMessageLength;
 			/* Print the trace messages */
 			DBG_Trace(DBG_LEVEL3, "hIOMgr->pMsg=0x%x",
-					hIOMgr->pMsg);
+				 hIOMgr->pMsg);
 		}
 		/* Handle trace buffer wraparound */
 		else if (ulGPPCurPointer < hIOMgr->ulGPPReadPointer) {
@@ -1877,7 +1877,7 @@ void PrintDSPDebugTrace(struct IO_MGR *hIOMgr)
 						   ulNewMessageLength;
 			/* Print the trace messages */
 			DBG_Trace(DBG_LEVEL3, "hIOMgr->pMsg=0x%x",
-					hIOMgr->pMsg);
+				 hIOMgr->pMsg);
 		}
 	}
 }

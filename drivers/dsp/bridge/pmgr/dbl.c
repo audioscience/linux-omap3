@@ -72,7 +72,7 @@
 #define EXECUTEPHASE 2
 #define NONE 3		/* For overlay section with phase not specified */
 
-#define MIN(a, b)	    ((a) < (b)? (a) : (b))
+#define MIN(a, b)	    ((a) < (b) ? (a) : (b))
 
 /* Default load buffer size */
 #define LOADBUFSIZE     0x800

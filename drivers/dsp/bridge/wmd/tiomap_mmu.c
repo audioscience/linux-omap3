@@ -59,8 +59,9 @@
  */
 void configureDspMmu(struct WMD_DEV_CONTEXT *pDevContext, u32 dataBasePhys,
 		    u32 dspBaseVirt, u32 sizeInBytes, s32 nEntryStart,
-		    HW_Endianism_t endianism, HW_ElementSize_t elemSize,
-		    HW_MMUMixedSize_t mixedSize)
+		    enum HW_Endianism_t endianism,
+		    enum HW_ElementSize_t elemSize,
+		    enum HW_MMUMixedSize_t mixedSize)
 {
 	struct CFG_HOSTRES resources;
 	struct HW_MMUMapAttrs_t mapAttrs = { endianism, elemSize, mixedSize };

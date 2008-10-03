@@ -69,12 +69,10 @@
 #define DBDEFS_
 
 #include <linux/types.h>
-#include <asm/types.h>
 
 #include <dbtype.h>		/* GPP side type definitions           */
 #include <std.h>		/* DSP/BIOS type definitions           */
 #include <rms_sh.h>		/* Types shared between GPP and DSP    */
-#include <linux/types.h>
 
 #define PG_SIZE_4K 4096
 #define PG_MASK(pg_size) (~((pg_size)-1))
@@ -211,86 +209,86 @@
 	/*DSP_UUID, *DSP_HUUID;*/
 
 /* DCD types */
-	typedef enum {
+	enum DSP_DCDOBJTYPE {
 		DSP_DCDNODETYPE,
 		DSP_DCDPROCESSORTYPE,
 		DSP_DCDLIBRARYTYPE,
 		DSP_DCDCREATELIBTYPE,
 		DSP_DCDEXECUTELIBTYPE,
 		DSP_DCDDELETELIBTYPE
-	} DSP_DCDOBJTYPE;
+	} ;
 
 /* Processor states */
-	typedef enum {
+	enum DSP_PROCSTATE {
 		PROC_STOPPED,
 		PROC_LOADED,
 		PROC_RUNNING
-	} DSP_PROCSTATE;
+	} ;
 
 /* Node types */
-	typedef enum {
+	enum DSP_NODETYPE {
 		NODE_DEVICE,
 		NODE_TASK,
 		NODE_DAISSOCKET,
 		NODE_MESSAGE
-	} DSP_NODETYPE;
+	} ;
 
 /* Node states */
-	typedef enum {
+	enum DSP_NODESTATE {
 		NODE_ALLOCATED,
 		NODE_CREATED,
 		NODE_RUNNING,
 		NODE_PAUSED,
 		NODE_DONE
-	} DSP_NODESTATE;
+	} ;
 
 /* Stream states */
-	typedef enum {
+	enum DSP_STREAMSTATE {
 		STREAM_IDLE,
 		STREAM_READY,
 		STREAM_PENDING,
 		STREAM_DONE
-	} DSP_STREAMSTATE;
+	} ;
 
 /* Stream connect types */
-	typedef enum {
+	enum DSP_CONNECTTYPE {
 		CONNECTTYPE_NODEOUTPUT,
 		CONNECTTYPE_GPPOUTPUT,
 		CONNECTTYPE_NODEINPUT,
 		CONNECTTYPE_GPPINPUT
-	} DSP_CONNECTTYPE;
+	} ;
 
 /* Stream mode types */
-	typedef enum {
+	enum DSP_STRMMODE {
 		STRMMODE_PROCCOPY, /* Processor(s) copy stream data payloads */
 		STRMMODE_ZEROCOPY, /* Strm buffer ptrs swapped no data copied */
 		STRMMODE_LDMA,	/* Local DMA : OMAP's System-DMA device */
 		STRMMODE_RDMA	/* Remote DMA: OMAP's DSP-DMA device */
-	} DSP_STRMMODE;
+	} ;
 
 /* Resource Types */
-	typedef enum {
+	enum DSP_RESOURCEINFOTYPE {
 		DSP_RESOURCE_DYNDARAM = 0,
 		DSP_RESOURCE_DYNSARAM,
 		DSP_RESOURCE_DYNEXTERNAL,
 		DSP_RESOURCE_DYNSRAM,
 		DSP_RESOURCE_PROCLOAD
-	} DSP_RESOURCEINFOTYPE;
+	} ;
 
 /* Memory Segment Types */
-	typedef enum {
+	enum DSP_MEMTYPE {
 		DSP_DYNDARAM = 0,
 		DSP_DYNSARAM,
 		DSP_DYNEXTERNAL,
 		DSP_DYNSRAM
-	} DSP_MEMTYPE;
+	} ;
 
 /* Memory Flush Types */
-       typedef enum {
+       enum DSP_FLUSHTYPE {
 		PROC_INVALIDATE_MEM = 0,
 		PROC_WRITEBACK_MEM,
 		PROC_WRITEBACK_INVALIDATE_MEM,
-	} DSP_FLUSHTYPE;
+	} ;
 
 /* Memory Segment Status Values */
 	 struct DSP_MEMSTAT {
@@ -316,7 +314,7 @@
 		u32 uNumBufs;	/* Number of buffers */
 		u32 uAlignment;	/* Buffer alignment */
 		u32 uTimeout;	/* Timeout for blocking STRM calls */
-		DSP_STRMMODE lMode;	/* mode of stream when opened */
+		enum DSP_STRMMODE lMode;	/* mode of stream when opened */
 		/* DMA chnl id if DSP_STRMMODE is LDMA or RDMA */
 		u32 uDMAChnlId;
 		u32 uDMAPriority;  /* DMA channel priority 0=lowest, >0=high */
@@ -357,7 +355,7 @@
  */
 	struct DSP_STREAMCONNECT {
 		u32 cbStruct;
-		DSP_CONNECTTYPE lType;
+		enum DSP_CONNECTTYPE lType;
 		u32 uThisNodeStreamIndex;
 		DSP_HNODE hConnectedNode;
 		struct DSP_UUID uiConnectedNodeID;
@@ -377,7 +375,7 @@
 		u32 cbStruct;
 		struct DSP_UUID uiNodeID;
 		char acName[DSP_MAXNAMELEN];
-		DSP_NODETYPE uNodeType;
+		enum DSP_NODETYPE uNodeType;
 		u32 bCacheOnGPP;
 		struct DSP_RESOURCEREQMTS dspResourceReqmts;
 		s32 iPriority;
@@ -395,24 +393,26 @@
 	} ;
 	/*DSP_NDBPROPS, *DSP_HNDBPROPS;*/
 
-    /* The DSP_NODEATTRIN structure describes the attributes of a node client */
-    struct DSP_NODEATTRIN {
-	    u32 cbStruct;
-	    s32 iPriority;
-	    u32 uTimeout;
-	    u32    uProfileID;
-	    /* Reserved, for Bridge Internal use only */
-	    u32    uHeapSize;
-	    void *pGPPVirtAddr; /* Reserved, for Bridge Internal use only */
+	/* The DSP_NODEATTRIN structure describes the attributes of a
+	 * node client */
+	struct DSP_NODEATTRIN {
+		u32 cbStruct;
+		s32 iPriority;
+		u32 uTimeout;
+		u32    uProfileID;
+		/* Reserved, for Bridge Internal use only */
+		u32    uHeapSize;
+		void *pGPPVirtAddr; /* Reserved, for Bridge Internal use only */
 	} ;
 	/*DSP_NODEATTRIN, *DSP_HNODEATTRIN;*/
 
-/* The DSP_NODEINFO structure is used to retrieve information about a node */
+	/* The DSP_NODEINFO structure is used to retrieve information
+	 * about a node */
 	struct DSP_NODEINFO {
 		u32 cbStruct;
 		struct DSP_NDBPROPS nbNodeDatabaseProps;
 		u32 uExecutionPriority;
-		DSP_NODESTATE nsExecutionState;
+		enum DSP_NODESTATE nsExecutionState;
 		DSP_HNODE hDeviceOwner;
 		u32 uNumberStreams;
 		struct DSP_STREAMCONNECT scStreamConnection[16];
@@ -420,7 +420,7 @@
 	} ;
 	/*DSP_NODEINFO, *DSP_HNODEINFO;*/
 
-/* The DSP_NODEATTR structure describes the attributes of a node */
+	/* The DSP_NODEATTR structure describes the attributes of a node */
 	struct DSP_NODEATTR {
 		u32 cbStruct;
 		struct DSP_NODEATTRIN inNodeAttrIn;
@@ -483,7 +483,7 @@
 /* The DSP_PROCESSORSTATE structure describes the state of a DSP processor */
 	struct DSP_PROCESSORSTATE {
 		u32 cbStruct;
-		DSP_PROCSTATE iState;
+		enum DSP_PROCSTATE iState;
 		struct DSP_ERRORINFO errInfo;
 	} ;
 	/*DSP_PROCESSORSTATE, *DSP_HPROCESSORSTATE;*/
@@ -494,7 +494,7 @@
  */
 	struct DSP_RESOURCEINFO {
 		u32 cbStruct;
-		DSP_RESOURCEINFOTYPE uResourceType;
+		enum DSP_RESOURCEINFOTYPE uResourceType;
 		union {
 			u32 ulResource;
 			struct DSP_MEMSTAT memStat;
@@ -514,7 +514,7 @@
 		u32 uSegment;
 		u32 uAlignment;
 		u32 uNumBufs;
-		DSP_STRMMODE lMode;
+		enum DSP_STRMMODE lMode;
 		u32 uDMAChnlId;
 		u32 uDMAPriority;
 	} ;
@@ -538,7 +538,7 @@
 		u32 uNumberBufsInStream;
 		u32 ulNumberBytes;
 		HANDLE hSyncObjectHandle;
-		DSP_STREAMSTATE ssStreamState;
+		enum DSP_STREAMSTATE ssStreamState;
 	} ;
 	/*DSP_STREAMINFO, *DSP_HSTREAMINFO;*/
 

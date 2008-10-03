@@ -105,9 +105,9 @@ struct WMDIOCTL_EXTPROC {
 	/* GPP virtual address. __va does not work for ioremapped addresses */
 	u32 ulGppVa;
 	u32 ulSize;		/* Size of the mapped memory in bytes */
-	HW_Endianism_t endianism;
-	HW_MMUMixedSize_t mixedMode;
-	HW_ElementSize_t elemSize;
+	enum HW_Endianism_t endianism;
+	enum HW_MMUMixedSize_t mixedMode;
+	enum HW_ElementSize_t elemSize;
 };
 
 struct WMDIOCTL_CHNLRW_ARGS {
