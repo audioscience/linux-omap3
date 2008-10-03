@@ -29,3 +29,4 @@ obj-$(CONFIG_OMAP_MMU_FWK) += mmu.o
 # OMAP mailbox framework
 obj-$(CONFIG_OMAP_MBOX_FWK) += mailbox.o
 
+obj-$(CONFIG_OMAP_PM_NOOP) += omap-pm-noop.o
