@@ -143,11 +143,11 @@ u32 DSP_Init(OUT u32 *initStatus)
 
 	GT_0trace(curTrace, GT_ENTER, "Entering DSP_Init \r\n");
 
-	if (!DSP_SUCCEEDED(WCD_Init())) {
+	if (DSP_FAILED(WCD_Init())) {
 		GT_0trace(curTrace, GT_7CLASS, "DSP_Init Failed \n");
 		goto func_cont;
 	}			/* End WCD_Exit */
-	if (!DSP_SUCCEEDED(DRV_Create(&drvObject))) {
+	if (DSP_FAILED(DRV_Create(&drvObject))) {
 		GT_0trace(curTrace, GT_7CLASS, "DSP_Init:DRV_Create Failed \n");
 		WCD_Exit();
 		goto func_cont;

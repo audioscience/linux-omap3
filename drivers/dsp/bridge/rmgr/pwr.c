@@ -65,11 +65,11 @@ DSP_STATUS PWR_SleepDSP(IN CONST u32 sleepCode, IN CONST u32 timeout)
 			hDevObject =
 				(struct DEV_OBJECT *)DRV_GetNextDevObject
 				((u32)hDevObject)) {
-		if (!DSP_SUCCEEDED(DEV_GetWMDContext(hDevObject,
+		if (DSP_FAILED(DEV_GetWMDContext(hDevObject,
 		   (struct WMD_DEV_CONTEXT **)&dwContext))) {
 			continue;
 		}
-		if (!DSP_SUCCEEDED(DEV_GetIntfFxns(hDevObject,
+		if (DSP_FAILED(DEV_GetIntfFxns(hDevObject,
 		   (struct WMD_DRV_INTERFACE **)&pIntfFxns))) {
 			continue;
 		}

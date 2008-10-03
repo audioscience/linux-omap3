@@ -149,8 +149,8 @@
 
 #define cp_fm_usr(dest, src, status, elements)    \
     if (DSP_SUCCEEDED(status)) {\
-	if ((src == NULL) || \
-	   copy_from_user(dest, src, elements * sizeof(*(dest)))) {\
+	    if (unlikely(src == NULL) ||				\
+		unlikely(copy_from_user(dest, src, elements * sizeof(*(dest))))) { \
 		GT_1trace(WCD_debugMask, GT_7CLASS, \
 		"copy_from_user failed, src=0x%x\n", src);  \
 		status = DSP_EPOINTER ; \
@@ -159,8 +159,8 @@
 
 #define cp_to_usr(dest, src, status, elements)    \
     if (DSP_SUCCEEDED(status)) {\
-	if ((dest == NULL) || \
-	   copy_to_user(dest, src, elements * sizeof(*(src)))) { \
+	    if (unlikely(dest == NULL) ||				\
+		unlikely(copy_to_user(dest, src, elements * sizeof(*(src))))) { \
 		GT_1trace(WCD_debugMask, GT_7CLASS, \
 		"copy_to_user failed, dest=0x%x\n", dest); \
 		status = DSP_EPOINTER ;\
@@ -416,10 +416,10 @@ DSP_STATUS WCD_InitComplete2(void)
 	 *  requires KFILE.  */
 	for (hDevObject = DEV_GetFirst(); hDevObject != NULL;
 	     hDevObject = DEV_GetNext(hDevObject)) {
-		if (!DSP_SUCCEEDED(DEV_GetDevNode(hDevObject, &DevNode)))
+		if (DSP_FAILED(DEV_GetDevNode(hDevObject, &DevNode)))
 			continue;
 
-		if (!DSP_SUCCEEDED(DEV_GetDevType(hDevObject, &devType)))
+		if (DSP_FAILED(DEV_GetDevType(hDevObject, &devType)))
 			continue;
 
 		if ((devType == DSP_UNIT) || (devType == IVA_UNIT)) {

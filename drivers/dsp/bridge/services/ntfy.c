@@ -250,7 +250,7 @@ DSP_STATUS NTFY_Register(struct NTFY_OBJECT *hNtfy,
 
 	}
 
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		return status;
 
 	(void)SYNC_EnterCS(hNtfy->hSync);

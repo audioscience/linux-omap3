@@ -192,7 +192,7 @@ DSP_STATUS MGR_EnumNodeInfo(u32 uNode, OUT struct DSP_NDBPROPS *pNDBProps,
 		 uNDBPropsSize, puNumNodes);
 	*puNumNodes = 0;
 	/* Get The Manager Object from the Registry */
-	if (!DSP_SUCCEEDED(CFG_GetObject((u32 *)&pMgrObject,
+	if (DSP_FAILED(CFG_GetObject((u32 *)&pMgrObject,
 	   REG_MGR_OBJECT))) {
 		GT_0trace(MGR_DebugMask, GT_7CLASS,
 			 "Manager_EnumNodeInfo:Failed To Get"
@@ -309,11 +309,11 @@ DSP_STATUS MGR_EnumProcessorInfo(u32 uProcessor,
 			}
 		}
 	}
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	/* Get The Manager Object from the Registry */
-	if (!DSP_SUCCEEDED(CFG_GetObject((u32 *)&pMgrObject,
+	if (DSP_FAILED(CFG_GetObject((u32 *)&pMgrObject,
 	   REG_MGR_OBJECT))) {
 		GT_0trace(MGR_DebugMask, GT_7CLASS,
 			 "Manager_EnumProcessorInfo: "

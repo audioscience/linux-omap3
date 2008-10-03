@@ -291,7 +291,7 @@ DSP_STATUS WMD_IO_Create(OUT struct IO_MGR **phIOMgr,
 	 *  loaded. I chose the value -1 because it was less likely to be
 	 *  a valid address than 0.  */
 	pSharedMem = (struct SHM *) -1;
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont;
 
 	/* Allocate IO manager object: */
@@ -447,13 +447,13 @@ DSP_STATUS WMD_IO_OnLoaded(struct IO_MGR *hIOMgr)
 	/* Get start and length of channel part of shared memory */
 	status = COD_GetSymValue(hCodMan, CHNL_SHARED_BUFFER_BASE_SYM,
 				 &ulShmBase);
-	if (!DSP_SUCCEEDED(status)) {
+	if (DSP_FAILED(status)) {
 		status = CHNL_E_NOMEMMAP;
 		goto func_cont1;
 	}
 	status = COD_GetSymValue(hCodMan, CHNL_SHARED_BUFFER_LIMIT_SYM,
 				&ulShmLimit);
-	if (!DSP_SUCCEEDED(status)) {
+	if (DSP_FAILED(status)) {
 		status = CHNL_E_NOMEMMAP;
 		goto func_cont1;
 	}
@@ -561,7 +561,7 @@ func_cont1:
 			status = DSP_EMEMORY;
 		}
 	}
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont;
 
 	paCurr = ulGppPa;

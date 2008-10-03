@@ -181,7 +181,7 @@ DSP_STATUS STRM_AllocateBuffer(struct STRM_OBJECT *hStrm, u32 uSize,
 			status = DSP_ESIZE;
 
 	}
-	if (!DSP_SUCCEEDED(status)) {
+	if (DSP_FAILED(status)) {
 		status = DSP_EHANDLE;
 		goto func_end;
 	}
@@ -201,12 +201,12 @@ DSP_STATUS STRM_AllocateBuffer(struct STRM_OBJECT *hStrm, u32 uSize,
 		STRM_FreeBuffer(hStrm, apBuffer, uAllocated);
 
 #ifndef RES_CLEANUP_DISABLE
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	PRCS_GetCurrentHandle(&hProcess);
 	res_status = CFG_GetObject((u32 *)&hDrvObject, REG_DRV_OBJECT);
-	if (!DSP_SUCCEEDED(res_status))
+	if (DSP_FAILED(res_status))
 		goto func_end;
 
 	DRV_GetProcContext((u32)hProcess, (struct DRV_OBJECT *)hDrvObject,
@@ -272,13 +272,13 @@ DSP_STATUS STRM_Close(struct STRM_OBJECT *hStrm)
 		}
 	}
 #ifndef RES_CLEANUP_DISABLE
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	/* Update the node and stream resource status */
 	PRCS_GetCurrentHandle(&hProcess);
 	res_status = CFG_GetObject((u32 *)&hDrvObject, REG_DRV_OBJECT);
-	if (!DSP_SUCCEEDED(res_status))
+	if (DSP_FAILED(res_status))
 		goto func_end;
 
 	DRV_GetProcContext((u32)hProcess, (struct DRV_OBJECT *)hDrvObject,
@@ -474,12 +474,12 @@ DSP_STATUS STRM_GetInfo(struct STRM_OBJECT *hStrm,
 			status = DSP_ESIZE;
 		}
 	}
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	pIntfFxns = hStrm->hStrmMgr->pIntfFxns;
 	status = (*pIntfFxns->pfnChnlGetInfo) (hStrm->hChnl, &chnlInfo);
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	if (hStrm->hXlator) {
@@ -702,7 +702,7 @@ DSP_STATUS STRM_Open(struct NODE_OBJECT *hNode, u32 uDir, u32 uIndex,
 
 		}
 	}
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont;
 
 	if ((pAttr->pVirtBase == NULL) || !(pAttr->ulVirtSize > 0))
@@ -954,7 +954,7 @@ DSP_STATUS STRM_Select(IN struct STRM_OBJECT **aStrmTab, u32 nStrms,
 			break;
 		}
 	}
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	/* Determine which channels have IO ready */

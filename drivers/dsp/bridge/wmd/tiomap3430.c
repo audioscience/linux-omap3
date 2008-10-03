@@ -550,7 +550,7 @@ static DSP_STATUS WMD_BRD_Start(struct WMD_DEV_CONTEXT *hDevContext,
 			else
 				status = DSP_EFAIL;
 
-			if (!DSP_SUCCEEDED(status)) {
+			if (DSP_FAILED(status)) {
 				DBG_Trace(DBG_LEVEL7, " Error while setting"
 							"LM Timer  to 32KHz\n");
 			}
@@ -592,7 +592,7 @@ static DSP_STATUS WMD_BRD_Start(struct WMD_DEV_CONTEXT *hDevContext,
 			else
 				status = DSP_EFAIL;
 
-			if (!DSP_SUCCEEDED(status)) {
+			if (DSP_FAILED(status)) {
 				DBG_Trace(DBG_LEVEL7,
 				" Error while setting BIOS Timer  to 32KHz\n");
 			}
@@ -725,7 +725,7 @@ static DSP_STATUS WMD_BRD_Stop(struct WMD_DEV_CONTEXT *hDevContext)
 	status = CFG_GetHostResources(
 			(struct CFG_DEVNODE *)DRV_GetFirstDevExtension(),
 			&resources);
-	if (!DSP_SUCCEEDED(status)) {
+	if (DSP_FAILED(status)) {
 		DBG_Trace(DBG_LEVEL7,
 			  "WMD_BRD_Stop: Get Host resources failed \n");
 		DBG_Trace(DBG_LEVEL1, "Device Stopp failed \n ");
@@ -747,7 +747,7 @@ static DSP_STATUS WMD_BRD_Stop(struct WMD_DEV_CONTEXT *hDevContext)
 		udelay(50);
 
 		clk_status = CLK_Disable(SERVICESCLK_iva2_ck);
-		if (!DSP_SUCCEEDED(clk_status)) {
+		if (DSP_FAILED(clk_status)) {
 			DBG_Trace(DBG_LEVEL6,
 				 "\n WMD_BRD_Stop: CLK_Disable failed "
 				 "for iva2_fck\n");
@@ -764,7 +764,7 @@ static DSP_STATUS WMD_BRD_Stop(struct WMD_DEV_CONTEXT *hDevContext)
 					   HW_SW_SUP_SLEEP);
 	} else {
 		clk_status = CLK_Disable(SERVICESCLK_iva2_ck);
-		if (!DSP_SUCCEEDED(clk_status)) {
+		if (DSP_FAILED(clk_status)) {
 			DBG_Trace(DBG_LEVEL6,
 				 "\n WMD_BRD_Stop: Else loop CLK_Disable failed"
 				 " for iva2_fck\n");
@@ -824,7 +824,7 @@ static DSP_STATUS WMD_BRD_Delete(struct WMD_DEV_CONTEXT *hDevContext)
 	 * IVA2 */
 	status = CFG_GetHostResources(
 		(struct CFG_DEVNODE *)DRV_GetFirstDevExtension(), &resources);
-	if (!DSP_SUCCEEDED(status)) {
+	if (DSP_FAILED(status)) {
 		DBG_Trace(DBG_LEVEL7,
 			 "WMD_BRD_Stop: Get Host resources failed \n");
 		DBG_Trace(DBG_LEVEL1, "Device Delete failed \n ");
@@ -832,7 +832,7 @@ static DSP_STATUS WMD_BRD_Delete(struct WMD_DEV_CONTEXT *hDevContext)
 	}
 	status = SleepDSP(pDevContext, PWR_EMERGENCYDEEPSLEEP, NULL);
 	clk_status = CLK_Disable(SERVICESCLK_iva2_ck);
-	if (!DSP_SUCCEEDED(clk_status)) {
+	if (DSP_FAILED(clk_status)) {
 		DBG_Trace(DBG_LEVEL6, "\n WMD_BRD_Stop: CLK_Disable failed for"
 			  " iva2_fck\n");
 	}
@@ -936,7 +936,7 @@ static DSP_STATUS WMD_DEV_Create(OUT struct WMD_DEV_CONTEXT **ppDevContext,
 	}
 	status = CFG_GetHostResources(
 		(struct CFG_DEVNODE *)DRV_GetFirstDevExtension(), &resources);
-	if (!DSP_SUCCEEDED(status)) {
+	if (DSP_FAILED(status)) {
 		DBG_Trace(DBG_ENTER, "Failed to get host resources   \n");
 		status = DSP_EMEMORY;
 		goto func_end;
@@ -1052,7 +1052,7 @@ static DSP_STATUS WMD_DEV_Create(OUT struct WMD_DEV_CONTEXT **ppDevContext,
 		DBG_Trace(DBG_LEVEL7, "WMD_DEV_create:Reset mail box and "
 			  "enable the clock \n");
 		status = CLK_Enable(SERVICESCLK_mailbox_ick);
-		if (!DSP_SUCCEEDED(status)) {
+		if (DSP_FAILED(status)) {
 			DBG_Trace(DBG_LEVEL7,
 				 "WMD_DEV_create:Reset mail box and "
 				 "enable the clock Fail\n");
@@ -1384,7 +1384,7 @@ static DSP_STATUS WMD_BRD_MemMap(struct WMD_DEV_CONTEXT *hDevContext,
 			  "MPU Buffer !!! \n");
 		status = DSP_EINVALIDARG;
 	}
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont;
 	pPhysAddrPageTbl = DMM_GetPhysicalAddrTable();
 	/* Build the array with virtual to physical translations */
@@ -1988,7 +1988,7 @@ static DSP_STATUS MemMapVmalloc(struct WMD_DEV_CONTEXT *hDevContext,
 	 * Combine physically contiguous regions to reduce TLBs.
 	 * Pass the translated pa to PteUpdate.  */
 	numPages = ulNumBytes / PAGE_SIZE; /* PAGE_SIZE = OS page size */
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont;
 
 	i = 0;
@@ -2064,7 +2064,7 @@ static DSP_STATUS run_IdleBoot(u32 prm_base, u32 cm_base,
 		HW_PWR_IVA2StateGet(prm_base, HW_PWR_DOMAIN_DSP, &pwrState);
 	}
 	clk_status = CLK_Disable(SERVICESCLK_iva2_ck);
-	if (!DSP_SUCCEEDED(clk_status)) {
+	if (DSP_FAILED(clk_status)) {
 		DBG_Trace(DBG_LEVEL6, "CLK_Disbale failed for clk = 0x%x \n",
 			  SERVICESCLK_iva2_ck);
 	}
@@ -2075,7 +2075,7 @@ static DSP_STATUS run_IdleBoot(u32 prm_base, u32 cm_base,
 	/* set the SYSC for Idle Boot */
 	*((REG_UWORD32 *)((u32)(sysctrl_base) + 0x404)) = (u32)0x01;
 	clk_status = CLK_Enable(SERVICESCLK_iva2_ck);
-	if (!DSP_SUCCEEDED(clk_status)) {
+	if (DSP_FAILED(clk_status)) {
 		DBG_Trace(DBG_LEVEL6, "CLK_Enable failed for clk = 0x%x \n",
 			  SERVICESCLK_iva2_ck);
 	}

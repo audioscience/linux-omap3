@@ -166,16 +166,16 @@ DSP_STATUS CHNL_CloseOrphans(struct CHNL_MGR *hChnlMgr, HANDLE hProcess)
 	}
 	if (DSP_SUCCEEDED(GetNumOpenChannels(hChnlMgr, &cOpenChannels)) &&
 			 (cOpenChannels > 0)) {
-		if (!DSP_SUCCEEDED(GetNumChannels(hChnlMgr, &cTotalChnls)))
+		if (DSP_FAILED(GetNumChannels(hChnlMgr, &cTotalChnls)))
 			goto func_end;
 
 		/* For each channel (except for RMS), get process handle: */
 		for (uChnlID = 2; uChnlID < cTotalChnls; uChnlID++) {
-			if (!DSP_SUCCEEDED(CHNL_GetHandle(hChnlMgr, uChnlID,
+			if (DSP_FAILED(CHNL_GetHandle(hChnlMgr, uChnlID,
 			    &hChnl))) {
 				continue;
 			}
-			if (!DSP_SUCCEEDED(CHNL_GetProcessHandle(hChnl,
+			if (DSP_FAILED(CHNL_GetProcessHandle(hChnl,
 			    &hProc))) {
 				continue;
 			}

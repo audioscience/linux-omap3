@@ -175,13 +175,13 @@ DSP_STATUS DISP_Create(OUT struct DISP_OBJECT **phDispObject,
 
 	/* check device type and decide if streams or messag'ing is used for
 	 * RMS/EDS */
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont;
 
 	status = DEV_GetDevType(hDevObject, &devType);
 	GT_1trace(DISP_DebugMask, GT_6CLASS, "DISP_Create: Creating DISP for "
 		 "device = 0x%x\n", devType);
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont;
 
 	if (devType != DSP_UNIT) {
@@ -387,7 +387,7 @@ DSP_STATUS DISP_NodeCreate(struct DISP_OBJECT *hDisp, struct NODE_OBJECT *hNode,
 	GT_1trace(DISP_DebugMask, GT_6CLASS, "DISP_Create: Creating DISP "
 		 "for device = 0x%x\n", devType);
 
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	if (devType != DSP_UNIT) {
@@ -480,7 +480,7 @@ DSP_STATUS DISP_NodeCreate(struct DISP_OBJECT *hDisp, struct NODE_OBJECT *hNode,
 		memcpy(pdwBuf + total, msgArgs.pData, msgArgs.uArgLength);
 		total += dwLength;
 	}
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	/* If node is a task node, copy task create arguments into  buffer */
@@ -845,7 +845,7 @@ static DSP_STATUS SendMessage(struct DISP_OBJECT *hDisp, u32 dwTimeout,
 	status = (*pIntfFxns->pfnChnlAddIOReq) (hChnl, pBuf, ulBytes, 0,
 		 0L, dwArg);
 
-	if (!DSP_SUCCEEDED(status)) {
+	if (DSP_FAILED(status)) {
 		GT_1trace(DISP_DebugMask, GT_6CLASS,
 			 "SendMessage: Channel AddIOReq to"
 			 " RMS failed! Status = 0x%x\n", status);
@@ -871,14 +871,14 @@ static DSP_STATUS SendMessage(struct DISP_OBJECT *hDisp, u32 dwTimeout,
 	}
 func_cont:
 	/* Get the reply */
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	hChnl = hDisp->hChnlFromDsp;
 	ulBytes = REPLYSIZE;
 	status = (*pIntfFxns->pfnChnlAddIOReq)(hChnl, pBuf, ulBytes,
 		 0, 0L, dwArg);
-	if (!DSP_SUCCEEDED(status)) {
+	if (DSP_FAILED(status)) {
 		GT_1trace(DISP_DebugMask, GT_6CLASS,
 			 "SendMessage: Channel AddIOReq "
 			 "from RMS failed! Status = 0x%x\n", status);

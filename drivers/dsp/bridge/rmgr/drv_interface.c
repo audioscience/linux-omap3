@@ -571,7 +571,7 @@ static int bridge_open(struct inode *ip, struct file *filp)
 
 	/* Checking weather task structure for all process existing
 	 * in the process context list If not removing those processes*/
-	if (!DSP_SUCCEEDED(dsp_status))
+	if (DSP_FAILED(dsp_status))
 		goto func_cont;
 
 	DRV_GetProcCtxtList(&pCtxtclosed, (struct DRV_OBJECT *)hDrvObject);

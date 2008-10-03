@@ -451,7 +451,7 @@ DSP_STATUS NODE_Allocate(struct PROC_OBJECT *hProcessor,
 	if (procId != DSP_UNIT)
 		goto func_cont;
 
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont;
 
 	/* Assuming that 0 is not a valid function address */
@@ -471,7 +471,7 @@ DSP_STATUS NODE_Allocate(struct PROC_OBJECT *hProcessor,
 	}
 func_cont:
 	/* Allocate node object and fill in */
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont2;
 
 	MEM_AllocObject(pNode, struct NODE_OBJECT, NODE_SIGNATURE);
@@ -488,7 +488,7 @@ func_cont:
 	/* Get DSP_NDBPROPS from node database */
 	status = GetNodeProps(hNodeMgr->hDcdMgr, pNode, pNodeId,
 			     &(pNode->dcdProps));
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont3;
 
 	pNode->nodeId = *pNodeId;
@@ -522,7 +522,7 @@ func_cont:
 		pNode->createArgs.asa.taskArgs.uGPPHeapAddr =
 						 (u32)pAttrIn->pGPPVirtAddr;
 	}
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont3;
 
 	status = PROC_ReserveMemory(hProcessor,
@@ -538,7 +538,7 @@ func_cont:
 			 "NODE_Allocate: DSPProcessor_Reserve"
 			 " Memory successful: 0x%x\n", status);
 	}
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont3;
 
 	mapAttrs |= DSP_MAPLITTLEENDIAN;
@@ -690,7 +690,7 @@ func_cont2:
 				     ndbProps.uStackSegName, label) == 0) {
 			status = hNodeMgr->nldrFxns.pfnGetFxnAddr(pNode->
 				 hNldrNode, "DYNEXT_BEG", &dynextBase);
-			if (!DSP_SUCCEEDED(status)) {
+			if (DSP_FAILED(status)) {
 				GT_1trace(NODE_debugMask, GT_5CLASS,
 				"NODE_Allocate: Failed to get Address for "
 				"DYNEXT_BEG: 0x%x\n", status);
@@ -699,7 +699,7 @@ func_cont2:
 			status = hNodeMgr->nldrFxns.pfnGetFxnAddr(pNode->
 				 hNldrNode, "L1DSRAM_HEAP", &pulValue);
 
-			if (!DSP_SUCCEEDED(status)) {
+			if (DSP_FAILED(status)) {
 				GT_1trace(NODE_debugMask, GT_5CLASS,
 				"NODE_Allocate: Failed to get Address for "
 				"L1DSRAM_HEAP: 0x%x\n", status);
@@ -847,7 +847,7 @@ DBAPI NODE_AllocMsgBuf(struct NODE_OBJECT *hNode, u32 uSize,
 	if (NODE_GetType(pNode) == NODE_DEVICE)
 		status = DSP_ENODETYPE;
 
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	if (pAttr == NULL)
@@ -946,12 +946,12 @@ DSP_STATUS NODE_ChangePriority(struct NODE_OBJECT *hNode, s32 nPriority)
 				nPriority > hNodeMgr->nMaxPri)
 				status = DSP_ERANGE;
 	}
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	/* Enter critical section */
 	status = SYNC_EnterCS(hNodeMgr->hSync);
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont;
 
 	state = NODE_GetState(hNode);
@@ -1067,7 +1067,7 @@ DSP_STATUS NODE_Connect(struct NODE_OBJECT *hNode1, u32 uStream1,
 			status = DSP_ESTRMMODE;	/* illegal stream mode */
 
 	}
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	if (node1Type != NODE_GPP) {
@@ -1078,7 +1078,7 @@ DSP_STATUS NODE_Connect(struct NODE_OBJECT *hNode1, u32 uStream1,
 	}
 	/* Enter critical section */
 	status = SYNC_EnterCS(hNodeMgr->hSync);
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont;
 
 	/* Nodes must be in the allocated state */
@@ -1332,7 +1332,7 @@ DSP_STATUS NODE_Create(struct NODE_OBJECT *hNode)
 	pIntfFxns = hNodeMgr->pIntfFxns;
 	/* Get access to node dispatcher */
 	status = SYNC_EnterCS(hNodeMgr->hSync);
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont;
 
 	/* Check node state */
@@ -1342,7 +1342,7 @@ DSP_STATUS NODE_Create(struct NODE_OBJECT *hNode)
 	if (DSP_SUCCEEDED(status))
 		status = PROC_GetProcessorId(pNode->hProcessor, &procId);
 
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont2;
 
 	if (procId != DSP_UNIT)
@@ -1668,7 +1668,7 @@ DSP_STATUS NODE_Delete(struct NODE_OBJECT *hNode)
 	pIntfFxns = hNodeMgr->pIntfFxns;
 	/* Enter critical section */
 	status = SYNC_EnterCS(hNodeMgr->hSync);
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	state = NODE_GetState(hNode);
@@ -1680,7 +1680,7 @@ DSP_STATUS NODE_Delete(struct NODE_OBJECT *hNode)
 	if (!(state == NODE_ALLOCATED && hNode->nodeEnv == (u32)NULL) &&
 	   nodeType != NODE_DEVICE) {
 		status = PROC_GetProcessorId(pNode->hProcessor, &procId);
-		if (!DSP_SUCCEEDED(status))
+		if (DSP_FAILED(status))
 			goto func_cont1;
 
 		if (procId == DSP_UNIT || procId == IVA_UNIT) {
@@ -1770,13 +1770,13 @@ func_cont1:
 	 /*  Free host-side resources allocated by NODE_Create()
 	 *  DeleteNode() fails if SM buffers not freed by client!  */
 #ifndef RES_CLEANUP_DISABLE
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont;
 
 	/* Update the node and stream resource status */
 	PRCS_GetCurrentHandle(&hProcess);
 	res_status = CFG_GetObject((u32 *)&hDrvObject, REG_DRV_OBJECT);
-	if (!DSP_SUCCEEDED(res_status))
+	if (DSP_FAILED(res_status))
 		goto func_cont;
 
 	DRV_GetProcContext((u32)hProcess, (struct DRV_OBJECT *)hDrvObject,
@@ -2067,7 +2067,7 @@ DSP_STATUS NODE_GetMessage(struct NODE_OBJECT *hNode, OUT struct DSP_MSG *pMsg,
 	pIntfFxns = hNodeMgr->pIntfFxns;
 	status = (*pIntfFxns->pfnMsgGet)(hNode->hMsgQueue, pMsg, uTimeout);
 	/* Check if message contains SM descriptor */
-	if (!DSP_SUCCEEDED(status) ||  !(pMsg->dwCmd & DSP_RMSBUFDESC))
+	if (DSP_FAILED(status) ||  !(pMsg->dwCmd & DSP_RMSBUFDESC))
 		goto func_end;
 
 	 /* Translate DSP byte addr to GPP Va.  */
@@ -2354,7 +2354,7 @@ DSP_STATUS NODE_PutMessage(struct NODE_OBJECT *hNode,
 		/* end of SYNC_EnterCS */
 		(void)SYNC_LeaveCS(hNodeMgr->hSync);
 	}
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	/* assign pMsg values to new msg  */
@@ -2477,14 +2477,14 @@ DSP_STATUS NODE_Run(struct NODE_OBJECT *hNode)
 		if (nodeType == NODE_DEVICE)
 			status = DSP_ENODETYPE;
 	}
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_end;
 
 	hNodeMgr = hNode->hNodeMgr;
 	pIntfFxns = hNodeMgr->pIntfFxns;
 	/* Enter critical section */
 	status = SYNC_EnterCS(hNodeMgr->hSync);
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont;
 
 	state = NODE_GetState(hNode);
@@ -2494,7 +2494,7 @@ DSP_STATUS NODE_Run(struct NODE_OBJECT *hNode)
 	if (DSP_SUCCEEDED(status))
 		status = PROC_GetProcessorId(pNode->hProcessor, &procId);
 
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont1;
 
 	if ((procId != DSP_UNIT) && (procId != IVA_UNIT))

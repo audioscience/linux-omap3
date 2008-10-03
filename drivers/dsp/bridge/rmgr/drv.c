@@ -788,7 +788,7 @@ static DSP_STATUS  DRV_ProcFreeSTRMRes(HANDLE hPCtxt)
 			MEM_Free(apBuffer);
 		}
 		status = STRM_Close(pSTRMRes->hStream);
-		if (!DSP_SUCCEEDED(status)) {
+		if (DSP_FAILED(status)) {
 			if (status == DSP_EPENDING) {
 				status = STRM_Reclaim(pSTRMRes->hStream,
 						     &pBufPtr, &ulBytes,

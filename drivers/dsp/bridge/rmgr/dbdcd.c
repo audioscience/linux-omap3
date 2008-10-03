@@ -540,7 +540,7 @@ DSP_STATUS DCD_GetObjectDef(IN struct DCD_MANAGER *hDcdMgr,
 		status = REG_GetValue(NULL, szRegKey, szRegKey, (u8 *)szRegData,
 				     &dwBufSize);
 	}
-	if (!DSP_SUCCEEDED(status)) {
+	if (DSP_FAILED(status)) {
 		status = DSP_EUUID;
 		GT_0trace(curTrace, GT_6CLASS, "DCD_GetObjectDef: "
 			 "REG_GetValue() failed\n");
@@ -548,7 +548,7 @@ DSP_STATUS DCD_GetObjectDef(IN struct DCD_MANAGER *hDcdMgr,
 	}
 	/* Open COFF file. */
 	status = COD_Open(pDcdMgr->hCodMgr, szRegData, COD_NOLOAD, &lib);
-	if (!DSP_SUCCEEDED(status)) {
+	if (DSP_FAILED(status)) {
 		status = DSP_EDCDLOADBASE;
 		GT_0trace(curTrace, GT_6CLASS, "DCD_GetObjectDef: "
 			 "COD_OpenBase() failed\n");
@@ -563,7 +563,7 @@ DSP_STATUS DCD_GetObjectDef(IN struct DCD_MANAGER *hDcdMgr,
 	CSL_Strncat(szSectName, szUuid, CSL_Strlen(szUuid));
 	/* Get section information. */
 	status = COD_GetSection(lib, szSectName, &ulAddr, &ulLen);
-	if (!DSP_SUCCEEDED(status)) {
+	if (DSP_FAILED(status)) {
 		status = DSP_EDCDGETSECT;
 		GT_0trace(curTrace, GT_6CLASS, "DCD_GetObjectDef:"
 			 " COD_GetSection() failed\n");
@@ -651,7 +651,7 @@ DSP_STATUS DCD_GetObjects(IN struct DCD_MANAGER *hDcdMgr, IN char *pszCoffPath,
 	}
 	/* Open DSP coff file, don't load symbols. */
 	status = COD_Open(pDcdMgr->hCodMgr, pszCoffPath, COD_NOLOAD, &lib);
-	if (!DSP_SUCCEEDED(status)) {
+	if (DSP_FAILED(status)) {
 		status = DSP_EDCDLOADBASE;
 		GT_0trace(curTrace, GT_6CLASS,
 			 "DCD_AutoRegister: COD_Open() failed\n");
@@ -659,7 +659,7 @@ DSP_STATUS DCD_GetObjects(IN struct DCD_MANAGER *hDcdMgr, IN char *pszCoffPath,
 	}
 	/* Get DCD_RESIGER_SECTION section information. */
 	status = COD_GetSection(lib, DCD_REGISTER_SECTION, &ulAddr, &ulLen);
-	if (!DSP_SUCCEEDED(status) ||  !(ulLen > 0)) {
+	if (DSP_FAILED(status) ||  !(ulLen > 0)) {
 		status = DSP_EDCDNOAUTOREGISTER;
 		GT_0trace(curTrace, GT_6CLASS,
 			 "DCD_GetObjects: COD_GetSection() "
@@ -1534,7 +1534,7 @@ static DSP_STATUS GetDepLibInfo(IN struct DCD_MANAGER *hDcdMgr,
 		}
 	}
 
-	if (!DSP_SUCCEEDED(status) || !(ulLen > 0))
+	if (DSP_FAILED(status) || !(ulLen > 0))
 		goto func_cont;
 
 	/* Allocate zeroed buffer. */
@@ -1550,7 +1550,7 @@ static DSP_STATUS GetDepLibInfo(IN struct DCD_MANAGER *hDcdMgr,
 #endif
 	/* Read section contents. */
 	status = COD_ReadSection(lib, DEPLIBSECT, pszCoffBuf, ulLen);
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont;
 
 	/* Compress and format DSP buffer to conform to PC format. */

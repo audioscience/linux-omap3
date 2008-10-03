@@ -103,7 +103,7 @@ void MMU_FaultIsr(IN void *pRefData)
 		status = CFG_GetHostResources(
 			 (struct CFG_DEVNODE *)DRV_GetFirstDevExtension(),
 			 &resources);
-		if (!DSP_SUCCEEDED(status))
+		if (DSP_FAILED(status))
 			DBG_Trace(DBG_LEVEL7,
 				 "**Failed to get Host Resources "
 				 "in MMU ISR **\n");
@@ -156,7 +156,7 @@ static bool MMU_CheckIfFault(struct WMD_DEV_CONTEXT *pDevContext)
 	struct CFG_HOSTRES resources;
 	status = CFG_GetHostResources(
 		(struct CFG_DEVNODE *)DRV_GetFirstDevExtension(), &resources);
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		DBG_Trace(DBG_LEVEL7, "**Failed to get Host Resources in "
 			 "MMU_CheckIfFault **\n");
 

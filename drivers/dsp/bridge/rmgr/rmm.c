@@ -216,7 +216,7 @@ DSP_STATUS RMM_create(struct RMM_TargetObj **pTarget,
 			 "RMM_create: Memory allocation failed\n");
 		status = DSP_EMEMORY;
 	}
-	if (!DSP_SUCCEEDED(status))
+	if (DSP_FAILED(status))
 		goto func_cont;
 
 	target->numSegs = numSegs;
