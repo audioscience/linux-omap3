@@ -13,12 +13,12 @@
 
 #include <mach/powerdomain.h>
 
-<<<<<<< HEAD
 extern void *omap3_secure_ram_storage;
 extern unsigned short enable_off_mode;
 extern unsigned short voltage_off_while_idle;
 
 extern void omap3_pm_off_mode_enable(int);
+extern void omap_sram_idle(void);
 
 extern int omap3_pm_get_suspend_state(struct powerdomain *pwrdm);
 extern int omap3_pm_set_suspend_state(struct powerdomain *pwrdm, int state);
