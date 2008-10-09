@@ -219,14 +219,14 @@ void musb_platform_set_mode(struct musb *musb, u8 musb_mode)
 
 int __init musb_platform_init(struct musb *musb)
 {
-	struct otg_transceiver *xceiv = otg_get_transceiver();
+	struct otg_transceiver *x = otg_get_transceiver();
 	u32 l;
 
 #if defined(CONFIG_ARCH_OMAP2430)
 	omap_cfg_reg(AE5_2430_USB0HS_STP);
 #endif
 
-	musb->xceiv = *xceiv;
+	musb->xceiv = *x;
 
 	/* The i-clk is AUTO gated. Hence there is no need
 	 * to disable it until the driver is shutdown */

@@ -152,6 +152,7 @@ struct gpio_bank {
 	u32 level_mask;
 	spinlock_t lock;
 	struct gpio_chip chip;
+	struct clk *dbck;
 };
 
 #define METHOD_MPUIO		0
@@ -503,10 +504,15 @@ void omap_set_gpio_debounce(int gpio, int enable)
 	reg += OMAP24XX_GPIO_DEBOUNCE_EN;
 	val = __raw_readl(reg);
 
-	if (enable)
+	if (enable && !(val & l))
 		val |= l;
-	else
+	else if (!enable && val & l)
 		val &= ~l;
+	else
+		return;
+
+	if (cpu_is_omap34xx())
+		enable ? clk_enable(bank->dbck) : clk_disable(bank->dbck);
 
 	__raw_writel(val, reg);
 }
@@ -1301,6 +1307,14 @@ static void gpio_set(struct gpio_chip *chip, unsigned offset, int value)
 	spin_unlock_irqrestore(&bank->lock, flags);
 }
 
+static int gpio_2irq(struct gpio_chip *chip, unsigned offset)
+{
+	struct gpio_bank *bank;
+
+	bank = container_of(chip, struct gpio_bank, chip);
+	return bank->virtual_irq_start + offset;
+}
+
 /*---------------------------------------------------------------------*/
 
 static int initialized;
@@ -1318,7 +1332,6 @@ static struct clk * gpio5_fck;
 #endif
 
 #if defined(CONFIG_ARCH_OMAP3)
-static struct clk *gpio_fclks[OMAP34XX_NR_GPIOS];
 static struct clk *gpio_iclks[OMAP34XX_NR_GPIOS];
 #endif
 
@@ -1332,9 +1345,7 @@ static int __init _omap_gpio_init(void)
 	int i;
 	int gpio = 0;
 	struct gpio_bank *bank;
-#if defined(CONFIG_ARCH_OMAP3)
 	char clk_name[11];
-#endif
 
 	initialized = 1;
 
@@ -1389,12 +1400,6 @@ static int __init _omap_gpio_init(void)
 				printk(KERN_ERR "Could not get %s\n", clk_name);
 			else
 				clk_enable(gpio_iclks[i]);
-			sprintf(clk_name, "gpio%d_fck", i + 1);
-			gpio_fclks[i] = clk_get(NULL, clk_name);
-			if (IS_ERR(gpio_fclks[i]))
-				printk(KERN_ERR "Could not get %s\n", clk_name);
-			else
-				clk_enable(gpio_fclks[i]);
 		}
 	}
 #endif
@@ -1505,6 +1510,7 @@ static int __init _omap_gpio_init(void)
 		bank->chip.get = gpio_get;
 		bank->chip.direction_output = gpio_output;
 		bank->chip.set = gpio_set;
+		bank->chip.to_irq = gpio_2irq;
 		if (bank_is_mpuio(bank)) {
 			bank->chip.label = "mpuio";
 #ifdef CONFIG_ARCH_OMAP16XX
@@ -1533,6 +1539,13 @@ static int __init _omap_gpio_init(void)
 		}
 		set_irq_chained_handler(bank->irq, gpio_irq_handler);
 		set_irq_data(bank->irq, bank);
+
+		if (cpu_is_omap34xx()) {
+			sprintf(clk_name, "gpio%d_dbck", i + 1);
+			bank->dbck = clk_get(NULL, clk_name);
+			if (IS_ERR(bank->dbck))
+				printk(KERN_ERR "Could not get %s\n", clk_name);
+		}
 	}
 
 	/* Enable system clock for GPIO module.

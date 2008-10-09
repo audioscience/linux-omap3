@@ -1,5 +1,5 @@
 /*
- * twl4030_core.c - driver for TWL4030 PM and audio CODEC device
+ * twl4030_core.c - driver for TWL4030/TPS659x0 PM and audio CODEC devices
  *
  * Copyright (C) 2005-2006 Texas Instruments, Inc.
  *
@@ -25,45 +25,86 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
- *
  */
 
-#include <linux/module.h>
 #include <linux/kernel_stat.h>
 #include <linux/init.h>
-#include <linux/time.h>
 #include <linux/mutex.h>
 #include <linux/interrupt.h>
+#include <linux/irq.h>
 #include <linux/random.h>
-#include <linux/syscalls.h>
 #include <linux/kthread.h>
 #include <linux/platform_device.h>
+#include <linux/clk.h>
 
 #include <linux/i2c.h>
 #include <linux/i2c/twl4030.h>
-#include <linux/i2c/twl4030-gpio.h>
-#include <linux/i2c/twl4030-madc.h>
-#include <linux/i2c/twl4030-pwrirq.h>
-#include <linux/slab.h>
-#include <linux/clk.h>
-#include <linux/device.h>
-#include <linux/irq.h>
 
-#include <asm/mach/irq.h>
 
-#include <mach/gpio.h>
-#include <mach/mux.h>
+/*
+ * The TWL4030 "Triton 2" is one of a family of a multi-function "Power
+ * Management and System Companion Device" chips originally designed for
+ * use in OMAP2 and OMAP 3 based systems.  Its control interfaces use I2C,
+ * often at around 3 Mbit/sec, including for interrupt handling.
+ *
+ * This driver core provides genirq support for the interrupts emitted,
+ * by the various modules, and exports register access primitives.
+ *
+ * FIXME this driver currently requires use of the first interrupt line
+ * (and associated registers).
+ */
 
 #define DRIVER_NAME			"twl4030"
 
-/* Macro Definitions */
-#define TWL_CLIENT_STRING		"TWL4030-ID"
-#define TWL_CLIENT_USED			1
-#define TWL_CLIENT_FREE			0
+#if defined(CONFIG_TWL4030_BCI_BATTERY) || \
+	defined(CONFIG_TWL4030_BCI_BATTERY_MODUEL)
+#define twl_has_bci()		true
+#else
+#define twl_has_bci()		false
+#endif
 
-/* IRQ Flags */
-#define FREE				0
-#define USED				1
+#if defined(CONFIG_KEYBOARD_TWL4030) || defined(CONFIG_KEYBOARD_TWL4030_MODULE)
+#define twl_has_keypad()	true
+#else
+#define twl_has_keypad()	false
+#endif
+
+#if defined(CONFIG_GPIO_TWL4030) || defined(CONFIG_GPIO_TWL4030_MODULE)
+#define twl_has_gpio()	true
+#else
+#define twl_has_gpio()	false
+#endif
+
+#if defined(CONFIG_TWL4030_MADC) || defined(CONFIG_TWL4030_MADC_MODULE)
+#define twl_has_madc()	true
+#else
+#define twl_has_madc()	false
+#endif
+
+#if defined(CONFIG_RTC_DRV_TWL4030) || defined(CONFIG_RTC_DRV_TWL4030_MODULE)
+#define twl_has_rtc()	true
+#else
+#define twl_has_rtc()	false
+#endif
+
+#if defined(CONFIG_TWL4030_USB) || defined(CONFIG_TWL4030_USB_MODULE)
+#define twl_has_usb()	true
+#else
+#define twl_has_usb()	false
+#endif
+
+static inline void activate_irq(int irq)
+{
+#ifdef CONFIG_ARM
+	/* ARM requires an extra step to clear IRQ_NOREQUEST, which it
+	 * sets on behalf of every irq_chip.  Also sets IRQ_NOPROBE.
+	 */
+	set_irq_flags(irq, IRQF_VALID);
+#else
+	/* same effect on other architectures */
+	set_irq_noprobe(irq);
+#endif
+}
 
 /* Primary Interrupt Handler on TWL4030 Registers */
 
@@ -78,28 +119,22 @@
 /* Last - for index max*/
 #define TWL4030_MODULE_LAST		TWL4030_MODULE_SECURED_REG
 
-/* Slave address */
-#define TWL4030_NUM_SLAVES		0x04
-#define TWL4030_SLAVENUM_NUM0		0x00
-#define TWL4030_SLAVENUM_NUM1		0x01
-#define TWL4030_SLAVENUM_NUM2		0x02
-#define TWL4030_SLAVENUM_NUM3		0x03
-#define TWL4030_SLAVEID_ID0		0x48
-#define TWL4030_SLAVEID_ID1		0x49
-#define TWL4030_SLAVEID_ID2		0x4A
-#define TWL4030_SLAVEID_ID3		0x4B
+#define TWL4030_NUM_SLAVES		4
 
-/* Base Address defns */
-/* USB ID */
+
+/* Base Address defns for twl4030_map[] */
+
+/* subchip/slave 0 - USB ID */
 #define TWL4030_BASEADD_USB		0x0000
-/* AUD ID */
+
+/* subchip/slave 1 - AUD ID */
 #define TWL4030_BASEADD_AUDIO_VOICE	0x0000
 #define TWL4030_BASEADD_GPIO		0x0098
-
 #define TWL4030_BASEADD_INTBR		0x0085
 #define TWL4030_BASEADD_PIH		0x0080
 #define TWL4030_BASEADD_TEST		0x004C
-/* AUX ID */
+
+/* subchip/slave 2 - AUX ID */
 #define TWL4030_BASEADD_INTERRUPTS	0x00B9
 #define TWL4030_BASEADD_LED		0x00EE
 #define TWL4030_BASEADD_MADC		0x0000
@@ -110,29 +145,14 @@
 #define TWL4030_BASEADD_PWMA		0x00EF
 #define TWL4030_BASEADD_PWMB		0x00F1
 #define TWL4030_BASEADD_KEYPAD		0x00D2
-/* POWER ID */
+
+/* subchip/slave 3 - POWER ID */
 #define TWL4030_BASEADD_BACKUP		0x0014
 #define TWL4030_BASEADD_INT		0x002E
 #define TWL4030_BASEADD_PM_MASTER	0x0036
 #define TWL4030_BASEADD_PM_RECEIVER	0x005B
 #define TWL4030_BASEADD_RTC		0x001C
 #define TWL4030_BASEADD_SECURED_REG	0x0000
-
-/* TWL4030 BCI registers */
-#define TWL4030_INTERRUPTS_BCIIMR1A	0x2
-#define TWL4030_INTERRUPTS_BCIIMR2A	0x3
-#define TWL4030_INTERRUPTS_BCIIMR1B	0x6
-#define TWL4030_INTERRUPTS_BCIIMR2B	0x7
-#define TWL4030_INTERRUPTS_BCIISR1A	0x0
-#define TWL4030_INTERRUPTS_BCIISR2A	0x1
-#define TWL4030_INTERRUPTS_BCIISR1B	0x4
-#define TWL4030_INTERRUPTS_BCIISR2B	0x5
-
-/* TWL4030 keypad registers */
-#define TWL4030_KEYPAD_KEYP_IMR1	0x12
-#define TWL4030_KEYPAD_KEYP_IMR2	0x14
-#define TWL4030_KEYPAD_KEYP_ISR1	0x11
-#define TWL4030_KEYPAD_KEYP_ISR2	0x13
 
 /* Triton Identification */
 #define TWL4030_REG_IDCODE_7_0		0x0
@@ -151,29 +171,24 @@
 
 /* Triton Core internal information (END) */
 
+
 /* Few power values */
 #define R_CFG_BOOT			0x05
 #define R_PROTECT_KEY			0x0E
 
-/* access control */
+/* access control values for R_PROTECT_KEY */
 #define KEY_UNLOCK1			0xce
 #define KEY_UNLOCK2			0xec
 #define KEY_LOCK			0x00
 
+/* some fields in R_CFG_BOOT */
 #define HFCLK_FREQ_19p2_MHZ		(1 << 0)
 #define HFCLK_FREQ_26_MHZ		(2 << 0)
 #define HFCLK_FREQ_38p4_MHZ		(3 << 0)
 #define HIGH_PERF_SQ			(1 << 3)
 
-/* on I2C-1 for 2430SDP */
-#define CONFIG_I2C_TWL4030_ID		1
 
-/* SIH_CTRL registers that aren't defined elsewhere */
-#define TWL4030_INTERRUPTS_BCISIHCTRL	0x0d
-#define TWL4030_MADC_MADC_SIH_CTRL	0x67
-#define TWL4030_KEYPAD_KEYP_SIH_CTRL	0x17
-
-#define TWL4030_SIH_CTRL_COR_MASK	(1 << 2)
+/*----------------------------------------------------------------------*/
 
 /**
  * struct twl4030_mod_iregs - TWL module IMR/ISR regs to mask/clear at init
@@ -284,7 +299,7 @@ static const struct twl4030_mod_iregs __initconst twl4030_mod_regs[] = {
 	},
 	{
 		.mod_no	  = TWL4030_MODULE_MADC,
-		.sih_ctrl = TWL4030_MADC_MADC_SIH_CTRL,
+		.sih_ctrl = TWL4030_MADC_SIH_CTRL,
 		.reg_cnt  = ARRAY_SIZE(twl4030_madc_imr_regs),
 		.imrs	  = twl4030_madc_imr_regs,
 		.isrs	  = twl4030_madc_isr_regs,
@@ -305,30 +320,19 @@ static const struct twl4030_mod_iregs __initconst twl4030_mod_regs[] = {
 	},
 };
 
+/*----------------------------------------------------------------*/
 
-/* Helper functions */
-static int
-twl4030_detect_client(struct i2c_adapter *adapter, unsigned char sid);
-static int twl4030_attach_adapter(struct i2c_adapter *adapter);
-static int twl4030_detach_client(struct i2c_client *client);
-static void do_twl4030_irq(unsigned int irq, irq_desc_t *desc);
-
-static void twl_init_irq(void);
+/* is driver active, bound to a chip? */
+static bool inuse;
 
 /* Data Structures */
 /* Global variable to hold TWL id */
 static u32 twl_id = 0x0;
-/* To have info on T2 IRQ substem activated or not */
-static unsigned char twl_irq_used = FREE;
-static struct completion irq_event;
 
-/* Structure to define on TWL4030 Slave ID */
+/* Structure for each TWL4030 Slave */
 struct twl4030_client {
-	struct i2c_client client;
-	const char client_name[sizeof(TWL_CLIENT_STRING) + 1];
-	const unsigned char address;
-	const char adapter_index;
-	unsigned char inuse;
+	struct i2c_client *client;
+	u8 address;
 
 	/* max numb of i2c_msg required is for read =2 */
 	struct i2c_msg xfer_msg[2];
@@ -337,81 +341,69 @@ struct twl4030_client {
 	struct mutex xfer_lock;
 };
 
-/* Module Mapping */
+static struct twl4030_client twl4030_modules[TWL4030_NUM_SLAVES];
+
+
+/* mapping the module id to slave id and base address */
 struct twl4030mapping {
 	unsigned char sid;	/* Slave ID */
 	unsigned char base;	/* base address */
 };
 
-/* mapping the module id to slave id and base address */
 static struct twl4030mapping twl4030_map[TWL4030_MODULE_LAST + 1] = {
-	{ TWL4030_SLAVENUM_NUM0, TWL4030_BASEADD_USB },
-	{ TWL4030_SLAVENUM_NUM1, TWL4030_BASEADD_AUDIO_VOICE },
-	{ TWL4030_SLAVENUM_NUM1, TWL4030_BASEADD_GPIO },
-	{ TWL4030_SLAVENUM_NUM1, TWL4030_BASEADD_INTBR },
-	{ TWL4030_SLAVENUM_NUM1, TWL4030_BASEADD_PIH },
-	{ TWL4030_SLAVENUM_NUM1, TWL4030_BASEADD_TEST },
-	{ TWL4030_SLAVENUM_NUM2, TWL4030_BASEADD_KEYPAD },
-	{ TWL4030_SLAVENUM_NUM2, TWL4030_BASEADD_MADC },
-	{ TWL4030_SLAVENUM_NUM2, TWL4030_BASEADD_INTERRUPTS },
-	{ TWL4030_SLAVENUM_NUM2, TWL4030_BASEADD_LED },
-	{ TWL4030_SLAVENUM_NUM2, TWL4030_BASEADD_MAIN_CHARGE },
-	{ TWL4030_SLAVENUM_NUM2, TWL4030_BASEADD_PRECHARGE },
-	{ TWL4030_SLAVENUM_NUM2, TWL4030_BASEADD_PWM0 },
-	{ TWL4030_SLAVENUM_NUM2, TWL4030_BASEADD_PWM1 },
-	{ TWL4030_SLAVENUM_NUM2, TWL4030_BASEADD_PWMA },
-	{ TWL4030_SLAVENUM_NUM2, TWL4030_BASEADD_PWMB },
-	{ TWL4030_SLAVENUM_NUM3, TWL4030_BASEADD_BACKUP },
-	{ TWL4030_SLAVENUM_NUM3, TWL4030_BASEADD_INT },
-	{ TWL4030_SLAVENUM_NUM3, TWL4030_BASEADD_PM_MASTER },
-	{ TWL4030_SLAVENUM_NUM3, TWL4030_BASEADD_PM_RECEIVER },
-	{ TWL4030_SLAVENUM_NUM3, TWL4030_BASEADD_RTC },
-	{ TWL4030_SLAVENUM_NUM3, TWL4030_BASEADD_SECURED_REG },
+	/*
+	 * NOTE:  don't change this table without updating the
+	 * <linux/i2c/twl4030.h> defines for TWL4030_MODULE_*
+	 * so they continue to match the order in this table.
+	 */
+
+	{ 0, TWL4030_BASEADD_USB },
+
+	{ 1, TWL4030_BASEADD_AUDIO_VOICE },
+	{ 1, TWL4030_BASEADD_GPIO },
+	{ 1, TWL4030_BASEADD_INTBR },
+	{ 1, TWL4030_BASEADD_PIH },
+	{ 1, TWL4030_BASEADD_TEST },
+
+	{ 2, TWL4030_BASEADD_KEYPAD },
+	{ 2, TWL4030_BASEADD_MADC },
+	{ 2, TWL4030_BASEADD_INTERRUPTS },
+	{ 2, TWL4030_BASEADD_LED },
+	{ 2, TWL4030_BASEADD_MAIN_CHARGE },
+	{ 2, TWL4030_BASEADD_PRECHARGE },
+	{ 2, TWL4030_BASEADD_PWM0 },
+	{ 2, TWL4030_BASEADD_PWM1 },
+	{ 2, TWL4030_BASEADD_PWMA },
+	{ 2, TWL4030_BASEADD_PWMB },
+
+	{ 3, TWL4030_BASEADD_BACKUP },
+	{ 3, TWL4030_BASEADD_INT },
+	{ 3, TWL4030_BASEADD_PM_MASTER },
+	{ 3, TWL4030_BASEADD_PM_RECEIVER },
+	{ 3, TWL4030_BASEADD_RTC },
+	{ 3, TWL4030_BASEADD_SECURED_REG },
 };
 
-static struct twl4030_client twl4030_modules[TWL4030_NUM_SLAVES] = {
-	{
-		.address	= TWL4030_SLAVEID_ID0,
-		.client_name	= TWL_CLIENT_STRING "0",
-		.adapter_index	= CONFIG_I2C_TWL4030_ID,
-	},
-	{
-		.address	= TWL4030_SLAVEID_ID1,
-		.client_name	= TWL_CLIENT_STRING "1",
-		.adapter_index	= CONFIG_I2C_TWL4030_ID,
-	},
-	{
-		.address	= TWL4030_SLAVEID_ID2,
-		.client_name	= TWL_CLIENT_STRING "2",
-		.adapter_index	= CONFIG_I2C_TWL4030_ID,
-	},
-	{
-		.address	= TWL4030_SLAVEID_ID3,
-		.client_name	= TWL_CLIENT_STRING "3",
-		.adapter_index	= CONFIG_I2C_TWL4030_ID,
-	},
-};
-
-/* One Client Driver , 4 Clients */
-static struct i2c_driver twl4030_driver = {
-	.driver	= {
-		.name	= DRIVER_NAME,
-		.owner	= THIS_MODULE,
-	},
-	.attach_adapter	= twl4030_attach_adapter,
-	.detach_client	= twl4030_detach_client,
-};
+/*----------------------------------------------------------------------*/
 
 /*
  * TWL4030 doesn't have PIH mask, hence dummy function for mask
- * and unmask.
+ * and unmask of the (eight) interrupts reported at that level ...
+ * masking is only available from SIH (secondary) modules.
  */
 
-static void twl4030_i2c_ackirq(unsigned int irq) {}
-static void twl4030_i2c_disableint(unsigned int irq) {}
-static void twl4030_i2c_enableint(unsigned int irq) {}
+static void twl4030_i2c_ackirq(unsigned int irq)
+{
+}
 
-/* information for processing in the Work Item */
+static void twl4030_i2c_disableint(unsigned int irq)
+{
+}
+
+static void twl4030_i2c_enableint(unsigned int irq)
+{
+}
+
 static struct irq_chip twl4030_irq_chip = {
 	.name	= "twl4030",
 	.ack	= twl4030_i2c_ackirq,
@@ -419,7 +411,9 @@ static struct irq_chip twl4030_irq_chip = {
 	.unmask	= twl4030_i2c_enableint,
 };
 
-/* Global Functions */
+/*----------------------------------------------------------------------*/
+
+/* Exported Functions */
 
 /**
  * twl4030_i2c_write - Writes a n bit register in TWL4030
@@ -441,15 +435,14 @@ int twl4030_i2c_write(u8 mod_no, u8 *value, u8 reg, u8 num_bytes)
 	struct i2c_msg *msg;
 
 	if (unlikely(mod_no > TWL4030_MODULE_LAST)) {
-		pr_err("Invalid module Number\n");
+		pr_err("%s: invalid module number %d\n", DRIVER_NAME, mod_no);
 		return -EPERM;
 	}
 	sid = twl4030_map[mod_no].sid;
 	twl = &twl4030_modules[sid];
 
-	if (unlikely(twl->inuse != TWL_CLIENT_USED)) {
-		pr_err("I2C Client[%d] is not initialized[%d]\n",
-		       sid, __LINE__);
+	if (unlikely(!inuse)) {
+		pr_err("%s: client %d is not initialized\n", DRIVER_NAME, sid);
 		return -EPERM;
 	}
 	mutex_lock(&twl->xfer_lock);
@@ -464,7 +457,7 @@ int twl4030_i2c_write(u8 mod_no, u8 *value, u8 reg, u8 num_bytes)
 	msg->buf = value;
 	/* over write the first byte of buffer with the register address */
 	*value = twl4030_map[mod_no].base + reg;
-	ret = i2c_transfer(twl->client.adapter, twl->xfer_msg, 1);
+	ret = i2c_transfer(twl->client->adapter, twl->xfer_msg, 1);
 	mutex_unlock(&twl->xfer_lock);
 
 	/* i2cTransfer returns num messages.translate it pls.. */
@@ -492,15 +485,14 @@ int twl4030_i2c_read(u8 mod_no, u8 *value, u8 reg, u8 num_bytes)
 	struct i2c_msg *msg;
 
 	if (unlikely(mod_no > TWL4030_MODULE_LAST)) {
-		pr_err("Invalid module Number\n");
+		pr_err("%s: invalid module number %d\n", DRIVER_NAME, mod_no);
 		return -EPERM;
 	}
 	sid = twl4030_map[mod_no].sid;
 	twl = &twl4030_modules[sid];
 
-	if (unlikely(twl->inuse != TWL_CLIENT_USED)) {
-		pr_err("I2C Client[%d] is not initialized[%d]\n", sid,
-		       __LINE__);
+	if (unlikely(!inuse)) {
+		pr_err("%s: client %d is not initialized\n", DRIVER_NAME, sid);
 		return -EPERM;
 	}
 	mutex_lock(&twl->xfer_lock);
@@ -517,7 +509,7 @@ int twl4030_i2c_read(u8 mod_no, u8 *value, u8 reg, u8 num_bytes)
 	msg->flags = I2C_M_RD;	/* Read the register value */
 	msg->len = num_bytes;	/* only n bytes */
 	msg->buf = value;
-	ret = i2c_transfer(twl->client.adapter, twl->xfer_msg, 2);
+	ret = i2c_transfer(twl->client->adapter, twl->xfer_msg, 2);
 	mutex_unlock(&twl->xfer_lock);
 
 	/* i2cTransfer returns num messages.translate it pls.. */
@@ -560,83 +552,22 @@ int twl4030_i2c_read_u8(u8 mod_no, u8 *value, u8 reg)
 }
 EXPORT_SYMBOL(twl4030_i2c_read_u8);
 
-/* Helper Functions */
+/*----------------------------------------------------------------------*/
+
+static unsigned twl4030_irq_base;
+
+static struct completion irq_event;
 
 /*
- * do_twl4030_module_irq() is the desc->handle method for each of the twl4030
- * module interrupts.  It executes in kernel thread context.
- * On entry, cpu interrupts are disabled.
- */
-static void do_twl4030_module_irq(unsigned int irq, irq_desc_t *desc)
-{
-	struct irqaction *action;
-	const unsigned int cpu = smp_processor_id();
-
-	/*
-	 * Earlier this was desc->triggered = 1;
-	 */
-	desc->status |= IRQ_LEVEL;
-
-	/*
-	 * The desc->handle method would normally call the desc->chip->ack
-	 * method here, but we won't bother since our ack method is NULL.
-	 */
-
-	if (!desc->depth) {
-		kstat_cpu(cpu).irqs[irq]++;
-
-		action = desc->action;
-		if (action) {
-			int ret;
-			int status = 0;
-			int retval = 0;
-
-			local_irq_enable();
-
-			do {
-				/* Call the ISR with cpu interrupts enabled */
-				ret = action->handler(irq, action->dev_id);
-				if (ret == IRQ_HANDLED)
-					status |= action->flags;
-				retval |= ret;
-				action = action->next;
-			} while (action);
-
-			if (status & IRQF_SAMPLE_RANDOM)
-				add_interrupt_randomness(irq);
-
-			local_irq_disable();
-
-			if (retval != IRQ_HANDLED)
-				printk(KERN_ERR "ISR for TWL4030 module"
-					" irq %d can't handle interrupt\n",
-					irq);
-
-			/*
-			 * Here is where we should call the unmask method, but
-			 * again we won't bother since it is NULL.
-			 */
-		} else
-			printk(KERN_CRIT "TWL4030 module irq %d has no ISR"
-					" but can't be masked!\n", irq);
-	} else
-		printk(KERN_CRIT "TWL4030 module irq %d is disabled but can't"
-				" be masked!\n", irq);
-}
-
-/*
- * twl4030_irq_thread() runs as a kernel thread.  It queries the twl4030
- * interrupt controller to see which modules are generating interrupt requests
- * and then calls the desc->handle method for each module requesting service.
+ * This thread processes interrupts reported by the Primary Interrupt Handler.
  */
 static int twl4030_irq_thread(void *data)
 {
-	int irq = (int)data;
+	long irq = (long)data;
 	irq_desc_t *desc = irq_desc + irq;
 	static unsigned i2c_errors;
 	const static unsigned max_i2c_errors = 100;
 
-	daemonize("twl4030-irq");
 	current->flags |= PF_NOFREEZE;
 
 	while (!kthread_should_stop()) {
@@ -644,34 +575,36 @@ static int twl4030_irq_thread(void *data)
 		int module_irq;
 		u8 pih_isr;
 
+		/* Wait for IRQ, then read PIH irq status (also blocking) */
 		wait_for_completion_interruptible(&irq_event);
 
 		ret = twl4030_i2c_read_u8(TWL4030_MODULE_PIH, &pih_isr,
 					  REG_PIH_ISR_P1);
 		if (ret) {
-			printk(KERN_WARNING "I2C error %d while reading TWL4030"
-					" PIH ISR register.\n", ret);
+			pr_warning("%s: I2C error %d reading PIH ISR\n",
+					DRIVER_NAME, ret);
 			if (++i2c_errors >= max_i2c_errors) {
 				printk(KERN_ERR "Maximum I2C error count"
 						" exceeded.  Terminating %s.\n",
 						__func__);
 				break;
 			}
+			complete(&irq_event);
 			continue;
 		}
 
-		for (module_irq = TWL4030_IRQ_BASE; 0 != pih_isr;
-			 pih_isr >>= 1, module_irq++) {
+		/* these handlers deal with the relevant SIH irq status */
+		local_irq_disable();
+		for (module_irq = twl4030_irq_base;
+				pih_isr;
+				pih_isr >>= 1, module_irq++) {
 			if (pih_isr & 0x1) {
 				irq_desc_t *d = irq_desc + module_irq;
 
-				local_irq_disable();
-
 				d->handle_irq(module_irq, d);
-
-				local_irq_enable();
 			}
 		}
+		local_irq_enable();
 
 		desc->chip->unmask(irq);
 	}
@@ -709,180 +642,278 @@ static void do_twl4030_irq(unsigned int irq, irq_desc_t *desc)
 	}
 }
 
-/* attach a client to the adapter */
-static int __init twl4030_detect_client(struct i2c_adapter *adapter,
-					unsigned char sid)
-{
-	int err = 0;
-	struct twl4030_client *twl;
-
-	if (unlikely(sid >= TWL4030_NUM_SLAVES)) {
-		pr_err("sid[%d] > MOD_LAST[%d]\n", sid, TWL4030_NUM_SLAVES);
-		return -EPERM;
-	}
-
-	/* Check basic functionality */
-	err = i2c_check_functionality(adapter,
-			I2C_FUNC_SMBUS_WORD_DATA
-			| I2C_FUNC_SMBUS_WRITE_BYTE);
-	if (!err) {
-		pr_err("SlaveID=%d functionality check failed\n", sid);
-		return err;
-	}
-	twl = &twl4030_modules[sid];
-	if (unlikely(twl->inuse)) {
-		pr_err("Client %s is already in use\n", twl->client_name);
-		return -EPERM;
-	}
-
-	memset(&twl->client, 0, sizeof(struct i2c_client));
-
-	twl->client.addr	= twl->address;
-	twl->client.adapter	= adapter;
-	twl->client.driver	= &twl4030_driver;
-
-	memcpy(&twl->client.name, twl->client_name,
-			sizeof(TWL_CLIENT_STRING) + 1);
-
-	pr_info("TWL4030: TRY attach Slave %s on Adapter %s [%x]\n",
-				twl->client_name, adapter->name, err);
-
-	err = i2c_attach_client(&twl->client);
-	if (err) {
-		pr_err("Couldn't attach Slave %s on Adapter"
-		       "%s [%x]\n", twl->client_name, adapter->name, err);
-	} else {
-		twl->inuse = TWL_CLIENT_USED;
-		mutex_init(&twl->xfer_lock);
-	}
-
-	return err;
-}
-
-static int add_children(void)
-{
-	static bool		children;
-
-	struct platform_device	*pdev = NULL;
-	struct twl4030_client	*twl = NULL;
-	int			status = 0;
-
-	/* FIXME this doesn't yet set up platform_data for anything;
-	 * it can't be available until this becomes a "new style"
-	 * I2C driver.  Similarly, a new style driver will know it
-	 * didn't already initialize its children.
-	 */
-
-	if (children)
-		return 0;
-
-#ifdef CONFIG_RTC_DRV_TWL4030
-	pdev = platform_device_alloc("twl4030_rtc", -1);
-	if (pdev) {
-		twl = &twl4030_modules[TWL4030_SLAVENUM_NUM3];
-		pdev->dev.parent = &twl->client.dev;
-		device_init_wakeup(&pdev->dev, 1);
-
-		/*
-		 * FIXME add the relevant IRQ resource, and make the
-		 * rtc driver use it instead of hard-wiring ...
-		 *
-		 * REVISIT platform_data here currently only supports
-		 * setting up the "msecure" line ... which actually
-		 * violates the "princple of least privilege", since
-		 * it's effectively always in "high trust" mode.
-		 *
-		 * For now, expect equivalent treatment at board init:
-		 * setting msecure high.  Eventually, Linux might
-		 * become more aware of those HW security concerns.
-		 */
-
-		status = platform_device_add(pdev);
-		if (status < 0)
-			platform_device_put(pdev);
-	} else
-		status = -ENOMEM;
-#endif
-
-	children = true;
-	return status;
-}
-
-/* adapter callback */
-static int __init twl4030_attach_adapter(struct i2c_adapter *adapter)
-{
-	int i;
-	int ret = 0;
-	static int twl_i2c_adapter = 1;
-
-	for (i = 0; i < TWL4030_NUM_SLAVES; i++) {
-		/* Check if I need to hook on to this adapter or not */
-		if (twl4030_modules[i].adapter_index == twl_i2c_adapter) {
-			ret = twl4030_detect_client(adapter, i);
-			if (ret)
-				goto free_client;
-		}
-	}
-	twl_i2c_adapter++;
-
-	add_children();
-
-	/*
-	 * Check if the PIH module is initialized, if yes, then init
-	 * the T2 Interrupt subsystem
-	 */
-	if ((twl4030_modules[twl4030_map[TWL4030_MODULE_PIH].sid].inuse ==
-		TWL_CLIENT_USED) && (twl_irq_used != USED)) {
-		twl_init_irq();
-		twl_irq_used = USED;
-	}
-	return 0;
-
-free_client:
-	pr_err("TWL_CLIENT(Idx=%d] registration failed[0x%x]\n", i, ret);
-
-	/* ignore current slave..it never got registered */
-	i--;
-	while (i >= 0) {
-		/* now remove all those from the current adapter... */
-		if (twl4030_modules[i].adapter_index == twl_i2c_adapter)
-			(void)twl4030_detach_client(&twl4030_modules[i].client);
-		i--;
-	}
-	return ret;
-}
-
-/* adapter's callback */
-static int twl4030_detach_client(struct i2c_client *client)
-{
-	int err;
-	err = i2c_detach_client(client);
-	if (err) {
-		pr_err("Client detach failed\n");
-		return err;
-	}
-	return 0;
-}
-
-static struct task_struct * __init start_twl4030_irq_thread(int irq)
+static struct task_struct * __init start_twl4030_irq_thread(long irq)
 {
 	struct task_struct *thread;
 
 	init_completion(&irq_event);
-	thread = kthread_run(twl4030_irq_thread, (void *)irq,
-			     "twl4030 irq %d", irq);
+	thread = kthread_run(twl4030_irq_thread, (void *)irq, "twl4030-irq");
 	if (!thread)
-		pr_err("%s: could not create twl4030 irq %d thread!\n",
-		       __func__, irq);
+		pr_err("%s: could not create twl4030 irq %ld thread!\n",
+		       DRIVER_NAME, irq);
 
 	return thread;
 }
 
+/*----------------------------------------------------------------------*/
+
+static int add_children(struct twl4030_platform_data *pdata)
+{
+	struct platform_device	*pdev = NULL;
+	struct twl4030_client	*twl = NULL;
+	int			status = 0;
+
+	if (twl_has_bci() && pdata->bci) {
+		twl = &twl4030_modules[3];
+
+		pdev = platform_device_alloc("twl4030_bci", -1);
+		if (!pdev) {
+			pr_debug("%s: can't alloc bci dev\n", DRIVER_NAME);
+			status = -ENOMEM;
+			goto err;
+		}
+
+		if (status == 0) {
+			pdev->dev.parent = &twl->client->dev;
+			status = platform_device_add_data(pdev, pdata->bci,
+					sizeof(*pdata->bci));
+			if (status < 0) {
+				dev_dbg(&twl->client->dev,
+					"can't add bci data, %d\n",
+					status);
+				goto err;
+			}
+		}
+
+		if (status == 0) {
+			struct resource r = {
+				.start = TWL4030_PWRIRQ_CHG_PRES,
+				.flags = IORESOURCE_IRQ,
+			};
+
+			status = platform_device_add_resources(pdev, &r, 1);
+		}
+
+		if (status == 0)
+			status = platform_device_add(pdev);
+
+		if (status < 0) {
+			platform_device_put(pdev);
+			dev_dbg(&twl->client->dev,
+					"can't create bci dev, %d\n",
+					status);
+			goto err;
+		}
+	}
+
+	if (twl_has_gpio() && pdata->gpio) {
+		twl = &twl4030_modules[1];
+
+		pdev = platform_device_alloc("twl4030_gpio", -1);
+		if (!pdev) {
+			pr_debug("%s: can't alloc gpio dev\n", DRIVER_NAME);
+			status = -ENOMEM;
+			goto err;
+		}
+
+		/* more driver model init */
+		if (status == 0) {
+			pdev->dev.parent = &twl->client->dev;
+			/* device_init_wakeup(&pdev->dev, 1); */
+
+			status = platform_device_add_data(pdev, pdata->gpio,
+					sizeof(*pdata->gpio));
+			if (status < 0) {
+				dev_dbg(&twl->client->dev,
+					"can't add gpio data, %d\n",
+					status);
+				goto err;
+			}
+		}
+
+		/* GPIO module IRQ */
+		if (status == 0) {
+			struct resource	r = {
+				.start = pdata->irq_base + 0,
+				.flags = IORESOURCE_IRQ,
+			};
+
+			status = platform_device_add_resources(pdev, &r, 1);
+		}
+
+		if (status == 0)
+			status = platform_device_add(pdev);
+
+		if (status < 0) {
+			platform_device_put(pdev);
+			dev_dbg(&twl->client->dev,
+					"can't create gpio dev, %d\n",
+					status);
+			goto err;
+		}
+	}
+
+	if (twl_has_keypad() && pdata->keypad) {
+		pdev = platform_device_alloc("twl4030_keypad", -1);
+		if (pdev) {
+			twl = &twl4030_modules[2];
+			pdev->dev.parent = &twl->client->dev;
+			device_init_wakeup(&pdev->dev, 1);
+			status = platform_device_add_data(pdev, pdata->keypad,
+					sizeof(*pdata->keypad));
+			if (status < 0) {
+				dev_dbg(&twl->client->dev,
+					"can't add keypad data, %d\n",
+					status);
+				platform_device_put(pdev);
+				goto err;
+			}
+			status = platform_device_add(pdev);
+			if (status < 0) {
+				platform_device_put(pdev);
+				dev_dbg(&twl->client->dev,
+						"can't create keypad dev, %d\n",
+						status);
+				goto err;
+			}
+		} else {
+			pr_debug("%s: can't alloc keypad dev\n", DRIVER_NAME);
+			status = -ENOMEM;
+			goto err;
+		}
+	}
+
+	if (twl_has_madc() && pdata->madc) {
+		pdev = platform_device_alloc("twl4030_madc", -1);
+		if (pdev) {
+			twl = &twl4030_modules[2];
+			pdev->dev.parent = &twl->client->dev;
+			device_init_wakeup(&pdev->dev, 1);
+			status = platform_device_add_data(pdev, pdata->madc,
+					sizeof(*pdata->madc));
+			if (status < 0) {
+				platform_device_put(pdev);
+				dev_dbg(&twl->client->dev,
+					"can't add madc data, %d\n",
+					status);
+				goto err;
+			}
+			status = platform_device_add(pdev);
+			if (status < 0) {
+				platform_device_put(pdev);
+				dev_dbg(&twl->client->dev,
+						"can't create madc dev, %d\n",
+						status);
+				goto err;
+			}
+		} else {
+			pr_debug("%s: can't alloc madc dev\n", DRIVER_NAME);
+			status = -ENOMEM;
+			goto err;
+		}
+	}
+
+	if (twl_has_rtc()) {
+		twl = &twl4030_modules[3];
+
+		pdev = platform_device_alloc("twl4030_rtc", -1);
+		if (!pdev) {
+			pr_debug("%s: can't alloc rtc dev\n", DRIVER_NAME);
+			status = -ENOMEM;
+		} else {
+			pdev->dev.parent = &twl->client->dev;
+			device_init_wakeup(&pdev->dev, 1);
+		}
+
+		/*
+		 * REVISIT platform_data here currently might use of
+		 * "msecure" line ... but for now we just expect board
+		 * setup to tell the chip "we are secure" at all times.
+		 * Eventually, Linux might become more aware of such
+		 * HW security concerns, and "least privilege".
+		 */
+
+		/* RTC module IRQ */
+		if (status == 0) {
+			struct resource	r = {
+				/* REVISIT don't hard-wire this stuff */
+				.start = TWL4030_PWRIRQ_RTC,
+				.flags = IORESOURCE_IRQ,
+			};
+
+			status = platform_device_add_resources(pdev, &r, 1);
+		}
+
+		if (status == 0)
+			status = platform_device_add(pdev);
+
+		if (status < 0) {
+			platform_device_put(pdev);
+			dev_dbg(&twl->client->dev,
+					"can't create rtc dev, %d\n",
+					status);
+			goto err;
+		}
+	}
+
+	if (twl_has_usb() && pdata->usb) {
+		twl = &twl4030_modules[0];
+
+		pdev = platform_device_alloc("twl4030_usb", -1);
+		if (!pdev) {
+			pr_debug("%s: can't alloc usb dev\n", DRIVER_NAME);
+			status = -ENOMEM;
+			goto err;
+		}
+
+		if (status == 0) {
+			pdev->dev.parent = &twl->client->dev;
+			device_init_wakeup(&pdev->dev, 1);
+			status = platform_device_add_data(pdev, pdata->usb,
+					sizeof(*pdata->usb));
+			if (status < 0) {
+				platform_device_put(pdev);
+				dev_dbg(&twl->client->dev,
+					"can't add usb data, %d\n",
+					status);
+				goto err;
+			}
+		}
+
+		if (status == 0) {
+			struct resource r = {
+				.start = TWL4030_PWRIRQ_USB_PRES,
+				.flags = IORESOURCE_IRQ,
+			};
+
+			status = platform_device_add_resources(pdev, &r, 1);
+		}
+
+		if (status == 0)
+			status = platform_device_add(pdev);
+
+		if (status < 0) {
+			platform_device_put(pdev);
+			dev_dbg(&twl->client->dev,
+					"can't create usb dev, %d\n",
+					status);
+		}
+	}
+
+err:
+	if (status)
+		pr_err("failed to add twl4030's children (status %d)\n", status);
+	return status;
+}
+
+/*----------------------------------------------------------------------*/
+
 /*
- * These three functions should be part of Voltage frame work
- * added here to complete the functionality for now.
+ * These three functions initialize the on-chip clock framework,
+ * letting it generate the right frequencies for USB, MADC, and
+ * other purposes.
  */
-static int __init protect_pm_master(void)
+static inline int __init protect_pm_master(void)
 {
 	int e = 0;
 
@@ -891,7 +922,7 @@ static int __init protect_pm_master(void)
 	return e;
 }
 
-static int __init unprotect_pm_master(void)
+static inline int __init unprotect_pm_master(void)
 {
 	int e = 0;
 
@@ -902,30 +933,43 @@ static int __init unprotect_pm_master(void)
 	return e;
 }
 
-static int __init power_companion_init(void)
+static void __init clocks_init(void)
 {
+	int e = 0;
 	struct clk *osc;
 	u32 rate;
 	u8 ctrl = HFCLK_FREQ_26_MHZ;
-	int e = 0;
 
+#if defined(CONFIG_ARCH_OMAP2) || defined(CONFIG_ARCH_OMAP3)
 	if (cpu_is_omap2430())
 		osc = clk_get(NULL, "osc_ck");
 	else
 		osc = clk_get(NULL, "osc_sys_ck");
+#else
+	/* REVISIT for non-OMAP systems, pass the clock rate from
+	 * board init code, using platform_data.
+	 */
+	osc = ERR_PTR(-EIO);
+#endif
 	if (IS_ERR(osc)) {
-		printk(KERN_WARNING "Skipping twl3040 internal clock init and "
+		printk(KERN_WARNING "Skipping twl4030 internal clock init and "
 				"using bootloader value (unknown osc rate)\n");
-		return 0;
+		return;
 	}
 
 	rate = clk_get_rate(osc);
 	clk_put(osc);
 
 	switch (rate) {
-	case 19200000 : ctrl = HFCLK_FREQ_19p2_MHZ; break;
-	case 26000000 : ctrl = HFCLK_FREQ_26_MHZ; break;
-	case 38400000 : ctrl = HFCLK_FREQ_38p4_MHZ; break;
+	case 19200000:
+		ctrl = HFCLK_FREQ_19p2_MHZ;
+		break;
+	case 26000000:
+		ctrl = HFCLK_FREQ_26_MHZ;
+		break;
+	case 38400000:
+		ctrl = HFCLK_FREQ_38p4_MHZ;
+		break;
 	}
 
 	ctrl |= HIGH_PERF_SQ;
@@ -934,8 +978,11 @@ static int __init power_companion_init(void)
 	e |= twl4030_i2c_write_u8(TWL4030_MODULE_PM_MASTER, ctrl, R_CFG_BOOT);
 	e |= protect_pm_master();
 
-	return e;
+	if (e < 0)
+		pr_err("%s: clock init err [%d]\n", DRIVER_NAME, e);
 }
+
+/*----------------------------------------------------------------------*/
 
 /**
  * twl4030_i2c_clear_isr - clear TWL4030 SIH ISR regs via read + write
@@ -1003,7 +1050,6 @@ static void __init twl4030_mask_clear_intrs(const struct twl4030_mod_iregs *t,
 
 		/* Are ISRs cleared by reads or writes? */
 		cor = twl4030_read_cor_bit(tmr.mod_no, tmr.sih_ctrl);
-		WARN_ON(cor < 0);
 
 		for (j = 0; j < tmr.reg_cnt; j++) {
 
@@ -1016,17 +1062,12 @@ static void __init twl4030_mask_clear_intrs(const struct twl4030_mod_iregs *t,
 						      tmr.isrs[j], cor) < 0);
 		}
 	}
-
-	return;
 }
 
 
-static void twl_init_irq(void)
+static void twl_init_irq(int irq_num, unsigned irq_base, unsigned irq_end)
 {
 	int	i;
-	int	res = 0;
-	char	*msg = "Unable to register interrupt subsystem";
-	unsigned int irq_num;
 
 	/*
 	 * Mask and clear all TWL4030 interrupts since initially we do
@@ -1035,23 +1076,41 @@ static void twl_init_irq(void)
 	twl4030_mask_clear_intrs(twl4030_mod_regs,
 				 ARRAY_SIZE(twl4030_mod_regs));
 
-	/* install an irq handler for each of the PIH modules */
-	for (i = TWL4030_IRQ_BASE; i < TWL4030_IRQ_END; i++) {
-		set_irq_chip(i, &twl4030_irq_chip);
-		set_irq_handler(i, do_twl4030_module_irq);
-		set_irq_flags(i, IRQF_VALID);
-	}
+	twl4030_irq_base = irq_base;
 
-	irq_num = (cpu_is_omap2430()) ? INT_24XX_SYS_NIRQ : INT_34XX_SYS_NIRQ;
+	/* install an irq handler for each of the PIH modules */
+	for (i = irq_base; i < irq_end; i++) {
+		set_irq_chip_and_handler(i, &twl4030_irq_chip,
+				handle_simple_irq);
+		activate_irq(i);
+	}
 
 	/* install an irq handler to demultiplex the TWL4030 interrupt */
 	set_irq_data(irq_num, start_twl4030_irq_thread(irq_num));
-	set_irq_type(irq_num, IRQ_TYPE_EDGE_FALLING);
 	set_irq_chained_handler(irq_num, do_twl4030_irq);
+}
 
-	res = power_companion_init();
-	if (res < 0)
-		pr_err("%s[%d][%d]\n", msg, res, __LINE__);
+/*----------------------------------------------------------------------*/
+
+static int twl4030_remove(struct i2c_client *client)
+{
+	unsigned i;
+
+	/* FIXME undo twl_init_irq() */
+	if (twl4030_irq_base) {
+		dev_err(&client->dev, "can't yet clean up IRQs?\n");
+		return -ENOSYS;
+	}
+
+	for (i = 0; i < TWL4030_NUM_SLAVES; i++) {
+		struct twl4030_client	*twl = &twl4030_modules[i];
+
+		if (twl->client && twl->client != client)
+			i2c_unregister_device(twl->client);
+		twl4030_modules[i].client = NULL;
+	}
+	inuse = false;
+	return 0;
 }
 
 /**
@@ -1162,6 +1221,88 @@ inline int is_twl_rev_greater_than(u32 rev)
 }
 EXPORT_SYMBOL(is_twl_rev_greater_than);
 
+/* NOTE:  this driver only handles a single twl4030/tps659x0 chip */
+static int
+twl4030_probe(struct i2c_client *client, const struct i2c_device_id *id)
+{
+	int				status;
+	unsigned			i;
+	struct twl4030_platform_data	*pdata = client->dev.platform_data;
+
+	if (!pdata) {
+		dev_dbg(&client->dev, "no platform data?\n");
+		return -EINVAL;
+	}
+
+	if (i2c_check_functionality(client->adapter, I2C_FUNC_I2C) == 0) {
+		dev_dbg(&client->dev, "can't talk I2C?\n");
+		return -EIO;
+	}
+
+	if (inuse || twl4030_irq_base) {
+		dev_dbg(&client->dev, "driver is already in use\n");
+		return -EBUSY;
+	}
+
+	for (i = 0; i < TWL4030_NUM_SLAVES; i++) {
+		struct twl4030_client	*twl = &twl4030_modules[i];
+
+		twl->address = client->addr + i;
+		if (i == 0)
+			twl->client = client;
+		else {
+			twl->client = i2c_new_dummy(client->adapter,
+					twl->address);
+			if (!twl->client) {
+				dev_err(&twl->client->dev,
+					"can't attach client %d\n", i);
+				status = -ENOMEM;
+				goto fail;
+			}
+			strlcpy(twl->client->name, id->name,
+					sizeof(twl->client->name));
+		}
+		mutex_init(&twl->xfer_lock);
+	}
+	inuse = true;
+
+	/* setup clock framework */
+	clocks_init();
+
+	/* Maybe init the T2 Interrupt subsystem */
+	if (client->irq
+			&& pdata->irq_base
+			&& pdata->irq_end > pdata->irq_base) {
+		twl_init_irq(client->irq, pdata->irq_base, pdata->irq_end);
+		dev_info(&client->dev, "IRQ %d chains IRQs %d..%d\n",
+				client->irq, pdata->irq_base, pdata->irq_end - 1);
+	}
+
+	status = add_children(pdata);
+fail:
+	if (status < 0)
+		twl4030_remove(client);
+	return status;
+}
+
+static const struct i2c_device_id twl4030_ids[] = {
+	{ "twl4030", 0 },	/* "Triton 2" */
+	{ "tps65950", 0 },	/* catalog version of twl4030 */
+	{ "tps65930", 0 },	/* fewer LDOs and DACs; no charger */
+	{ "tps65920", 0 },	/* fewer LDOs; no codec or charger */
+	{ "twl5030", 0 },	/* T2 updated */
+	{ /* end of list */ },
+};
+MODULE_DEVICE_TABLE(i2c, twl4030_ids);
+
+/* One Client Driver , 4 Clients */
+static struct i2c_driver twl4030_driver = {
+	.driver.name	= DRIVER_NAME,
+	.id_table	= twl4030_ids,
+	.probe		= twl4030_probe,
+	.remove		= twl4030_remove,
+};
+
 static int __init twl4030_init(void)
 {
 	int res;
@@ -1213,36 +1354,39 @@ static int __init twl4030_init(void)
 	case TWL5030_IDCODE_ES1_0:
 	case TWL4030_IDCODE_ES1_0:
 		twl_id = TWL5030_REV_ES1_0;
+		pr_info(KERN_INFO "T2: ver ES1.0\n");
 		break;
 	case TWL4030_IDCODE_ES2_0:
 		twl_id = TWL4030_REV_ES2_0;
+		pr_info(KERN_INFO "T2: ver ES2.0\n");
 		break;
 	case TWL4030_IDCODE_ES2_1:
 		twl_id = TWL4030_REV_ES2_1;
+		pr_info(KERN_INFO "T2: ver ES2.1\n");
 		break;
 	case TWL4030_IDCODE_ES3_0:
 		twl_id = TWL4030_REV_ES3_0;
+		pr_info(KERN_INFO "T2: ver ES3.0\n");
 		break;
 	case TWL4030_IDCODE_ES3_1:
 		twl_id = TWL4030_REV_ES3_1;
+		pr_info(KERN_INFO "T2: ver ES3.1\n");
 		break;
 	default:
 		twl_id = TWL5030_REV_ES1_0;
+		pr_info(KERN_INFO "T2-Gaia: ver ES1.0\n");
 		break;
 	}
 	return 0;
 }
+subsys_initcall(twl4030_init);
 
 static void __exit twl4030_exit(void)
 {
 	i2c_del_driver(&twl4030_driver);
-	twl_irq_used = FREE;
 }
-
-subsys_initcall(twl4030_init);
 module_exit(twl4030_exit);
 
-MODULE_ALIAS("i2c:" DRIVER_NAME);
 MODULE_AUTHOR("Texas Instruments, Inc.");
 MODULE_DESCRIPTION("I2C Core interface for TWL4030");
 MODULE_LICENSE("GPL");

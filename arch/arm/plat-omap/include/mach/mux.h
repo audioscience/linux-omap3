@@ -724,7 +724,7 @@ enum omap34xx_index {
 	AA13_3430_USB3HS_TLL_DATA6,
 	AA12_3430_USB3HS_TLL_DATA7,
 
-	/* PHY FSUSB: FS Serial for Port 1 (multiple PHY modes supported)*/
+	/* PHY FSUSB: FS Serial for Port 1 (multiple PHY modes supported) */
 	AF10_3430_USB1FS_PHY_MM1_RXDP,
 	AG9_3430_USB1FS_PHY_MM1_RXDM,
 	W13_3430_USB1FS_PHY_MM1_RXRCV,
@@ -732,7 +732,7 @@ enum omap34xx_index {
 	W11_3430_USB1FS_PHY_MM1_TXDAT,
 	Y11_3430_USB1FS_PHY_MM1_TXEN_N,
 
-	/* PHY FSUSB: FS Serial for Port 2 (multiple PHY modes supported)*/
+	/* PHY FSUSB: FS Serial for Port 2 (multiple PHY modes supported) */
 	AF7_3430_USB2FS_PHY_MM2_RXDP,
 	AH7_3430_USB2FS_PHY_MM2_RXDM,
 	AB10_3430_USB2FS_PHY_MM2_RXRCV,
@@ -740,7 +740,7 @@ enum omap34xx_index {
 	W3_3430_USB2FS_PHY_MM2_TXDAT,
 	T4_3430_USB2FS_PHY_MM2_TXEN_N,
 
-	/* PHY FSUSB: FS Serial for Port 3 (multiple PHY modes supported)*/
+	/* PHY FSUSB: FS Serial for Port 3 (multiple PHY modes supported) */
 	AH3_3430_USB3FS_PHY_MM3_RXDP,
 	AE3_3430_USB3FS_PHY_MM3_RXDM,
 	AD1_3430_USB3FS_PHY_MM3_RXRCV,
@@ -754,6 +754,14 @@ enum omap34xx_index {
 	V21_3430_UART3_TX_IRTX,
 	T21_3430_GPIO164,
 	V21_3430_GPIO166,
+	/* 34xx GPIO
+	 *  - normally these are bidirectional, no internal pullup/pulldown
+	 *  - "_UP" suffix (GPIO3_UP) if internal pullup is configured
+	 *  - "_DOWN" suffix (GPIO3_DOWN) with internal pulldown
+	 *  - "_OUT" suffix (GPIO3_OUT) for output-only pins (unlike 24xx)
+	 */
+	AH8_34XX_GPIO29,
+	J25_34XX_GPIO170,
 };
 
 struct omap_mux_cfg {

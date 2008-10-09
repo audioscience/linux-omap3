@@ -24,6 +24,8 @@
 #include <linux/input.h>
 #include <linux/gpio_keys.h>
 
+#include <linux/i2c/twl4030.h>
+
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
 #include <linux/mtd/nand.h>
@@ -41,6 +43,7 @@
 #include <mach/common.h>
 #include <mach/gpmc.h>
 #include <mach/nand.h>
+#include <mach/mux.h>
 
 
 #define GPMC_CS0_BASE  0x60
@@ -108,9 +111,59 @@ static struct omap_uart_config omap3_beagle_uart_config __initdata = {
 	.enabled_uarts	= ((1 << 0) | (1 << 1) | (1 << 2)),
 };
 
+static struct twl4030_usb_data beagle_usb_data = {
+	.usb_mode	= T2_USB_MODE_ULPI,
+};
+
+static int beagle_twl_gpio_setup(struct device *dev,
+		unsigned gpio, unsigned ngpio)
+{
+	/* request_gpio(gpio + 0, "mmc0_cd");
+	 * gpio_direction_input(gpio + 0);
+	 */
+
+	gpio_request(gpio + 1, "EHCI_nOC");
+	gpio_direction_input(gpio + 1);
+
+	/* gpio + 18 + 0 == ledA, nEN_USB_PWR (out)
+	 * gpio + 18 + 1 == ledB, PMU_STAT (out, a LED)
+	 */
+
+	return 0;
+}
+
+static struct twl4030_gpio_platform_data beagle_gpio_data = {
+	.gpio_base	= OMAP_MAX_GPIO_LINES,
+	.irq_base	= TWL4030_GPIO_IRQ_BASE,
+	.irq_end	= TWL4030_GPIO_IRQ_END,
+	.pullups	= BIT(1),
+	.pulldowns	= BIT(2) | BIT(6) | BIT(7) | BIT(8) | BIT(13)
+				| BIT(15) | BIT(16) | BIT(17),
+	.setup		= beagle_twl_gpio_setup,
+};
+
+static struct twl4030_platform_data beagle_twldata = {
+	.irq_base	= TWL4030_IRQ_BASE,
+	.irq_end	= TWL4030_IRQ_END,
+
+	/* platform_data for children goes here */
+	.usb		= &beagle_usb_data,
+	.gpio		= &beagle_gpio_data,
+};
+
+static struct i2c_board_info __initdata beagle_i2c_boardinfo[] = {
+	{
+		I2C_BOARD_INFO("twl4030", 0x48),
+		.flags = I2C_CLIENT_WAKE,
+		.irq = INT_34XX_SYS_NIRQ,
+		.platform_data = &beagle_twldata,
+	},
+};
+
 static int __init omap3_beagle_i2c_init(void)
 {
-	omap_register_i2c_bus(1, 2600, NULL, 0);
+	omap_register_i2c_bus(1, 2600, beagle_i2c_boardinfo,
+			ARRAY_SIZE(beagle_i2c_boardinfo));
 #ifdef CONFIG_I2C2_OMAP_BEAGLE
 	omap_register_i2c_bus(2, 400, NULL, 0);
 #endif
@@ -234,11 +287,22 @@ static void __init omap3beagle_flash_init(void)
 static void __init omap3_beagle_init(void)
 {
 	omap3_beagle_i2c_init();
-	platform_add_devices(omap3_beagle_devices, ARRAY_SIZE(omap3_beagle_devices));
+	platform_add_devices(omap3_beagle_devices,
+			ARRAY_SIZE(omap3_beagle_devices));
 	omap_board_config = omap3_beagle_config;
 	omap_board_config_size = ARRAY_SIZE(omap3_beagle_config);
 	omap_serial_init();
+
+	omap_cfg_reg(AH8_34XX_GPIO29);
+	gpio_request(29, "mmc0_wp");
+	gpio_direction_input(29);
 	hsmmc_init();
+
+	omap_cfg_reg(J25_34XX_GPIO170);
+	gpio_request(170, "DVI_nPD");
+	/* REVISIT leave DVI powered down until it's needed ... */
+	gpio_direction_output(170, true);
+
 	usb_musb_init();
 	usb_ehci_init();
 	omap3beagle_flash_init();

@@ -27,7 +27,6 @@
 #define VMMC1_DEDICATED		0x2A
 #define VSEL_3V			0x02
 #define VSEL_18V		0x00
-#define TWL_GPIO_PUPDCTR1	0x13
 #define TWL_GPIO_IMR1A		0x1C
 #define TWL_GPIO_ISR1A		0x19
 #define LDO_CLR			0x00
@@ -62,16 +61,6 @@ static int hsmmc_late_init(struct device *dev)
 	 * Configure TWL4030 GPIO parameters for MMC hotplug irq
 	 */
 	ret = twl4030_request_gpio(MMC1_CD_IRQ);
-	if (ret)
-		goto err;
-
-	ret = twl4030_set_gpio_edge_ctrl(MMC1_CD_IRQ,
-			TWL4030_GPIO_EDGE_RISING | TWL4030_GPIO_EDGE_FALLING);
-	if (ret)
-		goto err;
-
-	ret = twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, 0x02,
-						TWL_GPIO_PUPDCTR1);
 	if (ret)
 		goto err;
 
@@ -255,22 +244,18 @@ err:
 	return 1;
 }
 
-static struct omap_mmc_platform_data hsmmc_data = {
+static struct omap_mmc_platform_data mmc1_data = {
 	.nr_slots			= 1,
-	.switch_slot			= NULL,
 	.init				= hsmmc_late_init,
 	.cleanup			= hsmmc_cleanup,
 #ifdef CONFIG_PM
 	.suspend			= hsmmc_suspend,
 	.resume				= hsmmc_resume,
 #endif
+	.dma_mask			= 0xffffffff,
 	.slots[0] = {
-		.enabled		= 1,
 		.wire4			= 1,
 		.set_power		= hsmmc_set_power,
-		.set_bus_mode		= NULL,
-		.get_ro			= NULL,
-		.get_cover_state	= NULL,
 		.ocr_mask		= MMC_VDD_32_33 | MMC_VDD_33_34 |
 						MMC_VDD_165_195,
 		.name			= "first slot",
@@ -280,9 +265,12 @@ static struct omap_mmc_platform_data hsmmc_data = {
 	},
 };
 
+static struct omap_mmc_platform_data *hsmmc_data[OMAP34XX_NR_MMC];
+
 void __init hsmmc_init(void)
 {
-	omap2_init_mmc(&hsmmc_data);
+	hsmmc_data[0] = &mmc1_data;
+	omap2_init_mmc(hsmmc_data, OMAP34XX_NR_MMC);
 }
 
 #else

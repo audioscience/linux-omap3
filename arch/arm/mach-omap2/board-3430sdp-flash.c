@@ -195,63 +195,6 @@ static struct platform_device sdp_onenand_device = {
 	},
 };
 
-
-static struct mtd_partition sdp_nand_partitions[] = {
-	/* All the partition sizes are listed in terms of NAND block size */
-	{
-		.name		= "X-Loader-NAND",
-		.offset		= 0,
-		.size		= 4*(64 * 2048),
-		.mask_flags	= MTD_WRITEABLE,	/* force read-only */
-	},
-	{
-		.name		= "U-Boot-NAND",
-		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x80000 */
-		.size		= 4*(64 * 2048),
-		.mask_flags	= MTD_WRITEABLE,	/* force read-only */
-	},
-	{
-		.name		= "Boot Env-NAND",
-
-		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x100000 */
-		.size		= 2*(64 * 2048),
-	},
-	{
-		.name		= "Kernel-NAND",
-		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x140000 */
-		.size		= 32*(64 * 2048),
-
-
-	},
-	{
-		.name		= "File System - NAND",
-		.size		= MTDPART_SIZ_FULL,
-		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x540000 */
-	},
-};
-
-static struct omap_nand_platform_data sdp_nand_data = {
-	.parts		= sdp_nand_partitions,
-	.nr_parts	= ARRAY_SIZE(sdp_nand_partitions),
-	.nand_setup	= NULL,
-	.dma_channel	= -1,		/* disable DMA in OMAP NAND driver */
-	.dev_ready	= NULL,
-};
-
-static struct resource sdp_nand_resource = {
-	.flags		= IORESOURCE_MEM,
-};
-
-static struct platform_device sdp_nand_device = {
-	.name		= "omap2-nand",
-	.id		= 0,
-	.dev		= {
-	.platform_data	= &sdp_nand_data,
-	},
-	.num_resources	= 1,
-	.resource	= &sdp_nand_resource,
-};
-
 /*
  * sdp_onenand_setup - The function configures the onenand flash.
  * @onenand_base: Onenand base address
@@ -293,6 +236,59 @@ u32 get_gpmc0_type(void)
 	iounmap(fpga_map_addr);
 	return (cs);
 }
+static struct mtd_partition sdp_nand_partitions[] = {
+	/* All the partition sizes are listed in terms of NAND block size */
+	{
+		.name           = "X-Loader-NAND",
+		.offset         = 0,
+		.size           = 4 * NAND_BLOCK_SIZE,
+		.mask_flags     = MTD_WRITEABLE,        /* force read-only */
+	},
+	{
+		.name           = "U-Boot-NAND",
+		.offset         = MTDPART_OFS_APPEND,   /* Offset = 0x80000 */
+		.size           = 4 * NAND_BLOCK_SIZE,
+		.mask_flags     = MTD_WRITEABLE,        /* force read-only */
+	},
+	{
+		.name           = "Boot Env-NAND",
+		.offset         = MTDPART_OFS_APPEND,   /* Offset = 0x100000 */
+		.size           = 2 * NAND_BLOCK_SIZE,
+	},
+	{
+		.name           = "Kernel-NAND",
+		.offset         = MTDPART_OFS_APPEND,   /* Offset = 0x140000 */
+		.size           = 32 * NAND_BLOCK_SIZE,
+	},
+	{
+		.name           = "File System - NAND",
+		.size           = MTDPART_SIZ_FULL,
+		.offset         = MTDPART_OFS_APPEND,   /* Offset = 0x540000 */
+	},
+};
+
+static struct omap_nand_platform_data sdp_nand_data = {
+	.parts          = sdp_nand_partitions,
+	.nr_parts       = ARRAY_SIZE(sdp_nand_partitions),
+	.nand_setup     = NULL,
+	.dma_channel    = -1,           /* disable DMA in OMAP NAND driver */
+	.dev_ready      = NULL,
+};
+
+static struct resource sdp_nand_resource = {
+	.flags          = IORESOURCE_MEM,
+};
+
+static struct platform_device sdp_nand_device = {
+	.name           = "omap2-nand",
+	.id             = 0,
+	.dev            = {
+	.platform_data  = &sdp_nand_data,
+	},
+	.num_resources  = 1,
+	.resource       = &sdp_nand_resource,
+};
+
 
 /**
  * sdp3430_flash_init - Identify devices connected to GPMC and register.
@@ -306,6 +302,9 @@ void __init sdp3430_flash_init(void)
 	u8		onenandcs = GPMC_CS_NUM + 1;
 	u8		idx;
 	unsigned char	*config_sel = NULL;
+	unsigned long	gpmc_base_add;
+
+	gpmc_base_add   = OMAP34XX_GPMC_VIRT;
 
 	idx = get_gpmc0_type();
 	if (idx >= MAX_SUPPORTED_GPMC_CONFIG) {
@@ -316,7 +315,7 @@ void __init sdp3430_flash_init(void)
 	config_sel = (unsigned char *)(chip_sel_sdp[idx]);
 
 	/* Configure start address and size of NOR device */
-	if (is_sil_rev_greater_than(OMAP3430_REV_ES1_0)) {
+	if (system_rev > OMAP3430_REV_ES1_0) {
 		sdp_nor_resource.start  = FLASH_BASE_SDPV2;
 		sdp_nor_resource.end    = FLASH_BASE_SDPV2
 						+ FLASH_SIZE_SDPV2 - 1;
@@ -337,6 +336,7 @@ void __init sdp3430_flash_init(void)
 	freq_config[0].gpmc_cfg[3] = fpga_gpmc_setting[0];
 	freq_config[1].gpmc_cfg[3] = fpga_gpmc_setting[1];
 #endif
+	cs = 0;
 	while (cs < GPMC_CS_NUM) {
 		switch (config_sel[cs]) {
 		case PDC_NOR:
@@ -380,28 +380,51 @@ void __init sdp3430_flash_init(void)
 		cs++;
 	}
 
-	if (onenandcs > GPMC_CS_NUM) {
-		printk(KERN_INFO "OneNAND: Unable to find configuration "
+	cs = 0;
+	while (cs < GPMC_CS_NUM) {
+		u32 ret = 0;
+		ret = gpmc_cs_read_reg(cs, GPMC_CS_CONFIG1);
+
+		/*
+		* xloader/Uboot would have programmed the NAND/oneNAND
+		* base address for us This is a ugly hack. The proper
+		* way of doing this is to pass the setup of u-boot up
+		* to kernel using kernel params - something on the
+		* lines of machineID. Check if oneNAND is configured
+		*/
+		if ((ret & 0xC00) == 0x800) {
+			/* Found it!! */
+			if (nandcs > GPMC_CS_NUM)
+				nandcs = cs;
+		} else {
+			ret = gpmc_cs_read_reg(cs, GPMC_CS_CONFIG7);
+			if ((ret & 0x3F) == (ONENAND_MAP >> 24))
+			onenandcs = cs;
+		}
+		cs++;
+	}
+	if ((nandcs > GPMC_CS_NUM) && (onenandcs > GPMC_CS_NUM)) {
+		printk(KERN_INFO "NAND/OneNAND: Unable to find configuration "
 				" in GPMC\n ");
-	} else {
+		return;
+	}
+
+	if (nandcs < GPMC_CS_NUM) {
+		sdp_nand_data.cs        = nandcs;
+		sdp_nand_data.gpmc_cs_baseaddr   = (void *)(gpmc_base_add +
+					GPMC_CS0_BASE + nandcs*GPMC_CS_SIZE);
+		sdp_nand_data.gpmc_baseaddr     = (void *) (gpmc_base_add);
+
+		if (platform_device_register(&sdp_nand_device) < 0)
+			printk(KERN_ERR "Unable to register NAND device\n");
+	}
+
+	if (onenandcs < GPMC_CS_NUM) {
 		sdp_onenand_data.cs = onenandcs;
 		if (platform_device_register(&sdp_onenand_device) < 0)
 			printk(KERN_ERR "Unable to register OneNAND device\n");
 	}
 
-	if (nandcs > GPMC_CS_NUM) {
-		printk(KERN_INFO "NAND: Unable to find configuration "
-				" in GPMC\n ");
-	} else {
-		sdp_nand_data.cs	= nandcs;
-		sdp_nand_data.gpmc_cs_baseaddr = (void *)(OMAP34XX_GPMC_VIRT +
-					GPMC_CS0_BASE + nandcs*GPMC_CS_SIZE);
-		sdp_nand_data.gpmc_baseaddr   = (void *) (OMAP34XX_GPMC_VIRT);
-
-		if (platform_device_register(&sdp_nand_device) < 0)
-			printk(KERN_ERR "Unable to register NAND device\n");
-
-	}
 #ifdef CONFIG_OMAP3_PM
 	/*
 	 * Setting up gpmc_freq_cfg so tat gpmc module is aware of the

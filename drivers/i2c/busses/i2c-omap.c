@@ -544,16 +544,6 @@ omap_i2c_slave_xfer_msg(struct i2c_adapter *adap, struct i2c_msg *msg)
 	if (!(msg->flags & I2C_M_RD))
 		dev->slave_tx = 1;
 
-	/* As per OMAP3430 silicon errata 1.11, I2C in slave mode
-	 * with AUTO_IDLE enabled can lead to race conditions. So disabling
-	 * AUTO_IDLE for transactions in slave mode.
-	 */
-	if (cpu_is_omap3430()) {
-		w = omap_i2c_read_reg(dev, OMAP_I2C_SYSC_REG);
-		w &= ~1;
-		omap_i2c_write_reg(dev, OMAP_I2C_SYSC_REG, w);
-	}
-
 	dev->cmd_err = 0;
 	w = omap_i2c_read_reg(dev, OMAP_I2C_CON_REG);
 	w &= ~OMAP_I2C_CON_MST;
@@ -607,7 +597,6 @@ omap_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 	struct omap_i2c_dev *dev = i2c_get_adapdata(adap);
 	int i;
 	int r;
-	u16 val;
 
 	omap_i2c_enable_clocks(dev);
 
@@ -643,22 +632,6 @@ omap_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 #endif
 out:
 	disable_irq(dev->irq);
-
-	/* Switching to master mode */
-	val = omap_i2c_read_reg(dev, OMAP_I2C_CON_REG);
-	val |= OMAP_I2C_CON_MST;
-	omap_i2c_write_reg(dev, OMAP_I2C_CON_REG, val);
-
-	/* As per OMAP3430 silicon errata 1.11, I2C in slave mode
-	 * with AUTO_IDLE enabled can lead to race conditions. The AUTO_IDLE
-	 * disabled at the beginning of a slave transaction is enabled back.
-	 */
-	if (cpu_is_omap3430()) {
-		val = omap_i2c_read_reg(dev, OMAP_I2C_SYSC_REG);
-		val |= 1;
-		omap_i2c_write_reg(dev, OMAP_I2C_SYSC_REG, val);
-	}
-
 	omap_i2c_disable_clocks(dev);
 	/* Default master mode */
 	dev->mode = OMAP_I2C_MASTER_MODE;
@@ -1118,3 +1091,4 @@ module_exit(omap_i2c_exit_driver);
 MODULE_AUTHOR("MontaVista Software, Inc. (and others)");
 MODULE_DESCRIPTION("TI OMAP I2C bus adapter");
 MODULE_LICENSE("GPL");
+MODULE_ALIAS("platform:i2c_omap");

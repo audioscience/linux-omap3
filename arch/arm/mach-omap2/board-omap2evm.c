@@ -200,21 +200,13 @@ static int omap2evm_keymap[] = {
 	KEY(3, 3, KEY_P)
 };
 
-static struct omap_kp_platform_data omap2evm_kp_data = {
+static struct twl4030_keypad_data omap2evm_kp_data = {
 	.rows		= 4,
 	.cols		= 4,
-	.keymap 	= omap2evm_keymap,
+	.keymap		= omap2evm_keymap,
 	.keymapsize	= ARRAY_SIZE(omap2evm_keymap),
 	.rep		= 1,
 	.irq		= TWL4030_MODIRQ_KEYPAD,
-};
-
-static struct platform_device omap2evm_kp_device = {
-	.name		= "omap_twl4030keypad",
-	.id		= -1,
-	.dev		= {
-				.platform_data = &omap2evm_kp_data,
-			},
 };
 
 static void __init omap2_evm_init_irq(void)
@@ -234,21 +226,51 @@ static struct omap_board_config_kernel omap2_evm_config[] __initdata = {
 	{ OMAP_TAG_LCD,		&omap2_evm_lcd_config },
 };
 
+static struct twl4030_gpio_platform_data omap2evm_gpio_data = {
+	.gpio_base	= OMAP_MAX_GPIO_LINES,
+	.irq_base	= TWL4030_GPIO_IRQ_BASE,
+	.irq_end	= TWL4030_GPIO_IRQ_END,
+};
+
+static struct twl4030_usb_data omap2evm_usb_data = {
+	.usb_mode	= T2_USB_MODE_ULPI,
+};
+
+static struct twl4030_madc_platform_data omap2evm_madc_data = {
+	.irq_line	= 1,
+};
+
+static struct twl4030_platform_data omap2evm_twldata = {
+	.irq_base	= TWL4030_IRQ_BASE,
+	.irq_end	= TWL4030_IRQ_END,
+
+	/* platform_data for children goes here */
+	.keypad		= &omap2evm_kp_data,
+	.madc		= &omap2evm_madc_data,
+	.usb		= &omap2evm_usb_data,
+	.gpio		= &omap2evm_gpio_data,
+};
+
+static struct i2c_board_info __initdata omap2evm_i2c_boardinfo[] = {
+	{
+		I2C_BOARD_INFO("twl4030", 0x48),
+		.flags = I2C_CLIENT_WAKE,
+		.irq = INT_24XX_SYS_NIRQ,
+		.platform_data = &omap2evm_twldata,
+	},
+};
+
 static int __init omap2_evm_i2c_init(void)
 {
-	/*
-	 * Registering bus 2 first to avoid twl4030 misbehaving as OMAP2EVM
-	 * has twl4030 on bus 2
-	 */
-	omap_register_i2c_bus(2, 2600, NULL, 0);
 	omap_register_i2c_bus(1, 400, NULL, 0);
+	omap_register_i2c_bus(2, 2600, omap2evm_i2c_boardinfo,
+			ARRAY_SIZE(omap2evm_i2c_boardinfo));
 	return 0;
 }
 
 static struct platform_device *omap2_evm_devices[] __initdata = {
 	&omap2_evm_lcd_device,
 	&omap2evm_smc911x_device,
-	&omap2evm_kp_device,
 };
 
 static void __init omap2_evm_init(void)
