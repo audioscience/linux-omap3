@@ -1321,6 +1321,7 @@ static int __init twl4030_init(void)
 
 	pr_info(KERN_INFO "TWL4030: Driver registration complete.\n");
 
+#if 0 /* I2C is still not loaded and hence we cannot make i2c calls here */
 	/* Triton identification */
 	res = twl4030_i2c_write_u8(TWL4030_MODULE_INTBR, TWL4030_VAL_UNLOCK_TEST,
 						TWL4030_REG_UNLOCK_TEST);
@@ -1377,6 +1378,7 @@ static int __init twl4030_init(void)
 		pr_info(KERN_INFO "T2-Gaia: ver ES1.0\n");
 		break;
 	}
+#endif
 	return 0;
 }
 subsys_initcall(twl4030_init);
