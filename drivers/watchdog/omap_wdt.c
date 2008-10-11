@@ -467,7 +467,7 @@ static int __init omap_wdt_probe(struct platform_device *pdev)
 	omap_wdt_sysconfig(wdev, OMAP_WDT_SYSCONFIG_LVL2);
 #else /* #if defined(CONFIG_OMAP3_PM) */
 	/* autogate OCP interface clock */
-	omap_writel(0x01, wdev->base + OMAP_WATCHDOG_SYS_CONFIG);
+	__raw_writel(0x01, wdev->base + OMAP_WATCHDOG_SYS_CONFIG);
 #endif
 
 #if defined(CONFIG_OMAP3_PM)

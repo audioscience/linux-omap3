@@ -868,10 +868,6 @@ CONFIG_GPIOLIB=y
 CONFIG_GPIO_TWL4030=y
 
 #
-# PCI GPIO expanders:
-#
-
-#
 # SPI GPIO expanders:
 #
 # CONFIG_GPIO_MAX7301 is not set

@@ -439,6 +439,7 @@ static int __init twl4030_madc_probe(struct platform_device *pdev)
 		goto err_pdata;
 	}
 
+	madc->dev = &pdev->dev;
 	madc->imr = (pdata->irq_line == 1) ? TWL4030_MADC_IMR1 : TWL4030_MADC_IMR2;
 	madc->isr = (pdata->irq_line == 1) ? TWL4030_MADC_ISR1 : TWL4030_MADC_ISR2;
 
