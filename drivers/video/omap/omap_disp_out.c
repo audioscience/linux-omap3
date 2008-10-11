@@ -121,7 +121,11 @@
 #define LCD_PANEL_BACKLIGHT_GPIO 	7
 #elif defined(CONFIG_OMAP3430_ES2)
 #define LCD_PANEL_ENABLE_GPIO 		5
+#ifdef CONFIG_MACH_OMAP_3430CHAMELEON
+#define LCD_PANEL_BACKLIGHT_GPIO	6
+#else
 #define LCD_PANEL_BACKLIGHT_GPIO 	8
+#endif
 #else
 #define LCD_PANEL_ENABLE_GPIO 		28
 #define LCD_PANEL_BACKLIGHT_GPIO 	24
@@ -438,7 +442,11 @@ lcd_backlight_on(struct work_struct *work)
 	lcd_backlight_state = LCD_ON;
 #endif
 #if defined(CONFIG_MACH_OMAP_2430SDP) || defined(CONFIG_MACH_OMAP_3430SDP)
+#ifdef CONFIG_MACH_OMAP_3430CHAMELEON
+	twl4030_set_gpio_dataout(LCD_PANEL_BACKLIGHT_GPIO, 1);
+#else
 	omap_set_gpio_dataout(LCD_PANEL_BACKLIGHT_GPIO, 1);
+#endif
 	lcd_backlight_state = LCD_ON;
 #elif defined(CONFIG_MACH_OMAP_LDP)
 	twl4030_set_gpio_dataout(LCD_PANEL_BACKLIGHT_GPIO, 1);
@@ -471,7 +479,11 @@ lcd_backlight_off(struct work_struct *work)
 	lcd_backlight_state = LCD_OFF;
 #endif
 #if defined(CONFIG_MACH_OMAP_2430SDP) || defined(CONFIG_MACH_OMAP_3430SDP)
+#ifdef CONFIG_MACH_OMAP_3430CHAMELEON
+	twl4030_set_gpio_dataout(LCD_PANEL_BACKLIGHT_GPIO, 0);
+#else
 	omap_set_gpio_dataout(LCD_PANEL_BACKLIGHT_GPIO, 0);
+#endif
 	lcd_backlight_state = LCD_OFF;
 #elif defined(CONFIG_MACH_OMAP_LDP)
 	twl4030_set_gpio_dataout(LCD_PANEL_BACKLIGHT_GPIO, 0);
@@ -705,19 +717,24 @@ int omap_lcd_init(struct omap_lcd_info *info)
 #endif
 
 #if defined(CONFIG_MACH_OMAP_2430SDP) || defined(CONFIG_MACH_OMAP_3430SDP)
-	omap_request_gpio(LCD_PANEL_ENABLE_GPIO);  /* LCD panel */
-	omap_request_gpio(LCD_PANEL_BACKLIGHT_GPIO);	 /* LCD backlight */
-	omap_set_gpio_direction(LCD_PANEL_ENABLE_GPIO, 0); /* output */
-	omap_set_gpio_direction(LCD_PANEL_BACKLIGHT_GPIO, 0); /* output */
+	omap_request_gpio(LCD_PANEL_ENABLE_GPIO);	/* LCD panel */
+	omap_set_gpio_direction(LCD_PANEL_ENABLE_GPIO, 0);	/* output */
+#ifdef CONFIG_MACH_OMAP_3430CHAMELEON
+	twl4030_request_gpio(LCD_PANEL_BACKLIGHT_GPIO);	/* LCD backlight */
+	twl4030_set_gpio_direction(LCD_PANEL_BACKLIGHT_GPIO, 0); /* output */
+#else
+	omap_request_gpio(LCD_PANEL_BACKLIGHT_GPIO);	/* LCD backlight */
+	omap_set_gpio_direction(LCD_PANEL_BACKLIGHT_GPIO, 0);	 /* output */
+#endif
 #elif defined(CONFIG_MACH_OMAP_LDP)
 	omap_request_gpio(LCD_PANEL_RESET_GPIO);
 	omap_request_gpio(LCD_PANEL_QVGA_GPIO);
-	twl4030_request_gpio(LCD_PANEL_ENABLE_GPIO);  /* LCD panel */
-	twl4030_request_gpio(LCD_PANEL_BACKLIGHT_GPIO);	 /* LCD backlight */
+	twl4030_request_gpio(LCD_PANEL_ENABLE_GPIO);	/* LCD panel */
+	twl4030_request_gpio(LCD_PANEL_BACKLIGHT_GPIO);	/* LCD backlight */
 
 	omap_set_gpio_direction(LCD_PANEL_QVGA_GPIO, 0);
 	omap_set_gpio_direction(LCD_PANEL_RESET_GPIO, 0);
-	twl4030_set_gpio_direction(LCD_PANEL_ENABLE_GPIO, 0); /* output */
+	twl4030_set_gpio_direction(LCD_PANEL_ENABLE_GPIO, 0);	 /* output */
 	twl4030_set_gpio_direction(LCD_PANEL_BACKLIGHT_GPIO, 0); /* output */
 
 #ifdef CONFIG_FB_OMAP_LCD_VGA
@@ -817,13 +834,17 @@ lcd_exit(void)
 	omap2_disp_put_dss();
 
 #if defined(CONFIG_MACH_OMAP_2430SDP) || defined(CONFIG_MACH_OMAP_3430SDP)
-	omap_free_gpio(LCD_PANEL_ENABLE_GPIO);  /* LCD panel */
-	omap_free_gpio(LCD_PANEL_BACKLIGHT_GPIO);  /* LCD backlight */
+	omap_free_gpio(LCD_PANEL_ENABLE_GPIO);		/* LCD panel */
+#ifdef CONFIG_MACH_OMAP_3430CHAMELEON
+	twl4030_free_gpio(LCD_PANEL_BACKLIGHT_GPIO);	/* LCD backlight */
+#else
+	omap_free_gpio(LCD_PANEL_BACKLIGHT_GPIO);	/* LCD backlight */
+#endif
 #elif defined(CONFIG_MACH_OMAP_LDP)
 	omap_free_gpio(LCD_PANEL_RESET_GPIO);
 	omap_free_gpio(LCD_PANEL_QVGA_GPIO);
-	twl4030_free_gpio(LCD_PANEL_ENABLE_GPIO);  /* LCD panel */
-	twl4030_free_gpio(LCD_PANEL_BACKLIGHT_GPIO);  /* LCD backlight */
+	twl4030_free_gpio(LCD_PANEL_ENABLE_GPIO);	/* LCD panel */
+	twl4030_free_gpio(LCD_PANEL_BACKLIGHT_GPIO);	/* LCD backlight */
 #endif
 
 	lcd_in_use = 0;
