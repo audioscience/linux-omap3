@@ -333,6 +333,12 @@
 /* define the custom FBIO_MIRROR ioctl */
 #define FBIO_MIRROR		_IOW('F', 0x21, u_int32_t)
 
+#ifdef CONFIG_OMAP_DSI
+extern void edisco_get_handle(unsigned int *handle);
+extern void edisco_write(unsigned int handle, unsigned int cmd,\
+			unsigned int *buf_len, unsigned char *buf);
+#endif
+
 #define CONFIG_LCD_IOCTL		1
 #ifdef CONFIG_LCD_IOCTL
 

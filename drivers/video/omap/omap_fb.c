@@ -2128,6 +2128,19 @@ int __init omap24xxfb_init(void)
 	omap2_disp_save_initstate(OMAP_DSS_DISPC_GENERIC);
 	omap2_disp_save_initstate(OMAP2_GRAPHICS);
 	DBGLEAVE;
+
+#ifdef CONFIG_OMAP_DSI
+	{
+		unsigned int	buf_len = 1;
+		unsigned char	buf = 1;
+		unsigned int	handle;
+
+		edisco_get_handle(&handle);
+		printk(KERN_DEBUG "FB_init :: edisco handle = 0x%x \n", handle);
+		edisco_write((int)handle, 0x12, &buf_len, &buf);
+	}
+#endif
+
 	return 0;
 
 uninstall_isr:
