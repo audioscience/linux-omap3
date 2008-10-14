@@ -29,7 +29,7 @@
 #include <linux/uaccess.h>
 #include <linux/io.h>
 
-#include <asm/hardware.h>
+#include <asm/arch/hardware.h>
 #include <asm/arch/dma.h>
 #include <asm/mach-types.h>
 
@@ -99,9 +99,9 @@ static int pcm_playback_volume_get(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
 	ucontrol->value.integer.value[0] =
-		READ_LEFT_VOLUME(twl4030_local.play_volume); /* L */
+		READ_LEFT_VOLUME(twl4030_local.master_play_vol); /* L */
 	ucontrol->value.integer.value[1] =
-		READ_RIGHT_VOLUME(twl4030_local.play_volume);/* R */
+		READ_RIGHT_VOLUME(twl4030_local.master_play_vol);/* R */
 
 	return 0;
 }
@@ -114,9 +114,9 @@ static int pcm_playback_volume_put(struct snd_kcontrol *kcontrol,
 {
 	int changed = 0;
 
-	if ((READ_LEFT_VOLUME(twl4030_local.play_volume) !=
+	if ((READ_LEFT_VOLUME(twl4030_local.master_play_vol) !=
 					ucontrol->value.integer.value[0]) |
-	    (READ_RIGHT_VOLUME(twl4030_local.play_volume) !=
+	    (READ_RIGHT_VOLUME(twl4030_local.master_play_vol) !=
 					ucontrol->value.integer.value[1])) {
 		changed = twl4030_setvolume(OUTPUT_VOLUME,
 				ucontrol->value.integer.value[0],
@@ -135,9 +135,9 @@ static int headset_playback_volume_get(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
 	ucontrol->value.integer.value[0] =
-		READ_LEFT_VOLUME(twl4030_local.hset); /* L */
+		READ_LEFT_VOLUME(twl4030_local.headset_vol); /* L */
 	ucontrol->value.integer.value[1] =
-		READ_RIGHT_VOLUME(twl4030_local.hset);/* R */
+		READ_RIGHT_VOLUME(twl4030_local.headset_vol);/* R */
 
 	return 0;
 }
@@ -150,9 +150,9 @@ static int headset_playback_volume_put(struct snd_kcontrol *kcontrol,
 {
 	int changed = 0;
 
-	if ((READ_LEFT_VOLUME(twl4030_local.hset) !=
+	if ((READ_LEFT_VOLUME(twl4030_local.headset_vol) !=
 					ucontrol->value.integer.value[0]) |
-	    (READ_RIGHT_VOLUME(twl4030_local.hset) !=
+	    (READ_RIGHT_VOLUME(twl4030_local.headset_vol) !=
 					ucontrol->value.integer.value[1])) {
 		changed = twl4030_setvolume(OUTPUT_STEREO_HEADSET,
 				ucontrol->value.integer.value[0],
@@ -184,7 +184,7 @@ static int pcm_switch_info(struct snd_kcontrol *kcontrol,
 static int handsfree_playback_switch_get(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
-	if (twl4030_local.current_output & OUTPUT_HANDS_FREE_CLASSD)
+	if (twl4030_local.output_src == OUTPUT_HANDS_FREE_CLASSD)
 		ucontrol->value.integer.value[0] =
 					((twl4030_local.handsfree_en) ? 1 : 0);
 	else
@@ -209,9 +209,8 @@ static int handsfree_playback_switch_put(struct snd_kcontrol *kcontrol,
 	return changed;
 }
 
-/* Controls to set the T2 sample Rate */
-
-static int codec_samplerate_info(struct snd_kcontrol *kcontrol,
+/* Controls to set the audio sample rate */
+static int codec_audio_samplerate_info(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_info *uinfo)
 {
 	uinfo->type			= SNDRV_CTL_ELEM_TYPE_INTEGER;
@@ -222,7 +221,7 @@ static int codec_samplerate_info(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
-static int codec_samplerate_get(struct snd_kcontrol *kcontrol,
+static int codec_audio_samplerate_get(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
 	ucontrol->value.integer.value[0] = twl4030_local.audio_samplerate;
@@ -230,14 +229,48 @@ static int codec_samplerate_get(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
-static int codec_samplerate_put(struct snd_kcontrol *kcontrol,
+static int codec_audio_samplerate_put(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
 	int changed = 0;
 
 	if (ucontrol->value.integer.value[0] !=
 					(twl4030_local.audio_samplerate)) {
-		twl4030_set_samplerate(ucontrol->value.integer.value[0]);
+		twl4030_set_audio_samplerate(ucontrol->value.integer.value[0]);
+		changed = 1;
+	}
+
+	return changed;
+}
+
+/* Controls to set the voice sample rate */
+static int codec_voice_samplerate_info(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_info *uinfo)
+{
+	uinfo->type			= SNDRV_CTL_ELEM_TYPE_INTEGER;
+	uinfo->count			= 1;
+	uinfo->value.integer.min	= 8000;
+	uinfo->value.integer.max	= 16000;
+
+	return 0;
+}
+
+static int codec_voice_samplerate_get(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
+{
+	ucontrol->value.integer.value[0] = twl4030_local.voice_samplerate;
+
+	return 0;
+}
+
+static int codec_voice_samplerate_put(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
+{
+	int changed = 0;
+
+	if (ucontrol->value.integer.value[0] !=
+					(twl4030_local.voice_samplerate)) {
+		twl4030_set_voice_samplerate(ucontrol->value.integer.value[0]);
 		changed = 1;
 	}
 
@@ -252,7 +285,7 @@ static int earphone_playback_volume_get(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
 	ucontrol->value.integer.value[0] =
-		READ_LEFT_VOLUME(twl4030_local.ear); /* L  Mono */
+		READ_LEFT_VOLUME(twl4030_local.ear_vol); /* L  Mono */
 
 	return 0;
 }
@@ -262,7 +295,7 @@ static int earphone_playback_volume_put(struct snd_kcontrol *kcontrol,
 {
 	int changed = 0;
 
-	if (READ_LEFT_VOLUME(twl4030_local.ear) !=
+	if (READ_LEFT_VOLUME(twl4030_local.ear_vol) !=
 				ucontrol->value.integer.value[0]) {
 		changed = twl4030_setvolume(OUTPUT_MONO_EARPIECE,
 				ucontrol->value.integer.value[0], 0);
@@ -273,6 +306,33 @@ static int earphone_playback_volume_put(struct snd_kcontrol *kcontrol,
 	return changed;
 }
 
+/*
+ * Downlink Volume Control
+ */
+static int downlink_playback_volume_get(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
+{
+	ucontrol->value.integer.value[0] =
+		READ_LEFT_VOLUME(twl4030_local.downlink_vol);
+
+	return 0;
+}
+
+static int downlink_playback_volume_put(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
+{
+	int changed = 0;
+
+	if (READ_LEFT_VOLUME(twl4030_local.downlink_vol) !=
+				ucontrol->value.integer.value[0]) {
+		changed = twl4030_setvolume(OUTPUT_DOWNLINK,
+				ucontrol->value.integer.value[0], 0);
+		if (!changed)
+			changed = 1;
+	}
+
+	return changed;
+}
 
 /*
  * Sidetone Volume Control
@@ -280,7 +340,15 @@ static int earphone_playback_volume_put(struct snd_kcontrol *kcontrol,
 static int sidetone_playback_volume_get(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
-	ucontrol->value.integer.value[0] = audio_twl4030_read(REG_VSTPGA);
+	u8 data = 0;
+	int ret = 0;
+
+	ret = audio_twl4030_read(REG_VSTPGA, &data);
+	if (ret) {
+		printk(KERN_ERR "Failed reading sidetone volume %d\n", ret);
+		return ret;
+	}
+	ucontrol->value.integer.value[0] = (int) data;
 
 	return 0;
 }
@@ -290,7 +358,7 @@ static int sidetone_playback_volume_put(struct snd_kcontrol *kcontrol,
 {
 	int changed = 0;
 
-	if (READ_LEFT_VOLUME(twl4030_local.sidetone) !=
+	if (READ_LEFT_VOLUME(twl4030_local.sidetone_vol) !=
 					ucontrol->value.integer.value[0]) {
 		changed = twl4030_setvolume(OUTPUT_SIDETONE,
 				ucontrol->value.integer.value[0], 0);
@@ -307,8 +375,15 @@ static int sidetone_playback_volume_put(struct snd_kcontrol *kcontrol,
 static int sidetone_playback_switch_get(struct snd_kcontrol *kcontrol,
 					  struct snd_ctl_elem_value *ucontrol)
 {
-	ucontrol->value.integer.value[0] =
-		 (audio_twl4030_read(REG_VSTPGA) ? 1 : 0);
+	u8 data = 0;
+	int ret = 0;
+
+	ret = audio_twl4030_read(REG_VSTPGA, &data);
+	if (ret) {
+		printk(KERN_ERR "Failed reading sidetone switch %d\n", ret);
+		return ret;
+	}
+	ucontrol->value.integer.value[0] = (data ? 1 : 0);
 
 	return 0;
 }
@@ -316,27 +391,38 @@ static int sidetone_playback_switch_get(struct snd_kcontrol *kcontrol,
 static int sidetone_playback_switch_put(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
-	int changed = 0;
+	u8 data = 0;
+	int ret = 0;
 
-	if (ucontrol->value.integer.value[0] !=
-			(audio_twl4030_read(REG_VSTPGA) ? 1 : 0)) {
+	ret = audio_twl4030_read(REG_VSTPGA, &data);
+	if (ret) {
+		printk(KERN_ERR "Failed reading sidetone switch %d\n", ret);
+		return ret;
+	}
+
+	if (ucontrol->value.integer.value[0] != (data ? 1 : 0)) {
 		if (ucontrol->value.integer.value[0]) {
 			/* Enable sidetone */
-			changed = audio_twl4030_write(REG_VSTPGA,
-							twl4030_local.sidetone);
-			if (changed) {
-				printk(KERN_ERR "Sidetone enable failed!\n");
-				return changed;
+			ret = audio_twl4030_write(REG_VSTPGA,
+						twl4030_local.sidetone_vol);
+			if (ret) {
+				printk(KERN_ERR
+					"Sidetone enable failed %d\n", ret);
+				return ret;
 			}
 		} else {
 			/* Disable sidetone = mute */
-			changed = audio_twl4030_write(REG_VSTPGA, 0);
+			ret = audio_twl4030_write(REG_VSTPGA, 0);
+			if (ret) {
+				printk(KERN_ERR
+					"Sidetone disable failed %d\n", ret);
+				return ret;
+			}
 		}
-		if (!changed)
-			changed = 1;
+		ret = 1;
 	}
 
-	return changed;
+	return ret;
 }
 
 /*
@@ -346,9 +432,9 @@ static int carkit_playback_volume_get(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
 	ucontrol->value.integer.value[0] =
-		READ_LEFT_VOLUME(twl4030_local.carkit_out); /* L */
+		READ_LEFT_VOLUME(twl4030_local.carkit_vol); /* L */
 	ucontrol->value.integer.value[1] =
-		READ_RIGHT_VOLUME(twl4030_local.carkit_out);/* R */
+		READ_RIGHT_VOLUME(twl4030_local.carkit_vol);/* R */
 
 	return 0;
 }
@@ -358,9 +444,9 @@ static int carkit_playback_volume_put(struct snd_kcontrol *kcontrol,
 {
 	int changed = 0;
 
-	if ((READ_LEFT_VOLUME(twl4030_local.carkit_out) !=
+	if ((READ_LEFT_VOLUME(twl4030_local.carkit_vol) !=
 					ucontrol->value.integer.value[0]) |
-	    (READ_RIGHT_VOLUME(twl4030_local.carkit_out) !=
+	    (READ_RIGHT_VOLUME(twl4030_local.carkit_vol) !=
 					ucontrol->value.integer.value[1])) {
 		changed = twl4030_setvolume(OUTPUT_CARKIT,
 				ucontrol->value.integer.value[0],
@@ -376,7 +462,7 @@ static int carkit_capture_volume_get(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
 	ucontrol->value.integer.value[0] =
-		READ_LEFT_VOLUME(twl4030_local.carkit_in); /* L  Mono */
+		READ_LEFT_VOLUME(twl4030_local.carkit_mic_vol); /* L  Mono */
 
 	return 0;
 }
@@ -386,7 +472,7 @@ static int carkit_capture_volume_put(struct snd_kcontrol *kcontrol,
 {
 	int changed = 0;
 
-	if (READ_LEFT_VOLUME(twl4030_local.carkit_in) !=
+	if (READ_LEFT_VOLUME(twl4030_local.carkit_mic_vol) !=
 				ucontrol->value.integer.value[0]) {
 		changed = twl4030_setvolume(INPUT_CARKIT,
 				ucontrol->value.integer.value[0], 0);
@@ -432,9 +518,9 @@ static int pcm_capture_volume_get(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
 	ucontrol->value.integer.value[0] =
-		READ_LEFT_VOLUME(twl4030_local.rec_volume); /* L */
+		READ_LEFT_VOLUME(twl4030_local.master_rec_vol); /* L */
 	ucontrol->value.integer.value[1] =
-		READ_RIGHT_VOLUME(twl4030_local.rec_volume); /* R */
+		READ_RIGHT_VOLUME(twl4030_local.master_rec_vol); /* R */
 
 	return 0;
 }
@@ -444,9 +530,9 @@ static int pcm_capture_volume_put(struct snd_kcontrol *kcontrol,
 {
 	int changed = 0;
 
-	if ((READ_LEFT_VOLUME(twl4030_local.rec_volume) !=
+	if ((READ_LEFT_VOLUME(twl4030_local.master_rec_vol) !=
 					ucontrol->value.integer.value[0]) |
-	    (READ_RIGHT_VOLUME(twl4030_local.rec_volume) !=
+	    (READ_RIGHT_VOLUME(twl4030_local.master_rec_vol) !=
 					ucontrol->value.integer.value[1])) {
 		changed =  twl4030_setvolume(INPUT_VOLUME,
 				ucontrol->value.integer.value[0],
@@ -464,9 +550,9 @@ static int pcm_capture_volume_put(struct snd_kcontrol *kcontrol,
 static int hset_mic_capture_switch_get(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
-	if ((twl4030_local.current_input & INPUT_HEADSET_MIC) & 0x0F)
+	if (twl4030_local.input_src == INPUT_HEADSET_MIC)
 		ucontrol->value.integer.value[0] =
-					((twl4030_local.hsmic_en) ? 1 : 0);
+				((twl4030_local.headset_mic_en) ? 1 : 0);
 	else
 		ucontrol->value.integer.value[0] = 0;
 
@@ -478,11 +564,12 @@ static int hset_mic_capture_switch_put(struct snd_kcontrol *kcontrol,
 {
 	int changed = 0;
 
-	if (ucontrol->value.integer.value[0] != (twl4030_local.hsmic_en)) {
+	if (ucontrol->value.integer.value[0] !=
+					(twl4030_local.headset_mic_en)) {
 		if (ucontrol->value.integer.value[0])
-			twl4030_local.hsmic_en = 1;
+			twl4030_local.headset_mic_en = 1;
 		else
-			twl4030_local.hsmic_en = 0;
+			twl4030_local.headset_mic_en = 0;
 		changed = 1;
 	}
 
@@ -493,9 +580,9 @@ static int hset_mic_capture_volume_get(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
 	ucontrol->value.integer.value[0] =
-		READ_LEFT_VOLUME(twl4030_local.line); /* L */
+		READ_LEFT_VOLUME(twl4030_local.headset_mic_vol); /* L */
 	ucontrol->value.integer.value[1] =
-		READ_RIGHT_VOLUME(twl4030_local.line); /* R */
+		READ_RIGHT_VOLUME(twl4030_local.headset_mic_vol); /* R */
 
 	return 0;
 }
@@ -505,9 +592,9 @@ static int hset_mic_capture_volume_put(struct snd_kcontrol *kcontrol,
 {
 	int changed = 0;
 
-	if ((READ_LEFT_VOLUME(twl4030_local.line) !=
+	if ((READ_LEFT_VOLUME(twl4030_local.headset_mic_vol) !=
 					ucontrol->value.integer.value[0]) |
-	    (READ_RIGHT_VOLUME(twl4030_local.line) !=
+	    (READ_RIGHT_VOLUME(twl4030_local.headset_mic_vol) !=
 					ucontrol->value.integer.value[1])) {
 		changed = twl4030_setvolume(INPUT_HEADSET_MIC,
 				ucontrol->value.integer.value[0],
@@ -527,7 +614,7 @@ static int mic1_capture_volume_get(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
 	ucontrol->value.integer.value[0] =
-		READ_LEFT_VOLUME(twl4030_local.mic); /* L */
+		READ_LEFT_VOLUME(twl4030_local.main_mic_vol); /* L */
 
 	return 0;
 }
@@ -537,7 +624,7 @@ static int mic1_capture_volume_put(struct snd_kcontrol *kcontrol,
 {
 	int changed = 0;
 
-	if (READ_LEFT_VOLUME(twl4030_local.mic) !=
+	if (READ_LEFT_VOLUME(twl4030_local.main_mic_vol) !=
 					ucontrol->value.integer.value[0]) {
 		changed =  twl4030_setvolume(INPUT_MAIN_MIC,
 					ucontrol->value.integer.value[0], 0);
@@ -551,7 +638,7 @@ static int mic1_capture_volume_put(struct snd_kcontrol *kcontrol,
 static int mic1_capture_switch_get(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
-	if ((twl4030_local.current_input & INPUT_MAIN_MIC) & 0x0F)
+	if (twl4030_local.input_src == INPUT_MAIN_MIC)
 		ucontrol->value.integer.value[0] =
 					((twl4030_local.main_mic_en) ? 1 : 0);
 	else
@@ -583,7 +670,7 @@ static int mic1_capture_switch_put(struct snd_kcontrol *kcontrol,
 static int mic2_capture_switch_get(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
-	if ((twl4030_local.current_input & INPUT_SUB_MIC) & 0x0F)
+	if (twl4030_local.input_src == INPUT_SUB_MIC)
 		ucontrol->value.integer.value[0] =
 					((twl4030_local.sub_mic_en) ? 1 : 0);
 
@@ -610,7 +697,7 @@ static int mic2_capture_volume_get(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
 	ucontrol->value.integer.value[0] =
-		READ_RIGHT_VOLUME(twl4030_local.mic); /* R */
+		READ_RIGHT_VOLUME(twl4030_local.sub_mic_vol); /* R */
 
 	return 0;
 }
@@ -620,7 +707,7 @@ static int mic2_capture_volume_put(struct snd_kcontrol *kcontrol,
 {
 	int changed = 0;
 
-	if (READ_RIGHT_VOLUME(twl4030_local.mic) !=
+	if (READ_RIGHT_VOLUME(twl4030_local.sub_mic_vol) !=
 					ucontrol->value.integer.value[0]) {
 		changed = twl4030_setvolume(INPUT_SUB_MIC, 0,
 					ucontrol->value.integer.value[0]);
@@ -638,9 +725,9 @@ static int aux_capture_volume_get(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
 	ucontrol->value.integer.value[0] =
-		READ_LEFT_VOLUME(twl4030_local.aux); /* L */
+		READ_LEFT_VOLUME(twl4030_local.aux_vol); /* L */
 	ucontrol->value.integer.value[1] =
-		READ_RIGHT_VOLUME(twl4030_local.aux); /* R */
+		READ_RIGHT_VOLUME(twl4030_local.aux_vol); /* R */
 
 	return 0;
 }
@@ -650,9 +737,9 @@ static int aux_capture_volume_put(struct snd_kcontrol *kcontrol,
 {
 	int changed = 0;
 
-	if ((READ_LEFT_VOLUME(twl4030_local.aux) !=
+	if ((READ_LEFT_VOLUME(twl4030_local.aux_vol) !=
 					ucontrol->value.integer.value[0]) |
-	    (READ_RIGHT_VOLUME(twl4030_local.aux) !=
+	    (READ_RIGHT_VOLUME(twl4030_local.aux_vol) !=
 					ucontrol->value.integer.value[1])) {
 		changed = twl4030_setvolume(INPUT_AUX,
 				ucontrol->value.integer.value[0],
@@ -687,16 +774,13 @@ static int snd_playback_source_info(struct snd_kcontrol *kcontrol,
 static int snd_playback_source_get(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
-	int val;
-
-	val = twl4030_local.outsrc;
-	if ((val & SOUND_MASK_LINE1) == SOUND_MASK_LINE1)
+	if (twl4030_local.output_src == HEADSET_SOURCE)
 		ucontrol->value.enumerated.item[0] = 0;
-	else if ((val & SOUND_MASK_SPEAKER) == SOUND_MASK_SPEAKER)
+	else if (twl4030_local.output_src == HANDS_FREE_SOURCE)
 		ucontrol->value.enumerated.item[0] = 1;
-	else if ((val & SOUND_MASK_PHONEOUT) == SOUND_MASK_PHONEOUT)
+	else if (twl4030_local.output_src == EARPIECE_SOURCE)
 		ucontrol->value.enumerated.item[0] = 2;
-	else if ((val & SOUND_MASK_CD) == SOUND_MASK_CD)
+	else if (twl4030_local.output_src == CARKIT_SOURCE)
 		ucontrol->value.enumerated.item[0] = 3;
 
 	return 0;
@@ -707,14 +791,15 @@ static int snd_playback_source_put(struct snd_kcontrol *kcontrol,
 {
 	int changed = 0;
 	int ret;
-	int val = SOUND_MASK_LINE1;
 
-	if (ucontrol->value.enumerated.item[0] == 1)
-		val = SOUND_MASK_SPEAKER;
+	if (ucontrol->value.enumerated.item[0] == 0)
+		twl4030_local.output_src = HEADSET_SOURCE;
+	else if (ucontrol->value.enumerated.item[0] == 1)
+		twl4030_local.output_src = HANDS_FREE_SOURCE;
 	else if (ucontrol->value.enumerated.item[0] == 2)
-		val = SOUND_MASK_PHONEOUT;
+		twl4030_local.output_src = EARPIECE_SOURCE;
 	else if (ucontrol->value.enumerated.item[0] == 3)
-		val = SOUND_MASK_CD;
+		twl4030_local.output_src = CARKIT_SOURCE;
 
 	ret = twl4030_codec_tog_on();
 	if (unlikely(ret)) {
@@ -722,7 +807,7 @@ static int snd_playback_source_put(struct snd_kcontrol *kcontrol,
 		return ret;
 	}
 	/* setup regs */
-	ret = twl4030_select_source(DIR_OUT, val);
+	ret = twl4030_select_source(twl4030_local.output_src);
 	if (unlikely(ret)) {
 		printk(KERN_ERR "Source selection failed!\n");
 		return ret;
@@ -760,16 +845,13 @@ static int snd_capture_source_info(struct snd_kcontrol *kcontrol,
 static int snd_capture_source_get(struct snd_kcontrol *kcontrol,
 					struct snd_ctl_elem_value *ucontrol)
 {
-	int val;
-
-	val = twl4030_local.recsrc;
-	if ((val & SOUND_MASK_LINE) == SOUND_MASK_LINE)
+	if (twl4030_local.input_src == HEADSET_MIC_SOURCE)
 		ucontrol->value.enumerated.item[0] = 0;
-	else if ((val & SOUND_MASK_MIC) == SOUND_MASK_MIC)
+	else if (twl4030_local.input_src == MAIN_SUB_MIC_SOURCE)
 		ucontrol->value.enumerated.item[0] = 1;
-	else if ((val & SOUND_MASK_RADIO) == SOUND_MASK_RADIO)
+	else if (twl4030_local.input_src == AUX_SOURCE)
 		ucontrol->value.enumerated.item[0] = 2;
-	else if ((val & SOUND_MASK_CD) == SOUND_MASK_CD)
+	else if (twl4030_local.input_src == CARKIT_MIC_SOURCE)
 		ucontrol->value.enumerated.item[0] = 3;
 
 	return 0;
@@ -780,14 +862,15 @@ static int snd_capture_source_put(struct snd_kcontrol *kcontrol,
 {
 	int changed = 0;
 	int ret;
-	int val = SOUND_MASK_LINE;
 
-	if (ucontrol->value.enumerated.item[0] == 1)
-		val = SOUND_MASK_MIC;
+	if (ucontrol->value.enumerated.item[0] == 0)
+		twl4030_local.input_src = HEADSET_MIC_SOURCE;
+	else if (ucontrol->value.enumerated.item[0] == 1)
+		twl4030_local.input_src = MAIN_SUB_MIC_SOURCE;
 	else if (ucontrol->value.enumerated.item[0] == 2)
-		val = SOUND_MASK_RADIO;
+		twl4030_local.input_src = AUX_SOURCE;
 	else if (ucontrol->value.enumerated.item[0] == 3)
-		val = SOUND_MASK_CD;
+		twl4030_local.input_src = CARKIT_MIC_SOURCE;
 
 	ret = twl4030_codec_tog_on();
 	if (unlikely(ret)) {
@@ -795,7 +878,7 @@ static int snd_capture_source_put(struct snd_kcontrol *kcontrol,
 		return ret;
 	}
 	/* setup regs */
-	ret = twl4030_select_source(DIR_IN, val);
+	ret = twl4030_select_source(twl4030_local.input_src);
 	if (unlikely(ret)) {
 		printk(KERN_ERR "Source selection failed!\n");
 		return ret;
@@ -810,19 +893,94 @@ static int snd_capture_source_put(struct snd_kcontrol *kcontrol,
 	return changed;
 }
 
+/* Output Source Selection */
+static int snd_codec_mode_info(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_info *uinfo)
+{
+	static char *texts[2] = {"Audio mode",
+				"Voice mode"};
+
+	uinfo->type = SNDRV_CTL_ELEM_TYPE_ENUMERATED;
+	uinfo->count = 1;
+	uinfo->value.enumerated.items = 2;
+	if (uinfo->value.enumerated.item > 1)
+		uinfo->value.enumerated.item = 0;
+	strcpy(uinfo->value.enumerated.name,
+		texts[uinfo->value.enumerated.item]);
+
+	return 0;
+}
+
+static int snd_codec_mode_get(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
+{
+	if (twl4030_local.codec_mode == AUDIO_MODE)
+		ucontrol->value.enumerated.item[0] = 0;
+	else if (twl4030_local.codec_mode == VOICE_MODE)
+		ucontrol->value.enumerated.item[0] = 1;
+
+	return 0;
+}
+
+static int snd_codec_mode_put(struct snd_kcontrol *kcontrol,
+					struct snd_ctl_elem_value *ucontrol)
+{
+	int changed = 0;
+	int ret;
+
+	if (ucontrol->value.enumerated.item[0] == 0)
+		twl4030_local.codec_mode = AUDIO_MODE;
+	else if (ucontrol->value.enumerated.item[0] == 1)
+		twl4030_local.codec_mode = VOICE_MODE;
+
+	ret = twl4030_codec_on();
+	if (ret) {
+		printk(KERN_ERR "Failed turning codec on %d\n", ret);
+		return 0;
+	}
+	ret = twl4030_configure(twl4030_local.codec_mode);
+	if (ret) {
+		printk(KERN_ERR "Error changing codec mode %d\n", ret);
+		changed = 0;
+	} else {
+		changed = 1;
+	}
+
+	return changed;
+}
+
 
 /* Controls Registered */
 
 static struct snd_kcontrol_new twl4030_control[] __devinitdata = {
-	/* Output Control*/
+	/* Codec Mode selection */
 	{
-		.name   = "T2 Master codec Sample Rate",
+		.name   = "Codec mode",		/* Codec  mode */
 		.iface  = SNDRV_CTL_ELEM_IFACE_MIXER,
 		.index  = 0,
 		.access = SNDRV_CTL_ELEM_ACCESS_READWRITE,
-		.info   = codec_samplerate_info,
-		.get    = codec_samplerate_get,
-		.put    = codec_samplerate_put,
+		.info   = snd_codec_mode_info,
+		.get    = snd_codec_mode_get,
+		.put    = snd_codec_mode_put,
+	},
+	/* Output Control*/
+	{
+		.name   = "TWL4030 Audio Sample Rate",
+		.iface  = SNDRV_CTL_ELEM_IFACE_MIXER,
+		.index  = 0,
+		.access = SNDRV_CTL_ELEM_ACCESS_READWRITE,
+		.info   = codec_audio_samplerate_info,
+		.get    = codec_audio_samplerate_get,
+		.put    = codec_audio_samplerate_put,
+	},
+	{
+		.name   = "TWL4030 Voice Sample Rate",
+		.iface  = SNDRV_CTL_ELEM_IFACE_MIXER,
+		.index  = 0,
+		.access = SNDRV_CTL_ELEM_ACCESS_READWRITE,
+		.info   = codec_voice_samplerate_info,
+		.get    = codec_voice_samplerate_get,
+		.put    = codec_voice_samplerate_put,
 	},
 	{
 		.name   = "Master Playback Volume",
@@ -859,6 +1017,16 @@ static struct snd_kcontrol_new twl4030_control[] __devinitdata = {
 		.info   = pcm_playback_volume_info,
 		.get    = headset_playback_volume_get,
 		.put    = headset_playback_volume_put,
+	},
+	/* Downlink Gain */
+	{
+		.name   = "Downlink Playback Volume",	/* Downlink */
+		.iface  = SNDRV_CTL_ELEM_IFACE_MIXER,
+		.index  = 0,
+		.access = SNDRV_CTL_ELEM_ACCESS_READWRITE,
+		.info   = pcm_mono_playback_volume_info,
+		.get    = downlink_playback_volume_get,
+		.put    = downlink_playback_volume_put,
 	},
 	/* Sidetone Gain */
 	{

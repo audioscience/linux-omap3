@@ -52,8 +52,8 @@
 #endif
 #include <sound/core.h>
 #include <sound/pcm.h>
-
 #include <asm/mach-types.h>
+#include <asm/arch/cpu.h>
 #include <asm/arch/omap-alsa.h>
 #include "omap-alsa-dma.h"
 
@@ -157,8 +157,8 @@ static u_int audio_get_dma_pos(struct audio_stream *s)
 	spin_lock_irqsave(&s->dma_lock, flags);
 
 	/* For the current period let's see where we are */
-	if (cpu_is_omap2430() || cpu_is_omap34xx())
-		count = omap_transfer_posn_alsa_sound_dma(s);
+	if (cpu_is_omap34xx())
+		count = frames_to_bytes(runtime, runtime->period_size);
 	else
 		count = omap_get_dma_src_pos(s->lch[s->dma_q_head])
 				- dma_start_pos;
@@ -281,7 +281,7 @@ static int snd_omap_alsa_trigger(struct snd_pcm_substream *substream, int cmd)
 		s->active = 1;
 		audio_process_dma(s);
 		/* queue one more to get rid of poping noise */
-		if (cpu_is_omap2430() || cpu_is_omap34xx())
+		if (cpu_is_omap34xx())
 			audio_process_dma(s);
 		break;
 	case SNDRV_PCM_TRIGGER_STOP:
@@ -308,15 +308,10 @@ static int snd_omap_alsa_prepare(struct snd_pcm_substream *substream)
 	alsa_codec_config->codec_set_samplerate(runtime->rate);
 	chip->samplerate = runtime->rate;
 
-	if (cpu_is_omap2430() || cpu_is_omap34xx()) {
-		if (runtime->channels == 1) {
-			/* Set Mono_mode */
-			alsa_codec_config->codec_set_stereomode(0x02, 0x01);
-		} else {
-			/* Set Stereo_mode */
-			alsa_codec_config->codec_set_stereomode(0x01, 0x01);
-		}
-	}
+	if (cpu_is_omap34xx())
+		if (runtime->channels <= 2)
+			alsa_codec_config->
+				codec_set_stereomode(runtime->channels);
 
 	s->period = 0;
 	s->periods = 0;
@@ -343,7 +338,10 @@ static int snd_card_omap_alsa_open(struct snd_pcm_substream *substream)
 
 	ADEBUG();
 	chip->s[stream_id].stream = substream;
-	alsa_codec_config->codec_clock_on(1);
+	alsa_codec_config->codec_clock_on();
+	if (cpu_is_omap34xx())
+		alsa_codec_config->codec_configure_dev();
+
 	if (stream_id == SNDRV_PCM_STREAM_PLAYBACK)
 		runtime->hw = *(alsa_codec_config->snd_omap_alsa_playback);
 	else
@@ -359,10 +357,10 @@ static int snd_card_omap_alsa_open(struct snd_pcm_substream *substream)
 	if (err < 0)
 		return err;
 
-	if (cpu_is_omap2430() || cpu_is_omap34xx()) {
+	if (cpu_is_omap34xx()) {
 		err = omap_init_alsa_sound_dma(stream_id);
 		if (err) {
-			printk(KERN_ERR " IS init failed!! [%d]\n", err);
+			printk(KERN_ERR "Init dma error %d\n", err);
 			return err;
 		}
 	}
@@ -375,7 +373,10 @@ static int snd_card_omap_alsa_close(struct snd_pcm_substream *substream)
 	struct snd_card_omap_codec *chip = snd_pcm_substream_chip(substream);
 
 	ADEBUG();
-	alsa_codec_config->codec_clock_off(1);
+	alsa_codec_config->codec_clock_off();
+	if (cpu_is_omap34xx())
+		alsa_codec_config->codec_unconfigure_dev();
+
 	chip->s[substream->pstr->stream].stream = NULL;
 
 	return 0;
@@ -450,7 +451,7 @@ static int __init snd_card_omap_alsa_pcm(struct snd_card_omap_codec *omap_alsa,
 	omap_alsa_audio_init(omap_alsa);
 
 	/* setup DMA controller */
-	if (!(cpu_is_omap2430() || cpu_is_omap34xx())) {
+	if (!(cpu_is_omap34xx())) {
 		audio_dma_request(&omap_alsa->s[SNDRV_PCM_STREAM_PLAYBACK],
 				  callback_omap_alsa_sound_dma);
 		audio_dma_request(&omap_alsa->s[SNDRV_PCM_STREAM_CAPTURE],
@@ -479,7 +480,7 @@ int snd_omap_alsa_suspend(struct platform_device *pdev, pm_message_t state)
 						SNDRV_CTL_POWER_D3hot);
 			snd_pcm_suspend_all(chip->pcm);
 			/* Mutes and turn clock off */
-			alsa_codec_config->codec_clock_off(0);
+			alsa_codec_config->codec_clock_off();
 			snd_omap_suspend_mixer();
 		}
 	}
@@ -495,7 +496,7 @@ int snd_omap_alsa_resume(struct platform_device *pdev)
 		chip = card->private_data;
 		if (chip->card->power_state != SNDRV_CTL_POWER_D0) {
 			snd_power_change_state(chip->card, SNDRV_CTL_POWER_D0);
-			alsa_codec_config->codec_clock_on(0);
+			alsa_codec_config->codec_clock_on();
 			snd_omap_resume_mixer();
 		}
 	}
@@ -515,8 +516,6 @@ void snd_omap_alsa_free(struct snd_card *card)
 	 * buffered data.
 	 */
 	schedule_timeout_interruptible(2);
-	if (cpu_is_omap2430() || cpu_is_omap34xx())
-		return;
 
 	omap_mcbsp_stop(AUDIO_MCBSP);
 	omap_mcbsp_free(AUDIO_MCBSP);
@@ -541,19 +540,23 @@ int snd_omap_alsa_post_probe(struct platform_device *pdev,
 	alsa_codec_config	= config;
 	if (alsa_codec_config && alsa_codec_config->codec_clock_setup)
 	alsa_codec_config->codec_clock_setup();
-	alsa_codec_config->codec_clock_on(1);
+	alsa_codec_config->codec_clock_on();
 
-	if (!(cpu_is_omap2430() || cpu_is_omap34xx())) {
+	if (cpu_is_omap34xx())
+		omap_mcbsp_set_io_type(AUDIO_MCBSP, 0);
+
 	omap_mcbsp_request(AUDIO_MCBSP);
-	omap_mcbsp_stop(AUDIO_MCBSP);
-	omap_mcbsp_config(AUDIO_MCBSP, alsa_codec_config->mcbsp_regs_alsa);
-	omap_mcbsp_start(AUDIO_MCBSP);
+	if (!cpu_is_omap34xx()) {
+		omap_mcbsp_stop(AUDIO_MCBSP);
+		omap_mcbsp_config(AUDIO_MCBSP,
+				alsa_codec_config->mcbsp_regs_alsa);
+		omap_mcbsp_start(AUDIO_MCBSP);
 	}
 
 	if (alsa_codec_config && alsa_codec_config->codec_configure_dev)
 		alsa_codec_config->codec_configure_dev();
 
-	alsa_codec_config->codec_clock_off(1);
+	alsa_codec_config->codec_clock_off();
 
 	/* register the soundcard */
 	card = snd_card_new(-1, id, THIS_MODULE, sizeof(alsa_codec));

@@ -36,9 +36,8 @@ int twl4030_conf_data_interface(void)
 	int skip_alt = OMAP_MCBSP_SKIP_NONE;
 
 	/* Check sample width */
-	if (twl4030_local.current_bitspersample ==
-					AUDIO_SAMPLE_DATA_WIDTH_16) {
-		if (twl4030_local.current_stereomode == STEREO_MODE) {
+	if (twl4030_local.bitspersample == AUDIO_SAMPLE_DATA_WIDTH_16) {
+		if (twl4030_local.channels == STEREO_MODE) {
 			frame_polarity = OMAP_MCBSP_FS_ACTIVE_HIGH;
 		} else {
 			/* Mono Mode */
@@ -48,9 +47,8 @@ int twl4030_conf_data_interface(void)
 		/* 1 word */
 		frame_length1 = OMAP_MCBSP_FRAMELEN_N(1);
 
-	} else if (twl4030_local.current_bitspersample ==
-					AUDIO_SAMPLE_DATA_WIDTH_24) {
-		if (twl4030_local.current_stereomode == MONO_MODE) {
+	} else if (twl4030_local.bitspersample == AUDIO_SAMPLE_DATA_WIDTH_24) {
+		if (twl4030_local.channels == MONO_MODE) {
 			/* Mono Mode */
 			/* use 32 bits dma and do doubleindex */
 			skip_alt = OMAP_MCBSP_SKIP_SECOND;
@@ -59,7 +57,7 @@ int twl4030_conf_data_interface(void)
 		frame_length1 = OMAP_MCBSP_FRAMELEN_N(2);
 	} else {
 		printk(KERN_ERR "Unknown sample width %d\n",
-			twl4030_local.current_bitspersample);
+			twl4030_local.bitspersample);
 		return -EPERM;
 	}
 
@@ -102,15 +100,15 @@ int twl4030_conf_data_interface(void)
 	twl4030_mcbsp_settings.audio_mcbsp_srg_fsg_cfg.polarity = 0;
 #else
 	twl4030_mcbsp_settings.audio_mcbsp_srg_fsg_cfg.period =
-				twl4030_local.current_bitspersample * 2 - 1;
+				twl4030_local.bitspersample * 2 - 1;
 	twl4030_mcbsp_settings.audio_mcbsp_srg_fsg_cfg.pulse_width =
-				twl4030_local.current_bitspersample - 1;
+				twl4030_local.bitspersample - 1;
 	twl4030_mcbsp_settings.audio_mcbsp_srg_fsg_cfg.polarity = 1;
 #endif
 	twl4030_mcbsp_settings.audio_mcbsp_srg_fsg_cfg.sample_rate =
 				twl4030_local.audio_samplerate;
 	twl4030_mcbsp_settings.audio_mcbsp_srg_fsg_cfg.bits_per_sample =
-				twl4030_local.current_bitspersample;
+				twl4030_local.bitspersample;
 
 	ret = omap2_mcbsp_params_cfg(AUDIO_MCBSP,
 #ifdef TWL_MASTER

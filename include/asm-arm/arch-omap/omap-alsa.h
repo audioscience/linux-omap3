@@ -1,5 +1,5 @@
 /*
- * linux/include/asm-arm/arch-omap/omap-alsa.h
+ * arch/arm/plat-omap/include/mach/omap-alsa.h
  *
  * Alsa Driver for AIC23 and TSC2101 codecs on OMAP platform boards.
  *
@@ -35,7 +35,6 @@
  *  2005/07/25 INdT-10LE Kernel Team - 	Alsa driver for omap osk,
  *  					original version based in sa1100 driver
  *  					and omap oss driver.
- *  2007/12/17 Misael Lopez Cruz     -  Added support for 3430 platform
  */
 
 #ifndef __OMAP_ALSA_H
@@ -119,12 +118,13 @@ struct omap_alsa_codec_config {
 	struct	snd_pcm_hw_constraint_list *hw_constraints_rates;
 	struct	snd_pcm_hardware *snd_omap_alsa_playback;
 	struct	snd_pcm_hardware *snd_omap_alsa_capture;
-	int	(*codec_configure_dev)(void);
+	void 	(*codec_configure_dev)(void);
+	void 	(*codec_unconfigure_dev)(void);
 	int	(*codec_set_samplerate)(long);
-	int	(*codec_set_stereomode)(int, int);
+	int	(*codec_set_stereomode)(int);
 	void	(*codec_clock_setup)(void);
-	int	(*codec_clock_on)(int);
-	int 	(*codec_clock_off)(int);
+	int	(*codec_clock_on)(void);
+	int 	(*codec_clock_off)(void);
 	int	(*get_default_samplerate)(void);
 };
 

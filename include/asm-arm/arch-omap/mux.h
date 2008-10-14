@@ -730,6 +730,13 @@ enum omap34xx_index {
 	V21_3430_UART3_TX_IRTX,
 	T21_3430_GPIO164,
 	V21_3430_GPIO166,
+
+	/* Modem connection to TWL4030 PCM port */
+	AF6_3430_MCBSP3_DX,
+	AE6_3430_MCBSP3_DR,
+	AF5_3430_MCBSP3_CLX,
+	AE5_3430_MCBSP3_FSX,
+	R27_3430_GPIO_128,
 };
 
 struct omap_mux_cfg {

@@ -188,6 +188,10 @@
 #define BIT_ANAMICL_OFFSET_CNCL_SEL_M            (0x00000060)
 #define BIT_ANAMICL_CNCL_OFFSET_START            (0x007)
 #define BIT_ANAMICL_CNCL_OFFSET_START_M          (0x00000080)
+#define OFFSET_CNCL_ARXL1_ARXR1			0
+#define OFFSET_CNCL_ARXL2_ARXR2			1
+#define OFFSET_CNCL_VRX				2
+#define OFFSET_CNCL_ALL				3
 /* ANAMICR Fields */
 #define BIT_ANAMICR_SUBMIC_EN                    (0x000)
 #define BIT_ANAMICR_SUBMIC_EN_M                  (0x00000001)
@@ -218,8 +222,8 @@
 #define BIT_DIGMIXING_ARX2_MIXING_M              (0x00000030)
 #define BIT_DIGMIXING_ARX1_MIXING                (0x006)
 #define BIT_DIGMIXING_ARX1_MIXING_M              (0x000000C0)
-#define INPUT_GAIN_MIN                           (0x00)
-#define INPUT_GAIN_MAX                           (0x1F)
+#define INPUT_MIN_GAIN				0x00
+#define INPUT_MAX_GAIN				0x1F
 /* ATXL1PGA Fields */
 #define BIT_ATXL1PGA_ATXL1PGA_GAIN               (0x000)
 #define BIT_ATXL1PGA_ATXL1PGA_GAIN_M             (0x0000001F)
@@ -273,9 +277,9 @@
 #define BIT_VOICE_IF_VIF_DIN_EN_M                (0x00000040)
 #define BIT_VOICE_IF_VIF_SLAVE_EN                (0x007)
 #define BIT_VOICE_IF_VIF_SLAVE_EN_M              (0x00000080)
-/* volume range */
-#define OUTPUT_GAIN_MIN                          (0x00)
-#define OUTPUT_GAIN_MAX                          (0x3F)
+/* Analog gain range */
+#define OUTPUT_MIN_GAIN                          0x00
+#define OUTPUT_MAX_GAIN                          0x3F
 #define AUDIO_OUTPUT_COARSE_GAIN_LOW             (0x0)
 #define AUDIO_OUTPUT_COARSE_GAIN_6DB             (0x1)
 #define AUDIO_OUTPUT_COARSE_GAIN_12DB            (0x2)
@@ -303,10 +307,15 @@
 /* VRXPGA Fields */
 #define BIT_VRXPGA_VRXPGA_GAIN                   (0x000)
 #define BIT_VRXPGA_VRXPGA_GAIN_M                 (0x0000003F)
+/* Voice gain range */
+#define VOICE_MIN_GAIN				0x00
+#define VOICE_MAX_GAIN				0x31
 /* VSTPGA Fields */
 #define BIT_VSTPGA_VSTPGA_GAIN                   (0x000)
 #define BIT_VSTPGA_VSTPGA_GAIN_M                 (0x0000003F)
-#define SIDETONE_MAX_GAIN                        (0x29)
+/* Sidetone gain range */
+#define SIDETONE_MIN_GAIN			0x00
+#define SIDETONE_MAX_GAIN			0x29
 /* VRX2ARXPGA Fields */
 #define BIT_VRX2ARXPGA_VRX2ARXPGA_GAIN           (0x000)
 #define BIT_VRX2ARXPGA_VRX2ARXPGA_GAIN_M         (0x0000001F)
@@ -325,8 +334,9 @@
 #define BIT_ARX2VTXPGA_ARX2VTXPGA_GAIN           (0x000)
 #define BIT_ARX2VTXPGA_ARX2VTXPGA_GAIN_M         (0x0000003F)
 
-#define ARX_APGA_MIN                             (0x12)
-#define ARX_APGA_MAX                             (0x00)
+/* Digital gain range */
+#define OUTPUT_ANALOG_GAIN_MIN			0x12
+#define OUTPUT_ANALOG_GAIN_MAX			0x00
 
 /* ARXL1_APGA_CTL Fields */
 #define BIT_ARXL1_APGA_CTL_ARXL1_PDZ             (0x000)
@@ -405,6 +415,10 @@
 #define BIT_EAR_CTL_SPARE_M                      (0x00000040)
 #define BIT_EAR_CTL_EAR_OUTLOW_EN                (0x007)
 #define BIT_EAR_CTL_EAR_OUTLOW_EN_M              (0x00000080)
+/* Earpiece gain range */
+#define EARPHONE_GAIN_MIN			0x03
+#define EARPHONE_GAIN_MAX			0x01
+
 /* HS_GAIN_SET Fields */
 #define BIT_HS_GAIN_SET_HSL_GAIN                 (0x000)
 #define BIT_HS_GAIN_SET_HSL_GAIN_M               (0x00000003)
@@ -412,6 +426,10 @@
 #define BIT_HS_GAIN_SET_HSR_GAIN_M               (0x0000000C)
 #define BIT_HS_GAIN_SET_SPARE                    (0x006)
 #define BIT_HS_GAIN_SET_SPARE_M                  (0x00000040)
+/* Headset gain range */
+#define HEADSET_GAIN_MIN			0x03
+#define HEADSET_GAIN_MAX			0x01
+
 /* HS_SEL Fields */
 #define BIT_HS_SEL_HSOL_VOICE_EN                 (0x000)
 #define BIT_HS_SEL_HSOL_VOICE_EN_M               (0x00000001)
@@ -486,6 +504,10 @@
 #define BIT_PRECKR_CTL_PRECKR_GAIN_M             (0x00000030)
 #define BIT_PRECKR_CTL_PRECKR_EN                 (0x006)
 #define BIT_PRECKR_CTL_PRECKR_EN_M               (0x00000040)
+/* Carkit gain range */
+#define CARKIT_MIN_GAIN				0x03
+#define CARKIT_MAX_GAIN				0x01
+
 #define HANDS_FREEL_VOICE                        (0x0)
 #define HANDS_FREEL_AL1                          (0x1)
 #define HANDS_FREEL_AL2                          (0x2)
@@ -688,6 +710,9 @@
 #define BIT_ANAMIC_GAIN_MICAMPL_GAIN_M           (0x00000007)
 #define BIT_ANAMIC_GAIN_MICAMPR_GAIN             (0x003)
 #define BIT_ANAMIC_GAIN_MICAMPR_GAIN_M           (0x00000038)
+/* Microphone amplifier gain range */
+#define MICROPHONE_MIN_GAIN			0x00
+#define MICROPHONE_MAX_GAIN			0x05
 /* MISC_SET_2 Fields */
 #define BIT_MISC_SET_2_SPARE1                    (0x000)
 #define BIT_MISC_SET_2_SPARE1_M                  (0x00000001)
@@ -706,188 +731,166 @@
 #define BIT_MISC_SET_2_SPARE2                    (0x007)
 #define BIT_MISC_SET_2_SPARE2_M                  (0x00000080)
 
-/************** INTERNAL DETAILS ********************/
 /*
- * OUTPUT:
- * =======
- * OUTPUT_STEREO_HEADSET           SOUND_MASK_LINE1
- * OUTPUT_HANDS_FREE_CLASSD        SOUND_MASK_SPEAKER
- * OUTPUT_MONO_EARPIECE            SOUND_MASK_PHONEOUT (mono Sink)
- *
- * INPUT:
- * ======
- * INPUT_HEADSET_MIC               SOUND_MASK_LINE
- * INPUT_MAIN_MIC + INPUT_SUB_MIC  SOUND_MASK_MIC
- *
- * CURRENT SOURCES:
- * ===============
- * SOUND_MIXER_OUTSRC - output source
- * SOUND_MIXER_RECSRC - input source
- * Operations:
- * MIXER_READ() and MIXER_WRITE() to control the sources
- *
- * VOLUME CONTROL:
- * ===============
- * SOUND_MIXER_RECLEV - control the gain level of recording
- * SOUND_MIXER_VOLUME - control the gain level of playback
- * MIXER_WRITE and MIXER_READ with each of the device masks will
- *                            control the coarse volume control of the device
+ * Codec specific macros
  */
-#define DIR_OUT                                  (0)
-#define DIR_IN                                   (1<<7)
+#define CODEC_NAME				"TWL4030"
+#define MIXER_NAME				"TWL4030 Mixer"
+#define PLATFORM_NAME				"OMAP3430"
 
-#define OUTPUT_VOLUME                            (DIR_OUT | 0)
-#define OUTPUT_STEREO_HEADSET                    (DIR_OUT | (1 << 0))
-#define OUTPUT_HANDS_FREE_CLASSD                 (DIR_OUT | (1 << 1))
-#define OUTPUT_MONO_EARPIECE                     (DIR_OUT | (1 << 2))
-#define OUTPUT_SIDETONE                          (DIR_OUT | (1 << 3))
-#define OUTPUT_CARKIT                            (DIR_OUT | (1 << 4))
+/* Codec operating modes */
+#define AUDIO_MODE				1
+#define	VOICE_MODE				2
 
-#define INPUT_VOLUME                             (DIR_IN | 0)
-#define INPUT_HEADSET_MIC                        (DIR_IN | (1 << 0))
-#define INPUT_MAIN_MIC                           (DIR_IN | (1 << 1))
-#define INPUT_SUB_MIC                            (DIR_IN | (1 << 2))
-#define INPUT_AUX                                (DIR_IN | (1 << 3))
-#define INPUT_CARKIT                             (DIR_IN | (1 << 4))
+/* Input/output sources */
+#define HEADSET_MIC_SOURCE			0x11
+#define MAIN_SUB_MIC_SOURCE			0x12
+#define AUX_SOURCE				0x13
+#define CARKIT_MIC_SOURCE			0x14
 
-#define DEFAULT_INPUT_TWL_DEVICE                 INPUT_HEADSET_MIC
-#define DEFAULT_INPUT_LNX_DEVICE                 SOUND_MASK_LINE
-#define DEFAULT_OUTPUT_TWL_DEVICE                OUTPUT_STEREO_HEADSET
-#define DEFAULT_OUTPUT_LNX_DEVICE                SOUND_MASK_LINE1
-/* Recording devices */
-#define REC_SRC_MASK                             (SOUND_MASK_LINE | \
-						  SOUND_MASK_MIC)
-#define REC_MASK                                 (SOUND_MASK_RECLEV | \
-						  REC_SRC_MASK)
-/* play back devices */
-#define OUT_SRC_MASK                             (SOUND_MASK_LINE1 | \
-						  SOUND_MASK_SPEAKER | \
-						  SOUND_MASK_PHONEOUT)
-#define OUT_MASK                                 (SOUND_MASK_VOLUME | \
-						  OUT_SRC_MASK)
-#define DEV_MASK                                 (REC_MASK | \
-						  OUT_MASK)
-#define DEV_STEREO_DEV                           (SOUND_MASK_VOLUME | \
-						  SOUND_MASK_RECLEV | \
-						  SOUND_MASK_LINE1 | \
-						  SOUND_MASK_SPEAKER | \
-						  SOUND_MASK_MIC)
+#define HEADSET_SOURCE				0x21
+#define HANDS_FREE_SOURCE			0x22
+#define EARPIECE_SOURCE				0x23
+#define CARKIT_SOURCE				0x24
 
-#define STEREO_MODE                              (0x1)
-#define MONO_MODE                                (0x2)
+#ifdef CONFIG_MACH_OMAP_LDP
+#define DEFAULT_INPUT_TWL_DEVICE		MAIN_SUB_MIC_SOURCE
+#define DEFAULT_OUTPUT_TWL_DEVICE		HANDS_FREE_SOURCE
+#else
+#define DEFAULT_INPUT_TWL_DEVICE		HEADSET_MIC_SOURCE
+#define DEFAULT_OUTPUT_TWL_DEVICE		HEADSET_SOURCE
+#endif
 
-#define MIXER_DEVICE                             (0x0)
-#define DSP_DEVICE                               (0x1)
+/* Input/output volumes */
+#define INPUT_VOLUME				0x11
+#define INPUT_HEADSET_MIC			0x12
+#define INPUT_MAIN_MIC				0x13
+#define INPUT_SUB_MIC				0x14
+#define INPUT_AUX				0x15
+#define INPUT_CARKIT				0x16
 
-#define AUDIO_MAX_INPUT_VOLUME                   100
-#define AUDIO_MAX_OUTPUT_VOLUME                  100
-#define COMPUTE_PRECISION                        100
-#define AUDIO_INPUT_INCREMENT                    ((AUDIO_MAX_INPUT_VOLUME * \
-						   COMPUTE_PRECISION)/\
-						   (INPUT_GAIN_MAX))
-#define AUDIO_OUTPUT_INCREMENT                   ((AUDIO_MAX_OUTPUT_VOLUME * \
-						   COMPUTE_PRECISION)/\
-						   (OUTPUT_GAIN_MAX))
-#define AUDIO_DEF_COARSE_VOLUME_LEVEL            AUDIO_OUTPUT_COARSE_GAIN_6DB
-#define MIC_AMP_INCR                             ((AUDIO_MAX_INPUT_VOLUME * \
-						   COMPUTE_PRECISION)/\
-						   (MICAM_GAIN_MAX))
-#define ARX_APGA_INCR                            ((AUDIO_MAX_OUTPUT_VOLUME * \
-						   COMPUTE_PRECISION)/\
-						   (ARX_APGA_MIN))
-/* EAR/ HS Values */
+#define OUTPUT_VOLUME				0x21
+#define OUTPUT_STEREO_HEADSET			0x22
+#define OUTPUT_HANDS_FREE_CLASSD		0x23
+#define OUTPUT_MONO_EARPIECE			0x24
+#define OUTPUT_SIDETONE				0x25
+#define OUTPUT_CARKIT				0x26
+#define OUTPUT_DOWNLINK				0x27
+
+/* Chnanels, stereomode */
+#define MONO_MODE				1
+#define STEREO_MODE				2
+
+/* Volume calculation */
+#define AUDIO_MAX_INPUT_VOLUME			100
+#define AUDIO_MAX_OUTPUT_VOLUME			100
+#define AUDIO_MAX_VOLUME			100
+#define AUDIO_DEF_COARSE_VOLUME_LEVEL		AUDIO_OUTPUT_COARSE_GAIN_6DB
+
+/* Ear/Headset Values */
 #define NON_LIN_VALS                             {3, 2, 1}
 #define NON_LIN_GAIN_MAX                         3
 #define NON_LIN_GAIN_MAX_R                       2
-#define NON_LIN_INCREMENT                        ((AUDIO_MAX_OUTPUT_VOLUME * \
-						   COMPUTE_PRECISION)/\
-						   (NON_LIN_GAIN_MAX_R))
 #define NON_LIN_MUTE                             0
 
-#define DEFAULT_OUTPUT_VOLUME                    70
-#define DEFAULT_OUTPUT_SPK_VOLUME                50
-#define DEFAULT_OUTPUT_HSET_VOLUME               70
-#define DEFAULT_OUTPUT_EAR_VOLUME                60
-#define DEFAULT_SIDETONE_VOLUME                  20
-#define DEFAULT_OUTPUT_CARKIT_VOLUME             50
+#define DEFAULT_INPUT_VOLUME			50
+#define DEFAULT_INPUT_HEADSET_VOLUME		70
+#define DEFAULT_INPUT_MIC_VOLUME		70
+#define DEFAULT_INPUT_AUX_VOLUME		70
+#define DEFAULT_INPUT_CARKIT_VOLUME		70
 
-#define DEFAULT_INPUT_VOLUME                     60
-#define DEFAULT_INPUT_MIC_VOLUME                 80
-#define DEFAULT_INPUT_LINE_VOLUME                80
-#define DEFAULT_INPUT_CARKIT_VOLUME              50
-#define AUDIO_RATE_DEFAULT                       8000
+#define DEFAULT_OUTPUT_VOLUME			100
+#define DEFAULT_OUTPUT_HEADSET_VOLUME		70
+#define DEFAULT_OUTPUT_HANDSFREE_VOLUME		70
+#define DEFAULT_OUTPUT_EARPIECE_VOLUME		70
+#define DEFAULT_OUTPUT_CARKIT_VOLUME		70
+#define DEFAULT_DOWNLINK_VOLUME			80
+#define DEFAULT_SIDETONE_VOLUME			20
 
-/* supports only two sample sizes - 16 and 24 */
-#define AUDIO_SAMPLE_DATA_WIDTH_16               16
-#define AUDIO_SAMPLE_DATA_WIDTH_24               24
+/* Input/output digital/analog gain controllers */
+#define TXL1			0x11
+#define TXR1			0x12
+#define TXL2			0x13
+#define TXR2			0x14
+
+#define RXL1			0x21
+#define RXR1			0x22
+#define RXL2			0x23
+#define	RXR2			0x24
+
+#define VDL			0x31
+#define VST			0x41
+
+#define is_input(ARG)           (((ARG) >> 4) == 1)
+#define is_output(ARG)          (((ARG) >> 4) == 2)
+#define is_voice(ARG)		(((ARG) >> 4) == 3)
+#define is_sidetone(ARG)	(((ARG) >> 4) == 4)
+
+/* Sample rate */
+#define NARROWBAND_FREQ				8000
+#define WIDEBAND_FREQ				16000
+#define AUDIO_RATE_DEFAULT			8000
+#define VOICE_RATE_DEFAULT			NARROWBAND_FREQ
+#define AUDIO_APLL_DEFAULT			APLL_CTL_FREQ_26_0MHZ
+
+/* Sample sizes supported: 16, 24 bits */
+#define AUDIO_SAMPLE_DATA_WIDTH_16		16
+#define AUDIO_SAMPLE_DATA_WIDTH_24		24
 
  /* The least significant byte gives volume for the left channel and
   * the next 8 bits for the right channel.
   */
-#define READ_LEFT_VOLUME(ARG)                    ((ARG) & 0xFF)
-#define READ_RIGHT_VOLUME(ARG)                   (((ARG) & 0xFF00)>>8)
-#define WRITE_LEFT_VOLUME(ARG)                   ((ARG) & 0xFF)
-#define WRITE_RIGHT_VOLUME(ARG)                  (((ARG) & 0xFF)<<8)
-#define WRITE_LR_VOLUME(ARG)                     (WRITE_RIGHT_VOLUME(ARG) | \
-						   WRITE_LEFT_VOLUME(ARG))
+#define READ_LEFT_VOLUME(ARG)			((ARG) & 0xFF)
+#define READ_RIGHT_VOLUME(ARG)			(((ARG) & 0xFF00)>>8)
+#define WRITE_LEFT_VOLUME(ARG)			((ARG) & 0xFF)
+#define WRITE_RIGHT_VOLUME(ARG)			(((ARG) & 0xFF)<<8)
+#define WRITE_LR_VOLUME(ARG)			(WRITE_RIGHT_VOLUME(ARG) | \
+							WRITE_LEFT_VOLUME(ARG))
 
-#define CODEC_NAME                               "TWL4030"
-#define MIXER_NAME                               "TWL4030 Mixer"
-
-#if defined(CONFIG_ARCH_OMAP243X)
-#define PLATFORM_NAME                            "OMAP243X"
-#elif defined(CONFIG_ARCH_OMAP3430)
-#define PLATFORM_NAME                            "OMAP3430"
-#else
-#error "UnSupported platform"
-#endif
-
-/* Define to set the twl as the master w.r.t McBSP
- * - remove to make mcbsp master
- */
+/* TWL4030 is master for audio mode */
 #define TWL_MASTER
 
-/* Select the McBSP for Audio */
-#define AUDIO_MCBSP                              OMAP_MCBSP2
-#define OMAP_AUDIO_NAME			  "omap-audio"
+/* Select the McBSP for audio */
+#define OMAP_AUDIO_NAME				"omap-audio"
 
-#define AUDIO_APLL_DEFAULT                       APLL_CTL_FREQ_26_0MHZ
+/* Listen mono sound as stereo on stereo devices */
+#undef MONO_MODE_SOUNDS_STEREO
+
+/* GPIO for external mute control - required for pop noise */
+#define TWL4030_AUDIO_EXT_MUT	6
+#define MODEM_GPIO		128
 
 struct codec_local_info {
-	/* Global volume control */
-	u16 play_volume;	/* Store the play volume */
-	u16 rec_volume; 	/* Store the record volume */
-	/* Device specific volume control */
-	u16 hset; 		/* Store the hset volume */
-	u16 classd; 		/* Store the classd volume */
-	u16 ear; 		/* Store the ear volume */
-	u16 line; 		/* Store the line volume */
-	u16 mic; 		/* Store the mic volume */
-	u16 aux; 		/* Store aux/FM volume */
-	u16 sidetone; 		/* Store sidetone volume */
-	u16 carkit_out; 	/* Store carkit output gain */
-	u16 carkit_in; 		/* Store carkit input gain */
+	/* Codec mode: audio, voice */
+	u8 codec_mode;
+	/* Input sources volume */
+	int master_rec_vol;
+	int headset_mic_vol;
+	int main_mic_vol;
+	int sub_mic_vol;
+	int aux_vol;
+	int carkit_mic_vol;
+	/* Output sources volume */
+	int master_play_vol;
+	int headset_vol;
+	int classd_vol;
+	int ear_vol;
+	int carkit_vol;
+	int sidetone_vol;
+	int downlink_vol;
 	/* Switch flags */
-	u8 handsfree_en;
-	u8 hsmic_en;
-	u8 main_mic_en;
-	u8 sub_mic_en;
-	/* Default volume */
-	int current_input;
-	int current_output;
-	/* Sample rate/channels */
+	int handsfree_en;
+	int headset_mic_en;
+	int main_mic_en;
+	int sub_mic_en;
+	/* Current sources */
+	int input_src;
+	int output_src;
+	/* Sample rates, channels */
 	long audio_samplerate;
-	u8 current_bitspersample;
-	u8 current_stereomode;
-	/* Source Management */
-	int recsrc; 		/* Current active record sources */
-	int outsrc; 		/* Current active playback sources */
-	int mod_cnt;		/* Usage counter */
-};
-
-struct sample_rate_info_t {
-	u16 rate;
-	u8 apll;
+	long voice_samplerate;
+	int bitspersample;
+	int channels;
 };
 
 struct codec_mcbsp_settings {
@@ -898,47 +901,43 @@ struct codec_mcbsp_settings {
 	struct omap_mcbsp_srg_fsg_cfg audio_mcbsp_srg_fsg_cfg;
 };
 
-#define NUMBER_OF_RATES_SUPPORTED (sizeof(valid_sample_rates)/\
+struct sample_rate_info_t {
+	u16 rate;
+	u8 apll;
+};
+
+#define NUMBER_OF_RATES_SUPPORTED (sizeof(audio_sample_rates)/\
 				   sizeof(struct sample_rate_info_t))
-
-/* if we would like to listen to mono sound as stereo on stereo devices
- */
-#undef MONO_MODE_SOUNDS_STEREO
-
-/* How long to wait for stream to remain active?in Jiffies */
-#define TIMEOUT_WAIT_FOR_ACTIVE       20
-
-/* T2 GPIO for External Mute control - required for pop noise */
-#define TWL4030_AUDIO_EXT_MUT 6
 
 extern struct codec_local_info twl4030_local;
 extern struct codec_mcbsp_settings twl4030_mcbsp_settings;
+extern char twl4030_configured;
 
 /**************************** Function Prototypes *****************************/
 
 extern int audio_twl4030_write(u8 address, u8 data);
-extern int audio_twl4030_read(u8 address);
+extern int audio_twl4030_read(u8 address, u8 *data);
 extern int twl4030_ext_mut_conf(void);
 extern int twl4030_ext_mut_off(void);
 extern int twl4030_ext_mut_on(void);
 
+int twl4030_codec_on(void);
+int twl4030_codec_off(void);
 int twl4030_codec_tog_on(void);
-int twl4030_select_source(int flag, int val);
-int twl4030_setvolume(int flag, u8 gain_l, u8 gain_r);
+int twl4030_select_source(int source);
+int twl4030_setvolume(int source, int volume_l, int volume_r);
 int twl4030_set_samplerate(long sample_rate);
+int twl4030_set_audio_samplerate(long sample_rate);
+int twl4030_set_voice_samplerate(long sample_rate);
 int twl4030_bit_set(int bit, int dsp);
 void twl4030_unconfigure(void);
-int twl4030_configure(void);
+int twl4030_configure(int codec_mode);
 void twl4030_mcbsp_dma_cb(u32 ch_status, void *arg);
-int twl4030_stereomode_set(int mode, int dsp);
+int twl4030_set_stereomode(int channels);
 
 void snd_omap_init_mixer(void);
 int snd_omap_mixer(struct snd_card_omap_codec *chip);
 int snd_omap_mixer_shutdown(struct snd_card_omap_codec *chip);
-
-#ifdef TONE_GEN
-void generate_tone(void);
-#endif
 
 #ifdef TWL_DUMP_REGISTERS
 void twl4030_dump_registers(void);
