@@ -612,6 +612,7 @@ int twl4030charger_usb_en(int enable)
 		if (ret)
 			return ret;
 	} else {
+		twl4030charger_presence();
 		ret = clear_n_set(TWL4030_MODULE_PM_MASTER, BCIAUTOUSB,
 			(CONFIG_DONE | BCIAUTOWEN), REG_BOOT_BCI);
 		if (ret)
@@ -743,6 +744,11 @@ static int twl4030charger_presence(void)
 	ret = (hwsts & STS_CHG)? AC_PW_CONN: NO_PW_CONN;
 
 	ret += (hwsts & STS_VBUS)? USB_PW_CONN: NO_PW_CONN;
+
+	if (ret & USB_PW_CONN)
+		usb_charger_flag = 1;
+	else
+		usb_charger_flag = 0;
 
 	return ret;
 
