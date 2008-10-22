@@ -1376,9 +1376,8 @@ S32 get_output_vertical_front_porch(U32 dsi_handle)
 	dcs_buf.resp_buf.len = 4;
 	len = sizeof(T_REQ_RESP_BUF);
 	ret = dsi_read(dsi_handle, SEND_DCS_READ_CMD, &len, (U8 *)&dcs_buf);
-	if (ret != OMAP_DAL_SUCCESS)
-		return ret;
 
+	return ret;
 }
 
 

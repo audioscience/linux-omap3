@@ -51,9 +51,6 @@ static spinlock_t dss_lock;
 short int current_colorconv_values[2][3][3];
 static struct omap_dss_regs dss_ctx;
 static struct clk *dss1f_scale;
-#if 1
-static struct clk *dpll4_scale;
-#endif
 static struct tvlcd_status_t tvlcd_status;
 
 #if 1
@@ -1175,8 +1172,8 @@ omap2_disp_config_vlayer(int ltype, struct v4l2_pix_format *pix,
 		  {   36,  31, 27, 22,  51,  48,  44,  40 },
 		  {   0,   -2,  -5,  -7,  17,  12,  8,  4 } };
 
-	short int* vc= (short int *) vc_u;
-	short int* hc= (short int *) hc_u;
+	const short int (*vc)[] = vc_u;
+	const short int (*hc)[] = hc_u;
 	
 	int v;
 
@@ -1338,21 +1335,21 @@ omap2_disp_config_vlayer(int ltype, struct v4l2_pix_format *pix,
 		vid_attributes |= DISPC_VID_ATTRIBUTES_VIDRESIZEENABLE_HRESIZE;
 		if (winwidth < cropwidth){
 			vid_attributes |= DISPC_VID_ATTRIBUTES_VIDHRESIZECONF;
-			hc = (short int *) hc_d;
+			hc = hc_d;
 		}
 	}
 	if (winheight != cropheight) {
 		vid_attributes |= DISPC_VID_ATTRIBUTES_VIDRESIZEENABLE_VRESIZE;
 		if (winheight < cropheight){
 			vid_attributes |= DISPC_VID_ATTRIBUTES_VIDVRESIZECONF;
-			vc = (short int *) vc_d;
+			vc = vc_d;
 		}
 	}
 	
 	if (flicker_filter == 1) {
 		vid_attributes |= DISPC_VID_ATTRIBUTES_VIDRESIZEENABLE_VRESIZE;
 		vid_attributes |= DISPC_VID_ATTRIBUTES_VIDVRESIZECONF;
-		vc = (short int *) vc_d;
+		vc = vc_d;
 	}
 	
 	dispc_reg_out(DISPC_VID_ATTRIBUTES(v), vid_attributes);

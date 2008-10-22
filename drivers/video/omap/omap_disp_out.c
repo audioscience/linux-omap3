@@ -692,9 +692,11 @@ int omap_lcd_init(struct omap_lcd_info *info)
 #endif	
 #endif
 #endif
-	u32 clkdiv;
+
 #ifdef CONFIG_OMAP_DSI
 	u32  handle;
+#else
+	u32 clkdiv;
 #endif
 
 #ifdef CONFIG_LCD_IOCTL

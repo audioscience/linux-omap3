@@ -637,46 +637,6 @@ static int get_wait_timeout(int print_locks, int state, struct list_head *list_h
 	return max_timeout;
 }
 
-#ifdef CONFIG_FRAMEBUFFER_CONSOLE
-static int android_power_class_suspend(struct sys_device *sdev, pm_message_t state)
-{
-	int rv = 0;
-	unsigned long irqflags;
-
-	printk("android_power_suspend: enter\n");
-	spin_lock_irqsave(&g_list_lock, irqflags);
-	if(!list_empty(&g_active_partial_wake_locks)) {
-		printk("android_power_suspend: abort for partial wakeup\n");
-		rv = -EAGAIN;
-	}
-	if(g_user_suspend_state != USER_SLEEP) {
-		printk("android_power_suspend: abort for full wakeup\n");
-		rv = -EAGAIN;
-	}
-	spin_unlock_irqrestore(&g_list_lock, irqflags);
-	return rv;
-}
-
-static int android_power_device_suspend(struct sys_device *sdev, pm_message_t state)
-{
-	int rv = 0;
-	unsigned long irqflags;
-
-	printk("android_power_device_suspend: enter\n");
-	spin_lock_irqsave(&g_list_lock, irqflags);
-	if(!list_empty(&g_active_partial_wake_locks)) {
-		printk("android_power_device_suspend: abort for partial wakeup\n");
-		rv = -EAGAIN;
-	}
-	if(g_user_suspend_state != USER_SLEEP) {
-		printk("android_power_device_suspend: abort for full wakeup\n");
-		rv = -EAGAIN;
-	}
-	spin_unlock_irqrestore(&g_list_lock, irqflags);
-	return rv;
-}
-#endif
-
 int android_power_is_driver_suspended(void)
 {
 	return (get_wait_timeout(0, USER_SLEEP, &g_active_partial_wake_locks) < 0) && (g_user_suspend_state == USER_SLEEP);

@@ -1943,7 +1943,7 @@ int __init omap24xxfb_init(void)
 		}
 	}
 	memset((void *)oinfo->fb_base, 0, oinfo->fb_size);
-	printk("Frame buffer -- address = 0x%x \n",oinfo->fb_base);
+	printk(KERN_INFO "Frame buffer -- address = 0x%lx \n", oinfo->fb_base);
 
 	if (oinfo->rotation_support) {
 	       if (!(oinfo->sms_rot_virt[0] =

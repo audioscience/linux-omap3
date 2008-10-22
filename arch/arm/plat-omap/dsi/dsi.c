@@ -552,7 +552,7 @@ int config_dsipll_lclk(int logic_clk, int pclk_or_sysclk,\
 	ret = dsi_pll_pwr_cmd(PWR_CMD_STATE_ON_DIV);
 
 	if (ret != OMAP_DAL_SUCCESS)
-		return ret;
+		goto ret;
 
 	/* TODO: need to check what all things to
 	be taken care before starting programming */
@@ -567,7 +567,7 @@ int config_dsipll_lclk(int logic_clk, int pclk_or_sysclk,\
 	/* TODO: need to decide what all things to be enabled */
 	ret = dsi_pll_pwr_cmd(PWR_CMD_STATE_ON_DIV);
 	if (ret != OMAP_DAL_SUCCESS)
-		return ret;
+		goto ret;
 
 
 	/* Lock the PLL */
@@ -580,12 +580,15 @@ int config_dsipll_lclk(int logic_clk, int pclk_or_sysclk,\
 				regm4);
 
 	if (ret != OMAP_DAL_SUCCESS)
-		return ret;
+		goto ret;
 
 	switch_to_dsipll_clk_source(); /* debugging */
 	val = disp_reg_in(DISPC_CONTROL);
 		val &=  ~((1 << 27));
 	disp_reg_out(DISPC_CONTROL, val);
+
+ret:
+	return ret;
 }
 EXPORT_SYMBOL(config_dsipll_lclk);
 
