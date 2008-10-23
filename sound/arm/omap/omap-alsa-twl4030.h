@@ -857,8 +857,15 @@
 #undef MONO_MODE_SOUNDS_STEREO
 
 /* GPIO for external mute control - required for pop noise */
+#if CONFIG_MACH_OMAP_3430CHAMELEON
+#define TWL4030_AUDIO_EXT_MUT	15
+#else
 #define TWL4030_AUDIO_EXT_MUT	6
+#endif
+
 #define MODEM_GPIO		128
+
+#define AUDIO_I2C_RETRY		3
 
 struct codec_local_info {
 	/* Codec mode: audio, voice */

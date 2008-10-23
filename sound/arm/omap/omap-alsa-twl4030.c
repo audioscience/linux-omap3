@@ -259,28 +259,40 @@ struct codec_mcbsp_settings twl4030_mcbsp_settings = {
 
 inline int audio_twl4030_write(u8 address, u8 data)
 {
+	int i = 0;
 	int ret = 0;
 
-	ret = twl4030_i2c_write_u8(TWL4030_MODULE_AUDIO_VOICE, data, address);
-	if (ret < 0)
-		printk(KERN_ERR "TWL4030 write to reg 0x%x %d\n",
-			address, ret);
-	else
-		ret = 0;
+	for (i = 0; i < AUDIO_I2C_RETRY; i++) {
+		ret = twl4030_i2c_write_u8(TWL4030_MODULE_AUDIO_VOICE,
+						data, address);
+		if (ret < 0) {
+			printk(KERN_ERR "TWL4030 write to reg 0x%x %d\n",
+				address, ret);
+		} else {
+			ret = 0;
+			break;
+		}
+	}
 
 	return ret;
 }
 
 inline int audio_twl4030_read(u8 address, u8 *data)
 {
+	int i = 0;
 	int ret = 0;
 
-	ret = twl4030_i2c_read_u8(TWL4030_MODULE_AUDIO_VOICE, data, address);
-	if (ret < 0)
-		printk(KERN_ERR "TWL4030 read from reg 0x%x %d\n",
-			address, ret);
-	else
-		ret = 0;
+	for (i = 0; i < AUDIO_I2C_RETRY; i++) {
+		ret = twl4030_i2c_read_u8(TWL4030_MODULE_AUDIO_VOICE,
+						data, address);
+		if (ret < 0) {
+			printk(KERN_ERR "TWL4030 read from reg 0x%x %d\n",
+				address, ret);
+		} else {
+			ret = 0;
+			break;
+		}
+	}
 
 	return ret;
 }
@@ -1865,7 +1877,6 @@ void twl4030_mcbsp_dma_cb(u32 ch_status, void *arg)
 {
 	if (ch_status) {
 		printk(KERN_ERR "Codec data transfer error %d\n", ch_status);
-		return;
 
 	}
 	callback_omap_alsa_sound_dma(arg);
