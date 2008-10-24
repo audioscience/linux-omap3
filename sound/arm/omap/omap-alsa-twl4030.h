@@ -857,7 +857,7 @@
 #undef MONO_MODE_SOUNDS_STEREO
 
 /* GPIO for external mute control - required for pop noise */
-#if CONFIG_MACH_OMAP_3430CHAMELEON
+#ifdef CONFIG_MACH_OMAP_3430CHAMELEON
 #define TWL4030_AUDIO_EXT_MUT	15
 #else
 #define TWL4030_AUDIO_EXT_MUT	6

@@ -251,6 +251,7 @@ static int omap_verify_buf(struct mtd_info *mtd, const u_char * buf, int len)
 	return 0;
 }
 
+#ifdef CONFIG_MTD_NAND_OMAP_HWECC
 /*
  * omap_hwecc_init -  Initialize the Hardware ECC for NAND flash
  * in GPMC controller.
@@ -520,6 +521,7 @@ static void omap_enable_hwecc(struct mtd_info *mtd, int mode)
 
 	__raw_writel(val, info->gpmc_baseaddr + GPMC_ECC_CONFIG);
 }
+#endif
 
 /*
  * omap_wait - Wait function is called during Program and erase
@@ -669,7 +671,7 @@ static int __devinit omap_nand_probe(struct platform_device *pdev)
 				& 0x3000) == 0x1000)
 		info->nand.options  |= NAND_BUSWIDTH_16;
 
-#if CONFIG_MTD_NAND_OMAP_HWECC
+#ifdef CONFIG_MTD_NAND_OMAP_HWECC
 		info->nand.ecc.calculate = omap_calculate_ecc;
 		info->nand.ecc.hwctl     = omap_enable_hwecc;
 		info->nand.ecc.correct   = omap_correct_data;

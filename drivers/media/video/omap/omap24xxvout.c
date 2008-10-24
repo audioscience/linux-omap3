@@ -1597,11 +1597,15 @@ omap24xxvout_release (struct inode *inode, struct file *file)
 }
 
 /* define this to allow videobuf_mmap_free to work */
-static void dummy_vbq_setup(struct videobuf_queue *q, struct videobuf_buffer *vb)
+static int dummy_vbq_setup(struct videobuf_queue *q,
+				unsigned int *count, unsigned int *size)
 {
+	return 0;
 }
-static void dummy_vbq_prepare(struct videobuf_queue *q, struct videobuf_buffer *vb)
+static int dummy_vbq_prepare(struct videobuf_queue *q,
+				struct videobuf_buffer *vb, enum v4l2_field field)
 {
+	return 0;
 }
 static void dummy_vbq_release(struct videobuf_queue *q, struct videobuf_buffer *vb)
 {
