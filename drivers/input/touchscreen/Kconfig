@@ -29,6 +29,15 @@ config TOUCHSCREEN_ADS7846
 	  To compile this driver as a module, choose M here: the
 	  module will be called ads7846.
 
+config ADS_SCALED_EV
+	bool "Generate scaled touch events"
+	depends on TOUCHSCREEN_ADS7846
+	default y
+	help
+	  Say Y here if to have scaled touch events. It accepts calibrated
+	  data from user(/sys/module/ads7846/parameters/calibration)
+	  And sends cooked events back to user /dev/input/event*
+
 config TOUCHSCREEN_BITSY
 	tristate "Compaq iPAQ H3600 (Bitsy) touchscreen"
 	depends on SA1100_BITSY

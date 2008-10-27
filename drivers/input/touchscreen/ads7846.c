@@ -28,6 +28,12 @@
 #include <linux/spi/ads7846.h>
 #include <asm/irq.h>
 
+#ifdef CONFIG_ADS_SCALED_EV
+static int ads_cal[7] = {1, 0, 0, 0, 1, 0, 1};
+
+module_param_array_named(calibration, ads_cal, int, NULL, 0644);
+MODULE_PARM_DESC(calibrate, "calibration data");
+#endif
 
 /*
  * This code has been heavily tested on a Nokia 770, and lightly
@@ -503,7 +509,7 @@ static void ads7846_rx(void *ads)
 {
 	struct ads7846		*ts = ads;
 	unsigned		Rt;
-	u16			x, y, z1, z2;
+	u16			x, y, x_abs, y_abs, z1, z2;
 
 	/* ads7846_rx_val() did in-place conversion (including byteswap) from
 	 * on-the-wire format as part of debouncing to get stable readings.
@@ -572,11 +578,23 @@ static void ads7846_rx(void *ads)
 			dev_dbg(&ts->spi->dev, "DOWN\n");
 #endif
 		}
+
+#ifdef CONFIG_ADS_SCALED_EV
+		x_abs = (ads_cal[3]*x + ads_cal[4]*y + ads_cal[5])/ads_cal[6];
+		y_abs = (ads_cal[0]*x + ads_cal[1]*y + ads_cal[2])/ads_cal[6];
+
+		input_report_abs(input, ABS_Y, y_abs);
+		input_report_abs(input, ABS_X, x_abs);
+		input_report_abs(input, ABS_PRESSURE, Rt);
+#else
 		input_report_abs(input, ABS_X, x);
 		input_report_abs(input, ABS_Y, y);
-		input_report_abs(input, ABS_PRESSURE, Rt);
 
+
+#endif
+		input_report_abs(input, ABS_PRESSURE, Rt);
 		input_sync(input);
+
 #ifdef VERBOSE
 		dev_dbg(&ts->spi->dev, "%4d/%4d/%4d\n", x, y, Rt);
 #endif
@@ -918,6 +936,13 @@ static int __devinit ads7846_probe(struct spi_device *spi)
 
 	input_dev->evbit[0] = BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS);
 	input_dev->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);
+
+#ifdef CONFIG_ADS_SCALED_EV
+	input_set_abs_params(input_dev, ABS_Y, pdata->y_min,
+			pdata->y_max, 0, 0);
+	input_set_abs_params(input_dev, ABS_X, pdata->x_min,
+			pdata->x_max, 0, 0);
+#else
 	input_set_abs_params(input_dev, ABS_X,
 			pdata->x_min ? : 0,
 			pdata->x_max ? : MAX_12BIT,
@@ -926,9 +951,11 @@ static int __devinit ads7846_probe(struct spi_device *spi)
 			pdata->y_min ? : 0,
 			pdata->y_max ? : MAX_12BIT,
 			0, 0);
+#endif
 	input_set_abs_params(input_dev, ABS_PRESSURE,
 			pdata->pressure_min, pdata->pressure_max, 0, 0);
 
+	bitmap_fill(input_dev->absbit, ABS_MAX);
 	vref = pdata->keep_vref_on;
 
 	/* set up the transfers to read touchscreen state; this assumes we

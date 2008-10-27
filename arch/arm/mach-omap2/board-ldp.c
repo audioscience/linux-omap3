@@ -441,11 +441,18 @@ static void modem_uart_config(void)
 }
 
 static struct ads7846_platform_data tsc2046_config __initdata = {
+#ifdef CONFIG_ADS_SCALED_EV
+	.x_min			= 310,
+	.y_min			= 217,
+	.x_max			= 3716,
+	.y_max			= 3782,
+#else
 	.x_max			= 0x0fff,
 	.y_max			= 0x0fff,
+#endif
 	.x_plate_ohms		= 180,
 	.pressure_max		= 255,
-	.debounce_max		= 10,
+	.debounce_max		= 20,
 	.debounce_tol		= 10,
 	.debounce_rep		= 1,
  	.get_pendown_state	= ads7846_get_pendown_state,
