@@ -413,7 +413,9 @@ int __init omap3_pm_init(void)
 	_omap_sram_idle = omap_sram_push(omap34xx_cpu_suspend,
 					omap34xx_cpu_suspend_sz);
 
+#ifndef CONFIG_ANDROID_POWER
 	suspend_set_ops(&omap_pm_ops);
+#endif
 
 	pm_idle = omap3_pm_idle;
 
