@@ -1324,10 +1324,25 @@ DSP_STATUS NODE_Create(struct NODE_OBJECT *hNode)
 	bool bJustWokeDSP = false;
 	struct DSP_CBDATA cbData;
 	u32 procId = 255;
+	struct DSP_PROCESSORSTATE procStatus;
+	struct PROC_OBJECT *hProcessor;
 
 	DBC_Require(cRefs > 0);
 	GT_1trace(NODE_debugMask, GT_ENTER, "NODE_Create: hNode: 0x%x\n",
 		 hNode);
+	hProcessor = hNode->hProcessor;
+	status = PROC_GetState(hProcessor, &procStatus,
+					sizeof(struct DSP_PROCESSORSTATE));
+	if (DSP_FAILED(status))
+		goto func_end;
+	/* If processor is in error state then don't attempt to create
+	    new node */
+	if (procStatus.iState == PROC_ERROR) {
+		GT_1trace(NODE_debugMask, GT_4CLASS, "NODE_Create:"
+			"		proc Status 0x%x\n", procStatus.iState);
+		status = DSP_EFAIL;
+		goto func_end;
+	}
 	if (!MEM_IsValidHandle(hNode, NODE_SIGNATURE)) {
 		status = DSP_EHANDLE;
 		goto func_end;
@@ -2061,11 +2076,27 @@ DSP_STATUS NODE_GetMessage(struct NODE_OBJECT *hNode, OUT struct DSP_MSG *pMsg,
 	struct WMD_DRV_INTERFACE *pIntfFxns;
 	DSP_STATUS status = DSP_SOK;
 	void *pTmpBuf;
+	struct DSP_PROCESSORSTATE procStatus;
+	struct PROC_OBJECT *hProcessor;
+
 	DBC_Require(cRefs > 0);
 	DBC_Require(pMsg != NULL);
 	GT_3trace(NODE_debugMask, GT_ENTER,
 		 "NODE_GetMessage: hNode: 0x%x\tpMsg: "
 		 "0x%x\tuTimeout: 0x%x\n", hNode, pMsg, uTimeout);
+	hProcessor = hNode->hProcessor;
+	status = PROC_GetState(hProcessor, &procStatus,
+					sizeof(struct DSP_PROCESSORSTATE));
+	if (DSP_FAILED(status))
+		goto func_end;
+	/* If processor is in error state then don't attempt to get the
+	    message */
+	if (procStatus.iState == PROC_ERROR) {
+		GT_1trace(NODE_debugMask, GT_4CLASS, "NODE_GetMessage:"
+			"		proc Status 0x%x\n", procStatus.iState);
+		status = DSP_EFAIL;
+		goto func_end;
+	}
 	if (!MEM_IsValidHandle(hNode, NODE_SIGNATURE)) {
 		status = DSP_EHANDLE;
 		goto func_end;
@@ -2263,6 +2294,8 @@ DSP_STATUS NODE_Pause(struct NODE_OBJECT *hNode)
 	struct NODE_MGR *hNodeMgr;
 	DSP_STATUS status = DSP_SOK;
 	u32 procId;
+	struct DSP_PROCESSORSTATE procStatus;
+	struct PROC_OBJECT *hProcessor;
 
 	DBC_Require(cRefs > 0);
 
@@ -2294,6 +2327,20 @@ DSP_STATUS NODE_Pause(struct NODE_OBJECT *hNode)
 			if (state != NODE_RUNNING)
 				status = DSP_EWRONGSTATE;
 
+			hProcessor = hNode->hProcessor;
+			status = PROC_GetState(hProcessor, &procStatus,
+					sizeof(struct DSP_PROCESSORSTATE));
+			if (DSP_FAILED(status))
+				goto func_end;
+			/* If processor is in error state then don't attempt
+			    to send the message */
+			if (procStatus.iState == PROC_ERROR) {
+				GT_1trace(NODE_debugMask, GT_4CLASS,
+					"NODE_Pause: proc Status 0x%x\n",
+					procStatus.iState);
+				status = DSP_EFAIL;
+				goto func_end;
+			}
 			if (DSP_SUCCEEDED(status)) {
 				status = DISP_NodeChangePriority(hNodeMgr->
 				   hDisp, hNode,
@@ -2319,6 +2366,7 @@ DSP_STATUS NODE_Pause(struct NODE_OBJECT *hNode)
 			NTFY_Notify(hNode->hNtfy, DSP_NODESTATECHANGE);
 		}
 	}
+func_end:
 	return status;
 }
 
@@ -2339,12 +2387,27 @@ DSP_STATUS NODE_PutMessage(struct NODE_OBJECT *hNode,
 	DSP_STATUS status = DSP_SOK;
 	void *pTmpBuf;
 	struct DSP_MSG newMsg;
+	struct DSP_PROCESSORSTATE procStatus;
+	struct PROC_OBJECT *hProcessor;
 
 	DBC_Require(cRefs > 0);
 	DBC_Require(pMsg != NULL);
 	GT_3trace(NODE_debugMask, GT_ENTER,
 		 "NODE_PutMessage: hNode: 0x%x\tpMsg: "
 		 "0x%x\tuTimeout: 0x%x\n", hNode, pMsg, uTimeout);
+	hProcessor = hNode->hProcessor;
+	status = PROC_GetState(hProcessor, &procStatus,
+					sizeof(struct DSP_PROCESSORSTATE));
+	if (DSP_FAILED(status))
+		goto func_end;
+	/* If processor is in bad state then don't attempt sending the
+	    message */
+	if (procStatus.iState == PROC_ERROR) {
+		GT_1trace(NODE_debugMask, GT_4CLASS, "NODE_PutMessage:"
+			"		proc Status 0x%x\n", procStatus.iState);
+		status = DSP_EFAIL;
+		goto func_end;
+	}
 	if (!MEM_IsValidHandle(hNode, NODE_SIGNATURE))
 		status = DSP_EHANDLE;
 	else {
@@ -2485,9 +2548,23 @@ DSP_STATUS NODE_Run(struct NODE_OBJECT *hNode)
 	DSP_STATUS status = DSP_SOK;
 	u32 procId;
 	struct WMD_DRV_INTERFACE *pIntfFxns;
+	struct DSP_PROCESSORSTATE procStatus;
+	struct PROC_OBJECT *hProcessor;
 
 	DBC_Require(cRefs > 0);
 	GT_1trace(NODE_debugMask, GT_ENTER, "NODE_Run: hNode: 0x%x\n", hNode);
+	hProcessor = hNode->hProcessor;
+	status = PROC_GetState(hProcessor, &procStatus,
+					sizeof(struct DSP_PROCESSORSTATE));
+	if (DSP_FAILED(status))
+		goto func_end;
+	/* If processor is in error state then don't attempt to run the node */
+	if (procStatus.iState == PROC_ERROR) {
+		GT_1trace(NODE_debugMask, GT_4CLASS, "NODE_Run:"
+			"		proc Status 0x%x\n", procStatus.iState);
+		status = DSP_EFAIL;
+		goto func_end;
+	}
 	if (!MEM_IsValidHandle(hNode, NODE_SIGNATURE)) {
 		status = DSP_EHANDLE;
 	} else {
