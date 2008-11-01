@@ -237,6 +237,7 @@ DSP_STATUS SleepDSP(struct WMD_DEV_CONTEXT *pDevContext, IN u32 dwCmd,
 	}
 	switch (pDevContext->dwBrdState) {
 	case BRD_RUNNING:
+		status = HW_MBOX_saveSettings(resources.dwMboxBase);
 		if (dsp_test_sleepstate == HW_PWR_STATE_OFF) {
 			IO_InterruptDSP2(pDevContext,
 					 MBX_PM_DSPHIBERNATE);
@@ -251,6 +252,7 @@ DSP_STATUS SleepDSP(struct WMD_DEV_CONTEXT *pDevContext, IN u32 dwCmd,
 		}
 		break;
 	case BRD_RETENTION:
+		status = HW_MBOX_saveSettings(resources.dwMboxBase);
 		if (dsp_test_sleepstate == HW_PWR_STATE_OFF) {
 			IO_InterruptDSP2(pDevContext,
 					 MBX_PM_DSPHIBERNATE);
