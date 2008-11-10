@@ -31,6 +31,23 @@ static inline int omap3_idle_init(void) { return 0; }
 extern int omap3_pm_get_suspend_state(struct powerdomain *pwrdm);
 extern int omap3_pm_set_suspend_state(struct powerdomain *pwrdm, int state);
 
+/* VDD1 OPPS */
+#define VDD1_OPP1	0x1
+#define VDD1_OPP2	0x2
+#define VDD1_OPP3	0x3
+#define VDD1_OPP4	0x4
+#define VDD1_OPP5	0x5
+
+/* VDD2 OPPS */
+#define VDD2_OPP1	0x1
+#define VDD2_OPP2	0x2
+#define VDD2_OPP3	0x3
+
+#define MIN_VDD1_OPP	VDD1_OPP1
+#define MAX_VDD1_OPP	VDD1_OPP5
+#define MIN_VDD2_OPP	VDD2_OPP1
+#define MAX_VDD2_OPP	VDD2_OPP3
+
 #ifdef CONFIG_PM_DEBUG
 extern void omap2_pm_dump(int mode, int resume, unsigned int us);
 extern int omap2_pm_debug;
