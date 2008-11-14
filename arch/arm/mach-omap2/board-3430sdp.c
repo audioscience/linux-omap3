@@ -40,6 +40,7 @@
 #include <mach/dma.h>
 #include <mach/gpmc.h>
 #include <mach/omap-pm.h>
+#include <mach/display.h>
 
 #include <asm/io.h>
 #include <asm/delay.h>
@@ -57,7 +58,6 @@
 
 #define ENABLE_VAUX3_DEDICATED	0x03
 #define ENABLE_VAUX3_DEV_GRP	0x20
-
 
 #define TWL4030_MSECURE_GPIO 22
 
@@ -220,7 +220,6 @@ static struct ads7846_platform_data tsc2046_config __initdata = {
 	.vaux_control		= ads7846_vaux_control,
 };
 
-
 static struct omap2_mcspi_device_config tsc2046_mcspi_config = {
 	.turbo_mode	= 0,
 	.single_channel	= 1,  /* 0: slave, 1: master */
@@ -242,14 +241,472 @@ static struct spi_board_info sdp3430_spi_board_info[] __initdata = {
 	},
 };
 
-static struct platform_device sdp3430_lcd_device = {
-	.name		= "sdp2430_lcd",
-	.id		= -1,
+#ifdef CONFIG_VIDEO_OMAP3
+static void __iomem *fpga_map_addr;
+
+static void enable_fpga_vio_1v8(u8 enable)
+{
+	u16 reg_val;
+
+	fpga_map_addr = ioremap(DEBUG_BASE, 4096);
+	reg_val = readw(fpga_map_addr + REG_SDP3430_FPGA_GPIO_2);
+
+	/* Ensure that the SPR_GPIO1_3v3 is 0 - powered off.. 1 is on */
+	if (reg_val & FPGA_SPR_GPIO1_3v3) {
+		reg_val |= FPGA_SPR_GPIO1_3v3;
+		reg_val |= FPGA_GPIO6_DIR_CTRL; /* output mode */
+		writew(reg_val, fpga_map_addr + REG_SDP3430_FPGA_GPIO_2);
+		/* give a few milli sec to settle down
+		 * Let the sensor also settle down.. if required..
+		 */
+		if (enable)
+			mdelay(10);
+	}
+
+	if (enable) {
+		reg_val |= FPGA_SPR_GPIO1_3v3 | FPGA_GPIO6_DIR_CTRL;
+		writew(reg_val, fpga_map_addr + REG_SDP3430_FPGA_GPIO_2);
+	}
+	/* Vrise time for the voltage - should be less than 1 ms */
+	mdelay(1);
+}
+#endif
+
+#ifdef CONFIG_VIDEO_DW9710
+static int dw9710_lens_power_set(enum v4l2_power power)
+{
+
+	/* The power change depends on MT9P012 powerup, so if we request a
+	 * power state different from sensor, we should return error
+	 */
+	if ((mt9p012_previous_power != V4L2_POWER_OFF) &&
+					(power != mt9p012_previous_power))
+		return -EIO;
+
+	switch (power) {
+	case V4L2_POWER_OFF:
+		/* Power Down Sequence */
+#ifdef CONFIG_TWL4030_CORE
+		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+				VAUX_DEV_GRP_NONE, TWL4030_VAUX2_DEV_GRP);
+#else
+#error "no power companion board defined!"
+#endif
+		enable_fpga_vio_1v8(0);
+		omap_free_gpio(MT9P012_RESET_GPIO);
+		iounmap(fpga_map_addr);
+		omap_free_gpio(MT9P012_STANDBY_GPIO);
+		break;
+	case V4L2_POWER_ON:
+		/* Request and configure gpio pins */
+		if (omap_request_gpio(MT9P012_STANDBY_GPIO) != 0) {
+			printk(KERN_WARNING "Could not request GPIO %d"
+						" for MT9P012\n",
+						MT9P012_STANDBY_GPIO);
+			return -EIO;
+		}
+
+		/* Request and configure gpio pins */
+		if (omap_request_gpio(MT9P012_RESET_GPIO) != 0)
+			return -EIO;
+
+		/* set to output mode */
+		gpio_direction_output(MT9P012_STANDBY_GPIO, true);
+		/* set to output mode */
+		gpio_direction_output(MT9P012_RESET_GPIO, true);
+
+		/* STANDBY_GPIO is active HIGH for set LOW to release */
+		gpio_set_value(MT9P012_STANDBY_GPIO, 1);
+
+		/* nRESET is active LOW. set HIGH to release reset */
+		gpio_set_value(MT9P012_RESET_GPIO, 1);
+
+		/* turn on digital power */
+		enable_fpga_vio_1v8(1);
+#ifdef CONFIG_TWL4030_CORE
+		/* turn on analog power */
+		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+				VAUX_2_8_V, TWL4030_VAUX2_DEDICATED);
+		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+				VAUX_DEV_GRP_P1, TWL4030_VAUX2_DEV_GRP);
+#else
+#error "no power companion board defined!"
+#endif
+		/* out of standby */
+		gpio_set_value(MT9P012_STANDBY_GPIO, 0);
+		udelay(1000);
+
+		/* have to put sensor to reset to guarantee detection */
+		gpio_set_value(MT9P012_RESET_GPIO, 0);
+
+		udelay(1500);
+
+		/* nRESET is active LOW. set HIGH to release reset */
+		gpio_set_value(MT9P012_RESET_GPIO, 1);
+		/* give sensor sometime to get out of the reset.
+		 * Datasheet says 2400 xclks. At 6 MHz, 400 usec is
+		 * enough
+		 */
+		udelay(300);
+		break;
+	case V4L2_POWER_STANDBY:
+		break;
+	}
+	return 0;
+}
+
+static int dw9710_lens_set_prv_data(void *priv)
+{
+	struct omap34xxcam_hw_config *hwc = priv;
+
+	hwc->dev_index = 0;
+	hwc->dev_minor = 0;
+	hwc->dev_type = OMAP34XXCAM_SLAVE_LENS;
+	return 0;
+}
+
+static struct dw9710_platform_data sdp3430_dw9710_platform_data = {
+	.power_set      = dw9710_lens_power_set,
+	.priv_data_set  = dw9710_lens_set_prv_data,
+};
+
+#endif
+
+#if defined(CONFIG_VIDEO_MT9P012) || defined(CONFIG_VIDEO_MT9P012_MODULE)
+static struct omap34xxcam_sensor_config cam_hwc = {
+	.sensor_isp = 0,
+	.xclk = OMAP34XXCAM_XCLK_A,
+	.capture_mem = PAGE_ALIGN(2592 * 1944 * 2) * 4,
+};
+
+static int mt9p012_sensor_set_prv_data(void *priv)
+{
+	struct omap34xxcam_hw_config *hwc = priv;
+
+	hwc->u.sensor.xclk = cam_hwc.xclk;
+	hwc->u.sensor.sensor_isp = cam_hwc.sensor_isp;
+	hwc->u.sensor.capture_mem = cam_hwc.capture_mem;
+	hwc->dev_index = 0;
+	hwc->dev_minor = 0;
+	hwc->dev_type = OMAP34XXCAM_SLAVE_SENSOR;
+	return 0;
+}
+
+static struct isp_interface_config mt9p012_if_config = {
+	.ccdc_par_ser = ISP_PARLL,
+	.dataline_shift = 0x1,
+	.hsvs_syncdetect = ISPCTRL_SYNC_DETECT_VSRISE,
+	.vdint0_timing = 0x0,
+	.vdint1_timing = 0x0,
+	.strobe = 0x0,
+	.prestrobe = 0x0,
+	.shutter = 0x0,
+	.prev_sph = 2,
+	.prev_slv = 0,
+	.wenlog = ISPCCDC_CFG_WENLOG_OR,
+	.u.par.par_bridge = 0x0,
+	.u.par.par_clk_pol = 0x0,
+};
+
+static int mt9p012_sensor_power_set(enum v4l2_power power)
+{
+	switch (power) {
+	case V4L2_POWER_OFF:
+		/* Power Down Sequence */
+#ifdef CONFIG_TWL4030_CORE
+		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+				VAUX_DEV_GRP_NONE, TWL4030_VAUX2_DEV_GRP);
+#else
+#error "no power companion board defined!"
+#endif
+		enable_fpga_vio_1v8(0);
+		omap_free_gpio(MT9P012_RESET_GPIO);
+		iounmap(fpga_map_addr);
+		omap_free_gpio(MT9P012_STANDBY_GPIO);
+		break;
+	case V4L2_POWER_ON:
+		if (mt9p012_previous_power == V4L2_POWER_OFF) {
+			/* Power Up Sequence */
+			isp_configure_interface(&mt9p012_if_config);
+
+			/* Request and configure gpio pins */
+			if (omap_request_gpio(MT9P012_STANDBY_GPIO) != 0) {
+				printk(KERN_WARNING "Could not request GPIO %d"
+							" for MT9P012\n",
+							MT9P012_STANDBY_GPIO);
+				return -EIO;
+			}
+
+			/* Request and configure gpio pins */
+			if (omap_request_gpio(MT9P012_RESET_GPIO) != 0)
+				return -EIO;
+
+			/* set to output mode */
+			gpio_direction_output(MT9P012_STANDBY_GPIO, true);
+			/* set to output mode */
+			gpio_direction_output(MT9P012_RESET_GPIO, true);
+
+			/* STANDBY_GPIO is active HIGH for set LOW to release */
+			gpio_set_value(MT9P012_STANDBY_GPIO, 1);
+
+			/* nRESET is active LOW. set HIGH to release reset */
+			gpio_set_value(MT9P012_RESET_GPIO, 1);
+
+			/* turn on digital power */
+			enable_fpga_vio_1v8(1);
+#ifdef CONFIG_TWL4030_CORE
+			/* turn on analog power */
+			twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+					VAUX_2_8_V, TWL4030_VAUX2_DEDICATED);
+			twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+					VAUX_DEV_GRP_P1, TWL4030_VAUX2_DEV_GRP);
+#else
+#error "no power companion board defined!"
+#endif
+		}
+
+		/* out of standby */
+		gpio_set_value(MT9P012_STANDBY_GPIO, 0);
+		udelay(1000);
+
+		if (mt9p012_previous_power == V4L2_POWER_OFF) {
+			/* have to put sensor to reset to guarantee detection */
+			gpio_set_value(MT9P012_RESET_GPIO, 0);
+
+			udelay(1500);
+
+			/* nRESET is active LOW. set HIGH to release reset */
+			gpio_set_value(MT9P012_RESET_GPIO, 1);
+			/* give sensor sometime to get out of the reset.
+			 * Datasheet says 2400 xclks. At 6 MHz, 400 usec is
+			 * enough
+			 */
+			udelay(300);
+		}
+		break;
+	case V4L2_POWER_STANDBY:
+		/* stand by */
+		gpio_set_value(MT9P012_STANDBY_GPIO, 1);
+		break;
+	}
+	/* Save powerstate to know what was before calling POWER_ON. */
+	mt9p012_previous_power = power;
+	return 0;
+}
+
+static u32 mt9p012_sensor_set_xclk(u32 xclkfreq)
+{
+	return isp_set_xclk(xclkfreq, MT9P012_USE_XCLKA);
+}
+
+static struct mt9p012_platform_data sdp3430_mt9p012_platform_data = {
+	.power_set      = mt9p012_sensor_power_set,
+	.priv_data_set  = mt9p012_sensor_set_prv_data,
+	.set_xclk       = mt9p012_sensor_set_xclk,
+};
+
+#endif
+
+#define SDP2430_LCD_PANEL_BACKLIGHT_GPIO	91
+#define SDP2430_LCD_PANEL_ENABLE_GPIO		154
+#define SDP3430_LCD_PANEL_BACKLIGHT_GPIO	24
+#define SDP3430_LCD_PANEL_ENABLE_GPIO		28
+
+#define PM_RECEIVER             TWL4030_MODULE_PM_RECEIVER
+#define ENABLE_VAUX2_DEDICATED  0x09
+#define ENABLE_VAUX2_DEV_GRP    0x20
+#define ENABLE_VAUX3_DEDICATED	0x03
+#define ENABLE_VAUX3_DEV_GRP	0x20
+
+#define ENABLE_VPLL2_DEDICATED	0x05
+#define ENABLE_VPLL2_DEV_GRP	0xE0
+#define TWL4030_VPLL2_DEV_GRP	0x33
+#define TWL4030_VPLL2_DEDICATED	0x36
+
+#define t2_out(c, r, v) twl4030_i2c_write_u8(c, r, v)
+
+static unsigned backlight_gpio;
+static unsigned enable_gpio;
+static int lcd_enabled;
+static int dvi_enabled;
+
+static void __init sdp3430_display_init(void)
+{
+	int r;
+
+	enable_gpio    = SDP3430_LCD_PANEL_ENABLE_GPIO;
+	backlight_gpio = SDP3430_LCD_PANEL_BACKLIGHT_GPIO;
+
+	r = gpio_request(enable_gpio, "LCD reset");
+	if (r) {
+		printk(KERN_ERR "failed to get LCD reset GPIO\n");
+		goto err0;
+	}
+
+	r = gpio_request(backlight_gpio, "LCD Backlight");
+	if (r) {
+		printk(KERN_ERR "failed to get LCD backlight GPIO\n");
+		goto err1;
+	}
+
+	gpio_direction_output(enable_gpio, 0);
+	gpio_direction_output(backlight_gpio, 0);
+
+	return;
+err1:
+	gpio_free(enable_gpio);
+err0:
+	return;
+}
+
+static int sdp3430_panel_enable_lcd(struct omap_display *display)
+{
+	u8 ded_val, ded_reg;
+	u8 grp_val, grp_reg;
+
+	if (dvi_enabled) {
+		printk(KERN_ERR "cannot enable LCD, DVI is enabled\n");
+		return -EINVAL;
+	}
+
+	if (omap_rev() > OMAP3430_REV_ES1_0) {
+		t2_out(PM_RECEIVER, ENABLE_VPLL2_DEDICATED,
+				TWL4030_VPLL2_DEDICATED);
+		t2_out(PM_RECEIVER, ENABLE_VPLL2_DEV_GRP,
+				TWL4030_VPLL2_DEV_GRP);
+	}
+
+	ded_reg = TWL4030_VAUX3_DEDICATED;
+	ded_val = ENABLE_VAUX3_DEDICATED;
+	grp_reg = TWL4030_VAUX3_DEV_GRP;
+	grp_val = ENABLE_VAUX3_DEV_GRP;
+
+	gpio_direction_output(enable_gpio, 1);
+	gpio_direction_output(backlight_gpio, 1);
+
+	if (0 != t2_out(PM_RECEIVER, ded_val, ded_reg))
+		return -EIO;
+	if (0 != t2_out(PM_RECEIVER, grp_val, grp_reg))
+		return -EIO;
+
+	lcd_enabled = 1;
+
+	return 0;
+}
+
+static void sdp3430_panel_disable_lcd(struct omap_display *display)
+{
+	lcd_enabled = 0;
+
+	gpio_direction_output(enable_gpio, 0);
+	gpio_direction_output(backlight_gpio, 0);
+
+	if (omap_rev() > OMAP3430_REV_ES1_0) {
+		t2_out(PM_RECEIVER, 0x0, TWL4030_VPLL2_DEDICATED);
+		t2_out(PM_RECEIVER, 0x0, TWL4030_VPLL2_DEV_GRP);
+		mdelay(4);
+	}
+}
+
+static struct omap_display_data sdp3430_display_data = {
+	.type = OMAP_DISPLAY_TYPE_DPI,
+	.name = "lcd",
+	.panel_name = "sharp-ls037v7dw01",
+	.u.dpi.data_lines = 16,
+	.panel_enable = sdp3430_panel_enable_lcd,
+	.panel_disable = sdp3430_panel_disable_lcd,
+};
+
+static int sdp3430_panel_enable_dvi(struct omap_display *display)
+{
+	if (lcd_enabled) {
+		printk(KERN_ERR "cannot enable DVI, LCD is enabled\n");
+		return -EINVAL;
+	}
+
+	if (omap_rev() > OMAP3430_REV_ES1_0) {
+		t2_out(PM_RECEIVER, ENABLE_VPLL2_DEDICATED,
+				TWL4030_VPLL2_DEDICATED);
+		t2_out(PM_RECEIVER, ENABLE_VPLL2_DEV_GRP,
+				TWL4030_VPLL2_DEV_GRP);
+	}
+
+	dvi_enabled = 1;
+
+	return 0;
+}
+
+static void sdp3430_panel_disable_dvi(struct omap_display *display)
+{
+	dvi_enabled = 0;
+
+	if (omap_rev() > OMAP3430_REV_ES1_0) {
+		t2_out(PM_RECEIVER, 0x0, TWL4030_VPLL2_DEDICATED);
+		t2_out(PM_RECEIVER, 0x0, TWL4030_VPLL2_DEV_GRP);
+		mdelay(4);
+	}
+}
+
+static struct omap_display_data sdp3430_display_data_dvi = {
+	.type = OMAP_DISPLAY_TYPE_DPI,
+	.name = "dvi",
+	.panel_name = "panel-generic",
+	.u.dpi.data_lines = 24,
+	.panel_enable = sdp3430_panel_enable_dvi,
+	.panel_disable = sdp3430_panel_disable_dvi,
+>>>>>>> 91be542... DSS: Support for OMAP3 SDP board:arch/arm/mach-omap2/board-3430sdp.c
+};
+
+static int sdp3430_panel_enable_tv(struct omap_display *display)
+{
+#define ENABLE_VDAC_DEDICATED           0x03
+#define ENABLE_VDAC_DEV_GRP             0x20
+
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+			ENABLE_VDAC_DEDICATED,
+			TWL4030_VDAC_DEDICATED);
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+			ENABLE_VDAC_DEV_GRP, TWL4030_VDAC_DEV_GRP);
+
+	return 0;
+}
+
+static void sdp3430_panel_disable_tv(struct omap_display *display)
+{
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0x00,
+			TWL4030_VDAC_DEDICATED);
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0x00,
+			TWL4030_VDAC_DEV_GRP);
+}
+
+static struct omap_display_data sdp3430_display_data_tv = {
+	.type = OMAP_DISPLAY_TYPE_VENC,
+	.name = "tv",
+	.u.venc.type = OMAP_DSS_VENC_TYPE_SVIDEO,
+	.panel_enable = sdp3430_panel_enable_tv,
+	.panel_disable = sdp3430_panel_disable_tv,
+};
+
+static struct omap_dss_platform_data sdp3430_dss_data = {
+	.num_displays = 3,
+	.displays = {
+		&sdp3430_display_data,
+		&sdp3430_display_data_dvi,
+		&sdp3430_display_data_tv,
+	}
+};
+
+static struct platform_device sdp3430_dss_device = {
+	.name          = "omap-dss",
+	.id            = -1,
+	.dev            = {
+		.platform_data = &sdp3430_dss_data,
+	},
 };
 
 static struct platform_device *sdp3430_devices[] __initdata = {
 	&sdp3430_smc91x_device,
-	&sdp3430_lcd_device,
+	&sdp3430_dss_device,
 };
 
 static inline void __init sdp3430_init_smc91x(void)
@@ -297,13 +754,8 @@ static struct omap_uart_config sdp3430_uart_config __initdata = {
 	.enabled_uarts	= ((1 << 0) | (1 << 1) | (1 << 2)),
 };
 
-static struct omap_lcd_config sdp3430_lcd_config __initdata = {
-	.ctrl_name	= "internal",
-};
-
 static struct omap_board_config_kernel sdp3430_config[] __initdata = {
 	{ OMAP_TAG_UART,	&sdp3430_uart_config },
-	{ OMAP_TAG_LCD,		&sdp3430_lcd_config },
 };
 
 static int sdp3430_batt_table[] = {
@@ -335,7 +787,6 @@ static struct twl4030_usb_data sdp3430_usb_data = {
 static struct twl4030_madc_platform_data sdp3430_madc_data = {
 	.irq_line	= 1,
 };
-
 
 static struct twl4030_ins __initdata sleep_on_seq[] = {
 /*
@@ -486,6 +937,7 @@ static void __init omap_3430sdp_init(void)
 	usb_musb_init();
 	usb_ehci_init();
 	twl4030_mmc_init(mmc);
+	sdp3430_display_init();
 }
 
 static void __init omap_3430sdp_map_io(void)
