@@ -43,5 +43,10 @@ config PANEL_GENERIC
 	  Generic panel driver.
 	  Used for DVI output for Beagle and OMAP3 SDP.
 
-endmenu
+config PANEL_SHARP_LS037V7DW01
+        tristate "Sharp LS037V7DW01 LCD Panel"
+        depends on OMAP2_DSS
+        help
+          LCD Panel used in TI's SDP3430 and EVM boards
 
+endmenu
