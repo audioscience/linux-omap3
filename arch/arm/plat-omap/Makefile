@@ -25,6 +25,7 @@ obj-$(CONFIG_I2C_OMAP) += i2c.o
 
 # OMAP MMU framework
 obj-$(CONFIG_OMAP_MMU_FWK) += mmu.o
+obj-$(CONFIG_OMAP_IOMMU) += iommu.o iovmm.o iommu-sysfs.o
 
 # OMAP mailbox framework
 obj-$(CONFIG_OMAP_MBOX_FWK) += mailbox.o
