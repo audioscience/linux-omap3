@@ -74,6 +74,8 @@ extern void __iomem * __arm_ioremap_pfn(unsigned long, unsigned long, size_t, un
 extern void __iomem * __arm_ioremap(unsigned long, size_t, unsigned int);
 extern void __iounmap(volatile void __iomem *addr);
 
+extern int remap_area_page(unsigned long virt, unsigned long phys);
+
 /*
  * Bad read/write accesses...
  */

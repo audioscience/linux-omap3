@@ -110,6 +110,13 @@ static int remap_area_pages(unsigned long start, unsigned long pfn,
 	return err;
 }
 
+/* FIXME */
+int remap_area_page(unsigned long virt, unsigned long phys)
+{
+	return remap_area_pages(virt, __phys_to_pfn(phys), PAGE_SIZE,
+				get_mem_type(MT_DEVICE));
+}
+EXPORT_SYMBOL(remap_area_page);
 
 void __check_kvm_seq(struct mm_struct *mm)
 {
