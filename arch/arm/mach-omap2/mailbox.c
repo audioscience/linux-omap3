@@ -74,6 +74,9 @@ static int omap2_mbox_startup(struct omap_mbox *mbox)
 	}
 	clk_enable(mbox_ick_handle);
 
+	l = mbox_read_reg(MAILBOX_REVISION);
+	pr_info("omap mailbox rev %x\n", l);
+
 	/* set smart-idle & autoidle */
 	l = mbox_read_reg(MAILBOX_SYSCONFIG);
 	l |= 0x00000011;
