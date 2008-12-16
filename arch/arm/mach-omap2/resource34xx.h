@@ -238,11 +238,6 @@ void init_freq(struct shared_resource *resp);
 int set_freq(struct shared_resource *resp, u32 target_level);
 int validate_freq(struct shared_resource *resp, u32 target_level);
 
-struct bus_throughput_db {
-	/* Throughput for each OPP/Freq of the bus */
-	unsigned long throughput[3];
-};
-
 static struct shared_resource_ops opp_res_ops = {
 	.init           = init_opp,
 	.change_level   = set_opp,
@@ -255,17 +250,9 @@ static struct shared_resource vdd1_opp = {
 	.ops            = &opp_res_ops,
 };
 
-/* Throughput in KiB/s */
-static struct bus_throughput_db l3_throughput_db = {
-	.throughput[0] = 0,
-	.throughput[1] = 2656000,
-	.throughput[2] = 5312000,
-};
-
 static struct shared_resource vdd2_opp = {
 	.name           = "vdd2_opp",
 	.omap_chip      = OMAP_CHIP_INIT(CHIP_IS_OMAP3430),
-	.resource_data  = &l3_throughput_db,
 	.ops            = &opp_res_ops,
 };
 

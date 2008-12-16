@@ -34,6 +34,7 @@
 #include <mach/powerdomain.h>
 #include <mach/omapdev.h>
 #include <mach/resource.h>
+#include <mach/omap-pm.h>
 
 #include "prm-regbits-34xx.h"
 #include "pm.h"
@@ -136,6 +137,7 @@ static ssize_t vdd_opp_store(struct kobject *kobj, struct kobj_attribute *attr,
 			  const char *buf, size_t n)
 {
 	unsigned short value;
+	unsigned long bus_tput;
 
 	if (sscanf(buf, "%hu", &value) != 1)
 		return -EINVAL;
@@ -151,7 +153,9 @@ static ssize_t vdd_opp_store(struct kobject *kobj, struct kobj_attribute *attr,
 			printk(KERN_ERR "vdd_opp_store: Invalid value\n");
 			return -EINVAL;
 		}
-		resource_request("vdd2_opp", &dummy_sysfs_dev, value);
+		/* Convert OPP's requested to appr. bus throughtput in KiB/s */
+		bus_tput = ((l3_opps + value)->rate/1000) * 4;
+		resource_request("vdd2_opp", &dummy_sysfs_dev, bus_tput);
 	} else {
 		return -EINVAL;
 	}

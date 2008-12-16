@@ -146,7 +146,7 @@ void init_opp(struct shared_resource *resp)
 	resp->no_of_users = 0;
 
 	if (!mpu_opps || !dsp_opps || !l3_opps)
-		return 0;
+		return;
 
 	/* Initialize the current level of the OPP resource
 	* to the  opp set by u-boot.
@@ -161,11 +161,12 @@ void init_opp(struct shared_resource *resp)
 	return;
 }
 
+static struct device vdd2_dev;
+
 int set_opp(struct shared_resource *resp, u32 target_level)
 {
-	unsigned long mpu_freq, mpu_old_freq, l3_freq, tput, t_opp;
+	unsigned long mpu_freq, mpu_old_freq, l3_freq, req_l3_freq, tput, t_opp;
 	int ind;
-	struct bus_throughput_db *tput_db;
 	struct cpufreq_freqs freqs_notify;
 
 	if (resp->curr_level == target_level)
@@ -188,6 +189,14 @@ int set_opp(struct shared_resource *resp, u32 target_level)
 #endif
 		t_opp = ID_VDD(PRCM_VDD1) |
 			ID_OPP_NO(mpu_opps[target_level].opp_id);
+
+		/* For VDD1 OPP3 and above, make sure the interconnect
+		 * is at 100Mhz or above.
+		 * throughput in KiB/s for 100 Mhz = 100 * 1000 * 4.
+		 */
+		if (mpu_opps[target_level].opp_id >= 3)
+			resource_request("vdd2_opp", &vdd2_dev, 400000);
+
 		if (resp->curr_level > target_level) {
 			/* Scale Frequency and then voltage */
 			clk_set_rate(vdd1_clk, mpu_freq);
@@ -203,22 +212,32 @@ int set_opp(struct shared_resource *resp, u32 target_level)
 #endif
 			clk_set_rate(vdd1_clk, mpu_freq);
 		}
+
+		/* Release the VDD2/interconnect constraint */
+		if (mpu_opps[target_level].opp_id < 3)
+			resource_release("vdd2_opp", &vdd2_dev);
+
 		resp->curr_level = curr_vdd1_prcm_set->opp_id;
 #ifdef CONFIG_CPU_FREQ
 		/* Send a post notification to CPUFreq */
 		cpufreq_notify_transition(&freqs_notify, CPUFREQ_POSTCHANGE);
 #endif
 	} else if (strcmp(resp->name, "vdd2_opp") == 0) {
-		tput_db = resp->resource_data;
 		tput = target_level;
-		/* using the throughput db map to the appropriate L3 Freq */
-		for (ind = 1; ind < MAX_VDD2_OPP; ind++)
-			if (tput_db->throughput[ind] > tput)
+
+		/* Convert the tput in KiB/s to Bus frequency in Mhz*/
+		req_l3_freq = (tput * 1000)/4;
+
+		for (ind = 2; ind <= MAX_VDD2_OPP; ind++) {
+			if ((l3_opps + ind)->rate >= req_l3_freq) {
 				target_level = ind;
+				break;
+			}
+		}
 
 		/* Set the highest OPP possible */
-		if (ind == MAX_VDD2_OPP)
-			target_level = ind-1;
+		if (ind > MAX_VDD2_OPP)
+			target_level = MAX_VDD2_OPP;
 
 		if (resp->curr_level == target_level)
 			return 0;
