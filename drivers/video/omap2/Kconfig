@@ -49,4 +49,14 @@ config PANEL_SHARP_LS037V7DW01
         help
           LCD Panel used in TI's SDP3430 and EVM boards
 
+config PANEL_N800
+        tristate "panel n800"
+        help
+          N800 LCD
+
+config CTRL_BLIZZARD
+        tristate "blizzard ctrl"
+        help
+          Blizzard Ctrl
+
 endmenu
