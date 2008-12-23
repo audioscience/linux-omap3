@@ -796,6 +796,8 @@ int omap2_clk_set_rate(struct clk *clk, unsigned long rate)
 	pr_debug("clock: %s: set_rate from %ld Hz to %ld Hz\n", clk->name,
 		 clk->rate, rate);
 
+	omap_clk_notify_downstream(clk, CLK_PRE_RATE_CHANGE);
+
 	ret = clk->set_rate(clk, rate);
 
 	temp_rate = clk->rate;
@@ -861,6 +863,8 @@ int omap2_clk_set_parent(struct clk *clk, struct clk *new_parent)
 		clk->temp_rate = new_rate;
 		propagate_rate(clk, TEMP_RATE);
 	}
+
+	omap_clk_notify_downstream(clk, CLK_PRE_RATE_CHANGE);
 
 	if (clk->usecount > 0)
 		_omap2_clk_disable(clk);
