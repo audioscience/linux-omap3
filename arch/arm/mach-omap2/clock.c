@@ -784,10 +784,18 @@ int omap2_clk_set_rate(struct clk *clk, unsigned long rate)
 {
 	int ret = -EINVAL;
 
-	pr_debug("clock: set_rate for clock %s to rate %ld\n", clk->name, rate);
+	if (!clk->set_rate)
+		return -EINVAL;
 
-	if (clk->set_rate != NULL)
-		ret = clk->set_rate(clk, rate);
+	if (clk->notifier_count) {
+		clk->temp_rate = rate;
+		propagate_rate(clk, TEMP_RATE);
+	}
+
+	pr_debug("clock: %s: set_rate from %ld Hz to %ld Hz\n", clk->name,
+		 clk->rate, rate);
+
+	ret = clk->set_rate(clk, rate);
 
 	return ret;
 }
@@ -829,6 +837,7 @@ static u32 _omap2_clksel_get_src_field(struct clk *src_clk, struct clk *clk,
 int omap2_clk_set_parent(struct clk *clk, struct clk *new_parent)
 {
 	u32 field_val, v, parent_div;
+	unsigned long orig_rate, new_rate;
 
 	if (!clk->clksel)
 		return -EINVAL;
@@ -836,6 +845,16 @@ int omap2_clk_set_parent(struct clk *clk, struct clk *new_parent)
 	parent_div = _omap2_clksel_get_src_field(new_parent, clk, &field_val);
 	if (!parent_div)
 		return -EINVAL;
+
+	orig_rate = clk->rate;
+	new_rate = new_parent->rate;
+	if (parent_div > 0)
+		new_rate /= parent_div;
+
+	if (clk->notifier_count) {
+		clk->temp_rate = new_rate;
+		propagate_rate(clk, TEMP_RATE);
+	}
 
 	if (clk->usecount > 0)
 		_omap2_clk_disable(clk);
@@ -853,15 +872,10 @@ int omap2_clk_set_parent(struct clk *clk, struct clk *new_parent)
 		_omap2_clk_enable(clk);
 
 	clk->parent = new_parent;
+	clk->rate = new_rate;
 
-	/* CLKSEL clocks follow their parents' rates, divided by a divisor */
-	clk->rate = new_parent->rate;
-
-	if (parent_div > 0)
-		clk->rate /= parent_div;
-
-	pr_debug("clock: set parent of %s to %s (new rate %ld)\n",
-		 clk->name, clk->parent->name, clk->rate);
+	pr_debug("clock: %s: set parent to %s (orig rate %ld, new rate %ld)\n",
+		 clk->name, clk->parent->name, orig_rate, new_rate);
 
 	return 0;
 }
