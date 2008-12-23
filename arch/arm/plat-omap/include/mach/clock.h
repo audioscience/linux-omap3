@@ -10,6 +10,8 @@
  * published by the Free Software Foundation.
  */
 
+#include <linux/notifier.h>
+
 #ifndef __ARCH_ARM_OMAP_CLOCK_H
 #define __ARCH_ARM_OMAP_CLOCK_H
 
@@ -75,6 +77,40 @@ struct clk_child {
 	u8			flags;
 };
 
+/**
+ * struct clk_notifier - associate a clk with a notifier
+ * @clk: struct clk * to associate the notifier with
+ * @notifier_head: an atomic_notifier_head for this clk
+ * @node: linked list pointers
+ *
+ * A list of struct clk_notifier is maintained by the notifier code.
+ * An entry is created whenever code registers the first notifier on a
+ * particular @clk.  Future notifiers on that @clk are added to the
+ * @notifier_head.
+ */
+struct clk_notifier {
+	struct clk			*clk;
+	struct atomic_notifier_head	notifier_head;
+	struct list_head		node;
+};
+
+/**
+ * struct clk_notifier_data - XXX documentation here
+ * @clk: struct clk * to associate the notifier with
+ * @old_rate: previous rate of this clock
+ * @new_rate: new rate of this clock
+ *
+ * new_rate is what the rate will be in the future if this is called
+ * in a pre-notifier, and is what the rate is now set to if called in
+ * a post-notifier.  old_rate is always the clock's rate before this
+ * particular rate change.
+ */
+struct clk_notifier_data {
+	struct clk		*clk;
+	unsigned long		old_rate;
+	unsigned long		new_rate;
+};
+
 struct clk {
 	struct list_head	node;
 	const char		*name;
@@ -91,6 +127,7 @@ struct clk {
 	void			(*init)(struct clk *);
 	int			(*enable)(struct clk *);
 	void			(*disable)(struct clk *);
+	u16			notifier_count;
 	__u8			enable_bit;
 	__s8			usecount;
 	u8			idlest_bit;
@@ -144,6 +181,8 @@ extern void followparent_recalc(struct clk *clk, unsigned long parent_rate,
 extern void clk_allow_idle(struct clk *clk);
 extern void clk_deny_idle(struct clk *clk);
 extern void clk_enable_init_clocks(void);
+extern int clk_notifier_register(struct clk *clk, struct notifier_block *nb);
+extern int clk_notifier_unregister(struct clk *clk, struct notifier_block *nb);
 #ifdef CONFIG_CPU_FREQ
 extern void clk_init_cpufreq_table(struct cpufreq_frequency_table **table);
 #endif
@@ -200,5 +239,48 @@ void omap_clk_del_child(struct clk *clk, struct clk *clk2);
 #define PRCM_MOD_ADDR_MASK	0xff00
 #define CLK_REG_IN_PRM		(1 << 0)
 #define CLK_REG_IN_SCM		(1 << 1)
+
+/*
+ * Clk notifier callback types
+ *
+ * Since the notifier is called with interrupts disabled, any actions
+ * taken by callbacks must be extremely fast and lightweight.
+ *
+ * CLK_PREPARE_RATE_CHANGE: called by clock code to get pre-approval
+ *     for a rate change.  Upon receiving this notification, device
+ *     drivers should expect either a CLK_PRE_RATE_CHANGE event or a
+ *     CLK_ABORT_RATE_CHANGE event to follow shortly.  One example of
+ *     a possible action might be to switch to PIO mode for future
+ *     transfers until a CLK_ABORT_RATE_CHANGE or CLK_POST_RATE_CHANGE
+ *     message is received.  Drivers should return NOTIFY_DONE (*not*
+ *     NOTIFY_OK) if they approve the rate change, or return
+ *     NOTIFY_BAD if they do not approve the change.
+ *
+ * CLK_ABORT_RATE_CHANGE: called if one of the notifier callbacks
+ *     called with CLK_PREPARE_RATE_CHANGE refuses the rate change, or
+ *     if the rate change failed for some reason after
+ *     CLK_PRE_RATE_CHANGE.  In this case, all registered notifiers on
+ *     the clock will be called with CLK_ABORT_RATE_CHANGE -- even if
+ *     they had not yet received the CLK_PREPARE_RATE_CHANGE
+ *     notification. Callbacks must always return NOTIFY_DONE.
+ *
+ * CLK_PRE_RATE_CHANGE - called after all callbacks have approved the
+ *     rate change, immediately before the clock rate is changed, to
+ *     indicate that the rate change will proceed.  Drivers must
+ *     immediately terminate any operations that will be affected by
+ *     the rate change.  Note that the rate change could still fail,
+ *     at which point the driver should receive a
+ *     CLK_ABORT_RATE_CHANGE message.  Callbacks must always return
+ *     NOTIFY_DONE.
+ *
+ * CLK_POST_RATE_CHANGE - called after the clock rate change has
+ *     successfully completed.  Callbacks must always return
+ *     NOTIFY_DONE.
+ *
+ */
+#define CLK_PREPARE_RATE_CHANGE		1
+#define CLK_ABORT_RATE_CHANGE		2
+#define CLK_PRE_RATE_CHANGE		3
+#define CLK_POST_RATE_CHANGE		4
 
 #endif
