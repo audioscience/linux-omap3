@@ -798,6 +798,7 @@ int omap2_clk_set_rate(struct clk *clk, unsigned long rate)
 	if (r == NOTIFY_BAD) {
 		pr_debug("clock: %s: clk_set_rate() aborted by notifier\n",
 			 clk->name);
+		omap_clk_notify_downstream(clk, CLK_ABORT_RATE_CHANGE);
 		return -EAGAIN;
 	}
 
@@ -808,10 +809,16 @@ int omap2_clk_set_rate(struct clk *clk, unsigned long rate)
 
 	ret = clk->set_rate(clk, rate);
 
-	temp_rate = clk->rate;
-	clk->rate = clk->temp_rate;
-	omap_clk_notify_downstream(clk, CLK_POST_RATE_CHANGE);
-	clk->rate = temp_rate;
+	if (ret == 0) {
+		temp_rate = clk->rate;
+		clk->rate = clk->temp_rate;
+		omap_clk_notify_downstream(clk, CLK_POST_RATE_CHANGE);
+		clk->rate = temp_rate;
+	} else {
+		pr_debug("clock: %s: clk_set_rate() aborted by failed "
+			 "set_rate(): %d\n", clk->name, ret);
+		omap_clk_notify_downstream(clk, CLK_ABORT_RATE_CHANGE);
+	}
 
 	return ret;
 }
@@ -877,6 +884,7 @@ int omap2_clk_set_parent(struct clk *clk, struct clk *new_parent)
 	if (r == NOTIFY_BAD) {
 		pr_debug("clock: %s: clk_set_parent() aborted by notifier\n",
 			 clk->name);
+		omap_clk_notify_downstream(clk, CLK_ABORT_RATE_CHANGE);
 		return -EAGAIN;
 	}
 
