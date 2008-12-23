@@ -783,6 +783,7 @@ int omap2_clksel_set_rate(struct clk *clk, unsigned long rate)
 int omap2_clk_set_rate(struct clk *clk, unsigned long rate)
 {
 	int ret = -EINVAL;
+	unsigned long temp_rate;
 
 	if (!clk->set_rate)
 		return -EINVAL;
@@ -796,6 +797,11 @@ int omap2_clk_set_rate(struct clk *clk, unsigned long rate)
 		 clk->rate, rate);
 
 	ret = clk->set_rate(clk, rate);
+
+	temp_rate = clk->rate;
+	clk->rate = clk->temp_rate;
+	omap_clk_notify_downstream(clk, CLK_POST_RATE_CHANGE);
+	clk->rate = temp_rate;
 
 	return ret;
 }
@@ -872,10 +878,13 @@ int omap2_clk_set_parent(struct clk *clk, struct clk *new_parent)
 		_omap2_clk_enable(clk);
 
 	clk->parent = new_parent;
-	clk->rate = new_rate;
 
 	pr_debug("clock: %s: set parent to %s (orig rate %ld, new rate %ld)\n",
 		 clk->name, clk->parent->name, orig_rate, new_rate);
+
+	omap_clk_notify_downstream(clk, CLK_POST_RATE_CHANGE);
+
+	clk->rate = new_rate;
 
 	return 0;
 }
