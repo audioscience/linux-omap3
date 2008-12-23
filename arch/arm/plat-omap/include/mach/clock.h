@@ -188,6 +188,7 @@ extern void clk_init_cpufreq_table(struct cpufreq_frequency_table **table);
 #endif
 void omap_clk_add_child(struct clk *clk, struct clk *clk2);
 void omap_clk_del_child(struct clk *clk, struct clk *clk2);
+extern int omap_clk_notify_downstream(struct clk *clk, unsigned long msg);
 
 /* Clock flags */
 #define RATE_CKCTL		(1 << 0)	/* Main fixed ratio clocks */
