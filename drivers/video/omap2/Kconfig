@@ -37,6 +37,11 @@ config FB_OMAP2_NUM_FBS
 menu "OMAP2/3 Display Device Drivers"
         depends on OMAP2_DSS
 
+config PANEL_GENERIC
+        tristate "Generic Panel"
+        help
+	  Generic panel driver.
+	  Used for DVI output for Beagle and OMAP3 SDP.
 
 endmenu
 
