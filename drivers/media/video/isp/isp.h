@@ -73,7 +73,8 @@ typedef void (*isp_callback_t) (unsigned long status,
 enum isp_interface_type {
 	ISP_PARLL = 1,
 	ISP_CSIA = 2,
-	ISP_CSIB = 4
+	ISP_CSIB = 4,
+	ISP_PARLL_YUV_BT = 8
 };
 
 enum isp_irqevents {
@@ -301,6 +302,10 @@ int isp_try_size(struct v4l2_pix_format *pix_input,
 
 int isp_try_fmt(struct v4l2_pix_format *pix_input,
 					struct v4l2_pix_format *pix_output);
+
+int isp_configure_std(struct v4l2_pix_format *fmt);
+
+int isp_check_format(struct v4l2_pix_format *pixfmt);
 
 int isp_handle_private(int cmd, void *arg);
 

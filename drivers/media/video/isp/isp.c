@@ -191,6 +191,7 @@ struct isp_sgdma ispsg;
  * @resizer_input_height: ISP Resizer module input image height.
  * @resizer_output_width: ISP Resizer module output image width.
  * @resizer_output_height: ISP Resizer module output image height.
+ * @current_field: Current field for interlaced capture.
  */
 struct ispmodule {
 	unsigned int isp_pipeline;
@@ -209,6 +210,7 @@ struct ispmodule {
 	unsigned int resizer_input_height;
 	unsigned int resizer_output_width;
 	unsigned int resizer_output_height;
+	int current_field;
 };
 
 static struct ispmodule ispmodule_obj = {
@@ -224,11 +226,14 @@ static struct ispmodule ispmodule_obj = {
 		.colorspace = V4L2_COLORSPACE_JPEG,
 		.priv = 0,
 	},
+	.current_field = 0,
 };
 
 /* Structure for saving/restoring ISP module registers */
 static struct isp_reg isp_reg_list[] = {
 	{ISP_SYSCONFIG, 0},
+	{ISP_IRQ0ENABLE, 0},
+	{ISP_IRQ1ENABLE, 0},
 	{ISP_TCTRL_GRESET_LENGTH, 0},
 	{ISP_TCTRL_PSTRB_REPLAY, 0},
 	{ISP_CTRL, 0},
@@ -550,6 +555,11 @@ EXPORT_SYMBOL(isp_unset_callback);
  **/
 int isp_request_interface(enum isp_interface_type if_t)
 {
+	enum isp_interface_type temp_if_t = if_t;
+
+	if (if_t == ISP_PARLL_YUV_BT)
+		if_t = ISP_PARLL;
+
 	if (isp_obj.if_status & if_t) {
 		DPRINTK_ISPCTRL("ISP_ERR : Requested Interface already \
 			allocated\n");
@@ -569,7 +579,7 @@ int isp_request_interface(enum isp_interface_type if_t)
 				((isp_obj.if_status == ISP_CSIB) &&
 				(if_t == ISP_CSIA)) ||
 				(isp_obj.if_status == 0)) {
-		isp_obj.if_status |= if_t;
+		isp_obj.if_status |= (if_t | temp_if_t);
 		return 0;
 	} else {
 		DPRINTK_ISPCTRL("ISP_ERR : Invalid Combination Serial- \
@@ -587,6 +597,9 @@ EXPORT_SYMBOL(isp_request_interface);
  **/
 int isp_free_interface(enum isp_interface_type if_t)
 {
+	if ((if_t == ISP_PARLL) || (if_t == ISP_PARLL_YUV_BT))
+		if_t |= (ISP_PARLL | ISP_PARLL_YUV_BT);
+
 	isp_obj.if_status &= ~if_t;
 	return 0;
 }
@@ -888,6 +901,7 @@ int isp_configure_interface(struct isp_interface_config *config)
 	ispctrl_val &= (ISPCTRL_PAR_SER_CLK_SEL_MASK);
 	switch (config->ccdc_par_ser) {
 	case ISP_PARLL:
+	case ISP_PARLL_YUV_BT:
 		ispctrl_val |= ISPCTRL_PAR_SER_CLK_SEL_PARALLEL;
 		ispctrl_val |= (config->u.par.par_clk_pol
 						<< ISPCTRL_PAR_CLK_POL_SHIFT);
@@ -1122,6 +1136,11 @@ out:
 	omap_writel(irqstatus, ISP_IRQ0STATUS);
 	spin_unlock_irqrestore(&isp_obj.lock, irqflags);
 
+	/* TODO: Workaround suggested by Tony for spurious
+	 * interrupt issue
+	*/
+	irqstatus = omap_readl(ISP_IRQ0STATUS);
+
 	if (is_irqhandled)
 		return IRQ_HANDLED;
 	else
@@ -1345,9 +1364,14 @@ u32 isp_calc_pipeline(struct v4l2_pix_format *pix_input,
 		ispccdc_request();
 		if (pix_input->pixelformat == V4L2_PIX_FMT_SGRBG10)
 			ispccdc_config_datapath(CCDC_RAW, CCDC_OTHERS_VP_MEM);
-		else
-			ispccdc_config_datapath(CCDC_YUV_SYNC,
-							CCDC_OTHERS_MEM);
+		else {
+			if (isp_obj.if_status & ISP_PARLL_YUV_BT)
+				ispccdc_config_datapath(CCDC_YUV_BT,
+						CCDC_OTHERS_MEM);
+			else
+				ispccdc_config_datapath(CCDC_YUV_SYNC,
+						CCDC_OTHERS_MEM);
+		}
 	}
 	return 0;
 }
@@ -1381,6 +1405,31 @@ void isp_config_pipeline(struct v4l2_pix_format *pix_input,
 			ispmodule_obj.resizer_output_width,
 			ispmodule_obj.resizer_output_height);
 	}
+	if (pix_input->pixelformat == V4L2_PIX_FMT_UYVY)
+		ispccdc_config_y8pos(Y8POS_ODD);
+	else if (pix_input->pixelformat == V4L2_PIX_FMT_YUYV)
+		ispccdc_config_y8pos(Y8POS_EVEN);
+
+	if (((pix_input->pixelformat == V4L2_PIX_FMT_UYVY) &&
+			(pix_output->pixelformat == V4L2_PIX_FMT_UYVY)) ||
+			((pix_input->pixelformat == V4L2_PIX_FMT_YUYV) &&
+			(pix_output->pixelformat == V4L2_PIX_FMT_YUYV)))
+		/* input and output formats are in same order */
+		ispccdc_config_byteswap(0);
+	else if (((pix_input->pixelformat == V4L2_PIX_FMT_YUYV) &&
+			(pix_output->pixelformat == V4L2_PIX_FMT_UYVY)) ||
+			((pix_input->pixelformat == V4L2_PIX_FMT_UYVY) &&
+			(pix_output->pixelformat == V4L2_PIX_FMT_YUYV)))
+		/* input and output formats are in reverse order */
+		ispccdc_config_byteswap(1);
+
+	/*
+	 * Configure Pitch - This enables application to use a different pitch
+	 * other than active pixels per line.
+	 */
+	if (isp_obj.if_status & ISP_PARLL_YUV_BT)
+		ispccdc_config_outlineoffset(ispmodule_obj.pix.bytesperline,
+						0, 0);
 
 	if (pix_output->pixelformat == V4L2_PIX_FMT_UYVY) {
 		isppreview_config_ycpos(YCPOS_YCrYCb);
@@ -1407,9 +1456,20 @@ void isp_vbq_done(unsigned long status, isp_vbq_callback_ptr arg1, void *arg2)
 	int notify = 0;
 	int rval = 0;
 	unsigned long flags;
+	unsigned long fld_stat = (omap_readl(ISPCCDC_SYN_MODE) >> 15) & 0x1;
 
 	switch (status) {
 	case CCDC_VD0:
+		if (ispmodule_obj.pix.field == V4L2_FIELD_INTERLACED) {
+			spin_lock(&isp_obj.isp_temp_buf_lock);
+			/* Skip even fields */
+			if (ispmodule_obj.current_field == 0) {
+				spin_unlock(&isp_obj.isp_temp_buf_lock);
+				return;
+			}
+			spin_unlock(&isp_obj.isp_temp_buf_lock);
+		}
+
 		ispccdc_config_shadow_registers();
 		if ((ispmodule_obj.isp_pipeline & OMAP_ISP_RESIZER) ||
 			(ispmodule_obj.isp_pipeline & OMAP_ISP_PREVIEW))
@@ -1427,6 +1487,15 @@ void isp_vbq_done(unsigned long status, isp_vbq_callback_ptr arg1, void *arg2)
 		}
 		break;
 	case CCDC_VD1:
+		if (ispmodule_obj.pix.field == V4L2_FIELD_INTERLACED) {
+			spin_lock(&isp_obj.isp_temp_buf_lock);
+			if (ispmodule_obj.current_field == 0) {
+				spin_unlock(&isp_obj.isp_temp_buf_lock);
+				return;
+			}
+			spin_unlock(&isp_obj.isp_temp_buf_lock);
+		}
+
 		if ((ispmodule_obj.isp_pipeline & OMAP_ISP_RESIZER) ||
 				(ispmodule_obj.isp_pipeline & OMAP_ISP_PREVIEW))
 			return;
@@ -1472,13 +1541,26 @@ void isp_vbq_done(unsigned long status, isp_vbq_callback_ptr arg1, void *arg2)
 		}
 		break;
 	case HS_VS:
-		spin_lock(&isp_obj.isp_temp_buf_lock);
-		if (ispmodule_obj.isp_temp_state == ISP_BUF_TRAN) {
-			isp_CCDC_VD01_enable();
-			ispmodule_obj.isp_temp_state = ISP_BUF_INIT;
+		if (ispmodule_obj.pix.field == V4L2_FIELD_INTERLACED) {
+			ispmodule_obj.current_field ^= 1;
+			spin_lock(&isp_obj.isp_temp_buf_lock);
+			if ((ispmodule_obj.isp_temp_state == ISP_BUF_TRAN) &&
+					(fld_stat == 1)) {
+				isp_CCDC_VD01_enable();
+				ispmodule_obj.current_field = fld_stat;
+				ispmodule_obj.isp_temp_state = ISP_BUF_INIT;
+			}
+			spin_unlock(&isp_obj.isp_temp_buf_lock);
+			return;
+		} else {
+			spin_lock(&isp_obj.isp_temp_buf_lock);
+			if (ispmodule_obj.isp_temp_state == ISP_BUF_TRAN) {
+				isp_CCDC_VD01_enable();
+				ispmodule_obj.isp_temp_state = ISP_BUF_INIT;
+			}
+			spin_unlock(&isp_obj.isp_temp_buf_lock);
+			return;
 		}
-		spin_unlock(&isp_obj.isp_temp_buf_lock);
-		return;
 	default:
 		return;
 	}
@@ -2200,15 +2282,25 @@ int isp_try_fmt(struct v4l2_pix_format *pix_input,
 	if (ifmt == NUM_ISP_CAPTURE_FORMATS)
 		ifmt = 1;
 	pix_output->pixelformat = isp_formats[ifmt].pixelformat;
-	pix_output->field = V4L2_FIELD_NONE;
-	pix_output->bytesperline = pix_output->width * ISP_BYTES_PER_PIXEL;
+
+	if (isp_obj.if_status & ISP_PARLL_YUV_BT)
+		pix_output->field = pix_input->field;
+	else {
+		pix_output->field = V4L2_FIELD_NONE;
+		pix_output->bytesperline =
+			pix_output->width * ISP_BYTES_PER_PIXEL;
+	}
+
 	pix_output->sizeimage =
 		PAGE_ALIGN(pix_output->bytesperline * pix_output->height);
 	pix_output->priv = 0;
 	switch (pix_output->pixelformat) {
 	case V4L2_PIX_FMT_YUYV:
 	case V4L2_PIX_FMT_UYVY:
-		pix_output->colorspace = V4L2_COLORSPACE_JPEG;
+		if (isp_obj.if_status & ISP_PARLL_YUV_BT)
+			pix_output->colorspace = pix_input->colorspace;
+		else
+			pix_output->colorspace = V4L2_COLORSPACE_JPEG;
 		break;
 	default:
 		pix_output->colorspace = V4L2_COLORSPACE_SRGB;

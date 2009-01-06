@@ -92,6 +92,7 @@ struct omap34xxcam_hw_config {
 		struct omap34xxcam_lens_config lens;
 		struct omap34xxcam_flash_config flash;
 	} u;
+	int cur_input;
 };
 
 /**
@@ -155,6 +156,10 @@ struct omap34xxcam_videodev {
 #define vdev_lens_config slave_config[OMAP34XXCAM_SLAVE_LENS].u.lens
 #define vdev_flash_config slave_config[OMAP34XXCAM_SLAVE_FLASH].u.flash
 	struct omap34xxcam_hw_config slave_config[OMAP34XXCAM_SLAVE_FLASH + 1];
+#define vdev_sensor_mode slave_mode[OMAP34XXCAM_SLAVE_SENSOR]
+#define vdev_lens_mode slave_mode[OMAP34XXCAM_SLAVE_LENS]
+#define vdev_flash_mode slave_mode[OMAP34XXCAM_SLAVE_FLASH]
+	int slave_mode[OMAP34XXCAM_SLAVE_FLASH + 1];
 
 	/*** capture data ***/
 	struct v4l2_fract want_timeperframe;

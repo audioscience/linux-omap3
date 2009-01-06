@@ -566,9 +566,17 @@ int ispccdc_config_datapath(enum ccdc_input input, enum ccdc_output output)
 		syn_mode &= ~ISPCCDC_SYN_MODE_VP2SDR;
 		syn_mode &= ~ISPCCDC_SYN_MODE_SDR2RSZ;
 		syn_mode |= ISPCCDC_SYN_MODE_WEN;
-		syn_mode &= ~ISPCCDC_SYN_MODE_EXWEN;
-		omap_writel((omap_readl(ISPCCDC_CFG)) & ~ISPCCDC_CFG_WENLOG,
-								ISPCCDC_CFG);
+		if (input != CCDC_YUV_BT) {
+			syn_mode |= ISPCCDC_SYN_MODE_EXWEN;
+			omap_writel((omap_readl(ISPCCDC_CFG)) |
+					ISPCCDC_CFG_WENLOG,
+					ISPCCDC_CFG);
+		} else {
+			syn_mode &= ~ISPCCDC_SYN_MODE_EXWEN;
+			omap_writel((omap_readl(ISPCCDC_CFG)) &
+					~ISPCCDC_CFG_WENLOG,
+					ISPCCDC_CFG);
+		}
 		vpcfg.bitshift_sel = BIT11_2;
 		vpcfg.freq_sel = PIXCLKBY2;
 		ispccdc_config_vp(vpcfg);
@@ -627,12 +635,28 @@ int ispccdc_config_datapath(enum ccdc_input input, enum ccdc_output output)
 		syncif.hdpol = 0;
 		syncif.ipmod = YUV16;
 		syncif.vdpol = 0;
+		syncif.bt_r656_en = 0;
 		ispccdc_config_imgattr(0);
 		ispccdc_config_sync_if(syncif);
 		blkcfg.dcsubval = 0;
 		ispccdc_config_black_clamp(blkcfg);
 		break;
 	case CCDC_YUV_BT:
+		syncif.ccdc_mastermode = 0;
+		syncif.datapol = 0;
+		syncif.datsz = DAT8;
+		syncif.fldmode = 1;
+		syncif.fldout = 0;
+		syncif.fldpol = 0;
+		syncif.fldstat = 0;
+		syncif.hdpol = 0;
+		syncif.ipmod = YUV8;
+		syncif.vdpol = 1;
+		syncif.bt_r656_en = 1;
+		ispccdc_config_imgattr(0);
+		ispccdc_config_sync_if(syncif);
+		blkcfg.dcsubval = 0;
+		ispccdc_config_black_clamp(blkcfg);
 		break;
 	case CCDC_OTHERS:
 		break;
@@ -677,6 +701,8 @@ void ispccdc_config_sync_if(struct ispccdc_syncif syncif)
 		break;
 	case YUV8:
 		syn_mode |= ISPCCDC_SYN_MODE_INPMOD_YCBCR8;
+		if (syncif.bt_r656_en)
+			syn_mode |= ISPCCDC_SYN_MODE_PACK8;
 		break;
 	};
 
@@ -741,6 +767,11 @@ void ispccdc_config_sync_if(struct ispccdc_syncif syncif)
 		omap_writel((omap_readl(ISPCCDC_REC656IF)) &
 						~ISPCCDC_REC656IF_R656ON,
 						ISPCCDC_REC656IF);
+	} else {
+		omap_writel((omap_readl(ISPCCDC_REC656IF)) |
+				(ISPCCDC_REC656IF_R656ON |
+				 ISPCCDC_REC656IF_ECCFVH),
+				ISPCCDC_REC656IF);
 	}
 }
 EXPORT_SYMBOL(ispccdc_config_sync_if);
@@ -1178,35 +1209,72 @@ int ispccdc_config_size(u32 input_w, u32 input_h, u32 output_w, u32 output_h)
 	} else if (ispccdc_obj.ccdc_outfmt == CCDC_OTHERS_MEM) {
 		omap_writel(0, ISPCCDC_VP_OUT);
 		if (cpu_is_omap3410()) {
-			omap_writel(0 << ISPCCDC_HORZ_INFO_SPH_SHIFT |
+			if (ispccdc_obj.ccdc_inpfmt != CCDC_YUV_BT)
+				omap_writel(0 << ISPCCDC_HORZ_INFO_SPH_SHIFT |
 						((ispccdc_obj.ccdcout_w - 1) <<
-						ISPCCDC_HORZ_INFO_NPH_SHIFT),
+						 ISPCCDC_HORZ_INFO_NPH_SHIFT),
 						ISPCCDC_HORZ_INFO);
+			else
+				omap_writel(0 << ISPCCDC_HORZ_INFO_SPH_SHIFT |
+					(((ispccdc_obj.ccdcout_w << 1) - 1) <<
+					 ISPCCDC_HORZ_INFO_NPH_SHIFT),
+					ISPCCDC_HORZ_INFO);
 		} else {
-			if (ispccdc_obj.ccdc_inpfmt == CCDC_RAW) {
-				omap_writel(1 << ISPCCDC_HORZ_INFO_SPH_SHIFT
-						| ((ispccdc_obj.ccdcout_w - 1)
-						<< ISPCCDC_HORZ_INFO_NPH_SHIFT),
-						ISPCCDC_HORZ_INFO);
-			} else {
-				omap_writel(0 << ISPCCDC_HORZ_INFO_SPH_SHIFT
-						| ((ispccdc_obj.ccdcout_w - 1)
-						<< ISPCCDC_HORZ_INFO_NPH_SHIFT),
-						ISPCCDC_HORZ_INFO);
-			}
+			if (ispccdc_obj.ccdc_inpfmt != CCDC_YUV_BT)
+				omap_writel(1 << ISPCCDC_HORZ_INFO_SPH_SHIFT |
+					((ispccdc_obj.ccdcout_w - 1) <<
+					 ISPCCDC_HORZ_INFO_NPH_SHIFT),
+					ISPCCDC_HORZ_INFO);
+			else
+				omap_writel(0 << ISPCCDC_HORZ_INFO_SPH_SHIFT |
+					(((ispccdc_obj.ccdcout_w << 1) - 1) <<
+					 ISPCCDC_HORZ_INFO_NPH_SHIFT),
+					ISPCCDC_HORZ_INFO);
 		}
-		omap_writel(0 << ISPCCDC_VERT_START_SLV0_SHIFT,
-							ISPCCDC_VERT_START);
-		omap_writel((ispccdc_obj.ccdcout_h - 1) <<
-						ISPCCDC_VERT_LINES_NLV_SHIFT,
-						ISPCCDC_VERT_LINES);
+
+		if (ispccdc_obj.ccdc_inpfmt != CCDC_YUV_BT) {
+			omap_writel(0 << ISPCCDC_VERT_START_SLV0_SHIFT,
+					ISPCCDC_VERT_START);
+			omap_writel((ispccdc_obj.ccdcout_h - 1) <<
+					ISPCCDC_VERT_LINES_NLV_SHIFT,
+					ISPCCDC_VERT_LINES);
+		} else {
+			omap_writel(2 << ISPCCDC_VERT_START_SLV0_SHIFT |
+					2 << ISPCCDC_VERT_START_SLV1_SHIFT,
+					ISPCCDC_VERT_START);
+			omap_writel(((ispccdc_obj.ccdcout_h >> 1) - 1) <<
+					ISPCCDC_VERT_LINES_NLV_SHIFT,
+					ISPCCDC_VERT_LINES);
+		}
 
 		ispccdc_config_outlineoffset(ispccdc_obj.ccdcout_w * 2, 0, 0);
-		omap_writel((((ispccdc_obj.ccdcout_h - 2) &
+
+		if (ispccdc_obj.ccdc_inpfmt != CCDC_YUV_BT) {
+			omap_writel((((ispccdc_obj.ccdcout_h - 1) &
 					ISPCCDC_VDINT_0_MASK) <<
 					ISPCCDC_VDINT_0_SHIFT) |
 					((50 & ISPCCDC_VDINT_1_MASK) <<
 					ISPCCDC_VDINT_1_SHIFT), ISPCCDC_VDINT);
+		} else {
+			ispccdc_config_outlineoffset(ispccdc_obj.ccdcout_w * 2,
+					EVENEVEN,
+					1);
+			ispccdc_config_outlineoffset(ispccdc_obj.ccdcout_w * 2,
+					ODDEVEN,
+					1);
+			ispccdc_config_outlineoffset(ispccdc_obj.ccdcout_w * 2,
+					EVENODD,
+					1);
+			ispccdc_config_outlineoffset(ispccdc_obj.ccdcout_w * 2,
+					ODDODD,
+					1);
+
+			omap_writel(((((ispccdc_obj.ccdcout_h >> 1) - 1) &
+					ISPCCDC_VDINT_0_MASK) <<
+					ISPCCDC_VDINT_0_SHIFT) |
+					((50 & ISPCCDC_VDINT_1_MASK) <<
+					 ISPCCDC_VDINT_1_SHIFT), ISPCCDC_VDINT);
+		}
 	} else if (ispccdc_obj.ccdc_outfmt == CCDC_OTHERS_VP_MEM) {
 		omap_writel((1 << ISPCCDC_FMT_HORZ_FMTSPH_SHIFT) |
 					(ispccdc_obj.ccdcin_w <<
@@ -1354,6 +1422,40 @@ void ispccdc_enable(u8 enable)
 
 }
 EXPORT_SYMBOL(ispccdc_enable);
+
+/**
+ * ispccdc_config_y8pos - Configures the location of Y color component
+ * @mode: Y8POS_EVEN Y pixel in even position, otherwise Y pixel in odd
+ *
+ * Configures the location of Y color componenent for YCbCr 8-bit data
+ */
+void ispccdc_config_y8pos(enum y8pos_mode mode)
+{
+	if (mode == Y8POS_EVEN)
+		omap_writel(omap_readl(ISPCCDC_CFG) & ~(ISPCCDC_CFG_Y8POS),
+				ISPCCDC_CFG);
+	else
+		omap_writel(omap_readl(ISPCCDC_CFG) | (ISPCCDC_CFG_Y8POS),
+				ISPCCDC_CFG);
+}
+EXPORT_SYMBOL(ispccdc_config_y8pos);
+
+/**
+ * ispccdc_config_byteswap - Configures byte swap data stored in memory
+ * @swap: 1 - swap bytes, 0 - normal
+ *
+ * Controls the order in which the Y and C pixels are stored in memory
+ */
+void ispccdc_config_byteswap(int swap)
+{
+	if (swap)
+		omap_writel(omap_readl(ISPCCDC_CFG) | (ISPCCDC_CFG_BSWD),
+				ISPCCDC_CFG);
+	else
+		omap_writel(omap_readl(ISPCCDC_CFG) & ~(ISPCCDC_CFG_BSWD),
+				ISPCCDC_CFG);
+}
+EXPORT_SYMBOL(ispccdc_config_byteswap);
 
 /**
  * ispccdc_busy - Gets busy state of the CCDC.
