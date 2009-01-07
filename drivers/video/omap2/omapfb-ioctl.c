@@ -67,11 +67,6 @@ static int omapfb_setup_plane(struct fb_info *fbi, struct omapfb_plane_info *pi)
 			goto out;
 	}
 
-	r = omapfb_setup_overlay(fbi, ovl, pi->pos_x, pi->pos_y,
-			pi->out_width, pi->out_height);
-	if (r)
-		goto out;
-
 	ovl->enable(ovl, pi->enabled);
 
 	if (ovl->manager)
