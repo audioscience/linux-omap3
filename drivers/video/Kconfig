@@ -2116,6 +2116,7 @@ config FB_PRE_INIT_FB
 	  the bootloader.
 
 source "drivers/video/omap/Kconfig"
+source "drivers/video/omap2/Kconfig"
 
 source "drivers/video/backlight/Kconfig"
 source "drivers/video/display/Kconfig"

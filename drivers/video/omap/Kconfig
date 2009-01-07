@@ -1,6 +1,7 @@
 config FB_OMAP
 	tristate "OMAP frame buffer support (EXPERIMENTAL)"
-	depends on FB && ARCH_OMAP
+	depends on FB && ARCH_OMAP && (OMAP2_DSS = "n")
+
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
 	select FB_CFB_IMAGEBLIT
@@ -80,7 +81,7 @@ config FB_OMAP_BOOTLOADER_INIT
 
 config FB_OMAP_CONSISTENT_DMA_SIZE
 	int "Consistent DMA memory size (MB)"
-	depends on FB_OMAP
+	depends on FB && ARCH_OMAP
 	range 1 14
 	default 2
 	help
