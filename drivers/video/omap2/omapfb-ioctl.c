@@ -314,7 +314,8 @@ int omapfb_ioctl(struct fb_info *fbi, unsigned int cmd, unsigned long arg)
 	switch (cmd) {
 	case OMAPFB_SYNC_GFX:
 		if (!display || !display->sync) {
-			r = -EINVAL;
+			/* DSS1 never returns an error here, so we neither */
+			/*r = -EINVAL;*/
 			break;
 		}
 
