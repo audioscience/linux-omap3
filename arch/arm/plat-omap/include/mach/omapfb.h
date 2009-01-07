@@ -90,6 +90,13 @@ enum omapfb_color_format {
 	OMAPFB_COLOR_CLUT_1BPP,
 	OMAPFB_COLOR_RGB444,
 	OMAPFB_COLOR_YUY422,
+
+	OMAPFB_COLOR_ARGB16,
+	OMAPFB_COLOR_RGB24U,	/* RGB24, 32-bit container */
+	OMAPFB_COLOR_RGB24P,	/* RGB24, 24-bit container */
+	OMAPFB_COLOR_ARGB32,
+	OMAPFB_COLOR_RGBA32,
+	OMAPFB_COLOR_RGBX32,
 };
 
 struct omapfb_update_window {
@@ -392,6 +399,13 @@ extern int  omapfb_update_window_async(struct fb_info *fbi,
 
 /* in arch/arm/plat-omap/fb.c */
 extern void omapfb_set_ctrl_platform_data(void *pdata);
+
+/* in arch/arm/plat-omap/fb-vram */
+int omap_vram_free(unsigned long paddr, void *vaddr, size_t size);
+void *omap_vram_reserve(unsigned long paddr, size_t size);
+void *omap_vram_alloc(int mtype, size_t size, unsigned long *paddr);
+extern void omap2_set_sdram_vram(u32 size, u32 start);
+extern void omap2_set_sram_vram(u32 size, u32 start);
 
 #endif /* __KERNEL__ */
 
