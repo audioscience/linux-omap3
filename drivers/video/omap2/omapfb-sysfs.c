@@ -337,7 +337,7 @@ static ssize_t show_overlays(struct device *dev, struct device_attribute *attr,
 				break;
 
 		l += snprintf(buf + l, size - l,
-			"%s t:%s x:%d y:%d iw:%d ih:%d w: %d h: %d e:%d\n",
+			"%s t:%s x:%d y:%d iw:%d ih:%d w:%d h:%d e:%d\n",
 			ovl->name,
 			mgr ? mgr->name : "none",
 			ovl->info.pos_x,
