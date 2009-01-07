@@ -46,7 +46,9 @@ config OMAP2_DSS_FAKE_VSYNC
 	default n
 	help
 	  If this is selected, DSI will fake a DISPC VSYNC interrupt
-	  when DSI has sent a frame.
+	  when DSI has sent a frame. This is only needed with DSI or
+	  RFBI displays using manual mode, and you want VSYNC to time,
+	  for example, animation.
 
 config OMAP2_DSS_MIN_FCK_PER_PCK
 	int "Minimum FCK/PCK ratio (for scaling)"
