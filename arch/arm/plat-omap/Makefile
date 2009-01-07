@@ -30,3 +30,5 @@ obj-$(CONFIG_OMAP_PM_NOOP) += omap-pm-noop.o
 obj-$(CONFIG_OMAP_PM_SRF) += omap-pm-srf.o \
 				resource.o
 
+# OMAP2/3 Display Subsystem
+obj-y += dss/

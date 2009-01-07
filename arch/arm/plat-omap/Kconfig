@@ -278,6 +278,8 @@ config OMAP_PM_SRF
 
 endchoice
 
+source "arch/arm/plat-omap/dss/Kconfig"
+
 endmenu
 
 endif

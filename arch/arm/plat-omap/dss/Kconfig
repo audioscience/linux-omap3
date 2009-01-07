@@ -1,0 +1,69 @@
+config OMAP2_DSS
+        tristate "OMAP2/3 Display Subsystem support (EXPERIMENTAL)"
+        depends on ARCH_OMAP2 || ARCH_OMAP3
+        help
+          OMAP2/3 Display Subsystem support.
+
+if OMAP2_DSS
+
+config OMAP2_DSS_DEBUG_SUPPORT
+        bool "Debug support"
+	default y
+	help
+	  This enables debug messages. You need to enable printing
+	  with 'debug' module parameter.
+
+config OMAP2_DSS_RFBI
+	bool "RFBI support"
+        default y
+
+config OMAP2_DSS_VENC
+	bool "VENC support"
+        default y
+
+if ARCH_OMAP3
+
+config OMAP2_DSS_SDI
+	bool "SDI support"
+        default y
+
+config OMAP2_DSS_DSI
+	bool "DSI support"
+        default y
+
+endif
+
+config OMAP2_DSS_USE_DSI_PLL
+	bool "Use DSI PLL for PCLK (EXPERIMENTAL)"
+	default n
+	depends on OMAP2_DSS_DSI
+	help
+	  Use DSI PLL to generate pixel clock.
+	  Currently only for DPI output.
+
+config OMAP2_DSS_FAKE_VSYNC
+	bool "Fake VSYNC irq from manual update displays"
+	default n
+	help
+	  If this is selected, DSI will fake a DISPC VSYNC interrupt
+	  when DSI has sent a frame.
+
+config OMAP2_DSS_MIN_FCK_PER_PCK
+	int "Minimum FCK/PCK ratio (for scaling)"
+	range 0 32
+	default 0
+	help
+	  This can be used to adjust the minimum FCK/PCK ratio.
+
+	  With this you can make sure that DISPC FCK is at least
+	  n x PCK. Video plane scaling requires higher FCK than
+	  normally.
+
+	  If this is set to 0, there's no extra constraint on the
+	  DISPC FCK. However, the FCK will at minimum be
+	  2xPCK (if active matrix) or 3xPCK (if passive matrix).
+
+	  Max FCK is 173MHz, so this doesn't work if your PCK
+	  is very high.
+
+endif
