@@ -121,6 +121,10 @@ config MACH_OMAP3EVM
 	bool "OMAP 3530 EVM board"
 	depends on ARCH_OMAP3 && ARCH_OMAP34XX
 
+config MACH_OMAP3EVM_DC
+	bool "OMAP 3530 EVM daughter card board"
+	depends on ARCH_OMAP3 && ARCH_OMAP34XX && MACH_OMAP3EVM
+
 config MACH_OMAP3_BEAGLE
 	bool "OMAP3 BEAGLE board"
 	depends on ARCH_OMAP3 && ARCH_OMAP34XX
