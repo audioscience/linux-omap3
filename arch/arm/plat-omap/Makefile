@@ -29,3 +29,5 @@ obj-$(CONFIG_OMAP_MMU_FWK) += mmu.o
 # OMAP mailbox framework
 obj-$(CONFIG_OMAP_MBOX_FWK) += mailbox.o
 
+# OMAP2/3 Display Subsystem
+obj-y += dss/
