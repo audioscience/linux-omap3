@@ -57,7 +57,8 @@
 #define SMS_ROT_VIRT_BASE(context, rot) (0x70000000 \
 		| 0x4000000 * (context) \
 		| 0x1000000 * (rot))
-#define VRFB_SIZE              (2048 * 480 * 4)
+//#define VRFB_SIZE              (2048 * 480 * 4)
+#define VRFB_SIZE              (2048 * 640 * 4) // XXX this should be calculated
 #define PAGE_WIDTH_EXP         5 /* Assuming SDRAM pagesize= 1024 */
 #define PAGE_HEIGHT_EXP        5 /* 1024 = 2^5 * 2^5 */
 #define SMS_IMAGEHEIGHT_OFFSET 16
@@ -566,6 +567,8 @@ int omap_vrfb_setup(int ctx, unsigned long paddr, u32 width, u32 height,
 			| page_width_exp  << SMS_PW_OFFSET
 			| page_height_exp << SMS_PH_OFFSET,
 			SMS_ROT_CONTROL(ctx));
+
+	printk("vrfb offset %d, %d\n", vrfb_width - width, vrfb_height - height);
 
 	//vrfb.xoffset = vrfb_width - width;
 	//vrfb.yoffset = vrfb_height - height;
