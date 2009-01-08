@@ -41,10 +41,32 @@ extern unsigned int omapfb_debug;
 /* max number of overlays to which a framebuffer data can be direct */
 #define OMAPFB_MAX_OVL_PER_FB 3
 
+struct omapfb2_mem_region {
+	u32		_paddr;
+	void __iomem	*_vaddr;
+	struct vrfb	vrfb;
+	unsigned long	size;
+	u8		type;		/* OMAPFB_PLANE_MEM_* */
+	unsigned	alloc:1;	/* allocated by the driver */
+	unsigned	map:1;		/* kernel mapped by the driver */
+};
+
+static inline u32 omapfb_get_region_paddr(struct omapfb2_mem_region *region)
+{
+	return region->vrfb.paddr[0]; // XXX always return 180 rotated
+//	return region->_paddr;
+}
+
+static inline void *omapfb_get_region_vaddr(struct omapfb2_mem_region *region)
+{
+	return region->vrfb.vaddr[0]; // XXX always return 180 rotated
+	//return region->_vaddr;
+}
+
 /* appended to fb_info */
 struct omapfb_info {
 	int id;
-	struct omapfb_mem_region region;
+	struct omapfb2_mem_region region;
 	atomic_t map_count;
 	int num_overlays;
 	struct omap_overlay *overlays[OMAPFB_MAX_OVL_PER_FB];

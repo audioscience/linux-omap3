@@ -50,9 +50,12 @@ static void fill_fb(void *addr, struct fb_info *fbi)
 
 	const short w = var->xres_virtual;
 	const short h = var->yres_virtual;
+	int row_inc = 0;
 
 	int y, x;
 	u8 *p = addr;
+
+	row_inc = 2048 - w;
 
 	for (y = 0; y < h; y++) {
 		for (x = 0; x < w; x++) {
@@ -126,6 +129,8 @@ static void fill_fb(void *addr, struct fb_info *fbi)
 
 			p += var->bits_per_pixel >> 3;
 		}
+
+		p += (var->bits_per_pixel >> 3) * row_inc;
 	}
 }
 #endif
@@ -185,15 +190,15 @@ void set_fb_fix(struct fb_info *fbi)
 {
 	struct fb_fix_screeninfo *fix = &fbi->fix;
 	struct fb_var_screeninfo *var = &fbi->var;
-	struct omapfb_mem_region *rg = &FB2OFB(fbi)->region;
+	struct omapfb2_mem_region *rg = &FB2OFB(fbi)->region;
 
 	DBG("set_fb_fix\n");
 
 	/* used by open/write in fbmem.c */
-	fbi->screen_base        = (char __iomem *)rg->vaddr;
+	fbi->screen_base        = (char __iomem *)omapfb_get_region_vaddr(rg);
 
 	/* used by mmap in fbmem.c */
-	fix->smem_start         = rg->paddr;
+	fix->smem_start         = omapfb_get_region_paddr(rg);
 	fix->smem_len           = rg->size;
 
 	fix->type = FB_TYPE_PACKED_PIXELS;
@@ -223,6 +228,11 @@ void set_fb_fix(struct fb_info *fbi)
 
 	fix->xpanstep = 1;
 	fix->ypanstep = 1;
+
+	if (rg->_paddr)
+		omap_vrfb_setup(rg->vrfb.context, rg->_paddr,
+				var->xres_virtual, var->yres_virtual,
+				var->bits_per_pixel / 8);
 }
 
 /* check new var and possibly modify it to be ok */
@@ -454,8 +464,14 @@ int omapfb_setup_overlay(struct fb_info *fbi, struct omap_overlay *ovl,
 	offset = ((var->yoffset * var->xres_virtual +
 				var->xoffset) * var->bits_per_pixel) >> 3;
 
-	data_start_p = ofbi->region.paddr + offset;
-	data_start_v = ofbi->region.vaddr + offset;
+	data_start_p = omapfb_get_region_paddr(&ofbi->region);
+	data_start_v = omapfb_get_region_vaddr(&ofbi->region);
+
+	data_start_p = ofbi->region.vrfb.paddr[0];
+	data_start_v = ofbi->region.vrfb.vaddr[0];
+
+	data_start_p += offset;
+	data_start_v += offset;
 
 	mode = fb_mode_to_dss_mode(var);
 
@@ -466,7 +482,7 @@ int omapfb_setup_overlay(struct fb_info *fbi, struct omap_overlay *ovl,
 
 	r = ovl->setup_input(ovl,
 			data_start_p, data_start_v,
-			var->xres_virtual,
+			2048, //var->xres_virtual,
 			var->xres, var->yres,
 			mode);
 
@@ -627,7 +643,7 @@ static struct vm_operations_struct mmap_user_ops = {
 static int omapfb_mmap(struct fb_info *fbi, struct vm_area_struct *vma)
 {
 	struct omapfb_info *ofbi = FB2OFB(fbi);
-	struct omapfb_mem_region *rg = &ofbi->region;
+	struct omapfb2_mem_region *rg = &ofbi->region;
 	unsigned long off;
 	unsigned long start;
 	u32 len;
@@ -638,7 +654,7 @@ static int omapfb_mmap(struct fb_info *fbi, struct vm_area_struct *vma)
 		return -EINVAL;
 	off = vma->vm_pgoff << PAGE_SHIFT;
 
-	start = rg->paddr;
+	start = omapfb_get_region_paddr(rg);
 	len = rg->size;
 	if (off >= len)
 		return -EINVAL;
@@ -828,16 +844,18 @@ static struct fb_ops omapfb_ops = {
 static void omapfb_free_fbmem(struct omapfb2_device *fbdev, int fbnum)
 {
 	struct omapfb_info *ofbi = FB2OFB(fbdev->fbs[fbnum]);
-	struct omapfb_mem_region *rg;
+	struct omapfb2_mem_region *rg;
 
 	rg = &ofbi->region;
 
-	if (rg->paddr)
-		if (omap_vram_free(rg->paddr, rg->vaddr, rg->size))
+	if (rg->_paddr)
+		if (omap_vram_free(rg->_paddr, rg->_vaddr, rg->size))
 			dev_err(fbdev->dev, "VRAM FREE failed\n");
 
-	rg->vaddr = NULL;
-	rg->paddr = 0;
+	omap_vrfb_release_ctx(&rg->vrfb);
+
+	rg->_vaddr = NULL;
+	rg->_paddr = 0;
 	rg->alloc = 0;
 	rg->size = 0;
 }
@@ -858,7 +876,7 @@ static int omapfb_alloc_fbmem(struct omapfb2_device *fbdev, int fbnum,
 		unsigned long size)
 {
 	struct omapfb_info *ofbi;
-	struct omapfb_mem_region *rg;
+	struct omapfb2_mem_region *rg;
 	unsigned long paddr;
 	void *vaddr;
 
@@ -880,8 +898,11 @@ static int omapfb_alloc_fbmem(struct omapfb2_device *fbdev, int fbnum,
 		return -ENOMEM;
 	}
 
-	rg->paddr = paddr;
-	rg->vaddr = vaddr;
+	if (omap_vrfb_create_ctx(&rg->vrfb))
+		printk("vrfb create ctx failed\n");
+
+	rg->_paddr = paddr;
+	rg->_vaddr = vaddr;
 	rg->size = size;
 	rg->alloc = 1;
 
@@ -892,7 +913,7 @@ int omapfb_realloc_fbmem(struct omapfb2_device *fbdev, int fbnum,
 		unsigned long size)
 {
 	struct omapfb_info *ofbi = FB2OFB(fbdev->fbs[fbnum]);
-	struct omapfb_mem_region *rg = &ofbi->region;
+	struct omapfb2_mem_region *rg = &ofbi->region;
 	unsigned old_size = rg->size;
 	int r;
 
@@ -997,13 +1018,13 @@ static int omapfb_allocate_all_fbs(struct omapfb2_device *fbdev)
 
 	for (i = 0; i < fbdev->num_fbs; i++) {
 		struct omapfb_info *ofbi = FB2OFB(fbdev->fbs[i]);
-		struct omapfb_mem_region *rg;
+		struct omapfb2_mem_region *rg;
 		rg = &ofbi->region;
 
 		DBG("region%d phys %08x virt %p size=%lu\n",
 				i,
-				rg->paddr,
-				rg->vaddr,
+				rg->_paddr,
+				rg->_vaddr,
 				rg->size);
 	}
 
@@ -1057,7 +1078,7 @@ static int fbinfo_init(struct omapfb2_device *fbdev, struct fb_info *fbi)
 
 #ifdef DEBUG
 	if (omapfb_debug)
-		fill_fb(FB2OFB(fbi)->region.vaddr, fbi);
+		fill_fb(omapfb_get_region_vaddr(&FB2OFB(fbi)->region), fbi);
 #endif
 err:
 	return r;

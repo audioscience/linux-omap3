@@ -407,6 +407,18 @@ void *omap_vram_alloc(int mtype, size_t size, unsigned long *paddr);
 extern void omap2_set_sdram_vram(u32 size, u32 start);
 extern void omap2_set_sram_vram(u32 size, u32 start);
 
+struct vrfb
+{
+	int context;
+	void *vaddr[4];
+	unsigned long paddr[4];
+};
+
+int omap_vrfb_setup(int ctx, unsigned long paddr, u32 width, u32 height,
+		int bytespp);
+void omap_vrfb_release_ctx(struct vrfb *vrfb);
+int omap_vrfb_create_ctx(struct vrfb *vrfb);
+
 #endif /* __KERNEL__ */
 
 #endif /* __OMAPFB_H */

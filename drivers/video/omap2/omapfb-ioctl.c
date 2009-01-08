@@ -123,7 +123,7 @@ static int omapfb_setup_mem(struct fb_info *fbi, struct omapfb_mem_info *mi)
 {
 	struct omapfb_info *ofbi = FB2OFB(fbi);
 	struct omapfb2_device *fbdev = ofbi->fbdev;
-	struct omapfb_mem_region *rg;
+	struct omapfb2_mem_region *rg;
 	struct omap_display *display = fb2display(fbi);
 	int r, i;
 	size_t size;
@@ -186,7 +186,7 @@ static int omapfb_query_mem(struct fb_info *fbi, struct omapfb_mem_info *mi)
 {
 	struct omapfb_info *ofbi = FB2OFB(fbi);
 	struct omapfb2_device *fbdev = ofbi->fbdev;
-	struct omapfb_mem_region *rg;
+	struct omapfb2_mem_region *rg;
 
 	rg = &ofbi->region;
 	memset(mi, 0, sizeof(*mi));

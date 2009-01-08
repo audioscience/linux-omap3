@@ -46,12 +46,32 @@
 /* Maximum size, in reality this is smaller if SRAM is partially locked. */
 #define OMAP2_SRAM_SIZE			0xa0000		/* 640k */
 
-#define REG_MAP_SIZE(_page_cnt)						\
+#define REG_MAP_SIZE(_page_cnt) \
 	((_page_cnt + (sizeof(unsigned long) * 8) - 1) / 8)
-#define REG_MAP_PTR(_rg, _page_nr)					\
+#define REG_MAP_PTR(_rg, _page_nr) \
 	(((_rg)->map) + (_page_nr) / (sizeof(unsigned long) * 8))
-#define REG_MAP_MASK(_page_nr)						\
+#define REG_MAP_MASK(_page_nr) \
 	(1 << ((_page_nr) & (sizeof(unsigned long) * 8 - 1)))
+
+/* VRFB */
+#define SMS_ROT_VIRT_BASE(context, rot) (0x70000000 \
+		| 0x4000000 * (context) \
+		| 0x1000000 * (rot))
+#define VRFB_SIZE              (2048 * 480 * 4)
+#define PAGE_WIDTH_EXP         5 /* Assuming SDRAM pagesize= 1024 */
+#define PAGE_HEIGHT_EXP        5 /* 1024 = 2^5 * 2^5 */
+#define SMS_IMAGEHEIGHT_OFFSET 16
+#define SMS_IMAGEWIDTH_OFFSET  0
+#define SMS_PH_OFFSET          8
+#define SMS_PW_OFFSET          4
+#define SMS_PS_OFFSET          0
+#define VRFB_LINE_LEN          2048
+
+#define OMAP_SMS_BASE          0x6C000000
+#define SMS_ROT_CONTROL(context)	(OMAP_SMS_BASE + 0x180 + 0x10 * context)
+#define SMS_ROT_SIZE(context)		(OMAP_SMS_BASE + 0x184 + 0x10 * context)
+#define SMS_ROT_PHYSICAL_BA(context)	(OMAP_SMS_BASE + 0x188 + 0x10 * context)
+
 
 #if defined(CONFIG_FB_OMAP2) || defined(CONFIG_FB_OMAP2_MODULE)
 
@@ -496,6 +516,165 @@ static __init int omap_vram_init(void)
 }
 
 arch_initcall(omap_vram_init);
+
+
+
+
+
+
+/* VRFB */
+
+static inline u32 calc_vrfb_div(u32 img_side, u32 page_exp)
+{
+	u32 div = img_side / page_exp;
+	if ((div * page_exp) < img_side)
+		return div + 1;
+	else
+		return div;
+}
+
+int omap_vrfb_setup(int ctx, unsigned long paddr, u32 width, u32 height,
+		int bytespp)
+{
+	int page_width_exp, page_height_exp, pixel_size_exp;
+	int div;
+	u32 vrfb_width;
+	u32 vrfb_height;
+	u32 bytes_per_pixel = bytespp;
+
+	printk("omapfb_set_vrfb(%d, %lx, %dx%d, %d)\n", ctx, paddr,
+			width, height, bytespp);
+
+	page_width_exp = PAGE_WIDTH_EXP;
+	page_height_exp = PAGE_HEIGHT_EXP;
+	pixel_size_exp = bytes_per_pixel >> 1;
+
+	div = calc_vrfb_div(width * bytes_per_pixel, 1 << page_width_exp);
+	vrfb_width = (div * (1 << page_width_exp)) / bytes_per_pixel;
+
+	div = calc_vrfb_div(height, 1 << page_height_exp);
+	vrfb_height = div * (1 << page_height_exp);
+
+	printk("vrfb w %u, h %u\n", vrfb_width, vrfb_height);
+
+	omap_writel(paddr, SMS_ROT_PHYSICAL_BA(ctx));
+	omap_writel((vrfb_width << SMS_IMAGEWIDTH_OFFSET)
+			| (vrfb_height << SMS_IMAGEHEIGHT_OFFSET),
+			SMS_ROT_SIZE(ctx));
+
+	omap_writel(pixel_size_exp << SMS_PS_OFFSET
+			| page_width_exp  << SMS_PW_OFFSET
+			| page_height_exp << SMS_PH_OFFSET,
+			SMS_ROT_CONTROL(ctx));
+
+	//vrfb.xoffset = vrfb_width - width;
+	//vrfb.yoffset = vrfb_height - height;
+	return 0;
+}
+EXPORT_SYMBOL(omap_vrfb_setup);
+
+
+static int omapfb_reserve_vrfb_mem(int ctx, int rot,
+		u32 *paddr, void **vaddr)
+{
+	*paddr = SMS_ROT_VIRT_BASE(ctx, rot);
+	if (!request_mem_region(*paddr, VRFB_SIZE, "vrfb")) {
+		printk("request_mem_region failed\n");
+		return -ENOMEM;
+	}
+
+	*vaddr = ioremap(*paddr, VRFB_SIZE);
+	if(*vaddr == 0) {
+		release_mem_region(*paddr, VRFB_SIZE);
+		printk("ioremap failed\n");
+		return -ENOMEM;
+	}
+
+	return 0;
+}
+
+static unsigned ctx_map;
+
+#define VRFB_NUM_CTX 12
+
+void omap_vrfb_release_ctx(struct vrfb *vrfb)
+{
+	int rot;
+
+	ctx_map &= ~(1 << vrfb->context);
+
+	for (rot = 0; rot < 4; ++rot) {
+		if(vrfb->vaddr[rot]) {
+			iounmap(vrfb->vaddr[rot]);
+			vrfb->vaddr[rot] = NULL;
+		}
+
+		if(vrfb->paddr[rot]) {
+			release_mem_region(vrfb->paddr[rot], VRFB_SIZE);
+			vrfb->paddr[rot] = 0;
+		}
+	}
+
+	vrfb->context = -1;
+}
+EXPORT_SYMBOL(omap_vrfb_release_ctx);
+
+int omap_vrfb_create_ctx(struct vrfb *vrfb)
+{
+	int rot;
+	u32 paddr;
+	void* vaddr;
+	int ctx;
+
+	for (ctx = 0; ctx < VRFB_NUM_CTX; ++ctx)
+		if ((ctx_map & (1 << ctx)) == 0)
+			break;
+
+	if (ctx == VRFB_NUM_CTX) {
+		printk(KERN_ERR "no free vrfb contexts\n");
+		return -EBUSY;
+	}
+
+	printk("found free ctx %d\n", ctx);
+
+	ctx_map |= 1 << ctx;
+
+	memset(vrfb, 0, sizeof(*vrfb));
+
+	vrfb->context = ctx;
+
+	for (rot = 0; rot < 4; ++rot) {
+		int r;
+		r = omapfb_reserve_vrfb_mem(ctx, rot, &paddr, &vaddr);
+		if (r) {
+			printk(KERN_ERR "omapfb: failed to reserve VRFB "
+					"area for ctx %d, rotation %d\n",
+					ctx, rot * 90);
+			omap_vrfb_release_ctx(vrfb);
+			return r;
+		}
+
+		vrfb->paddr[rot] = paddr;
+		vrfb->vaddr[rot] = vaddr;
+
+		printk("VRFB %d/%d: %lx -> %p\n", ctx, rot*90,
+				vrfb->paddr[rot],
+				vrfb->vaddr[rot]);
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL(omap_vrfb_create_ctx);
+
+
+
+
+
+
+
+
+
+
 
 /* boottime vram alloc stuff */
 static u32 omapfb_sram_vram_start __initdata;
