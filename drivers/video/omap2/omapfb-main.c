@@ -973,8 +973,6 @@ static int omapfb_allocate_all_fbs(struct omapfb2_device *fbdev)
 		while ((tok = strsep(&s, ","))) {
 			unsigned long size;
 
-			printk("param '%s'\n", tok);
-
 			size = memparse(tok, NULL);
 
 			if (size == 0) {
