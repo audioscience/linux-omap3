@@ -47,15 +47,15 @@ module_param_named(debug, omapfb_debug, bool, 0644);
 static void fill_fb(void *addr, struct fb_info *fbi)
 {
 	struct fb_var_screeninfo *var = &fbi->var;
+	struct fb_fix_screeninfo *fix = &fbi->fix;
 
 	const short w = var->xres_virtual;
 	const short h = var->yres_virtual;
-	int row_inc = 0;
+	const int bytespp = var->bits_per_pixel >> 3;
+	const int row_inc = fix->line_length / bytespp - w;
 
 	int y, x;
 	u8 *p = addr;
-
-	row_inc = 2048 - w;
 
 	for (y = 0; y < h; y++) {
 		for (x = 0; x < w; x++) {
@@ -127,10 +127,10 @@ static void fill_fb(void *addr, struct fb_info *fbi)
 				}
 			}
 
-			p += var->bits_per_pixel >> 3;
+			p += bytespp;
 		}
 
-		p += (var->bits_per_pixel >> 3) * row_inc;
+		p += bytespp * row_inc;
 	}
 }
 #endif
@@ -197,9 +197,11 @@ void set_fb_fix(struct fb_info *fbi)
 	/* used by open/write in fbmem.c */
 	fbi->screen_base        = (char __iomem *)omapfb_get_region_vaddr(rg);
 
+
 	/* used by mmap in fbmem.c */
+	fix->line_length = (2048 * var->bits_per_pixel) >> 3;
 	fix->smem_start         = omapfb_get_region_paddr(rg);
-	fix->smem_len           = rg->size;
+	fix->smem_len           = var->yres_virtual * fix->line_length;
 
 	fix->type = FB_TYPE_PACKED_PIXELS;
 
@@ -224,12 +226,11 @@ void set_fb_fix(struct fb_info *fbi)
 	}
 
 	fix->accel = FB_ACCEL_NONE;
-	fix->line_length = (var->xres_virtual * var->bits_per_pixel) >> 3;
 
 	fix->xpanstep = 1;
 	fix->ypanstep = 1;
 
-	if (rg->_paddr)
+	if (rg->size)
 		omap_vrfb_setup(rg->vrfb.context, rg->_paddr,
 				var->xres_virtual, var->yres_virtual,
 				var->bits_per_pixel / 8);
@@ -643,6 +644,7 @@ static struct vm_operations_struct mmap_user_ops = {
 static int omapfb_mmap(struct fb_info *fbi, struct vm_area_struct *vma)
 {
 	struct omapfb_info *ofbi = FB2OFB(fbi);
+	struct fb_fix_screeninfo *fix = &fbi->fix;
 	struct omapfb2_mem_region *rg = &ofbi->region;
 	unsigned long off;
 	unsigned long start;
@@ -655,7 +657,7 @@ static int omapfb_mmap(struct fb_info *fbi, struct vm_area_struct *vma)
 	off = vma->vm_pgoff << PAGE_SHIFT;
 
 	start = omapfb_get_region_paddr(rg);
-	len = rg->size;
+	len = fix->smem_len;//rg->size;
 	if (off >= len)
 		return -EINVAL;
 	if ((vma->vm_end - vma->vm_start + off) > len)
@@ -823,6 +825,14 @@ exit:
 	return r;
 }
 
+ssize_t omapfb_write(struct fb_info *info, const char __user *buf,
+		size_t count, loff_t *ppos)
+{
+	DBG("omapfb_write %d, %lu\n", count, (unsigned long)*ppos);
+	// XXX needed for VRFB
+	return count;
+}
+
 static struct fb_ops omapfb_ops = {
 	.owner          = THIS_MODULE,
 	.fb_open        = omapfb_open,
@@ -839,6 +849,7 @@ static struct fb_ops omapfb_ops = {
 	.fb_mmap	= omapfb_mmap,
 	.fb_setcolreg	= omapfb_setcolreg,
 	.fb_setcmap	= omapfb_setcmap,
+	.fb_write	= omapfb_write,
 };
 
 static void omapfb_free_fbmem(struct omapfb2_device *fbdev, int fbnum)
@@ -1077,7 +1088,7 @@ static int fbinfo_init(struct omapfb2_device *fbdev, struct fb_info *fbi)
 	set_fb_fix(fbi);
 
 #ifdef DEBUG
-	if (omapfb_debug)
+	if (omapfb_debug && FB2OFB(fbi)->region.size > 0)
 		fill_fb(omapfb_get_region_vaddr(&FB2OFB(fbi)->region), fbi);
 #endif
 err:
