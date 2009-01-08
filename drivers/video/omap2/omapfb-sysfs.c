@@ -122,13 +122,13 @@ static ssize_t show_framebuffers(struct device *dev,
 
 	for (i = 0; i < fbdev->num_fbs; i++) {
 		struct omapfb_info *ofbi = FB2OFB(fbdev->fbs[i]);
-		struct omapfb_mem_region *rg;
+		struct omapfb2_mem_region *rg;
 
 		rg = &ofbi->region;
 
 		l += snprintf(buf + l, size - l, "%d p:%08x v:%p size:%lu t:",
 				ofbi->id,
-				rg->paddr, rg->vaddr, rg->size);
+				rg->_paddr, rg->_vaddr, rg->size);
 
 		if (ofbi->num_overlays == 0)
 			l += snprintf(buf + l, size - l, "none");
