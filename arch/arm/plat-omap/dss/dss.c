@@ -236,7 +236,7 @@ ssize_t dss_print_clocks(char *buf, ssize_t size)
 		l += snprintf(buf + l, size - l, "%-15s\t%lu\t%d\n",
 				clocks[i]->name,
 				clk_get_rate(clocks[i]),
-				clk_get_usecount(clocks[i]));
+				clocks[i]->usecount);
 	}
 
 	return l;
@@ -590,28 +590,28 @@ void dss_exit(void)
 	free_irq(INT_24XX_DSS_IRQ, NULL);
 
 	/* these should be removed at some point */
-	c = clk_get_usecount(dss.dss_ick);
+	c = dss.dss_ick->usecount;
 	if (c > 0) {
 		DSSERR("warning: dss_ick usecount %d, disabling\n", c);
 		while (c-- > 0)
 			clk_disable(dss.dss_ick);
 	}
 
-	c = clk_get_usecount(dss.dss1_fck);
+	c = dss.dss1_fck->usecount;
 	if (c > 0) {
 		DSSERR("warning: dss1_fck usecount %d, disabling\n", c);
 		while (c-- > 0)
 			clk_disable(dss.dss1_fck);
 	}
 
-	c = clk_get_usecount(dss.dss2_fck);
+	c = dss.dss2_fck->usecount;
 	if (c > 0) {
 		DSSERR("warning: dss2_fck usecount %d, disabling\n", c);
 		while (c-- > 0)
 			clk_disable(dss.dss2_fck);
 	}
 
-	c = clk_get_usecount(dss.dss_54m_fck);
+	c = dss.dss_54m_fck->usecount;
 	if (c > 0) {
 		DSSERR("warning: dss_54m_fck usecount %d, disabling\n", c);
 		while (c-- > 0)
@@ -619,7 +619,7 @@ void dss_exit(void)
 	}
 
 	if (dss.dss_96m_fck) {
-		c = clk_get_usecount(dss.dss_96m_fck);
+		c = dss.dss_96m_fck->usecount;
 		if (c > 0) {
 			DSSERR("warning: dss_96m_fck usecount %d, disabling\n",
 					c);
