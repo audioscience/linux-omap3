@@ -51,16 +51,22 @@ struct omapfb2_mem_region {
 	unsigned	map:1;		/* kernel mapped by the driver */
 };
 
-static inline u32 omapfb_get_region_paddr(struct omapfb2_mem_region *region)
+static inline u32 omapfb_get_region_paddr(struct omapfb2_mem_region *region,
+		int rotation)
 {
-	return region->vrfb.paddr[0]; // XXX always return 180 rotated
-//	return region->_paddr;
+	if (rotation == -1)
+		return region->_paddr;
+	else
+		return region->vrfb.paddr[rotation];
 }
 
-static inline void *omapfb_get_region_vaddr(struct omapfb2_mem_region *region)
+static inline void *omapfb_get_region_vaddr(struct omapfb2_mem_region *region,
+		int rotation)
 {
-	return region->vrfb.vaddr[0]; // XXX always return 180 rotated
-	//return region->_vaddr;
+	if (rotation == -1)
+		return region->_vaddr;
+	else
+		return region->vrfb.vaddr[rotation];
 }
 
 /* appended to fb_info */
@@ -71,6 +77,7 @@ struct omapfb_info {
 	int num_overlays;
 	struct omap_overlay *overlays[OMAPFB_MAX_OVL_PER_FB];
 	struct omapfb2_device *fbdev;
+	int rotation;
 };
 
 struct omapfb2_device {
