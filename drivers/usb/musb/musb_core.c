@@ -1429,6 +1429,9 @@ static int __init musb_core_init(u16 musb_type, struct musb *musb)
 
 		hw_ep->regs = MUSB_EP_OFFSET(i, 0) + mbase;
 #ifdef CONFIG_USB_MUSB_HDRC_HCD
+		/* init list of in and out qhs */
+		INIT_LIST_HEAD(&hw_ep->in_list);
+		INIT_LIST_HEAD(&hw_ep->out_list);
 		hw_ep->target_regs = musb_read_target_reg_base(i, mbase);
 		hw_ep->rx_reinit = 1;
 		hw_ep->tx_reinit = 1;
@@ -1774,9 +1777,6 @@ allocate_instance(struct device *dev,
 	/* usbcore sets dev->driver_data to hcd, and sometimes uses that... */
 
 	musb = hcd_to_musb(hcd);
-	INIT_LIST_HEAD(&musb->control);
-	INIT_LIST_HEAD(&musb->in_bulk);
-	INIT_LIST_HEAD(&musb->out_bulk);
 
 	hcd->uses_new_polling = 1;
 

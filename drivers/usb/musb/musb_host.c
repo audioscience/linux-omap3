@@ -1204,7 +1204,7 @@ void musb_host_tx(struct musb *musb, u8 epnum)
 		 * transfer, if there's some other (nonperiodic) tx urb
 		 * that could use this fifo.  (dma complicates it...)
 		 *
-		 * if (bulk && qh->ring.next != &musb->out_bulk), then
+		 * if (bulk && qh->ring.next != &hw_ep->out_list), then
 		 * we have a candidate... NAKing is *NOT* an error
 		 */
 		musb_ep_select(mbase, epnum);
@@ -1363,7 +1363,7 @@ finish:
 
 #endif
 
-/* Schedule next qh from musb->in_bulk and add the current qh at tail
+/* Schedule next qh from ep->in_list and add the current qh at tail
  * to avoid endpoint starvation.
  */
 static void musb_bulk_nak_timeout(struct musb *musb, struct musb_hw_ep *ep)
@@ -1383,7 +1383,7 @@ static void musb_bulk_nak_timeout(struct musb *musb, struct musb_hw_ep *ep)
 	rx_csr &= ~MUSB_RXCSR_DATAERROR;
 	musb_writew(epio, MUSB_RXCSR, rx_csr);
 
-	cur_qh = first_qh(&musb->in_bulk);
+	cur_qh = first_qh(&ep->in_list);
 	if (cur_qh) {
 		urb = next_urb(cur_qh);
 		if (dma_channel_status(dma) == MUSB_DMA_STATUS_BUSY) {
@@ -1394,12 +1394,12 @@ static void musb_bulk_nak_timeout(struct musb *musb, struct musb_hw_ep *ep)
 		}
 		musb_save_toggle(ep, 1, urb);
 
-		/* delete cur_qh and add to tail to musb->in_bulk */
+		/* delete cur_qh and add to tail to ep->in_list */
 		list_del(&cur_qh->ring);
-		list_add_tail(&cur_qh->ring, &musb->in_bulk);
+		list_add_tail(&cur_qh->ring, &ep->in_list);
 
-		/* get the next qh from musb->in_bulk */
-		next_qh = first_qh(&musb->in_bulk);
+		/* get the next qh from ep->in_list */
+		next_qh = first_qh(&ep->in_list);
 
 		/* set rx_reinit and schedule the next qh */
 		ep->rx_reinit = 1;
@@ -1474,12 +1474,12 @@ void musb_host_rx(struct musb *musb, u8 epnum)
 			 * transfer, if there's some other (nonperiodic) rx urb
 			 * that could use this fifo.  (dma complicates it...)
 			 *
-			 * if (bulk && qh->ring.next != &musb->in_bulk), then
+			 * if (bulk && qh->ring.next != &hw_ep->in_list), then
 			 * we have a candidate... NAKing is *NOT* an error
 			 */
 			DBG(6, "RX end %d NAK timeout\n", epnum);
 			if (usb_pipebulk(urb->pipe) && qh->mux == 1 &&
-				!list_is_singular(&musb->in_bulk)) {
+				!list_is_singular(&hw_ep->in_list)) {
 				musb_bulk_nak_timeout(musb, hw_ep);
 				return;
 			}
@@ -1765,8 +1765,8 @@ static int musb_schedule(
 
 	/* use fixed hardware for control and bulk */
 	if (qh->type == USB_ENDPOINT_XFER_CONTROL) {
-		head = &musb->control;
 		hw_ep = musb->control_ep;
+		head = &hw_ep->in_list;
 		goto success;
 	}
 
@@ -1822,9 +1822,9 @@ static int musb_schedule(
 	if (best_end < 0 && qh->type == USB_ENDPOINT_XFER_BULK) {
 		hw_ep = musb->bulk_ep;
 		if (is_in)
-			head = &musb->in_bulk;
+			head = &hw_ep->in_list;
 		else
-			head = &musb->out_bulk;
+			head = &hw_ep->out_list;
 		/* Enable bulk NAK time out scheme when bulk requests are
 		 * multiplxed.This scheme doen't work in high speed to full
 		 * speed scenario as NAK interrupts are not coming from a
@@ -2120,14 +2120,14 @@ static int musb_urb_dequeue(struct usb_hcd *hcd, struct urb *urb, int status)
 	else {
 		switch (qh->type) {
 		case USB_ENDPOINT_XFER_CONTROL:
-			sched = &musb->control;
+			sched = &musb->control_ep->in_list;
 			break;
 		case USB_ENDPOINT_XFER_BULK:
 			if (qh->mux == 1) {
 				if (usb_pipein(urb->pipe))
-					sched = &musb->in_bulk;
+					sched = &musb->bulk_ep->in_list;
 				else
-					sched = &musb->out_bulk;
+					sched = &musb->bulk_ep->out_list;
 				break;
 			}
 		default:
@@ -2174,14 +2174,14 @@ musb_h_disable(struct usb_hcd *hcd, struct usb_host_endpoint *hep)
 
 	switch (qh->type) {
 	case USB_ENDPOINT_XFER_CONTROL:
-		sched = &musb->control;
+		sched = &musb->control_ep->in_list;
 		break;
 	case USB_ENDPOINT_XFER_BULK:
 		if (qh->mux == 1) {
 			if (is_in)
-				sched = &musb->in_bulk;
+				sched = &musb->bulk_ep->in_list;
 			else
-				sched = &musb->out_bulk;
+				sched = &musb->bulk_ep->out_list;
 			break;
 		}
 	default:

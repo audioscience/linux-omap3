@@ -271,6 +271,12 @@ struct musb_hw_ep {
 	struct musb_qh		*in_qh;
 	struct musb_qh		*out_qh;
 
+	/* list of rx and tx qhs, control transfer needs only
+	 * one list thus only in_list is used for control.
+	 */
+	struct list_head        in_list;
+	struct list_head        out_list;
+
 	u8			rx_reinit;
 	u8			tx_reinit;
 #endif
@@ -328,9 +334,6 @@ struct musb {
 	 */
 	struct musb_hw_ep	*bulk_ep;
 
-	struct list_head	control;	/* of musb_qh */
-	struct list_head	in_bulk;	/* of musb_qh */
-	struct list_head	out_bulk;	/* of musb_qh */
 	struct musb_qh	*in[16];
 	struct musb_qh	*out[16];
 #endif
