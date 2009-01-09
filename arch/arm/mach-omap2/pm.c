@@ -44,7 +44,6 @@ static ssize_t idle_store(struct kobject *k, struct kobj_attribute *,
 			  const char *buf, size_t n);
 
 #ifdef CONFIG_OMAP_PM_SRF
-static struct device dummy_sysfs_dev;
 static ssize_t vdd_opp_show(struct kobject *, struct kobj_attribute *, char *);
 static ssize_t vdd_opp_store(struct kobject *k, struct kobj_attribute *,
 			  const char *buf, size_t n);
@@ -100,13 +99,13 @@ static ssize_t vdd_opp_store(struct kobject *kobj, struct kobj_attribute *attr,
 			printk(KERN_ERR "vdd_opp_store: Invalid value\n");
 			return -EINVAL;
 		}
-		resource_request("vdd1_opp", &dummy_sysfs_dev, value);
+		set_opp_level(VDD1_OPP, value);
 	} else if (attr == &vdd2_opp_attr) {
 		if (value < 2 || value > 3) {
 			printk(KERN_ERR "vdd_opp_store: Invalid value\n");
 			return -EINVAL;
 		}
-		resource_request("vdd2_opp", &dummy_sysfs_dev, value);
+		set_opp_level(VDD2_OPP, value);
 	} else {
 		return -EINVAL;
 	}
