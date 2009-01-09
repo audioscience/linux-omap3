@@ -480,6 +480,9 @@ static irqreturn_t dss_irq_handler_omap3(int irq, void *arg)
 		dsi_irq_handler();
 #endif
 
+	/* Workaround suggested by Tony  for spurious interrupt warning */
+	irqstatus = dss_read_reg(DSS_IRQSTATUS);
+
 	return IRQ_HANDLED;
 }
 

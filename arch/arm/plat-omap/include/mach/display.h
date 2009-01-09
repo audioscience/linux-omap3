@@ -320,6 +320,7 @@ struct omap_overlay_info {
 	int enabled;
 	u32 paddr;
 	void *vaddr;
+	int tv_field1_offset;
 	int screen_width;
 	int pos_x;
 	int pos_y;
@@ -327,6 +328,8 @@ struct omap_overlay_info {
 	int height;
 	int out_width;	/* if 0, out_width == width */
 	int out_height;	/* if 0, out_height == height */
+	int rotation;
+	int mirror;
 	enum omap_color_mode color_mode;
 };
 
@@ -349,9 +352,11 @@ struct omap_overlay {
 
 	int (*setup_input)(struct omap_overlay *ovl,
 			u32 paddr, void *vaddr,
+			int tv_field1_offset,
 			int screen_width,
 			int width, int height,
-			enum omap_color_mode color_mode);
+			enum omap_color_mode color_mode, int rotation,
+			int mirror);
 	int (*setup_output)(struct omap_overlay *ovl,
 			int pos_x, int pos_y,
 			int out_width, int out_height);
@@ -456,7 +461,7 @@ int omap_dss_get_num_overlays(void);
 struct omap_overlay *omap_dss_get_overlay(int num);
 
 typedef void (*omap_dispc_isr_t) (void *arg, u32 mask);
-int omap_dispc_register_isr(omap_dispc_isr_t isr, void *arg, u32 mask);
-int omap_dispc_unregister_isr(omap_dispc_isr_t isr);
+void *omap_dispc_register_isr(omap_dispc_isr_t isr, void *arg, u32 mask);
+int omap_dispc_unregister_isr(void* handle);
 
 #endif

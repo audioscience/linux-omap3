@@ -42,7 +42,6 @@
 #include "twl4030-generic-scripts.h"
 #include "mmc-twl4030.h"
 
-
 static struct resource omap3evm_smc911x_resources[] = {
 	[0] =	{
 		.start  = OMAP3EVM_ETHR_START,
@@ -63,6 +62,25 @@ static struct platform_device omap3evm_smc911x_device = {
 	.resource	= &omap3evm_smc911x_resources [0],
 };
 
+static struct resource omap3evm_vout_resource[] = {
+	[0] =	{
+		.start  = OMAP34XX_VRFB_CTX4,
+		.end    = (OMAP34XX_VRFB_CTX4 + OMAP34XX_VRFB_CTX_SIZE - 1),
+		.flags  = IORESOURCE_MEM,
+	},
+	[1] =	{
+		.start  = OMAP34XX_VRFB_CTX8,
+		.end    = (OMAP34XX_VRFB_CTX8 + OMAP34XX_VRFB_CTX_SIZE - 1),
+		.flags  = IORESOURCE_MEM,
+	},
+};
+
+static struct platform_device omap3evm_vout_device = {
+	.name			= "omap_vout",
+	.num_resources	= ARRAY_SIZE(omap3evm_vout_resource),
+	.resource 		= &omap3evm_vout_resource[0],
+	.id		= -1,
+};
 static inline void __init omap3evm_init_smc911x(void)
 {
 	int eth_cs;
@@ -419,6 +437,8 @@ static struct omap_board_config_kernel omap3_evm_config[] __initdata = {
 static struct platform_device *omap3_evm_devices[] __initdata = {
 	&omap3_evm_dss_device,
 	&omap3evm_smc911x_device,
+	&omap3evm_vout_device,
+
 };
 
 static struct twl4030_hsmmc_info mmc[] __initdata = {

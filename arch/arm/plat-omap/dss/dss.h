@@ -161,7 +161,6 @@ int sdi_init(void);
 void sdi_exit(void);
 void sdi_init_display(struct omap_display *display);
 
-
 /* DSI */
 int dsi_init(void);
 void dsi_exit(void);
@@ -213,12 +212,12 @@ void dispc_set_plane_size(enum omap_plane plane, int width, int height);
 void dispc_set_row_inc(enum omap_plane plane, int inc);
 
 int dispc_setup_plane(enum omap_plane plane, enum omap_channel channel_out,
-		      u32 paddr, int screen_width,
+		      u32 paddr, int tv_field1_offset, int screen_width,
 		      int pos_x, int pos_y,
 		      int width, int height,
 		      int out_width, int out_height,
 		      enum omap_color_mode color_mode,
-		      int ilace);
+		      int ilace, int rotation, int mirror);
 
 void dispc_go(enum omap_channel channel);
 void dispc_enable_lcd_out(int enable);
@@ -250,7 +249,6 @@ void dispc_set_lcd_divisor(int lck_div, int pck_div);
 void dispc_setup_partial_planes(struct omap_display *display,
 				int *x, int *y, int *w, int *h);
 void dispc_draw_partial_planes(struct omap_display *display);
-
 
 ssize_t dispc_print_clocks(char *buf, ssize_t size);
 

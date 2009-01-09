@@ -120,7 +120,6 @@ struct dispc_reg { u16 idx; };
 
 #define DISPC_VID_PRELOAD(n)		DISPC_REG(0x230 + (n)*0x04)
 
-
 #define DISPC_IRQ_MASK_ERROR            (DISPC_IRQ_GFX_FIFO_UNDERFLOW | \
 					 DISPC_IRQ_OCP_ERR | \
 					 DISPC_IRQ_VID1_FIFO_UNDERFLOW | \
@@ -521,7 +520,6 @@ static void _dispc_write_firhv_reg(enum omap_plane plane, int reg, u32 value)
 	dispc_write_reg(DISPC_VID_FIR_COEF_HV(plane-1, reg), value);
 }
 
-
 static void _dispc_set_scale_coef(enum omap_plane plane, int hscaleup,
 		int vscaleup)
 {
@@ -648,7 +646,6 @@ static void _dispc_setup_color_conv_coef(void)
 	REG_FLD_MOD(DISPC_VID_ATTRIBUTES(0), ct->full_range, 11, 11);
 	REG_FLD_MOD(DISPC_VID_ATTRIBUTES(1), ct->full_range, 11, 11);
 }
-
 
 static void _dispc_set_plane_ba0(enum omap_plane plane, u32 paddr)
 {
@@ -926,7 +923,6 @@ static void _dispc_set_vid_accu1(enum omap_plane plane, int haccu, int vaccu)
 	dispc_write_reg(ac1_reg[plane-1], val);
 }
 
-
 static void _dispc_set_scaling(enum omap_plane plane,
 			       int orig_width, int orig_height,
 			       int out_width, int out_height,
@@ -945,18 +941,27 @@ static void _dispc_set_scaling(enum omap_plane plane,
 	hscaleup = orig_width <= out_width;
 	vscaleup = orig_height <= out_height;
 
+	//printk("orig_width = %d orig_height = %d out_width = %d out_height = %d\n",
+	//orig_width, orig_height, out_width, out_height);
+
 	_dispc_set_scale_coef(plane, hscaleup, vscaleup);
 
-	if (!orig_width || orig_width == out_width)
+	if (!orig_width || orig_width == out_width) {
+		//printk("%s %d\n", __func__, __LINE__);
 		fir_hinc = 0;
-	else
+	}
+	else {
 		fir_hinc = 1024 * orig_width / out_width;
-
-	if (!orig_height || orig_height == out_height)
+		//printk("%s %d\n", __func__, __LINE__);
+	}
+	if (!orig_height || orig_height == out_height) {
+		//printk("%s %d\n", __func__, __LINE__);
 		fir_vinc = 0;
-	else
+	}
+	else {
+		//printk("%s %d\n", __func__, __LINE__);
 		fir_vinc = 1024 * orig_height / out_height;
-
+	}
 	_dispc_set_fir(plane, fir_hinc, fir_vinc);
 
 	l = dispc_read_reg(dispc_reg_att[plane]);
@@ -971,15 +976,27 @@ static void _dispc_set_scaling(enum omap_plane plane,
 	dispc_write_reg(dispc_reg_att[plane], l);
 
 	if (ilace) {
+		//printk("%s %d\n", __func__, __LINE__);
 		if (fieldmode) {
 			accu0 = fir_vinc / 2;
 			accu1 = 0;
+			//printk("%s %d\n", __func__, __LINE__);
 		} else {
+#if 0
+			accu0 = 0;
+			accu1 = /*fir_vinc / 2*/0;
+			//if (accu1 >= 1024/2) {
+			//	accu0 = 1024/2;
+			//	accu1 -= accu0;
+			//	printk("%s %d\n", __func__, __LINE__);
+#else
 			accu0 = 0;
 			accu1 = fir_vinc / 2;
 			if (accu1 >= 1024/2) {
 				accu0 = 1024/2;
 				accu1 -= accu0;
+				//printk("%s %d\n", __func__, __LINE__);
+#endif
 			}
 		}
 	}
@@ -988,28 +1005,139 @@ static void _dispc_set_scaling(enum omap_plane plane,
 	_dispc_set_vid_accu1(plane, 0, accu1);
 }
 
+static int _dispc_set_rotation_mirroring(enum omap_plane plane,
+	int rotation, int mirroring, enum omap_color_mode color_mode)
+{
+	u32 attr_value;
+	if (rotation == -1)
+		return 0;
+	if (color_mode == OMAP_DSS_COLOR_YUV2 ||
+		color_mode == OMAP_DSS_COLOR_UYVY) {
+		if (mirroring == 1) {
+
+			if (rotation == 90)
+				REG_FLD_MOD(dispc_reg_att[plane], 0x3, 13, 12);
+			else if (rotation == 270)
+				REG_FLD_MOD(dispc_reg_att[plane], 0x1, 13, 12);
+			else if (rotation == 0)
+				REG_FLD_MOD(dispc_reg_att[plane], 0x2, 13, 12);
+			else if (rotation == 180)
+				REG_FLD_MOD(dispc_reg_att[plane], 0x0, 13, 12);
+		} else {
+			if (rotation == 90)
+				REG_FLD_MOD(dispc_reg_att[plane], 0x3, 13, 12);
+			else if (rotation == 270)
+				REG_FLD_MOD(dispc_reg_att[plane], 0x01, 13, 12);
+			else if (rotation == 180)
+				REG_FLD_MOD(dispc_reg_att[plane], 0x2, 13, 12);
+			else if (rotation == 0)
+				REG_FLD_MOD(dispc_reg_att[plane], 0x0, 13, 12);
+			}
+		}
+		if (rotation == 90 || rotation == 270)
+			REG_FLD_MOD(dispc_reg_att[plane], 0x1, 18, 18);
+		else
+			REG_FLD_MOD(dispc_reg_att[plane], 0x0, 18, 18);
+	attr_value = dispc_read_reg(DISPC_VID_ATTRIBUTES(0));
+	return 0;
+}
+
+#define MAX_PIXELS_PER_LINE     2048
+#define MAX_LINES               2048
+
+static void _dispc_calc_and_set_row_inc(enum omap_plane plane,
+	int screen_width, int cropwidth,
+	int cleft, enum omap_color_mode color_mode, int rotation, int mirror,
+	int fieldmode)
+{
+	int ps = 2, vr_ps = 1;
+	int row_inc_value = 0, pixel_inc_value = 0;
+	int temp;
+
+	switch (color_mode) {
+	case OMAP_DSS_COLOR_YUV2:
+	case OMAP_DSS_COLOR_UYVY:
+		if (mirror == 1 || rotation >= 0) {
+			/*
+			 * ps      - In VRFB space the pixel size for YUYV/UYVY
+			 * is 4 bytes
+			 * vr_ps - Actual pixel size for YUYV/UYVY  is 2 bytes
+			 */
+			ps = 4;
+			vr_ps = 2;
+		}
+		break;
+	case OMAP_DSS_COLOR_RGB24P:
+		ps = 3;		/* pixel size is 3 bytes */
+		break;
+
+	case OMAP_DSS_COLOR_RGB24U:
+		ps = 4;		/* pixel size is 4 bytes */
+		break;
+
+	case OMAP_DSS_COLOR_RGB16:
+	default:
+		ps = 2;		/* pixel size is 2 bytes */
+		break;
+	}
+	if (rotation == 90 || rotation == 270) {
+		row_inc_value = 1 + (MAX_PIXELS_PER_LINE - screen_width +
+			 (screen_width - cropwidth - cleft) + cleft) * ps;
+
+	} else if (rotation == 180 || rotation == 0) {
+		if (color_mode == OMAP_DSS_COLOR_YUV2
+			|| color_mode == OMAP_DSS_COLOR_UYVY) {
+			temp = MAX_PIXELS_PER_LINE - (screen_width / vr_ps);
+			temp += (screen_width - cropwidth - cleft) / vr_ps;
+			row_inc_value = ((temp + (cleft/vr_ps)) * ps);
+			row_inc_value++;
+
+		} else
+			row_inc_value = 1 + (MAX_PIXELS_PER_LINE -
+				screen_width + (screen_width - cropwidth -
+				cleft) + cleft) * ps;
+	} else {
+		row_inc_value = 1 + (screen_width * ps) - cropwidth * ps;
+	}
+	pixel_inc_value = 1;
+
+	if (fieldmode) {
+		if (rotation >= 0)
+			row_inc_value = row_inc_value +
+				MAX_PIXELS_PER_LINE * ps;
+		else
+			row_inc_value = row_inc_value + screen_width * ps;
+	}
+	_dispc_set_row_inc(plane, row_inc_value);
+	//printk("Rowinc = %d\n", row_inc_value);
+
+}
+
 static int _dispc_setup_plane(enum omap_plane plane,
 		enum omap_channel channel_out,
-		u32 paddr, int screen_width,
+		u32 paddr, int tv_field1_offset, int screen_width,
 		int pos_x, int pos_y,
 		int width, int height,
 		int out_width, int out_height,
 		enum omap_color_mode color_mode,
-		int ilace)
+		int ilace, int rotation, int mirror)
 {
 	int fieldmode = 0;
 	int bpp;
 	int cconv;
 	int scaling = 0;
+	u32 attr_value;
 
+	//printk("Rotation = %d and mirror = %d\n", rotation, mirror);
 	if (plane == OMAP_DSS_GFX) {
 		if (width != out_width || height != out_height)
 			return -EINVAL;
 	} else {
 		/* video plane */
-		if (width != out_width || height != out_height)
+		if (width != out_width || height != out_height) {
+			//printk("Scaling = 1\n\n\n");
 			scaling = 1;
-
+		}
 		if (out_width < width/2 ||
 		   out_width > width*8)
 			return -EINVAL;
@@ -1018,7 +1146,6 @@ static int _dispc_setup_plane(enum omap_plane plane,
 		   out_height > height*8)
 			return -EINVAL;
 	}
-
 
 	switch (color_mode) {
 	case OMAP_DSS_COLOR_RGB16:
@@ -1066,6 +1193,13 @@ static int _dispc_setup_plane(enum omap_plane plane,
 
 	/* attributes */
 	_dispc_set_channel_out(plane, channel_out);
+
+	if (rotation >= 0) {
+		/* Set rotation and mirroring attributes */
+		_dispc_set_rotation_mirroring(plane, rotation,
+				mirror, color_mode);
+	}
+
 	_dispc_set_color_mode(plane, color_mode);
 	if (plane != OMAP_DSS_GFX)
 		_dispc_set_vid_color_conv(plane, cconv);
@@ -1074,24 +1208,32 @@ static int _dispc_setup_plane(enum omap_plane plane,
 
 	_dispc_set_plane_ba0(plane, paddr);
 
-	if (fieldmode)
-		_dispc_set_plane_ba1(plane, paddr + screen_width * bpp/8);
+	if (fieldmode) {
+		//printk("FIELDMODE = ON\n");
+		_dispc_set_plane_ba1(plane, paddr + tv_field1_offset);
+		//printk("Position pos_x = %d pos_y = %d\n", pos_x, pos_y );
+	}
+
 	else
 		_dispc_set_plane_ba1(plane, paddr);
-
 
 	_dispc_set_plane_pos(plane, pos_x, pos_y);
 
 	_dispc_set_pic_size(plane, width, height);
+	 //printk("Pic size height = %d width = %d\n", height, width );
 
 	if (plane != OMAP_DSS_GFX)
 		_dispc_set_vid_size(plane, out_width, out_height);
 
-	_dispc_set_row_inc(plane,
-			   (screen_width - width) * bpp / 8 +
-			   (fieldmode ? screen_width * bpp / 8 : 0) +
-			   1);
+	//printk("Vid size height = %d width = %d\n", out_height, out_width );
+	_dispc_calc_and_set_row_inc(plane, screen_width, width, 0,
+			color_mode, rotation, mirror, fieldmode);
 
+	attr_value = dispc_read_reg(DISPC_VID_ATTRIBUTES(0));
+	//printk("Attributes = %x\n", attr_value);
+	//dispc_write_reg(DISPC_VID_ATTRIBUTES(0), 0x18172);
+	//attr_value = dispc_read_reg(DISPC_VID_ATTRIBUTES(0));
+	//printk("Attributes = %x\n", attr_value);
 	return 0;
 }
 
@@ -1099,7 +1241,6 @@ static void _dispc_enable_plane(enum omap_plane plane, int enable)
 {
 	REG_FLD_MOD(dispc_reg_att[plane], enable ? 1 : 0, 0, 0);
 }
-
 
 void dispc_enable_lcd_out(int enable)
 {
@@ -1143,7 +1284,6 @@ void dispc_enable_fifohandcheck(int enable)
 	enable_clocks(0);
 }
 
-
 void dispc_set_lcd_display_type(enum omap_lcd_display_type type)
 {
 	int mode;
@@ -1173,7 +1313,6 @@ void dispc_set_loadmode(enum omap_dss_load_mode mode)
 	REG_FLD_MOD(DISPC_CONFIG, mode, 2, 1);
 	enable_clocks(0);
 }
-
 
 void omap_dispc_set_default_color(enum omap_channel channel, u32 color)
 {
@@ -1362,6 +1501,7 @@ unsigned long dispc_fclk_rate(void)
 #else
 	BUG();
 #endif
+	printk("RATE = %d\n\n\n\n\n\n", r);
 	return r;
 }
 
@@ -1378,6 +1518,7 @@ unsigned long dispc_pclk_rate(void)
 
 	r = dispc_fclk_rate();
 
+	printk("RATE = %d\n\n\n\n\n",r);
 	return r / lcd / pcd;
 }
 
@@ -1613,7 +1754,7 @@ int dispc_set_clock_div(struct dispc_clock_info *cinfo)
 	return 0;
 }
 
-int omap_dispc_register_isr(omap_dispc_isr_t isr, void *arg, u32 mask)
+void *omap_dispc_register_isr(omap_dispc_isr_t isr, void *arg, u32 mask)
 {
 	int i;
 	int ret = -EBUSY;
@@ -1621,16 +1762,16 @@ int omap_dispc_register_isr(omap_dispc_isr_t isr, void *arg, u32 mask)
 	u32 new_mask = 0;
 
 	if (isr == NULL)
-		return -EINVAL;
+		return NULL;
 
 	spin_lock_irqsave(&dispc.irq_lock, flags);
 
 	for (i = 0; i < DISPC_MAX_NR_ISRS; i++) {
-		if (registered_isr[i].isr == isr) {
-			ret = -EINVAL;
-			break;
-		}
-
+		//if (registered_isr[i].isr == isr) {
+		//	ret = -EINVAL;
+		//	break;
+		//}
+		printk("%d\n", __LINE__);
 		if (registered_isr[i].isr != NULL)
 			continue;
 
@@ -1638,9 +1779,11 @@ int omap_dispc_register_isr(omap_dispc_isr_t isr, void *arg, u32 mask)
 		registered_isr[i].arg = arg;
 		registered_isr[i].mask = mask;
 
+		printk("Registered ISR at index %d\n", i);
 		enable_clocks(1);
 		new_mask = dispc_read_reg(DISPC_IRQENABLE);
 		new_mask |= mask;
+		dispc_write_reg(DISPC_IRQSTATUS, mask);
 		dispc_write_reg(DISPC_IRQENABLE, new_mask);
 		enable_clocks(0);
 
@@ -1648,42 +1791,49 @@ int omap_dispc_register_isr(omap_dispc_isr_t isr, void *arg, u32 mask)
 		break;
 	}
 
-	spin_unlock_irqrestore(&dispc.irq_lock, flags);
+	if (!ret)
+		return (void *)&registered_isr[i];
+	else
+		return (void *)NULL;
 
-	return ret;
+	spin_unlock_irqrestore(&dispc.irq_lock, flags);
 }
 EXPORT_SYMBOL(omap_dispc_register_isr);
 
-int omap_dispc_unregister_isr(omap_dispc_isr_t isr)
+int omap_dispc_unregister_isr(void * handle)
 {
 	int i, j;
 	unsigned long flags;
 	u32 new_mask = DISPC_IRQ_MASK_ERROR;
 	int ret = -EINVAL;
+	struct registered_isr *isr;
+
 
 	spin_lock_irqsave(&dispc.irq_lock, flags);
 
-	for (i = 0; i < DISPC_MAX_NR_ISRS; i++) {
-		if (registered_isr[i].isr != isr)
-			continue;
+	isr = (struct registered_isr *)handle;
 
-		registered_isr[i].isr = NULL;
-		registered_isr[i].arg = NULL;
-		registered_isr[i].mask = 0;
+	if(isr == NULL)
+		return -EINVAL;
 
-		for (j = 0; j < DISPC_MAX_NR_ISRS; j++)
-			new_mask |= registered_isr[j].mask;
+	for(i = 0; i < DISPC_MAX_NR_ISRS; i++ ) {
+		if(isr == (struct registered_isr *)&(registered_isr[i].isr)) {
 
-		enable_clocks(1);
-		dispc_write_reg(DISPC_IRQENABLE, new_mask);
-		enable_clocks(0);
+			registered_isr[i].isr = NULL;
+			registered_isr[i].arg = NULL;
+			registered_isr[i].mask = 0;
 
-		ret = 0;
-		break;
+			for (j = 0; j < DISPC_MAX_NR_ISRS; j++)
+				new_mask |= registered_isr[j].mask;
+
+			enable_clocks(1);
+			dispc_write_reg(DISPC_IRQENABLE, new_mask);
+			enable_clocks(0);
+			ret = 0;
+			break;
+		}
 	}
-
 	spin_unlock_irqrestore(&dispc.irq_lock, flags);
-
 	return ret;
 }
 EXPORT_SYMBOL(omap_dispc_unregister_isr);
@@ -1730,12 +1880,18 @@ void dispc_irq_handler(void)
 	 * off */
 	dispc_write_reg(DISPC_IRQSTATUS, irqstatus);
 
+	//printk("irqstatus %d\n irqstatus", irqstatus);
+
 	for (i = 0; i < DISPC_MAX_NR_ISRS; i++) {
 		if (!registered_isr[i].isr)
 			continue;
+		//printk("%x %x %x %x\n",registered_isr[i].mask,
+//			irqstatus, registered_isr[i].mask & irqstatus, irqstatus & 0x3 );
 		if (registered_isr[i].mask & irqstatus) {
+			//printk("irqstatus %d\n ", irqstatus);
 			registered_isr[i].isr(registered_isr[i].arg,
 					      irqstatus);
+
 			handledirqs |= registered_isr[i].mask;
 		}
 	}
@@ -1865,12 +2021,12 @@ int dispc_enable_plane(enum omap_plane plane, int enable)
 }
 
 int dispc_setup_plane(enum omap_plane plane, enum omap_channel channel_out,
-		       u32 paddr, int screen_width,
+		       u32 paddr, int tv_field1_offset, int screen_width,
 		       int pos_x, int pos_y,
 		       int width, int height,
 		       int out_width, int out_height,
 		       enum omap_color_mode color_mode,
-		       int ilace)
+		       int ilace, int rotation, int mirror)
 {
 	int r = 0;
 
@@ -1880,15 +2036,14 @@ int dispc_setup_plane(enum omap_plane plane, enum omap_channel channel_out,
 	       width, height,
 	       out_width, out_height,
 	       ilace);
-
 	enable_clocks(1);
 
 	r = _dispc_setup_plane(plane, channel_out,
-			   paddr, screen_width,
+			   paddr, tv_field1_offset, screen_width,
 			   pos_x, pos_y,
 			   width, height,
 			   out_width, out_height,
-			   color_mode, ilace);
+			   color_mode, ilace, rotation, mirror);
 
 	enable_clocks(0);
 
@@ -1940,7 +2095,6 @@ void dispc_setup_partial_planes(struct omap_display *display,
 
 	DSSDBG("dispc_setup_partial_planes %d,%d %dx%d\n",
 		*xi, *yi, *wi, *hi);
-
 
 	mgr = display->manager;
 
@@ -2095,11 +2249,11 @@ void dispc_setup_partial_planes(struct omap_display *display,
 				ovl->id, pa, psw, px, py, pw, ph, pow, poh);
 
 		dispc_setup_plane(ovl->id, mgr->id,
-				pa, psw,
+				pa, pi->tv_field1_offset, psw,
 				px, py,
 				pw, ph,
 				pow, poh,
-				pi->color_mode, 0);
+				pi->color_mode, 0, 0, 0);
 
 		dispc_enable_plane(ovl->id, 1);
 	}

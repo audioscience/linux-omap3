@@ -876,8 +876,10 @@ enum v4l2_power_line_frequency {
 #define V4L2_CID_BACKLIGHT_COMPENSATION 	(V4L2_CID_BASE+28)
 #define V4L2_CID_CHROMA_AGC                     (V4L2_CID_BASE+29)
 #define V4L2_CID_COLOR_KILLER                   (V4L2_CID_BASE+30)
+#define V4L2_CID_ROTATION			(V4L2_CID_BASE+31)
+#define V4L2_CID_BG_COLOR			(V4L2_CID_BASE+32)
 /* last CID + 1 */
-#define V4L2_CID_LASTP1                         (V4L2_CID_BASE+31)
+#define V4L2_CID_LASTP1                         (V4L2_CID_BASE+33)
 
 /*  MPEG-class control IDs defined by V4L2 */
 #define V4L2_CID_MPEG_BASE 			(V4L2_CTRL_CLASS_MPEG | 0x900)
@@ -1183,6 +1185,18 @@ struct v4l2_hw_freq_seek {
 };
 
 /*
+ * Color conversion
+ * User needs to pass pointer to color conversion matrix
+ * defined by hardware
+ */
+struct v4l2_color_space_conversion {
+	__s32 coefficients[3][3];
+	__s32 const_factor;
+	__s32 input_offs[3];
+	__s32 output_offs[3];
+};
+
+/*
  *	A U D I O
  */
 struct v4l2_audio {
@@ -1458,6 +1472,8 @@ struct v4l2_chip_ident {
 #define VIDIOC_G_CHIP_IDENT     _IOWR('V', 81, struct v4l2_chip_ident)
 #endif
 #define VIDIOC_S_HW_FREQ_SEEK	 _IOW('V', 82, struct v4l2_hw_freq_seek)
+#define VIDIOC_S_COLOR_SPACE_CONV	 _IOW('V', 83, struct v4l2_color_space_conversion)
+#define VIDIOC_G_COLOR_SPACE_CONV	 _IOR('V', 84, struct v4l2_color_space_conversion)
 
 #ifdef __OLD_VIDIOC_
 /* for compatibility, will go away some day */
