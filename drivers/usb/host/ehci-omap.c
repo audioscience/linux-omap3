@@ -499,8 +499,8 @@ static int ehci_hcd_omap_drv_remove(struct platform_device *dev)
 
 	iounmap(hcd->regs);
 	usb_remove_hcd(hcd);
-	usb_put_hcd(hcd);
 	omap_stop_ehc(dev, hcd);
+	usb_put_hcd(hcd);
 
 	return 0;
 }
