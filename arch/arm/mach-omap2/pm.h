@@ -28,6 +28,8 @@ int omap3_idle_init(void);
 static inline int omap3_idle_init(void) { return 0; }
 #endif
 
+extern int set_opp_level(int res, u32 target_level);
+
 extern int omap3_pm_get_suspend_state(struct powerdomain *pwrdm);
 extern int omap3_pm_set_suspend_state(struct powerdomain *pwrdm, int state);
 
