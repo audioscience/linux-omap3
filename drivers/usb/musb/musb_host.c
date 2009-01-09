@@ -400,7 +400,10 @@ musb_giveback(struct musb_qh *qh, struct urb *urb, int status)
 			 * de-allocated if it's tracked and allocated;
 			 * and where we'd update the schedule tree...
 			 */
-			musb->periodic[ep->epnum] = NULL;
+			if (is_in)
+				musb->in[ep->epnum] = NULL;
+			else
+				musb->out[ep->epnum] = NULL;
 			kfree(qh);
 			qh = NULL;
 			break;
@@ -1798,7 +1801,8 @@ static int musb_schedule(
 	for (epnum = 1; epnum < musb->nr_endpoints; epnum++) {
 		int	diff;
 
-		if (musb->periodic[epnum])
+		if ((is_in && musb->in[epnum]) ||
+			(!is_in && musb->out[epnum]))
 			continue;
 		hw_ep = &musb->endpoints[epnum];
 		if (hw_ep == musb->bulk_ep)
@@ -1839,7 +1843,10 @@ static int musb_schedule(
 	idle = 1;
 	qh->mux = 0;
 	hw_ep = musb->endpoints + best_end;
-	musb->periodic[best_end] = qh;
+	if (is_in)
+		musb->in[best_end] = qh;
+	else
+		musb->out[best_end] = qh;
 	DBG(4, "qh %p periodic slot %d\n", qh, best_end);
 success:
 	if (head) {
