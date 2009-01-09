@@ -635,6 +635,14 @@ static int musb_proc_write(struct file *file, const char __user *buffer,
 		return -EFAULT;
 
 	switch (cmd) {
+	case 'S':
+		if (mbase) {
+			reg = musb_readb(mbase, MUSB_POWER)
+					| MUSB_POWER_SUSPENDM;
+			musb_writeb(mbase, MUSB_POWER, reg);
+		}
+		break;
+
 	case 'C':
 		if (mbase) {
 			reg = musb_readb(mbase, MUSB_POWER)
@@ -733,6 +741,7 @@ static int musb_proc_write(struct file *file, const char __user *buffer,
 
 	case '?':
 		INFO("?: you are seeing it\n");
+		INFO("S: suspend the usb bus\n");
 		INFO("C/c: soft connect enable/disable\n");
 		INFO("I/i: hispeed enable/disable\n");
 		INFO("F: force session start\n");
