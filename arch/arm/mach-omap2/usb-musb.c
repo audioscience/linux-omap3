@@ -155,10 +155,29 @@ static struct platform_device musb_device = {
 };
 #endif
 
+#ifdef CONFIG_NOP_USB_XCEIV
+static u64 nop_xceiv_dmamask = DMA_32BIT_MASK;
+
+static struct platform_device nop_xceiv_device = {
+	.name		= "nop_usb_xceiv",
+	.id		= -1,
+	.dev = {
+		.dma_mask		= &nop_xceiv_dmamask,
+		.coherent_dma_mask	= DMA_32BIT_MASK,
+		.platform_data		= NULL,
+	},
+};
+#endif
 
 void __init usb_musb_init(void)
 {
 #ifdef CONFIG_USB_MUSB_SOC
+#ifdef CONFIG_NOP_USB_XCEIV
+	if (platform_device_register(&nop_xceiv_device) < 0) {
+		printk(KERN_ERR "Unable to register NOP-XCEIV device\n");
+		return;
+	}
+#endif
 	if (platform_device_register(&musb_device) < 0) {
 		printk(KERN_ERR "Unable to register HS-USB (MUSB) device\n");
 		return;
