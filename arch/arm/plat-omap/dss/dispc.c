@@ -1128,14 +1128,14 @@ static int _dispc_setup_plane(enum omap_plane plane,
 	int scaling = 0;
 	u32 attr_value;
 
-	//printk("Rotation = %d and mirror = %d\n", rotation, mirror);
+	printk("Rotation = %d and mirror = %d\n", rotation, mirror);
 	if (plane == OMAP_DSS_GFX) {
 		if (width != out_width || height != out_height)
 			return -EINVAL;
 	} else {
 		/* video plane */
 		if (width != out_width || height != out_height) {
-			//printk("Scaling = 1\n\n\n");
+			printk("Scaling = 1\n\n\n");
 			scaling = 1;
 		}
 		if (out_width < width/2 ||
@@ -1147,6 +1147,7 @@ static int _dispc_setup_plane(enum omap_plane plane,
 			return -EINVAL;
 	}
 
+	printk("%s: %d\n", __func__, __LINE__);
 	switch (color_mode) {
 	case OMAP_DSS_COLOR_RGB16:
 		bpp = 16;
@@ -1209,9 +1210,9 @@ static int _dispc_setup_plane(enum omap_plane plane,
 	_dispc_set_plane_ba0(plane, paddr);
 
 	if (fieldmode) {
-		//printk("FIELDMODE = ON\n");
+		printk("FIELDMODE = ON\n");
 		_dispc_set_plane_ba1(plane, paddr + tv_field1_offset);
-		//printk("Position pos_x = %d pos_y = %d\n", pos_x, pos_y );
+		printk("Position pos_x = %d pos_y = %d\n", pos_x, pos_y );
 	}
 
 	else
@@ -1225,12 +1226,12 @@ static int _dispc_setup_plane(enum omap_plane plane,
 	if (plane != OMAP_DSS_GFX)
 		_dispc_set_vid_size(plane, out_width, out_height);
 
-	//printk("Vid size height = %d width = %d\n", out_height, out_width );
+	printk("Vid size height = %d width = %d\n", out_height, out_width );
 	_dispc_calc_and_set_row_inc(plane, screen_width, width, 0,
 			color_mode, rotation, mirror, fieldmode);
 
 	attr_value = dispc_read_reg(DISPC_VID_ATTRIBUTES(0));
-	//printk("Attributes = %x\n", attr_value);
+	printk("Attributes = %x\n", attr_value);
 	//dispc_write_reg(DISPC_VID_ATTRIBUTES(0), 0x18172);
 	//attr_value = dispc_read_reg(DISPC_VID_ATTRIBUTES(0));
 	//printk("Attributes = %x\n", attr_value);
@@ -1771,7 +1772,6 @@ void *omap_dispc_register_isr(omap_dispc_isr_t isr, void *arg, u32 mask)
 		//	ret = -EINVAL;
 		//	break;
 		//}
-		printk("%d\n", __LINE__);
 		if (registered_isr[i].isr != NULL)
 			continue;
 
