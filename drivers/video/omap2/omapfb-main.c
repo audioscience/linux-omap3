@@ -532,9 +532,11 @@ int omapfb_setup_overlay(struct fb_info *fbi, struct omap_overlay *ovl,
 
 	r = ovl->setup_input(ovl,
 			data_start_p, data_start_v,
+			var->xres_virtual*var->bits_per_pixel/8,
 			ofbi->rotation == -1 ? var->xres_virtual : VRFB_WIDTH,
-			xres, yres,
-			mode);
+			xres, yres, mode,
+			ofbi->rotation == -1 ? ofbi->rotation :ofbi->rotation*90,
+			-1);
 
 	if (r)
 		goto err;
