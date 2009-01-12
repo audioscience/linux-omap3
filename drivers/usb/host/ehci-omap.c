@@ -38,6 +38,8 @@
 /* External USB connectivity board: 750-2083-001
  * Connected to OMAP3430 SDP
  * The board has Port1 and Port2 connected to ISP1504 in 12-pin ULPI mode
+ * Mistral/Multimedia daughter card connected to OMAP3EVM
+ * The board has only Port2 connected to SMSC USB83320 in 12-pin ULPI mode
  */
 
 /* ISSUE1:
@@ -46,18 +48,31 @@
  *	Then start the 60Mhz clock input to PHY
  *	Release the reset after a delay -
  *		to get the PHY state machine in working state
+ * 	On Mistral/Multimedia daughter card we didn't see this issue, so
+ *	disabling it.
  */
+#ifndef CONFIG_MACH_OMAP3EVM_DC
 #define EXTERNAL_PHY_RESET
+#endif
+
+#ifdef CONFIG_MACH_OMAP3EVM_DC
+#define	EXT_PHY_RESET_GPIO_PORT2	(135)
+#else
 #define	EXT_PHY_RESET_GPIO_PORT1	(57)
 #define	EXT_PHY_RESET_GPIO_PORT2	(61)
+#endif
+
 #define	EXT_PHY_RESET_DELAY		(10)
 
 /* ISSUE2:
  * USBHOST supports External charge pump PHYs only
  * Use the VBUS from Port1 to power VBUS of Port2 externally
  * So use Port2 as the working ULPI port
+ * This is not required for Mistral/Multimedia daughter card on OMAP3EVM.
  */
+#ifndef CONFIG_MACH_OMAP3EVM_DC
 #define VBUS_INTERNAL_CHARGEPUMP_HACK
+#endif
 
 #endif /* CONFIG_OMAP_EHCI_PHY_MODE */
 
@@ -225,8 +240,11 @@ static int omap_start_ehc(struct platform_device *dev, struct usb_hcd *hcd)
 
 #ifdef EXTERNAL_PHY_RESET
 	/* Refer: ISSUE1 */
+
+#ifndef CONFIG_MACH_OMAP3EVM_DC
 	gpio_request(EXT_PHY_RESET_GPIO_PORT1, "USB1 PHY reset");
 	gpio_direction_output(EXT_PHY_RESET_GPIO_PORT1, 0);
+#endif
 	gpio_request(EXT_PHY_RESET_GPIO_PORT2, "USB2 PHY reset");
 	gpio_direction_output(EXT_PHY_RESET_GPIO_PORT2, 0);
 	/* Hold the PHY in RESET for enough time till DIR is high */
@@ -307,7 +325,10 @@ static int omap_start_ehc(struct platform_device *dev, struct usb_hcd *hcd)
 	 * Hold the PHY in RESET for enough time till PHY is settled and ready
 	 */
 	udelay(EXT_PHY_RESET_DELAY);
+
+#ifndef CONFIG_MACH_OMAP3EVM_DC
 	gpio_set_value(EXT_PHY_RESET_GPIO_PORT1, 1);
+#endif
 	gpio_set_value(EXT_PHY_RESET_GPIO_PORT2, 1);
 #endif
 
@@ -393,7 +414,9 @@ static void omap_stop_ehc(struct platform_device *dev, struct usb_hcd *hcd)
 
 
 #ifdef EXTERNAL_PHY_RESET
+#ifndef CONFIG_MACH_OMAP3EVM_DC
 	gpio_free(EXT_PHY_RESET_GPIO_PORT1);
+#endif
 	gpio_free(EXT_PHY_RESET_GPIO_PORT2);
 #endif
 

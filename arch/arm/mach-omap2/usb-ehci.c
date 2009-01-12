@@ -67,6 +67,7 @@ static void setup_ehci_io_mux(void)
 	 * Do Func Mux setting for 12-pin ULPI PHY mode
 	 */
 
+#ifndef CONFIG_MACH_OMAP3EVM_DC
 	/* Port1 */
 	omap_cfg_reg(Y9_3430_USB1HS_PHY_STP);
 	omap_cfg_reg(Y8_3430_USB1HS_PHY_CLK);
@@ -80,6 +81,7 @@ static void setup_ehci_io_mux(void)
 	omap_cfg_reg(Y12_3430_USB1HS_PHY_DATA5);
 	omap_cfg_reg(W8_3430_USB1HS_PHY_DATA6);
 	omap_cfg_reg(Y13_3430_USB1HS_PHY_DATA7);
+#endif
 
 	/* Port2 */
 	omap_cfg_reg(AA10_3430_USB2HS_PHY_STP);
