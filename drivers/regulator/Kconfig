@@ -80,4 +80,14 @@ config REGULATOR_DA903X
 	  Say y here to support the BUCKs and LDOs regulators found on
 	  Dialog Semiconductor DA9030/DA9034 PMIC.
 
+config REGULATOR_TPS6235X
+	bool "TPS6235X Power regulator for OMAP3EVM"
+	depends on I2C=y
+	help
+	  This driver supports the voltage regulators provided by TPS6235x chips.
+	  The TPS62352 and TPS62353 are mounted on PR785 Power module card for
+	  providing voltage regulator functions. The PR785 Power board from
+	  Texas Instruments Inc is a TPS6235X based power card used with OMAP3
+	  EVM boards.
+
 endif
