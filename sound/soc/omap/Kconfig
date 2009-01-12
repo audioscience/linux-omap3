@@ -38,4 +38,12 @@ config SND_OMAP_SOC_OVERO
 	help
 	  Say Y if you want to add support for SoC audio on the Gumstix Overo.
 
+config SND_OMAP_SOC_OMAP3EVM
+	tristate "SoC Audio support for OMAP3EVM board"
+	depends on TWL4030_CORE && SND_OMAP_SOC && MACH_OMAP3EVM
+	select SND_OMAP_SOC_MCBSP
+	select SND_SOC_TWL4030
+	help
+	  Say Y if you want to add support for SoC audio on the omap3evm board.
+
 
