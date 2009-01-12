@@ -27,6 +27,8 @@
 #include <linux/platform_device.h>
 #include <linux/i2c.h>
 #include <mach/mux.h>
+#include <linux/string.h>
+#include <linux/regulator/machine.h>
 
 #define OMAP_I2C_SIZE		0x3f
 #define OMAP1_I2C_BASE		0xfffb3800
@@ -97,6 +99,13 @@ static const int omap34xx_pins[][2] = {
 static const int omap34xx_pins[][2] = {};
 #endif
 
+struct platform_device *vdd2_platform_device;
+struct platform_device *vdd1_platform_device;
+extern struct regulator_init_data vdd2_tps_regulator_data;
+extern struct regulator_init_data vdd1_tps_regulator_data;
+extern struct regulator_consumer_supply tps62352_core_consumers;
+extern struct regulator_consumer_supply tps62352_mpu_consumers;
+
 static void __init omap_i2c_mux_pins(int bus)
 {
 	int scl, sda;
@@ -116,6 +125,51 @@ static void __init omap_i2c_mux_pins(int bus)
 
 	omap_cfg_reg(sda);
 	omap_cfg_reg(scl);
+}
+
+/* This is the callback function used to find the correct
+ * i2c platform child for the regulator consumer
+*/
+int omap_i2c_match_child(struct device *dev, void *data)
+{
+	struct regulator_init_data *reg_init_data = dev->platform_data;
+	char *name = data;
+
+	/* Child does not match */
+	if (strcmp(name, reg_init_data->consumer_supplies->supply))
+		return 0;
+	else
+		return 1;
+}
+
+int omap_i2c_register_child(struct platform_device *pdev_parent,
+			const char *name, struct platform_device **pdev)
+{
+	int ret = 0;
+
+	*pdev = platform_device_alloc(name, -1);
+	if (pdev == NULL) {
+		dev_err(&(*pdev)->dev, "Failed to alloc i2c-child %s\n", name);
+		return -1;
+	}
+
+	(*pdev)->dev.parent = &pdev_parent->dev;
+	if (strcmp(name, "vdd2_consumer") == 0) {
+		tps62352_core_consumers.dev = &(*pdev)->dev;
+		(*pdev)->dev.platform_data = &vdd2_tps_regulator_data;
+	} else if (strcmp(name, "vdd1_consumer") == 0) {
+		tps62352_mpu_consumers.dev = &(*pdev)->dev;
+		(*pdev)->dev.platform_data = &vdd1_tps_regulator_data;
+	}
+
+	ret = platform_device_add(*pdev);
+	if (ret != 0) {
+		dev_err(&(*pdev)->dev, "Failed to register %s: %d\n",
+			name, ret);
+		platform_device_put(*pdev);
+		*pdev = NULL;
+	}
+	return ret;
 }
 
 int __init omap_register_i2c_bus(int bus_id, u32 clkrate,
@@ -160,5 +214,12 @@ int __init omap_register_i2c_bus(int bus_id, u32 clkrate,
 	}
 
 	omap_i2c_mux_pins(bus_id - 1);
-	return platform_device_register(pdev);
+	platform_device_register(pdev);
+	if (bus_id == 1) {
+		omap_i2c_register_child(pdev, "vdd2_consumer", \
+				&vdd2_platform_device);
+		omap_i2c_register_child(pdev, "vdd1_consumer", \
+				&vdd1_platform_device);
+	}
+	return 0;
 }

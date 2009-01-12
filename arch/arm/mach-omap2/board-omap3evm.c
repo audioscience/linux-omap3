@@ -37,10 +37,19 @@
 #include <mach/common.h>
 #include <mach/mcspi.h>
 #include <mach/display.h>
+#include <mach/mux.h>
 
 #include "sdram-micron-mt46h32m32lf-6.h"
 #include "twl4030-generic-scripts.h"
 #include "mmc-twl4030.h"
+#include <linux/regulator/machine.h>
+#include <linux/regulator/driver.h>
+
+#define TPS6235X_REG_MAX	3
+
+#if defined(CONFIG_OMAP3EVM_PR785) && defined(CONFIG_TWL4030_CORE)
+#error config err : only one of OMAP3EVM_PR785 or TWL4030_CORE can be defined
+#endif
 
 static struct resource omap3evm_smc911x_resources[] = {
 	[0] =	{
@@ -108,6 +117,7 @@ static struct omap_uart_config omap3_evm_uart_config __initdata = {
 	.enabled_uarts	= ((1 << 0) | (1 << 1) | (1 << 2)),
 };
 
+#if defined(CONFIG_TWL4030_CORE)
 static struct twl4030_gpio_platform_data omap3evm_gpio_data = {
 	.gpio_base	= OMAP_MAX_GPIO_LINES,
 	.irq_base	= TWL4030_GPIO_IRQ_BASE,
@@ -169,11 +179,65 @@ static struct i2c_board_info __initdata omap3evm_i2c_boardinfo[] = {
 		.platform_data = &omap3evm_twldata,
 	},
 };
+#endif
+
+#if defined(CONFIG_OMAP3EVM_PR785)
+/* CORE voltage regulator */
+struct regulator_consumer_supply tps62352_core_consumers = {
+	.supply = "vdd2",
+};
+
+/* MPU voltage regulator */
+struct regulator_consumer_supply tps62352_mpu_consumers = {
+	.supply = "vdd1",
+};
+
+struct regulator_init_data vdd2_tps_regulator_data = {
+		.constraints = {
+			.min_uV = 750000,
+			.max_uV = 1537000,
+			.valid_ops_mask = (REGULATOR_CHANGE_VOLTAGE |
+				REGULATOR_CHANGE_STATUS),
+		},
+		.num_consumer_supplies  = 1,
+		.consumer_supplies      = &tps62352_core_consumers,
+};
+
+struct regulator_init_data vdd1_tps_regulator_data = {
+		.constraints = {
+			.min_uV = 750000,
+			.max_uV = 1537000,
+			.valid_ops_mask = (REGULATOR_CHANGE_VOLTAGE |
+				REGULATOR_CHANGE_STATUS),
+		},
+		.num_consumer_supplies  = 1,
+		.consumer_supplies      = &tps62352_mpu_consumers,
+};
+
+static struct i2c_board_info __initdata tps_6235x_i2c_board_info[] = {
+	{
+		I2C_BOARD_INFO("tps62352", 0x4A),
+		.flags = I2C_CLIENT_WAKE,
+		.platform_data = &vdd2_tps_regulator_data,
+	},
+	{
+		I2C_BOARD_INFO("tps62353", 0x48),
+		.flags = I2C_CLIENT_WAKE,
+		.platform_data = &vdd1_tps_regulator_data,
+	},
+};
+#endif
 
 static int __init omap3_evm_i2c_init(void)
 {
+#if defined(CONFIG_OMAP3EVM_PR785)
+	omap_register_i2c_bus(1, 2600, tps_6235x_i2c_board_info,
+		ARRAY_SIZE(tps_6235x_i2c_board_info));
+#endif
+#if defined(CONFIG_TWL4030_CORE)
 	omap_register_i2c_bus(1, 2600, omap3evm_i2c_boardinfo,
 			ARRAY_SIZE(omap3evm_i2c_boardinfo));
+#endif
 	omap_register_i2c_bus(2, 400, NULL, 0);
 	omap_register_i2c_bus(3, 400, NULL, 0);
 	return 0;
@@ -358,6 +422,66 @@ static struct omap_display_data omap3_evm_display_data_dvi = {
 	.u.dpi.data_lines = 24,
 	.panel_enable = omap3_evm_panel_enable_dvi,
 	.panel_disable = omap3_evm_panel_disable_dvi,
+}
+
+/*
+ * Read a value from a register in an tps_6235x device.
+ * The value is returned in 'val'.
+ * Returns zero if successful, or non-zero otherwise.
+ */
+int tps_6235x_read_reg(struct i2c_client *client, u8 reg, u8 *val)
+{
+	u8 data;
+
+	if (!client->adapter)
+		return -ENODEV;
+
+	if (reg > TPS6235X_REG_MAX)
+		return -1;
+
+	data = i2c_smbus_read_byte_data(client, reg);
+	*val = data;
+	return 0;
+}
+
+/*
+ * Write a value to a register in an tps_6235x device.
+ * Returns zero if successful, or non-zero otherwise.
+ */
+int tps_6235x_write_reg(struct i2c_client *client, u8 reg, u8 val)
+{
+	int err;
+	int retry = 0;
+
+	if (!client->adapter)
+		return -ENODEV;
+
+	if (reg > TPS6235X_REG_MAX)
+		return -1;
+
+again:
+	err = i2c_smbus_write_byte_data(client, reg, val);
+	if (err >= 0)
+		return 0;
+
+	dev_err(&client->dev,
+		"wrote 0x%.2x to offset 0x%.2x error %d\n", val, reg, err);
+
+	/* Try 3 times */
+	if (retry <= 3) {
+		dev_info(&client->dev, "retry ... %d\n", retry);
+		retry++;
+		schedule_timeout(msecs_to_jiffies(20));
+		goto again;
+	}
+	return err;
+}
+
+/*-------------------------------------------------------------------*/
+
+static struct platform_device omap3_evm_lcd_device = {
+	.name		= "omap3evm_lcd",
+	.id		= -1,
 };
 
 static struct omap_dss_platform_data omap3_evm_dss_data = {
@@ -441,6 +565,7 @@ static struct platform_device *omap3_evm_devices[] __initdata = {
 
 };
 
+#if defined(CONFIG_TWL4030_CORE)
 static struct twl4030_hsmmc_info mmc[] __initdata = {
 	{
 		.mmc		= 1,
@@ -450,6 +575,20 @@ static struct twl4030_hsmmc_info mmc[] __initdata = {
 	},
 	{}	/* Terminator */
 };
+#endif
+
+static void omap_init_pr785(void)
+{
+	/* Initialize the mux settings for PR785 power module board */
+	if (cpu_is_omap343x()) {
+		omap_cfg_reg(AF26_34XX_GPIO0);
+		omap_cfg_reg(AF22_34XX_GPIO9);
+		omap_cfg_reg(AF6_34XX_GPIO140_UP);
+		omap_cfg_reg(AE6_34XX_GPIO141);
+		omap_cfg_reg(AF5_34XX_GPIO142);
+		omap_cfg_reg(AE5_34XX_GPIO143);
+	}
+}
 
 static void __init omap3_evm_init(void)
 {
@@ -463,7 +602,12 @@ static void __init omap3_evm_init(void)
 				ARRAY_SIZE(omap3evm_spi_board_info));
 
 	omap_serial_init();
+#if defined(CONFIG_TWL4030_CORE)
 	twl4030_mmc_init(mmc);
+#endif
+#if defined(CONFIG_OMAP3EVM_PR785)
+	omap_init_pr785();
+#endif
 	usb_musb_init();
 	usb_ehci_init();
 	omap3evm_flash_init();
