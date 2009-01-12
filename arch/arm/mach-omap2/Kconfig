@@ -125,7 +125,7 @@ config MACH_OMAP3EVM_DC
 	bool "OMAP 3530 EVM daughter card board"
 	depends on ARCH_OMAP3 && ARCH_OMAP34XX && MACH_OMAP3EVM
 
-menu 	"Power board selection for OMAP3 EVM"
+menu 	"PR785 Power board selection for OMAP3 EVM"
 config OMAP3EVM_PR785
 	bool "Power board for OMAP3 EVM"
 	depends on I2C=y && ARCH_OMAP34XX

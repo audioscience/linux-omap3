@@ -99,12 +99,14 @@ static const int omap34xx_pins[][2] = {
 static const int omap34xx_pins[][2] = {};
 #endif
 
+#if defined(CONFIG_OMAP3EVM_PR785)
 struct platform_device *vdd2_platform_device;
 struct platform_device *vdd1_platform_device;
 extern struct regulator_init_data vdd2_tps_regulator_data;
 extern struct regulator_init_data vdd1_tps_regulator_data;
 extern struct regulator_consumer_supply tps62352_core_consumers;
 extern struct regulator_consumer_supply tps62352_mpu_consumers;
+#endif
 
 static void __init omap_i2c_mux_pins(int bus)
 {
@@ -127,6 +129,7 @@ static void __init omap_i2c_mux_pins(int bus)
 	omap_cfg_reg(scl);
 }
 
+#if defined(CONFIG_OMAP3EVM_PR785)
 /* This is the callback function used to find the correct
  * i2c platform child for the regulator consumer
 */
@@ -171,6 +174,7 @@ int omap_i2c_register_child(struct platform_device *pdev_parent,
 	}
 	return ret;
 }
+#endif
 
 int __init omap_register_i2c_bus(int bus_id, u32 clkrate,
 			  struct i2c_board_info const *info,
@@ -215,11 +219,13 @@ int __init omap_register_i2c_bus(int bus_id, u32 clkrate,
 
 	omap_i2c_mux_pins(bus_id - 1);
 	platform_device_register(pdev);
+#if defined(CONFIG_OMAP3EVM_PR785)
 	if (bus_id == 1) {
 		omap_i2c_register_child(pdev, "vdd2_consumer", \
 				&vdd2_platform_device);
 		omap_i2c_register_child(pdev, "vdd1_consumer", \
 				&vdd1_platform_device);
 	}
+#endif
 	return 0;
 }
