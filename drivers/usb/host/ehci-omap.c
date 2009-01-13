@@ -32,7 +32,8 @@
 #include "ehci-omap.h"
 
 
-#ifdef CONFIG_OMAP_EHCI_PHY_MODE
+#if	defined(CONFIG_OMAP_EHCI_PHY_MODE_PORT1) || 	\
+	defined(CONFIG_OMAP_EHCI_PHY_MODE_PORT2)
 /* EHCI connected to External PHY */
 
 /* External USB connectivity board: 750-2083-001
@@ -74,7 +75,7 @@
 #define VBUS_INTERNAL_CHARGEPUMP_HACK
 #endif
 
-#endif /* CONFIG_OMAP_EHCI_PHY_MODE */
+#endif
 
 /*-------------------------------------------------------------------------*/
 
@@ -96,7 +97,9 @@ struct ehci_omap_clock_defs {
 /*-------------------------------------------------------------------------*/
 
 
-#ifndef CONFIG_OMAP_EHCI_PHY_MODE
+#if	defined(CONFIG_OMAP_EHCI_TLL_MODE_PORT1) ||	\
+	defined(CONFIG_OMAP_EHCI_TLL_MODE_PORT2) ||	\
+	defined(CONFIG_OMAP_EHCI_TLL_MODE_PORT3)
 
 static void omap_usb_utmi_init(struct usb_hcd *hcd, u8 tll_channel_mask)
 {
@@ -170,6 +173,7 @@ static void omap_usb_utmi_init(struct usb_hcd *hcd, u8 tll_channel_mask)
  */
 static int omap_start_ehc(struct platform_device *dev, struct usb_hcd *hcd)
 {
+	u32 uhh_hostconfig_value;
 	struct ehci_omap_clock_defs *ehci_clocks;
 
 	dev_dbg(hcd->self.controller, "starting TI EHCI USB Controller\n");
@@ -296,29 +300,80 @@ static int omap_start_ehc(struct platform_device *dev, struct usb_hcd *hcd)
 			(1 << OMAP_UHH_SYSCONFIG_MIDLEMODE_SHIFT),
 			OMAP_UHH_SYSCONFIG);
 
-#ifdef CONFIG_OMAP_EHCI_PHY_MODE
+#if	defined(CONFIG_OMAP_EHCI_PHY_MODE_PORT1) ||	\
+	defined(CONFIG_OMAP_EHCI_PHY_MODE_PORT2) ||	\
+	defined(CONFIG_OMAP_EHCI_PHY_MODE_PORT3)
+
 	/* Bypass the TLL module for PHY mode operation */
-	omap_writel((0 << OMAP_UHH_HOSTCONFIG_ULPI_BYPASS_SHIFT)|
-			(1<<OMAP_UHH_HOSTCONFIG_INCR4_BURST_EN_SHIFT)|
-			(1<<OMAP_UHH_HOSTCONFIG_INCR8_BURST_EN_SHIFT)|
-			(1<<OMAP_UHH_HOSTCONFIG_INCR16_BURST_EN_SHIFT)|
-			(0<<OMAP_UHH_HOSTCONFIG_INCRX_ALIGN_EN_SHIFT),
-						OMAP_UHH_HOSTCONFIG);
-	/* Ensure that BYPASS is set */
-	while (omap_readl(OMAP_UHH_HOSTCONFIG)
-			& (1 << OMAP_UHH_HOSTCONFIG_ULPI_BYPASS_SHIFT))
-		cpu_relax();
+	uhh_hostconfig_value = (1 << OMAP_UHH_HOSTCONFIG_INCR4_BURST_EN_SHIFT) |
+			(1 << OMAP_UHH_HOSTCONFIG_INCR8_BURST_EN_SHIFT) |
+			(1 << OMAP_UHH_HOSTCONFIG_INCR16_BURST_EN_SHIFT) |
+			(0 << OMAP_UHH_HOSTCONFIG_INCRX_ALIGN_EN_SHIFT);
+
+/* For ES 3, we have per-port control for the ULPI Bypass
+ * The ULPI Bypass needs to be set to 0 only if the EHCI PHY Mode
+ * is selected for that port.
+ * Hence it is easier to make it conditional on EHCI_PHY_MODE
+ *
+ * ES 2 does not have per-port control. Hence it is not possible to have
+ * EHCI in PHY Mode and OHCI both working at the same time
+ *
+ * FIXME: This common code should be moved elsewhere
+ *
+ */
+
+	if (omap_rev() > OMAP3430_REV_ES2_1) {
+
+#ifndef CONFIG_OMAP_EHCI_PHY_MODE_PORT1
+		uhh_hostconfig_value |=
+			(1 << OMAP_UHH_HOSTCONFIG_P1_ULPI_BYPASS_SHIFT);
+#endif
+
+#ifndef CONFIG_OMAP_EHCI_PHY_MODE_PORT2
+		uhh_hostconfig_value |=
+			(1 << OMAP_UHH_HOSTCONFIG_P2_ULPI_BYPASS_SHIFT);
+#endif
+
+#ifndef CONFIG_OMAP_EHCI_PHY_MODE_PORT3
+		uhh_hostconfig_value |=
+			(1 << OMAP_UHH_HOSTCONFIG_P3_ULPI_BYPASS_SHIFT);
+#endif
+
+	} else {
+		uhh_hostconfig_value |=
+			(0 << OMAP_UHH_HOSTCONFIG_P1_ULPI_BYPASS_SHIFT);
+	}
+
+	omap_writel(uhh_hostconfig_value, OMAP_UHH_HOSTCONFIG);
+
+	if (omap_rev() < OMAP3430_REV_ES3_0) {
+		/* Ensure that BYPASS is set */
+		while (omap_readl(OMAP_UHH_HOSTCONFIG)
+				& (1 << OMAP_UHH_HOSTCONFIG_ULPI_BYPASS_SHIFT))
+			cpu_relax();
+	}
 
 	dev_dbg(hcd->self.controller, "Entered ULPI PHY MODE: success\n");
 
-#else
+#endif /* CONFIG_OMAP_EHCI_PHY_MODE_PORT1/2/3 */
+
+#if	defined(CONFIG_OMAP_EHCI_TLL_MODE_PORT1) ||	\
+	defined(CONFIG_OMAP_EHCI_TLL_MODE_PORT2) ||	\
+	defined(CONFIG_OMAP_EHCI_TLL_MODE_PORT3)
+
 	/* Enable UTMI mode for all 3 TLL channels */
-	omap_usb_utmi_init(hcd,
+	omap_usb_utmi_init(hcd, 0 |
+#ifdef CONFIG_OMAP_EHCI_TLL_MODE_PORT1
 		OMAP_TLL_CHANNEL_1_EN_MASK |
-		OMAP_TLL_CHANNEL_2_EN_MASK |
-		OMAP_TLL_CHANNEL_3_EN_MASK
-		);
 #endif
+#ifdef CONFIG_OMAP_EHCI_TLL_MODE_PORT2
+		OMAP_TLL_CHANNEL_2_EN_MASK |
+#endif
+#ifdef CONFIG_OMAP_EHCI_TLL_MODE_PORT3
+		OMAP_TLL_CHANNEL_3_EN_MASK
+#endif
+		);
+#endif /* CONFIG_OMAP_EHCI_TLL_MODE_PORT1/2/3 */
 
 #ifdef EXTERNAL_PHY_RESET
 	/* Refer ISSUE1:
