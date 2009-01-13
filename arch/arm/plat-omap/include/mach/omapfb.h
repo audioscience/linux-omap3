@@ -407,6 +407,7 @@ void *omap_vram_alloc(int mtype, size_t size, unsigned long *paddr);
 extern void omap2_set_sdram_vram(u32 size, u32 start);
 extern void omap2_set_sram_vram(u32 size, u32 start);
 
+/* in arch/arm/plat-omap/fb-vrfb */
 struct vrfb
 {
 	int context;
@@ -414,7 +415,14 @@ struct vrfb
 	unsigned long paddr[4];
 };
 
-int omap_vrfb_setup(int ctx, unsigned long paddr, u32 width, u32 height,
+/*
+ * In rotation mode vrfb line length is fixed that is 2048 pixels.
+ * So allocating buffer size of 2048 * 720 * 4. 720 is max y resolution and
+ * 4 is for 32bpps mode to support 720P resolution.
+ */
+#define VRFB_SIZE (2048 * 720 * 4)
+
+void omap_vrfb_setup(int ctx, unsigned long paddr, u32 width, u32 height,
 		int bytespp);
 void omap_vrfb_release_ctx(struct vrfb *vrfb);
 int omap_vrfb_create_ctx(struct vrfb *vrfb);
