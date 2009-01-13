@@ -35,6 +35,8 @@
 
 #define MODULE_NAME     "omapfb"
 
+#define omap_rotation_index(deg) (deg/90)
+
 static char *def_mode;
 static char *def_vram;
 static int def_rotate = -1;
@@ -947,6 +949,7 @@ static int omapfb_alloc_fbmem(struct omapfb2_device *fbdev, int fbnum,
 	struct omapfb2_mem_region *rg;
 	unsigned long paddr;
 	void *vaddr;
+	int rot, r;
 
 	size = PAGE_ALIGN(size);
 
@@ -966,9 +969,25 @@ static int omapfb_alloc_fbmem(struct omapfb2_device *fbdev, int fbnum,
 		return -ENOMEM;
 	}
 
-	if (omap_vrfb_create_ctx(&rg->vrfb))
-		printk("vrfb create ctx failed\n");
-
+	r = omap_vrfb_create_ctx(&rg->vrfb);
+	if (r) {
+		dev_err(fbdev->dev, "vrfb create ctx failed\n");
+		return r;
+	}
+	for (rot = 0; rot < 4; ++rot) {
+		if (rg->vrfb.paddr[rot]) {
+			rg->vrfb.vaddr[rot] = ioremap(rg->vrfb.paddr[rot],
+					VRFB_SIZE);
+			if (rg->vrfb.vaddr[rot] == NULL) {
+				omap_vrfb_release_ctx(&rg->vrfb);
+				dev_err(fbdev->dev, "failed to map VRFB\n");
+				return -ENOMEM;
+			}
+			DBG("VRFB %d/%d: %lx -> %p\n", rg->vrfb.context, rot*90,
+					rg->vrfb.paddr[rot],
+					rg->vrfb.vaddr[rot]);
+		}
+	}
 	rg->_paddr = paddr;
 	rg->_vaddr = vaddr;
 	rg->size = size;
@@ -1030,6 +1049,8 @@ static int omapfb_alloc_fbmem_display(struct omapfb2_device *fbdev, int fbnum,
 
 	if (def_vram)
 		size = def_vram;
+	else if (def_rotate >= 0)
+		size = VRFB_SIZE;
 	else
 		size = display->panel->timings.x_res *
 			display->panel->timings.y_res *
@@ -1116,7 +1137,7 @@ static int fbinfo_init(struct omapfb2_device *fbdev, struct fb_info *fbi)
 
 	var->nonstd = 0;
 
-	printk("ROTATE %d\n", def_rotate);
+	DBG("default rotation %d\n", def_rotate);
 
 	ofbi->rotation = def_rotate;
 
@@ -1338,6 +1359,43 @@ int omapfb_mode_to_timings(const char *mode_str,
 	}
 }
 
+#ifndef MODULE
+int omapfb_parse_cmdline(char *options)
+{
+	char *this_opt;
+
+	DBG("omap2fb: Options \"%s\"\n", options);
+
+	if (!options || !*options)
+		return 0;
+
+	while ((this_opt = strsep(&options, ",")) != NULL) {
+		if (!*this_opt)
+			continue;
+
+		if (!strncmp(this_opt, "rotation=", 9)) {
+			int deg = simple_strtoul(this_opt + 9, NULL, 0);
+
+			if (deg == 0 || deg == 90 || deg == 180 || deg == 270)
+				def_rotate = omap_rotation_index(deg);
+			else
+				def_rotate = -1;
+
+			printk(KERN_INFO "omap2fb: Rotation %s\n",
+				(def_rotate == -1) ?
+				"none (supported: \"rotation=[0|90|180|270]\")":
+				this_opt);
+
+		} else if (!strcmp(this_opt, "vram=")) {
+			def_vram = this_opt + 5;
+		} else if (!strcmp(this_opt, "mode=")) {
+			def_mode = this_opt + 5;
+		}
+	}
+	return 0;
+}
+#endif
+
 static int omapfb_probe(struct platform_device *pdev)
 {
 	struct omapfb2_device *fbdev = NULL;
@@ -1345,6 +1403,9 @@ static int omapfb_probe(struct platform_device *pdev)
 	int i, t;
 	struct omap_overlay *ovl;
 	struct omap_display *def_display;
+#ifndef MODULE
+	char *option;
+#endif
 
 	DBG("omapfb_probe\n");
 
@@ -1364,6 +1425,14 @@ static int omapfb_probe(struct platform_device *pdev)
 
 	fbdev->dev = &pdev->dev;
 	platform_set_drvdata(pdev, fbdev);
+
+#ifndef MODULE
+	/* Parse the command line options */
+	if (fb_get_options("omap2fb", &option)) {
+		return -ENODEV;
+	}
+	omapfb_parse_cmdline(option);
+#endif /* MODULE */
 
 	fbdev->num_displays = 0;
 	t = omap_dss_get_num_displays();
