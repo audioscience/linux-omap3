@@ -41,24 +41,93 @@ config USB_EHCI_HCD
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called ehci-hcd.
+
+menuconfig OMAP_EHCI
+	bool "Select PHY/TLL mode for USB ports on OMAP34xx/OMAP35xx"
+	depends on USB_EHCI_HCD && EXPERIMENTAL && ARCH_OMAP34XX
+	default y
+	---help---
+	  Expansion board 750-2099-001(C) on OMAP SDP has,
+	  Port1 connected to ISP1504
+	  Port2 connected to ISP1504
+	  Port3 connected to ISP1301
+
+	  Mistral/Multimedia daughter card on OMAP35xx EVM has only Port2
+	  connected to SMSC USB83320 phy in ULPI mode.Menuconfig will
+	  automatically select only Port2 in PHY mode if Mistral daughter
+	  card is defined.
+
+	  OMAP34xx/35xx silicon rev will be checked at runtime and the
+	  USB ports will be programmed accordingly.
+
+	  In ES2.0/2.1 all the three USB ports can either be in PHY mode
+	  or in TLL mode.Thus don't select one port in PHY mode and other
+	  in TLL mode for ES2.0/2.1 silicon.
+
+	  In ES3.0/3.1 each of the three USB ports can either be in PHY mode
+	  or in TLL mode individually.
+
 choice
-	prompt "PHY/TLL mode"
-	depends on USB_EHCI_HCD && EXPERIMENTAL && ARCH_OMAP34XX
+	prompt "Port1 in PHY/TLL mode" if OMAP_EHCI
+	depends on USB_EHCI_HCD && EXPERIMENTAL && ARCH_OMAP34XX \
+		&& !MACH_OMAP3EVM_DC
 	---help---
-	Choose PHY or TLL mode of operation
+	Choose PHY or TLL mode of operation for Port1
 
-config OMAP_EHCI_PHY_MODE
-	bool "PHY mode: ISP1504 on Port1/2 (NEW 3430ES2.0)"
+config OMAP_EHCI_PHY_MODE_PORT1
+	bool "PHY mode"
 	depends on USB_EHCI_HCD && EXPERIMENTAL && ARCH_OMAP34XX
 	---help---
-	  EHCI PHY mode. Port1 and Port2 are connected to ISP1504 transcievers
+	  Port1 in PHY mode
 
-config OMAP_EHCI_TLL_MODE
-	bool "TLL mode: (EXPERIMENTAL)"
+config OMAP_EHCI_TLL_MODE_PORT1
+	bool "TLL mode"
 	depends on USB_EHCI_HCD && EXPERIMENTAL && ARCH_OMAP34XX
 	---help---
-	OMAP EHCI controller has TLL mode of operation for all 3 ports.
-	Use this mode when no transciever is present
+	  Port1 in TLL mode
+
+endchoice
+
+choice
+	prompt "Port2 in PHY/TLL mode" if OMAP_EHCI
+	depends on USB_EHCI_HCD && EXPERIMENTAL && ARCH_OMAP34XX
+	---help---
+	Choose PHY or TLL mode of operation for Port2
+
+config OMAP_EHCI_PHY_MODE_PORT2
+	bool "PHY mode"
+	depends on USB_EHCI_HCD && EXPERIMENTAL && ARCH_OMAP34XX
+	---help---
+	  Port2 in PHY mode
+
+config OMAP_EHCI_TLL_MODE_PORT2
+	bool "TLL mode"
+	depends on USB_EHCI_HCD && EXPERIMENTAL && ARCH_OMAP34XX \
+		&& !MACH_OMAP3EVM_DC
+	---help---
+	  Port2 in TLL mode
+
+endchoice
+
+choice
+	prompt "Port3 in PHY/TLL mode" if OMAP_EHCI
+	depends on USB_EHCI_HCD && EXPERIMENTAL && ARCH_OMAP34XX \
+		&& !MACH_OMAP3EVM_DC
+	---help---
+	Choose PHY or TLL mode of operation for Port2
+
+config OMAP_EHCI_PHY_MODE_PORT3
+	bool "PHY mode"
+	depends on USB_EHCI_HCD && EXPERIMENTAL && ARCH_OMAP34XX
+	---help---
+	  Port3 in PHY mode
+
+config OMAP_EHCI_TLL_MODE_PORT3
+	bool "TLL mode"
+	depends on USB_EHCI_HCD && EXPERIMENTAL && ARCH_OMAP34XX
+	---help---
+	  Port3 in TLL mode
+
 endchoice
 
 config USB_EHCI_ROOT_HUB_TT
