@@ -62,18 +62,13 @@ static struct platform_device omap3evm_smc911x_device = {
 	.resource	= &omap3evm_smc911x_resources [0],
 };
 
-static struct resource omap3evm_vout_resource[] = {
-	[0] =	{
-		.start  = OMAP34XX_VRFB_CTX4,
-		.end    = (OMAP34XX_VRFB_CTX4 + OMAP34XX_VRFB_CTX_SIZE - 1),
-		.flags  = IORESOURCE_MEM,
-	},
-	[1] =	{
-		.start  = OMAP34XX_VRFB_CTX8,
-		.end    = (OMAP34XX_VRFB_CTX8 + OMAP34XX_VRFB_CTX_SIZE - 1),
-		.flags  = IORESOURCE_MEM,
-	},
+#ifdef CONFIG_FB_OMAP2
+static struct resource omap3evm_vout_resource[3 - CONFIG_FB_OMAP2_NUM_FBS] = {
 };
+#else
+static struct resource omap3evm_vout_resource[2] = {
+};
+#endif
 
 static struct platform_device omap3evm_vout_device = {
 	.name			= "omap_vout",
@@ -325,7 +320,6 @@ static struct omap_display_data omap3_evm_display_data_tv = {
 	.panel_disable = omap3_evm_panel_disable_tv,
 };
 
-
 static int omap3_evm_panel_enable_dvi(struct omap_display *display)
 {
 	if (lcd_enabled) {
@@ -349,7 +343,6 @@ static void omap3_evm_panel_disable_dvi(struct omap_display *display)
 			TWL4030_GPIODATA_DIR3);
 	dvi_enabled = 0;
 }
-
 
 static struct omap_display_data omap3_evm_display_data_dvi = {
 	.type = OMAP_DISPLAY_TYPE_DPI,
