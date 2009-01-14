@@ -164,7 +164,6 @@ static int check_overlay(struct omap_overlay *ovl,
 	return 0;
 }
 
-
 static int omap_dss_set_manager(struct omap_overlay *ovl,
 		struct omap_overlay_manager *mgr)
 {
@@ -324,7 +323,6 @@ static int omap_dss_enable_overlay(struct omap_overlay *ovl, int enable)
 
 	return 0;
 }
-
 
 static int omap_dss_mgr_apply(struct omap_overlay_manager *mgr)
 {
@@ -489,7 +487,6 @@ static struct omap_overlay_manager *omap_dss_overlay_managers[10] = {
 	&dispc_overlay_managers[1],
 };
 
-
 static void omap_dss_add_overlay(struct omap_overlay *overlay)
 {
 	int i = num_overlays++;
@@ -603,10 +600,7 @@ void initialize_overlays(const char *def_disp_name)
 		for (i = 0; i < 3; i++) {
 			struct omap_overlay *ovl;
 			ovl = omap_dss_get_overlay(i);
-			if (i == 1)
-				omap_dss_set_manager(ovl, lcd_mgr);
-			else
-				omap_dss_set_manager(ovl, tv_mgr);
+			omap_dss_set_manager(ovl, def_mgr);
 		}
 	}
 
@@ -639,7 +633,6 @@ void initialize_overlays(const char *def_disp_name)
 	}
 
 }
-
 
 int omap_dss_get_num_displays(void)
 {

@@ -941,27 +941,17 @@ static void _dispc_set_scaling(enum omap_plane plane,
 	hscaleup = orig_width <= out_width;
 	vscaleup = orig_height <= out_height;
 
-	//printk("orig_width = %d orig_height = %d out_width = %d out_height = %d\n",
-	//orig_width, orig_height, out_width, out_height);
-
 	_dispc_set_scale_coef(plane, hscaleup, vscaleup);
 
-	if (!orig_width || orig_width == out_width) {
-		//printk("%s %d\n", __func__, __LINE__);
+	if (!orig_width || orig_width == out_width)
 		fir_hinc = 0;
-	}
-	else {
+	else
 		fir_hinc = 1024 * orig_width / out_width;
-		//printk("%s %d\n", __func__, __LINE__);
-	}
-	if (!orig_height || orig_height == out_height) {
-		//printk("%s %d\n", __func__, __LINE__);
+
+	if (!orig_height || orig_height == out_height)
 		fir_vinc = 0;
-	}
-	else {
-		//printk("%s %d\n", __func__, __LINE__);
+	else
 		fir_vinc = 1024 * orig_height / out_height;
-	}
 	_dispc_set_fir(plane, fir_hinc, fir_vinc);
 
 	l = dispc_read_reg(dispc_reg_att[plane]);
@@ -976,27 +966,15 @@ static void _dispc_set_scaling(enum omap_plane plane,
 	dispc_write_reg(dispc_reg_att[plane], l);
 
 	if (ilace) {
-		//printk("%s %d\n", __func__, __LINE__);
 		if (fieldmode) {
 			accu0 = fir_vinc / 2;
 			accu1 = 0;
-			//printk("%s %d\n", __func__, __LINE__);
 		} else {
-#if 0
-			accu0 = 0;
-			accu1 = /*fir_vinc / 2*/0;
-			//if (accu1 >= 1024/2) {
-			//	accu0 = 1024/2;
-			//	accu1 -= accu0;
-			//	printk("%s %d\n", __func__, __LINE__);
-#else
 			accu0 = 0;
 			accu1 = fir_vinc / 2;
 			if (accu1 >= 1024/2) {
 				accu0 = 1024/2;
 				accu1 -= accu0;
-				//printk("%s %d\n", __func__, __LINE__);
-#endif
 			}
 		}
 	}
@@ -1109,7 +1087,6 @@ static void _dispc_calc_and_set_row_inc(enum omap_plane plane,
 			row_inc_value = row_inc_value + screen_width * ps;
 	}
 	_dispc_set_row_inc(plane, row_inc_value);
-	//printk("Rowinc = %d\n", row_inc_value);
 
 }
 
@@ -1128,16 +1105,14 @@ static int _dispc_setup_plane(enum omap_plane plane,
 	int scaling = 0;
 	u32 attr_value;
 
-	printk("Rotation = %d and mirror = %d\n", rotation, mirror);
 	if (plane == OMAP_DSS_GFX) {
 		if (width != out_width || height != out_height)
 			return -EINVAL;
 	} else {
 		/* video plane */
-		if (width != out_width || height != out_height) {
-			printk("Scaling = 1\n\n\n");
+		if (width != out_width || height != out_height)
 			scaling = 1;
-		}
+
 		if (out_width < width/2 ||
 		   out_width > width*8)
 			return -EINVAL;
@@ -1147,7 +1122,6 @@ static int _dispc_setup_plane(enum omap_plane plane,
 			return -EINVAL;
 	}
 
-	printk("%s: %d\n", __func__, __LINE__);
 	switch (color_mode) {
 	case OMAP_DSS_COLOR_RGB16:
 		bpp = 16;
@@ -1209,11 +1183,8 @@ static int _dispc_setup_plane(enum omap_plane plane,
 
 	_dispc_set_plane_ba0(plane, paddr);
 
-	if (fieldmode) {
-		printk("FIELDMODE = ON\n");
+	if (fieldmode)
 		_dispc_set_plane_ba1(plane, paddr + tv_field1_offset);
-		printk("Position pos_x = %d pos_y = %d\n", pos_x, pos_y );
-	}
 
 	else
 		_dispc_set_plane_ba1(plane, paddr);
@@ -1221,20 +1192,14 @@ static int _dispc_setup_plane(enum omap_plane plane,
 	_dispc_set_plane_pos(plane, pos_x, pos_y);
 
 	_dispc_set_pic_size(plane, width, height);
-	 //printk("Pic size height = %d width = %d\n", height, width );
 
 	if (plane != OMAP_DSS_GFX)
 		_dispc_set_vid_size(plane, out_width, out_height);
 
-	printk("Vid size height = %d width = %d\n", out_height, out_width );
 	_dispc_calc_and_set_row_inc(plane, screen_width, width, 0,
 			color_mode, rotation, mirror, fieldmode);
 
 	attr_value = dispc_read_reg(DISPC_VID_ATTRIBUTES(0));
-	printk("Attributes = %x\n", attr_value);
-	//dispc_write_reg(DISPC_VID_ATTRIBUTES(0), 0x18172);
-	//attr_value = dispc_read_reg(DISPC_VID_ATTRIBUTES(0));
-	//printk("Attributes = %x\n", attr_value);
 	return 0;
 }
 
@@ -1502,7 +1467,6 @@ unsigned long dispc_fclk_rate(void)
 #else
 	BUG();
 #endif
-	printk("RATE = %d\n\n\n\n\n\n", r);
 	return r;
 }
 
@@ -1519,7 +1483,6 @@ unsigned long dispc_pclk_rate(void)
 
 	r = dispc_fclk_rate();
 
-	printk("RATE = %d\n\n\n\n\n",r);
 	return r / lcd / pcd;
 }
 
@@ -1768,10 +1731,6 @@ void *omap_dispc_register_isr(omap_dispc_isr_t isr, void *arg, u32 mask)
 	spin_lock_irqsave(&dispc.irq_lock, flags);
 
 	for (i = 0; i < DISPC_MAX_NR_ISRS; i++) {
-		//if (registered_isr[i].isr == isr) {
-		//	ret = -EINVAL;
-		//	break;
-		//}
 		if (registered_isr[i].isr != NULL)
 			continue;
 
@@ -1779,7 +1738,6 @@ void *omap_dispc_register_isr(omap_dispc_isr_t isr, void *arg, u32 mask)
 		registered_isr[i].arg = arg;
 		registered_isr[i].mask = mask;
 
-		printk("Registered ISR at index %d\n", i);
 		enable_clocks(1);
 		new_mask = dispc_read_reg(DISPC_IRQENABLE);
 		new_mask |= mask;
@@ -1800,7 +1758,7 @@ void *omap_dispc_register_isr(omap_dispc_isr_t isr, void *arg, u32 mask)
 }
 EXPORT_SYMBOL(omap_dispc_register_isr);
 
-int omap_dispc_unregister_isr(void * handle)
+int omap_dispc_unregister_isr(void *handle)
 {
 	int i, j;
 	unsigned long flags;
@@ -1808,16 +1766,15 @@ int omap_dispc_unregister_isr(void * handle)
 	int ret = -EINVAL;
 	struct registered_isr *isr;
 
-
 	spin_lock_irqsave(&dispc.irq_lock, flags);
 
 	isr = (struct registered_isr *)handle;
 
-	if(isr == NULL)
+	if (isr == NULL)
 		return -EINVAL;
 
-	for(i = 0; i < DISPC_MAX_NR_ISRS; i++ ) {
-		if(isr == (struct registered_isr *)&(registered_isr[i].isr)) {
+	for (i = 0; i < DISPC_MAX_NR_ISRS; i++) {
+		if (isr == (struct registered_isr *)&(registered_isr[i].isr)) {
 
 			registered_isr[i].isr = NULL;
 			registered_isr[i].arg = NULL;
@@ -1880,15 +1837,10 @@ void dispc_irq_handler(void)
 	 * off */
 	dispc_write_reg(DISPC_IRQSTATUS, irqstatus);
 
-	//printk("irqstatus %d\n irqstatus", irqstatus);
-
 	for (i = 0; i < DISPC_MAX_NR_ISRS; i++) {
 		if (!registered_isr[i].isr)
 			continue;
-		//printk("%x %x %x %x\n",registered_isr[i].mask,
-//			irqstatus, registered_isr[i].mask & irqstatus, irqstatus & 0x3 );
 		if (registered_isr[i].mask & irqstatus) {
-			//printk("irqstatus %d\n ", irqstatus);
 			registered_isr[i].isr(registered_isr[i].arg,
 					      irqstatus);
 
