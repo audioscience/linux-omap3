@@ -539,6 +539,7 @@ void initialize_overlays(const char *def_disp_name)
 	struct omap_overlay_manager *lcd_mgr;
 	struct omap_overlay_manager *tv_mgr;
 	struct omap_overlay_manager *def_mgr = NULL;
+	struct omap_overlay *ovl;
 
 	lcd_mgr = omap_dss_get_overlay_manager(OMAP_DSS_OVL_MGR_LCD);
 	tv_mgr = omap_dss_get_overlay_manager(OMAP_DSS_OVL_MGR_TV);
@@ -598,12 +599,21 @@ void initialize_overlays(const char *def_disp_name)
 	/* connect all dispc overlays to def_mgr */
 	if (def_mgr) {
 		for (i = 0; i < 3; i++) {
-			struct omap_overlay *ovl;
 			ovl = omap_dss_get_overlay(i);
 			omap_dss_set_manager(ovl, def_mgr);
 		}
 	}
 
+	/* Set the TV MGR as the default mgr for video based on config
+	   option */
+#ifdef CONFIG_VID1_OMAP_ON_TV
+	ovl = omap_dss_get_overlay(1);
+	omap_dss_set_manager(ovl, tv_mgr);
+#endif
+#ifdef CONFIG_VID2_OMAP_ON_TV
+	ovl = omap_dss_get_overlay(2);
+	omap_dss_set_manager(ovl, tv_mgr);
+#endif
 	/* setup L4 overlay as an example */
 	{
 		static struct omap_overlay ovl = {
