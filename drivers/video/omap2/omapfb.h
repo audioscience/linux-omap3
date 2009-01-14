@@ -51,23 +51,10 @@ struct omapfb2_mem_region {
 	unsigned	map:1;		/* kernel mapped by the driver */
 };
 
-static inline u32 omapfb_get_region_paddr(struct omapfb2_mem_region *region,
-		int rotation)
-{
-	if (rotation == -1)
-		return region->_paddr;
-	else
-		return region->vrfb.paddr[rotation];
-}
-
-static inline void *omapfb_get_region_vaddr(struct omapfb2_mem_region *region,
-		int rotation)
-{
-	if (rotation == -1)
-		return region->_vaddr;
-	else
-		return region->vrfb.vaddr[rotation];
-}
+enum omapfb_rotation_type {
+	OMAPFB_ROT_DMA = 0,
+	OMAPFB_ROT_VRFB = 1,
+};
 
 /* appended to fb_info */
 struct omapfb_info {
@@ -77,6 +64,7 @@ struct omapfb_info {
 	int num_overlays;
 	struct omap_overlay *overlays[OMAPFB_MAX_OVL_PER_FB];
 	struct omapfb2_device *fbdev;
+	enum omapfb_rotation_type rotation_type;
 	int rotation;
 };
 
@@ -98,6 +86,9 @@ struct omapfb2_device {
 	int num_managers;
 	struct omap_overlay_manager *managers[10];
 };
+
+u32 omapfb_get_region_paddr(struct omapfb_info *ofbi);
+void *omapfb_get_region_vaddr(struct omapfb_info *ofbi);
 
 void set_fb_fix(struct fb_info *fbi);
 int check_fb_var(struct fb_info *fbi, struct fb_var_screeninfo *var);

@@ -516,11 +516,11 @@ static ssize_t store_overlays(struct device *dev,
 		ovl->enable(ovl, 0);
 	}
 
-	if (mgr && mgr->display && mgr->display->update)
-		mgr->display->update(mgr->display,
-				0, 0,
-				mgr->display->panel->timings.x_res,
-				mgr->display->panel->timings.y_res);
+	if (mgr && mgr->display && mgr->display->update) {
+		int w, h;
+		mgr->display->get_resolution(mgr->display, &w, &h);
+		mgr->display->update(mgr->display, 0, 0, w, h);
+	}
 
 	omapfb_unlock(fbdev);
 	return count;
@@ -657,6 +657,7 @@ static ssize_t show_displays(struct device *dev, struct device_attribute *attr,
 		struct omap_display *display;
 		enum omap_dss_update_mode mode = -1;
 		int te = 0;
+		int rot = 0, mir = 0;
 
 		display = fbdev->displays[i];
 
@@ -671,9 +672,15 @@ static ssize_t show_displays(struct device *dev, struct device_attribute *attr,
 		else
 			memset(&timings, 0, sizeof(timings));
 
+		if (display->get_rotate)
+			rot = display->get_rotate(display);
+
+		if (display->get_mirror)
+			mir = display->get_mirror(display);
+
 		l += snprintf(buf + l, size - l,
 				"%s e:%d u:%d t:%d h:%u/%u/%u/%u "
-				"v:%u/%u/%u/%u p:%u\n",
+				"v:%u/%u/%u/%u p:%u r:%d i:%d\n",
 				display->name,
 				display->state != OMAP_DSS_DISPLAY_DISABLED,
 				mode, te,
@@ -681,7 +688,8 @@ static ssize_t show_displays(struct device *dev, struct device_attribute *attr,
 				timings.hfp, timings.hbp, timings.hsw,
 				timings.y_res,
 				timings.vfp, timings.vbp, timings.vsw,
-				timings.pixel_clock);
+				timings.pixel_clock,
+				rot, mir);
 	}
 
 	omapfb_unlock(fbdev);
@@ -701,7 +709,7 @@ static ssize_t store_displays(struct device *dev,
 	enum omap_dss_update_mode mode;
 	struct omap_display *display = NULL;
 	int r;
-	int te;
+	int te, rot, mir;
 	char str[128];
 	char *s, *tok;
 
@@ -743,6 +751,16 @@ static ssize_t store_displays(struct device *dev,
 	else
 		te = 0;
 
+	if (display->get_rotate)
+		rot = display->get_rotate(display);
+	else
+		rot = 0;
+
+	if (display->get_mirror)
+		mir = display->get_mirror(display);
+	else
+		mir = 0;
+
 	if (display->get_timings)
 		display->get_timings(display, &old_timings);
 	else
@@ -773,6 +791,14 @@ static ssize_t store_displays(struct device *dev,
 
 		case 't':
 			te = simple_strtoul(o, NULL, 0);
+			break;
+
+		case 'r':
+			rot = simple_strtoul(o, NULL, 0);
+			break;
+
+		case 'i':
+			mir = simple_strtoul(o, NULL, 0);
 			break;
 
 		case 'm': {
@@ -855,6 +881,16 @@ static ssize_t store_displays(struct device *dev,
 	if (display->enable_te && display->get_te) {
 		if (te != display->get_te(display))
 			display->enable_te(display, te);
+	}
+
+	if (display->set_rotate && display->get_rotate) {
+		if (rot != display->get_rotate(display))
+			display->set_rotate(display, rot);
+	}
+
+	if (display->set_mirror && display->get_mirror) {
+		if (mir != display->get_mirror(display))
+			display->set_mirror(display, mir);
 	}
 
 	r = count;
