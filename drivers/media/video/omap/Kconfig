@@ -10,3 +10,13 @@ config VIDEO_OMAP_VIDEOOUT
 	depends on VIDEO_OMAP3
 	default VIDEO_OMAP3
 
+config VID1_OMAP_ON_TV
+	bool "Default Overlay manager for Video1 pipeline will be TV"
+	depends on VIDEO_OMAP_VIDEOOUT
+	default n
+
+config VID2_OMAP_ON_TV
+	bool "Default Overlay manager for Video2 pipeline will be TV"
+	depends on VIDEO_OMAP_VIDEOOUT
+	default n
+
