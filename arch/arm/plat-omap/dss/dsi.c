@@ -3063,6 +3063,43 @@ static int dsi_display_get_te(struct omap_display *display)
 	return dsi.use_te;
 }
 
+
+
+static int dsi_display_set_rotate(struct omap_display *display, int rotate)
+{
+	DSSDBG("dsi_display_set_rotate\n");
+
+	if (!display->ctrl->set_rotate || !display->ctrl->get_rotate)
+		return -EINVAL;
+
+	mutex_lock(&dsi.lock);
+
+	enable_clocks(1);
+	dsi_enable_pll_clock(1);
+
+	dsi_set_update_mode(display, OMAP_DSS_UPDATE_DISABLED);
+
+	display->ctrl->set_rotate(display, rotate);
+
+	/* restore the old update mode */
+	dsi_set_update_mode(display, dsi.user_update_mode);
+
+	enable_clocks(0);
+	dsi_enable_pll_clock(0);
+
+	mutex_unlock(&dsi.lock);
+
+	return 0;
+}
+
+static int dsi_display_get_rotate(struct omap_display *display)
+{
+	if (!display->ctrl->set_rotate || !display->ctrl->get_rotate)
+		return 0;
+
+	return display->ctrl->get_rotate(display);
+}
+
 static int dsi_display_run_test(struct omap_display *display, int test_num)
 {
 	int r = 0;
@@ -3131,6 +3168,10 @@ void dsi_init_display(struct omap_display *display)
 	display->get_update_mode = dsi_display_get_update_mode;
 	display->enable_te = dsi_display_enable_te;
 	display->get_te = dsi_display_get_te;
+
+	display->get_rotate = dsi_display_get_rotate;
+	display->set_rotate = dsi_display_set_rotate;
+
 	display->run_test = dsi_display_run_test;
 
 	display->caps = OMAP_DSS_DISPLAY_CAP_MANUAL_UPDATE;

@@ -72,6 +72,13 @@ void uninitialize_sysfs(struct device *dev)
 	device_remove_file(dev, &dev_attr_clk);
 }
 
+static void default_get_resolution(struct omap_display *display,
+			int *xres, int *yres)
+{
+	*xres = display->panel->timings.x_res;
+	*yres = display->panel->timings.y_res;
+}
+
 void initialize_displays(struct omap_dss_platform_data *pdata)
 {
 	int i;
@@ -89,6 +96,8 @@ void initialize_displays(struct omap_dss_platform_data *pdata)
 		display->hw_config = *pdata->displays[i];
 		display->type = pdata->displays[i]->type;
 		display->name = pdata->displays[i]->name;
+
+		display->get_resolution = default_get_resolution;
 
 		switch (display->type) {
 
@@ -131,6 +140,7 @@ static int check_overlay(struct omap_overlay *ovl,
 {
 	struct omap_overlay_info *info;
 	int outw, outh;
+	int dw, dh;
 
 	if (!display)
 		return 0;
@@ -155,11 +165,17 @@ static int check_overlay(struct omap_overlay *ovl,
 			outh = info->out_height;
 	}
 
-	if (display->panel->timings.x_res < info->pos_x + outw)
-		return -EINVAL;
+	display->get_resolution(display, &dw, &dh);
 
-	if (display->panel->timings.y_res < info->pos_y + outh)
+	if (dw < info->pos_x + outw) {
+		DSSDBG("check_overlay failed 1\n");
 		return -EINVAL;
+	}
+
+	if (dh < info->pos_y + outh) {
+		DSSDBG("check_overlay failed 2\n");
+		return -EINVAL;
+	}
 
 	return 0;
 }

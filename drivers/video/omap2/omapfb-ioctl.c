@@ -73,13 +73,15 @@ static int omapfb_setup_plane(struct fb_info *fbi, struct omapfb_plane_info *pi)
 		ovl->manager->apply(ovl->manager);
 
 	if (display) {
+		int w, h;
+
 		if (display->sync)
 			display->sync(display);
 
+		display->get_resolution(display, &w, &h);
+
 		if (display->update)
-			display->update(display, 0, 0,
-					display->panel->timings.x_res,
-					display->panel->timings.y_res);
+			display->update(display, 0, 0, w, h);
 	}
 
 out:
@@ -205,6 +207,7 @@ static int omapfb_update_window(struct fb_info *fbi,
 	struct omapfb_info *ofbi = FB2OFB(fbi);
 	struct omapfb2_device *fbdev = ofbi->fbdev;
 	struct omap_display *display = fb2display(fbi);
+	int dw, dh;
 
 	if (!display)
 		return 0;
@@ -212,8 +215,9 @@ static int omapfb_update_window(struct fb_info *fbi,
 	if (w == 0 || h == 0)
 		return 0;
 
-	if (x + w > display->panel->timings.x_res ||
-			y + h > display->panel->timings.y_res)
+	display->get_resolution(display, &dw, &dh);
+
+	if (x + w > dw || y + h > dh)
 		return -EINVAL;
 
 	omapfb_lock(fbdev);

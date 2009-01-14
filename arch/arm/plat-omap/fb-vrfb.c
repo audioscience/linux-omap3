@@ -8,7 +8,7 @@
 #endif
 
 #define SMS_ROT_VIRT_BASE(context, rot) \
-		(((context >= 4) ? 0xE0000000 : 0x70000000) \
+		(((context >= 4) ? 0xD0000000 : 0x70000000) \
 		| 0x4000000 * (context) \
 		| 0x1000000 * (rot))
 

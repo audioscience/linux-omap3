@@ -413,6 +413,9 @@ struct vrfb
 	int context;
 	void *vaddr[4];
 	unsigned long paddr[4];
+	int xoffset;
+	int yoffset;
+	int bytespp;
 };
 
 /*
@@ -422,7 +425,8 @@ struct vrfb
  */
 #define VRFB_SIZE (2048 * 720 * 4)
 
-void omap_vrfb_setup(int ctx, unsigned long paddr, u32 width, u32 height,
+void omap_vrfb_setup(int ctx, unsigned long paddr,
+		u32 width, u32 height,
 		int bytespp);
 void omap_vrfb_release_ctx(struct vrfb *vrfb);
 int omap_vrfb_create_ctx(struct vrfb *vrfb);

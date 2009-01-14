@@ -247,8 +247,11 @@ struct omap_ctrl {
 
 	int (*enable_te)(struct omap_display *display, int enable);
 
-	int (*rotate)(struct omap_display *display, int rotate);
-	int (*mirror)(struct omap_display *display, int enable);
+	int (*get_rotate)(struct omap_display *display);
+	int (*set_rotate)(struct omap_display *display, int rotate);
+
+	int (*get_mirror)(struct omap_display *display);
+	int (*set_mirror)(struct omap_display *display, int enable);
 
 	int (*run_test)(struct omap_display *display, int test);
 
@@ -423,6 +426,9 @@ struct omap_display {
 	int (*suspend)(struct omap_display *display);
 	int (*resume)(struct omap_display *display);
 
+	void (*get_resolution)(struct omap_display *display,
+			int *xres, int *yres);
+
 	int (*check_timings)(struct omap_display *display,
 			struct omap_video_timings *timings);
 	void (*set_timings)(struct omap_display *display,
@@ -440,6 +446,12 @@ struct omap_display {
 
 	int (*enable_te)(struct omap_display *display, int enable);
 	int (*get_te)(struct omap_display *display);
+
+	int (*get_rotate)(struct omap_display *display);
+	int (*set_rotate)(struct omap_display *display, int rotate);
+
+	int (*get_mirror)(struct omap_display *display);
+	int (*set_mirror)(struct omap_display *display, int enable);
 
 	int (*run_test)(struct omap_display *display, int test);
 };
