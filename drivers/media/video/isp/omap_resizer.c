@@ -28,6 +28,7 @@
 #include <linux/platform_device.h>
 #include <linux/io.h>
 #include <linux/uaccess.h>
+#include <linux/pci.h>
 #include <media/v4l2-dev.h>
 #include <asm/cacheflush.h>
 
@@ -75,6 +76,23 @@
 #define ALIGN32			32
 #define MAX_COEF_COUNTER	16
 #define COEFF_ADDRESS_OFFSET	0x04
+
+#define RSZ_DEF_REQ_EXP		0xE	/* Default read operation expand
+					 * for the Resizer driver; value
+					 * taken from Davinci.
+					 */
+/*
+ * These magic numbers are copied from video-buf layer,
+ * since they gets set in to the same layer. To support
+ * contiguous memory and to remove max buffer size constraint from
+ * application, we implemented replication of some video-buf functions
+ * so magic numbers also.
+ */
+#define MAGIC_BUFFER 0x20070728
+#define MAGIC_DMABUF 0x19721112
+#define MAGIC_SG_MEM 0x17890714
+#define MAGIC_CHECK(is,should)	if (unlikely((is) != (should))) \
+	{ printk(KERN_ERR "magic mismatch: %x (expected %x)\n",is,should); BUG(); }
 
 /* Global structure which contains information about number of channels
    and protection variables */
@@ -125,6 +143,9 @@ struct resizer_config {
 						 */
 	u32 rsz_yehn;				/* yehn(luma)register mapping
 						 * variable.
+						 */
+	u32 sdr_req_exp;			/* Configuration for Non
+						 * real time read expand
 						 */
 };
 
@@ -179,6 +200,7 @@ struct channel_config {
 						 * channel is busy or not
 						 */
 	struct mutex chanprotection_mutex;
+	int buf_address[VIDEO_MAX_FRAME];
 	enum config_done config_state;
 	u8 input_buf_index;
 	u8 output_buf_index;
@@ -200,8 +222,6 @@ struct rsz_fh {
 	struct videobuf_queue vbq;
 	struct device_params *device;
 
-	dma_addr_t isp_addr_read;		/* Input/Output address */
-	dma_addr_t isp_addr_write;		/* Input/Output address */
 	u32 rsz_bufsize;			/* channel specific buffersize
 						 */
 };
@@ -227,6 +247,10 @@ static int rsz_set_ratio(struct rsz_mult *multipass,
 static void rsz_config_ratio(struct rsz_mult *multipass,
 					struct channel_config *rsz_conf_chan);
 
+static void inline rsz_set_exp(unsigned int exp)
+{
+	omap_writel(((exp & 0x3FF) << 10), ISPSBL_REG_BASE+0xF8);
+}
 /**
  * rsz_hardware_setup - Sets hardware configuration registers
  * @rsz_conf_chan: Structure containing channel configuration
@@ -268,12 +292,15 @@ static void rsz_hardware_setup(struct channel_config *rsz_conf_chan)
 						ISPRSZ_VFILT10 + coeffoffset);
 		coeffoffset = coeffoffset + COEFF_ADDRESS_OFFSET;
 	}
+	/* Configure the read expand register */
+	rsz_set_exp(rsz_conf_chan->register_config.sdr_req_exp);
 }
 
 /**
  * rsz_start - Enables Resizer Wrapper
  * @arg: Currently not used.
- * @device: Structure containing ISP resizer wrapper global information
+ * @fh: File structure containing ISP resizer information specific to
+ *      channel opened.
  *
  * Submits a resizing task specified by the rsz_resize structure. The call can
  * either be blocked until the task is completed or returned immediately based
@@ -289,6 +316,7 @@ int rsz_start(int *arg, struct rsz_fh *fh)
 	struct channel_config *rsz_conf_chan = fh->config;
 	struct rsz_mult *multipass = fh->multipass;
 	struct videobuf_queue *q = &fh->vbq;
+	struct videobuf_buffer *buf;
 	int ret;
 
 	if (rsz_conf_chan->config_state) {
@@ -322,32 +350,21 @@ mult:
 		goto mult;
 	}
 
-	if (fh->isp_addr_read) {
-		ispmmu_unmap(fh->isp_addr_read);
-		fh->isp_addr_read = 0;
-	}
-	if (fh->isp_addr_write) {
-		ispmmu_unmap(fh->isp_addr_write);
-		fh->isp_addr_write = 0;
-	}
-
 	rsz_conf_chan->status = CHANNEL_FREE;
-	q->bufs[rsz_conf_chan->input_buf_index]->state = VIDEOBUF_NEEDS_INIT;
-	q->bufs[rsz_conf_chan->output_buf_index]->state = VIDEOBUF_NEEDS_INIT;
 	rsz_conf_chan->register_config.rsz_sdr_outadd = 0;
 	rsz_conf_chan->register_config.rsz_sdr_inadd = 0;
 
-	/* Unmap and free the DMA memory allocated for buffers */
-	videobuf_dma_unmap(q, videobuf_to_dma(
-				q->bufs[rsz_conf_chan->input_buf_index]));
-	videobuf_dma_unmap(q, videobuf_to_dma(
-				q->bufs[rsz_conf_chan->output_buf_index]));
-	videobuf_dma_free(videobuf_to_dma(
-				q->bufs[rsz_conf_chan->input_buf_index]));
-	videobuf_dma_free(videobuf_to_dma(
-				q->bufs[rsz_conf_chan->output_buf_index]));
-
 	isp_unset_callback(CBK_RESZ_DONE);
+
+	/* Empty the Videobuf queue which was filled during the qbuf */
+	buf = q->bufs[rsz_conf_chan->input_buf_index];
+	buf->state = VIDEOBUF_IDLE;
+	list_del(&buf->stream);
+	if (rsz_conf_chan->input_buf_index != rsz_conf_chan->output_buf_index) {
+		buf = q->bufs[rsz_conf_chan->output_buf_index];
+		buf->state = VIDEOBUF_IDLE;
+		list_del(&buf->stream);
+	}
 
 	return 0;
 err_einval:
@@ -356,6 +373,8 @@ err_einval:
 
 /**
  * rsz_set_multipass - Set resizer multipass
+ * @multipass: Structure containing channel configuration
+			for multipass support
  * @rsz_conf_chan: Structure containing channel configuration
  *
  * Returns always 0
@@ -381,6 +400,8 @@ static int rsz_set_multipass(struct rsz_mult *multipass,
 
 /**
  * rsz_copy_data - Copy data
+ * @multipass: Structure containing channel configuration
+			for multipass support
  * @params: Structure containing the Resizer Wrapper parameters
  *
  * Copy data
@@ -410,6 +431,8 @@ static void rsz_copy_data(struct rsz_mult *multipass, struct rsz_params *params)
 
 /**
  * rsz_set_params - Set parameters for resizer wrapper
+ * @multipass: Structure containing channel configuration
+			for multipass support
  * @params: Structure containing the Resizer Wrapper parameters
  * @rsz_conf_chan: Structure containing channel configuration
  *
@@ -521,6 +544,8 @@ static int rsz_set_params(struct rsz_mult *multipass, struct rsz_params *params,
 	}
 
 	rsz_config_ratio(multipass, rsz_conf_chan);
+	/* Default value for read expand:Taken from Davinci */
+	rsz_conf_chan->register_config.sdr_req_exp = RSZ_DEF_REQ_EXP;
 
 	rsz_conf_chan->config_state = STATE_CONFIGURED;
 
@@ -531,6 +556,8 @@ err_einval:
 
 /**
  * rsz_set_ratio - Set ratio
+ * @multipass: Structure containing channel configuration
+			for multipass support
  * @rsz_conf_chan: Structure containing channel configuration
  *
  * Returns 0 if successful, -EINVAL if invalid output size, upscaling ratio is
@@ -545,7 +572,8 @@ static int rsz_set_ratio(struct rsz_mult *multipass,
 
 	if ((multipass->out_hsize > MAX_IMAGE_WIDTH) ||
 			(multipass->out_vsize > MAX_IMAGE_WIDTH)) {
-		dev_err(rsz_device, "Invalid output size!");
+		dev_err(rsz_device, "Invalid output size! - %d", \
+					multipass->out_hsize);
 		goto err_einval;
 	}
 	if (multipass->cbilin) {
@@ -755,6 +783,8 @@ err_einval:
 
 /**
  * rsz_config_ratio - Configure ratio
+ * @multipass: Structure containing channel configuration
+			for multipass support
  * @rsz_conf_chan: Structure containing channel configuration
  *
  * Configure ratio
@@ -785,6 +815,20 @@ static void rsz_config_ratio(struct rsz_mult *multipass,
 	rsz_conf_chan->register_config.rsz_in_size |=
 					((vsize << ISPRSZ_IN_SIZE_VERT_SHIFT)
 					& ISPRSZ_IN_SIZE_VERT_MASK);
+
+	/* This is another workaround for the ISP-MMU translation fault.
+	   For the parameters whose image size comes exactly to PAGE_SIZE
+	   generates ISP-MMU translation fault. The root-cause is the equation
+		input width = (32*sph + (ow - 1)*hrsz + 16) >> 8 + 7
+			= (64*sph + (ow - 1)*hrsz + 32) >> 8 + 7
+		input height = (32*spv + (oh - 1)*vrsz + 16) >> 8 + 4
+		= (64*spv + (oh - 1)*vrsz + 32) >> 8 + 7
+
+	   we are adjusting the input width to suit for Resizer module,
+	   application should use this configuration henceforth.
+	 */
+	multipass->in_hsize = hsize;
+	multipass->in_vsize = vsize;
 
 	for (coeffcounter = 0; coeffcounter < MAX_COEF_COUNTER;
 							coeffcounter++) {
@@ -987,24 +1031,15 @@ static void rsz_calculate_crop(struct channel_config *rsz_conf_chan,
 static void rsz_vbq_release(struct videobuf_queue *q,
 						struct videobuf_buffer *vb)
 {
-	int i;
 	struct rsz_fh *fh = q->priv_data;
+	struct videobuf_dmabuf *dma = NULL;
 
-	for (i = 0; i < VIDEO_MAX_FRAME; i++) {
-		struct videobuf_dmabuf *dma = NULL;
-		if (!q->bufs[i])
-			continue;
-		if (q->bufs[i]->memory != V4L2_MEMORY_MMAP)
-			continue;
-		dma = videobuf_to_dma(q->bufs[i]);
-		videobuf_dma_unmap(q, dma);
-		videobuf_dma_free(dma);
-	}
+	dma = videobuf_to_dma(q->bufs[vb->i]);
+	videobuf_dma_unmap(q, dma);
+	videobuf_dma_free(dma);
+	ispmmu_unmap(fh->config->buf_address[vb->i]);
+	fh->config->buf_address[vb->i] = 0;
 
-	ispmmu_unmap(fh->isp_addr_read);
-	ispmmu_unmap(fh->isp_addr_write);
-	fh->isp_addr_read = 0;
-	fh->isp_addr_write = 0;
 	spin_lock(&fh->vbq_lock);
 	vb->state = VIDEOBUF_NEEDS_INIT;
 	spin_unlock(&fh->vbq_lock);
@@ -1060,6 +1095,105 @@ err_einval:
 	return -EINVAL;
 }
 
+static int omap_videobuf_dma_init(struct videobuf_dmabuf *dma,
+                        int rw, unsigned long data, unsigned long asize)
+{
+	int err = 0;
+	unsigned long first, last;
+
+	dma->direction = PCI_DMA_FROMDEVICE;
+	/* Calculate number of pages required */
+        first = (data & PAGE_MASK) >> PAGE_SHIFT;
+        last  = ((data+asize-1) & PAGE_MASK) >> PAGE_SHIFT;
+        dma->offset   = data & ~PAGE_MASK;
+        dma->nr_pages = last-first+1;
+        dma->pages = kmalloc(dma->nr_pages * sizeof(struct page*),
+                             GFP_KERNEL);
+        if (NULL == dma->pages)
+                return -ENOMEM;
+
+//        dma->varea = (void *) data;
+        err = get_user_pages(current,current->mm,
+                             data & PAGE_MASK, dma->nr_pages,
+                             rw == READ, 1, /* force */
+                             dma->pages, NULL);
+
+        if (err != dma->nr_pages) {
+                printk("Buffer Allocation: err=%d [%d]\n",err,dma->nr_pages);
+                dma->nr_pages = 0;
+		kfree(dma->pages);
+                return -EINVAL;
+        }
+        return 0;
+}
+
+static int omap_videobuf_iolock(struct videobuf_queue* q,
+		struct videobuf_buffer *vb, unsigned long asize,
+		unsigned int *isp_addr)
+{
+	int err = 0;
+	unsigned long start;
+	struct videobuf_dma_sg_memory *mem = vb->priv;
+	struct vm_area_struct *vma;
+
+	BUG_ON(!mem);
+	MAGIC_CHECK(vb->magic, MAGIC_BUFFER);
+	MAGIC_CHECK(q->int_ops->magic, MAGIC_QTYPE_OPS);
+	MAGIC_CHECK(mem->magic,MAGIC_SG_MEM);
+
+	start = vb->baddr;
+
+	if (start >= PAGE_OFFSET) {
+		/* Direct-mapped memory to the Kernel, take the easy way
+		   NOTE- This condition will never hit, since there is no way
+		   application can specify USERPTR for kernel allocated buffers.
+		   Added only for completeness of code.
+		 */
+		unsigned long physp = 0;
+		vma = find_vma(current->mm, start);
+		if ((start + asize) > vma->vm_end) {
+			printk("Buffer Allocation: err=%lu [%lu]\n", \
+					(vma->vm_end - start), asize);
+			return -EINVAL;
+		}
+		physp = virt_to_phys((void *)start);
+		*isp_addr =  ispmmu_map(physp, asize);
+	} else if ((vma = find_vma(current->mm, start)) && (vma->vm_flags & VM_IO)
+			&& (vma->vm_pgoff)){
+		/* This will catch ioremaped buffers to the kernel. It gives
+		   Two possible scenarios -
+			- Driver allocates buffer using either
+			dam_allo_coherent or get_free_pages, and maps to user
+			space using io_remap_pfn_range/remap_pfn_range
+			- Drivers maps memory outside from Linux using
+			io_remap
+		 */
+		unsigned long physp = 0;
+		if ((start + asize) > vma->vm_end) {
+			printk("Buffer Allocation: err=%lu [%lu]\n", \
+					(vma->vm_end - start), asize);
+			return -EINVAL;
+		}
+
+		physp = (vma->vm_pgoff << PAGE_SHIFT) + (start - vma->vm_start);
+		*isp_addr = ispmmu_map(physp, asize);
+	}
+	else {
+//		asize = PAGE_ALIGN(asize);
+		down_read(&current->mm->mmap_sem);
+		err = omap_videobuf_dma_init(&mem->dma,
+				READ, start, asize);
+		up_read(&current->mm->mmap_sem);
+		if (0 != err)
+			return err;
+
+		err = videobuf_dma_map(q,&mem->dma);
+		if (0 != err)
+			return err;
+		*isp_addr = ispmmu_map_sg(mem->dma.sglist, mem->dma.sglen);
+	}
+	return 0;
+}
 /**
  * rsz_vbq_prepare - Videobuffer is prepared and mmapped.
  * @q: Structure containing the videobuffer queue file handle, and device
@@ -1083,6 +1217,12 @@ static int rsz_vbq_prepare(struct videobuf_queue *q,
 
 	spin_lock(&fh->vbq_lock);
 	if (vb->baddr) {
+		/* Check for 32 byte alignement */
+		if (vb->baddr != (vb->baddr & ~0x1F)) {
+			dev_err(rsz_device, "Buffer address should be aligned \
+					to 32 byte\n");
+			return -EINVAL;
+		}
 		vb->size = fh->rsz_bufsize;
 		vb->bsize = fh->rsz_bufsize;
 	} else {
@@ -1101,50 +1241,79 @@ static int rsz_vbq_prepare(struct videobuf_queue *q,
 	vb->field = field;
 	spin_unlock(&fh->vbq_lock);
 
-	if (vb->state == VIDEOBUF_NEEDS_INIT) {
-		err = videobuf_iolock(q, vb, NULL);
-		if (!err) {
-			isp_addr = ispmmu_map_sg(dma->sglist, dma->sglen);
-			if (!isp_addr)
-				err = -EIO;
-			else {
-				if (vb->i) {
-					rsz_conf_chan->register_config.
-							rsz_sdr_outadd
-							= isp_addr;
-					fh->isp_addr_write = isp_addr;
-					rsz_conf_chan->output_buf_index = vb->i;
-				} else {
-					rsz_conf_chan->register_config.
-							rsz_sdr_inadd
-							= isp_addr;
-					rsz_conf_chan->input_buf_index = vb->i;
-					outsize = multipass->out_pitch *
-							multipass->out_vsize;
-					insize = multipass->in_pitch *
-							multipass->in_vsize;
-					if (outsize < insize) {
-						rsz_conf_chan->register_config.
-								rsz_sdr_outadd
-								= isp_addr;
-						rsz_conf_chan->
-							output_buf_index =
-							vb->i;
-					}
+	outsize = multipass->out_pitch * multipass->out_vsize;
+	insize = multipass->in_pitch * multipass->in_vsize;
 
-					fh->isp_addr_read = isp_addr;
+	if (vb->state == VIDEOBUF_NEEDS_INIT) {
+		spin_lock(&fh->vbq_lock);
+		if(vb->memory == V4L2_MEMORY_USERPTR) {
+			err = omap_videobuf_iolock(q, vb,
+					vb->i?outsize:insize, &isp_addr);
+			spin_unlock(&fh->vbq_lock);
+			if(err) {
+				rsz_vbq_release(q, vb);
+				return err;
+			}
+		} else {
+			err = videobuf_iolock(q, vb, NULL);
+			spin_unlock(&fh->vbq_lock);
+			if(err) {
+				rsz_vbq_release(q, vb);
+				return err;
+			}
+			isp_addr = ispmmu_map_sg(dma->sglist, dma->sglen);
+		}
+		if (!isp_addr)
+			err = -EIO;
+		else {
+			if (vb->i) {
+				rsz_conf_chan->buf_address[vb->i] = isp_addr;
+				rsz_conf_chan->register_config.
+					rsz_sdr_outadd
+					= isp_addr;
+				rsz_conf_chan->output_buf_index = vb->i;
+			} else {
+				rsz_conf_chan->buf_address[vb->i] = isp_addr;
+				rsz_conf_chan->register_config.
+					rsz_sdr_inadd
+					= isp_addr;
+				rsz_conf_chan->input_buf_index = vb->i;
+				if (outsize < insize) {
+					rsz_conf_chan->register_config.
+						rsz_sdr_outadd
+						= isp_addr;
+					rsz_conf_chan->
+						output_buf_index =
+						vb->i;
 				}
 			}
 		}
 
-	}
+	} else {
+		if(vb->i) {
+			rsz_conf_chan->register_config.
+				rsz_sdr_outadd = rsz_conf_chan->buf_address[vb->i];
+			rsz_conf_chan->output_buf_index = vb->i;
+		} else {
+			rsz_conf_chan->register_config.
+				rsz_sdr_inadd = rsz_conf_chan->buf_address[vb->i];
+			rsz_conf_chan->input_buf_index = vb->i;
+			if(outsize < insize && rsz_conf_chan->
+					register_config.
+					rsz_sdr_outadd == 0) {
+				rsz_conf_chan->register_config.
+					rsz_sdr_outadd
+					= rsz_conf_chan->buf_address[vb->i];
+				rsz_conf_chan->output_buf_index = vb->i;
+			}
 
+		}
+
+	}
 	if (!err) {
 		spin_lock(&fh->vbq_lock);
 		vb->state = VIDEOBUF_PREPARED;
 		spin_unlock(&fh->vbq_lock);
-		flush_cache_user_range(NULL, vb->baddr, (vb->baddr
-								+ vb->bsize));
 	} else
 		rsz_vbq_release(q, vb);
 
@@ -1395,6 +1564,11 @@ static long rsz_unlocked_ioctl(struct file *file, unsigned int cmd,
 							chanprotection_mutex))
 			return -EINTR;
 		ret = rsz_set_params(fh->multipass, params, rsz_conf_chan);
+		if (ret != 0) {
+			mutex_unlock(&rsz_conf_chan->chanprotection_mutex);
+			break;
+		}
+		ret = rsz_get_params((struct rsz_params *)arg, rsz_conf_chan);
 		mutex_unlock(&rsz_conf_chan->chanprotection_mutex);
 		break;
 	}
@@ -1430,6 +1604,12 @@ static long rsz_unlocked_ioctl(struct file *file, unsigned int cmd,
 		rsz_calculate_crop(rsz_conf_chan, (struct rsz_cropsize *)arg);
 		break;
 
+	case RSZ_S_EXP:
+		if (mutex_lock_interruptible(&rsz_conf_chan->chanprotection_mutex))
+			return -EINTR;
+		rsz_conf_chan->register_config.sdr_req_exp = *((unsigned int *)arg);
+		mutex_unlock(&rsz_conf_chan->chanprotection_mutex);
+		break;
 	default:
 		dev_err(rsz_device, "resizer_ioctl: Invalid Command Value");
 		return -EINVAL;
