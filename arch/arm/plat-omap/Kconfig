@@ -58,7 +58,7 @@ config OMAP_DEBUG_CLOCKDOMAIN
 
 config OMAP_SMARTREFLEX
 	bool "SmartReflex support"
-	depends on ARCH_OMAP34XX && TWL4030_CORE
+	depends on ARCH_OMAP34XX && TWL4030_CORE && PM
 	help
 	  Say Y if you want to enable SmartReflex.
 
@@ -205,6 +205,13 @@ config OMAP_32K_TIMER
 
 endchoice
 
+config OMAP3_DEBOBS
+	bool "OMAP 3430 Debug observability support"
+	depends on ARCH_OMAP3 && DEBUG_FS
+	default n
+	help
+	  Use ETK pads for debug observability
+
 config OMAP_32K_TIMER_HZ
        int "Kernel internal timer frequency for 32KHz timer"
        range 32 1024
@@ -261,6 +268,23 @@ config OMAP_SERIAL_WAKE
 	  system from serial console.
 
 source "arch/arm/plat-omap/dss/Kconfig"
+
+choice
+	prompt "OMAP PM layer selection"
+	depends on ARCH_OMAP
+	default OMAP_PM_NOOP
+
+config OMAP_PM_NONE
+	bool "No PM layer"
+
+config OMAP_PM_NOOP
+	bool "No-op/debug PM layer"
+
+config OMAP_PM_SRF
+	depends on PM
+	bool "PM layer implemented using SRF"
+
+endchoice
 
 endmenu
 

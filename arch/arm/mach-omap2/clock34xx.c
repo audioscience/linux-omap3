@@ -26,6 +26,8 @@
 #include <linux/io.h>
 #include <linux/limits.h>
 #include <linux/bitops.h>
+#include <linux/err.h>
+#include <linux/cpufreq.h>
 
 #include <mach/clock.h>
 #include <mach/sram.h>
@@ -38,12 +40,55 @@
 #include "prm-regbits-34xx.h"
 #include "cm.h"
 #include "cm-regbits-34xx.h"
+#include "pm.h"
 
 /* CM_AUTOIDLE_PLL*.AUTO_* bit values */
 #define DPLL_AUTOIDLE_DISABLE			0x0
 #define DPLL_AUTOIDLE_LOW_POWER_STOP		0x1
 
 #define MAX_DPLL_WAIT_TRIES		1000000
+
+struct omap_opp *curr_vdd1_prcm_set;
+struct omap_opp *curr_vdd2_prcm_set;
+static struct clk *dpll1_clk, *dpll2_clk, *dpll3_clk;
+
+#ifndef CONFIG_CPU_FREQ
+static unsigned long compute_lpj(unsigned long ref, u_int div, u_int mult)
+{
+	unsigned long new_jiffy_l, new_jiffy_h;
+
+	/*
+	 * Recalculate loops_per_jiffy.  We do it this way to
+	 * avoid math overflow on 32-bit machines.  Maybe we
+	 * should make this architecture dependent?  If you have
+	 * a better way of doing this, please replace!
+	 *
+	 *    new = old * mult / div
+	 */
+	new_jiffy_h = ref / div;
+	new_jiffy_l = (ref % div) / 100;
+	new_jiffy_h *= mult;
+	new_jiffy_l = new_jiffy_l * mult / div;
+
+	return new_jiffy_h + new_jiffy_l * 100;
+}
+#endif
+
+#define MIN_SDRC_DLL_LOCK_FREQ		83000000
+
+#define CYCLES_PER_MHZ			1000000
+
+/* Scale factor for fixed-point arith in omap3_core_dpll_m2_set_rate() */
+#define SDRC_MPURATE_SCALE		8
+
+/* 2^SDRC_MPURATE_BASE_SHIFT: MPU MHz that SDRC_MPURATE_LOOPS is defined for */
+#define SDRC_MPURATE_BASE_SHIFT		9
+
+/*
+ * SDRC_MPURATE_LOOPS: Number of MPU loops to execute at
+ * 2^MPURATE_BASE_SHIFT MHz for SDRC to stabilize
+ */
+#define SDRC_MPURATE_LOOPS		96
 
 /**
  * omap3_dpll_recalc - recalculate DPLL rate
@@ -456,7 +501,9 @@ static int omap3_noncore_dpll_set_rate(struct clk *clk, unsigned long rate)
 static int omap3_core_dpll_m2_set_rate(struct clk *clk, unsigned long rate)
 {
 	u32 new_div = 0;
-	unsigned long validrate, sdrcrate;
+	u32 unlock_dll = 0;
+	u32 c;
+	unsigned long validrate, sdrcrate, mpurate;
 	struct omap_sdrc_params *sp;
 
 	if (!clk || !rate)
@@ -465,34 +512,44 @@ static int omap3_core_dpll_m2_set_rate(struct clk *clk, unsigned long rate)
 	if (clk != &dpll3_m2_ck)
 		return -EINVAL;
 
-	if (rate == clk->rate)
-		return 0;
-
 	validrate = omap2_clksel_round_rate_div(clk, rate, &new_div);
 	if (validrate != rate)
 		return -EINVAL;
 
 	sdrcrate = sdrc_ick.rate;
 	if (rate > clk->rate)
-		sdrcrate <<= ((rate / clk->rate) - 1);
+		sdrcrate <<= ((rate / clk->rate) >> 1);
 	else
-		sdrcrate >>= ((clk->rate / rate) - 1);
+		sdrcrate >>= ((clk->rate / rate) >> 1);
 
 	sp = omap2_sdrc_get_params(sdrcrate);
 	if (!sp)
 		return -EINVAL;
 
-	pr_info("clock: changing CORE DPLL rate from %lu to %lu\n", clk->rate,
-		validrate);
-	pr_info("clock: SDRC timing params used: %08x %08x %08x\n",
-		sp->rfr_ctrl, sp->actim_ctrla, sp->actim_ctrlb);
+	if (sdrcrate < MIN_SDRC_DLL_LOCK_FREQ) {
+		pr_debug("clock: will unlock SDRC DLL\n");
+		unlock_dll = 1;
+	}
 
-	/* REVISIT: SRAM code doesn't support other M2 divisors yet */
-	WARN_ON(new_div != 1 && new_div != 2);
+	/*
+	 * XXX This only needs to be done when the CPU frequency changes
+	 */
+	mpurate = arm_fck.rate / CYCLES_PER_MHZ;
+	c = (mpurate << SDRC_MPURATE_SCALE) >> SDRC_MPURATE_BASE_SHIFT;
+	c += 1;  /* for safety */
+	c *= SDRC_MPURATE_LOOPS;
+	c >>= SDRC_MPURATE_SCALE;
+	if (c == 0)
+		c = 1;
 
-	/* REVISIT: Add SDRC_MR changing to this code also */
+	pr_debug("clock: changing CORE DPLL rate from %lu to %lu\n", clk->rate,
+		 validrate);
+	pr_debug("clock: SDRC timing params used: %08x %08x %08x\n",
+		 sp->rfr_ctrl, sp->actim_ctrla, sp->actim_ctrlb);
+
 	omap3_configure_core_dpll(sp->rfr_ctrl, sp->actim_ctrla,
-				  sp->actim_ctrlb, new_div);
+				  sp->actim_ctrlb, new_div, unlock_dll, c,
+				  sp->mr, rate > clk->rate);
 
 	return 0;
 }
@@ -630,6 +687,39 @@ static void omap3_clkoutx2_recalc(struct clk *clk, unsigned long parent_rate,
  */
 #if defined(CONFIG_ARCH_OMAP3)
 
+#ifdef CONFIG_CPU_FREQ
+static struct cpufreq_frequency_table freq_table[MAX_VDD1_OPP+1];
+
+void omap2_clk_init_cpufreq_table(struct cpufreq_frequency_table **table)
+{
+	struct omap_opp *prcm;
+	int i = 0;
+
+	if (!mpu_opps)
+		return;
+
+	/* Avoid registering the 120% Overdrive with CPUFreq */
+	prcm = mpu_opps + MAX_VDD1_OPP - 1;
+	for (; prcm->rate; prcm--) {
+		freq_table[i].index = i;
+		freq_table[i].frequency = prcm->rate / 1000;
+		i++;
+	}
+
+	if (i == 0) {
+		printk(KERN_WARNING "%s: failed to initialize frequency \
+								table\n",
+								__func__);
+		return;
+	}
+
+	freq_table[i].index = i;
+	freq_table[i].frequency = CPUFREQ_TABLE_END;
+
+	*table = &freq_table[0];
+}
+#endif
+
 static struct clk_functions omap2_clk_functions = {
 	.clk_register		= omap2_clk_register,
 	.clk_enable		= omap2_clk_enable,
@@ -639,6 +729,9 @@ static struct clk_functions omap2_clk_functions = {
 	.clk_set_parent		= omap2_clk_set_parent,
 	.clk_get_parent		= omap2_clk_get_parent,
 	.clk_disable_unused	= omap2_clk_disable_unused,
+#ifdef CONFIG_CPU_FREQ
+	.clk_init_cpufreq_table = omap2_clk_init_cpufreq_table,
+#endif
 };
 
 /*
@@ -692,6 +785,9 @@ int __init omap2_clk_init(void)
 	struct clk **clkp;
 	/* u32 clkrate; */
 	u32 cpu_clkflg;
+	unsigned long mpu_speed, core_speed;
+	struct omap_opp *prcm_vdd;
+
 
 	/* REVISIT: Ultimately this will be used for multiboot */
 #if 0
@@ -749,6 +845,32 @@ int __init omap2_clk_init(void)
 
 	recalculate_root_clocks();
 
+	dpll1_clk = clk_get(NULL, "dpll1_ck");
+	dpll2_clk = clk_get(NULL, "dpll2_ck");
+	dpll3_clk = clk_get(NULL, "dpll3_m2_ck");
+
+	mpu_speed = dpll1_clk->rate;
+	if (mpu_opps) {
+		prcm_vdd = mpu_opps + MAX_VDD1_OPP;
+		for (; prcm_vdd->rate; prcm_vdd--) {
+			if (prcm_vdd->rate <= mpu_speed) {
+				curr_vdd1_prcm_set = prcm_vdd;
+				break;
+			}
+		}
+	}
+
+	core_speed = dpll3_clk->rate;
+	if (l3_opps) {
+		prcm_vdd = l3_opps + MAX_VDD2_OPP;
+		for (; prcm_vdd->rate; prcm_vdd--) {
+			if (prcm_vdd->rate <= core_speed) {
+				curr_vdd2_prcm_set = prcm_vdd;
+				break;
+			}
+		}
+	}
+
 	printk(KERN_INFO "Clocking rate (Crystal/DPLL/ARM core): "
 	       "%ld.%01ld/%ld/%ld MHz\n",
 	       (osc_sys_ck.rate / 1000000), (osc_sys_ck.rate / 100000) % 10,
@@ -760,13 +882,140 @@ int __init omap2_clk_init(void)
 	 */
 	clk_enable_init_clocks();
 
-	/* Avoid sleeping during omap2_clk_prepare_for_reboot() */
-	/* REVISIT: not yet ready for 343x */
-#if 0
-	vclk = clk_get(NULL, "virt_prcm_set");
-	sclk = clk_get(NULL, "sys_ck");
-#endif
 	return 0;
 }
 
+unsigned long get_freq(struct omap_opp *opp_freq_table,
+		      unsigned short opp)
+{
+	struct omap_opp *prcm_config;
+	prcm_config = opp_freq_table;
+
+	for (; prcm_config->opp_id; prcm_config--)
+		if (prcm_config->opp_id == opp)
+			return prcm_config->rate;
+	return 0;
+}
+
+unsigned short get_opp(struct omap_opp *opp_freq_table,
+		     unsigned long freq)
+{
+	struct omap_opp *prcm_config;
+	prcm_config = opp_freq_table;
+
+	if (prcm_config->rate <= freq)
+		return prcm_config->opp_id; /* Return the Highest OPP */
+	for (; prcm_config->rate; prcm_config--)
+		if (prcm_config->rate < freq)
+			return (prcm_config+1)->opp_id;
+		else if (prcm_config->rate == freq)
+			return prcm_config->opp_id;
+	/* Return the least OPP */
+	return (prcm_config+1)->opp_id;
+}
+
+static void omap3_table_recalc(struct clk *clk)
+{
+	if ((clk != &virt_vdd1_prcm_set) && (clk != &virt_vdd2_prcm_set))
+		return;
+
+	if ((curr_vdd1_prcm_set) && (clk == &virt_vdd1_prcm_set))
+		clk->rate = curr_vdd1_prcm_set->rate;
+	else if ((curr_vdd2_prcm_set) && (clk == &virt_vdd2_prcm_set))
+		clk->rate = curr_vdd2_prcm_set->rate;
+	pr_debug("CLK RATE:%lu\n", clk->rate);
+}
+
+static long omap3_round_to_table_rate(struct clk *clk, unsigned long rate)
+{
+	struct omap_opp *ptr;
+	long highest_rate;
+
+	if ((clk != &virt_vdd1_prcm_set) && (clk != &virt_vdd2_prcm_set))
+		return -EINVAL;
+
+	if (!mpu_opps || !dsp_opps || !l3_opps)
+		return -EINVAL;
+
+	highest_rate = -EINVAL;
+
+	if (clk == &virt_vdd1_prcm_set)
+		ptr = mpu_opps + MAX_VDD1_OPP;
+	else
+		ptr = dsp_opps + MAX_VDD2_OPP;
+
+	for (; ptr->rate; ptr--) {
+		highest_rate = ptr->rate;
+		pr_debug("Highest speed : %lu, rate: %lu\n", highest_rate,
+								rate);
+		if (ptr->rate <= rate)
+			break;
+	}
+	return highest_rate;
+}
+
+static int omap3_select_table_rate(struct clk *clk, unsigned long rate)
+{
+	struct omap_opp *prcm_vdd = NULL;
+	unsigned long found_speed = 0, curr_mpu_speed;
+	int index = 0;
+	int l3_div;
+	int ret;
+
+	if ((clk != &virt_vdd1_prcm_set) && (clk != &virt_vdd2_prcm_set))
+		return -EINVAL;
+
+	if (!mpu_opps || !dsp_opps || !l3_opps)
+		return -EINVAL;
+
+	if (clk == &virt_vdd1_prcm_set) {
+		prcm_vdd = mpu_opps + MAX_VDD1_OPP;
+		index = MAX_VDD1_OPP;
+	} else if (clk == &virt_vdd2_prcm_set) {
+		prcm_vdd = l3_opps + MAX_VDD2_OPP;
+		index = MAX_VDD2_OPP;
+	}
+
+	for (; prcm_vdd && prcm_vdd->rate; prcm_vdd--, index--) {
+		if (prcm_vdd->rate <= rate) {
+			found_speed = prcm_vdd->rate;
+			pr_debug("Found speed = %lu\n", found_speed);
+			break;
+		}
+	}
+
+	if (!found_speed) {
+		printk(KERN_INFO "Could not set table rate to %luMHz\n",
+		       rate / 1000000);
+		return -EINVAL;
+	}
+
+
+	if (clk == &virt_vdd1_prcm_set) {
+		curr_mpu_speed = curr_vdd1_prcm_set->rate;
+		clk->rate = prcm_vdd->rate;
+		clk_set_rate(dpll1_clk, prcm_vdd->rate);
+		clk_set_rate(dpll2_clk, dsp_opps[index].rate);
+		curr_vdd1_prcm_set = prcm_vdd;
+#ifndef CONFIG_CPU_FREQ
+		/*Update loops_per_jiffy if processor speed is being changed*/
+		loops_per_jiffy = compute_lpj(loops_per_jiffy,
+					curr_mpu_speed/1000, found_speed/1000);
 #endif
+	} else {
+		l3_div = cm_read_mod_reg(CORE_MOD, CM_CLKSEL) &
+			OMAP3430_CLKSEL_L3_MASK;
+		ret = clk_set_rate(dpll3_clk, prcm_vdd->rate * l3_div);
+		if (ret)
+			return ret;
+		curr_vdd2_prcm_set = prcm_vdd;
+	}
+
+#ifdef CONFIG_PM
+	omap3_save_scratchpad_contents();
+#endif
+
+	return 0;
+}
+
+#endif /* CONFIG_ARCH_OMAP3 */

@@ -31,3 +31,8 @@ obj-$(CONFIG_OMAP_MBOX_FWK) += mailbox.o
 
 # OMAP2/3 Display Subsystem
 obj-y += dss/
+
+# Power Management
+obj-$(CONFIG_OMAP_PM_NOOP) += omap-pm-noop.o
+obj-$(CONFIG_OMAP_PM_SRF) += omap-pm-srf.o \
+				resource.o

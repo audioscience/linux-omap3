@@ -591,8 +591,8 @@ u32 omap2_clksel_round_rate_div(struct clk *clk, unsigned long target_rate,
 	const struct clksel_rate *clkr;
 	u32 last_div = 0;
 
-	printk(KERN_INFO "clock: clksel_round_rate_div: %s target_rate %ld\n",
-	       clk->name, target_rate);
+	pr_debug("clock: clksel_round_rate_div: %s target_rate %ld\n",
+		 clk->name, target_rate);
 
 	*new_div = 1;
 
@@ -606,7 +606,7 @@ u32 omap2_clksel_round_rate_div(struct clk *clk, unsigned long target_rate,
 
 		/* Sanity check */
 		if (clkr->div <= last_div)
-			printk(KERN_ERR "clock: clksel_rate table not sorted "
+			pr_err("clock: clksel_rate table not sorted "
 			       "for clock %s", clk->name);
 
 		last_div = clkr->div;
@@ -618,7 +618,7 @@ u32 omap2_clksel_round_rate_div(struct clk *clk, unsigned long target_rate,
 	}
 
 	if (!clkr->div) {
-		printk(KERN_ERR "clock: Could not find divisor for target "
+		pr_err("clock: Could not find divisor for target "
 		       "rate %ld for clock %s parent %s\n", target_rate,
 		       clk->name, clk->parent->name);
 		return ~0;
@@ -626,8 +626,8 @@ u32 omap2_clksel_round_rate_div(struct clk *clk, unsigned long target_rate,
 
 	*new_div = clkr->div;
 
-	printk(KERN_INFO "clock: new_div = %d, new_rate = %ld\n", *new_div,
-	       (clk->parent->rate / clkr->div));
+	pr_debug("clock: new_div = %d, new_rate = %ld\n", *new_div,
+		 (clk->parent->rate / clkr->div));
 
 	return (clk->parent->rate / clkr->div);
 }
@@ -783,11 +783,42 @@ int omap2_clksel_set_rate(struct clk *clk, unsigned long rate)
 int omap2_clk_set_rate(struct clk *clk, unsigned long rate)
 {
 	int ret = -EINVAL;
+	unsigned long temp_rate;
+	int r;
 
-	pr_debug("clock: set_rate for clock %s to rate %ld\n", clk->name, rate);
+	if (!clk->set_rate)
+		return -EINVAL;
 
-	if (clk->set_rate != NULL)
-		ret = clk->set_rate(clk, rate);
+	if (clk->notifier_count) {
+		clk->temp_rate = rate;
+		propagate_rate(clk, TEMP_RATE);
+	}
+
+	r = omap_clk_notify_downstream(clk, CLK_PREPARE_RATE_CHANGE);
+	if (r == NOTIFY_BAD) {
+		pr_debug("clock: %s: clk_set_rate() aborted by notifier\n",
+			 clk->name);
+		omap_clk_notify_downstream(clk, CLK_ABORT_RATE_CHANGE);
+		return -EAGAIN;
+	}
+
+	pr_debug("clock: %s: set_rate from %ld Hz to %ld Hz\n", clk->name,
+		 clk->rate, rate);
+
+	omap_clk_notify_downstream(clk, CLK_PRE_RATE_CHANGE);
+
+	ret = clk->set_rate(clk, rate);
+
+	if (ret == 0) {
+		temp_rate = clk->rate;
+		clk->rate = clk->temp_rate;
+		omap_clk_notify_downstream(clk, CLK_POST_RATE_CHANGE);
+		clk->rate = temp_rate;
+	} else {
+		pr_debug("clock: %s: clk_set_rate() aborted by failed "
+			 "set_rate(): %d\n", clk->name, ret);
+		omap_clk_notify_downstream(clk, CLK_ABORT_RATE_CHANGE);
+	}
 
 	return ret;
 }
@@ -829,6 +860,8 @@ static u32 _omap2_clksel_get_src_field(struct clk *src_clk, struct clk *clk,
 int omap2_clk_set_parent(struct clk *clk, struct clk *new_parent)
 {
 	u32 field_val, v, parent_div;
+	int r;
+	unsigned long orig_rate, new_rate;
 
 	if (!clk->clksel)
 		return -EINVAL;
@@ -836,6 +869,26 @@ int omap2_clk_set_parent(struct clk *clk, struct clk *new_parent)
 	parent_div = _omap2_clksel_get_src_field(new_parent, clk, &field_val);
 	if (!parent_div)
 		return -EINVAL;
+
+	orig_rate = clk->rate;
+	new_rate = new_parent->rate;
+	if (parent_div > 0)
+		new_rate /= parent_div;
+
+	if (clk->notifier_count) {
+		clk->temp_rate = new_rate;
+		propagate_rate(clk, TEMP_RATE);
+	}
+
+	r = omap_clk_notify_downstream(clk, CLK_PREPARE_RATE_CHANGE);
+	if (r == NOTIFY_BAD) {
+		pr_debug("clock: %s: clk_set_parent() aborted by notifier\n",
+			 clk->name);
+		omap_clk_notify_downstream(clk, CLK_ABORT_RATE_CHANGE);
+		return -EAGAIN;
+	}
+
+	omap_clk_notify_downstream(clk, CLK_PRE_RATE_CHANGE);
 
 	if (clk->usecount > 0)
 		_omap2_clk_disable(clk);
@@ -854,14 +907,12 @@ int omap2_clk_set_parent(struct clk *clk, struct clk *new_parent)
 
 	clk->parent = new_parent;
 
-	/* CLKSEL clocks follow their parents' rates, divided by a divisor */
-	clk->rate = new_parent->rate;
+	pr_debug("clock: %s: set parent to %s (orig rate %ld, new rate %ld)\n",
+		 clk->name, clk->parent->name, orig_rate, new_rate);
 
-	if (parent_div > 0)
-		clk->rate /= parent_div;
+	omap_clk_notify_downstream(clk, CLK_POST_RATE_CHANGE);
 
-	pr_debug("clock: set parent of %s to %s (new rate %ld)\n",
-		 clk->name, clk->parent->name, clk->rate);
+	clk->rate = new_rate;
 
 	return 0;
 }
@@ -1082,6 +1133,8 @@ void omap2_clk_disable_unused(struct clk *clk)
 		omap2_clk_disable(clk);
 	} else
 		_omap2_clk_disable(clk);
+	if (clk->clkdm.ptr != NULL)
+		pwrdm_clkdm_state_switch(clk->clkdm.ptr);
 }
 #endif
 
