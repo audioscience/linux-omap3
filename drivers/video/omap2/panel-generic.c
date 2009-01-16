@@ -64,10 +64,17 @@ static struct omap_panel generic_panel = {
 	.resume		= generic_panel_resume,
 
 	.timings = {
-		/* 640 x 480 @ 60 Hz  Reduced blanking VESA CVT 0.31M3-R */
-		.x_res		= 640,
+		/* 1280 x 720 @ 60 Hz  Reduced blanking VESA CVT 0.31M3-R */
+#if defined (CONFIG_RES_720P)
+		.x_res		= 1280,
+		.y_res		= 720,
+		.pixel_clock	= 74250,
+#elif defined (CONFIG_RES_480P)
+		/* 720 x 480 @ 60 Hz  Reduced blanking VESA CVT 0.31M3-R */
+		.x_res		= 720,
 		.y_res		= 480,
-		.pixel_clock	= 23500,
+		.pixel_clock	= 30000,
+#endif
 		.hfp		= 48,
 		.hsw		= 32,
 		.hbp		= 80,
