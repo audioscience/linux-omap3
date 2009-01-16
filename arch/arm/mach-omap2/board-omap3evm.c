@@ -62,20 +62,6 @@ static struct platform_device omap3evm_smc911x_device = {
 	.resource	= &omap3evm_smc911x_resources [0],
 };
 
-#ifdef CONFIG_FB_OMAP2
-static struct resource omap3evm_vout_resource[3 - CONFIG_FB_OMAP2_NUM_FBS] = {
-};
-#else
-static struct resource omap3evm_vout_resource[2] = {
-};
-#endif
-
-static struct platform_device omap3evm_vout_device = {
-	.name			= "omap_vout",
-	.num_resources	= ARRAY_SIZE(omap3evm_vout_resource),
-	.resource 		= &omap3evm_vout_resource[0],
-	.id		= -1,
-};
 static inline void __init omap3evm_init_smc911x(void)
 {
 	int eth_cs;
@@ -173,6 +159,24 @@ static int __init omap3_evm_i2c_init(void)
 	omap_register_i2c_bus(3, 400, NULL, 0);
 	return 0;
 }
+/*
+ * For new frame buffer driver based on DSS2 library
+ */
+#ifdef CONFIG_OMAP2_DSS
+
+#ifdef CONFIG_FB_OMAP2
+static struct resource omap3evm_vout_resource[3 - CONFIG_FB_OMAP2_NUM_FBS] = {
+};
+#else /* CONFIG_FB_OMAP2 */
+static struct resource omap3evm_vout_resource[2] = {
+};
+#endif /* CONFIG_FB_OMAP2 */
+static struct platform_device omap3evm_vout_device = {
+	.name			= "omap_vout",
+	.num_resources	= ARRAY_SIZE(omap3evm_vout_resource),
+	.resource 		= &omap3evm_vout_resource[0],
+	.id		= -1,
+};
 
 #define LCD_PANEL_LR		2
 #define LCD_PANEL_UD		3
@@ -368,6 +372,15 @@ static struct platform_device omap3_evm_dss_device = {
 		.platform_data = &omap3_evm_dss_data,
 	},
 };
+#else /* CONFIG_OMAP2_DSS */
+static struct platform_device omap3_evm_lcd_device = {
+	.name		= "omap3evm_lcd",
+	.id		= -1,
+};
+static struct omap_lcd_config omap3_evm_lcd_config __initdata = {
+	.ctrl_name	= "internal",
+};
+#endif /* CONFIG_OMAP2_DSS */
 
 static void ads7846_dev_init(void)
 {
@@ -425,12 +438,19 @@ static void __init omap3_evm_init_irq(void)
 
 static struct omap_board_config_kernel omap3_evm_config[] __initdata = {
 	{ OMAP_TAG_UART,	&omap3_evm_uart_config },
+#ifndef CONFIG_OMAP2_DSS
+	{ OMAP_TAG_LCD,		&omap3_evm_lcd_config },
+#endif
 };
 
 static struct platform_device *omap3_evm_devices[] __initdata = {
+#ifdef CONFIG_OMAP2_DSS
 	&omap3_evm_dss_device,
-	&omap3evm_smc911x_device,
 	&omap3evm_vout_device,
+#else /* CONFIG_OMAP2_DSS */
+	&omap3_evm_lcd_device,
+#endif /* CONFIG_OMAP2_DSS */
+	&omap3evm_smc911x_device,
 
 };
 
@@ -461,7 +481,9 @@ static void __init omap3_evm_init(void)
 	usb_ehci_init();
 	omap3evm_flash_init();
 	ads7846_dev_init();
+#ifdef CONFIG_OMAP2_DSS
 	omap3_evm_display_init();
+#endif /* CONFIG_OMAP2_DSS */
 }
 
 static void __init omap3_evm_map_io(void)
