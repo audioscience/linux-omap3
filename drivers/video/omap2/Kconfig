@@ -44,6 +44,24 @@ config PANEL_GENERIC
         help
 	  Generic panel driver.
 	  Used for DVI output for Beagle and OMAP3 SDP.
+choice
+	prompt "Resolution"
+	depends on PANEL_GENERIC
+	default RES_480P
+
+config RES_480P
+	bool "Use 480P resolution"
+	help
+	  Select this option if you want to use the 480P (720x480)
+	  resolution on DVI output.
+
+config RES_720P
+	bool "Use 720P resolution"
+	help
+	  Select this option if you want to use the 720P (1280x720)
+	  resolution on DVI output.
+
+endchoice
 
 config PANEL_SHARP_LS037V7DW01
         tristate "Sharp LS037V7DW01 LCD Panel"
