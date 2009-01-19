@@ -152,9 +152,11 @@ void __init omap24xx_check_revision(void)
 	pr_info("\n");
 }
 
+#define OMAP_CTRL_STATUS	OMAP2_IO_ADDRESS(0x4800244C)
+
 void __init omap34xx_check_revision(void)
 {
-	u32 cpuid, idcode;
+	u32 cpuid, idcode, ctrl_status;
 	u16 hawkeye;
 	u8 rev;
 	char *rev_name = "ES1.0";
@@ -180,24 +182,76 @@ void __init omap34xx_check_revision(void)
 	hawkeye = (idcode >> 12) & 0xffff;
 	rev = (idcode >> 28) & 0xff;
 
+	/*
+	 * The OMAP35x family was derived off the OMAP34xx ES2.0 Si.
+	 * Added specific check for the OMAP35x family here.
+	 */
+
 	if (hawkeye == 0xb7ae) {
-		switch (rev) {
-		case 0:
-			omap_revision = OMAP3430_REV_ES2_0;
-			rev_name = "ES2.0";
-			break;
-		case 2:
-			omap_revision = OMAP3430_REV_ES2_1;
-			rev_name = "ES2.1";
-			break;
-		case 3:
-			omap_revision = OMAP3430_REV_ES3_0;
-			rev_name = "ES3.0";
-			break;
-		default:
-			/* Use the latest known revision as default */
-			omap_revision = OMAP3430_REV_ES3_0;
-			rev_name = "Unknown revision\n";
+		if (cpu_is_omap35xx()) {
+			omap_revision = OMAP35XX_CLASS ;
+
+			/*
+			 * Get the chip ID
+			 */
+			ctrl_status = __raw_readl(OMAP_CTRL_STATUS);
+
+			switch (ctrl_status) {
+			case 0x05C00 :
+				omap_revision |= OMAP3503_MASK;
+				break;
+			case 0x01C00 :
+				omap_revision |= OMAP3515_MASK;
+				break;
+			case 0x04C00 :
+				omap_revision |= OMAP3525_MASK;
+				break;
+			case 0x00C00 :
+				omap_revision |= OMAP3530_MASK;
+				break;
+			}
+
+			/*
+			 * Get the silicon version information
+			 */
+			switch (rev) {
+			case 1:
+				omap_revision |= OMAP35XX_MASK_ES2_0;
+				rev_name = "ES2.0";
+				break;
+			case 2:
+				omap_revision |= OMAP35XX_MASK_ES2_1;
+				rev_name = "ES2.1";
+				break;
+			case 3:
+				omap_revision |= OMAP35XX_MASK_ES3_0;
+				rev_name = "ES3.0";
+				break;
+			default:
+				/* Use the latest known revision as default */
+				omap_revision |= OMAP35XX_MASK_ES3_0;
+				rev_name = "Unknown revision\n";
+			}
+		}
+		else {
+			switch (rev) {
+			case 0:
+				omap_revision = OMAP3430_REV_ES2_0;
+				rev_name = "ES2.0";
+				break;
+			case 2:
+				omap_revision = OMAP3430_REV_ES2_1;
+				rev_name = "ES2.1";
+				break;
+			case 3:
+				omap_revision = OMAP3430_REV_ES3_0;
+				rev_name = "ES3.0";
+				break;
+			default:
+				/* Use the latest known revision as default */
+				omap_revision = OMAP3430_REV_ES3_0;
+				rev_name = "Unknown revision\n";
+			}
 		}
 	}
 
