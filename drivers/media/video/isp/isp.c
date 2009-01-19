@@ -1502,7 +1502,10 @@ void isp_vbq_done(unsigned long status, isp_vbq_callback_ptr arg1, void *arg2)
 		spin_lock(&isp_obj.isp_temp_buf_lock);
 		if (ispmodule_obj.isp_temp_state == ISP_BUF_INIT) {
 			spin_unlock(&isp_obj.isp_temp_buf_lock);
-			ispccdc_enable(0);
+			/*
+			 * Temoerory workaroung for ISP-CCDC hang issue
+			 */
+//			ispccdc_enable(0);
 			return;
 		}
 		spin_unlock(&isp_obj.isp_temp_buf_lock);
