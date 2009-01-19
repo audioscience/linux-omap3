@@ -43,7 +43,7 @@
 #include <mach/omap-pm.h>
 #include <mach/display.h>
 
-#ifdef CONFIG_VIDEO_OMAP3
+#ifdef CONFIG_VIDEO_OMAP3_CAM
 #include <media/v4l2-int-device.h>
 #include <../drivers/media/video/omap34xxcam.h>
 #include <../drivers/media/video/isp/ispreg.h>
@@ -313,7 +313,7 @@ static struct spi_board_info sdp3430_spi_board_info[] __initdata = {
 	},
 };
 
-#ifdef CONFIG_VIDEO_OMAP3
+#ifdef CONFIG_VIDEO_OMAP3_CAM
 static void __iomem *fpga_map_addr;
 
 static void enable_fpga_vio_1v8(u8 enable)

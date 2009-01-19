@@ -44,10 +44,10 @@
 #include <media/v4l2-int-device.h>
 #include <media/tvp514x.h>
 /* include V4L2 camera driver related header file */
-#if defined(CONFIG_VIDEO_OMAP3) || defined(CONFIG_VIDEO_OMAP3_MODULE)
+#if defined(CONFIG_VIDEO_OMAP3_CAM) || defined(CONFIG_VIDEO_OMAP3_CAM_MODULE)
 #include <../drivers/media/video/omap34xxcam.h>
 #include <../drivers/media/video/isp/ispreg.h>
-#endif				/* #ifdef CONFIG_VIDEO_OMAP3 */
+#endif				/* #ifdef CONFIG_VIDEO_OMAP3_CAM */
 #endif				/* #ifdef CONFIG_VIDEO_TVP514X*/
 
 #include "board-omap3evm-dc.h"
@@ -103,7 +103,7 @@
 #define BUS_CONTROL2_DEF		(0x010Au)	/* Disable all mux */
 
 #if defined(CONFIG_VIDEO_TVP514X) || defined(CONFIG_VIDEO_TVP514X_MODULE)
-#if defined(CONFIG_VIDEO_OMAP3) || defined(CONFIG_VIDEO_OMAP3_MODULE)
+#if defined(CONFIG_VIDEO_OMAP3_CAM) || defined(CONFIG_VIDEO_OMAP3_CAM_MODULE)
 static struct omap34xxcam_hw_config decoder_hwc = {
 	.dev_index = 0,
 	.dev_minor = 0,
@@ -168,7 +168,7 @@ static int tvp5146_ifparm(struct v4l2_ifparm *p)
  */
 static int tvp5146_set_prv_data(void *priv)
 {
-#if defined(CONFIG_VIDEO_OMAP3) || defined(CONFIG_VIDEO_OMAP3_MODULE)
+#if defined(CONFIG_VIDEO_OMAP3_CAM) || defined(CONFIG_VIDEO_OMAP3_CAM_MODULE)
 	struct omap34xxcam_hw_config *hwc = priv;
 
 	if (priv == NULL)
@@ -271,7 +271,7 @@ static int tvp5146_power_set(enum v4l2_power power)
 {
 	switch (power) {
 	case V4L2_POWER_OFF:
-#if defined(CONFIG_VIDEO_OMAP3) || defined(CONFIG_VIDEO_OMAP3_MODULE)
+#if defined(CONFIG_VIDEO_OMAP3_CAM) || defined(CONFIG_VIDEO_OMAP3_CAM_MODULE)
 		if (isp_free_interface(ISP_PARLL_YUV_BT))
 			return -ENODEV;
 #endif
@@ -288,7 +288,7 @@ static int tvp5146_power_set(enum v4l2_power power)
 		if (omap3evmdc_set_mux(MUX_TVP5146, ENABLE_MUX))
 			return -ENODEV;
 
-#if defined(CONFIG_VIDEO_OMAP3) || defined(CONFIG_VIDEO_OMAP3_MODULE)
+#if defined(CONFIG_VIDEO_OMAP3_CAM) || defined(CONFIG_VIDEO_OMAP3_CAM_MODULE)
 		if (isp_request_interface(ISP_PARLL_YUV_BT))
 			return -ENODEV;
 

@@ -16,4 +16,4 @@ obj-$(CONFIG_VIDEO_OMAP34XX_ISP_RESIZER) += \
 
 endif
 
-obj-$(CONFIG_VIDEO_OMAP3) += isp-mod.o
+obj-$(CONFIG_VIDEO_OMAP3_ISP) += isp-mod.o
