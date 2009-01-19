@@ -41,9 +41,9 @@
 
 #include "sdram-micron-mt46h32m32lf-6.h"
 #include "twl4030-generic-scripts.h"
-#include "mmc-twl4030.h"
 #include <linux/regulator/machine.h>
 #include <linux/regulator/driver.h>
+#include "hsmmc.h"
 
 #define TPS6235X_REG_MAX	3
 
@@ -435,63 +435,6 @@ static struct omap_display_data omap3_evm_display_data_dvi = {
 	.panel_disable = omap3_evm_panel_disable_dvi,
 };
 
-#if defined(CONFIG_OMAP3EVM_PR785)
-/*
- * Read a value from a register in an tps_6235x device.
- * The value is returned in 'val'.
- * Returns zero if successful, or non-zero otherwise.
- */
-int tps_6235x_read_reg(struct i2c_client *client, u8 reg, u8 *val)
-{
-	u8 data;
-
-	if (!client->adapter)
-		return -ENODEV;
-
-	if (reg > TPS6235X_REG_MAX)
-		return -1;
-
-	data = i2c_smbus_read_byte_data(client, reg);
-	*val = data;
-	return 0;
-}
-
-/*
- * Write a value to a register in an tps_6235x device.
- * Returns zero if successful, or non-zero otherwise.
- */
-int tps_6235x_write_reg(struct i2c_client *client, u8 reg, u8 val)
-{
-	int err;
-	int retry = 0;
-
-	if (!client->adapter)
-		return -ENODEV;
-
-	if (reg > TPS6235X_REG_MAX)
-		return -1;
-
-again:
-	err = i2c_smbus_write_byte_data(client, reg, val);
-	if (err >= 0)
-		return 0;
-
-	dev_err(&client->dev,
-		"wrote 0x%.2x to offset 0x%.2x error %d\n", val, reg, err);
-
-	/* Try 3 times */
-	if (retry <= 3) {
-		dev_info(&client->dev, "retry ... %d\n", retry);
-		retry++;
-		schedule_timeout(msecs_to_jiffies(20));
-		goto again;
-	}
-	return err;
-}
-#endif
-
-/*-------------------------------------------------------------------*/
-
 static struct platform_device omap3_evm_lcd_device = {
 	.name		= "omap3evm_lcd",
 	.id		= -1,
@@ -594,17 +537,75 @@ static struct platform_device *omap3_evm_devices[] __initdata = {
 
 };
 
-#if defined(CONFIG_TWL4030_CORE)
-static struct twl4030_hsmmc_info mmc[] __initdata = {
+#if defined(CONFIG_OMAP3EVM_PR785)
+/*
+ * Read a value from a register in an tps_6235x device.
+ * The value is returned in 'val'.
+ * Returns zero if successful, or non-zero otherwise.
+ */
+int tps_6235x_read_reg(struct i2c_client *client, u8 reg, u8 *val)
+{
+	u8 data;
+
+	if (!client->adapter)
+		return -ENODEV;
+
+	if (reg > TPS6235X_REG_MAX)
+		return -1;
+
+	data = i2c_smbus_read_byte_data(client, reg);
+	*val = data;
+	return 0;
+}
+
+/*
+ * Write a value to a register in an tps_6235x device.
+ * Returns zero if successful, or non-zero otherwise.
+ */
+int tps_6235x_write_reg(struct i2c_client *client, u8 reg, u8 val)
+{
+	int err;
+	int retry = 0;
+
+	if (!client->adapter)
+		return -ENODEV;
+
+	if (reg > TPS6235X_REG_MAX)
+		return -1;
+
+again:
+	err = i2c_smbus_write_byte_data(client, reg, val);
+	if (err >= 0)
+		return 0;
+
+	dev_err(&client->dev,
+		"wrote 0x%.2x to offset 0x%.2x error %d\n", val, reg, err);
+
+	/* Try 3 times */
+	if (retry <= 3) {
+		dev_info(&client->dev, "retry ... %d\n", retry);
+		retry++;
+		schedule_timeout(msecs_to_jiffies(20));
+		goto again;
+	}
+	return err;
+}
+#endif
+
+static struct hsmmc_info mmc[] __initdata = {
 	{
 		.mmc		= 1,
 		.wires		= 4,
+#if defined(CONFIG_OMAP3EVM_PR785)
+		.gpio_cd	= 140,
+#endif
+#if defined(CONFIG_TWL4030_CORE)
 		.gpio_cd	= -EINVAL,
+#endif
 		.gpio_wp	= -EINVAL,
 	},
 	{}	/* Terminator */
 };
-#endif
 
 #if defined(CONFIG_OMAP3EVM_PR785)
 static void omap_init_pr785(void)
@@ -638,6 +639,7 @@ static void __init omap3_evm_init(void)
 #endif
 #if defined(CONFIG_OMAP3EVM_PR785)
 	omap_init_pr785();
+	pr785_hsmmc_init(mmc);
 #endif
 	usb_musb_init();
 	usb_ehci_init();

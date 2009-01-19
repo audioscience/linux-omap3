@@ -60,10 +60,18 @@ obj-$(CONFIG_MACH_OMAP_3430SDP)		+= board-3430sdp.o \
 					   usb-ehci.o \
 					   board-3430sdp-flash.o
 obj-$(CONFIG_MACH_OMAP3EVM)		+= board-omap3evm.o \
-					   mmc-twl4030.o \
 					   usb-musb.o usb-ehci.o \
 					   board-omap3evm-flash.o \
-					   twl4030-generic-scripts.o
+					   twl4030-generic-scripts.o \
+					   hsmmc.o
+
+ifeq ($(CONFIG_OMAP3EVM_PR785),y)
+obj-$(CONFIG_MACH_OMAP3EVM)             += mmc-pr785.o
+endif
+ifeq ($(CONFIG_TWL4030_CORE),y)
+obj-$(CONFIG_MACH_OMAP3EVM)             += mmc-twl4030.o
+endif
+
 obj-$(CONFIG_MACH_OMAP3EVM_DC)		+= board-omap3evm-dc.o
 obj-$(CONFIG_MACH_OMAP3_BEAGLE)		+= board-omap3beagle.o \
 					   usb-musb.o usb-ehci.o \
