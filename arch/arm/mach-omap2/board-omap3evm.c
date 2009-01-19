@@ -435,11 +435,6 @@ static struct omap_display_data omap3_evm_display_data_dvi = {
 	.panel_disable = omap3_evm_panel_disable_dvi,
 };
 
-static struct platform_device omap3_evm_lcd_device = {
-	.name		= "omap3evm_lcd",
-	.id		= -1,
-};
-
 static struct omap_dss_platform_data omap3_evm_dss_data = {
 	.num_displays = 3,
 	.displays = {
