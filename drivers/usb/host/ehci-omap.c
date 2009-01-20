@@ -324,7 +324,7 @@ static int omap_start_ehc(struct platform_device *dev, struct usb_hcd *hcd)
  *
  */
 
-	if (omap_rev() > OMAP3430_REV_ES2_1) {
+	if (omap_silicon_rev() > OMAP35XX_MASK_ES2_1) {
 
 #ifndef CONFIG_OMAP_EHCI_PHY_MODE_PORT1
 		uhh_hostconfig_value |=
@@ -348,7 +348,7 @@ static int omap_start_ehc(struct platform_device *dev, struct usb_hcd *hcd)
 
 	omap_writel(uhh_hostconfig_value, OMAP_UHH_HOSTCONFIG);
 
-	if (omap_rev() < OMAP3430_REV_ES3_0) {
+	if (omap_silicon_rev() < OMAP35XX_MASK_ES3_0) {
 		/* Ensure that BYPASS is set */
 		while (omap_readl(OMAP_UHH_HOSTCONFIG)
 				& (1 << OMAP_UHH_HOSTCONFIG_ULPI_BYPASS_SHIFT))
