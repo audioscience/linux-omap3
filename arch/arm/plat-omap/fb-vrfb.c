@@ -7,10 +7,31 @@
 #define DBG(format, ...)
 #endif
 
-#define SMS_ROT_VIRT_BASE(context, rot) \
-		(((context >= 4) ? 0xD0000000 : 0x70000000) \
-		| 0x4000000 * (context) \
-		| 0x1000000 * (rot))
+static unsigned int sms_rot_virt_base(int context, int rot)
+{
+        switch (context)
+        {
+        case 0:
+        case 1:
+        case 2:
+        case 3:
+                return (0x70000000 | 0x4000000 * (context) | 0x1000000 * (rot));
+                break;
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+                return (0xE0000000 | 0x4000000 * (context - 4) | 0x1000000 * (rot));
+                break;
+        case 8:
+        case 9:
+        case 10:
+        case 11:
+                return (0xF0000000 | 0x4000000 * (context - 8) | 0x1000000 * (rot));
+        }
+        return -1;
+}
+#define SMS_ROT_VIRT_BASE(context, rot) sms_rot_virt_base(context, rot)
 
 #define PAGE_WIDTH_EXP         5 /* Assuming SDRAM pagesize= 1024 */
 #define PAGE_HEIGHT_EXP        5 /* 1024 = 2^5 * 2^5 */
