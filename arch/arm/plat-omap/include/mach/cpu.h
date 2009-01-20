@@ -424,6 +424,7 @@ IS_OMAP_TYPE(3530, 0x3530)
 #define OMAP35XX_MASK_ES2_1	0x00002000
 #define OMAP35XX_MASK_ES3_0	0x00003000
 
+#define omap_silicon_rev()	(omap_rev() & 0xf000)
 /*
  * omap_chip bits
  *
