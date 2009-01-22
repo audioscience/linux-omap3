@@ -109,6 +109,7 @@ obj-$(CONFIG_VIDEO_OV7670) 	+= ov7670.o
 obj-$(CONFIG_VIDEO_TCM825X) += tcm825x.o
 obj-$(CONFIG_VIDEO_MT9P012)	+= mt9p012.o
 obj-$(CONFIG_VIDEO_DW9710) += dw9710.o
+obj-$(CONFIG_VIDEO_OV3640)     += ov3640.o
 
 obj-$(CONFIG_VIDEO_OMAP3) += omap/
 
