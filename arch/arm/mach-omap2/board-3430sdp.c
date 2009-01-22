@@ -47,6 +47,10 @@
 #include <media/v4l2-int-device.h>
 #include <../drivers/media/video/omap34xxcam.h>
 #include <../drivers/media/video/isp/ispreg.h>
+#define REG_SDP3430_FPGA_GPIO_2 (0x50)
+#define FPGA_SPR_GPIO1_3v3	(0x1 << 14)
+#define FPGA_GPIO6_DIR_CTRL	(0x1 << 6)
+static void __iomem *fpga_map_addr;
 #if defined(CONFIG_VIDEO_MT9P012) || defined(CONFIG_VIDEO_MT9P012_MODULE)
 /* Sensor specific GPIO signals */
 #define MT9P012_RESET_GPIO  	98
@@ -61,6 +65,22 @@
 
 #include <media/mt9p012.h>
 static enum v4l2_power mt9p012_previous_power = V4L2_POWER_OFF;
+#endif
+#if defined(CONFIG_VIDEO_OV3640) || defined(CONFIG_VIDEO_OV3640_MODULE)
+#include <../drivers/media/video/ov3640.h>
+#include <../drivers/media/video/isp/ispcsi2.h>
+static	struct omap34xxcam_hw_config *hwc;
+#define OV3640_CSI2_CLOCK_POLARITY	0	/* +/- pin order */
+#define OV3640_CSI2_DATA0_POLARITY	0	/* +/- pin order */
+#define OV3640_CSI2_DATA1_POLARITY	0	/* +/- pin order */
+#define OV3640_CSI2_CLOCK_LANE		1	 /* Clock lane position: 1 */
+#define OV3640_CSI2_DATA0_LANE		2	 /* Data0 lane position: 2 */
+#define OV3640_CSI2_DATA1_LANE		3	 /* Data1 lane position: 3 */
+#define OV3640_CSI2_PHY_THS_TERM	4
+#define OV3640_CSI2_PHY_THS_SETTLE	14
+#define OV3640_CSI2_PHY_TCLK_TERM	0
+#define OV3640_CSI2_PHY_TCLK_MISS	1
+#define OV3640_CSI2_PHY_TCLK_SETTLE	14
 #endif
 #endif
 
@@ -536,6 +556,171 @@ static struct mt9p012_platform_data sdp3430_mt9p012_platform_data = {
 
 #endif
 
+#if defined(CONFIG_VIDEO_OV3640) || defined(CONFIG_VIDEO_OV3640_MODULE)
+
+static struct omap34xxcam_sensor_config ov3640_hwc = {
+	.sensor_isp = 0,
+#if defined(CONFIG_VIDEO_OV3640_CSI2)
+	.xclk = OMAP34XXCAM_XCLK_B,
+#else
+	.xclk = OMAP34XXCAM_XCLK_A,
+#endif
+	.capture_mem = PAGE_ALIGN(2048 * 1536 * 2) * 2,
+};
+
+static struct isp_interface_config ov3640_if_config = {
+	.ccdc_par_ser = ISP_CSIA,
+	.dataline_shift = 0x0,
+	.hsvs_syncdetect = ISPCTRL_SYNC_DETECT_VSRISE,
+	.strobe = 0x0,
+	.prestrobe = 0x0,
+	.shutter = 0x0,
+	.prev_sph = 2,
+	.prev_slv = 1,
+	.wenlog = ISPCCDC_CFG_WENLOG_AND,
+	.u.csi.crc = 0x0,
+	.u.csi.mode = 0x0,
+	.u.csi.edge = 0x0,
+	.u.csi.signalling = 0x0,
+	.u.csi.strobe_clock_inv = 0x0,
+	.u.csi.vs_edge = 0x0,
+	.u.csi.channel = 0x1,
+	.u.csi.vpclk = 0x1,
+	.u.csi.data_start = 0x0,
+	.u.csi.data_size = 0x0,
+	.u.csi.format = V4L2_PIX_FMT_SGRBG10,
+};
+
+static int ov3640_sensor_set_prv_data(void *priv)
+{
+
+	hwc = priv;
+	hwc->u.sensor.xclk = ov3640_hwc.xclk;
+	hwc->u.sensor.sensor_isp = ov3640_hwc.sensor_isp;
+	hwc->u.sensor.capture_mem = ov3640_hwc.capture_mem;
+	hwc->dev_index = 1;
+	hwc->dev_minor = 4;
+	hwc->dev_type = OMAP34XXCAM_SLAVE_SENSOR;
+	return 0;
+}
+
+static int ov3640_sensor_power_set(enum v4l2_power power)
+{
+	struct isp_csi2_lanes_cfg lanecfg;
+	struct isp_csi2_phy_cfg phyconfig;
+	static enum v4l2_power previous_power = V4L2_POWER_OFF;
+	switch (power) {
+	case V4L2_POWER_ON:
+		if (previous_power == V4L2_POWER_OFF)
+			isp_csi2_reset();
+
+		lanecfg.clk.pol = OV3640_CSI2_CLOCK_POLARITY;
+		lanecfg.clk.pos = OV3640_CSI2_CLOCK_LANE;
+	 	lanecfg.data[0].pol = OV3640_CSI2_DATA0_POLARITY;
+		lanecfg.data[0].pos = OV3640_CSI2_DATA0_LANE;
+		lanecfg.data[1].pol = OV3640_CSI2_DATA1_POLARITY;
+		lanecfg.data[1].pos = OV3640_CSI2_DATA1_LANE;
+		lanecfg.data[2].pol = 0;
+		lanecfg.data[2].pos = 0;
+		lanecfg.data[3].pol = 0;
+		lanecfg.data[3].pos = 0;
+		isp_csi2_complexio_lanes_config(&lanecfg);
+		isp_csi2_complexio_lanes_update(true);
+
+		phyconfig.ths_term = OV3640_CSI2_PHY_THS_TERM;
+		phyconfig.ths_settle = OV3640_CSI2_PHY_THS_SETTLE;
+		phyconfig.tclk_term = OV3640_CSI2_PHY_TCLK_TERM;
+		phyconfig.tclk_miss = OV3640_CSI2_PHY_TCLK_MISS;
+		phyconfig.tclk_settle = OV3640_CSI2_PHY_TCLK_SETTLE;
+		isp_csi2_phy_config(&phyconfig);
+		isp_csi2_phy_update(true);
+
+		isp_configure_interface(&ov3640_if_config);
+
+		if (previous_power == V4L2_POWER_OFF) {
+
+#ifdef CONFIG_TWL4030_CORE
+			/* turn on analog power */
+#if defined(CONFIG_VIDEO_OV3640_CSI2)
+			twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+					VAUX_1_8_V, TWL4030_VAUX4_DEDICATED);
+			twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+					VAUX_DEV_GRP_P1, TWL4030_VAUX4_DEV_GRP);
+#else
+			twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+					VAUX_2_8_V, TWL4030_VAUX2_DEDICATED);
+			twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+					VAUX_DEV_GRP_P1, TWL4030_VAUX2_DEV_GRP);
+#endif
+			udelay(100);
+#else
+#error "no power companion board defined!"
+#endif
+			/* Request and configure gpio pins */
+			if (omap_request_gpio(OV3640_RESET_GPIO) != 0) {
+				printk(KERN_ERR "Could not request GPIO %d",
+					OV3640_RESET_GPIO);
+				return -EIO;
+			}
+			if (omap_request_gpio(OV3640_STANDBY_GPIO) != 0) {
+				printk(KERN_ERR "Could not request GPIO %d",
+					OV3640_STANDBY_GPIO);
+				return -EIO;
+			}
+			/* set to output mode */
+			gpio_direction_output(OV3640_RESET_GPIO, true);
+			gpio_direction_output(OV3640_STANDBY_GPIO, true);
+
+			/* Turn ON Omnivision sensor */
+			gpio_set_value(OV3640_RESET_GPIO, 1);
+			gpio_set_value(OV3640_STANDBY_GPIO, 0);
+			udelay(100);
+
+			/* RESET Omnivision sensor */
+			gpio_set_value(OV3640_RESET_GPIO, 0);
+			udelay(100);
+			gpio_set_value(OV3640_RESET_GPIO, 1);
+
+			/* Wait 10 ms */
+			mdelay(10);
+			enable_fpga_vio_1v8(1);
+			udelay(100);
+		}
+		break;
+	case V4L2_POWER_OFF:
+		/* Power Down Sequence */
+		isp_csi2_complexio_power(ISP_CSI2_POWER_OFF);
+#ifdef CONFIG_TWL4030_CORE
+#if defined(CONFIG_VIDEO_OV3640_CSI2)
+		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+				VAUX_DEV_GRP_NONE, TWL4030_VAUX4_DEV_GRP);
+#else
+		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+				VAUX_DEV_GRP_NONE, TWL4030_VAUX2_DEV_GRP);
+#endif
+#else
+#error "no power companion board defined!"
+#endif
+		enable_fpga_vio_1v8(0);
+		omap_free_gpio(OV3640_RESET_GPIO);
+		iounmap(fpga_map_addr);
+		omap_free_gpio(OV3640_STANDBY_GPIO);
+		break;
+	case V4L2_POWER_STANDBY:
+		break;
+	}
+	previous_power = power;
+	return 0;
+}
+
+static struct ov3640_platform_data sdp3430_ov3640_platform_data = {
+	.power_set	 = ov3640_sensor_power_set,
+	.priv_data_set	 = ov3640_sensor_set_prv_data,
+	.default_regs	 = ov3640_common[0],
+};
+
+#endif
+
 #define SDP2430_LCD_PANEL_BACKLIGHT_GPIO	91
 #define SDP2430_LCD_PANEL_ENABLE_GPIO		154
 #define SDP3430_LCD_PANEL_BACKLIGHT_GPIO	24
@@ -932,8 +1117,16 @@ static struct i2c_board_info __initdata sdp3430_i2c_boardinfo_2[] = {
 	},
 #endif
 #endif
+#if defined(CONFIG_VIDEO_OV3640) || defined(CONFIG_VIDEO_OV3640_MODULE)
+	{
+		I2C_BOARD_INFO("ov3640", OV3640_I2C_ADDR),
+		.platform_data = &sdp3430_ov3640_platform_data,
+	},
+#endif
 };
 
+#define TWL4030_VAUX4_DEV_GRP	0x23
+#define TWL4030_VAUX4_DEDICATED	0x26
 
 static int __init omap3430_i2c_init(void)
 {
