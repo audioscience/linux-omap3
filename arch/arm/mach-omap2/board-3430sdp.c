@@ -453,6 +453,7 @@ static struct isp_interface_config mt9p012_if_config = {
 	.prev_sph = 2,
 	.prev_slv = 0,
 	.wenlog = ISPCCDC_CFG_WENLOG_OR,
+	.wait_hs_vs = 2,
 	.u.par.par_bridge = 0x0,
 	.u.par.par_clk_pol = 0x0,
 };
@@ -578,6 +579,7 @@ static struct isp_interface_config ov3640_if_config = {
 	.prev_sph = 2,
 	.prev_slv = 1,
 	.wenlog = ISPCCDC_CFG_WENLOG_AND,
+	.wait_hs_vs = 2,
 	.u.csi.crc = 0x0,
 	.u.csi.mode = 0x0,
 	.u.csi.edge = 0x0,
