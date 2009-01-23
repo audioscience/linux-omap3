@@ -400,6 +400,8 @@ void omap_sram_idle(void)
 			omap3_sram_restore_context();
 			omap2_sms_restore_context();
 		}
+		omap_uart_resume_idle(0);
+		omap_uart_resume_idle(1);
 		if (core_next_state == PWRDM_POWER_OFF)
 			prm_clear_mod_reg_bits(OMAP3430_AUTO_OFF,
 					       OMAP3430_GR_MOD,
