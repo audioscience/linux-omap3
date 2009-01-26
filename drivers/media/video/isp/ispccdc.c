@@ -508,7 +508,7 @@ EXPORT_SYMBOL(ispccdc_enable_lsc);
  **/
 void ispccdc_config_crop(u32 left, u32 top, u32 height, u32 width)
 {
-	ispccdc_obj.ccdcin_woffset = left + ((left + 1) % 2);
+	ispccdc_obj.ccdcin_woffset = left + (left % 2);
 	ispccdc_obj.ccdcin_hoffset = top + (top % 2);
 
 	ispccdc_obj.crop_w = width - (width % 16);
@@ -1173,7 +1173,7 @@ int ispccdc_config_size(u32 input_w, u32 input_h, u32 output_w, u32 output_h)
 					ISPCCDC_FMT_VERT);
 		isp_reg_writel((ispccdc_obj.ccdcout_w <<
 					ISPCCDC_VP_OUT_HORZ_NUM_SHIFT) |
-					(ispccdc_obj.ccdcout_h <<
+					(ispccdc_obj.ccdcout_h - 1 <<
 					ISPCCDC_VP_OUT_VERT_NUM_SHIFT),
 					OMAP3_ISP_IOMEM_CCDC,
 					ISPCCDC_VP_OUT);
