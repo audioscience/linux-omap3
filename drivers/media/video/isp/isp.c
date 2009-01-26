@@ -208,8 +208,6 @@ static struct ispirq {
  * struct isp - Structure for storing ISP Control module information
  * @lock: Spinlock to sync between isr and processes.
  * @isp_mutex: Semaphore used to get access to the ISP.
- * @if_status: Type of interface used in ISP.
- * @interfacetype: (Not used).
  * @ref_count: Reference counter.
  * @cam_ick: Pointer to ISP Interface clock.
  * @cam_fck: Pointer to ISP Functional clock.
@@ -219,8 +217,6 @@ static struct ispirq {
 static struct isp {
 	spinlock_t lock;	/* For handling registered ISP callbacks */
 	struct mutex isp_mutex;	/* For handling ref_count field */
-	u8 if_status;
-	u8 interfacetype;
 	int ref_count;
 	struct clk *cam_ick;
 	struct clk *cam_mclk;
@@ -592,53 +588,6 @@ int isp_unset_callback(enum isp_callback_type type)
 	return 0;
 }
 EXPORT_SYMBOL(isp_unset_callback);
-
-/**
- * isp_request_interface - Requests an ISP interface type (parallel or serial).
- * @if_t: Type of requested ISP interface (parallel or serial).
- *
- * This function requests for allocation of an ISP interface type.
- **/
-int isp_request_interface(enum isp_interface_type if_t)
-{
-	if (isp_obj.if_status & if_t) {
-		DPRINTK_ISPCTRL("ISP_ERR : Requested Interface already \
-			allocated\n");
-		return -EBUSY;
-	}
-	if ((isp_obj.if_status == (ISP_PARLL | ISP_CSIA))
-			|| isp_obj.if_status == (ISP_CSIA | ISP_CSIB)) {
-		DPRINTK_ISPCTRL("ISP_ERR : No Free interface now\n");
-		return -EBUSY;
-	}
-
-	if ((isp_obj.if_status == ISP_PARLL && if_t == ISP_CSIA) ||
-			(isp_obj.if_status == ISP_CSIA && if_t == ISP_PARLL) ||
-			(isp_obj.if_status == ISP_CSIA && if_t == ISP_CSIB) ||
-			(isp_obj.if_status == ISP_CSIB && if_t == ISP_CSIA) ||
-			(isp_obj.if_status == 0)) {
-		isp_obj.if_status |= if_t;
-		return 0;
-	} else {
-		DPRINTK_ISPCTRL("ISP_ERR : Invalid Combination Serial- \
-			Parallel interface\n");
-		return -EINVAL;
-	}
-}
-EXPORT_SYMBOL(isp_request_interface);
-
-/**
- * isp_free_interface - Frees an ISP interface type (parallel or serial).
- * @if_t: Type of ISP interface to be freed (parallel or serial).
- *
- * This function frees the allocation of an ISP interface type.
- **/
-int isp_free_interface(enum isp_interface_type if_t)
-{
-	isp_obj.if_status &= ~if_t;
-	return 0;
-}
-EXPORT_SYMBOL(isp_free_interface);
 
 /**
  * isp_set_xclk - Configures the specified cam_xclk to the desired frequency.
