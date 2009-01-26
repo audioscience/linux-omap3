@@ -61,8 +61,6 @@
 /* global variables */
 static struct omap34xxcam_device *omap34xxcam;
 
-struct omap34xxcam_fh *camfh_saved;
-
 #define OMAP34XXCAM_POWEROFF_DELAY (2 * HZ)
 
 /*
@@ -170,21 +168,14 @@ static void omap34xxcam_slave_power_suggest(struct omap34xxcam_videodev *vdev,
  * input parameter.  Also updates ISP H3A timestamp and field count
  * statistics.
  */
-int omap34xxcam_update_vbq(struct videobuf_buffer *vb)
+void omap34xxcam_vbq_complete(struct videobuf_buffer *vb, void *priv)
 {
-	struct omap34xxcam_fh *fh = camfh_saved;
-	struct omap34xxcam_videodev *vdev = fh->vdev;
-	int rval = 0;
+	struct omap34xxcam_fh *fh = priv;
 
 	do_gettimeofday(&vb->ts);
 	vb->field_count = atomic_add_return(2, &fh->field_count);
 
-	if (vdev->streaming)
-		rval = 1;
-
 	wake_up(&vb->done);
-
-	return rval;
 }
 
 /**
@@ -310,22 +301,10 @@ static void omap34xxcam_vbq_queue(struct videobuf_queue *vbq,
 				  struct videobuf_buffer *vb)
 {
 	struct omap34xxcam_fh *fh = vbq->priv_data;
-	struct omap34xxcam_videodev *vdev = fh->vdev;
-	enum videobuf_state state = vb->state;
-	isp_vbq_callback_ptr func_ptr;
-	int err = 0;
-	camfh_saved = fh;
 
-	func_ptr = omap34xxcam_update_vbq;
 	vb->state = VIDEOBUF_ACTIVE;
 
-	err = isp_sgdma_queue(videobuf_to_dma(vb),
-			      vb, 0, &vdev->cam->dma_notify, func_ptr);
-	if (err) {
-		dev_dbg(vdev->cam->dev, "vbq queue failed\n");
-		vb->state = state;
-	}
-
+	isp_buf_queue(vb, omap34xxcam_vbq_complete, (void *)fh);
 }
 
 static struct videobuf_queue_ops omap34xxcam_vbq_ops = {
@@ -793,7 +772,6 @@ static int vidioc_streamon(struct file *file, void *fh, enum v4l2_buf_type i)
 {
 	struct omap34xxcam_fh *ofh = fh;
 	struct omap34xxcam_videodev *vdev = ofh->vdev;
-	struct omap34xxcam_device *cam = vdev->cam;
 	int rval;
 
 	mutex_lock(&vdev->mutex);
@@ -802,8 +780,7 @@ static int vidioc_streamon(struct file *file, void *fh, enum v4l2_buf_type i)
 		goto out;
 	}
 
-	cam->dma_notify = 1;
-	isp_sgdma_init();
+	isp_buf_init();
 	rval = videobuf_streamon(&ofh->vbq);
 	if (rval) {
 		dev_dbg(vdev->cam->dev, "omap34xxcam_slave_power_set failed\n");

@@ -179,9 +179,6 @@ struct omap34xxcam_videodev {
  */
 struct omap34xxcam_device {
 	struct mutex mutex; /* serialises access to this structure */
-	int sgdma_in_queue;
-	struct isp_sgdma sgdma;
-	int dma_notify;
 
 	/*** interfaces and device ***/
 	struct device *dev;
