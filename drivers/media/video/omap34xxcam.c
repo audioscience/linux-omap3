@@ -1282,6 +1282,32 @@ static int vidioc_enum_frameintervals(struct file *file, void *fh,
 	return rval;
 }
 
+static int vidioc_enum_slaves(struct file *file, void *fh,
+			      struct v4l2_slave_info *si)
+{
+	struct omap34xxcam_fh *ofh = fh;
+	struct omap34xxcam_videodev *vdev = ofh->vdev;
+	int rval;
+
+	if (si->index > OMAP34XXCAM_SLAVE_FLASH)
+		return -ENODEV;
+
+	mutex_lock(&vdev->mutex);
+	if (vdev->slave[si->index] == v4l2_int_device_dummy()) {
+		rval = -EBUSY;
+		goto out;
+	}
+
+	rval = vidioc_int_enum_slaves(vdev->slave[si->index], si);
+	if (rval == -ENOIOCTLCMD)
+		return -EINVAL;
+
+out:
+	mutex_unlock(&vdev->mutex);
+
+	return rval;
+}
+
 /**
  * vidioc_default - private IOCTL handler
  * @file: ptr. to system file structure
@@ -1306,6 +1332,9 @@ static long vidioc_default(struct file *file, void *fh, int cmd, void *arg)
 		rval = -EINVAL;
 	} else {
 		switch (cmd) {
+		case VIDIOC_ENUM_SLAVES:
+			rval = vidioc_enum_slaves(file, fh, arg);
+			goto out;
 		case VIDIOC_PRIVATE_ISP_AEWB_REQ:
 		{
 			/* Need to update sensor first */
