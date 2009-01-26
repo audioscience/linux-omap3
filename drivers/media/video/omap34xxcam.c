@@ -1929,7 +1929,6 @@ static int omap34xxcam_remove(struct platform_device *pdev)
 static int omap34xxcam_probe(struct platform_device *pdev)
 {
 	struct omap34xxcam_device *cam;
-	struct isp_sysc isp_sysconfig;
 	int i;
 
 	cam = kzalloc(sizeof(*cam), GFP_KERNEL);
@@ -1941,12 +1940,6 @@ static int omap34xxcam_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, cam);
 
 	cam->dev = &pdev->dev;
-
-	isp_get();
-	isp_sysconfig.reset = 0;
-	isp_sysconfig.idle_mode = 1;
-	isp_power_settings(isp_sysconfig);
-	isp_put();
 
 	omap34xxcam = cam;
 
