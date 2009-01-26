@@ -638,7 +638,7 @@ int ispccdc_config_datapath(enum ccdc_input input, enum ccdc_output output)
 		syncif.vdpol = 0;
 		ispccdc_config_sync_if(syncif);
 		ispccdc_config_imgattr(colptn);
-		blkcfg.dcsubval = 42;
+		blkcfg.dcsubval = 64;
 		ispccdc_config_black_clamp(blkcfg);
 		if (is_isplsc_activated()) {
 			ispccdc_config_lsc(&lsc_config);
