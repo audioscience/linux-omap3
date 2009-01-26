@@ -375,6 +375,8 @@ int isp_af_configure(struct af_configuration *afconfig)
 	af_dev_configptr->size_paxel = buff_size;
 	atomic_inc(&afstat.config_counter);
 	afstat.initialized = 1;
+	afstat.frame_count = 1;
+	active_buff->frame_num = 1;
 	/* Set configuration flag to indicate HW setup done */
 	if (af_curr_cfg->af_config)
 		isp_af_enable(1);
@@ -512,6 +514,9 @@ static int isp_af_stats_available(struct isp_af_data *afdata)
 
 	spin_lock_irqsave(&afstat.buffer_lock, irqflags);
 	for (i = 0; i < H3A_MAX_BUFF; i++) {
+		DPRINTK_ISP_AF("Checking Stats buff[%d] (%d) for %d\n",
+				i, afstat.af_buff[i].frame_num,
+				afdata->frame_number);
 		if ((afdata->frame_number == afstat.af_buff[i].frame_num) &&
 						(afstat.af_buff[i].frame_num !=
 						active_buff->frame_num)) {

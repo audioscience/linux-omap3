@@ -251,7 +251,7 @@ static void isph3a_aewb_update_regs(void)
 	isp_reg_writel(aewb_regs.reg_subwin, OMAP3_ISP_IOMEM_H3A, ISPH3A_AEWSUBWIN);
 
 	aewbstat.update = 0;
-	aewbstat.frame_count = 0;
+	aewbstat.frame_count = 1;
 }
 
 /**
@@ -280,6 +280,9 @@ static int isph3a_aewb_stats_available(struct isph3a_aewb_data *aewbdata)
 
 	spin_lock_irqsave(&aewbstat.buffer_lock, irqflags);
 	for (i = 0; i < H3A_MAX_BUFF; i++) {
+		DPRINTK_ISPH3A("Checking Stats buff[%d] (%d) for %d\n",
+				i, aewbstat.h3a_buff[i].frame_num,
+				aewbdata->frame_number);
 		if ((aewbdata->frame_number != aewbstat.h3a_buff[i].frame_num) ||
 			(aewbstat.h3a_buff[i].frame_num == active_buff->frame_num))
 			continue;
@@ -635,6 +638,7 @@ int isph3a_aewb_configure(struct isph3a_aewb_config *aewbcfg)
 
 		if (active_buff == NULL)
 			active_buff = &aewbstat.h3a_buff[0];
+
 		isp_reg_writel(active_buff->ispmmu_addr, OMAP3_ISP_IOMEM_H3A, ISPH3A_AEWBUFST);
 	}
 	for (i = 0; i < H3A_MAX_BUFF; i++) {
@@ -642,13 +646,18 @@ int isph3a_aewb_configure(struct isph3a_aewb_config *aewbcfg)
 					"    aligned 0x%lX\n"
 					"    phys    0x%lX\n"
 					"    ispmmu  0x%08lX\n"
-					"    mmapped 0x%lX\n", i,
+					"    mmapped 0x%lX\n"
+					"    frame_num %d\n", i,
 					aewbstat.h3a_buff[i].virt_addr,
 					aewbstat.h3a_buff[i].addr_align,
 					aewbstat.h3a_buff[i].phy_addr,
 					aewbstat.h3a_buff[i].ispmmu_addr,
-					aewbstat.h3a_buff[i].mmap_addr);
+					aewbstat.h3a_buff[i].mmap_addr,
+					aewbstat.h3a_buff[i].frame_num);
 	}
+
+	active_buff->frame_num = 1;
+
 	atomic_inc(&aewbstat.config_counter);
 	isph3a_aewb_enable(aewbcfg->aewb_enable);
 	isph3a_print_status();
@@ -689,7 +698,6 @@ int isph3a_aewb_request_statistics(struct isph3a_aewb_data *aewbdata)
 	DPRINTK_ISPH3A("WB gain r *=   0x%04x\n", aewbdata->wb_gain_r);
 	DPRINTK_ISPH3A("WB gain gb =   0x%04x\n", aewbdata->wb_gain_gb);
 	DPRINTK_ISPH3A("WB gain gr =   0x%04x\n", aewbdata->wb_gain_gr);
-	DPRINTK_ISPH3A("ISP AEWB request status wait for interrupt\n");
 
 	if (!aewbdata->update) {
 		aewbdata->h3a_aewb_statistics_buf = NULL;
@@ -710,6 +718,14 @@ int isph3a_aewb_request_statistics(struct isph3a_aewb_data *aewbdata)
 		aewbdata->h3a_aewb_statistics_buf = NULL;
 		goto out;
 	}
+
+	if (aewbdata->frame_number < 1) {
+		printk(KERN_ERR "Illeagal frame number "
+			"requested (%d)\n",
+			aewbdata->frame_number);
+		return -EINVAL;
+	}
+
 	isph3a_aewb_unlock_buffers();
 
 	DPRINTK_ISPH3A("Stats available?\n");
