@@ -2016,7 +2016,7 @@ static void __exit omap34xxcam_cleanup(void)
 	platform_driver_unregister(&omap34xxcam_driver);
 }
 
-MODULE_AUTHOR("Sakari Ailus <sakari.ailus@nokia.com");
+MODULE_AUTHOR("Sakari Ailus <sakari.ailus@nokia.com>");
 MODULE_DESCRIPTION("OMAP34xx Video for Linux camera driver");
 MODULE_LICENSE("GPL");
 
