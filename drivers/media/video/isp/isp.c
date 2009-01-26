@@ -929,23 +929,6 @@ int isp_configure_interface(struct isp_interface_config *config)
 }
 EXPORT_SYMBOL(isp_configure_interface);
 
-/**
- * isp_configure_interface_bridge - Configure CCDC i/f bridge.
- *
- * Sets the bit field that controls the 8 to 16-bit bridge at
- * the input to CCDC.
- **/
-int isp_configure_interface_bridge(u32 par_bridge)
-{
-	u32 ispctrl_val = isp_reg_readl(OMAP3_ISP_IOMEM_MAIN, ISP_CTRL);
-
-	ispctrl_val &= ~ISPCTRL_PAR_BRIDGE_BENDIAN;
-	ispctrl_val |= (par_bridge << ISPCTRL_PAR_BRIDGE_SHIFT);
-	isp_reg_writel(ispctrl_val, OMAP3_ISP_IOMEM_MAIN, ISP_CTRL);
-	return 0;
-}
-EXPORT_SYMBOL(isp_configure_interface_bridge);
-
 int isp_buf_process(struct isp_bufs *bufs);
 
 /**

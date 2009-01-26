@@ -321,9 +321,6 @@ void isp_save_ctx(void);
 
 void isp_restore_ctx(void);
 
-/* Configure CCDC interface bridge*/
-int isp_configure_interface_bridge(u32 par_bridge);
-
 void isp_print_status(void);
 
 dma_addr_t isp_buf_get(void);
