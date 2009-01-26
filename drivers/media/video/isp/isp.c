@@ -2126,15 +2126,24 @@ int isp_s_crop(struct v4l2_crop *a, struct v4l2_pix_format *pix)
 	struct v4l2_crop *crop = a;
 	int rval = 0;
 
-	if ((crop->c.left + crop->c.width) > pix->width) {
-		rval = -EINVAL;
-		goto out;
-	}
+	if (crop->c.left < 0)
+		crop->c.left = 0;
+	if (crop->c.width < 0)
+		crop->c.width = 0;
+	if (crop->c.top < 0)
+		crop->c.top = 0;
+	if (crop->c.height < 0)
+		crop->c.height = 0;
 
-	if ((crop->c.top + crop->c.height) > pix->height) {
-		rval = -EINVAL;
-		goto out;
-	}
+	if (crop->c.left >= pix->width)
+		crop->c.left = pix->width - 1;
+	if (crop->c.top >= pix->height)
+		crop->c.top = pix->height - 1;
+
+	if (crop->c.left + crop->c.width > pix->width)
+		crop->c.width = pix->width - crop->c.left;
+	if (crop->c.top + crop->c.height > pix->height)
+		crop->c.height = pix->height - crop->c.top;
 
 	ispcroprect.left = crop->c.left;
 	ispcroprect.top = crop->c.top;
@@ -2144,7 +2153,7 @@ int isp_s_crop(struct v4l2_crop *a, struct v4l2_pix_format *pix)
 	isp_config_crop(pix);
 
 	ispmodule_obj.applyCrop = 1;
-out:
+
 	return rval;
 }
 EXPORT_SYMBOL(isp_s_crop);
