@@ -787,7 +787,6 @@ static int vidioc_streamon(struct file *file, void *fh, enum v4l2_buf_type i)
 		goto out;
 	}
 
-	isp_buf_init();
 	rval = videobuf_streamon(&ofh->vbq);
 	if (rval)
 		omap34xxcam_slave_power_set(
