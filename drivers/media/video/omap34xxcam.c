@@ -826,13 +826,14 @@ static int vidioc_streamoff(struct file *file, void *fh, enum v4l2_buf_type i)
 		isp_stop();
 
 	rval = videobuf_streamoff(q);
-	if (!rval)
+	if (!rval) {
 		vdev->streaming = NULL;
 
-	omap34xxcam_slave_power_set(vdev, V4L2_POWER_STANDBY,
-					OMAP34XXCAM_SLAVE_POWER_SENSOR);
-	omap34xxcam_slave_power_suggest(vdev, V4L2_POWER_STANDBY,
-					OMAP34XXCAM_SLAVE_POWER_LENS);
+		omap34xxcam_slave_power_set(vdev, V4L2_POWER_STANDBY,
+					    OMAP34XXCAM_SLAVE_POWER_SENSOR);
+		omap34xxcam_slave_power_suggest(vdev, V4L2_POWER_STANDBY,
+						OMAP34XXCAM_SLAVE_POWER_LENS);
+	}
 
 	mutex_unlock(&vdev->mutex);
 
