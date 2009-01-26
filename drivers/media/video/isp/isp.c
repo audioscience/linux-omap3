@@ -50,6 +50,10 @@ static struct isp_device *omap3isp;
 //#define PRINTK(...) printk(__VA_ARGS__)
 #define PRINTK(...) do { } while (0)
 
+static void isp_save_ctx(void);
+
+static void isp_restore_ctx(void);
+
 void *isp_tmp_buf_kernel;
 struct scatterlist *isp_tmp_buf_sglist_alloc;
 static int num_sc;
@@ -636,51 +640,6 @@ u32 isp_set_xclk(u32 xclk, u8 xclksel)
 	return currentxclk;
 }
 EXPORT_SYMBOL(isp_set_xclk);
-
-/**
- * isp_get_xclk - Returns the frequency in Hz of the desired cam_xclk.
- * @xclksel: XCLK to retrieve (0 = A, 1 = B).
- *
- * This function returns the External Clock (XCLKA or XCLKB) value generated
- * by the ISP.
- **/
-u32 isp_get_xclk(u8 xclksel)
-{
-	u32 xclkdiv;
-	u32 xclk;
-
-	switch (xclksel) {
-	case 0:
-		xclkdiv = isp_reg_readl(OMAP3_ISP_IOMEM_MAIN, ISP_TCTRL_CTRL) & ISPTCTRL_CTRL_DIVA_MASK;
-		xclkdiv = xclkdiv >> ISPTCTRL_CTRL_DIVA_SHIFT;
-		break;
-	case 1:
-		xclkdiv = isp_reg_readl(OMAP3_ISP_IOMEM_MAIN, ISP_TCTRL_CTRL) & ISPTCTRL_CTRL_DIVB_MASK;
-		xclkdiv = xclkdiv >> ISPTCTRL_CTRL_DIVB_SHIFT;
-		break;
-	default:
-		DPRINTK_ISPCTRL("ISP_ERR: isp_get_xclk(): Invalid requested "
-						"xclk. Must be 0 (A) or 1 (B)."
-						"\n");
-		return -EINVAL;
-	}
-
-	switch (xclkdiv) {
-	case 0:
-	case 1:
-		xclk = 0;
-		break;
-	case 0x1f:
-		xclk = CM_CAM_MCLK_HZ;
-		break;
-	default:
-		xclk = CM_CAM_MCLK_HZ / xclkdiv;
-		break;
-	}
-
-	return xclk;
-}
-EXPORT_SYMBOL(isp_get_xclk);
 
 /**
  * isp_power_settings - Sysconfig settings, for Power Management.
@@ -1960,8 +1919,8 @@ EXPORT_SYMBOL(isp_try_fmt_cap);
  * isppreview_try_size, or ispresizer_try_size (depending on the pipeline
  * configuration) if there is an error.
  **/
-int isp_try_size(struct v4l2_pix_format *pix_input,
-					struct v4l2_pix_format *pix_output)
+static int isp_try_size(struct v4l2_pix_format *pix_input,
+			struct v4l2_pix_format *pix_output)
 {
 	int rval = 0;
 
@@ -2087,7 +2046,7 @@ EXPORT_SYMBOL(isp_try_fmt);
  * Routine for saving the context of each module in the ISP.
  * CCDC, HIST, H3A, PREV, RESZ and MMU.
  **/
-void isp_save_ctx(void)
+static void isp_save_ctx(void)
 {
 	isp_save_context(isp_reg_list);
 	ispccdc_save_context();
@@ -2097,7 +2056,6 @@ void isp_save_ctx(void)
 	isppreview_save_context();
 	ispresizer_save_context();
 }
-EXPORT_SYMBOL(isp_save_ctx);
 
 /**
  * isp_restore_ctx - Restores ISP, CCDC, HIST, H3A, PREV, RESZ & MMU context.
@@ -2105,7 +2063,7 @@ EXPORT_SYMBOL(isp_save_ctx);
  * Routine for restoring the context of each module in the ISP.
  * CCDC, HIST, H3A, PREV, RESZ and MMU.
  **/
-void isp_restore_ctx(void)
+static void isp_restore_ctx(void)
 {
 	isp_restore_context(isp_reg_list);
 	ispccdc_restore_context();
@@ -2115,7 +2073,6 @@ void isp_restore_ctx(void)
 	isppreview_restore_context();
 	ispresizer_restore_context();
 }
-EXPORT_SYMBOL(isp_restore_ctx);
 
 /**
  * isp_get - Adquires the ISP resource.

@@ -262,21 +262,15 @@ void isp_vbq_release(struct videobuf_queue *vbq, struct videobuf_buffer *vb);
 int isp_set_callback(enum isp_callback_type type, isp_callback_t callback,
 					isp_vbq_callback_ptr arg1, void *arg2);
 
-void omapisp_unset_callback(void);
-
 int isp_unset_callback(enum isp_callback_type type);
 
 u32 isp_set_xclk(u32 xclk, u8 xclksel);
-
-u32 isp_get_xclk(u8 xclksel);
 
 int isp_configure_interface(struct isp_interface_config *config);
 
 int isp_get(void);
 
 int isp_put(void);
-
-void isp_set_pipeline(int soc_type);
 
 void isp_config_pipeline(struct v4l2_pix_format *pix_input,
 					struct v4l2_pix_format *pix_output);
@@ -316,10 +310,6 @@ int isp_handle_private(int cmd, void *arg);
 void isp_save_context(struct isp_reg *);
 
 void isp_restore_context(struct isp_reg *);
-
-void isp_save_ctx(void);
-
-void isp_restore_ctx(void);
 
 void isp_print_status(void);
 
