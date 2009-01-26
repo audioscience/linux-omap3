@@ -116,6 +116,9 @@ struct omap34xxcam_hw_config {
  * @sensor_config: ISP-speicific sensor configuration
  * @lens_config: ISP-speicific lens configuration
  * @flash_config: ISP-speicific flash configuration
+ * @want_timeperframe: Desired timeperframe
+ * @want_pix: Desired pix
+ * @pix: Current pix
  * @streaming: streaming file handle, if streaming is enabled
  */
 struct omap34xxcam_videodev {
@@ -137,12 +140,6 @@ struct omap34xxcam_videodev {
 	int capture_mem;
 
 	/*** general driver state information ***/
-	/*
-	 * Sensor interface parameters: interface type, CC_CTRL
-	 * register value and interface specific data.
-	 */
-	u32 xclk;
-	/* index to omap34xxcam_videodevs of this structure */
 	int index;
 	atomic_t users;
 	enum v4l2_power power_state[OMAP34XXCAM_SLAVE_FLASH + 1];
@@ -157,10 +154,11 @@ struct omap34xxcam_videodev {
 	struct omap34xxcam_hw_config slave_config[OMAP34XXCAM_SLAVE_FLASH + 1];
 
 	/*** capture data ***/
+	struct file *streaming;
 	struct v4l2_fract want_timeperframe;
 	struct v4l2_pix_format want_pix;
-	/* file handle, if streaming is on */
-	struct file *streaming;
+	spinlock_t pix_lock;
+	struct v4l2_pix_format pix;
 };
 
 /**
@@ -199,16 +197,13 @@ struct omap34xxcam_device {
  * struct omap34xxcam_fh - per-filehandle data structure
  * @vbq_lock: spinlock for the videobuf queue
  * @vbq: V4L2 video buffer queue structure
- * @pix: V4L2 pixel format structure (serialise pix by vbq->lock)
  * @field_count: field counter for videobuf_buffer
  * @vdev: our /dev/video specific structure
  */
 struct omap34xxcam_fh {
 	spinlock_t vbq_lock; /* spinlock for the videobuf queue */
 	struct videobuf_queue vbq;
-	struct v4l2_pix_format pix;
 	atomic_t field_count;
-	/* accessing cam here doesn't need serialisation: it's constant */
 	struct omap34xxcam_videodev *vdev;
 };
 
