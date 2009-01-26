@@ -521,6 +521,13 @@ int isp_set_callback(enum isp_callback_type type, isp_callback_t callback,
 					OMAP3_ISP_IOMEM_MAIN,
 					ISP_IRQ0ENABLE);
 		break;
+	case CBK_PREV_DONE:
+		isp_reg_writel(IRQ0ENABLE_PRV_DONE_IRQ, OMAP3_ISP_IOMEM_MAIN, ISP_IRQ0STATUS);
+		isp_reg_writel(isp_reg_readl(OMAP3_ISP_IOMEM_MAIN, ISP_IRQ0ENABLE) |
+					IRQ0ENABLE_PRV_DONE_IRQ,
+					OMAP3_ISP_IOMEM_MAIN,
+					ISP_IRQ0ENABLE);
+		break;
 	default:
 		break;
 	}
@@ -574,6 +581,12 @@ int isp_unset_callback(enum isp_callback_type type)
 					IRQ0ENABLE_CSIB_IRQ,
 					OMAP3_ISP_IOMEM_MAIN,
 					ISP_IRQ0ENABLE);
+		break;
+	case CBK_PREV_DONE:
+		isp_reg_writel((isp_reg_readl(OMAP3_ISP_IOMEM_MAIN, ISP_IRQ0ENABLE)) &
+						~IRQ0ENABLE_PRV_DONE_IRQ,
+						OMAP3_ISP_IOMEM_MAIN,
+						ISP_IRQ0ENABLE);
 		break;
 	default:
 		break;
