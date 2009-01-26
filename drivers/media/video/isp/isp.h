@@ -106,7 +106,8 @@ struct isp_device {
 enum isp_interface_type {
 	ISP_PARLL = 1,
 	ISP_CSIA = 2,
-	ISP_CSIB = 4
+	ISP_CSIB = 4,
+	ISP_NONE = 8 /* memory input to preview / resizer */
 };
 
 enum isp_irqevents {

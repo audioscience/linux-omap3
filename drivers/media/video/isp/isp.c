@@ -818,6 +818,8 @@ int isp_configure_interface(struct isp_interface_config *config)
 	u32 ispctrl_val = isp_reg_readl(OMAP3_ISP_IOMEM_MAIN, ISP_CTRL);
 	int r;
 
+	isp_obj.config = config;
+
 	ispctrl_val &= ISPCTRL_SHIFT_MASK;
 	ispctrl_val |= (config->dataline_shift << ISPCTRL_SHIFT_SHIFT);
 	ispctrl_val &= ~ISPCTRL_PAR_CLK_POL_INV;
@@ -860,6 +862,8 @@ int isp_configure_interface(struct isp_interface_config *config)
 		if (r)
 			return r;
 		break;
+	case ISP_NONE:
+		return 0;
 	default:
 		return -EINVAL;
 	}
@@ -872,8 +876,6 @@ int isp_configure_interface(struct isp_interface_config *config)
 	/* Set sensor specific fields in CCDC and Previewer module.*/
 	isppreview_set_skip(config->prev_sph, config->prev_slv);
 	ispccdc_set_wenlog(config->wenlog);
-
-	isp_obj.config = config;
 
 	return 0;
 }
@@ -1340,7 +1342,7 @@ int isp_buf_process(struct isp_bufs *bufs)
 		 * CCDC may trigger interrupts even if it's not
 		 * receiving a frame.
 		 */
-		bufs->wait_hs_vs = 1;
+		bufs->wait_hs_vs = min(1, isp_obj.config->wait_hs_vs);
 	}
 	if ((RAW_CAPTURE(&isp_obj) && ispccdc_busy())
 	    || (!RAW_CAPTURE(&isp_obj) && ispresizer_busy())) {
