@@ -112,6 +112,8 @@ obj-$(CONFIG_VIDEO_DW9710) += dw9710.o
 
 obj-$(CONFIG_VIDEO_OMAP3) += omap/
 
+obj-$(CONFIG_VIDEO_OMAP3) += omap34xxcam.o isp/
+
 obj-$(CONFIG_USB_DABUSB)        += dabusb.o
 obj-$(CONFIG_USB_OV511)         += ov511.o
 obj-$(CONFIG_USB_SE401)         += se401.o
