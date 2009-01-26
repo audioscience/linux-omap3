@@ -808,17 +808,16 @@ int __init isph3a_aewb_init(void)
 void __exit isph3a_aewb_cleanup(void)
 {
 	int i;
-	isph3a_aewb_enable(0);
-	isp_unset_callback(CBK_H3A_AWB_DONE);
 
-	if (aewbstat.h3a_buff) {
-		for (i = 0; i < H3A_MAX_BUFF; i++) {
-			ispmmu_unmap(aewbstat.h3a_buff[i].ispmmu_addr);
-			dma_free_coherent(NULL,
-				aewbstat.min_buf_size,
-				(void *)aewbstat.h3a_buff[i].virt_addr,
-				(dma_addr_t)aewbstat.h3a_buff[i].phy_addr);
-		}
+	for (i = 0; i < H3A_MAX_BUFF; i++) {
+		if (!aewbstat.h3a_buff[i].phy_addr)
+			continue;
+
+		ispmmu_unmap(aewbstat.h3a_buff[i].ispmmu_addr);
+		dma_free_coherent(NULL,
+				  aewbstat.min_buf_size,
+				  (void *)aewbstat.h3a_buff[i].virt_addr,
+				  (dma_addr_t)aewbstat.h3a_buff[i].phy_addr);
 	}
 	memset(&aewbstat, 0, sizeof(aewbstat));
 	memset(&aewb_regs, 0, sizeof(aewb_regs));

@@ -730,14 +730,17 @@ void __exit isp_af_exit(void)
 {
 	int i;
 
-	if (afstat.af_buff) {
-		/* Free buffers */
-		for (i = 0; i < H3A_MAX_BUFF; i++) {
-			ispmmu_unmap(afstat.af_buff[i].ispmmu_addr);
-			dma_free_coherent(NULL, afstat.min_buf_size,
-					(void *)afstat.af_buff[i].virt_addr,
-					(dma_addr_t)afstat.af_buff[i].phy_addr);
-		}
+	/* Free buffers */
+	for (i = 0; i < H3A_MAX_BUFF; i++) {
+		if (!afstat.af_buff[i].phy_addr)
+			continue;
+
+		ispmmu_unmap(afstat.af_buff[i].ispmmu_addr);
+
+		dma_free_coherent(NULL,
+				  afstat.min_buf_size,
+				  (void *)afstat.af_buff[i].virt_addr,
+				  (dma_addr_t)afstat.af_buff[i].phy_addr);
 	}
 	kfree(af_dev_configptr->config);
 	kfree(af_dev_configptr);
@@ -745,5 +748,4 @@ void __exit isp_af_exit(void)
 	memset(&afstat, 0, sizeof(afstat));
 
 	af_major = -1;
-	isp_af_enable(0);
 }

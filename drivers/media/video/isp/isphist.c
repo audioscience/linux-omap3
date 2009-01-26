@@ -507,10 +507,6 @@ int __init isp_hist_init(void)
  **/
 void __exit isp_hist_cleanup(void)
 {
-	isp_hist_enable(0);
-	mdelay(100);
-	isp_unset_callback(CBK_HIST_DONE);
-
 	memset(&histstat, 0, sizeof(histstat));
 	memset(&hist_regs, 0, sizeof(hist_regs));
 }
