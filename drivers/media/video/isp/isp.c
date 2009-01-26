@@ -50,6 +50,9 @@ static struct isp_device *omap3isp;
 //#define PRINTK(...) printk(__VA_ARGS__)
 #define PRINTK(...) do { } while (0)
 
+static int isp_try_size(struct v4l2_pix_format *pix_input,
+					struct v4l2_pix_format *pix_output);
+
 static void isp_save_ctx(void);
 
 static void isp_restore_ctx(void);
@@ -1992,7 +1995,6 @@ static int isp_try_size(struct v4l2_pix_format *pix_input,
 
 	return rval;
 }
-EXPORT_SYMBOL(isp_try_size);
 
 /**
  * isp_try_fmt - Validates input/output format parameters.

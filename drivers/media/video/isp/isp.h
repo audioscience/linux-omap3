@@ -299,9 +299,6 @@ int isp_s_crop(struct v4l2_crop *a, struct v4l2_pix_format *pix);
 
 void isp_config_crop(struct v4l2_pix_format *pix);
 
-int isp_try_size(struct v4l2_pix_format *pix_input,
-					struct v4l2_pix_format *pix_output);
-
 int isp_try_fmt(struct v4l2_pix_format *pix_input,
 					struct v4l2_pix_format *pix_output);
 
