@@ -127,8 +127,8 @@ static struct ispprev_csc flr_prev_csc[] = {
 /* Default values in Office Flourescent Light for White Balance*/
 #define FLR_WBAL_DGAIN		0x100
 #define FLR_WBAL_COEF0		0x20
-#define FLR_WBAL_COEF1		0x35
-#define FLR_WBAL_COEF2		0x2b
+#define FLR_WBAL_COEF1		0x29
+#define FLR_WBAL_COEF2		0x2d
 #define FLR_WBAL_COEF3		0x20
 
 #define FLR_WBAL_COEF0_ES1	0x20
@@ -1934,14 +1934,14 @@ int __init isp_preview_init(void)
 	params->rgb2rgb = flr_rgb2rgb;
 	params->rgb2ycbcr = flr_prev_csc[ispprev_obj.color];
 
-	params->features = PREV_CFA | PREV_CHROMA_SUPPRESS | PREV_LUMA_ENHANCE
-				| PREV_DEFECT_COR | PREV_NOISE_FILTER;
+	params->features = PREV_CFA | PREV_DEFECT_COR | PREV_NOISE_FILTER;
 	params->features &= ~(PREV_AVERAGER | PREV_INVERSE_ALAW |
 						PREV_HORZ_MEDIAN_FILTER |
 						PREV_GAMMA_BYPASS |
 						PREV_DARK_FRAME_SUBTRACT |
 						PREV_LENS_SHADING |
-						PREV_DARK_FRAME_CAPTURE);
+						PREV_DARK_FRAME_CAPTURE |
+						PREV_CHROMA_SUPPRESS | PREV_LUMA_ENHANCE);
 	return 0;
 }
 
