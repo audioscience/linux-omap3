@@ -564,7 +564,6 @@ static void ispmmu_isr(unsigned long status, isp_vbq_callback_ptr arg1,
 int __init ispmmu_init(void)
 {
 	int i, val = 0;
-	struct isp_sysc isp_sysconfig;
 
 	isp_get();
 
@@ -577,9 +576,6 @@ int __init ispmmu_init(void)
 		isp_put();
 		return -ENODEV;
 	}
-	isp_sysconfig.reset = 0;
-	isp_sysconfig.idle_mode = 1;
-	isp_power_settings(isp_sysconfig);
 
 	ttb_page = alloc_pages(GFP_KERNEL, get_order(ISPMMU_TTB_ENTRIES_NR *
 									4));
