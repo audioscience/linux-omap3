@@ -168,10 +168,6 @@ struct omap34xxcam_videodev {
  * protected by the lock above.
  * @sgdma: ISP sgdma subsystem information structure
  * @dma_notify: DMA notify flag
- * @irq: irq number platform HW resource
- * @mmio_base: register map memory base (platform HW resource)
- * @mmio_base_phys: register map memory base physical address
- * @mmio_size: register map memory size
  * @dev: device structure
  * @vdevs: /dev/video specific structures
  * @fck: camera module fck clock information
