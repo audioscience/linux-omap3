@@ -186,6 +186,8 @@ int ispccdc_set_outaddr(u32 addr);
 
 void ispccdc_enable(u8 enable);
 
+int ispccdc_sbl_busy(void);
+
 int ispccdc_busy(void);
 
 void ispccdc_save_context(void);

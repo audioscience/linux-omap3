@@ -1356,6 +1356,24 @@ void ispccdc_enable(u8 enable)
 }
 EXPORT_SYMBOL(ispccdc_enable);
 
+/*
+ * Returns zero if the CCDC is idle and the image has been written to
+ * memory, too.
+ */
+int ispccdc_sbl_busy(void)
+{
+	return ispccdc_busy()
+		| (isp_reg_readl(OMAP3_ISP_IOMEM_SBL, ISPSBL_CCDC_WR_0) &
+				ISPSBL_CCDC_WR_0_DATA_READY)
+		| (isp_reg_readl(OMAP3_ISP_IOMEM_SBL, ISPSBL_CCDC_WR_1) &
+				ISPSBL_CCDC_WR_0_DATA_READY)
+		| (isp_reg_readl(OMAP3_ISP_IOMEM_SBL, ISPSBL_CCDC_WR_2) &
+				ISPSBL_CCDC_WR_0_DATA_READY)
+		| (isp_reg_readl(OMAP3_ISP_IOMEM_SBL, ISPSBL_CCDC_WR_3) &
+				ISPSBL_CCDC_WR_0_DATA_READY);
+}
+EXPORT_SYMBOL(ispccdc_sbl_busy);
+
 /**
  * ispccdc_busy - Gets busy state of the CCDC.
  **/
