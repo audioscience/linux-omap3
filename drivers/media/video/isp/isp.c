@@ -1858,7 +1858,7 @@ EXPORT_SYMBOL(isp_g_fmt_cap);
 int isp_s_fmt_cap(struct v4l2_pix_format *pix_input,
 					struct v4l2_pix_format *pix_output)
 {
-	int crop_scaling_w, crop_scaling_h = 0;
+	int crop_scaling_w = 0, crop_scaling_h = 0;
 	int rval = 0;
 
 	rval = isp_calc_pipeline(pix_input, pix_output);
@@ -1887,7 +1887,8 @@ int isp_s_fmt_cap(struct v4l2_pix_format *pix_input,
 
 	isp_config_pipeline(pix_input, pix_output);
 
-	if (crop_scaling_h || crop_scaling_w)
+	if ((ispmodule_obj.isp_pipeline & OMAP_ISP_RESIZER) &&
+	    (crop_scaling_h || crop_scaling_w))
 		isp_config_crop(pix_output);
 
 out:
