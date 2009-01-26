@@ -23,6 +23,7 @@
 #include <linux/spi/spi.h>
 #include <linux/spi/ads7846.h>
 #include <linux/i2c/twl4030.h>
+#include <linux/mm.h>
 
 #include <mach/hardware.h>
 #include <asm/mach-types.h>
@@ -41,6 +42,31 @@
 #include <mach/gpmc.h>
 #include <mach/omap-pm.h>
 #include <mach/display.h>
+
+#ifdef CONFIG_VIDEO_OMAP3
+#include <media/v4l2-int-device.h>
+#include <../drivers/media/video/omap34xxcam.h>
+#include <../drivers/media/video/isp/ispreg.h>
+#if defined(CONFIG_VIDEO_MT9P012) || defined(CONFIG_VIDEO_MT9P012_MODULE)
+/* Sensor specific GPIO signals */
+#define MT9P012_RESET_GPIO  	98
+#define MT9P012_STANDBY_GPIO	58
+
+#define MT9P012_USE_XCLKA  	0
+#define MT9P012_USE_XCLKB  	1
+
+#define VAUX_2_8_V		0x09
+#define VAUX_DEV_GRP_P1		0x20
+#define VAUX_DEV_GRP_NONE	0x00
+
+#include <media/mt9p012.h>
+static enum v4l2_power mt9p012_previous_power = V4L2_POWER_OFF;
+#endif
+#endif
+
+#ifdef CONFIG_VIDEO_DW9710
+#include <media/dw9710.h>
+#endif
 
 #include <asm/io.h>
 #include <asm/delay.h>
@@ -242,6 +268,11 @@ static struct spi_board_info sdp3430_spi_board_info[] __initdata = {
 };
 
 #ifdef CONFIG_VIDEO_OMAP3
+#define DEBUG_BASE		0x08000000
+#define REG_SDP3430_FPGA_GPIO_2 (0x50)
+#define FPGA_SPR_GPIO1_3v3	(0x1 << 14)
+#define FPGA_GPIO6_DIR_CTRL	(0x1 << 6)
+
 static void __iomem *fpga_map_addr;
 
 static void enable_fpga_vio_1v8(u8 enable)
@@ -890,11 +921,28 @@ static struct i2c_board_info __initdata sdp3430_i2c_boardinfo[] = {
 	},
 };
 
+static struct i2c_board_info __initdata sdp3430_i2c_boardinfo_2[] = {
+#if defined(CONFIG_VIDEO_MT9P012) || defined(CONFIG_VIDEO_MT9P012_MODULE)
+	{
+		I2C_BOARD_INFO("mt9p012", MT9P012_I2C_ADDR),
+		.platform_data = &sdp3430_mt9p012_platform_data,
+	},
+#ifdef CONFIG_VIDEO_DW9710
+	{
+		I2C_BOARD_INFO(DW9710_NAME, DW9710_AF_I2C_ADDR),
+		.platform_data = &sdp3430_dw9710_platform_data,
+	},
+#endif
+#endif
+};
+
+
 static int __init omap3430_i2c_init(void)
 {
 	omap_register_i2c_bus(1, 2600, sdp3430_i2c_boardinfo,
 			ARRAY_SIZE(sdp3430_i2c_boardinfo));
-	omap_register_i2c_bus(2, 400, NULL, 0);
+	omap_register_i2c_bus(2, 400, sdp3430_i2c_boardinfo_2,
+			ARRAY_SIZE(sdp3430_i2c_boardinfo_2));
 	omap_register_i2c_bus(3, 400, NULL, 0);
 	return 0;
 }
