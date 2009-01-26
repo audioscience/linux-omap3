@@ -412,9 +412,6 @@ void isp_release_resources(void)
 	return;
 }
 
-/* Flag to check first time of isp_get */
-static int off_mode;
-
 int isp_wait(int (*busy)(void), int wait_for_busy, int max_wait)
 {
 	int wait = 0;
@@ -754,9 +751,9 @@ EXPORT_SYMBOL(isp_get_xclk);
  *
  * Sets the power settings for the ISP, and SBL bus.
  **/
-void isp_power_settings(struct isp_sysc isp_sysconfig)
+static void isp_power_settings(int idle)
 {
-	if (isp_sysconfig.idle_mode) {
+	if (idle) {
 		isp_reg_writel(ISP_SYSCONFIG_AUTOIDLE |
 				(ISP_SYSCONFIG_MIDLEMODE_SMARTSTANDBY <<
 				ISP_SYSCONFIG_MIDLEMODE_SHIFT),
@@ -809,7 +806,6 @@ void isp_power_settings(struct isp_sysc isp_sysconfig)
 		isp_reg_writel(ISPCTRL_SBL_AUTOIDLE, OMAP3_ISP_IOMEM_MAIN, ISP_CTRL);
 	}
 }
-EXPORT_SYMBOL(isp_power_settings);
 
 #define BIT_SET(var, shift, mask, val)		\
 	do {					\
@@ -2222,7 +2218,9 @@ EXPORT_SYMBOL(isp_restore_ctx);
  **/
 int isp_get(void)
 {
+	static int has_context = 0;
 	int ret_err = 0;
+
 	DPRINTK_ISPCTRL("isp_get: old %d\n", isp_obj.ref_count);
 	mutex_lock(&(isp_obj.isp_mutex));
 	if (isp_obj.ref_count == 0) {
@@ -2263,12 +2261,16 @@ int isp_get(void)
 								" failed\n");
 			goto out_clk_enable_csi2_fclk;
 		}
-		if (off_mode == 1)
+
+		/* We don't want to restore context before saving it! */
+		if (has_context)
 			isp_restore_ctx();
+		else
+			has_context = 1;
 	}
 	isp_obj.ref_count++;
-	mutex_unlock(&(isp_obj.isp_mutex));
 
+	mutex_unlock(&(isp_obj.isp_mutex));
 
 	DPRINTK_ISPCTRL("isp_get: new %d\n", isp_obj.ref_count);
 	return isp_obj.ref_count;
@@ -2303,7 +2305,6 @@ int isp_put(void)
 	if (isp_obj.ref_count) {
 		if (--isp_obj.ref_count == 0) {
 			isp_save_ctx();
-			off_mode = 1;
 #if ISP_WORKAROUND
 			isp_buf_free();
 #endif
@@ -2481,6 +2482,10 @@ static int __init isp_init(void)
 	isp_resizer_init();
 	isp_af_init();
 	isp_csi2_init();
+
+	isp_get();
+	isp_power_settings(1);
+	isp_put();
 
 	return 0;
 }

@@ -217,16 +217,6 @@ struct isp_interface_config {
 	} u;
 };
 
-/**
- * struct isp_sysc - ISP Power switches to set.
- * @reset: Flag for setting ISP reset.
- * @idle_mode: Flag for setting ISP idle mode.
- */
-struct isp_sysc {
-	char reset;
-	char idle_mode;
-};
-
 u32 isp_reg_readl(enum isp_mem_resources isp_mmio_range, u32 reg_offset);
 
 void isp_reg_writel(u32 reg_value, enum isp_mem_resources isp_mmio_range,
@@ -284,8 +274,6 @@ u32 isp_get_xclk(u8 xclksel);
 int isp_request_interface(enum isp_interface_type if_t);
 
 int isp_free_interface(enum isp_interface_type if_t);
-
-void isp_power_settings(struct isp_sysc);
 
 int isp_configure_interface(struct isp_interface_config *config);
 
