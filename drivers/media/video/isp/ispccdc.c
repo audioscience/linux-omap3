@@ -657,7 +657,7 @@ int ispccdc_config_datapath(enum ccdc_input input, enum ccdc_output output)
 		syncif.fldstat = 0;
 		syncif.hdpol = 0;
 		syncif.ipmod = YUV16;
-		syncif.vdpol = 0;
+		syncif.vdpol = 1;
 		ispccdc_config_imgattr(0);
 		ispccdc_config_sync_if(syncif);
 		blkcfg.dcsubval = 0;
@@ -1212,7 +1212,7 @@ int ispccdc_config_size(u32 input_w, u32 input_h, u32 output_w, u32 output_h)
 		isp_reg_writel((((ispccdc_obj.ccdcout_h - 2) &
 					ISPCCDC_VDINT_0_MASK) <<
 					ISPCCDC_VDINT_0_SHIFT) |
-					((50 & ISPCCDC_VDINT_1_MASK) <<
+					((100 & ISPCCDC_VDINT_1_MASK) <<
 					ISPCCDC_VDINT_1_SHIFT),
 					OMAP3_ISP_IOMEM_CCDC,
 					ISPCCDC_VDINT);
