@@ -47,6 +47,7 @@ struct isph3a_aewb_buffer {
 	unsigned long ispmmu_addr;
 	unsigned long mmap_addr;	/* For userspace */
 	struct timeval ts;
+	u32 config_counter;
 
 	u8 locked;
 	u16 frame_num;
@@ -79,6 +80,8 @@ static struct isph3a_aewb_status {
 	unsigned int stats_buf_size;
 	unsigned int min_buf_size;
 	unsigned int curr_cfg_buf_size;
+
+	atomic_t config_counter;
 
 	u16 win_count;
 	u32 frame_count;
@@ -292,6 +295,7 @@ static int isph3a_aewb_stats_available(struct isph3a_aewb_data *aewbdata)
 					"H3A stats buff, %d\n", ret);
 		}
 		aewbdata->ts = aewbstat.h3a_buff[i].ts;
+		aewbdata->config_counter = aewbstat.h3a_buff[i].config_counter;
 		aewbdata->field_count = h3a_xtrastats[i].field_count;
 		return 0;
 	}
@@ -348,6 +352,7 @@ static void isph3a_aewb_isr(unsigned long status, isp_vbq_callback_ptr arg1,
 		return;
 
 	do_gettimeofday(&active_buff->ts);
+	active_buff->config_counter = atomic_read(&aewbstat.config_counter);
 	active_buff = active_buff->next;
 	if (active_buff->locked == 1)
 		active_buff = active_buff->next;
@@ -644,6 +649,7 @@ int isph3a_aewb_configure(struct isph3a_aewb_config *aewbcfg)
 					aewbstat.h3a_buff[i].ispmmu_addr,
 					aewbstat.h3a_buff[i].mmap_addr);
 	}
+	atomic_inc(&aewbstat.config_counter);
 	isph3a_aewb_enable(aewbcfg->aewb_enable);
 	isph3a_print_status();
 
