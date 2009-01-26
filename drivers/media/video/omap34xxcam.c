@@ -207,7 +207,7 @@ static int omap34xxcam_vbq_setup(struct videobuf_queue *vbq, unsigned int *cnt,
 	while ((*size * *cnt) > ispmmu_get_mapeable_space())
 		(*cnt)--;
 
-	return 0;
+	return isp_vbq_setup(vbq, cnt, size);
 }
 
 /**
