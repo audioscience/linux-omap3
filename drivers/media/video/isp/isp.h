@@ -39,7 +39,7 @@
 						 * terminating token for ISP
 						 * modules reg list
 						 */
-#define NUM_SG_DMA		(VIDEO_MAX_FRAME + 2)
+#define NUM_BUFS		VIDEO_MAX_FRAME
 
 #define ISP_BUF_INIT		0
 #define ISP_FREE_RUNNING	1
@@ -163,35 +163,6 @@ struct isp_reg {
 };
 
 /**
- * struct isp_sgdma_state - SG-DMA state for each videobuffer + 2 overlays
- * @isp_addr: ISP space address mapped by ISP MMU.
- * @status: DMA return code mapped by ISP MMU.
- * @callback: Pointer to ISP callback function.
- * @arg: Pointer to argument passed to the specified callback function.
- */
-struct isp_sgdma_state {
-	dma_addr_t isp_addr;
-	u32 status;
-	isp_callback_t callback;
-	void *arg;
-};
-
-/**
- * struct isp_sgdma - ISP Scatter Gather DMA status.
- * @isp_addr_capture: Array of ISP space addresses mapped by the ISP MMU.
- * @lock: Spinlock used to check free_sgdma field.
- * @free_sgdma: Number of free SG-DMA slots.
- * @next_sgdma: Index of next SG-DMA slot to use.
- */
-struct isp_sgdma {
-	dma_addr_t isp_addr_capture[VIDEO_MAX_FRAME];
-	spinlock_t lock;	/* For handling current buffer */
-	int free_sgdma;
-	int next_sgdma;
-	struct isp_sgdma_state sg_state[NUM_SG_DMA];
-};
-
-/**
  * struct isp_interface_config - ISP interface configuration.
  * @ccdc_par_ser: ISP interface type. 0 - Parallel, 1 - CSIA, 2 - CSIB to CCDC.
  * @par_bridge: CCDC Bridge input control. Parallel interface.
@@ -206,27 +177,25 @@ struct isp_sgdma {
  * @hsvs_syncdetect: HS or VS synchronization signal detection.
  *                       0 - HS Falling, 1 - HS rising
  *                       2 - VS falling, 3 - VS rising
- * @vdint0_timing: VD0 Interrupt timing.
- * @vdint1_timing: VD1 Interrupt timing.
  * @strobe: Strobe related parameter.
  * @prestrobe: PreStrobe related parameter.
  * @shutter: Shutter related parameter.
  * @hskip: Horizontal Start Pixel performed in Preview module.
  * @vskip: Vertical Start Line performed in Preview module.
  * @wenlog: Store the value for the sensor specific wenlog field.
+ * @wait_hs_vs: Wait for this many hs_vs before anything else in the beginning.
  */
 struct isp_interface_config {
 	enum isp_interface_type ccdc_par_ser;
 	u8 dataline_shift;
 	u32 hsvs_syncdetect;
-	u16 vdint0_timing;
-	u16 vdint1_timing;
 	int strobe;
 	int prestrobe;
 	int shutter;
 	u32 prev_sph;
 	u32 prev_slv;
 	u32 wenlog;
+	int wait_hs_vs;
 	union {
 		struct par {
 			unsigned par_bridge:2;
@@ -290,16 +259,11 @@ void isp_start(void);
 
 void isp_stop(void);
 
-void isp_sgdma_init(void);
-
 void isp_vbq_done(unsigned long status, isp_vbq_callback_ptr arg1, void *arg2);
 
-void isp_sgdma_process(struct isp_sgdma *sgdma, int irq, int *dma_notify,
-						isp_vbq_callback_ptr func_ptr);
-
-int isp_sgdma_queue(struct videobuf_dmabuf *vdma, struct videobuf_buffer *vb,
-						int irq, int *dma_notify,
-						isp_vbq_callback_ptr func_ptr);
+int isp_buf_queue(struct videobuf_buffer *vb,
+		  void (*complete)(struct videobuf_buffer *vb, void *priv),
+		  void *priv);
 
 int isp_vbq_prepare(struct videobuf_queue *vbq, struct videobuf_buffer *vb,
 							enum v4l2_field field);
@@ -324,10 +288,6 @@ int isp_free_interface(enum isp_interface_type if_t);
 void isp_power_settings(struct isp_sysc);
 
 int isp_configure_interface(struct isp_interface_config *config);
-
-void isp_CCDC_VD01_disable(void);
-
-void isp_CCDC_VD01_enable(void);
 
 int isp_get(void);
 
