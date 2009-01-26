@@ -2224,27 +2224,6 @@ int isp_get(void)
 	DPRINTK_ISPCTRL("isp_get: old %d\n", isp_obj.ref_count);
 	mutex_lock(&(isp_obj.isp_mutex));
 	if (isp_obj.ref_count == 0) {
-		isp_obj.cam_ick = clk_get(&camera_dev, "cam_ick");
-		if (IS_ERR(isp_obj.cam_ick)) {
-			DPRINTK_ISPCTRL("ISP_ERR: clk_get for "
-							"cam_ick failed\n");
-			ret_err = PTR_ERR(isp_obj.cam_ick);
-			goto out_clk_get_ick;
-		}
-		isp_obj.cam_mclk = clk_get(&camera_dev, "cam_mclk");
-		if (IS_ERR(isp_obj.cam_mclk)) {
-			DPRINTK_ISPCTRL("ISP_ERR: clk_get for "
-							"cam_mclk failed\n");
-			ret_err = PTR_ERR(isp_obj.cam_mclk);
-			goto out_clk_get_mclk;
-		}
-		isp_obj.csi2_fck = clk_get(&camera_dev, "csi2_96m_fck");
-		if (IS_ERR(isp_obj.csi2_fck)) {
-			DPRINTK_ISPCTRL("ISP_ERR: clk_get for csi2_fclk"
-								" failed\n");
-			ret_err = PTR_ERR(isp_obj.csi2_fck);
-			goto out_clk_get_csi2_fclk;
-		}
 		ret_err = clk_enable(isp_obj.cam_ick);
 		if (ret_err) {
 			DPRINTK_ISPCTRL("ISP_ERR: clk_en for ick failed\n");
@@ -2280,12 +2259,6 @@ out_clk_enable_csi2_fclk:
 out_clk_enable_mclk:
 	clk_disable(isp_obj.cam_ick);
 out_clk_enable_ick:
-	clk_put(isp_obj.csi2_fck);
-out_clk_get_csi2_fclk:
-	clk_put(isp_obj.cam_mclk);
-out_clk_get_mclk:
-	clk_put(isp_obj.cam_ick);
-out_clk_get_ick:
 
 	mutex_unlock(&(isp_obj.isp_mutex));
 
@@ -2313,9 +2286,6 @@ int isp_put(void)
 			clk_disable(isp_obj.cam_ick);
 			clk_disable(isp_obj.cam_mclk);
 			clk_disable(isp_obj.csi2_fck);
-			clk_put(isp_obj.cam_ick);
-			clk_put(isp_obj.cam_mclk);
-			clk_put(isp_obj.csi2_fck);
 			memset(&ispcroprect, 0, sizeof(ispcroprect));
 			memset(&cur_rect, 0, sizeof(cur_rect));
 		}
@@ -2362,6 +2332,10 @@ static int isp_remove(struct platform_device *pdev)
 	if (!isp)
 		return 0;
 
+	clk_put(isp_obj.cam_ick);
+	clk_put(isp_obj.cam_mclk);
+	clk_put(isp_obj.csi2_fck);
+
 	free_irq(isp->irq, &ispirq_obj);
 
 	for (i = 0; i <= OMAP3_ISP_IOMEM_CSI2PHY; i++) {
@@ -2387,12 +2361,14 @@ static int isp_remove(struct platform_device *pdev)
 static int isp_probe(struct platform_device *pdev)
 {
 	struct isp_device *isp;
+	int ret_err = 0;
 	int irq;
 	int i;
 
 	isp = kzalloc(sizeof(*isp), GFP_KERNEL);
 	if (!isp) {
 		dev_err(&pdev->dev, "could not allocate memory\n");
+		ret_err = -ENODEV;
 		goto err;
 	}
 
@@ -2406,6 +2382,7 @@ static int isp_probe(struct platform_device *pdev)
 		mem = platform_get_resource(pdev, IORESOURCE_MEM, i);
 		if (!mem) {
 			dev_err(isp->dev, "no mem resource?\n");
+			ret_err = -ENODEV;
 			goto err;
 		}
 
@@ -2413,6 +2390,7 @@ static int isp_probe(struct platform_device *pdev)
 					pdev->name)) {
 			dev_err(isp->dev,
 				"cannot reserve camera register I/O region\n");
+			ret_err = -ENODEV;
 			goto err;
 
 		}
@@ -2425,6 +2403,7 @@ static int isp_probe(struct platform_device *pdev)
 				isp->mmio_size[i]);
 		if (!isp->mmio_base[i]) {
 			dev_err(isp->dev, "cannot map camera register I/O region\n");
+			ret_err = -ENODEV;
 			goto err;
 		}
 	}
@@ -2432,22 +2411,53 @@ static int isp_probe(struct platform_device *pdev)
 	irq = platform_get_irq(pdev, 0);
 	if (irq <= 0) {
 		dev_err(isp->dev, "no irq for camera?\n");
+		ret_err = -ENODEV;
 		goto err;
 	}
 	isp->irq = irq;
 
 	omap3isp = isp;
 
+	isp_obj.cam_ick = clk_get(&camera_dev, "cam_ick");
+	if (IS_ERR(isp_obj.cam_ick)) {
+		DPRINTK_ISPCTRL("ISP_ERR: clk_get for "
+				"cam_ick failed\n");
+		ret_err = PTR_ERR(isp_obj.cam_ick);
+		goto err;
+	}
+	isp_obj.cam_mclk = clk_get(&camera_dev, "cam_mclk");
+	if (IS_ERR(isp_obj.cam_mclk)) {
+		DPRINTK_ISPCTRL("ISP_ERR: clk_get for "
+				"cam_mclk failed\n");
+		ret_err = PTR_ERR(isp_obj.cam_mclk);
+		goto out_clk_get_mclk;
+	}
+	isp_obj.csi2_fck = clk_get(&camera_dev, "csi2_96m_fck");
+	if (IS_ERR(isp_obj.csi2_fck)) {
+		DPRINTK_ISPCTRL("ISP_ERR: clk_get for csi2_fclk"
+				" failed\n");
+		ret_err = PTR_ERR(isp_obj.csi2_fck);
+		goto out_clk_get_csi2_fclk;
+	}
+
 	if (request_irq(isp->irq, omap34xx_isp_isr, IRQF_SHARED,
 				"Omap 3 Camera ISP", &ispirq_obj)) {
 		DPRINTK_ISPCTRL("Could not install ISR\n");
-		goto err;
+		ret_err = -EINVAL;
+		goto out_request_irq;
 	}
 
 	return 0;
+
+out_request_irq:
+	clk_put(isp_obj.csi2_fck);
+out_clk_get_csi2_fclk:
+	clk_put(isp_obj.cam_mclk);
+out_clk_get_mclk:
+	clk_put(isp_obj.cam_ick);
 err:
 	isp_remove(pdev);
-	return -ENODEV;
+	return ret_err;
 }
 
 static struct platform_driver omap3isp_driver = {
