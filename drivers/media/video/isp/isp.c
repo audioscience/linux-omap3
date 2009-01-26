@@ -1472,7 +1472,7 @@ int isp_vbq_prepare(struct videobuf_queue *vbq, struct videobuf_buffer *vb,
 
 	isp_addr = ispmmu_map_sg(vdma->sglist, vdma->sglen);
 
-	if (!isp_addr)
+	if (IS_ERR_VALUE(isp_addr))
 		err = -EIO;
 	else
 		bufs->isp_addr_capture[vb->i] = isp_addr;
