@@ -1515,10 +1515,15 @@ static int omap34xxcam_open(struct file *file)
 	fh->vdev = vdev;
 
 	/* FIXME: Check that we have sensor now... */
-	if (vdev->vdev_sensor_config.sensor_isp)
+	if (vdev->vdev_sensor_config.sensor_isp) {
 		vidioc_int_g_fmt_cap(vdev->vdev_sensor, &format);
-	else
-		isp_g_fmt_cap(&format.fmt.pix);
+	} else {
+		struct v4l2_format f;
+
+		vidioc_int_g_fmt_cap(vdev->vdev_sensor, &f);
+		format = f;
+		isp_s_fmt_cap(&f.fmt.pix, &format.fmt.pix);
+	}
 
 	mutex_unlock(&vdev->mutex);
 	/* FIXME: how about fh->pix when there are more users? */
