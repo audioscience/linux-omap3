@@ -131,7 +131,7 @@ void ispresizer_trycrop(u32 left, u32 top, u32 width, u32 height, u32 ow,
 								u32 oh);
 
 int ispresizer_config_size(u32 input_w, u32 input_h, u32 output_w,
-								u32 output_h);
+					u32 output_h);
 
 int ispresizer_config_inlineoffset(u32 offset);
 
