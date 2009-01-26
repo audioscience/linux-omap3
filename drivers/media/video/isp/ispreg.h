@@ -289,6 +289,13 @@
 #define ISPCCDC_LSC_TABLE_BASE		(0x0A0)
 #define ISPCCDC_LSC_TABLE_OFFSET	(0x0A4)
 
+/* SBL */
+#define ISPSBL_CCDC_WR_0		(0x028)
+#define ISPSBL_CCDC_WR_0_DATA_READY	(1 << 21)
+#define ISPSBL_CCDC_WR_1		(0x02C)
+#define ISPSBL_CCDC_WR_2		(0x030)
+#define ISPSBL_CCDC_WR_3		(0x034)
+
 /* Histogram registers */
 #define ISPHIST_PID			(0x000)
 #define ISPHIST_PCR			(0x004)
