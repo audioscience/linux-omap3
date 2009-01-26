@@ -53,9 +53,6 @@ static struct isp_device *omap3isp;
 void *isp_tmp_buf_kernel;
 struct scatterlist *isp_tmp_buf_sglist_alloc;
 static int num_sc;
-dma_addr_t isp_tmp_buf;
-size_t isp_tmp_buf_size;
-unsigned long isp_tmp_buf_offset;
 
 static void isp_buf_init(void);
 
@@ -222,6 +219,9 @@ static struct isp {
 	struct clk *cam_mclk;
 	struct clk *csi2_fck;
 	struct isp_interface_config *config;
+	dma_addr_t tmp_buf;
+	size_t tmp_buf_size;
+	unsigned long tmp_buf_offset;
 } isp_obj;
 
 struct isp_bufs ispbufs;
@@ -1127,13 +1127,13 @@ static int isp_tmp_buf_no_of_pages;
  **/
 void isp_tmp_buf_free(void)
 {
-	if (isp_tmp_buf) {
-		ispmmu_unmap(isp_tmp_buf);
+	if (isp_obj.tmp_buf) {
+		ispmmu_unmap(isp_obj.tmp_buf);
 		dma_unmap_sg(NULL, isp_tmp_buf_sglist_alloc, isp_tmp_buf_no_of_pages, 1);
 		kfree(isp_tmp_buf_sglist_alloc);
 		vfree(isp_tmp_buf_kernel);
-		isp_tmp_buf = 0;
-		isp_tmp_buf_size = 0;
+		isp_obj.tmp_buf = 0;
+		isp_obj.tmp_buf_size = 0;
 	}
 }
 
@@ -1161,15 +1161,15 @@ u32 isp_tmp_buf_alloc(size_t size)
 		return -ENOMEM;
 	}
 	num_sc = dma_map_sg(NULL, isp_tmp_buf_sglist_alloc, isp_tmp_buf_no_of_pages, 1);
-	isp_tmp_buf = ispmmu_map_sg(isp_tmp_buf_sglist_alloc, isp_tmp_buf_no_of_pages);
-	if (!isp_tmp_buf) {
+	isp_obj.tmp_buf = ispmmu_map_sg(isp_tmp_buf_sglist_alloc, isp_tmp_buf_no_of_pages);
+	if (!isp_obj.tmp_buf) {
 		printk(KERN_ERR "ispmmu_map_sg mapping failed ");
 		return -ENOMEM;
 	}
-	isp_tmp_buf_size = size;
+	isp_obj.tmp_buf_size = size;
 
-	isppreview_set_outaddr(isp_tmp_buf);
-	ispresizer_set_inaddr(isp_tmp_buf);
+	isppreview_set_outaddr(isp_obj.tmp_buf);
+	ispresizer_set_inaddr(isp_obj.tmp_buf);
 
 	return 0;
 }
@@ -1496,7 +1496,7 @@ int isp_vbq_setup(struct videobuf_queue *vbq, unsigned int *cnt,
 				     * ISP_BYTES_PER_PIXEL);
 
 	if (ispmodule_obj.isp_pipeline & OMAP_ISP_PREVIEW
-	    && isp_tmp_buf_size < tmp_size)
+	    && isp_obj.tmp_buf_size < tmp_size)
 		rval = isp_tmp_buf_alloc(tmp_size);
 
 	return rval;
@@ -1865,7 +1865,7 @@ void isp_config_crop(struct v4l2_pix_format *croppix)
 	while (((int)cur_rect.width & 0xFFFFFFF0) != (int)cur_rect.width)
 		(int)cur_rect.width--;
 
-	isp_tmp_buf_offset = ((cur_rect.left * 2) +
+	isp_obj.tmp_buf_offset = ((cur_rect.left * 2) +
 		((ispmodule_obj.preview_output_width) * 2 * cur_rect.top));
 
 	ispresizer_trycrop(cur_rect.left, cur_rect.top, cur_rect.width,
