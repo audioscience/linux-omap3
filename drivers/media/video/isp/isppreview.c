@@ -126,15 +126,15 @@ static struct ispprev_csc flr_prev_csc[] = {
 
 /* Default values in Office Flourescent Light for White Balance*/
 #define FLR_WBAL_DGAIN		0x100
-#define FLR_WBAL_COEF0		0x68
-#define FLR_WBAL_COEF1		0x5c
-#define FLR_WBAL_COEF2		0x5c
-#define FLR_WBAL_COEF3		0x94
+#define FLR_WBAL_COEF0		0x20
+#define FLR_WBAL_COEF1		0x35
+#define FLR_WBAL_COEF2		0x2b
+#define FLR_WBAL_COEF3		0x20
 
-#define FLR_WBAL_COEF0_ES1	0x23
-#define FLR_WBAL_COEF1_ES1	0x20
-#define FLR_WBAL_COEF2_ES1	0x20
-#define FLR_WBAL_COEF3_ES1	0x39
+#define FLR_WBAL_COEF0_ES1	0x20
+#define FLR_WBAL_COEF1_ES1	0x23
+#define FLR_WBAL_COEF2_ES1	0x39
+#define FLR_WBAL_COEF3_ES1	0x20
 
 /* Default values in Office Flourescent Light for Black Adjustment*/
 #define FLR_BLKADJ_BLUE		0x0
