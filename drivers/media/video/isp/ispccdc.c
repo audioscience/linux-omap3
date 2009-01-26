@@ -1294,7 +1294,7 @@ int ispccdc_config_outlineoffset(u32 offset, u8 oddeven, u8 numlines)
 
 	isp_reg_and(OMAP3_ISP_IOMEM_CCDC, ISPCCDC_SDOFST, ~ISPCCDC_SDOFST_FINV);
 
-	isp_reg_and(OMAP3_ISP_IOMEM_CCDC, ISPCCDC_SDOFST, ISPCCDC_SDOFST_FOFST_1L);
+	isp_reg_and(OMAP3_ISP_IOMEM_CCDC, ISPCCDC_SDOFST, ~ISPCCDC_SDOFST_FOFST_4L);
 
 	switch (oddeven) {
 	case EVENEVEN:
