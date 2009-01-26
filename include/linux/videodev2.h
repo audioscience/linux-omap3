@@ -1429,6 +1429,14 @@ struct v4l2_chip_ident_old {
 	__u32 revision;    /* chip revision, chip specific */
 };
 
+/* VIDIOC_ENUM_SLAVES */
+struct v4l2_slave_info {
+	__u32 index;
+	__u8 driver[16];
+	__u8 bus_info[32];
+	__u8 version[16];
+};
+
 /*
  *	I O C T L   C O D E S   F O R   V I D E O   D E V I C E S
  *
@@ -1525,6 +1533,7 @@ struct v4l2_chip_ident_old {
 #define VIDIOC_G_AUDOUT_OLD    	_IOWR('V', 49, struct v4l2_audioout)
 #define VIDIOC_CROPCAP_OLD     	 _IOR('V', 58, struct v4l2_cropcap)
 #endif
+#define VIDIOC_ENUM_SLAVES	_IOWR ('V', 82, struct v4l2_slave_info)
 
 #define BASE_VIDIOC_PRIVATE	192		/* 192-255 are private */
 
