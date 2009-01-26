@@ -175,8 +175,6 @@ struct isp_bufs {
 	int queue;
 	/* Buffer that is being processed. */
 	int done;
-	/* raw capture? */
-	int is_raw;
 	/* Wait for this many hs_vs before anything else. */
 	int wait_hs_vs;
 };
@@ -195,11 +193,50 @@ struct isp_bufs {
  * CBK_RESZ_DONE, CBK_MMU_ERR, CBK_H3A_AWB_DONE, CBK_HIST_DONE, CBK_HS_VS,
  * CBK_LSC_ISR).
  */
-static struct ispirq {
+struct isp_irq {
 	isp_callback_t isp_callbk[CBK_END];
 	isp_vbq_callback_ptr isp_callbk_arg1[CBK_END];
 	void *isp_callbk_arg2[CBK_END];
-} ispirq_obj;
+};
+
+/**
+ * struct ispmodule - Structure for storing ISP sub-module information.
+ * @isp_pipeline: Bit mask for submodules enabled within the ISP.
+ * @applyCrop: Flag to do a crop operation when video buffer queue ISR is done
+ * @pix: Structure containing the format and layout of the output image.
+ * @ccdc_input_width: ISP CCDC module input image width.
+ * @ccdc_input_height: ISP CCDC module input image height.
+ * @ccdc_output_width: ISP CCDC module output image width.
+ * @ccdc_output_height: ISP CCDC module output image height.
+ * @preview_input_width: ISP Preview module input image width.
+ * @preview_input_height: ISP Preview module input image height.
+ * @preview_output_width: ISP Preview module output image width.
+ * @preview_output_height: ISP Preview module output image height.
+ * @resizer_input_width: ISP Resizer module input image width.
+ * @resizer_input_height: ISP Resizer module input image height.
+ * @resizer_output_width: ISP Resizer module output image width.
+ * @resizer_output_height: ISP Resizer module output image height.
+ */
+struct isp_module {
+	unsigned int isp_pipeline;
+	int applyCrop;
+	struct v4l2_pix_format pix;
+	unsigned int ccdc_input_width;
+	unsigned int ccdc_input_height;
+	unsigned int ccdc_output_width;
+	unsigned int ccdc_output_height;
+	unsigned int preview_input_width;
+	unsigned int preview_input_height;
+	unsigned int preview_output_width;
+	unsigned int preview_output_height;
+	unsigned int resizer_input_width;
+	unsigned int resizer_input_height;
+	unsigned int resizer_output_width;
+	unsigned int resizer_output_height;
+};
+
+#define RAW_CAPTURE(isp) \
+	(!((isp)->module.isp_pipeline & OMAP_ISP_PREVIEW))
 
 /**
  * struct isp - Structure for storing ISP Control module information
@@ -222,59 +259,10 @@ static struct isp {
 	dma_addr_t tmp_buf;
 	size_t tmp_buf_size;
 	unsigned long tmp_buf_offset;
+	 struct isp_bufs bufs;
+	 struct isp_irq irq;
+	 struct isp_module module;
 } isp_obj;
-
-struct isp_bufs ispbufs;
-
-/**
- * struct ispmodule - Structure for storing ISP sub-module information.
- * @isp_pipeline: Bit mask for submodules enabled within the ISP.
- * @applyCrop: Flag to do a crop operation when video buffer queue ISR is done
- * @pix: Structure containing the format and layout of the output image.
- * @ccdc_input_width: ISP CCDC module input image width.
- * @ccdc_input_height: ISP CCDC module input image height.
- * @ccdc_output_width: ISP CCDC module output image width.
- * @ccdc_output_height: ISP CCDC module output image height.
- * @preview_input_width: ISP Preview module input image width.
- * @preview_input_height: ISP Preview module input image height.
- * @preview_output_width: ISP Preview module output image width.
- * @preview_output_height: ISP Preview module output image height.
- * @resizer_input_width: ISP Resizer module input image width.
- * @resizer_input_height: ISP Resizer module input image height.
- * @resizer_output_width: ISP Resizer module output image width.
- * @resizer_output_height: ISP Resizer module output image height.
- */
-struct ispmodule {
-	unsigned int isp_pipeline;
-	int applyCrop;
-	struct v4l2_pix_format pix;
-	unsigned int ccdc_input_width;
-	unsigned int ccdc_input_height;
-	unsigned int ccdc_output_width;
-	unsigned int ccdc_output_height;
-	unsigned int preview_input_width;
-	unsigned int preview_input_height;
-	unsigned int preview_output_width;
-	unsigned int preview_output_height;
-	unsigned int resizer_input_width;
-	unsigned int resizer_input_height;
-	unsigned int resizer_output_width;
-	unsigned int resizer_output_height;
-};
-
-static struct ispmodule ispmodule_obj = {
-	.isp_pipeline = OMAP_ISP_CCDC,
-	.applyCrop = 0,
-	.pix = {
-		.width = ISP_OUTPUT_WIDTH_DEFAULT,
-		.height = ISP_OUTPUT_HEIGHT_DEFAULT,
-		.pixelformat = V4L2_PIX_FMT_UYVY,
-		.field = V4L2_FIELD_NONE,
-		.bytesperline = ISP_OUTPUT_WIDTH_DEFAULT * ISP_BYTES_PER_PIXEL,
-		.colorspace = V4L2_COLORSPACE_JPEG,
-		.priv = 0,
-	},
-};
 
 /* Structure for saving/restoring ISP module registers */
 static struct isp_reg isp_reg_list[] = {
@@ -397,13 +385,13 @@ static int find_vmenu(int id, int index)
  **/
 void isp_release_resources(void)
 {
-	if (ispmodule_obj.isp_pipeline & OMAP_ISP_CCDC)
+	if (isp_obj.module.isp_pipeline & OMAP_ISP_CCDC)
 		ispccdc_free();
 
-	if (ispmodule_obj.isp_pipeline & OMAP_ISP_PREVIEW)
+	if (isp_obj.module.isp_pipeline & OMAP_ISP_PREVIEW)
 		isppreview_free();
 
-	if (ispmodule_obj.isp_pipeline & OMAP_ISP_RESIZER)
+	if (isp_obj.module.isp_pipeline & OMAP_ISP_RESIZER)
 		ispresizer_free();
 	return;
 }
@@ -487,9 +475,9 @@ int isp_set_callback(enum isp_callback_type type, isp_callback_t callback,
 	}
 
 	spin_lock_irqsave(&isp_obj.lock, irqflags);
-	ispirq_obj.isp_callbk[type] = callback;
-	ispirq_obj.isp_callbk_arg1[type] = arg1;
-	ispirq_obj.isp_callbk_arg2[type] = arg2;
+	isp_obj.irq.isp_callbk[type] = callback;
+	isp_obj.irq.isp_callbk_arg1[type] = arg1;
+	isp_obj.irq.isp_callbk_arg2[type] = arg2;
 	spin_unlock_irqrestore(&isp_obj.lock, irqflags);
 
 	switch (type) {
@@ -541,9 +529,9 @@ int isp_unset_callback(enum isp_callback_type type)
 	unsigned long irqflags = 0;
 
 	spin_lock_irqsave(&isp_obj.lock, irqflags);
-	ispirq_obj.isp_callbk[type] = NULL;
-	ispirq_obj.isp_callbk_arg1[type] = NULL;
-	ispirq_obj.isp_callbk_arg2[type] = NULL;
+	isp_obj.irq.isp_callbk[type] = NULL;
+	isp_obj.irq.isp_callbk_arg1[type] = NULL;
+	isp_obj.irq.isp_callbk_arg2[type] = NULL;
 	spin_unlock_irqrestore(&isp_obj.lock, irqflags);
 
 	switch (type) {
@@ -935,7 +923,7 @@ int isp_buf_process(struct isp_bufs *bufs);
  * omap34xx_isp_isr - Interrupt Service Routine for Camera ISP module.
  * @irq: Not used currently.
  * @ispirq_disp: Pointer to the object that is passed while request_irq is
- *               called. This is the ispirq_obj object containing info on the
+ *               called. This is the isp_obj.irq object containing info on the
  *               callback.
  *
  * Handles the corresponding callback if plugged in.
@@ -943,10 +931,11 @@ int isp_buf_process(struct isp_bufs *bufs);
  * Returns IRQ_HANDLED when IRQ was correctly handled, or IRQ_NONE when the
  * IRQ wasn't handled.
  **/
-static irqreturn_t omap34xx_isp_isr(int irq, void *ispirq_disp)
+static irqreturn_t omap34xx_isp_isr(int irq, void *_isp)
 {
-	struct ispirq *irqdis = (struct ispirq *)ispirq_disp;
-	struct isp_bufs *bufs = &ispbufs;
+	struct isp *isp = _isp;
+	struct isp_irq *irqdis = &isp->irq;
+	struct isp_bufs *bufs = &isp->bufs;
 	unsigned long flags;
 	u32 irqstatus = 0;
 	unsigned long irqflags = 0;
@@ -979,7 +968,7 @@ static irqreturn_t omap34xx_isp_isr(int irq, void *ispirq_disp)
 	}
 
 	if ((irqstatus & CCDC_VD0) == CCDC_VD0) {
-		if (bufs->is_raw)
+		if (RAW_CAPTURE(&isp_obj))
 			isp_buf_process(bufs);
 	}
 
@@ -988,11 +977,11 @@ static irqreturn_t omap34xx_isp_isr(int irq, void *ispirq_disp)
 			irqdis->isp_callbk[CBK_PREV_DONE](PREV_DONE,
 				irqdis->isp_callbk_arg1[CBK_PREV_DONE],
 				irqdis->isp_callbk_arg2[CBK_PREV_DONE]);
-		else if (!bufs->is_raw && !ispresizer_busy()) {
-			if (ispmodule_obj.applyCrop) {
+		else if (!RAW_CAPTURE(&isp_obj) && !ispresizer_busy()) {
+			if (isp_obj.module.applyCrop) {
 				ispresizer_applycrop();
 				if (!ispresizer_busy())
-					ispmodule_obj.applyCrop = 0;
+					isp_obj.module.applyCrop = 0;
 			}
 			if (!isppreview_busy()) {
 				ispresizer_enable(1);
@@ -1012,7 +1001,7 @@ static irqreturn_t omap34xx_isp_isr(int irq, void *ispirq_disp)
 	}
 
 	if ((irqstatus & RESZ_DONE) == RESZ_DONE) {
-		if (!bufs->is_raw) {
+		if (!RAW_CAPTURE(&isp_obj)) {
 			if (!ispresizer_busy())
 				ispresizer_config_shadow_registers();
 			isp_buf_process(bufs);
@@ -1182,7 +1171,7 @@ u32 isp_tmp_buf_alloc(size_t size)
  **/
 void isp_start(void)
 {
-	if ((ispmodule_obj.isp_pipeline & OMAP_ISP_PREVIEW) &&
+	if ((isp_obj.module.isp_pipeline & OMAP_ISP_PREVIEW) &&
 						is_isppreview_enabled())
 		isppreview_enable(1);
 
@@ -1200,7 +1189,7 @@ void isp_stop()
 
 	isp_disable_interrupts();
 
-	if (ispbufs.is_raw) {
+	if (RAW_CAPTURE(&isp_obj)) {
 		/* RAW capture. Only CCDC needs to be stopped. */
 
 		ispccdc_enable_lsc(0);
@@ -1245,10 +1234,10 @@ EXPORT_SYMBOL(isp_stop);
 
 void isp_set_buf(struct isp_buf *buf)
 {
-	if ((ispmodule_obj.isp_pipeline & OMAP_ISP_RESIZER) &&
+	if ((isp_obj.module.isp_pipeline & OMAP_ISP_RESIZER) &&
 						is_ispresizer_enabled())
 		ispresizer_set_outaddr(buf->isp_addr);
-	else if (ispmodule_obj.isp_pipeline & OMAP_ISP_CCDC)
+	else if (isp_obj.module.isp_pipeline & OMAP_ISP_CCDC)
 		ispccdc_set_outaddr(buf->isp_addr);
 
 }
@@ -1264,7 +1253,7 @@ u32 isp_calc_pipeline(struct v4l2_pix_format *pix_input,
 	isp_release_resources();
 	if ((pix_input->pixelformat == V4L2_PIX_FMT_SGRBG10) &&
 			(pix_output->pixelformat != V4L2_PIX_FMT_SGRBG10)) {
-		ispmodule_obj.isp_pipeline = OMAP_ISP_CCDC | OMAP_ISP_PREVIEW |
+		isp_obj.module.isp_pipeline = OMAP_ISP_CCDC | OMAP_ISP_PREVIEW |
 							OMAP_ISP_RESIZER;
 		ispccdc_request();
 		isppreview_request();
@@ -1273,7 +1262,7 @@ u32 isp_calc_pipeline(struct v4l2_pix_format *pix_input,
 		isppreview_config_datapath(PRV_RAW_CCDC, PREVIEW_MEM);
 		ispresizer_config_datapath(RSZ_MEM_YUV);
 	} else {
-		ispmodule_obj.isp_pipeline = OMAP_ISP_CCDC;
+		isp_obj.module.isp_pipeline = OMAP_ISP_CCDC;
 		ispccdc_request();
 		if (pix_input->pixelformat == V4L2_PIX_FMT_SGRBG10)
 			ispccdc_config_datapath(CCDC_RAW, CCDC_OTHERS_VP_MEM);
@@ -1295,23 +1284,23 @@ u32 isp_calc_pipeline(struct v4l2_pix_format *pix_input,
 void isp_config_pipeline(struct v4l2_pix_format *pix_input,
 					struct v4l2_pix_format *pix_output)
 {
-	ispccdc_config_size(ispmodule_obj.ccdc_input_width,
-			ispmodule_obj.ccdc_input_height,
-			ispmodule_obj.ccdc_output_width,
-			ispmodule_obj.ccdc_output_height);
+	ispccdc_config_size(isp_obj.module.ccdc_input_width,
+			isp_obj.module.ccdc_input_height,
+			isp_obj.module.ccdc_output_width,
+			isp_obj.module.ccdc_output_height);
 
-	if (ispmodule_obj.isp_pipeline & OMAP_ISP_PREVIEW) {
-		isppreview_config_size(ispmodule_obj.preview_input_width,
-			ispmodule_obj.preview_input_height,
-			ispmodule_obj.preview_output_width,
-			ispmodule_obj.preview_output_height);
+	if (isp_obj.module.isp_pipeline & OMAP_ISP_PREVIEW) {
+		isppreview_config_size(isp_obj.module.preview_input_width,
+			isp_obj.module.preview_input_height,
+			isp_obj.module.preview_output_width,
+			isp_obj.module.preview_output_height);
 	}
 
-	if (ispmodule_obj.isp_pipeline & OMAP_ISP_RESIZER) {
-		ispresizer_config_size(ispmodule_obj.resizer_input_width,
-					ispmodule_obj.resizer_input_height,
-					ispmodule_obj.resizer_output_width,
-					ispmodule_obj.resizer_output_height);
+	if (isp_obj.module.isp_pipeline & OMAP_ISP_RESIZER) {
+		ispresizer_config_size(isp_obj.module.resizer_input_width,
+					isp_obj.module.resizer_input_height,
+					isp_obj.module.resizer_output_width,
+					isp_obj.module.resizer_output_height);
 	}
 
 	if (pix_output->pixelformat == V4L2_PIX_FMT_UYVY) {
@@ -1329,16 +1318,12 @@ void isp_config_pipeline(struct v4l2_pix_format *pix_input,
 
 static void isp_buf_init(void)
 {
-	struct isp_bufs *bufs = &ispbufs;
+	struct isp_bufs *bufs = &isp_obj.bufs;
 	int sg;
 
 	bufs->queue = 0;
 	bufs->done = 0;
-	bufs->is_raw = 1;
 	bufs->wait_hs_vs = isp_obj.config->wait_hs_vs;
-	if ((ispmodule_obj.isp_pipeline & OMAP_ISP_RESIZER) ||
-	    (ispmodule_obj.isp_pipeline & OMAP_ISP_PREVIEW))
-		bufs->is_raw = 0;
 	for (sg = 0; sg < NUM_BUFS; sg++) {
 		bufs->buf[sg].complete = NULL;
 		bufs->buf[sg].vb = NULL;
@@ -1368,9 +1353,9 @@ int isp_buf_process(struct isp_bufs *bufs)
 	if (ISP_BUFS_IS_EMPTY(bufs))
 		goto out;
 
-	if (bufs->is_raw && ispccdc_sbl_wait_idle(1000)) {
+	if (RAW_CAPTURE(&isp_obj) && ispccdc_sbl_wait_idle(1000)) {
 		printk(KERN_ERR "ccdc %d won't become idle!\n",
-		       bufs->is_raw);
+		       RAW_CAPTURE(&isp_obj));
 		goto out;
 	}
 
@@ -1384,7 +1369,7 @@ int isp_buf_process(struct isp_bufs *bufs)
 	} else {
 		/* Tell ISP not to write any of our buffers. */
 		isp_disable_interrupts();
-		if (bufs->is_raw)
+		if (RAW_CAPTURE(&isp_obj))
 			ispccdc_enable(0);
 		else
 			ispresizer_enable(0);
@@ -1395,8 +1380,8 @@ int isp_buf_process(struct isp_bufs *bufs)
 		 */
 		bufs->wait_hs_vs = 1;
 	}
-	if ((bufs->is_raw && ispccdc_busy())
-	    || (!bufs->is_raw && ispresizer_busy())) {
+	if ((RAW_CAPTURE(&isp_obj) && ispccdc_busy())
+	    || (!RAW_CAPTURE(&isp_obj) && ispresizer_busy())) {
 		/*
 		 * Next buffer available: for the transfer to succeed, the
 		 * CCDC (RAW capture) or resizer (YUV capture) must be idle
@@ -1449,7 +1434,7 @@ int isp_buf_queue(struct videobuf_buffer *vb,
 	struct isp_buf *buf;
 	struct videobuf_dmabuf *dma = videobuf_to_dma(vb);
 	const struct scatterlist *sglist = dma->sglist;
-	struct isp_bufs *bufs = &ispbufs;
+	struct isp_bufs *bufs = &isp_obj.bufs;
 	int sglen = dma->sglen;
 
 	BUG_ON(sglen < 0 || !sglist);
@@ -1469,7 +1454,7 @@ int isp_buf_queue(struct videobuf_buffer *vb,
 	buf->vb_state = VIDEOBUF_DONE;
 
 	if (ISP_BUFS_IS_EMPTY(bufs)) {
-		isp_enable_interrupts(bufs->is_raw);
+		isp_enable_interrupts(RAW_CAPTURE(&isp_obj));
 		isp_set_buf(buf);
 		ispccdc_enable(1);
 		isp_start();
@@ -1491,11 +1476,11 @@ int isp_vbq_setup(struct videobuf_queue *vbq, unsigned int *cnt,
 		  unsigned int *size)
 {
 	int rval = 0;
-	size_t tmp_size = PAGE_ALIGN(ispmodule_obj.preview_output_width
-				     * ispmodule_obj.preview_output_height
+	size_t tmp_size = PAGE_ALIGN(isp_obj.module.preview_output_width
+				     * isp_obj.module.preview_output_height
 				     * ISP_BYTES_PER_PIXEL);
 
-	if (ispmodule_obj.isp_pipeline & OMAP_ISP_PREVIEW
+	if (isp_obj.module.isp_pipeline & OMAP_ISP_PREVIEW
 	    && isp_obj.tmp_buf_size < tmp_size)
 		rval = isp_tmp_buf_alloc(tmp_size);
 
@@ -1517,7 +1502,7 @@ int isp_vbq_prepare(struct videobuf_queue *vbq, struct videobuf_buffer *vb,
 {
 	unsigned int isp_addr;
 	struct videobuf_dmabuf *vdma;
-	struct isp_bufs *bufs = &ispbufs;
+	struct isp_bufs *bufs = &isp_obj.bufs;
 
 	int err = 0;
 
@@ -1541,7 +1526,7 @@ EXPORT_SYMBOL(isp_vbq_prepare);
  **/
 void isp_vbq_release(struct videobuf_queue *vbq, struct videobuf_buffer *vb)
 {
-	struct isp_bufs *bufs = &ispbufs;
+	struct isp_bufs *bufs = &isp_obj.bufs;
 
 	ispmmu_unmap(bufs->isp_addr_capture[vb->i]);
 	bufs->isp_addr_capture[vb->i] = (dma_addr_t)NULL;
@@ -1777,7 +1762,7 @@ EXPORT_SYMBOL(isp_enum_fmt_cap);
  **/
 void isp_g_fmt_cap(struct v4l2_pix_format *pix)
 {
-	*pix = ispmodule_obj.pix;
+	*pix = isp_obj.module.pix;
 	return;
 }
 EXPORT_SYMBOL(isp_g_fmt_cap);
@@ -1821,7 +1806,7 @@ int isp_s_fmt_cap(struct v4l2_pix_format *pix_input,
 
 	isp_config_pipeline(pix_input, pix_output);
 
-	if ((ispmodule_obj.isp_pipeline & OMAP_ISP_RESIZER) &&
+	if ((isp_obj.module.isp_pipeline & OMAP_ISP_RESIZER) &&
 	    (crop_scaling_h || crop_scaling_w))
 		isp_config_crop(pix_output);
 
@@ -1842,9 +1827,9 @@ void isp_config_crop(struct v4l2_pix_format *croppix)
 
 	struct v4l2_pix_format *pix = croppix;
 
-	crop_scaling_w = (ispmodule_obj.preview_output_width * 10) /
+	crop_scaling_w = (isp_obj.module.preview_output_width * 10) /
 								pix->width;
-	crop_scaling_h = (ispmodule_obj.preview_output_height * 10) /
+	crop_scaling_h = (isp_obj.module.preview_output_height * 10) /
 								pix->height;
 
 	cur_rect.left = (ispcroprect.left * crop_scaling_w) / 10;
@@ -1866,12 +1851,12 @@ void isp_config_crop(struct v4l2_pix_format *croppix)
 		(int)cur_rect.width--;
 
 	isp_obj.tmp_buf_offset = ((cur_rect.left * 2) +
-		((ispmodule_obj.preview_output_width) * 2 * cur_rect.top));
+		((isp_obj.module.preview_output_width) * 2 * cur_rect.top));
 
 	ispresizer_trycrop(cur_rect.left, cur_rect.top, cur_rect.width,
 					cur_rect.height,
-					ispmodule_obj.resizer_output_width,
-					ispmodule_obj.resizer_output_height);
+					isp_obj.module.resizer_output_width,
+					isp_obj.module.resizer_output_height);
 
 	return;
 }
@@ -1930,7 +1915,7 @@ int isp_s_crop(struct v4l2_crop *a, struct v4l2_pix_format *pix)
 
 	isp_config_crop(pix);
 
-	ispmodule_obj.applyCrop = 1;
+	isp_obj.module.applyCrop = 1;
 
 	return rval;
 }
@@ -1988,62 +1973,62 @@ int isp_try_size(struct v4l2_pix_format *pix_input,
 				(pix_output->height > ISPRSZ_MAX_OUTPUT))
 		return -EINVAL;
 
-	ispmodule_obj.ccdc_input_width = pix_input->width;
-	ispmodule_obj.ccdc_input_height = pix_input->height;
-	ispmodule_obj.resizer_output_width = pix_output->width;
-	ispmodule_obj.resizer_output_height = pix_output->height;
+	isp_obj.module.ccdc_input_width = pix_input->width;
+	isp_obj.module.ccdc_input_height = pix_input->height;
+	isp_obj.module.resizer_output_width = pix_output->width;
+	isp_obj.module.resizer_output_height = pix_output->height;
 
-	if (ispmodule_obj.isp_pipeline & OMAP_ISP_CCDC) {
-		rval = ispccdc_try_size(ispmodule_obj.ccdc_input_width,
-					ispmodule_obj.ccdc_input_height,
-					&ispmodule_obj.ccdc_output_width,
-					&ispmodule_obj.ccdc_output_height);
+	if (isp_obj.module.isp_pipeline & OMAP_ISP_CCDC) {
+		rval = ispccdc_try_size(isp_obj.module.ccdc_input_width,
+					isp_obj.module.ccdc_input_height,
+					&isp_obj.module.ccdc_output_width,
+					&isp_obj.module.ccdc_output_height);
 		if (rval) {
 			printk(KERN_ERR "ISP_ERR: The dimensions %dx%d are not"
 					" supported\n", pix_input->width,
 					pix_input->height);
 			return rval;
 		}
-		pix_output->width = ispmodule_obj.ccdc_output_width;
-		pix_output->height = ispmodule_obj.ccdc_output_height;
+		pix_output->width = isp_obj.module.ccdc_output_width;
+		pix_output->height = isp_obj.module.ccdc_output_height;
 	}
 
-	if (ispmodule_obj.isp_pipeline & OMAP_ISP_PREVIEW) {
-		ispmodule_obj.preview_input_width =
-					ispmodule_obj.ccdc_output_width;
-		ispmodule_obj.preview_input_height =
-					ispmodule_obj.ccdc_output_height;
-		rval = isppreview_try_size(ispmodule_obj.preview_input_width,
-					ispmodule_obj.preview_input_height,
-					&ispmodule_obj.preview_output_width,
-					&ispmodule_obj.preview_output_height);
+	if (isp_obj.module.isp_pipeline & OMAP_ISP_PREVIEW) {
+		isp_obj.module.preview_input_width =
+					isp_obj.module.ccdc_output_width;
+		isp_obj.module.preview_input_height =
+					isp_obj.module.ccdc_output_height;
+		rval = isppreview_try_size(isp_obj.module.preview_input_width,
+					isp_obj.module.preview_input_height,
+					&isp_obj.module.preview_output_width,
+					&isp_obj.module.preview_output_height);
 		if (rval) {
 			printk(KERN_ERR "ISP_ERR: The dimensions %dx%d are not"
 					" supported\n", pix_input->width,
 					pix_input->height);
 			return rval;
 		}
-		pix_output->width = ispmodule_obj.preview_output_width;
-		pix_output->height = ispmodule_obj.preview_output_height;
+		pix_output->width = isp_obj.module.preview_output_width;
+		pix_output->height = isp_obj.module.preview_output_height;
 	}
 
-	if (ispmodule_obj.isp_pipeline & OMAP_ISP_RESIZER) {
-		ispmodule_obj.resizer_input_width =
-					ispmodule_obj.preview_output_width;
-		ispmodule_obj.resizer_input_height =
-					ispmodule_obj.preview_output_height;
-		rval = ispresizer_try_size(&ispmodule_obj.resizer_input_width,
-					&ispmodule_obj.resizer_input_height,
-					&ispmodule_obj.resizer_output_width,
-					&ispmodule_obj.resizer_output_height);
+	if (isp_obj.module.isp_pipeline & OMAP_ISP_RESIZER) {
+		isp_obj.module.resizer_input_width =
+					isp_obj.module.preview_output_width;
+		isp_obj.module.resizer_input_height =
+					isp_obj.module.preview_output_height;
+		rval = ispresizer_try_size(&isp_obj.module.resizer_input_width,
+					&isp_obj.module.resizer_input_height,
+					&isp_obj.module.resizer_output_width,
+					&isp_obj.module.resizer_output_height);
 		if (rval) {
 			printk(KERN_ERR "ISP_ERR: The dimensions %dx%d are not"
 					" supported\n", pix_input->width,
 					pix_input->height);
 			return rval;
 		}
-		pix_output->width = ispmodule_obj.resizer_output_width;
-		pix_output->height = ispmodule_obj.resizer_output_height;
+		pix_output->width = isp_obj.module.resizer_output_width;
+		pix_output->height = isp_obj.module.resizer_output_height;
 	}
 
 	return rval;
@@ -2083,14 +2068,14 @@ int isp_try_fmt(struct v4l2_pix_format *pix_input,
 		pix_output->colorspace = V4L2_COLORSPACE_SRGB;
 	}
 
-	ispmodule_obj.pix.pixelformat = pix_output->pixelformat;
-	ispmodule_obj.pix.width = pix_output->width;
-	ispmodule_obj.pix.height = pix_output->height;
-	ispmodule_obj.pix.field = pix_output->field;
-	ispmodule_obj.pix.bytesperline = pix_output->bytesperline;
-	ispmodule_obj.pix.sizeimage = pix_output->sizeimage;
-	ispmodule_obj.pix.priv = pix_output->priv;
-	ispmodule_obj.pix.colorspace = pix_output->colorspace;
+	isp_obj.module.pix.pixelformat = pix_output->pixelformat;
+	isp_obj.module.pix.width = pix_output->width;
+	isp_obj.module.pix.height = pix_output->height;
+	isp_obj.module.pix.field = pix_output->field;
+	isp_obj.module.pix.bytesperline = pix_output->bytesperline;
+	isp_obj.module.pix.sizeimage = pix_output->sizeimage;
+	isp_obj.module.pix.priv = pix_output->priv;
+	isp_obj.module.pix.colorspace = pix_output->colorspace;
 
 	return 0;
 }
@@ -2201,7 +2186,7 @@ int isp_put(void)
 			isp_save_ctx();
 			isp_tmp_buf_free();
 			isp_release_resources();
-			ispmodule_obj.isp_pipeline = 0;
+			isp_obj.module.isp_pipeline = 0;
 			clk_disable(isp_obj.cam_ick);
 			clk_disable(isp_obj.cam_mclk);
 			clk_disable(isp_obj.csi2_fck);
@@ -2255,7 +2240,7 @@ static int isp_remove(struct platform_device *pdev)
 	clk_put(isp_obj.cam_mclk);
 	clk_put(isp_obj.csi2_fck);
 
-	free_irq(isp->irq, &ispirq_obj);
+	free_irq(isp->irq, &isp_obj.irq);
 
 	for (i = 0; i <= OMAP3_ISP_IOMEM_CSI2PHY; i++) {
 		if (isp->mmio_base[i]) {
@@ -2360,7 +2345,7 @@ static int isp_probe(struct platform_device *pdev)
 	}
 
 	if (request_irq(isp->irq, omap34xx_isp_isr, IRQF_SHARED,
-				"Omap 3 Camera ISP", &ispirq_obj)) {
+				"Omap 3 Camera ISP", &isp_obj)) {
 		DPRINTK_ISPCTRL("Could not install ISR\n");
 		ret_err = -EINVAL;
 		goto out_request_irq;
