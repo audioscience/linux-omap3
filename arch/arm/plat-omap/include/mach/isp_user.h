@@ -151,6 +151,7 @@ struct isph3a_aewb_data {
 	__u16 curr_frame;
 	__u8 update;
 	struct timeval ts;
+	__u32 config_counter;
 	unsigned long field_count;
 };
 
@@ -231,6 +232,7 @@ struct isp_af_data {
 	__u16 update;
 	__u16 frame_number;
 	__u16 curr_frame;
+	__u32 config_counter;
 	struct isp_af_xtrastats xtrastats;
 };
 
