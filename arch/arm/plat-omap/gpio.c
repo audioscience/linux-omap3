@@ -856,13 +856,10 @@ static int _set_gpio_wakeup(struct gpio_bank *bank, int gpio, int enable)
 	case METHOD_MPUIO:
 	case METHOD_GPIO_1610:
 		spin_lock_irqsave(&bank->lock, flags);
-		if (enable) {
+		if (enable)
 			bank->suspend_wakeup |= (1 << gpio);
-			enable_irq_wake(bank->irq);
-		} else {
-			disable_irq_wake(bank->irq);
+		else
 			bank->suspend_wakeup &= ~(1 << gpio);
-		}
 		spin_unlock_irqrestore(&bank->lock, flags);
 		return 0;
 #endif
@@ -875,13 +872,10 @@ static int _set_gpio_wakeup(struct gpio_bank *bank, int gpio, int enable)
 			return -EINVAL;
 		}
 		spin_lock_irqsave(&bank->lock, flags);
-		if (enable) {
+		if (enable)
 			bank->suspend_wakeup |= (1 << gpio);
-			enable_irq_wake(bank->irq);
-		} else {
-			disable_irq_wake(bank->irq);
+		else
 			bank->suspend_wakeup &= ~(1 << gpio);
-		}
 		spin_unlock_irqrestore(&bank->lock, flags);
 		return 0;
 #endif
