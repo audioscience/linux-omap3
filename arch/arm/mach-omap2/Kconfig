@@ -126,7 +126,7 @@ config MACH_OMAP_2430SDP
 	bool "OMAP 2430 SDP board"
 	depends on ARCH_OMAP2 && ARCH_OMAP2430
 
-config MACH_OMAP2EVM 
+config MACH_OMAP2EVM
 	bool "OMAP 2530 EVM board"
 	depends on ARCH_OMAP2 && ARCH_OMAP24XX
 
@@ -141,6 +141,12 @@ config MACH_OMAP_3430SDP
 config MACH_OMAP3EVM
 	bool "OMAP 3530 EVM board"
 	depends on ARCH_OMAP35XX
+
+config MACH_OMAP3EVM_MMDC
+	bool "OMAP 3530 EVM Mass Market Daughter Card board"
+	depends on MACH_OMAP3EVM
+	help
+	  Set this if you've got a Mass Market Daughter Card board.
 
 config MACH_OMAP3_BEAGLE
 	bool "OMAP3 BEAGLE board"
