@@ -1318,10 +1318,10 @@ static int vidioc_s_ctrl(struct file *file, void *fh, struct v4l2_control *a)
 		if ((rotation == 0) || (rotation == 90) ||
 		    (rotation == 180) || (rotation == 270)
 		    || (rotation == -1)) {
+			vout->control[0].value = rotation;
 			vout->rotation = (rotation == 90) ?
 				270 : (rotation == 270) ? 90 : rotation;
 			up(&vout->lock);
-			vout->control[0].value = vout->rotation;
 			return 0;
 		} else {
 			up(&vout->lock);
@@ -1808,6 +1808,7 @@ static int omap_vout_setup_video_data(struct omap_vout_device *vout)
 	control[0].id = V4L2_CID_ROTATION;
 	control[0].value = -1;
 	vout->rotation = control[0].value;
+	vout->vrfb_bpp = 2;
 
 	/* initialize the video_device struct */
 	vfd = vout->vfd = video_device_alloc();
