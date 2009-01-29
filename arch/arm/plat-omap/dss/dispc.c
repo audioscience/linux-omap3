@@ -987,12 +987,10 @@ static int _dispc_set_rotation_mirroring(enum omap_plane plane,
 	int rotation, int mirroring, enum omap_color_mode color_mode)
 {
 	u32 attr_value;
-	if (rotation == -1)
-		return 0;
-	if (color_mode == OMAP_DSS_COLOR_YUV2 ||
-		color_mode == OMAP_DSS_COLOR_UYVY) {
-		if (mirroring == 1) {
 
+	if (color_mode == OMAP_DSS_COLOR_YUV2 ||
+			color_mode == OMAP_DSS_COLOR_UYVY) {
+		if (mirroring == 1) {
 			if (rotation == 90)
 				REG_FLD_MOD(dispc_reg_att[plane], 0x3, 13, 12);
 			else if (rotation == 270)
@@ -1008,15 +1006,15 @@ static int _dispc_set_rotation_mirroring(enum omap_plane plane,
 				REG_FLD_MOD(dispc_reg_att[plane], 0x01, 13, 12);
 			else if (rotation == 180)
 				REG_FLD_MOD(dispc_reg_att[plane], 0x2, 13, 12);
-			else if (rotation == 0)
+			else if (rotation == 0 || rotation == -1)
 				REG_FLD_MOD(dispc_reg_att[plane], 0x0, 13, 12);
-			}
 		}
-		if (rotation == 90 || rotation == 270)
-			REG_FLD_MOD(dispc_reg_att[plane], 0x1, 18, 18);
-		else
-			REG_FLD_MOD(dispc_reg_att[plane], 0x0, 18, 18);
-	attr_value = dispc_read_reg(DISPC_VID_ATTRIBUTES(0));
+	}
+	if (rotation == 90 || rotation == 270)
+		REG_FLD_MOD(dispc_reg_att[plane], 0x1, 18, 18);
+	else
+		REG_FLD_MOD(dispc_reg_att[plane], 0x0, 18, 18);
+
 	return 0;
 }
 
@@ -1029,7 +1027,7 @@ static void _dispc_calc_and_set_row_inc(enum omap_plane plane,
 	int fieldmode)
 {
 	int ps = 2, vr_ps = 1;
-	int row_inc_value = 0, pixel_inc_value = 0;
+	int row_inc_value = 0;
 	int temp;
 
 	switch (color_mode) {
@@ -1074,10 +1072,8 @@ static void _dispc_calc_and_set_row_inc(enum omap_plane plane,
 			row_inc_value = 1 + (MAX_PIXELS_PER_LINE -
 				screen_width + (screen_width - cropwidth -
 				cleft) + cleft) * ps;
-	} else {
+	} else
 		row_inc_value = 1 + (screen_width * ps) - cropwidth * ps;
-	}
-	pixel_inc_value = 1;
 
 	if (fieldmode) {
 		if (rotation >= 0)
@@ -1169,11 +1165,9 @@ static int _dispc_setup_plane(enum omap_plane plane,
 	/* attributes */
 	_dispc_set_channel_out(plane, channel_out);
 
-	if (rotation >= 0) {
-		/* Set rotation and mirroring attributes */
-		_dispc_set_rotation_mirroring(plane, rotation,
-				mirror, color_mode);
-	}
+	/* Set rotation and mirroring attributes */
+	_dispc_set_rotation_mirroring(plane, rotation,
+			mirror, color_mode);
 
 	_dispc_set_color_mode(plane, color_mode);
 	if (plane != OMAP_DSS_GFX)
