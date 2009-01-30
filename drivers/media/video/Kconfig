@@ -711,8 +711,6 @@ config VIDEO_CAFE_CCIC
 	  CMOS camera controller.  This is the controller found on first-
 	  generation OLPC systems.
 
-source "drivers/media/video/isp/Kconfig"
-
 #config VIDEO_OMAP3
 #        tristate "OMAP 3 Camera support"
 #	select VIDEOBUF_GEN

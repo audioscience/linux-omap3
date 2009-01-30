@@ -895,7 +895,7 @@ static void omap_vout_free_allbuffers(struct omap_vout_device *vout)
 	vout->buffer_allocated = num_buffers;
 }
 
-static int omap_vout_release(struct inode *inode, struct file *file)
+static int omap_vout_release(struct file *file)
 {
 
 	struct omap_vout_fh *fh = file->private_data;
@@ -954,9 +954,9 @@ static int omap_vout_release(struct inode *inode, struct file *file)
 	return r;
 }
 
-static int omap_vout_open(struct inode *inode, struct file *file)
+static int omap_vout_open(struct file *file)
 {
-	int minor = MINOR(file->f_dentry->d_inode->i_rdev);
+	int minor = video_devdata(file)->minor;
 	struct omap_vout_device *vout = NULL;
 	struct omap_vout_fh *fh;
 	struct videobuf_queue *q;
@@ -1606,9 +1606,8 @@ static const struct v4l2_ioctl_ops vout_ioctl_ops = {
 	.vidioc_streamon			= vidioc_streamon,
 	.vidioc_streamoff			= vidioc_streamoff,
 };
-static struct file_operations omap_vout_fops = {
+static struct v4l2_file_operations omap_vout_fops = {
 	.owner 		= THIS_MODULE,
-	.llseek 	= no_llseek,
 	.ioctl 		= video_ioctl2,
 	.mmap 		= omap_vout_mmap,
 	.open 		= omap_vout_open,
