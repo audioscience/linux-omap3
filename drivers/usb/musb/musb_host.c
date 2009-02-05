@@ -1361,6 +1361,49 @@ finish:
 
 #endif
 
+/* Schedule next qh from musb->in_bulk and add the current qh at tail
+ * to avoid endpoint starvation.
+ */
+static void musb_bulk_nak_timeout(struct musb *musb, struct musb_hw_ep *ep)
+{
+	struct dma_channel	*dma;
+	struct urb	*urb;
+	void __iomem	*mbase = musb->mregs;
+	void __iomem	*epio = ep->regs;
+	struct musb_qh	*cur_qh, *next_qh;
+	u16	rx_csr;
+
+	musb_ep_select(mbase, ep->epnum);
+	dma = is_dma_capable() ? ep->rx_channel : NULL;
+
+	/* clear nak timeout bit */
+	rx_csr = musb_readw(epio, MUSB_RXCSR);
+	rx_csr &= ~MUSB_RXCSR_DATAERROR;
+	musb_writew(epio, MUSB_RXCSR, rx_csr);
+
+	cur_qh = first_qh(&musb->in_bulk);
+	if (cur_qh) {
+		urb = next_urb(cur_qh);
+		if (dma_channel_status(dma) == MUSB_DMA_STATUS_BUSY) {
+			dma->status = MUSB_DMA_STATUS_CORE_ABORT;
+			musb->dma_controller->channel_abort(dma);
+			urb->actual_length += dma->actual_len;
+			dma->actual_len = 0L;
+		}
+		musb_save_toggle(ep, 1, urb);
+
+		/* delete cur_qh and add to tail to musb->in_bulk */
+		list_move_tail(&cur_qh->ring, &musb->in_bulk);
+
+		/* get the next qh from musb->in_bulk */
+		next_qh = first_qh(&musb->in_bulk);
+
+		/* set rx_reinit and schedule the next qh */
+		ep->rx_reinit = 1;
+		musb_start_urb(musb, 1, next_qh);
+	}
+}
+
 /*
  * Service an RX interrupt for the given IN endpoint; docs cover bulk, iso,
  * and high-bandwidth IN transfer cases.
@@ -1432,10 +1475,14 @@ void musb_host_rx(struct musb *musb, u8 epnum)
 			 * we have a candidate... NAKing is *NOT* an error
 			 */
 			DBG(6, "RX end %d NAK timeout\n", epnum);
+			if (usb_pipebulk(urb->pipe) && qh->mux == 1 &&
+				!list_is_singular(&musb->in_bulk)) {
+				musb_bulk_nak_timeout(musb, hw_ep);
+				return;
+			}
 			musb_ep_select(mbase, epnum);
-			musb_writew(epio, MUSB_RXCSR,
-					MUSB_RXCSR_H_WZC_BITS
-					| MUSB_RXCSR_H_REQPKT);
+			rx_csr &= ~MUSB_RXCSR_DATAERROR;
+			musb_writew(epio, MUSB_RXCSR, rx_csr);
 
 			goto finish;
 		} else {
@@ -1764,6 +1811,16 @@ static int musb_schedule(
 			head = &musb->in_bulk;
 		else
 			head = &musb->out_bulk;
+		/* Enable bulk NAK time out scheme when bulk requests are
+		 * multiplxed.This scheme doen't work in high speed to full
+		 * speed scenario as NAK interrupts are not coming from a
+		 * full speed device connected to a high speed device.
+		 * NAK timeout interval is 8 (128 uframe or 16ms) for HS and
+		 * 4 (8 frame or 8ms) for FS device.
+		 */
+		if (is_in && qh->dev)
+			qh->intv_reg =
+				(USB_SPEED_HIGH == qh->dev->speed) ? 8 : 4;
 		goto success;
 	} else if (best_end < 0) {
 		return -ENOSPC;
