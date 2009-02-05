@@ -201,8 +201,8 @@ musb_start_urb(struct musb *musb, int is_in, struct musb_qh *qh)
 		len = urb->iso_frame_desc[0].length;
 		break;
 	default:		/* bulk, interrupt */
-		buf = urb->transfer_buffer;
-		len = urb->transfer_buffer_length;
+		buf = urb->transfer_buffer + urb->actual_length;
+		len = urb->transfer_buffer_length - urb->actual_length;
 	}
 
 	DBG(4, "qh %p urb %p dev%d ep%d%s%s, hw_ep %d, %p/%d\n",
