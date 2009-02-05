@@ -68,6 +68,7 @@ struct musb_qh {
 	u8			type;		/* XFERTYPE_* */
 	u8			epnum;
 	u16			maxpacket;
+	u8			hb_mult;	/* high bandwidth pkts per uf */
 	u16			frame;		/* for periodic schedule */
 	unsigned		iso_idx;	/* in urb->iso_frame_desc[] */
 };

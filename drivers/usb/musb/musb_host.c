@@ -601,7 +601,8 @@ musb_rx_reinit(struct musb *musb, struct musb_qh *qh, struct musb_hw_ep *ep)
 	musb_writeb(ep->regs, MUSB_RXTYPE, qh->type_reg);
 	musb_writeb(ep->regs, MUSB_RXINTERVAL, qh->intv_reg);
 	/* NOTE: bulk combining rewrites high bits of maxpacket */
-	musb_writew(ep->regs, MUSB_RXMAXP, qh->maxpacket);
+	musb_writew(ep->regs, MUSB_RXMAXP, qh->maxpacket |
+				 ((qh->hb_mult - 1) << 11));
 
 	ep->rx_reinit = 0;
 }
@@ -764,10 +765,13 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 					| MUSB_TXCSR_DMAMODE);
 				csr |= (MUSB_TXCSR_DMAENAB);
 					/* against programming guide */
-			} else
-				csr |= (MUSB_TXCSR_AUTOSET
-					| MUSB_TXCSR_DMAENAB
+			} else {
+				csr |= (MUSB_TXCSR_DMAENAB
 					| MUSB_TXCSR_DMAMODE);
+				/* autoset shouldn't be set in high bandwidth */
+				if (qh->hb_mult == 1)
+					csr |= MUSB_TXCSR_AUTOSET;
+			}
 
 			musb_writew(epio, MUSB_TXCSR, csr);
 
@@ -1439,6 +1443,10 @@ void musb_host_rx(struct musb *musb, u8 epnum)
 			/* packet error reported later */
 			iso_err = true;
 		}
+	} else if (rx_csr & MUSB_RXCSR_INCOMPRX) {
+		DBG(3, "end %d Highbandwidth  incomplete ISO packet received\n",
+				epnum);
+		status = -EPROTO;
 	}
 
 	/* faults abort the transfer */
@@ -1646,7 +1654,11 @@ void musb_host_rx(struct musb *musb, u8 epnum)
 				val &= ~MUSB_RXCSR_H_AUTOREQ;
 			else
 				val |= MUSB_RXCSR_H_AUTOREQ;
-			val |= MUSB_RXCSR_AUTOCLEAR | MUSB_RXCSR_DMAENAB;
+			val |= MUSB_RXCSR_DMAENAB;
+
+			/* autoclear shouldn't be set in high bandwidth */
+			if (qh->hb_mult == 1)
+				val |= MUSB_RXCSR_AUTOCLEAR;
 
 			musb_writew(epio, MUSB_RXCSR,
 				MUSB_RXCSR_H_WZC_BITS | val);
@@ -1734,9 +1746,11 @@ static int musb_schedule(
 			continue;
 
 		if (is_in)
-			diff = hw_ep->max_packet_sz_rx - qh->maxpacket;
+			diff = hw_ep->max_packet_sz_rx -
+				 (qh->maxpacket * qh->hb_mult);
 		else
-			diff = hw_ep->max_packet_sz_tx - qh->maxpacket;
+			diff = hw_ep->max_packet_sz_tx -
+				 (qh->maxpacket * qh->hb_mult);
 
 		if (diff >= 0 && best_diff > diff) {
 			best_diff = diff;
@@ -1830,11 +1844,13 @@ static int musb_urb_enqueue(
 
 	qh->maxpacket = le16_to_cpu(epd->wMaxPacketSize);
 
-	/* no high bandwidth support yet */
-	if (qh->maxpacket & ~0x7ff) {
-		ret = -EMSGSIZE;
-		goto done;
-	}
+	/* update qh->hb_mult for high bandwidth transfers.Bit 11 or 12
+	 * of wMaxPacketSize is set for two or three transaction per microframe.
+	 */
+	qh->hb_mult = 1 + ((qh->maxpacket >> 11) & 0x03);
+
+	if (qh->hb_mult > 1)
+		qh->maxpacket &= 0x7ff;
 
 	qh->epnum = usb_endpoint_num(epd);
 	qh->type = usb_endpoint_type(epd);
@@ -1935,7 +1951,6 @@ static int musb_urb_enqueue(
 	}
 	spin_unlock_irqrestore(&musb->lock, flags);
 
-done:
 	if (ret != 0) {
 		spin_lock_irqsave(&musb->lock, flags);
 		usb_hcd_unlink_urb_from_ep(hcd, urb);
