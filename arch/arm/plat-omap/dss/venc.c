@@ -371,8 +371,13 @@ static void venc_enable_clocks(int enable)
 int venc_init(void)
 {
 	u8 rev_id;
-	int use_pal = 1; /* XXX */
-
+	int use_pal = 0;
+#ifdef CONFIG_NTSC_M
+	use_pal = 0;
+#endif
+#ifdef CONFIG_PAL_BDGHI
+	use_pal = 1; /* XXX */
+#endif
 	mutex_init(&venc.venc_lock);
 
 	if (use_pal)

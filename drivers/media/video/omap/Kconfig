@@ -19,4 +19,19 @@ config VID2_OMAP_ON_TV
 	bool "Default Overlay manager for Video2 pipeline will be TV"
 	depends on VIDEO_OMAP_VIDEOOUT
 	default n
+choice
+        prompt "TV Mode"
+        depends on VID1_OMAP_ON_TV || VID2_OMAP_ON_TV
+        default NTSC_M
 
+config NTSC_M
+        bool "Use NTSC_M mode"
+        help
+          Select this option if you want NTSC_M mode on TV
+
+config PAL_BDGHI
+        bool "Use PAL_BDGHI mode"
+        help
+          Select this option if you want PAL_BDGHI mode on TV
+
+endchoice
