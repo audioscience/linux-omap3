@@ -335,15 +335,10 @@ musb_save_toggle(struct musb_hw_ep *ep, int is_in, struct urb *urb)
 static struct musb_qh *
 musb_giveback(struct musb_qh *qh, struct urb *urb, int status)
 {
-	int			is_in;
 	struct musb_hw_ep	*ep = qh->hw_ep;
 	struct musb		*musb = ep->musb;
+	int			is_in = usb_pipein(urb->pipe);
 	int			ready = qh->is_ready;
-
-	if (ep->is_shared_fifo)
-		is_in = 1;
-	else
-		is_in = usb_pipein(urb->pipe);
 
 	/* save toggle eagerly, for paranoia */
 	switch (qh->type) {
@@ -400,7 +395,6 @@ musb_giveback(struct musb_qh *qh, struct urb *urb, int status)
 			 * de-allocated if it's tracked and allocated;
 			 * and where we'd update the schedule tree...
 			 */
-			musb->periodic[ep->epnum] = NULL;
 			kfree(qh);
 			qh = NULL;
 			break;
@@ -432,7 +426,7 @@ musb_advance_schedule(struct musb *musb, struct urb *urb,
 	else
 		qh = musb_giveback(qh, urb, urb->status);
 
-	if (qh && qh->is_ready && !list_empty(&qh->hep->urb_list)) {
+	if (qh != NULL && qh->is_ready) {
 		DBG(4, "... next ep%d %cX urb %p\n",
 				hw_ep->epnum, is_in ? 'R' : 'T',
 				next_urb(qh));
@@ -942,8 +936,8 @@ static bool musb_h_ep0_continue(struct musb *musb, u16 len, struct urb *urb)
 	switch (musb->ep0_stage) {
 	case MUSB_EP0_IN:
 		fifo_dest = urb->transfer_buffer + urb->actual_length;
-		fifo_count = min(len, ((u16) (urb->transfer_buffer_length
-					- urb->actual_length)));
+		fifo_count = min_t(size_t, len, urb->transfer_buffer_length -
+				   urb->actual_length);
 		if (fifo_count < len)
 			urb->status = -EOVERFLOW;
 
@@ -976,10 +970,9 @@ static bool musb_h_ep0_continue(struct musb *musb, u16 len, struct urb *urb)
 		}
 		/* FALLTHROUGH */
 	case MUSB_EP0_OUT:
-		fifo_count = min(qh->maxpacket, ((u16)
-				(urb->transfer_buffer_length
-				- urb->actual_length)));
-
+		fifo_count = min_t(size_t, qh->maxpacket,
+				   urb->transfer_buffer_length -
+				   urb->actual_length);
 		if (fifo_count) {
 			fifo_dest = (u8 *) (urb->transfer_buffer
 					+ urb->actual_length);
@@ -1161,7 +1154,8 @@ void musb_host_tx(struct musb *musb, u8 epnum)
 	struct urb		*urb;
 	struct musb_hw_ep	*hw_ep = musb->endpoints + epnum;
 	void __iomem		*epio = hw_ep->regs;
-	struct musb_qh		*qh = hw_ep->out_qh;
+	struct musb_qh		*qh = hw_ep->is_shared_fifo ? hw_ep->in_qh
+							    : hw_ep->out_qh;
 	u32			status = 0;
 	void __iomem		*mbase = musb->mregs;
 	struct dma_channel	*dma;
@@ -1308,7 +1302,8 @@ void musb_host_tx(struct musb *musb, u8 epnum)
 		 * packets before updating TXCSR ... other docs disagree ...
 		 */
 		/* PIO:  start next packet in this URB */
-		wLength = min(qh->maxpacket, (u16) wLength);
+		if (wLength > qh->maxpacket)
+			wLength = qh->maxpacket;
 		musb_write_fifo(hw_ep, wLength, buf);
 		qh->segsize = wLength;
 
@@ -1715,31 +1710,26 @@ static int musb_schedule(
 
 	/* else, periodic transfers get muxed to other endpoints */
 
-	/* FIXME this doesn't consider direction, so it can only
-	 * work for one half of the endpoint hardware, and assumes
-	 * the previous cases handled all non-shared endpoints...
-	 */
-
-	/* we know this qh hasn't been scheduled, so all we need to do
+	/*
+	 * We know this qh hasn't been scheduled, so all we need to do
 	 * is choose which hardware endpoint to put it on ...
 	 *
 	 * REVISIT what we really want here is a regular schedule tree
-	 * like e.g. OHCI uses, but for now musb->periodic is just an
-	 * array of the _single_ logical endpoint associated with a
-	 * given physical one (identity mapping logical->physical).
-	 *
-	 * that simplistic approach makes TT scheduling a lot simpler;
-	 * there is none, and thus none of its complexity...
+	 * like e.g. OHCI uses.
 	 */
 	best_diff = 4096;
 	best_end = -1;
 
-	for (epnum = 1; epnum < musb->nr_endpoints; epnum++) {
+	for (epnum = 1, hw_ep = musb->endpoints + 1; epnum < musb->nr_endpoints;
+	     epnum++, hw_ep++) {
 		int	diff;
 
-		if (musb->periodic[epnum])
+		if (is_in || hw_ep->is_shared_fifo) {
+			if (hw_ep->in_qh  != NULL)
+				continue;
+		} else	if (hw_ep->out_qh != NULL)
 			continue;
-		hw_ep = &musb->endpoints[epnum];
+
 		if (hw_ep == musb->bulk_ep)
 			continue;
 
@@ -1768,7 +1758,6 @@ static int musb_schedule(
 	idle = 1;
 	qh->mux = 0;
 	hw_ep = musb->endpoints + best_end;
-	musb->periodic[best_end] = qh;
 	DBG(4, "qh %p periodic slot %d\n", qh, best_end);
 success:
 	if (head) {
@@ -1867,19 +1856,21 @@ static int musb_urb_enqueue(
 	}
 	qh->type_reg = type_reg;
 
-	/* precompute rxinterval/txinterval register */
-	interval = min((u8)16, epd->bInterval);	/* log encoding */
+	/* Precompute RXINTERVAL/TXINTERVAL register */
 	switch (qh->type) {
 	case USB_ENDPOINT_XFER_INT:
-		/* fullspeed uses linear encoding */
-		if (USB_SPEED_FULL == urb->dev->speed) {
-			interval = epd->bInterval;
-			if (!interval)
-				interval = 1;
+		/*
+		 * Full/low speeds use the  linear encoding,
+		 * high speed uses the logarithmic encoding.
+		 */
+		if (urb->dev->speed <= USB_SPEED_FULL) {
+			interval = max_t(u8, epd->bInterval, 1);
+			break;
 		}
 		/* FALLTHROUGH */
 	case USB_ENDPOINT_XFER_ISOC:
-		/* iso always uses log encoding */
+		/* ISO always uses logarithmic encoding */
+		interval = min_t(u8, epd->bInterval, 16);
 		break;
 	default:
 		/* REVISIT we actually want to use NAK limits, hinting to the
@@ -2077,7 +2068,19 @@ static int musb_urb_dequeue(struct usb_hcd *hcd, struct urb *urb, int status)
 		ret = 0;
 		qh->is_ready = 0;
 		__musb_giveback(musb, urb, 0);
-		qh->is_ready = ready;
+
+		/*
+		 * If the URB list has emptied, it's time to kill this qh.
+		 * However, if this was called from the driver callback,
+		 * we don't really want to do it now, deferring it until
+		 * we return to musb_giveback(), or bad things will happen...
+		 */
+		if (ready && list_empty(&qh->hep->urb_list)) {
+			qh->hep->hcpriv = NULL;
+			list_del(&qh->ring);
+			kfree(qh);
+		} else
+			qh->is_ready = ready;
 	} else
 		ret = musb_cleanup_urb(urb, qh, urb->pipe & USB_DIR_IN);
 done:
@@ -2093,14 +2096,15 @@ musb_h_disable(struct usb_hcd *hcd, struct usb_host_endpoint *hep)
 	unsigned long		flags;
 	struct musb		*musb = hcd_to_musb(hcd);
 	u8			is_in = epnum & USB_DIR_IN;
-	struct musb_qh		*qh = hep->hcpriv;
-	struct urb		*urb, *tmp;
+	struct musb_qh		*qh;
+	struct urb		*urb;
 	struct list_head	*sched;
 
-	if (!qh)
-		return;
-
 	spin_lock_irqsave(&musb->lock, flags);
+
+	qh = hep->hcpriv;
+	if (qh == NULL)
+		goto exit;
 
 	switch (qh->type) {
 	case USB_ENDPOINT_XFER_CONTROL:
@@ -2135,13 +2139,22 @@ musb_h_disable(struct usb_hcd *hcd, struct usb_host_endpoint *hep)
 
 		/* cleanup */
 		musb_cleanup_urb(urb, qh, urb->pipe & USB_DIR_IN);
-	} else
-		urb = NULL;
 
-	/* then just nuke all the others */
-	list_for_each_entry_safe_from(urb, tmp, &hep->urb_list, urb_list)
-		musb_giveback(qh, urb, -ESHUTDOWN);
+		/* Then just nuke all the others */
+		while (!list_empty(&hep->urb_list)) {
+			urb = next_urb(qh);
+			urb->status = -ESHUTDOWN;
+			musb_advance_schedule(musb, urb, qh->hw_ep, is_in);
+		}
+	} else {
+		while (!list_empty(&hep->urb_list))
+			__musb_giveback(musb, next_urb(qh), -ESHUTDOWN);
 
+		hep->hcpriv = NULL;
+		list_del(&qh->ring);
+		kfree(qh);
+	}
+exit:
 	spin_unlock_irqrestore(&musb->lock, flags);
 }
 
