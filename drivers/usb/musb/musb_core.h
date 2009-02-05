@@ -57,7 +57,6 @@ struct musb_ep;
 #include "musb_dma.h"
 
 #include "musb_io.h"
-#include "musb_regs.h"
 
 #include "musb_gadget.h"
 #include "../core/hcd.h"
@@ -230,6 +229,7 @@ enum musb_g_ep0_state {
 
 /******************************** TYPES *************************************/
 
+#include "musb_regs.h"
 /*
  * struct musb_hw_ep - endpoint hardware (bidirectional)
  *
