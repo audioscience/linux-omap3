@@ -179,11 +179,13 @@ static int omap_start_ehc(struct platform_device *dev, struct usb_hcd *hcd)
 			(7 << OMAP3430ES2_EN_PERIPH2_DPLL_SHIFT),
 			PLL_MOD, OMAP3430ES2_CM_CLKEN2);
 
+#if 0 /* initialization stucks here when EHCI built as module */
 	while (!(cm_read_mod_reg(PLL_MOD, CM_IDLEST2) &
 				OMAP3430ES2_ST_PERIPH2_CLK_MASK))
 		dev_dbg(hcd->self.controller,
 			"idlest2 = 0x%x\n",
 			cm_read_mod_reg(PLL_MOD, CM_IDLEST2));
+#endif
 	/* End DPLL5 programming */
 
 
