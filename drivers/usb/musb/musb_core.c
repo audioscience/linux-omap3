@@ -2020,8 +2020,6 @@ bad_config:
 		musb->xceiv.state = OTG_STATE_A_IDLE;
 
 		status = usb_add_hcd(musb_to_hcd(musb), -1, 0);
-		if (status)
-			goto fail;
 
 		DBG(1, "%s mode, status %d, devctl %02x %c\n",
 			"HOST", status,
@@ -2036,8 +2034,6 @@ bad_config:
 		musb->xceiv.state = OTG_STATE_B_IDLE;
 
 		status = musb_gadget_setup(musb);
-		if (status)
-			goto fail;
 
 		DBG(1, "%s mode, status %d, dev%02x\n",
 			is_otg_enabled(musb) ? "OTG" : "PERIPHERAL",
@@ -2056,7 +2052,8 @@ bad_config:
 #endif
 	if (status)
 		goto fail2;
-
+	if (status == 0)
+		musb_debug_create("driver/musb_hdrc", musb);
 	return 0;
 
 fail2:
@@ -2126,6 +2123,7 @@ static int __devexit musb_remove(struct platform_device *pdev)
 	 *  - OTG mode: both roles are deactivated (or never-activated)
 	 */
 	musb_shutdown(pdev);
+	musb_debug_delete("driver/musb_hdrc", musb);
 #ifdef CONFIG_USB_MUSB_HDRC_HCD
 	if (musb->board_mode == MUSB_HOST)
 		usb_remove_hcd(musb_to_hcd(musb));
