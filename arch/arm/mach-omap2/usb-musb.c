@@ -26,6 +26,7 @@
 #include <asm/io.h>
 
 #include <linux/usb/musb.h>
+#include <linux/usb/otg.h>
 
 #include <mach/hardware.h>
 #include <mach/irqs.h>
@@ -160,6 +161,9 @@ static struct platform_device musb_device = {
 void __init usb_musb_init(void)
 {
 #ifdef CONFIG_USB_MUSB_SOC
+#ifdef CONFIG_NOP_USB_XCEIV
+       nop_xceiv_register();
+#endif
 	if (platform_device_register(&musb_device) < 0) {
 		printk(KERN_ERR "Unable to register HS-USB (MUSB) device\n");
 		return;
