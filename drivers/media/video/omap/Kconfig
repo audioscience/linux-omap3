@@ -10,18 +10,41 @@ config VIDEO_OMAP_VIDEOOUT
 	depends on VIDEO_OMAP3
 	default VIDEO_OMAP3
 
-config VID1_OMAP_ON_TV
-	bool "Default Overlay manager for Video1 pipeline will be TV"
-	depends on VIDEO_OMAP_VIDEOOUT
-	default n
+choice
+        prompt "VID1 Overlay manager"
+        depends on VIDEO_OMAP_VIDEOOUT
+        default VID1_LCD_MANAGER
 
-config VID2_OMAP_ON_TV
-	bool "Default Overlay manager for Video2 pipeline will be TV"
+config VID1_TV_MANAGER
+        bool "Use TV Manager"
+        help
+          Select this option if you want VID1 pipeline on TV Overlay manager
+
+config VID1_LCD_MANAGER
+        bool "Use LCD Managaer"
+        help
+          Select this option if you want VID1 pipeline on LCD Overlay manager
+endchoice
+
+choice
+	prompt "VID2 Overlay manager"
 	depends on VIDEO_OMAP_VIDEOOUT
-	default n
+	default VID2_LCD_MANAGER
+
+config VID2_TV_MANAGER
+	bool "Use TV Manager"
+	help
+	  Select this option if you want VID2 pipeline on TV Overlay manager
+
+config VID2_LCD_MANAGER
+	bool "Use LCD Managaer"
+	help
+	  Select this option if you want VID2 pipeline on LCD Overlay manager
+endchoice
+
 choice
         prompt "TV Mode"
-        depends on VID1_OMAP_ON_TV || VID2_OMAP_ON_TV
+        depends on VID2_TV_MANAGER || VID1_TV_MANAGER
         default NTSC_M
 
 config NTSC_M

@@ -622,12 +622,14 @@ void initialize_overlays(const char *def_disp_name)
 
 	/* Set the TV MGR as the default mgr for video based on config
 	   option */
-#ifdef CONFIG_VID1_OMAP_ON_TV
+#ifdef CONFIG_VID1_TV_MANAGER
 	ovl = omap_dss_get_overlay(1);
+	omap_dss_unset_manager(ovl);
 	omap_dss_set_manager(ovl, tv_mgr);
 #endif
-#ifdef CONFIG_VID2_OMAP_ON_TV
+#ifdef CONFIG_VID2_TV_MANAGER
 	ovl = omap_dss_get_overlay(2);
+	omap_dss_unset_manager(ovl);
 	omap_dss_set_manager(ovl, tv_mgr);
 #endif
 	/* setup L4 overlay as an example */
