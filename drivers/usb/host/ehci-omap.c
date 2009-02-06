@@ -170,6 +170,7 @@ static void omap_usb_utmi_init(struct usb_hcd *hcd, u8 tll_channel_mask)
  */
 static int omap_start_ehc(struct platform_device *dev, struct usb_hcd *hcd)
 {
+	u32 uhh_hostconfig_value = 0;
 	struct ehci_omap_clock_defs *ehci_clocks;
 
 	dev_dbg(hcd->self.controller, "starting TI EHCI USB Controller\n");
@@ -295,24 +296,51 @@ static int omap_start_ehc(struct platform_device *dev, struct usb_hcd *hcd)
 			(1 << OMAP_UHH_SYSCONFIG_MIDLEMODE_SHIFT),
 			OMAP_UHH_SYSCONFIG);
 
+	/* Bypass the TLL module for PHY mode operation */
+	uhh_hostconfig_value = (1 << OMAP_UHH_HOSTCONFIG_INCR4_BURST_EN_SHIFT) |
+			(1 << OMAP_UHH_HOSTCONFIG_INCR8_BURST_EN_SHIFT) |
+			(1 << OMAP_UHH_HOSTCONFIG_INCR16_BURST_EN_SHIFT) |
+			(0 << OMAP_UHH_HOSTCONFIG_INCRX_ALIGN_EN_SHIFT);
+
+/* For ES 3, we have per-port control for the ULPI Bypass
+ * The ULPI Bypass needs to be set to 0 only if the EHCI PHY Mode
+ * is selected for that port.
+ * ES 2 does not have per-port control. Hence it is not possible to have
+ * EHCI in PHY Mode and OHCI both working at the same time
+ */
+	if (omap_rev_ge30()) {
+#ifndef CONFIG_OMAP_EHCI_PHY_MODE_PORT1
+		uhh_hostconfig_value |=
+			(1 << OMAP_UHH_HOSTCONFIG_P1_ULPI_BYPASS_SHIFT);
+#endif
+#ifndef CONFIG_OMAP_EHCI_PHY_MODE_PORT2
+		uhh_hostconfig_value |=
+			(1 << OMAP_UHH_HOSTCONFIG_P2_ULPI_BYPASS_SHIFT);
+#endif
+#ifndef CONFIG_OMAP_EHCI_PHY_MODE_PORT3
+		uhh_hostconfig_value |=
+			(1 << OMAP_UHH_HOSTCONFIG_P3_ULPI_BYPASS_SHIFT);
+#endif
+	} else {
 #if defined(CONFIG_OMAP_EHCI_PHY_MODE_PORT1) || \
 	defined(CONFIG_OMAP_EHCI_PHY_MODE_PORT2) || \
 	defined(CONFIG_OMAP_EHCI_PHY_MODE_PORT3)
-	/* Bypass the TLL module for PHY mode operation */
-	omap_writel((0 << OMAP_UHH_HOSTCONFIG_ULPI_BYPASS_SHIFT)|
-			(1<<OMAP_UHH_HOSTCONFIG_INCR4_BURST_EN_SHIFT)|
-			(1<<OMAP_UHH_HOSTCONFIG_INCR8_BURST_EN_SHIFT)|
-			(1<<OMAP_UHH_HOSTCONFIG_INCR16_BURST_EN_SHIFT)|
-			(0<<OMAP_UHH_HOSTCONFIG_INCRX_ALIGN_EN_SHIFT),
-						OMAP_UHH_HOSTCONFIG);
-	/* Ensure that BYPASS is set */
-	while (omap_readl(OMAP_UHH_HOSTCONFIG)
-			& (1 << OMAP_UHH_HOSTCONFIG_ULPI_BYPASS_SHIFT))
-		cpu_relax();
+		uhh_hostconfig_value |=
+			(0 << OMAP_UHH_HOSTCONFIG_P1_ULPI_BYPASS_SHIFT);
+#else
+		uhh_hostconfig_value |=
+			(1 << OMAP_UHH_HOSTCONFIG_P1_ULPI_BYPASS_SHIFT);
+#endif
+	}
+
+	if (omap_rev_le21()) {
+		/* Ensure that BYPASS is set */
+		while (omap_readl(OMAP_UHH_HOSTCONFIG)
+				& (1 << OMAP_UHH_HOSTCONFIG_ULPI_BYPASS_SHIFT))
+			cpu_relax();
+	}
 
 	dev_dbg(hcd->self.controller, "Entered ULPI PHY MODE: success\n");
-#endif
-
 
 #if defined(CONFIG_OMAP_EHCI_TLL_MODE_PORT1) || \
 	defined(CONFIG_OMAP_EHCI_TLL_MODE_PORT2) || \
