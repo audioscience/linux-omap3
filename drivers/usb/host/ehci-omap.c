@@ -32,34 +32,47 @@
 #include "ehci-omap.h"
 
 
-#ifdef CONFIG_OMAP_EHCI_PHY_MODE
 /* EHCI connected to External PHY */
 
 /* External USB connectivity board: 750-2083-001
  * Connected to OMAP3430 SDP
  * The board has Port1 and Port2 connected to ISP1504 in 12-pin ULPI mode
+ * Mistral/Multimedia daughter card connected to OMAP3EVM
+ * The board has only Port2 connected to SMSC USB83320 in 12-pin ULPI mode
  */
+#ifdef CONFIG_OMAP3EVM_MISTRAL_DC
+#define EXT_PHY_RESET_GPIO_PORT2        (135)
+#elif CONFIG_OMAP3430SDP_750_2083_001
+#define	EXT_PHY_RESET_GPIO_PORT1	(57)
+#define	EXT_PHY_RESET_GPIO_PORT2	(61)
+#endif
 
+#if defined(CONFIG_OMAP_EHCI_PHY_MODE_PORT1)	|| \
+	defined(CONFIG_OMAP_EHCI_PHY_MODE_PORT2)
+
+#ifdef CONFIG_OMAP3430SDP_750_2083_001
 /* ISSUE1:
  *      ISP1504 for input clocking mode needs special reset handling
  *	Hold the PHY in reset by asserting RESET_N signal
  *	Then start the 60Mhz clock input to PHY
  *	Release the reset after a delay -
  *		to get the PHY state machine in working state
+ *     On Mistral/Multimedia daughter card we didn't see this issue, so
+ *     it's not defined for it.
  */
 #define EXTERNAL_PHY_RESET
-#define	EXT_PHY_RESET_GPIO_PORT1	(57)
-#define	EXT_PHY_RESET_GPIO_PORT2	(61)
 #define	EXT_PHY_RESET_DELAY		(10)
 
 /* ISSUE2:
  * USBHOST supports External charge pump PHYs only
  * Use the VBUS from Port1 to power VBUS of Port2 externally
  * So use Port2 as the working ULPI port
+ * This is not required for Mistral/Multimedia daughter card on OMAP3EVM.
  */
 #define VBUS_INTERNAL_CHARGEPUMP_HACK
+#endif /* CONFIG_OMAP3430SDP_750_2083_001 */
 
-#endif /* CONFIG_OMAP_EHCI_PHY_MODE */
+#endif
 
 /*-------------------------------------------------------------------------*/
 
@@ -81,7 +94,9 @@ struct ehci_omap_clock_defs {
 /*-------------------------------------------------------------------------*/
 
 
-#ifndef CONFIG_OMAP_EHCI_PHY_MODE
+#if defined(CONFIG_OMAP_EHCI_TLL_MODE_PORT1) ||	\
+	defined(CONFIG_OMAP_EHCI_TLL_MODE_PORT2) || \
+	defined(CONFIG_OMAP_EHCI_TLL_MODE_PORT3)
 
 static void omap_usb_utmi_init(struct usb_hcd *hcd, u8 tll_channel_mask)
 {
@@ -280,7 +295,9 @@ static int omap_start_ehc(struct platform_device *dev, struct usb_hcd *hcd)
 			(1 << OMAP_UHH_SYSCONFIG_MIDLEMODE_SHIFT),
 			OMAP_UHH_SYSCONFIG);
 
-#ifdef CONFIG_OMAP_EHCI_PHY_MODE
+#if defined(CONFIG_OMAP_EHCI_PHY_MODE_PORT1) || \
+	defined(CONFIG_OMAP_EHCI_PHY_MODE_PORT2) || \
+	defined(CONFIG_OMAP_EHCI_PHY_MODE_PORT3)
 	/* Bypass the TLL module for PHY mode operation */
 	omap_writel((0 << OMAP_UHH_HOSTCONFIG_ULPI_BYPASS_SHIFT)|
 			(1<<OMAP_UHH_HOSTCONFIG_INCR4_BURST_EN_SHIFT)|
@@ -294,13 +311,23 @@ static int omap_start_ehc(struct platform_device *dev, struct usb_hcd *hcd)
 		cpu_relax();
 
 	dev_dbg(hcd->self.controller, "Entered ULPI PHY MODE: success\n");
+#endif
 
-#else
-	/* Enable UTMI mode for all 3 TLL channels */
-	omap_usb_utmi_init(hcd,
-		OMAP_TLL_CHANNEL_1_EN_MASK |
-		OMAP_TLL_CHANNEL_2_EN_MASK |
-		OMAP_TLL_CHANNEL_3_EN_MASK
+
+#if defined(CONFIG_OMAP_EHCI_TLL_MODE_PORT1) || \
+	defined(CONFIG_OMAP_EHCI_TLL_MODE_PORT2) || \
+	defined(CONFIG_OMAP_EHCI_TLL_MODE_PORT3)
+	/* Enable UTMI mode for all selected TLL channels */
+	omap_usb_utmi_init(hcd, 0
+#ifdef CONFIG_OMAP_EHCI_TLL_MODE_PORT1
+		| OMAP_TLL_CHANNEL_1_EN_MASK
+#endif
+#ifdef CONFIG_OMAP_EHCI_TLL_MODE_PORT2
+		| OMAP_TLL_CHANNEL_2_EN_MASK
+#endif
+#ifdef CONFIG_OMAP_EHCI_TLL_MODE_PORT3
+		| OMAP_TLL_CHANNEL_3_EN_MASK
+#endif
 		);
 #endif
 

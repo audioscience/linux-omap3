@@ -62,13 +62,7 @@ static struct platform_device ehci_device = {
  */
 static void setup_ehci_io_mux(void)
 {
-#ifdef CONFIG_OMAP_EHCI_PHY_MODE
-	/* PHY mode of operation for board: 750-2083-001
-	 * ISP1504 connected to Port1 and Port2
-	 * Do Func Mux setting for 12-pin ULPI PHY mode
-	 */
-
-	/* Port1 */
+#ifdef CONFIG_OMAP_EHCI_PHY_MODE_PORT1
 	omap_cfg_reg(Y9_3430_USB1HS_PHY_STP);
 	omap_cfg_reg(Y8_3430_USB1HS_PHY_CLK);
 	omap_cfg_reg(AA14_3430_USB1HS_PHY_DIR);
@@ -81,8 +75,9 @@ static void setup_ehci_io_mux(void)
 	omap_cfg_reg(Y12_3430_USB1HS_PHY_DATA5);
 	omap_cfg_reg(W8_3430_USB1HS_PHY_DATA6);
 	omap_cfg_reg(Y13_3430_USB1HS_PHY_DATA7);
+#endif
 
-	/* Port2 */
+#ifdef CONFIG_OMAP_EHCI_PHY_MODE_PORT2
 	omap_cfg_reg(AA10_3430_USB2HS_PHY_STP);
 	omap_cfg_reg(AA8_3430_USB2HS_PHY_CLK);
 	omap_cfg_reg(AA9_3430_USB2HS_PHY_DIR);
@@ -95,14 +90,10 @@ static void setup_ehci_io_mux(void)
 	omap_cfg_reg(R3_3430_USB2HS_PHY_DATA5);
 	omap_cfg_reg(R4_3430_USB2HS_PHY_DATA6);
 	omap_cfg_reg(T2_3430_USB2HS_PHY_DATA7);
+#endif
 
-#else
-	/* Set Func mux for :
-	 * TLL mode of operation
-	 * 12-pin ULPI SDR TLL mode for Port1/2/3
-	 */
 
-	/* Port1 */
+#ifdef CONFIG_OMAP_EHCI_TLL_MODE_PORT1
 	omap_cfg_reg(Y9_3430_USB1HS_TLL_STP);
 	omap_cfg_reg(Y8_3430_USB1HS_TLL_CLK);
 	omap_cfg_reg(AA14_3430_USB1HS_TLL_DIR);
@@ -115,8 +106,9 @@ static void setup_ehci_io_mux(void)
 	omap_cfg_reg(Y12_3430_USB1HS_TLL_DATA5);
 	omap_cfg_reg(W8_3430_USB1HS_TLL_DATA6);
 	omap_cfg_reg(Y13_3430_USB1HS_TLL_DATA7);
+#endif
 
-	/* Port2 */
+#ifdef CONFIG_OMAP_EHCI_TLL_MODE_PORT2
 	omap_cfg_reg(AA10_3430_USB2HS_TLL_STP);
 	omap_cfg_reg(AA8_3430_USB2HS_TLL_CLK);
 	omap_cfg_reg(AA9_3430_USB2HS_TLL_DIR);
@@ -129,8 +121,9 @@ static void setup_ehci_io_mux(void)
 	omap_cfg_reg(R3_3430_USB2HS_TLL_DATA5);
 	omap_cfg_reg(R4_3430_USB2HS_TLL_DATA6);
 	omap_cfg_reg(T2_3430_USB2HS_TLL_DATA7);
+#endif
 
-	/* Port3 */
+#ifdef CONFIG_OMAP_EHCI_TLL_MODE_PORT3
 	omap_cfg_reg(AB3_3430_USB3HS_TLL_STP);
 	omap_cfg_reg(AA6_3430_USB3HS_TLL_CLK);
 	omap_cfg_reg(AA3_3430_USB3HS_TLL_DIR);
@@ -143,8 +136,7 @@ static void setup_ehci_io_mux(void)
 	omap_cfg_reg(AB13_3430_USB3HS_TLL_DATA5);
 	omap_cfg_reg(AA13_3430_USB3HS_TLL_DATA6);
 	omap_cfg_reg(AA12_3430_USB3HS_TLL_DATA7);
-#endif /* CONFIG_OMAP_EHCI_PHY_MODE */
-
+#endif
 	return;
 }
 
