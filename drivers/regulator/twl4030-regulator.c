@@ -47,11 +47,6 @@ struct twlreg_info {
 	struct regulator_desc	desc;
 };
 
-#ifndef REGULATOR_MODE_OFF
-#define REGULATOR_MODE_OFF 0
-#endif
-
-
 /* LDO control registers ... offset is from the base of its register bank.
  * The first three registers of all power resource banks help hardware to
  * manage the various resource groups.
@@ -98,6 +93,16 @@ static int twl4030reg_grp(struct regulator_dev *rdev)
 #define P2_GRP		BIT(6)		/* secondary processor, modem, etc */
 #define P1_GRP		BIT(5)		/* CPU/Linux */
 #define WARM_CFG	BIT(4)
+
+static int twl4030reg_is_enabled(struct regulator_dev *rdev)
+{
+	int	state = twl4030reg_grp(rdev);
+
+	if (state < 0)
+		return state;
+
+	return (state & P1_GRP) != 0;
+}
 
 static int twl4030reg_is_enabled(struct regulator_dev *rdev)
 {
@@ -445,12 +450,15 @@ static int twl4030reg_probe(struct platform_device *pdev)
 	 * (Regulator core now does this for voltage constraints.)
 	 */
 	c = &initdata->constraints;
+	if (!c->min_uV || c->min_uV < min_uV)
+		c->min_uV = min_uV;
+	if (!c->max_uV || c->max_uV > max_uV)
+		c->max_uV = max_uV;
 	c->valid_modes_mask &= REGULATOR_MODE_NORMAL | REGULATOR_MODE_STANDBY;
 	c->valid_ops_mask &= REGULATOR_CHANGE_VOLTAGE
 				| REGULATOR_CHANGE_MODE
 				| REGULATOR_CHANGE_STATUS;
-
-	rdev = regulator_register(&info->desc, &pdev->dev, info);
+	rdev = regulator_register(&info->desc, &pdev->dev, initdata, info);
 	if (IS_ERR(rdev)) {
 		dev_err(&pdev->dev, "can't register %s, %ld\n",
 				info->desc.name, PTR_ERR(rdev));
