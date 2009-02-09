@@ -72,8 +72,6 @@ static struct isp_interface_config tvp5146_if_config = {
 	.ccdc_par_ser		= ISP_PARLL_YUV_BT,
 	.dataline_shift		= 0x1,
 	.hsvs_syncdetect	= ISPCTRL_SYNC_DETECT_VSRISE,
-	.vdint0_timing		= 0x0,
-	.vdint1_timing		= 0x0,
 	.strobe			= 0x0,
 	.prestrobe		= 0x0,
 	.shutter		= 0x0,
@@ -223,10 +221,6 @@ static int tvp5146_power_set(enum v4l2_power power)
 {
 	switch (power) {
 	case V4L2_POWER_OFF:
-#if defined(CONFIG_VIDEO_OMAP3) || defined(CONFIG_VIDEO_OMAP3_MODULE)
-		if (isp_free_interface(ISP_PARLL_YUV_BT))
-			return -ENODEV;
-#endif
 		/* Disable mux for TVP5146 decoder data path */
 		if (omap3evmdc_set_mux(MUX_TVP5146, DISABLE_MUX))
 			return -ENODEV;
@@ -241,9 +235,6 @@ static int tvp5146_power_set(enum v4l2_power power)
 			return -ENODEV;
 
 #if defined(CONFIG_VIDEO_OMAP3) || defined(CONFIG_VIDEO_OMAP3_MODULE)
-		if (isp_request_interface(ISP_PARLL_YUV_BT))
-			return -ENODEV;
-
 		isp_configure_interface(&tvp5146_if_config);
 #endif
 		break;
