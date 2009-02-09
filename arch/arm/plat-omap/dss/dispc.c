@@ -986,8 +986,6 @@ static void _dispc_set_scaling(enum omap_plane plane,
 static int _dispc_set_rotation_mirroring(enum omap_plane plane,
 	int rotation, int mirroring, enum omap_color_mode color_mode)
 {
-	u32 attr_value;
-
 	if (color_mode == OMAP_DSS_COLOR_YUV2 ||
 			color_mode == OMAP_DSS_COLOR_UYVY) {
 		if (mirroring == 1) {

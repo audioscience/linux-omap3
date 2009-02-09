@@ -69,24 +69,29 @@ static struct omap_panel generic_panel = {
 		.x_res		= 1280,
 		.y_res		= 720,
 		.pixel_clock	= 74250,
+		.hfp		= 0x3F,
+		.hsw		= 0x31,
+		.hbp		= 0xFF,
+		.vfp		= 0x5,
+		.vsw		= 0x4,
+		.vbp		= 0x14,
 #elif defined (CONFIG_RES_480P)
 		/* 720 x 480 @ 60 Hz  Reduced blanking VESA CVT 0.31M3-R */
 		.x_res		= 720,
 		.y_res		= 480,
 		.pixel_clock	= 30000,
-#endif
 		.hfp		= 48,
 		.hsw		= 32,
 		.hbp		= 80,
 		.vfp		= 3,
 		.vsw		= 4,
 		.vbp		= 7,
+#endif
 	},
 
 	.bpp		= 24,
 	.config		= OMAP_DSS_LCD_TFT,
 };
-
 
 static int __init generic_panel_drv_init(void)
 {

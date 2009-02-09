@@ -29,6 +29,12 @@
 #include <mach/display.h>
 #include "dss.h"
 
+/* TODO find the exact value of the fifo threshold.
+ * With previously configured threshold under run
+ * errors were coming
+ */
+#define OMAP_DSS_FIFO_LOW_THRESHOLD	0x03bc
+#define OMAP_DSS_FIFO_HIGH_THRESHOLD	0x03fc
 
 static struct {
 	int update_enabled;
@@ -98,13 +104,11 @@ static void dpi_set_mode(struct omap_display *display)
 	dss_clk_disable(DSS_CLK_ICK | DSS_CLK_FCK1);
 }
 
-
 static int dpi_display_enable(struct omap_display *display)
 {
 	struct omap_panel *panel = display->panel;
 	int r;
 	int is_tft;
-	unsigned high, low, burst;
 
 	if (display->state != OMAP_DSS_DISPLAY_DISABLED) {
 		DSSERR("display already enabled\n");
@@ -134,19 +138,12 @@ static int dpi_display_enable(struct omap_display *display)
 	dispc_set_burst_size(OMAP_DSS_VIDEO1, OMAP_DSS_BURST_16x32);
 	dispc_set_burst_size(OMAP_DSS_VIDEO2, OMAP_DSS_BURST_16x32);
 
-	burst = 16 * 32 / 8;
-
-	high = dispc_get_plane_fifo_size(OMAP_DSS_GFX) - burst;
-	low = dispc_get_plane_fifo_size(OMAP_DSS_GFX) / 4;
-	dispc_setup_plane_fifo(OMAP_DSS_GFX, low, high);
-
-	high = dispc_get_plane_fifo_size(OMAP_DSS_VIDEO1) - burst;
-	low = dispc_get_plane_fifo_size(OMAP_DSS_VIDEO1) / 4;
-	dispc_setup_plane_fifo(OMAP_DSS_VIDEO1, low, high);
-
-	high = dispc_get_plane_fifo_size(OMAP_DSS_VIDEO2) - burst;
-	low = dispc_get_plane_fifo_size(OMAP_DSS_VIDEO2) / 4;
-	dispc_setup_plane_fifo(OMAP_DSS_VIDEO2, low, high);
+	dispc_setup_plane_fifo(OMAP_DSS_GFX, OMAP_DSS_FIFO_LOW_THRESHOLD,
+			OMAP_DSS_FIFO_HIGH_THRESHOLD);
+	dispc_setup_plane_fifo(OMAP_DSS_VIDEO1, OMAP_DSS_FIFO_LOW_THRESHOLD,
+			OMAP_DSS_FIFO_HIGH_THRESHOLD);
+	dispc_setup_plane_fifo(OMAP_DSS_VIDEO1, OMAP_DSS_FIFO_LOW_THRESHOLD,
+			OMAP_DSS_FIFO_HIGH_THRESHOLD);
 
 	dpi_set_mode(display);
 
