@@ -28,6 +28,7 @@
 #include <mach/powerdomain.h>
 #include <mach/control.h>
 #include <mach/serial.h>
+#include <mach/irqs.h>
 
 #include "pm.h"
 
