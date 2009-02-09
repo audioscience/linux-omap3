@@ -223,6 +223,7 @@ struct isp_irq {
  * @resizer_input_height: ISP Resizer module input image height.
  * @resizer_output_width: ISP Resizer module output image width.
  * @resizer_output_height: ISP Resizer module output image height.
+ * @current_field: Current field for interlaced capture.
  */
 struct isp_module {
 	unsigned int isp_pipeline;
@@ -240,6 +241,7 @@ struct isp_module {
 	unsigned int resizer_input_height;
 	unsigned int resizer_output_width;
 	unsigned int resizer_output_height;
+	int current_field;
 };
 
 #define RAW_CAPTURE(isp) \
@@ -266,6 +268,7 @@ static struct isp {
 	dma_addr_t tmp_buf;
 	size_t tmp_buf_size;
 	unsigned long tmp_buf_offset;
+	int bt656ifen;
 	 struct isp_bufs bufs;
 	 struct isp_irq irq;
 	 struct isp_module module;
@@ -274,6 +277,8 @@ static struct isp {
 /* Structure for saving/restoring ISP module registers */
 static struct isp_reg isp_reg_list[] = {
 	{OMAP3_ISP_IOMEM_MAIN, ISP_SYSCONFIG, 0},
+	{OMAP3_ISP_IOMEM_MAIN, ISP_IRQ0ENABLE, 0},
+	{OMAP3_ISP_IOMEM_MAIN, ISP_IRQ1ENABLE, 0},
 	{OMAP3_ISP_IOMEM_MAIN, ISP_TCTRL_GRESET_LENGTH, 0},
 	{OMAP3_ISP_IOMEM_MAIN, ISP_TCTRL_PSTRB_REPLAY, 0},
 	{OMAP3_ISP_IOMEM_MAIN, ISP_CTRL, 0},
@@ -825,14 +830,18 @@ int isp_configure_interface(struct isp_interface_config *config)
 	ispctrl_val &= ~ISPCTRL_PAR_CLK_POL_INV;
 
 	ispctrl_val &= (ISPCTRL_PAR_SER_CLK_SEL_MASK);
+	isp_obj.bt656ifen = 0;
 	switch (config->ccdc_par_ser) {
 	case ISP_PARLL:
+	case ISP_PARLL_YUV_BT:
 		ispctrl_val |= ISPCTRL_PAR_SER_CLK_SEL_PARALLEL;
 		ispctrl_val |= (config->u.par.par_clk_pol
 						<< ISPCTRL_PAR_CLK_POL_SHIFT);
 		ispctrl_val &= ~ISPCTRL_PAR_BRIDGE_BENDIAN;
 		ispctrl_val |= (config->u.par.par_bridge
 						<< ISPCTRL_PAR_BRIDGE_SHIFT);
+		if (config->ccdc_par_ser == ISP_PARLL_YUV_BT)
+			isp_obj.bt656ifen = 1;
 		break;
 	case ISP_CSIA:
 		ispctrl_val |= ISPCTRL_PAR_SER_CLK_SEL_CSIA;
@@ -904,14 +913,25 @@ static irqreturn_t omap34xx_isp_isr(int irq, void *_isp)
 	u32 irqstatus = 0;
 	unsigned long irqflags = 0;
 	int wait_hs_vs = 0;
+	u8 fld_stat;
 
 	irqstatus = isp_reg_readl(OMAP3_ISP_IOMEM_MAIN, ISP_IRQ0STATUS);
 	isp_reg_writel(irqstatus, OMAP3_ISP_IOMEM_MAIN, ISP_IRQ0STATUS);
 
 	spin_lock_irqsave(&bufs->lock, flags);
 	wait_hs_vs = bufs->wait_hs_vs;
-	if (irqstatus & HS_VS && bufs->wait_hs_vs)
-		bufs->wait_hs_vs--;
+	if (irqstatus & HS_VS) {
+		if (bufs->wait_hs_vs)
+			bufs->wait_hs_vs--;
+		else {
+			if (isp_obj.module.pix.field == V4L2_FIELD_INTERLACED) {
+				fld_stat = (isp_reg_readl(OMAP3_ISP_IOMEM_CCDC,
+						ISPCCDC_SYN_MODE) &
+						ISPCCDC_SYN_MODE_FLDSTAT) ? 1 : 0;
+				isp_obj.module.current_field = fld_stat;
+			}
+		}
+	}
 	spin_unlock_irqrestore(&bufs->lock, flags);
 	/*
 	 * We need to wait for the first HS_VS interrupt from CCDC.
@@ -932,6 +952,13 @@ static irqreturn_t omap34xx_isp_isr(int irq, void *_isp)
 	}
 
 	if ((irqstatus & CCDC_VD0) == CCDC_VD0) {
+		if (isp_obj.module.pix.field == V4L2_FIELD_INTERLACED) {
+			/* Skip even fields */
+			if (isp_obj.module.current_field == 0) {
+				return IRQ_HANDLED;
+			}
+		}
+
 		if (RAW_CAPTURE(&isp_obj))
 			isp_buf_process(bufs);
 	}
@@ -1060,6 +1087,11 @@ out_no_unlock:
 		PRINTK("\n");
 	}
 #endif
+
+	/* TODO: Workaround suggested by Tony for spurious
+	 * interrupt issue
+	*/
+	irqstatus = isp_reg_readl(OMAP3_ISP_IOMEM_MAIN, ISP_IRQ0STATUS);
 
 	return IRQ_HANDLED;
 }
@@ -1230,9 +1262,14 @@ u32 isp_calc_pipeline(struct v4l2_pix_format *pix_input,
 		ispccdc_request();
 		if (pix_input->pixelformat == V4L2_PIX_FMT_SGRBG10)
 			ispccdc_config_datapath(CCDC_RAW, CCDC_OTHERS_VP_MEM);
-		else
-			ispccdc_config_datapath(CCDC_YUV_SYNC,
-							CCDC_OTHERS_MEM);
+		else {
+			if (isp_obj.bt656ifen)
+				ispccdc_config_datapath(CCDC_YUV_BT,
+						CCDC_OTHERS_MEM);
+			else
+				ispccdc_config_datapath(CCDC_YUV_SYNC,
+						CCDC_OTHERS_MEM);
+		}
 	}
 	return 0;
 }
@@ -1266,6 +1303,31 @@ void isp_config_pipeline(struct v4l2_pix_format *pix_input,
 					isp_obj.module.resizer_output_width,
 					isp_obj.module.resizer_output_height);
 	}
+	if (pix_input->pixelformat == V4L2_PIX_FMT_UYVY)
+		ispccdc_config_y8pos(Y8POS_ODD);
+	else if (pix_input->pixelformat == V4L2_PIX_FMT_YUYV)
+		ispccdc_config_y8pos(Y8POS_EVEN);
+
+	if (((pix_input->pixelformat == V4L2_PIX_FMT_UYVY) &&
+			(pix_output->pixelformat == V4L2_PIX_FMT_UYVY)) ||
+			((pix_input->pixelformat == V4L2_PIX_FMT_YUYV) &&
+			(pix_output->pixelformat == V4L2_PIX_FMT_YUYV)))
+		/* input and output formats are in same order */
+		ispccdc_config_byteswap(0);
+	else if (((pix_input->pixelformat == V4L2_PIX_FMT_YUYV) &&
+			(pix_output->pixelformat == V4L2_PIX_FMT_UYVY)) ||
+			((pix_input->pixelformat == V4L2_PIX_FMT_UYVY) &&
+			(pix_output->pixelformat == V4L2_PIX_FMT_YUYV)))
+		/* input and output formats are in reverse order */
+		ispccdc_config_byteswap(1);
+
+	/*
+	 * Configure Pitch - This enables application to use a different pitch
+	 * other than active pixels per line.
+	 */
+	if (isp_obj.bt656ifen)
+		ispccdc_config_outlineoffset(isp_obj.module.pix.bytesperline,
+						0, 0);
 
 	if (pix_output->pixelformat == V4L2_PIX_FMT_UYVY) {
 		isppreview_config_ycpos(YCPOS_YCrYCb);
@@ -2017,15 +2079,25 @@ int isp_try_fmt(struct v4l2_pix_format *pix_input,
 	if (ifmt == NUM_ISP_CAPTURE_FORMATS)
 		ifmt = 1;
 	pix_output->pixelformat = isp_formats[ifmt].pixelformat;
-	pix_output->field = V4L2_FIELD_NONE;
-	pix_output->bytesperline = pix_output->width * ISP_BYTES_PER_PIXEL;
+
+	if (isp_obj.bt656ifen)
+		pix_output->field = pix_input->field;
+	else {
+		pix_output->field = V4L2_FIELD_NONE;
+		pix_output->bytesperline =
+			pix_output->width * ISP_BYTES_PER_PIXEL;
+	}
+
 	pix_output->sizeimage =
 		PAGE_ALIGN(pix_output->bytesperline * pix_output->height);
 	pix_output->priv = 0;
 	switch (pix_output->pixelformat) {
 	case V4L2_PIX_FMT_YUYV:
 	case V4L2_PIX_FMT_UYVY:
-		pix_output->colorspace = V4L2_COLORSPACE_JPEG;
+		if (isp_obj.bt656ifen)
+			pix_output->colorspace = pix_input->colorspace;
+		else
+			pix_output->colorspace = V4L2_COLORSPACE_JPEG;
 		break;
 	default:
 		pix_output->colorspace = V4L2_COLORSPACE_SRGB;

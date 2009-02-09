@@ -107,7 +107,8 @@ enum isp_interface_type {
 	ISP_PARLL = 1,
 	ISP_CSIA = 2,
 	ISP_CSIB = 4,
-	ISP_NONE = 8 /* memory input to preview / resizer */
+	ISP_PARLL_YUV_BT = 8,
+	ISP_NONE = 16 /* memory input to preview / resizer */
 };
 
 enum isp_irqevents {
@@ -302,6 +303,10 @@ void isp_config_crop(struct v4l2_pix_format *pix);
 
 int isp_try_fmt(struct v4l2_pix_format *pix_input,
 					struct v4l2_pix_format *pix_output);
+
+int isp_configure_std(struct v4l2_pix_format *fmt);
+
+int isp_check_format(struct v4l2_pix_format *pixfmt);
 
 int isp_handle_private(int cmd, void *arg);
 
