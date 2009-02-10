@@ -75,6 +75,12 @@ EXPORT_SYMBOL(omap_type);
 #define OMAP_TAP_DIE_ID_2	0x0220
 #define OMAP_TAP_DIE_ID_3	0x0224
 
+#define FEAT_OMAP3503	((OMAP343X_SGX_NONE << OMAP343X_FEATURE_SGX_SHIFT) | \
+				OMAP343X_FEATURE_IVA2_HW_NONE)
+#define FEAT_OMAP3515	OMAP343X_FEATURE_IVA2_HW_NONE
+#define FEAT_OMAP3525	(OMAP343X_SGX_NONE << OMAP343X_FEATURE_SGX_SHIFT)
+#define FEAT_OMAP3530	0
+
 #define read_tap_reg(reg)	__raw_readl(tap_base  + (reg))
 
 struct omap_id {
@@ -152,12 +158,131 @@ void __init omap24xx_check_revision(void)
 	pr_info("\n");
 }
 
+static u32 __init omap34xx_get_features(char *feat_name)
+{
+	u32 features, module;
+
+	features = omap_ctrl_readl(OMAP343X_CONTROL_FEATURE_OMAP_STATUS) &
+				(OMAP343X_FEATURE_SGX_MASK |
+					OMAP343X_FEATURE_IVA2_HW_NONE);
+
+	module = (features & OMAP343X_FEATURE_SGX_MASK) >>
+					OMAP343X_FEATURE_SGX_SHIFT;
+	switch (module) {
+	case OMAP343X_SGX_FULL:
+		strcat(feat_name, "full speed SGX, ");
+		break;
+	case OMAP343X_SGX_HALF:
+		strcat(feat_name, "half speed SGX, ");
+		break;
+	case OMAP343X_SGX_NONE:
+		strcat(feat_name, "no SGX, ");
+		break;
+	default:
+		strcat(feat_name, "unknown SGX, ");
+		break;
+	}
+
+	module = features & OMAP343X_FEATURE_IVA2_HW_NONE;
+	switch (module) {
+	case 0:
+		strcat(feat_name, "IVA2");
+		break;
+	case OMAP343X_FEATURE_IVA2_HW_NONE:
+		strcat(feat_name, "no IVA2");
+		break;
+	default:
+		break;
+	}
+
+	return features;
+}
+
+static void __init omap34xx_set_revision(u8 rev, char *rev_name, char *features)
+{
+	u32 coprocessors;
+
+	coprocessors = omap34xx_get_features(features);
+
+	switch (rev) {
+	case 0:
+		omap_revision = OMAP3430_REV_ES2_0;
+		strcat(rev_name, "ES2.0");
+		break;
+	case 2:
+		omap_revision = OMAP3430_REV_ES2_1;
+		strcat(rev_name, "ES2.1");
+		break;
+	case 3:
+		omap_revision = OMAP3430_REV_ES3_0;
+		strcat(rev_name, "ES3.0");
+		break;
+	case 4:
+		omap_revision = OMAP3430_REV_ES3_1;
+		strcat(rev_name, "ES3.1");
+		break;
+	default:
+		/* Use the latest known revision as default */
+		omap_revision = OMAP3430_REV_ES3_1;
+		strcat(rev_name, "Unknown revision");
+	}
+}
+
+static void __init omap35xx_set_revision(u8 rev, char *rev_name, char *features)
+{
+	u32 coprocessors;
+
+	/* Get the subrevision based on the onboard coprocessors */
+	coprocessors = omap34xx_get_features(features);
+	switch (coprocessors) {
+	case FEAT_OMAP3503:
+		omap_revision |= OMAP3503_MASK;
+		break;
+	case FEAT_OMAP3515:
+		omap_revision |= OMAP3515_MASK;
+		break;
+	case FEAT_OMAP3525:
+		omap_revision |= OMAP3525_MASK;
+		break;
+	case FEAT_OMAP3530:
+		omap_revision |= OMAP3530_MASK;
+		break;
+	default:
+		break;
+	}
+
+	/* Get the silicon revision */
+	switch (rev) {
+	case 0:	/* Take care of some older boards */
+	case 1:
+		omap_revision |= OMAP35XX_MASK_ES2_0;
+		strcat(rev_name, "ES2.0");
+		break;
+	case 2:
+		omap_revision |= OMAP35XX_MASK_ES2_1;
+		strcat(rev_name, "ES2.1");
+		break;
+	case 3:
+		omap_revision |= OMAP35XX_MASK_ES3_0;
+		strcat(rev_name, "ES3.0");
+		break;
+	case 4:
+		omap_revision |= OMAP35XX_MASK_ES3_1;
+		strcat(rev_name, "ES3.1");
+		break;
+	default:
+		/* Use the latest known revision as default */
+		omap_revision |= OMAP35XX_MASK_ES3_0;
+		strcat(rev_name, "Unknown revision");
+	}
+}
+
 void __init omap34xx_check_revision(void)
 {
 	u32 cpuid, idcode;
 	u16 hawkeye;
 	u8 rev;
-	char *rev_name = "ES1.0";
+	char rev_name[32] = "", feat_name[32] = "";
 
 	/*
 	 * We cannot access revision registers on ES1.0.
@@ -181,32 +306,14 @@ void __init omap34xx_check_revision(void)
 	rev = (idcode >> 28) & 0xff;
 
 	if (hawkeye == 0xb7ae) {
-		switch (rev) {
-		case 0:
-			omap_revision = OMAP3430_REV_ES2_0;
-			rev_name = "ES2.0";
-			break;
-		case 2:
-			omap_revision = OMAP3430_REV_ES2_1;
-			rev_name = "ES2.1";
-			break;
-		case 3:
-			omap_revision = OMAP3430_REV_ES3_0;
-			rev_name = "ES3.0";
-			break;
-		case 4:
-			omap_revision = OMAP3430_REV_ES3_1;
-			rev_name = "ES3.1";
-			break;
-		default:
-			/* Use the latest known revision as default */
-			omap_revision = OMAP3430_REV_ES3_1;
-			rev_name = "Unknown revision\n";
-		}
+		if (cpu_is_omap35xx())
+			omap35xx_set_revision(rev, rev_name, feat_name);
+		else
+			omap34xx_set_revision(rev, rev_name, feat_name);
 	}
 
 out:
-	pr_info("OMAP%04x %s\n", omap_rev() >> 16, rev_name);
+	pr_info("OMAP%04x %s (%s)\n", omap_rev() >> 16, rev_name, feat_name);
 }
 
 /*
@@ -241,6 +348,10 @@ void __init omap2_check_revision(void)
 			omap_chip.oc |= CHIP_IS_OMAP3430ES1;
 		else if (omap_rev() > OMAP3430_REV_ES1_0)
 			omap_chip.oc |= CHIP_IS_OMAP3430ES2;
+	} else if (cpu_is_omap35xx()) {
+		/* 35xx are treated as 3430ES2 for power and clockdomains */
+		omap_chip.oc = CHIP_IS_OMAP3430;
+		omap_chip.oc |= CHIP_IS_OMAP3430ES2;
 	} else {
 		pr_err("Uninitialized omap_chip, please fix!\n");
 	}
