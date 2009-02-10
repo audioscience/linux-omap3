@@ -330,6 +330,13 @@ static int omap3_evm_panel_enable_dvi(struct omap_display *display)
 		printk(KERN_ERR "cannot enable DVI, LCD is enabled\n");
 		return -EINVAL;
 	}
+	if (omap_rev() > OMAP3430_REV_ES1_0) {
+		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+			ENABLE_VPLL2_DEDICATED, TWL4030_VPLL2_DEDICATED);
+		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+			ENABLE_VPLL2_DEV_GRP, TWL4030_VPLL2_DEV_GRP);
+	}
+
 	twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, 0x80,
 			TWL4030_GPIODATA_IN3);
 	twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, 0x80,
@@ -341,6 +348,13 @@ static int omap3_evm_panel_enable_dvi(struct omap_display *display)
 
 static void omap3_evm_panel_disable_dvi(struct omap_display *display)
 {
+	if (omap_rev() > OMAP3430_REV_ES1_0) {
+		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0x0,
+				TWL4030_VPLL2_DEDICATED);
+		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0x0,
+				TWL4030_VPLL2_DEV_GRP);
+	}
+
 	twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, 0x00,
 			TWL4030_GPIODATA_IN3);
 	twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, 0x00,
