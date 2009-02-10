@@ -375,7 +375,7 @@ static void __init omap3_beagle_init(void)
 
 static void __init omap3_beagle_map_io(void)
 {
-	omap2_set_globals_343x();
+	omap2_set_globals_35xx();
 	omap2_map_common_io();
 }
 
