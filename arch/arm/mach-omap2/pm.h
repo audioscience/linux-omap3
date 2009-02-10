@@ -17,10 +17,19 @@ extern void *omap3_secure_ram_storage;
 extern unsigned short enable_off_mode;
 extern unsigned short voltage_off_while_idle;
 
+struct prm_setup_times {
+	u16 clksetup;
+	u16 voltsetup_time1;
+	u16 voltsetup_time2;
+	u16 voltoffset;
+	u16 voltsetup2;
+};
+
 extern void omap3_pm_off_mode_enable(int);
 extern void omap_sram_idle(void);
 extern int omap3_can_sleep(void);
 extern int set_pwrdm_state(struct powerdomain *pwrdm, u32 state);
+extern void omap3_set_prm_setup_times(struct prm_setup_times *setup_times);
 
 #ifdef CONFIG_CPU_IDLE
 int omap3_idle_init(void);
