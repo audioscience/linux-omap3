@@ -518,6 +518,9 @@ static void mmc_omap_detect(struct work_struct *work)
 	struct mmc_omap_host *host = container_of(work, struct mmc_omap_host,
 						mmc_carddetect_work);
 
+	struct omap_mmc_slot_data *slot = &mmc_slot(host);
+	host->carddetect = slot->card_detect(slot->card_detect_irq);
+
 	sysfs_notify(&host->mmc->class_dev.kobj, NULL, "cover_switch");
 	if (host->carddetect) {
 		mmc_detect_change(host->mmc, (HZ * 200) / 1000);
@@ -947,7 +950,7 @@ static int __init omap_mmc_probe(struct platform_device *pdev)
 		goto err1;
 	}
 
-	host->dbclk = clk_get(&pdev->dev, "mmchsdb_fck");
+	host->dbclk = clk_get(&pdev->dev, "mmchs_fck");
 	/*
 	 * MMC can still work without debounce clock.
 	 */
@@ -1017,9 +1020,9 @@ static int __init omap_mmc_probe(struct platform_device *pdev)
 	/* Request IRQ for card detect */
 	if ((mmc_slot(host).card_detect_irq) && (mmc_slot(host).card_detect)) {
 		ret = request_irq(mmc_slot(host).card_detect_irq,
-				  omap_mmc_cd_handler,
-				  IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING
-					  | IRQF_DISABLED,
+				omap_mmc_cd_handler,
+				IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING
+					| IRQF_DISABLED,
 				  mmc_hostname(mmc), host);
 		if (ret) {
 			dev_dbg(mmc_dev(host->mmc),

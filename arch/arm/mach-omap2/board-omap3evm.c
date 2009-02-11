@@ -19,6 +19,7 @@
 #include <linux/err.h>
 #include <linux/clk.h>
 #include <linux/input.h>
+#include <linux/leds.h>
 
 #include <linux/spi/spi.h>
 #include <linux/spi/ads7846.h>
@@ -47,6 +48,13 @@
 #if defined(CONFIG_OMAP3EVM_PR785) && defined(CONFIG_TWL4030_CORE)
 #error config err : only one of OMAP3EVM_PR785 or TWL4030_CORE can be defined
 #endif
+
+#if defined(CONFIG_TWL4030_CORE)
+static int omap3evm_twl_gpio_setup(struct device *dev,
+               unsigned gpio, unsigned ngpio);
+#endif
+
+
 
 static struct resource omap3evm_smc911x_resources[] = {
 	[0] =	{
@@ -100,6 +108,10 @@ static struct twl4030_gpio_platform_data omap3evm_gpio_data = {
 	.gpio_base	= OMAP_MAX_GPIO_LINES,
 	.irq_base	= TWL4030_GPIO_IRQ_BASE,
 	.irq_end	= TWL4030_GPIO_IRQ_END,
+        .pulldowns      = BIT(2) | BIT(6) | BIT(8) | BIT(13)
+                                | BIT(16) | BIT(17),
+        .setup          = omap3evm_twl_gpio_setup,
+
 };
 
 static struct twl4030_usb_data omap3evm_usb_data = {
@@ -540,16 +552,67 @@ static struct twl4030_hsmmc_info mmc[] __initdata = {
 		.mmc		= 1,
 		.wires		= 4,
 		.gpio_cd	= -EINVAL,
-		.gpio_wp	= -EINVAL,
+		.gpio_wp	= 63,
 	},
 	{}	/* Terminator */
 };
+
+static struct gpio_led gpio_leds[] = {
+       {
+               .name                   = "omap3evm::ledb",
+               /* normally not visible (board underside) */
+               .default_trigger        = "default-on",
+               .gpio                   = -EINVAL,      /* gets replaced */
+               .active_low             = true,
+       },
+};
+
+static struct gpio_led_platform_data gpio_led_info = {
+       .leds           = gpio_leds,
+       .num_leds       = ARRAY_SIZE(gpio_leds),
+};
+
+static struct platform_device leds_gpio = {
+       .name   = "leds-gpio",
+       .id     = -1,
+       .dev    = {
+               .platform_data  = &gpio_led_info,
+       },
+};
+
+
+static int omap3evm_twl_gpio_setup(struct device *dev,
+               unsigned gpio, unsigned ngpio)
+{
+       /* gpio + 0 is "mmc0_cd" (input/IRQ) */
+       mmc[0].gpio_cd = gpio + 0;
+       twl4030_mmc_init(mmc);
+
+       /* Most GPIOs are for USB OTG.  Some are mostly sent to
+        * the P2 connector; notably LEDA for the LCD backlight.
+        */
+
+       /* TWL4030_GPIO_MAX + 1 == ledB (out, active low LED) */
+       gpio_leds[2].gpio = gpio + TWL4030_GPIO_MAX + 1;
+
+       platform_device_register(&leds_gpio);
+
+       return 0;
+}
+
+static void omap_init_twl4030(void)
+{
+       if (cpu_is_omap343x()) {
+               omap_cfg_reg(AF26_34XX_GPIO0);
+               omap_cfg_reg(L8_34XX_GPIO63);
+       }
+}
+
 #endif
 
 #if defined(CONFIG_OMAP3EVM_PR785)
 static void omap_init_pr785(void)
 {
-       struct platform_device *pdev;
        /* Initialize the mux settings for PR785 power module board */
        if (cpu_is_omap343x()) {
                omap_cfg_reg(AF26_34XX_GPIO0);
@@ -575,7 +638,7 @@ static void __init omap3_evm_init(void)
 
 	omap_serial_init();
 #if defined(CONFIG_TWL4030_CORE)
-	twl4030_mmc_init(mmc);
+        omap_init_twl4030();
 #endif
 #if defined(CONFIG_OMAP3EVM_PR785)
        omap_init_pr785();
