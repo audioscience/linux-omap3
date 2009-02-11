@@ -87,4 +87,12 @@ config REGULATOR_PCF50633
 	 Say Y here to support the voltage regulators and convertors
 	 on PCF50633
 
+config REGULATOR_TPS6235X
+        tristate "TI TPS6235x Power regulators"
+	depends on I2C
+	help
+          This driver supports TPS6235x voltage regulator chips, for values
+	  of "x" from 0 to 6.  These are buck converters which support TI's
+	  hardware based "SmartReflex" dynamic voltage scaling.
+
 endif
