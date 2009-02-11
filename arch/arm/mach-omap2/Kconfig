@@ -140,7 +140,18 @@ config MACH_OMAP_3430SDP
 
 config MACH_OMAP3EVM
 	bool "OMAP 3530 EVM board"
-	depends on ARCH_OMAP35XX
+        depends on ARCH_OMAP3 && ARCH_OMAP34XX
+
+menu   "PR785 Power board selection for OMAP3 EVM"
+config OMAP3EVM_PR785
+       bool "Power board for OMAP3 EVM"
+       depends on I2C=y && ARCH_OMAP34XX
+       help
+       Say yes here if you are using the TPS6235x based PR785 Power Module
+       for the EVM boards. This core driver provides register access and IRQ
+       handling facilities, and registers devices for the various functions
+       so that function-specific drivers can bind to them.
+endmenu
 
 config MACH_OMAP3EVM_MMDC
 	bool "OMAP 3530 EVM Mass Market Daughter Card board"

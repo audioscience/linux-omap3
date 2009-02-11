@@ -66,9 +66,12 @@ static int omap3evm_panel_init(struct lcd_panel *panel,
 	gpio_direction_output(LCD_PANEL_LR, 1);
 	gpio_direction_output(LCD_PANEL_UD, 1);
 
+#if defined(CONFIG_TWL4030_CORE)
 	twl4030_i2c_write_u8(TWL4030_MODULE_LED, 0x11, TWL_LED_LEDEN);
 	twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 0x01, TWL_PWMA_PWMAON);
 	twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 0x02, TWL_PWMA_PWMAOFF);
+#endif
+
 	bklight_level = 100;
 
 	return 0;
@@ -97,6 +100,7 @@ static unsigned long omap3evm_panel_get_caps(struct lcd_panel *panel)
 static int omap3evm_bklight_setlevel(struct lcd_panel *panel,
 						unsigned int level)
 {
+#if defined(CONFIG_TWL4030_CORE)
 	u8 c;
 	if ((level >= 0) && (level <= 100)) {
 		c = (125 * (100 - level)) / 100 + 2;
@@ -104,6 +108,10 @@ static int omap3evm_bklight_setlevel(struct lcd_panel *panel,
 		bklight_level = level;
 	}
 	return 0;
+#endif
+       /* Fix this once patch fix is sent out for TPS-boards */
+       return -1;
+
 }
 
 static unsigned int omap3evm_bklight_getlevel(struct lcd_panel *panel)
