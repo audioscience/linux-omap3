@@ -43,7 +43,7 @@
 #include <mach/omap-pm.h>
 #include <mach/display.h>
 
-#ifdef CONFIG_VIDEO_OMAP3
+#ifdef CONFIG_VIDEO_OMAP3_CAM
 #include <media/v4l2-int-device.h>
 #include <../drivers/media/video/omap34xxcam.h>
 #include <../drivers/media/video/isp/ispreg.h>
@@ -287,7 +287,7 @@ static struct spi_board_info sdp3430_spi_board_info[] __initdata = {
 	},
 };
 
-#ifdef CONFIG_VIDEO_OMAP3
+#ifdef CONFIG_VIDEO_OMAP3_CAM
 #define DEBUG_BASE		0x08000000
 #define REG_SDP3430_FPGA_GPIO_2 (0x50)
 #define FPGA_SPR_GPIO1_3v3	(0x1 << 14)

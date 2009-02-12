@@ -59,7 +59,7 @@
 #define TVP5146_I2C_ADDR		(0x5D)
 
 #if defined(CONFIG_VIDEO_TVP514X) || defined(CONFIG_VIDEO_TVP514X_MODULE)
-#if defined(CONFIG_VIDEO_OMAP3) || defined(CONFIG_VIDEO_OMAP3_MODULE)
+#if defined(CONFIG_VIDEO_OMAP3_CAM) || defined(CONFIG_VIDEO_OMAP3_CAM_MODULE)
 static struct omap34xxcam_hw_config decoder_hwc = {
 	.dev_index		= 0,
 	.dev_minor		= 0,
@@ -122,7 +122,7 @@ static int tvp5146_ifparm(struct v4l2_ifparm *p)
  */
 static int tvp5146_set_prv_data(void *priv)
 {
-#if defined(CONFIG_VIDEO_OMAP3) || defined(CONFIG_VIDEO_OMAP3_MODULE)
+#if defined(CONFIG_VIDEO_OMAP3_CAM) || defined(CONFIG_VIDEO_OMAP3_CAM_MODULE)
 	struct omap34xxcam_hw_config *hwc = priv;
 
 	if (priv == NULL)
@@ -234,7 +234,7 @@ static int tvp5146_power_set(enum v4l2_power power)
 		if (omap3evmdc_set_mux(MUX_TVP5146, ENABLE_MUX))
 			return -ENODEV;
 
-#if defined(CONFIG_VIDEO_OMAP3) || defined(CONFIG_VIDEO_OMAP3_MODULE)
+#if defined(CONFIG_VIDEO_OMAP3_CAM) || defined(CONFIG_VIDEO_OMAP3_CAM_MODULE)
 		isp_configure_interface(&tvp5146_if_config);
 #endif
 		break;

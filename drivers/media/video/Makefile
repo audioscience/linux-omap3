@@ -111,9 +111,10 @@ obj-$(CONFIG_VIDEO_MT9P012)	+= mt9p012.o
 obj-$(CONFIG_VIDEO_DW9710) += dw9710.o
 obj-$(CONFIG_VIDEO_OV3640)     += ov3640.o
 
-obj-$(CONFIG_VIDEO_OMAP3) += omap/
+obj-$(CONFIG_VIDEO_OMAP3_CAM) += omap34xxcam.o
+obj-$(CONFIG_VIDEO_OMAP3_ISP) += isp/
 
-obj-$(CONFIG_VIDEO_OMAP3) += omap34xxcam.o isp/
+obj-$(CONFIG_VIDEO_OMAP3) += omap/
 
 obj-$(CONFIG_USB_DABUSB)        += dabusb.o
 obj-$(CONFIG_USB_OV511)         += ov511.o

@@ -54,7 +54,7 @@ static inline void omap_init_camera(void)
 	platform_device_register(&omap_cam_device);
 }
 
-#elif defined(CONFIG_VIDEO_OMAP3) || defined(CONFIG_VIDEO_OMAP3_MODULE)
+#elif defined(CONFIG_VIDEO_OMAP3_CAM) || defined(CONFIG_VIDEO_OMAP3_CAM_MODULE)
 
 static struct resource omap34xxcam_resources[] = {
 };
