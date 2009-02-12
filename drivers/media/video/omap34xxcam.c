@@ -615,7 +615,6 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *fh,
 
 		pix->width = input_fmt.fmt.pix.width;
 		pix->height = input_fmt.fmt.pix.height;
-		pix->pixelformat = input_fmt.fmt.pix.pixelformat;
 		pix->field = input_fmt.fmt.pix.field;
 		pix->bytesperline = input_fmt.fmt.pix.bytesperline;
 		pix->colorspace = input_fmt.fmt.pix.colorspace;
