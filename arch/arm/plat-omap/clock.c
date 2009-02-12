@@ -680,6 +680,7 @@ int clk_notifier_register(struct clk *clk, struct notifier_block *nb)
 
 	return r;
 }
+EXPORT_SYMBOL(clk_notifier_register);
 
 /**
  * clk_notifier_unregister - remove a clock change notifier
@@ -735,6 +736,7 @@ int clk_notifier_unregister(struct clk *clk, struct notifier_block *nb)
 
 	return r;
 }
+EXPORT_SYMBOL(clk_notifier_unregister);
 
 
 
