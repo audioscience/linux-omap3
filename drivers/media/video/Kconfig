@@ -757,6 +757,7 @@ config VIDEO_OMAP3
 	bool "OMAP2/OMAP3 V4L2-DSS drivers"
 	select VIDEOBUF_GEN
 	select VIDEOBUF_DMA_SG
+	select OMAP2_DSS
 	depends on VIDEO_DEV && (ARCH_OMAP24XX || ARCH_OMAP34XX)
 	default y
 	---help---
