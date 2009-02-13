@@ -84,6 +84,23 @@ int twl4030_i2c_read(u8 mod_no, u8 *value, u8 reg, unsigned num_bytes);
 /*----------------------------------------------------------------------*/
 
 /*
+* LED Module register offsets (use TWL4030_MODULE_LED)
+*/
+
+#define TWL4030_LED_EN			0x0
+
+/*----------------------------------------------------------------------*/
+
+/*
+ * PWMA/B register offsets (use TWL4030_MODULE_PWMA/TWL4030_MODULE_PWMB)
+ */
+#define TWL4030_LED_PWMON		0x0
+#define TWL4030_LED_PWMOFF		0x1
+
+/*----------------------------------------------------------------------*/
+
+
+/*
  * NOTE:  at up to 1024 registers, this is a big chip.
  *
  * Avoid putting register declarations in this file, instead of into
@@ -376,6 +393,8 @@ int twl4030_sih_setup(int module);
 #define TWL4030_VAUX2_DEDICATED		0x1E
 #define TWL4030_VAUX3_DEV_GRP		0x1F
 #define TWL4030_VAUX3_DEDICATED		0x22
+#define TWL4030_VPLL2_DEV_GRP		0x33
+#define TWL4030_PLL2_DEDICATED		0x36
 
 #if defined(CONFIG_TWL4030_BCI_BATTERY) || \
 	defined(CONFIG_TWL4030_BCI_BATTERY_MODULE)

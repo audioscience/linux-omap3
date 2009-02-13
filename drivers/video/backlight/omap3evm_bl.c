@@ -107,6 +107,7 @@ static int omapbl_set_intensity(struct backlight_device *bd)
 	c = ((125 * (100 - intensity)) / 100) + 2;
 
 #if defined(CONFIG_TWL4030_CORE)
+	twl4030_i2c_write_u8(TWL4030_MODULE_LED, 0x11, TWL4030_LED_EN);
 	twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, c, TWL_PWMA_PWMAOFF);
 #endif
 
