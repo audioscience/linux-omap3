@@ -919,13 +919,20 @@ static int vidioc_g_input(struct file *file, void *fh, unsigned int *i)
 
 	mutex_lock(&vdev->mutex);
 	if (vdev->vdev_sensor_mode) {
-		if (vdev->slave_config[OMAP34XXCAM_SLAVE_SENSOR].cur_input
-				== 0) {
+		if ((vdev->slave_config[OMAP34XXCAM_SLAVE_SENSOR].cur_input
+				!= INPUT_CVBS_VI4A) &&
+				(vdev->slave_config[OMAP34XXCAM_SLAVE_SENSOR].
+				 cur_input != INPUT_SVIDEO_VI2C_VI1C)) {
 			struct v4l2_routing route;
 			route.input = INPUT_CVBS_VI4A;
 			route.output = 0;
 			rval = vidioc_int_s_video_routing(vdev->vdev_sensor,
 					&route);
+			if (rval) {
+				route.input = INPUT_SVIDEO_VI2C_VI1C;
+				rval = vidioc_int_s_video_routing(
+						vdev->vdev_sensor, &route);
+			}
 			if (!rval)
 				vdev->slave_config[OMAP34XXCAM_SLAVE_SENSOR]
 					.cur_input = route.input;
