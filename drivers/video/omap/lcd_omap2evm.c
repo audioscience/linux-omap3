@@ -45,8 +45,6 @@
 #define TWL_PWMA_PWMAON		0x00
 #define TWL_PWMA_PWMAOFF	0x01
 
-static unsigned int bklight_level;
-
 static int omap2evm_panel_init(struct lcd_panel *panel,
 				struct omapfb_device *fbdev)
 {
@@ -64,10 +62,11 @@ static int omap2evm_panel_init(struct lcd_panel *panel,
 	gpio_direction_output(LCD_PANEL_LR, 1);
 	gpio_direction_output(LCD_PANEL_UD, 1);
 
+#if defined(CONFIG_TWL4030_CORE)
 	twl4030_i2c_write_u8(TWL4030_MODULE_LED, 0x11, TWL_LED_LEDEN);
 	twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 0x01, TWL_PWMA_PWMAON);
 	twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 0x02, TWL_PWMA_PWMAOFF);
-	bklight_level = 100;
+#endif
 
 	return 0;
 }
@@ -90,28 +89,6 @@ static void omap2evm_panel_disable(struct lcd_panel *panel)
 static unsigned long omap2evm_panel_get_caps(struct lcd_panel *panel)
 {
 	return 0;
-}
-
-static int omap2evm_bklight_setlevel(struct lcd_panel *panel,
-						unsigned int level)
-{
-	u8 c;
-	if ((level >= 0) && (level <= 100)) {
-		c = (125 * (100 - level)) / 100 + 2;
-		twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, c, TWL_PWMA_PWMAOFF);
-		bklight_level = level;
-	}
-	return 0;
-}
-
-static unsigned int omap2evm_bklight_getlevel(struct lcd_panel *panel)
-{
-	return bklight_level;
-}
-
-static unsigned int omap2evm_bklight_getmaxlevel(struct lcd_panel *panel)
-{
-	return 100;
 }
 
 struct lcd_panel omap2evm_panel = {
@@ -137,9 +114,6 @@ struct lcd_panel omap2evm_panel = {
 	.enable		= omap2evm_panel_enable,
 	.disable	= omap2evm_panel_disable,
 	.get_caps	= omap2evm_panel_get_caps,
-	.set_bklight_level      = omap2evm_bklight_setlevel,
-	.get_bklight_level      = omap2evm_bklight_getlevel,
-	.get_bklight_max        = omap2evm_bklight_getmaxlevel,
 };
 
 static int omap2evm_panel_probe(struct platform_device *pdev)
