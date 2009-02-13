@@ -521,6 +521,13 @@ int isp_set_callback(enum isp_callback_type type, isp_callback_t callback,
 					OMAP3_ISP_IOMEM_MAIN,
 					ISP_IRQ0ENABLE);
 		break;
+	case CBK_RESZ_DONE:
+		isp_reg_writel(IRQ0ENABLE_RSZ_DONE_IRQ, OMAP3_ISP_IOMEM_MAIN,
+				ISP_IRQ0STATUS);
+		isp_reg_writel(isp_reg_readl(OMAP3_ISP_IOMEM_MAIN, ISP_IRQ0ENABLE) |
+				IRQ0ENABLE_RSZ_DONE_IRQ, OMAP3_ISP_IOMEM_MAIN,
+				ISP_IRQ0ENABLE);
+		break;
 	default:
 		break;
 	}
@@ -996,6 +1003,11 @@ static irqreturn_t omap34xx_isp_isr(int irq, void *_isp)
 			if (!ispresizer_busy())
 				ispresizer_config_shadow_registers();
 			isp_buf_process(bufs);
+		} else {
+			if (irqdis->isp_callbk[CBK_RESZ_DONE])
+				irqdis->isp_callbk[CBK_RESZ_DONE](RESZ_DONE,
+						irqdis->isp_callbk_arg1[CBK_RESZ_DONE],
+						irqdis->isp_callbk_arg2[CBK_RESZ_DONE]);
 		}
 	}
 

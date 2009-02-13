@@ -289,6 +289,7 @@ int ispmmu_get_mapeable_space(void)
 	return (L2P_TABLE_NR - no_of_l2p_alloted) * ISPMMU_TTB_ENTRIES_NR *
 							ISPMMU_L2D_ENTRIES_NR;
 }
+EXPORT_SYMBOL_GPL(ispmmu_get_mapeable_space);
 
 /**
  * ispmmu_map - Map a physically contiguous buffer to ISP space.

@@ -1,0 +1,16 @@
+# Kconfig for OMAP3 ISP driver
+
+config VIDEO_OMAP3_ISP
+	tristate
+	select VIDEOBUF_GEN
+	select VIDEOBUF_DMA_SG
+
+config VIDEO_OMAP34XX_ISP_PREVIEWER
+	tristate "OMAP ISP Previewer"
+	depends on !ARCH_OMAP3410
+	select VIDEO_OMAP3_ISP
+
+config VIDEO_OMAP34XX_ISP_RESIZER
+	tristate "OMAP ISP Resizer"
+	depends on !ARCH_OMAP3410
+	select VIDEO_OMAP3_ISP
