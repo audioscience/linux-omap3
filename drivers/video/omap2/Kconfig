@@ -1,11 +1,12 @@
 config FB_OMAP2
         tristate "OMAP2/3 frame buffer support (EXPERIMENTAL)"
-        depends on FB && OMAP2_DSS
+        depends on FB && ARCH_OMAP
 
         select FB_CFB_FILLRECT
         select FB_CFB_COPYAREA
         select FB_CFB_IMAGEBLIT
-	default OMAP2_DSS if (FB_OMAP = "n")
+	select FB_BACKLIGHT
+	select OMAP2_DSS
         help
           Frame buffer driver for OMAP2/3 based boards.
 
@@ -29,7 +30,7 @@ config FB_OMAP2_FORCE_AUTO_UPDATE
 config FB_OMAP2_NUM_FBS
 	int "Number of framebuffers"
 	range 1 3
-	default 3
+	default 1
 	depends on FB_OMAP2
 	help
 	  Select the number of framebuffers created. OMAP2/3 has 3 overlays
