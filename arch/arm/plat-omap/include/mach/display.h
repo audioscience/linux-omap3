@@ -340,6 +340,7 @@ struct omap_overlay_info {
 	int rotation;
 	int mirror;
 	enum omap_color_mode color_mode;
+	int global_alpha;
 };
 
 enum omap_overlay_caps {
@@ -365,7 +366,7 @@ struct omap_overlay {
 			int screen_width,
 			int width, int height,
 			enum omap_color_mode color_mode, int rotation,
-			int mirror);
+			int mirror, int global_alpha);
 	int (*setup_output)(struct omap_overlay *ovl,
 			int pos_x, int pos_y,
 			int out_width, int out_height);
@@ -446,6 +447,8 @@ struct omap_display {
 			struct omap_video_timings *timings);
 	void (*set_color_keying)(struct omap_display *display,
 			struct omap_color_key *key);
+	void (*enable_alpha_blending)(struct omap_display *display,
+			unsigned int enable);
 	int (*update)(struct omap_display *display,
 			       int x, int y, int w, int h);
 	int (*sync)(struct omap_display *display);

@@ -1046,6 +1046,8 @@ static void _dispc_calc_and_set_row_inc(enum omap_plane plane,
 		break;
 
 	case OMAP_DSS_COLOR_RGB24U:
+	case OMAP_DSS_COLOR_ARGB32:
+	case OMAP_DSS_COLOR_RGBA32:
 		ps = 4;		/* pixel size is 4 bytes */
 		break;
 
@@ -1091,13 +1093,12 @@ static int _dispc_setup_plane(enum omap_plane plane,
 		int width, int height,
 		int out_width, int out_height,
 		enum omap_color_mode color_mode,
-		int ilace, int rotation, int mirror)
+		int ilace, int rotation, int mirror, int global_alpha)
 {
 	int fieldmode = 0;
 	int bpp;
 	int cconv;
 	int scaling = 0;
-	u32 attr_value;
 
 	if (plane == OMAP_DSS_GFX) {
 		if (width != out_width || height != out_height)
@@ -1115,7 +1116,6 @@ static int _dispc_setup_plane(enum omap_plane plane,
 		   out_height > height*8)
 			return -EINVAL;
 	}
-
 	switch (color_mode) {
 	case OMAP_DSS_COLOR_RGB16:
 		bpp = 16;
@@ -1128,6 +1128,8 @@ static int _dispc_setup_plane(enum omap_plane plane,
 		break;
 
 	case OMAP_DSS_COLOR_RGB24U:
+	case OMAP_DSS_COLOR_ARGB32:
+	case OMAP_DSS_COLOR_RGBA32:
 		bpp = 32;
 		cconv = 0;
 		break;
@@ -1143,7 +1145,6 @@ static int _dispc_setup_plane(enum omap_plane plane,
 		BUG();
 		return 1;
 	}
-
 	if (ilace) {
 		if (height == out_height || height > out_height)
 			fieldmode = 1;
@@ -1159,7 +1160,6 @@ static int _dispc_setup_plane(enum omap_plane plane,
 		_dispc_set_scaling(plane, width, height,
 				   out_width, out_height,
 				   ilace);
-
 	/* attributes */
 	_dispc_set_channel_out(plane, channel_out);
 
@@ -1172,7 +1172,6 @@ static int _dispc_setup_plane(enum omap_plane plane,
 		_dispc_set_vid_color_conv(plane, cconv);
 
 	/* */
-
 	_dispc_set_plane_ba0(plane, paddr);
 
 	if (fieldmode)
@@ -1191,7 +1190,11 @@ static int _dispc_setup_plane(enum omap_plane plane,
 	_dispc_calc_and_set_row_inc(plane, screen_width, width, 0,
 			color_mode, rotation, mirror, fieldmode);
 
-	attr_value = dispc_read_reg(DISPC_VID_ATTRIBUTES(0));
+	if (plane == OMAP_DSS_GFX)
+		REG_FLD_MOD(DISPC_GLOBAL_ALPHA, global_alpha, 7, 0);
+	else if (plane == OMAP_DSS_VIDEO2)
+		REG_FLD_MOD(DISPC_GLOBAL_ALPHA, global_alpha, 23, 16);
+
 	return 0;
 }
 
@@ -1308,6 +1311,16 @@ void omap_dispc_set_trans_key(enum omap_channel ch,
 		REG_FLD_MOD(DISPC_CONFIG, type, 13, 13);
 
 	dispc_write_reg(tr_reg[ch], trans_key);
+	enable_clocks(0);
+}
+
+void dispc_enable_alpha_blending(enum omap_channel ch, int enable)
+{
+	enable_clocks(1);
+	if (ch == OMAP_DSS_CHANNEL_LCD)
+		REG_FLD_MOD(DISPC_CONFIG, enable, 18, 18);
+	else /* OMAP_DSS_CHANNEL_DIGIT */
+		REG_FLD_MOD(DISPC_CONFIG, enable, 19, 19);
 	enable_clocks(0);
 }
 
@@ -1982,7 +1995,7 @@ int dispc_setup_plane(enum omap_plane plane, enum omap_channel channel_out,
 		       int width, int height,
 		       int out_width, int out_height,
 		       enum omap_color_mode color_mode,
-		       int ilace, int rotation, int mirror)
+		       int ilace, int rotation, int mirror, int global_alpha)
 {
 	int r = 0;
 
@@ -1999,7 +2012,7 @@ int dispc_setup_plane(enum omap_plane plane, enum omap_channel channel_out,
 			   pos_x, pos_y,
 			   width, height,
 			   out_width, out_height,
-			   color_mode, ilace, rotation, mirror);
+			   color_mode, ilace, rotation, mirror, global_alpha);
 
 	enable_clocks(0);
 
@@ -2209,7 +2222,7 @@ void dispc_setup_partial_planes(struct omap_display *display,
 				px, py,
 				pw, ph,
 				pow, poh,
-				pi->color_mode, 0, 0, 0);
+				pi->color_mode, 0, 0, 0, 0);
 
 		dispc_enable_plane(ovl->id, 1);
 	}

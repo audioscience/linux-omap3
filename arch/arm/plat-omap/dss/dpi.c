@@ -352,6 +352,13 @@ static void dpi_display_set_color_keying(struct omap_display *display,
 	dispc_go(OMAP_DSS_CHANNEL_LCD);
 }
 
+static void dpi_enable_alpha_blending(struct omap_display *display,
+	unsigned int enable)
+{
+	dispc_enable_alpha_blending(OMAP_DSS_CHANNEL_LCD, enable);
+	dispc_go(OMAP_DSS_CHANNEL_LCD);
+}
+
 void dpi_init_display(struct omap_display *display)
 {
 	DSSDBG("DPI init_display\n");
@@ -368,6 +375,7 @@ void dpi_init_display(struct omap_display *display)
 	display->set_bg_color = dpi_display_set_bg_color;
 	display->get_bg_color = dpi_display_get_bg_color;
 	display->set_color_keying = dpi_display_set_color_keying;
+	display->enable_alpha_blending = dpi_enable_alpha_blending;
 }
 
 int dpi_init(void)

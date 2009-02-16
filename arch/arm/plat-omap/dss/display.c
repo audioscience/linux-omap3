@@ -262,7 +262,8 @@ static int omap_dss_unset_display(struct omap_overlay_manager *mgr)
 static int omap_dss_setup_overlay_input(struct omap_overlay *ovl,
 		u32 paddr, void *vaddr, int tv_field1_offset, int screen_width,
 		int width, int height,
-		enum omap_color_mode color_mode, int rotation, int mirror)
+		enum omap_color_mode color_mode, int rotation, int mirror,
+		int global_alpha)
 {
 	int r;
 	struct omap_overlay_info old_info;
@@ -283,6 +284,7 @@ static int omap_dss_setup_overlay_input(struct omap_overlay *ovl,
 	ovl->info.width = width;
 	ovl->info.height = height;
 	ovl->info.color_mode = color_mode;
+	ovl->info.global_alpha = global_alpha;
 
 	if (ovl->manager) {
 		r = check_overlay(ovl, ovl->manager->display);
@@ -408,7 +410,8 @@ static int omap_dss_mgr_apply(struct omap_overlay_manager *mgr)
 				ovl->info.color_mode,
 				ilace,
 				ovl->info.rotation,
-				ovl->info.mirror);
+				ovl->info.mirror,
+				ovl->info.global_alpha);
 
 		if (r) {
 			DSSERR("dispc_setup_plane failed\n");

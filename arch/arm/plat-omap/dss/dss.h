@@ -217,7 +217,7 @@ int dispc_setup_plane(enum omap_plane plane, enum omap_channel channel_out,
 		      int width, int height,
 		      int out_width, int out_height,
 		      enum omap_color_mode color_mode,
-		      int ilace, int rotation, int mirror);
+		      int ilace, int rotation, int mirror, int global_alpha);
 
 void dispc_go(enum omap_channel channel);
 void dispc_enable_lcd_out(int enable);
@@ -233,6 +233,7 @@ void omap_dispc_set_trans_key(enum omap_channel ch,
 		enum omap_dss_color_key_type type,
 		u32 trans_key);
 void omap_dispc_enable_trans_key(enum omap_channel ch, int enable);
+void dispc_enable_alpha_blending(enum omap_channel ch, int enable);
 
 void dispc_set_lcd_timings(struct omap_video_timings *timings);
 unsigned long dispc_fclk_rate(void);
