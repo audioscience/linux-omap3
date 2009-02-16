@@ -151,6 +151,10 @@ struct omap_vout_device {
 	unsigned int vrfb_context[4];
 	unsigned int smsshado_size;
 	unsigned char pos;
+	unsigned int src_chroma_key_enable;
+	unsigned int dst_chroma_key_enable;
+	unsigned int src_chroma_key;
+	unsigned int dst_chroma_key;
 
 	int ps, vr_ps, line_length, first_int, field_id;
 	enum v4l2_memory memory;

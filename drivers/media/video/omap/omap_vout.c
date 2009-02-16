@@ -1633,6 +1633,55 @@ static int vidioc_streamoff(struct file *file, void *fh,
 	return 0;
 }
 
+static int vidioc_s_fbuf(struct file *file, void *fh,
+		struct v4l2_framebuffer *a)
+{
+	struct omap_vout_fh *ofh = (struct omap_vout_fh *)fh;
+	struct omap_vout_device *vout = ofh->vout;
+	struct omapvideo_info *ovid;
+	struct omap_overlay *ovl;
+	struct omap_color_key key;
+
+	ovid = &(vout->vid_info);
+	ovl = ovid->overlays[0];
+
+	if (!ovl->manager->display->set_color_keying)
+		return -EINVAL;
+
+	if ((a->flags & V4L2_FBUF_FLAG_CHROMAKEY)) {
+		vout->src_chroma_key_enable = 1;
+		key.enable = 1;
+		key.type =  OMAP_DSS_COLOR_KEY_VID_SRC;
+		key.color = vout->src_chroma_key;
+		ovl->manager->display->set_color_keying(ovl->manager->display,
+				&key);
+		return 0;
+	} else {
+		vout->src_chroma_key_enable = 0;
+		key.enable = 0;
+		key.type = OMAP_DSS_COLOR_KEY_VID_SRC;
+		key.color = vout->src_chroma_key;
+		ovl->manager->display->set_color_keying(ovl->manager->display,
+				&key);
+		return 0;
+	}
+
+}
+
+static int vidioc_g_fbuf(struct file *file, void *fh,
+		struct v4l2_framebuffer *a)
+{
+	struct omap_vout_fh *ofh = (struct omap_vout_fh *)fh;
+	struct omap_vout_device *vout = ofh->vout;
+
+	if (vout->src_chroma_key_enable == 1)
+		a->flags |= V4L2_FBUF_FLAG_CHROMAKEY;
+	else
+		a->flags &= ~V4L2_FBUF_FLAG_CHROMAKEY;
+
+	return 0;
+}
+
 static const struct v4l2_ioctl_ops vout_ioctl_ops = {
 	.vidioc_querycap      			= vidioc_querycap,
 	.vidioc_querycap	 		= vidioc_querycap,
@@ -1642,6 +1691,8 @@ static const struct v4l2_ioctl_ops vout_ioctl_ops = {
 	.vidioc_s_fmt_vid_out			= vidioc_s_fmt_vid_out,
 	.vidioc_queryctrl    			= vidioc_queryctrl,
 	.vidioc_g_ctrl       			= vidioc_g_ctrl,
+	.vidioc_s_fbuf					= vidioc_s_fbuf,
+	.vidioc_g_fbuf					= vidioc_g_fbuf,
 	.vidioc_s_ctrl       			= vidioc_s_ctrl,
 	.vidioc_try_fmt_vid_overlay 		= vidioc_try_fmt_vid_overlay,
 	.vidioc_s_fmt_vid_overlay		= vidioc_s_fmt_vid_overlay,
@@ -1850,6 +1901,12 @@ static int omap_vout_setup_video_data(struct omap_vout_device *vout)
 	vout->bpp = RGB565_BPP;
 	vout->fbuf.fmt.width  =  display->panel->timings.x_res;
 	vout->fbuf.fmt.height =  display->panel->timings.y_res;
+
+	/* Set the Color keying variable */
+	vout->src_chroma_key_enable = 0;
+	vout->dst_chroma_key_enable = 0;
+	vout->src_chroma_key = 0;
+	vout->dst_chroma_key = 0;
 
 	omap_vout_new_format(pix, &vout->fbuf, &vout->crop, &vout->win);
 
