@@ -502,10 +502,24 @@ static void venc_get_timings(struct omap_display *display,
 	*timings = venc_panel.timings;
 }
 
+static void venc_display_set_bg_color(struct omap_display *display,
+			unsigned int color)
+{
+	omap_dispc_set_default_color(OMAP_DSS_CHANNEL_DIGIT, color);
+	dispc_go(OMAP_DSS_CHANNEL_DIGIT);
+}
+
+static int venc_display_get_bg_color(struct omap_display *display)
+{
+	return omap_dispc_get_default_color(OMAP_DSS_CHANNEL_DIGIT);
+}
+
 void venc_init_display(struct omap_display *display)
 {
 	display->panel = &venc_panel;
 	display->enable = venc_enable_display;
 	display->disable = venc_disable_display;
 	display->get_timings = venc_get_timings;
+	display->set_bg_color = venc_display_set_bg_color;
+	display->get_bg_color = venc_display_get_bg_color;
 }

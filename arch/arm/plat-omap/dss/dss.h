@@ -229,7 +229,6 @@ void dispc_set_tft_data_lines(int data_lines);
 void dispc_set_lcd_display_type(enum omap_lcd_display_type type);
 void dispc_set_loadmode(enum omap_dss_load_mode mode);
 
-void dispc_set_default_color(enum omap_channel channel, u32 color);
 void dispc_set_trans_key(enum omap_channel ch,
 		enum omap_dss_color_key_type type,
 		u32 trans_key);
@@ -251,6 +250,8 @@ void dispc_setup_partial_planes(struct omap_display *display,
 void dispc_draw_partial_planes(struct omap_display *display);
 
 ssize_t dispc_print_clocks(char *buf, ssize_t size);
+void omap_dispc_set_default_color(enum omap_channel channel, u32 color);
+int omap_dispc_get_default_color(enum omap_channel channel);
 
 /* VENC */
 int venc_init(void);

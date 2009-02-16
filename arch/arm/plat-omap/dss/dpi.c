@@ -138,12 +138,29 @@ static int dpi_display_enable(struct omap_display *display)
 	dispc_set_burst_size(OMAP_DSS_VIDEO1, OMAP_DSS_BURST_16x32);
 	dispc_set_burst_size(OMAP_DSS_VIDEO2, OMAP_DSS_BURST_16x32);
 
+<<<<<<< HEAD:arch/arm/plat-omap/dss/dpi.c
 	dispc_setup_plane_fifo(OMAP_DSS_GFX, OMAP_DSS_FIFO_LOW_THRESHOLD,
 			OMAP_DSS_FIFO_HIGH_THRESHOLD);
 	dispc_setup_plane_fifo(OMAP_DSS_VIDEO1, OMAP_DSS_FIFO_LOW_THRESHOLD,
 			OMAP_DSS_FIFO_HIGH_THRESHOLD);
 	dispc_setup_plane_fifo(OMAP_DSS_VIDEO1, OMAP_DSS_FIFO_LOW_THRESHOLD,
 			OMAP_DSS_FIFO_HIGH_THRESHOLD);
+=======
+	burst = 16 * 32 / 8;
+
+	high = dispc_get_plane_fifo_size(OMAP_DSS_GFX) - burst;
+	low = dispc_get_plane_fifo_size(OMAP_DSS_GFX) / 4;
+	dispc_setup_plane_fifo(OMAP_DSS_GFX, low, high);
+
+	high = dispc_get_plane_fifo_size(OMAP_DSS_VIDEO1) - burst;
+	low = dispc_get_plane_fifo_size(OMAP_DSS_VIDEO1) / 4;
+
+	dispc_setup_plane_fifo(OMAP_DSS_VIDEO1, 0x03bc, 0x03fc);
+
+	high = dispc_get_plane_fifo_size(OMAP_DSS_VIDEO2) - burst;
+	low = dispc_get_plane_fifo_size(OMAP_DSS_VIDEO2) / 4;
+		dispc_setup_plane_fifo(OMAP_DSS_VIDEO1, 0x03bc, 0x03fc);
+>>>>>>> ce9884f... Added support for Background color in DSS library:arch/arm/plat-omap/dss/dpi.c
 
 	dpi_set_mode(display);
 
@@ -223,6 +240,18 @@ static void dpi_set_timings(struct omap_display *display,
 		dpi_set_mode(display);
 		dispc_go(OMAP_DSS_CHANNEL_LCD);
 	}
+}
+
+static void dpi_display_set_bg_color(struct omap_display *display,
+			unsigned int color)
+{
+	omap_dispc_set_default_color(OMAP_DSS_CHANNEL_LCD, color);
+	dispc_go(OMAP_DSS_CHANNEL_LCD);
+}
+
+static int dpi_display_get_bg_color(struct omap_display *display)
+{
+	return omap_dispc_get_default_color(OMAP_DSS_CHANNEL_LCD);
 }
 
 static int dpi_check_timings(struct omap_display *display,
@@ -328,6 +357,8 @@ void dpi_init_display(struct omap_display *display)
 	display->get_timings = dpi_get_timings;
 	display->set_update_mode = dpi_display_set_update_mode;
 	display->get_update_mode = dpi_display_get_update_mode;
+	display->set_bg_color = dpi_display_set_bg_color;
+	display->get_bg_color = dpi_display_get_bg_color;
 }
 
 int dpi_init(void)

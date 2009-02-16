@@ -1282,6 +1282,18 @@ void omap_dispc_set_default_color(enum omap_channel channel, u32 color)
 	enable_clocks(0);
 }
 
+int omap_dispc_get_default_color(enum omap_channel channel)
+{
+	const struct dispc_reg def_reg[] = { DISPC_DEFAULT_COLOR0,
+				DISPC_DEFAULT_COLOR1 };
+
+	unsigned int color;
+	enable_clocks(1);
+	color = dispc_read_reg(def_reg[channel]);
+	enable_clocks(0);
+	return color;
+}
+
 void omap_dispc_set_trans_key(enum omap_channel ch,
 		enum omap_dss_color_key_type type,
 		u32 trans_key)

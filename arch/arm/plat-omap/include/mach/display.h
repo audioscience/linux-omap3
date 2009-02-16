@@ -431,6 +431,9 @@ struct omap_display {
 
 	int (*check_timings)(struct omap_display *display,
 			struct omap_video_timings *timings);
+	void (*set_bg_color)(struct omap_display *display,
+			unsigned int color);
+	int (*get_bg_color)(struct omap_display *display);
 	void (*set_timings)(struct omap_display *display,
 			struct omap_video_timings *timings);
 	void (*get_timings)(struct omap_display *display,
@@ -474,6 +477,6 @@ struct omap_overlay *omap_dss_get_overlay(int num);
 
 typedef void (*omap_dispc_isr_t) (void *arg, u32 mask);
 void *omap_dispc_register_isr(omap_dispc_isr_t isr, void *arg, u32 mask);
-int omap_dispc_unregister_isr(void* handle);
+int omap_dispc_unregister_isr(void *handle);
 
 #endif
