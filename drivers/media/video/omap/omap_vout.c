@@ -150,7 +150,8 @@ static int omapvid_apply_changes(struct omap_vout_device *vout, u32 addr,
 static int omapvid_setup_overlay(struct omap_vout_device *vout,
 		struct omap_overlay *ovl, int posx, int posy,
 		int outw, int outh, u32 addr, int tv_field1_offset);
-static enum omap_color_mode video_mode_to_dss_mode(struct v4l2_pix_format *pix);
+static enum omap_color_mode video_mode_to_dss_mode(struct omap_vout_device
+	*vout);
 static void omap_vout_isr(void *arg, unsigned int irqstatus);
 static void omap_vout_cleanup_device(struct omap_vout_device *vout);
 /* module parameters */
@@ -1147,7 +1148,12 @@ static int vidioc_try_fmt_vid_overlay(struct file *file, void *fh,
 	struct v4l2_window *win = &f->fmt.win;
 
 	err = omap_vout_try_window(&vout->fbuf, win);
-	return err;
+
+	if (err)
+		return err;
+
+	vout->global_alpha = f->fmt.win.global_alpha;
+	return 0;
 }
 
 static int vidioc_s_fmt_vid_overlay(struct file *file, void *fh,
@@ -1157,9 +1163,17 @@ static int vidioc_s_fmt_vid_overlay(struct file *file, void *fh,
 	int err = -EINVAL;
 	struct v4l2_window *win = &f->fmt.win;
 
+	if (down_interruptible(&vout->lock))
+		return -EINVAL;
 	err = omap_vout_new_window(&vout->crop, &vout->win, &vout->fbuf, win);
+	if (err) {
+		up(&vout->lock);
+		return err;
+	}
+
+	vout->global_alpha = f->fmt.win.global_alpha;
 	up(&vout->lock);
-	return err;
+	return 0;
 }
 
 static int vidioc_enum_fmt_vid_overlay(struct file *file, void *fh,
@@ -1314,11 +1328,10 @@ static int vidioc_g_ctrl(struct file *file, void *fh, struct v4l2_control *a)
 		ovid = &(vout->vid_info);
 		ovl = ovid->overlays[0];
 
-		if (!ovl->manager->display->set_bg_color)
+		if(!ovl->manager->display->get_bg_color)
 			return -EINVAL;
 
-		color = ovl->manager->display->get_bg_color(
-				ovl->manager->display);
+		color = ovl->manager->display->get_bg_color(ovl->manager->display);
 		a->value = color;
 		for (i = 0; i < ARRAY_SIZE(omap_vout_qctrl); i++) {
 			if (a->id == vout->control[i].id) {
@@ -1645,27 +1658,37 @@ static int vidioc_s_fbuf(struct file *file, void *fh,
 	ovid = &(vout->vid_info);
 	ovl = ovid->overlays[0];
 
-	if (!ovl->manager->display->set_color_keying)
-		return -EINVAL;
-
 	if ((a->flags & V4L2_FBUF_FLAG_CHROMAKEY)) {
 		vout->src_chroma_key_enable = 1;
 		key.enable = 1;
 		key.type =  OMAP_DSS_COLOR_KEY_VID_SRC;
 		key.color = vout->src_chroma_key;
-		ovl->manager->display->set_color_keying(ovl->manager->display,
-				&key);
-		return 0;
-	} else {
+		if (ovl->manager->display->set_color_keying)
+			ovl->manager->display->set_color_keying(
+				ovl->manager->display, &key);
+	}
+	if (!(a->flags & V4L2_FBUF_FLAG_CHROMAKEY)) {
 		vout->src_chroma_key_enable = 0;
 		key.enable = 0;
 		key.type = OMAP_DSS_COLOR_KEY_VID_SRC;
 		key.color = vout->src_chroma_key;
-		ovl->manager->display->set_color_keying(ovl->manager->display,
-				&key);
-		return 0;
+		if (ovl->manager->display->set_color_keying)
+			ovl->manager->display->set_color_keying(
+				ovl->manager->display, &key);
 	}
-
+	if (a->flags & V4L2_FBUF_FLAG_LOCAL_ALPHA) {
+		vout->blending_enable = 1;
+		if (ovl->manager->display->enable_alpha_blending)
+			ovl->manager->display->enable_alpha_blending(
+					ovl->manager->display, 1);
+	}
+	if (!(a->flags & V4L2_FBUF_FLAG_LOCAL_ALPHA)) {
+		vout->blending_enable = 0;
+		if (ovl->manager->display->enable_alpha_blending)
+			ovl->manager->display->enable_alpha_blending(
+					ovl->manager->display, 0);
+	}
+	return 0;
 }
 
 static int vidioc_g_fbuf(struct file *file, void *fh,
@@ -1674,10 +1697,15 @@ static int vidioc_g_fbuf(struct file *file, void *fh,
 	struct omap_vout_fh *ofh = (struct omap_vout_fh *)fh;
 	struct omap_vout_device *vout = ofh->vout;
 
+	a->flags = 0x0;
+	a->capability = 0x0;
+
+	a->capability = V4L2_FBUF_CAP_LOCAL_ALPHA | V4L2_FBUF_CAP_CHROMAKEY;
+
 	if (vout->src_chroma_key_enable == 1)
 		a->flags |= V4L2_FBUF_FLAG_CHROMAKEY;
-	else
-		a->flags &= ~V4L2_FBUF_FLAG_CHROMAKEY;
+	if(vout->blending_enable == 1)
+		a->flags |= V4L2_FBUF_FLAG_LOCAL_ALPHA;
 
 	return 0;
 }
@@ -1691,8 +1719,8 @@ static const struct v4l2_ioctl_ops vout_ioctl_ops = {
 	.vidioc_s_fmt_vid_out			= vidioc_s_fmt_vid_out,
 	.vidioc_queryctrl    			= vidioc_queryctrl,
 	.vidioc_g_ctrl       			= vidioc_g_ctrl,
-	.vidioc_s_fbuf					= vidioc_s_fbuf,
-	.vidioc_g_fbuf					= vidioc_g_fbuf,
+	.vidioc_s_fbuf				= vidioc_s_fbuf,
+	.vidioc_g_fbuf				= vidioc_g_fbuf,
 	.vidioc_s_ctrl       			= vidioc_s_ctrl,
 	.vidioc_try_fmt_vid_overlay 		= vidioc_try_fmt_vid_overlay,
 	.vidioc_s_fmt_vid_overlay		= vidioc_s_fmt_vid_overlay,
@@ -1907,6 +1935,7 @@ static int omap_vout_setup_video_data(struct omap_vout_device *vout)
 	vout->dst_chroma_key_enable = 0;
 	vout->src_chroma_key = 0;
 	vout->dst_chroma_key = 0;
+	vout->global_alpha = 255;
 
 	omap_vout_new_format(pix, &vout->fbuf, &vout->crop, &vout->win);
 
@@ -2240,7 +2269,7 @@ int omapvid_setup_overlay(struct omap_vout_device *vout,
 		goto err;
 	}
 
-	mode = video_mode_to_dss_mode(&(vout->pix));
+	mode = video_mode_to_dss_mode(vout);
 
 	if (mode == -EINVAL) {
 		r = -EINVAL;
@@ -2266,7 +2295,8 @@ int omapvid_setup_overlay(struct omap_vout_device *vout,
 	}
 
 	r = ovl->setup_input(ovl, (u32)addr, (void *)addr, tv_field1_offset,
-		pixwidth, cropwidth, cropheight, mode, rotation, mirror);
+		pixwidth, cropwidth, cropheight, mode, rotation, mirror,
+			vout->global_alpha);
 
 	if (r)
 		goto err;
@@ -2286,8 +2316,10 @@ err:
 	return r;
 }
 
-static enum omap_color_mode video_mode_to_dss_mode(struct v4l2_pix_format *pix)
+static enum omap_color_mode video_mode_to_dss_mode(struct omap_vout_device
+			*vout)
 {
+	struct v4l2_pix_format *pix = &vout->pix;
 	switch (pix->pixelformat) {
 
 	case 0:
@@ -2305,7 +2337,12 @@ static enum omap_color_mode video_mode_to_dss_mode(struct v4l2_pix_format *pix)
 		return OMAP_DSS_COLOR_RGB24P;
 
 	case V4L2_PIX_FMT_RGB32:
-		return OMAP_DSS_COLOR_RGB24U;
+	{
+		if (vout->vid == OMAP_VIDEO1)
+			return OMAP_DSS_COLOR_RGB24U;
+		else
+			return OMAP_DSS_COLOR_ARGB32;
+	}
 	case V4L2_PIX_FMT_BGR32:
 		return OMAP_DSS_COLOR_RGBX32;
 
