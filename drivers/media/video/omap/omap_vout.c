@@ -1296,12 +1296,43 @@ static int vidioc_g_ctrl(struct file *file, void *fh, struct v4l2_control *a)
 	int i;
 	struct omap_vout_device *vout = ((struct omap_vout_fh *) fh)->vout;
 
-	for (i = 0; i < ARRAY_SIZE(omap_vout_qctrl); i++)
-		if (a->id && a->id == vout->control[i].id) {
-			a->value = vout->control[i].value;
-			return 0;
+	switch (a->id) {
+	case V4L2_CID_ROTATION:
+	{
+		for (i = 0; i < ARRAY_SIZE(omap_vout_qctrl); i++) {
+			if (a->id == vout->control[i].id) {
+				a->value = vout->control[i].value;
+				return 0;
+			}
 		}
-	return -EINVAL;
+	}
+	case V4L2_CID_BG_COLOR:
+	{
+		struct omapvideo_info *ovid;
+		struct omap_overlay *ovl;
+		unsigned int color;
+		ovid = &(vout->vid_info);
+		ovl = ovid->overlays[0];
+
+		if (!ovl->manager->display->set_bg_color)
+			return -EINVAL;
+
+		color = ovl->manager->display->get_bg_color(
+				ovl->manager->display);
+		a->value = color;
+		for (i = 0; i < ARRAY_SIZE(omap_vout_qctrl); i++) {
+			if (a->id == vout->control[i].id) {
+				vout->control[i].value = color;
+				return 0;
+			}
+		}
+
+		return 0;
+	}
+
+	default:
+		return -EINVAL;
+	}
 }
 
 static int vidioc_s_ctrl(struct file *file, void *fh, struct v4l2_control *a)
@@ -1327,6 +1358,26 @@ static int vidioc_s_ctrl(struct file *file, void *fh, struct v4l2_control *a)
 			up(&vout->lock);
 			return -EINVAL;
 		}
+	}
+	case V4L2_CID_BG_COLOR:
+	{
+		unsigned int  color = a->value;
+		struct omapvideo_info *ovid;
+		struct omap_overlay *ovl;
+		ovid = &(vout->vid_info);
+		ovl = ovid->overlays[0];
+
+		if (down_interruptible(&vout->lock))
+			return -EINVAL;
+		if (!ovl->manager->display->set_bg_color) {
+			up(&vout->lock);
+			return -EINVAL;
+		}
+
+		ovl->manager->display->set_bg_color(ovl->manager->display,
+				color);
+		up(&vout->lock);
+		return 0;
 	}
 
 	default:
