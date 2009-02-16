@@ -256,7 +256,16 @@ static enum omap_color_mode fb_mode_to_dss_mode(struct fb_var_screeninfo *var)
 	case 24:
 		return OMAP_DSS_COLOR_RGB24P;
 	case 32:
-		return OMAP_DSS_COLOR_RGB24U;
+	{
+		if (var->transp.length == 8) {
+			if (var->transp.offset == 0)
+				return OMAP_DSS_COLOR_RGBA32;
+			else
+				return OMAP_DSS_COLOR_ARGB32;
+		} else
+			return OMAP_DSS_COLOR_RGB24U;
+		break;
+	}
 	default:
 		return -EINVAL;
 	}
@@ -463,17 +472,45 @@ int check_fb_var(struct fb_info *fbi, struct fb_var_screeninfo *var)
 		var->blue.msb_right  = 0;
 		var->transp.offset = 0; var->transp.length = 0;
 	} else if (var->bits_per_pixel == 32) {
-		var->red.offset  = 16; var->red.length   = 8;
-		var->red.msb_right   = 0;
-		var->green.offset = 8;  var->green.length = 8;
-		var->green.msb_right = 0;
-		var->blue.offset = 0;  var->blue.length  = 8;
-		var->blue.msb_right  = 0;
-		var->transp.offset = 0; var->transp.length = 0;
+		if (var->transp.length == 0) {
+			var->red.offset  = 16; var->red.length   = 8;
+			var->red.msb_right   = 0;
+			var->green.offset = 8;  var->green.length = 8;
+			var->green.msb_right = 0;
+			var->blue.offset = 0;  var->blue.length  = 8;
+			var->blue.msb_right  = 0;
+			var->transp.offset = 0; var->transp.length = 0;
+		} else if (var->transp.length == 8) {
+			if (var->transp.offset == 0) {
+				var->red.offset  = 24; var->red.length   = 8;
+				var->red.msb_right   = 0;
+				var->green.offset = 16;  var->green.length = 8;
+				var->green.msb_right = 0;
+				var->blue.offset = 8;  var->blue.length  = 8;
+				var->blue.msb_right  = 0;
+				var->transp.offset = 0; var->transp.length = 8;
+			} else {
+				var->red.offset  = 16; var->red.length   = 8;
+				var->red.msb_right   = 0;
+				var->green.offset = 8;  var->green.length = 8;
+				var->green.msb_right = 0;
+				var->blue.offset = 0;  var->blue.length  = 8;
+				var->blue.msb_right  = 0;
+				var->transp.offset = 24; var->transp.length = 8;
+			}
+		}
 	} else {
 		DBG("failed to setup fb color mask\n");
 		return -EINVAL;
 	}
+
+	/* Reserved field is used for setting the global alpha value
+	 *  which lies between 0 (full transperent) - 255 (complete opaque)
+	 */
+	if (var->reserved[0] > 255)
+		var->reserved[0] = 255;
+	if (var->reserved < 0)
+		var->reserved[0] = 0;
 
 	DBG("xres = %d, yres = %d, vxres = %d, vyres = %d\n",
 			var->xres, var->yres,
@@ -614,13 +651,13 @@ int omapfb_setup_overlay(struct fb_info *fbi, struct omap_overlay *ovl,
 
 	screen_width = fix->line_length / (var->bits_per_pixel >> 3);
 
-	r = ovl->setup_input(ovl,
+		r = ovl->setup_input(ovl,
 			data_start_p, data_start_v,
 			var->xres_virtual*var->bits_per_pixel/8,
 			screen_width,
 			xres, yres, mode,
 			ofbi->rotation == -1 ? ofbi->rotation :ofbi->rotation*90,
-			-1);
+			-1, var->reserved[0]);
 
 	if (r)
 		goto err;
@@ -1268,7 +1305,6 @@ static void fbinfo_cleanup(struct omapfb2_device *fbdev, struct fb_info *fbi)
 	fb_dealloc_cmap(&fbi->cmap);
 }
 
-
 static void omapfb_free_resources(struct omapfb2_device *fbdev)
 {
 	int i;
@@ -1542,7 +1578,6 @@ static int omapfb_probe(struct platform_device *pdev)
 	fbdev->num_managers = omap_dss_get_num_overlay_managers();
 	for (i = 0; i < fbdev->num_managers; i++)
 		fbdev->managers[i] = omap_dss_get_overlay_manager(i);
-
 
 	/* gfx overlay should be the default one. find a display
 	 * connected to that, and use it as default display */
