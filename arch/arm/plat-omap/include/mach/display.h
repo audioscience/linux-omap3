@@ -284,6 +284,12 @@ struct omap_video_timings {
 
 };
 
+struct omap_color_key {
+	enum omap_dss_color_key_type type;
+	u32 color;
+	u32 enable;
+};
+
 struct omap_panel {
 	struct module *owner;
 
@@ -438,6 +444,8 @@ struct omap_display {
 			struct omap_video_timings *timings);
 	void (*get_timings)(struct omap_display *display,
 			struct omap_video_timings *timings);
+	void (*set_color_keying)(struct omap_display *display,
+			struct omap_color_key *key);
 	int (*update)(struct omap_display *display,
 			       int x, int y, int w, int h);
 	int (*sync)(struct omap_display *display);

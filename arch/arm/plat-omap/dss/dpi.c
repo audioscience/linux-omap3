@@ -344,6 +344,14 @@ static enum omap_dss_update_mode dpi_display_get_update_mode(
 		OMAP_DSS_UPDATE_DISABLED;
 }
 
+static void dpi_display_set_color_keying(struct omap_display *display,
+	struct omap_color_key *key)
+{
+	omap_dispc_set_trans_key(OMAP_DSS_CHANNEL_LCD, key->type, key->color);
+	omap_dispc_enable_trans_key(OMAP_DSS_CHANNEL_LCD, key->enable);
+	dispc_go(OMAP_DSS_CHANNEL_LCD);
+}
+
 void dpi_init_display(struct omap_display *display)
 {
 	DSSDBG("DPI init_display\n");
@@ -359,6 +367,7 @@ void dpi_init_display(struct omap_display *display)
 	display->get_update_mode = dpi_display_get_update_mode;
 	display->set_bg_color = dpi_display_set_bg_color;
 	display->get_bg_color = dpi_display_get_bg_color;
+	display->set_color_keying = dpi_display_set_color_keying;
 }
 
 int dpi_init(void)

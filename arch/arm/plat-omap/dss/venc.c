@@ -514,6 +514,14 @@ static int venc_display_get_bg_color(struct omap_display *display)
 	return omap_dispc_get_default_color(OMAP_DSS_CHANNEL_DIGIT);
 }
 
+static void venc_display_set_color_keying(struct omap_display *display,
+	struct omap_color_key *key)
+{
+	omap_dispc_set_trans_key(OMAP_DSS_CHANNEL_DIGIT, key->type, key->color);
+	omap_dispc_enable_trans_key(OMAP_DSS_CHANNEL_DIGIT, key->enable);
+	dispc_go(OMAP_DSS_CHANNEL_DIGIT);
+}
+
 void venc_init_display(struct omap_display *display)
 {
 	display->panel = &venc_panel;
@@ -522,4 +530,5 @@ void venc_init_display(struct omap_display *display)
 	display->get_timings = venc_get_timings;
 	display->set_bg_color = venc_display_set_bg_color;
 	display->get_bg_color = venc_display_get_bg_color;
+	display->set_color_keying = venc_display_set_color_keying;
 }

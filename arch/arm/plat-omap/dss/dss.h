@@ -229,10 +229,10 @@ void dispc_set_tft_data_lines(int data_lines);
 void dispc_set_lcd_display_type(enum omap_lcd_display_type type);
 void dispc_set_loadmode(enum omap_dss_load_mode mode);
 
-void dispc_set_trans_key(enum omap_channel ch,
+void omap_dispc_set_trans_key(enum omap_channel ch,
 		enum omap_dss_color_key_type type,
 		u32 trans_key);
-void dispc_enable_trans_key(enum omap_channel ch, int enable);
+void omap_dispc_enable_trans_key(enum omap_channel ch, int enable);
 
 void dispc_set_lcd_timings(struct omap_video_timings *timings);
 unsigned long dispc_fclk_rate(void);
