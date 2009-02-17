@@ -1134,39 +1134,19 @@ int omapfb_realloc_fbmem(struct omapfb2_device *fbdev, int fbnum,
 static int omapfb_alloc_fbmem_display(struct omapfb2_device *fbdev, int fbnum,
 		unsigned long def_vram)
 {
-	struct omapfb_info *ofbi;
 	struct omap_display *display;
-	int bytespp;
 	unsigned long size;
-	int w, h;
 
-	ofbi = FB2OFB(fbdev->fbs[fbnum]);
 	display =  fb2display(fbdev->fbs[fbnum]);
-
 	if (!display)
 		return 0;
 
-	switch (display->panel->bpp) {
-	case 16:
-		bytespp = 2;
-		break;
-	case 24:
-	case 32:
-		bytespp = 4;
-		break;
-	default:
-		bytespp = 4;
-		break;
-	}
-
 	if (def_vram)
 		size = def_vram;
-	else if ((def_rotate_type == OMAPFB_ROT_VRFB) &&
-						(def_rotate >= 0))
+	else if ((def_rotate_type == OMAPFB_ROT_VRFB) && (def_rotate >= 0))
 		size = VRFB_SIZE;
-	else {
+	else
 		size = FB_SIZE;
-	}
 
 	return omapfb_alloc_fbmem(fbdev, fbnum, size);
 }
