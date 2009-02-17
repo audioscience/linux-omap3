@@ -1459,7 +1459,10 @@ static int smc911x_close(struct net_device *dev)
 		 * smc911x_phy_configure are pending.
 		 */
 		cancel_work_sync(&lp->phy_configure);
+		/* Disable the powerdown step as resume is
+		 * not working consistently.
 		smc911x_phy_powerdown(dev, lp->mii.phy_id);
+		*/
 	}
 
 	if (lp->pending_tx_skb) {
