@@ -1019,7 +1019,7 @@ static struct fb_ops omapfb_ops = {
 	.fb_mmap	= omapfb_mmap,
 	.fb_setcolreg	= omapfb_setcolreg,
 	.fb_setcmap	= omapfb_setcmap,
-	//.fb_write	= omapfb_write,
+	//.fb_write     = omapfb_write,
 };
 
 static void omapfb_free_fbmem(struct omapfb2_device *fbdev, int fbnum)
@@ -1394,6 +1394,9 @@ static int omapfb_create_framebuffers(struct omapfb2_device *fbdev)
 		ofbi = FB2OFB(fbi);
 		ofbi->fbdev = fbdev;
 		ofbi->id = i;
+		ofbi->timeout = HZ/5;
+		/* initialize the vsync wait queue */
+		init_waitqueue_head(&ofbi->vsync_wait);
 		fbdev->num_fbs++;
 	}
 

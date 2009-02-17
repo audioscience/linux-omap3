@@ -50,6 +50,7 @@
 #define OMAPFB_UPDATE_WINDOW	OMAP_IOW(54, struct omapfb_update_window)
 #define OMAPFB_SETUP_MEM	OMAP_IOW(55, struct omapfb_mem_info)
 #define OMAPFB_QUERY_MEM	OMAP_IOW(56, struct omapfb_mem_info)
+#define OMAPFB_WAIT_FOR_VSYNC   OMAP_IOW(57, u_int32_t)
 
 #define OMAPFB_CAPS_GENERIC_MASK	0x00000fff
 #define OMAPFB_CAPS_LCDC_MASK		0x00fff000

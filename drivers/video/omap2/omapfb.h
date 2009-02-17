@@ -66,6 +66,9 @@ struct omapfb_info {
 	struct omapfb2_device *fbdev;
 	enum omapfb_rotation_type rotation_type;
 	int rotation;
+	unsigned long timeout;
+	wait_queue_head_t vsync_wait;
+	unsigned long vsync_cnt;
 };
 
 struct omapfb2_device {
@@ -130,6 +133,5 @@ static inline void omapfb_unlock(struct omapfb2_device *fbdev)
 {
 	mutex_unlock(&fbdev->mtx);
 }
-
 
 #endif

@@ -295,6 +295,61 @@ static int omapfb_get_update_mode(struct fb_info *fbi,
 	return 0;
 }
 
+/* Interrupt service routine. */
+static void omapfb_isr(void *arg, unsigned int irqstatus)
+{
+	struct fb_info *fbi = (struct fb_info *) arg;
+	struct omapfb_info *ofbi = FB2OFB(fbi);
+
+	++ofbi->vsync_cnt;
+	wake_up_interruptible(&ofbi->vsync_wait);
+}
+
+static int omapfb_wait_for_vsync(struct fb_info *fbi)
+{
+	wait_queue_t wqt;
+	unsigned long cnt;
+	int ret;
+	void *handle = NULL;
+	u32 mask = 0;
+	struct omapfb_info *ofbi = FB2OFB(fbi);
+	struct omap_display *display = fb2display(fbi);
+
+	mask = DISPC_IRQ_VSYNC | DISPC_IRQ_EVSYNC_EVEN |
+			DISPC_IRQ_EVSYNC_ODD;
+
+	handle = omap_dispc_register_isr(omapfb_isr, fbi, mask);
+	if (!handle)
+		return -EINVAL;
+
+	init_waitqueue_entry(&wqt, current);
+
+	cnt = ofbi->vsync_cnt;
+	ret = wait_event_interruptible_timeout(ofbi->vsync_wait,
+			cnt != ofbi->vsync_cnt, ofbi->timeout);
+	/*
+	 * If the GFX is on TV, then wait for another VSYNC
+	 * to compensate for Interlaced scan
+	 */
+	if (display->type == OMAP_DISPLAY_TYPE_VENC) {
+		if (ret > 0) {
+			cnt = ofbi->vsync_cnt;
+			ret = wait_event_interruptible_timeout(
+					ofbi->vsync_wait,
+					cnt != ofbi->vsync_cnt,
+					ofbi->timeout);
+		}
+	}
+	omap_dispc_unregister_isr(handle);
+
+	if (ret < 0)
+		return ret;
+	if (ret == 0)
+		return -ETIMEDOUT;
+
+	return 0;
+}
+
 int omapfb_ioctl(struct fb_info *fbi, unsigned int cmd, unsigned long arg)
 {
 	struct omapfb_info *ofbi = FB2OFB(fbi);
@@ -452,6 +507,8 @@ int omapfb_ioctl(struct fb_info *fbi, unsigned int cmd, unsigned long arg)
 		r = display->run_test(display, p.test_num);
 
 		break;
+	case OMAPFB_WAIT_FOR_VSYNC:
+		return omapfb_wait_for_vsync(fbi);
 
 	default:
 		DBG("ioctl unhandled\n");
