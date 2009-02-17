@@ -42,8 +42,8 @@ static char *def_vram;
 static int def_rotate_type;
 static int def_rotate = -1;
 
-#define VRFB_WIDTH 2048
-
+#define VRFB_WIDTH 	(2048)
+#define FB_SIZE 	(1280 * 720 * 4 * 2)
 #ifdef DEBUG
 unsigned int omapfb_debug;
 module_param_named(debug, omapfb_debug, bool, 0644);
@@ -1165,8 +1165,7 @@ static int omapfb_alloc_fbmem_display(struct omapfb2_device *fbdev, int fbnum,
 						(def_rotate >= 0))
 		size = VRFB_SIZE;
 	else {
-		display->get_resolution(display, &w, &h);
-		size = w * h * bytespp;
+		size = FB_SIZE;
 	}
 
 	return omapfb_alloc_fbmem(fbdev, fbnum, size);
