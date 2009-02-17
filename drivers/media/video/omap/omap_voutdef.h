@@ -153,7 +153,6 @@ struct omap_vout_device {
 	unsigned char pos;
 	unsigned int src_chroma_key_enable;
 	unsigned int dst_chroma_key_enable;
-	unsigned int blending_enable;
 	unsigned int src_chroma_key;
 	unsigned int dst_chroma_key;
 	u8 global_alpha;

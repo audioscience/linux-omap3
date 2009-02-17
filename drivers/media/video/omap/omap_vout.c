@@ -1677,13 +1677,13 @@ static int vidioc_s_fbuf(struct file *file, void *fh,
 				ovl->manager->display, &key);
 	}
 	if (a->flags & V4L2_FBUF_FLAG_LOCAL_ALPHA) {
-		vout->blending_enable = 1;
+		vout->fbuf.flags |= V4L2_FBUF_FLAG_LOCAL_ALPHA;
 		if (ovl->manager->display->enable_alpha_blending)
 			ovl->manager->display->enable_alpha_blending(
 					ovl->manager->display, 1);
 	}
 	if (!(a->flags & V4L2_FBUF_FLAG_LOCAL_ALPHA)) {
-		vout->blending_enable = 0;
+		vout->fbuf.flags &= ~V4L2_FBUF_FLAG_LOCAL_ALPHA;
 		if (ovl->manager->display->enable_alpha_blending)
 			ovl->manager->display->enable_alpha_blending(
 					ovl->manager->display, 0);
@@ -1696,6 +1696,11 @@ static int vidioc_g_fbuf(struct file *file, void *fh,
 {
 	struct omap_vout_fh *ofh = (struct omap_vout_fh *)fh;
 	struct omap_vout_device *vout = ofh->vout;
+	struct omapvideo_info *ovid;
+	struct omap_overlay *ovl;
+
+	ovid = &(vout->vid_info);
+	ovl = ovid->overlays[0];
 
 	a->flags = 0x0;
 	a->capability = 0x0;
@@ -1704,8 +1709,10 @@ static int vidioc_g_fbuf(struct file *file, void *fh,
 
 	if (vout->src_chroma_key_enable == 1)
 		a->flags |= V4L2_FBUF_FLAG_CHROMAKEY;
-	if(vout->blending_enable == 1)
-		a->flags |= V4L2_FBUF_FLAG_LOCAL_ALPHA;
+	if (ovl->manager->display->get_alpha_blending)
+		if ((ovl->manager->display->get_alpha_blending(
+						ovl->manager->display)))
+			a->flags |= V4L2_FBUF_FLAG_LOCAL_ALPHA;
 
 	return 0;
 }
