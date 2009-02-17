@@ -829,6 +829,26 @@ void dispc_set_digit_size(int width, int height)
 	enable_clocks(0);
 }
 
+int dispc_get_alpha_blending(enum omap_channel ch)
+{
+	u32 config;
+	config = dispc_read_reg(DISPC_CONFIG);
+
+	if (ch == OMAP_DSS_CHANNEL_LCD) {
+		if (config & 0x40000)
+			return 1;
+		else
+			return 0;
+	} else if (ch == OMAP_DSS_CHANNEL_DIGIT) {
+		if (config & 0x80000)
+			return 1;
+		else
+			return 0;
+	}
+	return 0;
+
+}
+
 u32 dispc_get_plane_fifo_size(enum omap_plane plane)
 {
 	const struct dispc_reg fsz_reg[] = { DISPC_GFX_FIFO_SIZE_STATUS,

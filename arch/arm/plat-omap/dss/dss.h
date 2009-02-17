@@ -252,6 +252,7 @@ void dispc_draw_partial_planes(struct omap_display *display);
 
 ssize_t dispc_print_clocks(char *buf, ssize_t size);
 void omap_dispc_set_default_color(enum omap_channel channel, u32 color);
+int dispc_get_alpha_blending(enum omap_channel ch);
 int omap_dispc_get_default_color(enum omap_channel channel);
 
 /* VENC */
