@@ -138,29 +138,12 @@ static int dpi_display_enable(struct omap_display *display)
 	dispc_set_burst_size(OMAP_DSS_VIDEO1, OMAP_DSS_BURST_16x32);
 	dispc_set_burst_size(OMAP_DSS_VIDEO2, OMAP_DSS_BURST_16x32);
 
-<<<<<<< HEAD:arch/arm/plat-omap/dss/dpi.c
 	dispc_setup_plane_fifo(OMAP_DSS_GFX, OMAP_DSS_FIFO_LOW_THRESHOLD,
 			OMAP_DSS_FIFO_HIGH_THRESHOLD);
 	dispc_setup_plane_fifo(OMAP_DSS_VIDEO1, OMAP_DSS_FIFO_LOW_THRESHOLD,
 			OMAP_DSS_FIFO_HIGH_THRESHOLD);
 	dispc_setup_plane_fifo(OMAP_DSS_VIDEO1, OMAP_DSS_FIFO_LOW_THRESHOLD,
 			OMAP_DSS_FIFO_HIGH_THRESHOLD);
-=======
-	burst = 16 * 32 / 8;
-
-	high = dispc_get_plane_fifo_size(OMAP_DSS_GFX) - burst;
-	low = dispc_get_plane_fifo_size(OMAP_DSS_GFX) / 4;
-	dispc_setup_plane_fifo(OMAP_DSS_GFX, low, high);
-
-	high = dispc_get_plane_fifo_size(OMAP_DSS_VIDEO1) - burst;
-	low = dispc_get_plane_fifo_size(OMAP_DSS_VIDEO1) / 4;
-
-	dispc_setup_plane_fifo(OMAP_DSS_VIDEO1, 0x03bc, 0x03fc);
-
-	high = dispc_get_plane_fifo_size(OMAP_DSS_VIDEO2) - burst;
-	low = dispc_get_plane_fifo_size(OMAP_DSS_VIDEO2) / 4;
-		dispc_setup_plane_fifo(OMAP_DSS_VIDEO1, 0x03bc, 0x03fc);
->>>>>>> ce9884f... Added support for Background color in DSS library:arch/arm/plat-omap/dss/dpi.c
 
 	dpi_set_mode(display);
 
