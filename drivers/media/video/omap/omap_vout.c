@@ -66,6 +66,7 @@
 #include <asm/processor.h>
 #include <mach/dma.h>
 #include <mach/omapfb.h>
+#include <mach/display.h>
 
 #include "omap_voutlib.h"
 
@@ -122,10 +123,6 @@
 #define PAGE_HEIGHT_EXP         5       /* page height = 1 << PAGE_HEIGHT_EXP */
 
 /* IRQ Bits mask of DSS */
-#define DISPC_IRQSTATUS_VSYNC                           (1 <<  1)
-#define DISPC_IRQENABLE_EVSYNC_ODD                      (1 <<  3)
-#define DISPC_IRQENABLE_EVSYNC_EVEN                     (1 <<  2)
-
 #define OMAP_VOUT_MAX_BUF_SIZE (VID_MAX_WIDTH*VID_MAX_HEIGHT*4)
 
 static struct omap_vout_device *saved_v1out, *saved_v2out;
@@ -1591,8 +1588,8 @@ static int vidioc_streamon(struct file *file, void *fh,
 	addr = (unsigned long) vout->queued_buf_addr[vout->curFrm->i] +
 		vout->cropped_offset;
 
-	mask = DISPC_IRQENABLE_EVSYNC_ODD | DISPC_IRQENABLE_EVSYNC_EVEN |
-			DISPC_IRQSTATUS_VSYNC;
+	mask = DISPC_IRQ_VSYNC | DISPC_IRQ_EVSYNC_EVEN |
+			DISPC_IRQ_EVSYNC_ODD;
 
 	handle = omap_dispc_register_isr(omap_vout_isr, vout, mask);
 	if (handle)
@@ -2390,7 +2387,7 @@ void omap_vout_isr(void *arg, unsigned int irqstatus)
 	spin_lock(&vout->vbq_lock);
 	do_gettimeofday(&timevalue);
 	if (cur_display->type == OMAP_DISPLAY_TYPE_DPI) {
-		if (!(irqstatus & DISPC_IRQSTATUS_VSYNC))
+		if (!(irqstatus & DISPC_IRQ_VSYNC))
 			return;
 		if (!vout->first_int && (vout->curFrm != vout->nextFrm)) {
 			vout->curFrm->ts = timevalue;
@@ -2421,9 +2418,9 @@ void omap_vout_isr(void *arg, unsigned int irqstatus)
 			spin_unlock(&vout->vbq_lock);
 			return;
 		}
-		if (irqstatus & DISPC_IRQENABLE_EVSYNC_ODD) {
+		if (irqstatus & DISPC_IRQ_EVSYNC_ODD) {
 			fid = 1;
-		} else if (irqstatus & DISPC_IRQENABLE_EVSYNC_EVEN) {
+		} else if (irqstatus & DISPC_IRQ_EVSYNC_EVEN) {
 			fid = 0;
 		} else {
 			spin_unlock(&vout->vbq_lock);
