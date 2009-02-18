@@ -155,7 +155,6 @@ struct omap_vout_device {
 	unsigned int dst_chroma_key_enable;
 	unsigned int src_chroma_key;
 	unsigned int dst_chroma_key;
-	u8 global_alpha;
 
 	int ps, vr_ps, line_length, first_int, field_id;
 	enum v4l2_memory memory;
