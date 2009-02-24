@@ -662,6 +662,8 @@ static int omap_vout_calculate_offset(struct omap_vout_device *vout)
 	ovid = &(vout->vid_info);
 	ovl = ovid->overlays[0];
 	/* get the display device attached to the overlay */
+	if (!ovl->manager || !ovl->manager->display)
+		return -1;
 	cur_display = ovl->manager->display;
 
 	if ((cur_display->type == OMAP_DISPLAY_TYPE_VENC) &&
@@ -1061,6 +1063,9 @@ static int vidioc_try_fmt_vid_out(struct file *file, void *fh,
 
 	ovid = &(vout->vid_info);
 	ovl = ovid->overlays[0];
+
+	if (!ovl->manager || !ovl->manager->display)
+		return -EINVAL;
 	/* get the display device attached to the overlay */
 	timing = &ovl->manager->display->panel->timings;
 
@@ -1090,8 +1095,14 @@ static int vidioc_s_fmt_vid_out(struct file *file, void *fh,
 
 	ovid = &(vout->vid_info);
 	ovl = ovid->overlays[0];
+
 	/* get the display device attached to the overlay */
+	if (!ovl->manager || !ovl->manager->display) {
+		up(&vout->lock);
+		return -EINVAL;
+	}
 	timing = &ovl->manager->display->panel->timings;
+
 	/* We dont support RGB24-packed mode if vrfb rotation
 	 * is enabled*/
 	if (vout->rotation != -1
@@ -1130,8 +1141,11 @@ static int vidioc_s_fmt_vid_out(struct file *file, void *fh,
 
 	/* Save the changes in the overlay strcuture */
 	r = omapvid_apply_changes(vout, 0, 0);
-		if (r)
+		if (r) {
 			printk(KERN_ERR VOUT_NAME "failed to change mode\n");
+			up(&vout->lock);
+			return -EINVAL;
+		}
 
 	up(&vout->lock);
 	return 0;
@@ -1271,6 +1285,11 @@ static int vidioc_s_crop(struct file *file, void *fh,
 
 	ovid = &(vout->vid_info);
 	ovl = ovid->overlays[0];
+
+	if (!ovl->manager || !ovl->manager->display) {
+		up(&vout->lock);
+		return -EINVAL;
+	}
 	/* get the display device attached to the overlay */
 	timing = &ovl->manager->display->panel->timings;
 
@@ -1330,7 +1349,8 @@ static int vidioc_g_ctrl(struct file *file, void *fh, struct v4l2_control *a)
 		ovid = &(vout->vid_info);
 		ovl = ovid->overlays[0];
 
-		if(!ovl->manager->display->get_bg_color)
+		if (!ovl->manager  || !ovl->manager->display
+				|| !ovl->manager->display->get_bg_color)
 			return -EINVAL;
 
 		color = ovl->manager->display->get_bg_color(ovl->manager->display);
@@ -1387,7 +1407,9 @@ static int vidioc_s_ctrl(struct file *file, void *fh, struct v4l2_control *a)
 
 		if (down_interruptible(&vout->lock))
 			return -EINVAL;
-		if (!ovl->manager->display->set_bg_color) {
+
+		if (!ovl->manager || !ovl->manager->display
+				|| !ovl->manager->display->set_bg_color) {
 			up(&vout->lock);
 			return -EINVAL;
 		}
@@ -1592,7 +1614,10 @@ static int vidioc_streamon(struct file *file, void *fh,
 
 	vout->first_int = 1;
 
-	omap_vout_calculate_offset(vout);
+	if (omap_vout_calculate_offset(vout)) {
+		up(&vout->lock);
+		return -EINVAL;
+	}
 	addr = (unsigned long) vout->queued_buf_addr[vout->curFrm->i] +
 		vout->cropped_offset;
 
@@ -1668,7 +1693,8 @@ static int vidioc_s_fbuf(struct file *file, void *fh,
 		key.enable = 1;
 		key.type =  OMAP_DSS_COLOR_KEY_VID_SRC;
 		key.color = vout->src_chroma_key;
-		if (ovl->manager->display->set_color_keying)
+		if (ovl->manager && ovl->manager->display &&
+				ovl->manager->display->set_color_keying)
 			ovl->manager->display->set_color_keying(
 				ovl->manager->display, &key);
 	}
@@ -1677,19 +1703,22 @@ static int vidioc_s_fbuf(struct file *file, void *fh,
 		key.enable = 0;
 		key.type = OMAP_DSS_COLOR_KEY_VID_SRC;
 		key.color = vout->src_chroma_key;
-		if (ovl->manager->display->set_color_keying)
+		if (ovl->manager && ovl->manager->display
+				&& ovl->manager->display->set_color_keying)
 			ovl->manager->display->set_color_keying(
 				ovl->manager->display, &key);
 	}
 	if (a->flags & V4L2_FBUF_FLAG_LOCAL_ALPHA) {
 		vout->fbuf.flags |= V4L2_FBUF_FLAG_LOCAL_ALPHA;
-		if (ovl->manager->display->enable_alpha_blending)
+		if (ovl->manager && ovl->manager->display
+				&& ovl->manager->display->enable_alpha_blending)
 			ovl->manager->display->enable_alpha_blending(
 					ovl->manager->display, 1);
 	}
 	if (!(a->flags & V4L2_FBUF_FLAG_LOCAL_ALPHA)) {
 		vout->fbuf.flags &= ~V4L2_FBUF_FLAG_LOCAL_ALPHA;
-		if (ovl->manager->display->enable_alpha_blending)
+		if (ovl->manager && ovl->manager->display
+				&& ovl->manager->display->enable_alpha_blending)
 			ovl->manager->display->enable_alpha_blending(
 					ovl->manager->display, 0);
 	}
@@ -1714,7 +1743,8 @@ static int vidioc_g_fbuf(struct file *file, void *fh,
 
 	if (vout->src_chroma_key_enable == 1)
 		a->flags |= V4L2_FBUF_FLAG_CHROMAKEY;
-	if (ovl->manager->display->get_alpha_blending)
+	if (ovl->manager && ovl->manager->display
+			&& ovl->manager->display->get_alpha_blending)
 		if ((ovl->manager->display->get_alpha_blending(
 						ovl->manager->display)))
 			a->flags |= V4L2_FBUF_FLAG_LOCAL_ALPHA;
@@ -2180,6 +2210,9 @@ int omapvid_apply_changes(struct omap_vout_device *vout, u32 addr, int init)
 	rotation = vout->rotation;
 	for (i = 0; i < ovid->num_overlays; i++) {
 		ovl = ovid->overlays[i];
+		if (!ovl->manager || !ovl->manager->display)
+			return -EINVAL;
+
 		timing = &ovl->manager->display->panel->timings;
 		cur_display = ovl->manager->display;
 
@@ -2390,6 +2423,8 @@ void omap_vout_isr(void *arg, unsigned int irqstatus)
 	ovid = &(vout->vid_info);
 	ovl = ovid->overlays[0];
 	/* get the display device attached to the overlay */
+	if (!ovl->manager || !ovl->manager->display)
+		return;
 	cur_display = ovl->manager->display;
 
 	spin_lock(&vout->vbq_lock);
