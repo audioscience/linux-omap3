@@ -35,8 +35,6 @@
 
 #define MODULE_NAME     "omapfb"
 
-#define omap_rotation_index(deg) (deg/90)
-
 static char *def_mode;
 static char *def_vram;
 static int def_rotate_type;
@@ -44,6 +42,12 @@ static int def_rotate = -1;
 
 #define VRFB_WIDTH 	(2048)
 #define FB_SIZE 	(1280 * 720 * 4 * 2)
+
+#define IS_VALID_ROTATION(rotate) ((rotate == FB_ROTATE_UR) || \
+				(rotate == FB_ROTATE_CW) || \
+				(rotate == FB_ROTATE_UD) || \
+				(rotate == FB_ROTATE_CCW))
+
 #ifdef DEBUG
 unsigned int omapfb_debug;
 module_param_named(debug, omapfb_debug, bool, 0644);
@@ -401,6 +405,10 @@ int check_fb_var(struct fb_info *fbi, struct fb_var_screeninfo *var)
 	if (var->rotate != fbi->var.rotate) {
 		DBG("rotation changing\n");
 
+		if (!IS_VALID_ROTATION(var->rotate)) {
+			DBG("invalid rotation parameter\n");
+			return -EINVAL;
+		}
 		ofbi->rotation = var->rotate;
 
 		if (abs(var->rotate - fbi->var.rotate) != 2) {
