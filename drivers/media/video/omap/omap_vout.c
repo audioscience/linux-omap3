@@ -1359,6 +1359,9 @@ static int vidioc_s_ctrl(struct file *file, void *fh, struct v4l2_control *a)
 	{
 		int rotation = a->value;
 
+		if (vout->pix.pixelformat == V4L2_PIX_FMT_RGB24 &&
+				rotation != -1)
+			return -EINVAL;
 		if (down_interruptible(&vout->lock))
 			return -EINVAL;
 		if ((rotation == 0) || (rotation == 90) ||
