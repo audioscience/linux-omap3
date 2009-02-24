@@ -333,6 +333,8 @@ static int omap_start_ehc(struct platform_device *dev, struct usb_hcd *hcd)
 #endif
 	}
 
+	omap_writel(uhh_hostconfig_value, OMAP_UHH_HOSTCONFIG);
+
 	if (omap_rev_le21()) {
 		/* Ensure that BYPASS is set */
 		while (omap_readl(OMAP_UHH_HOSTCONFIG)
