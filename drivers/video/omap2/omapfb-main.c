@@ -295,11 +295,11 @@ void set_fb_fix(struct fb_info *fbi)
 	else
 		fix->line_length = (var->xres_virtual * var->bits_per_pixel) >> 3;
 	fix->smem_start = omapfb_get_region_paddr(ofbi);
-	if (ofbi->rotation_type == OMAPFB_ROT_VRFB)
-		fix->smem_len = var->yres_virtual * fix->line_length;
-	else
-		fix->smem_len = rg->size;
-
+	/*
+	 * No need to calculate here, since we are handling size part
+	 * properly in the function "omapfb_alloc_fbmem_display"
+	 */
+	fix->smem_len = rg->size;
 	fix->type = FB_TYPE_PACKED_PIXELS;
 
 	if (var->nonstd)
@@ -329,7 +329,6 @@ void set_fb_fix(struct fb_info *fbi)
 
 	if (rg->size) {
 		int w, h;
-
 		if (ofbi->rotation == FB_ROTATE_CW ||
 				ofbi->rotation == FB_ROTATE_CCW) {
 			w = var->yres_virtual;
@@ -338,7 +337,6 @@ void set_fb_fix(struct fb_info *fbi)
 			w = var->xres_virtual;
 			h = var->yres_virtual;
 		}
-
 		omap_vrfb_setup(rg->vrfb.context, rg->_paddr,
 				w, h,
 				var->bits_per_pixel / 8);
@@ -401,30 +399,18 @@ int check_fb_var(struct fb_info *fbi, struct fb_var_screeninfo *var)
 		DBG("invalid mode\n");
 		return -EINVAL;
 	}
-
 	if (var->rotate != fbi->var.rotate) {
 		DBG("rotation changing\n");
-
 		if (!IS_VALID_ROTATION(var->rotate)) {
 			DBG("invalid rotation parameter\n");
 			return -EINVAL;
 		}
+		/*TODO: If this function returns error after this
+		 *	then we are setting wrong rotation value
+		 *	to "ofbi"
+		 */
 		ofbi->rotation = var->rotate;
-
-		if (abs(var->rotate - fbi->var.rotate) != 2) {
-			int tmp;
-			DBG("rotate changing 90/270 degrees. swapping x/y res\n");
-
-			tmp = var->yres;
-			var->yres = var->xres;
-			var->xres = tmp;
-
-			tmp = var->yres_virtual;
-			var->yres_virtual = var->xres_virtual;
-			var->xres_virtual = tmp;
-		}
 	}
-
 	xres_min = OMAPFB_PLANE_XRES_MIN;
 	yres_min = OMAPFB_PLANE_YRES_MIN;
 
@@ -436,19 +422,17 @@ int check_fb_var(struct fb_info *fbi, struct fb_var_screeninfo *var)
 		var->xres_virtual = var->xres;
 	if (var->yres_virtual < var->yres)
 		var->yres_virtual = var->yres;
-	max_frame_size = ofbi->region.size;
-	line_size = (var->xres_virtual * var->bits_per_pixel) >> 3;
 
-	if (line_size * var->yres_virtual > max_frame_size) {
-		/* Try to keep yres_virtual first */
-		line_size = max_frame_size / var->yres_virtual;
-		var->xres_virtual = line_size * 8 / var->bits_per_pixel;
-		if (var->xres_virtual < var->xres) {
-			/* Still doesn't fit. Shrink yres_virtual too */
-			var->xres_virtual = var->xres;
-			line_size = var->xres * var->bits_per_pixel / 8;
+	max_frame_size = ofbi->region.size;
+
+	if ((ofbi->rotation_type == OMAPFB_ROT_VRFB) &&
+			((ofbi->rotation == FB_ROTATE_CW) ||
+			 (ofbi->rotation == FB_ROTATE_CCW))) {
+		line_size = (VRFB_WIDTH * var->bits_per_pixel) >> 3;
+		if (line_size * var->yres_virtual > max_frame_size)
+			/*Reduce yres_virtual, since we can't change xres */
 			var->yres_virtual = max_frame_size / line_size;
-		}
+
 		/* Recheck this, as the virtual size changed. */
 		if (var->xres_virtual < var->xres)
 			var->xres = var->xres_virtual;
@@ -457,6 +441,29 @@ int check_fb_var(struct fb_info *fbi, struct fb_var_screeninfo *var)
 		if (var->xres < xres_min || var->yres < yres_min) {
 			DBG("Cannot fit FB to memory\n");
 			return -EINVAL;
+		}
+
+	} else {
+		line_size = (var->xres_virtual * var->bits_per_pixel) >> 3;
+		if (line_size * var->yres_virtual > max_frame_size) {
+			/* Try to keep yres_virtual first */
+			line_size = max_frame_size / var->yres_virtual;
+			var->xres_virtual = line_size * 8 / var->bits_per_pixel;
+			if (var->xres_virtual < var->xres) {
+				/* Still doesn't fit. Shrink yres_virtual too */
+				var->xres_virtual = var->xres;
+				line_size = var->xres * var->bits_per_pixel / 8;
+				var->yres_virtual = max_frame_size / line_size;
+			}
+			/* Recheck this, as the virtual size changed. */
+			if (var->xres_virtual < var->xres)
+				var->xres = var->xres_virtual;
+			if (var->yres_virtual < var->yres)
+				var->yres = var->yres_virtual;
+			if (var->xres < xres_min || var->yres < yres_min) {
+				DBG("Cannot fit FB to memory\n");
+				return -EINVAL;
+			}
 		}
 	}
 	if (var->xres + var->xoffset > var->xres_virtual)
@@ -656,10 +663,9 @@ int omapfb_setup_overlay(struct fb_info *fbi, struct omap_overlay *ovl,
 		xres = var->xres;
 		yres = var->yres;
 	}
-
 	screen_width = fix->line_length / (var->bits_per_pixel >> 3);
 
-		r = ovl->setup_input(ovl,
+	r = ovl->setup_input(ovl,
 			data_start_p, data_start_v,
 			var->xres_virtual*var->bits_per_pixel/8,
 			screen_width,
@@ -723,7 +729,6 @@ int omapfb_apply_changes(struct fb_info *fbi, int init)
 			posx = ovl->info.pos_x;
 			posy = ovl->info.pos_y;
 		}
-
 		r = omapfb_setup_overlay(fbi, ovl, posx, posy, outw, outh);
 		if (r)
 			goto err;
