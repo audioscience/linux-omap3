@@ -37,7 +37,7 @@
 
 static char *def_mode;
 static char *def_vram;
-static int def_rotate_type;
+static int def_rotate_type = -1;
 static int def_rotate = -1;
 
 #define VRFB_WIDTH 	(2048)
@@ -47,6 +47,9 @@ static int def_rotate = -1;
 				(rotate == FB_ROTATE_CW) || \
 				(rotate == FB_ROTATE_UD) || \
 				(rotate == FB_ROTATE_CCW))
+
+#define IS_ROTATION_ENABLED(rotation_type) ((rotation_type == OMAPFB_ROT_DMA) \
+		|| (rotation_type == OMAPFB_ROT_VRFB))
 
 #ifdef DEBUG
 unsigned int omapfb_debug;
@@ -405,11 +408,14 @@ int check_fb_var(struct fb_info *fbi, struct fb_var_screeninfo *var)
 			DBG("invalid rotation parameter\n");
 			return -EINVAL;
 		}
-		/*TODO: If this function returns error after this
-		 *	then we are setting wrong rotation value
-		 *	to "ofbi"
-		 */
-		ofbi->rotation = var->rotate;
+		if (!IS_ROTATION_ENABLED(ofbi->rotation_type))
+			var->rotate = ofbi->rotation = -1;
+		else
+			/*TODO: If this function returns error after this
+			 *	then we are setting wrong rotation value
+			 *	to "ofbi"
+			 */
+			ofbi->rotation = var->rotate;
 	}
 	xres_min = OMAPFB_PLANE_XRES_MIN;
 	yres_min = OMAPFB_PLANE_YRES_MIN;
