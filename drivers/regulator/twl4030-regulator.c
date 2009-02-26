@@ -43,6 +43,9 @@ struct twlreg_info {
 	u8			table_len;
 	const u16		*table;
 
+	/* chip constraints on regulator behavior */
+	u16			min_mV;
+
 	/* used by regulator core */
 	struct regulator_desc	desc;
 };
@@ -382,6 +385,7 @@ static struct regulator_ops twl4030fixed_ops = {
 	.base = offset, \
 	.id = num, \
 	.deciV = mVolts / 100 , \
+	.min_mV = mVolts, \
 	.desc = { \
 		.name = #label, \
 		.id = TWL4030_REG_##label, \
@@ -450,10 +454,6 @@ static int twl4030reg_probe(struct platform_device *pdev)
 	 * (Regulator core now does this for voltage constraints.)
 	 */
 	c = &initdata->constraints;
-	if (!c->min_uV || c->min_uV < min_uV)
-		c->min_uV = min_uV;
-	if (!c->max_uV || c->max_uV > max_uV)
-		c->max_uV = max_uV;
 	c->valid_modes_mask &= REGULATOR_MODE_NORMAL | REGULATOR_MODE_STANDBY;
 	c->valid_ops_mask &= REGULATOR_CHANGE_VOLTAGE
 				| REGULATOR_CHANGE_MODE
