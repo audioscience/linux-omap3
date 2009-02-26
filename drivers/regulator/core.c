@@ -693,69 +693,6 @@ static int set_machine_constraints(struct regulator_dev *rdev,
 	else
 		name = "regulator";
 
-	/* constrain machine-level voltage specs to fit
-	 * the actual range supported by this regulator.
-	 */
-	if (ops->list_voltage && rdev->desc->n_voltages) {
-		int	count = rdev->desc->n_voltages;
-		int	i;
-		int	min_uV = INT_MAX;
-		int	max_uV = INT_MIN;
-		int	cmin = constraints->min_uV;
-		int	cmax = constraints->max_uV;
-
-		/* it's safe to autoconfigure fixed-voltage supplies */
-		if (count == 1 && !cmin) {
-			cmin = INT_MIN;
-			cmax = INT_MAX;
-		}
-
-		/* else require explicit machine-level constraints */
-		else if (cmin <= 0 || cmax <= 0 || cmax < cmin) {
-			pr_err("%s: %s '%s' voltage constraints\n",
-				       __func__, "invalid", name);
-			ret = -EINVAL;
-			goto out;
-		}
-
-		/* initial: [cmin..cmax] valid, [min_uV..max_uV] not */
-		for (i = 0; i < count; i++) {
-			int	value;
-
-			value = ops->list_voltage(rdev, i);
-			if (value <= 0)
-				continue;
-
-			/* maybe adjust [min_uV..max_uV] */
-			if (value >= cmin && value < min_uV)
-				min_uV = value;
-			if (value <= cmax && value > max_uV)
-				max_uV = value;
-		}
-
-		/* final: [min_uV..max_uV] valid iff constraints valid */
-		if (max_uV < min_uV) {
-			pr_err("%s: %s '%s' voltage constraints\n",
-				       __func__, "unsupportable", name);
-			ret = -EINVAL;
-			goto out;
-		}
-
-		/* use regulator's subset of machine constraints */
-		if (constraints->min_uV < min_uV) {
-			pr_debug("%s: override '%s' %s, %d -> %d\n",
-				       __func__, name, "min_uV",
-					constraints->min_uV, min_uV);
-			constraints->min_uV = min_uV;
-		}
-		if (constraints->max_uV > max_uV) {
-			pr_debug("%s: override '%s' %s, %d -> %d\n",
-				       __func__, name, "max_uV",
-					constraints->max_uV, max_uV);
-			constraints->max_uV = max_uV;
-		}
-	}
-
 	rdev->constraints = constraints;
 
 	/* do we need to apply the constraint voltage */
@@ -773,6 +710,10 @@ static int set_machine_constraints(struct regulator_dev *rdev,
 			}
 	}
 
+	/* are we enabled at boot time by firmware / bootloader */
+	if (rdev->constraints->boot_on)
+		rdev->use_count = 1;
+
 	/* do we need to setup our suspend state */
 	if (constraints->initial_state) {
 		ret = suspend_prepare(rdev, constraints->initial_state);
@@ -784,39 +725,38 @@ static int set_machine_constraints(struct regulator_dev *rdev,
 		}
 	}
 
-	/* Should this be enabled when we return from here?  The difference
-	 * between "boot_on" and "always_on" is that "always_on" regulators
-	 * won't ever be disabled.
-	 */
-	if (constraints->boot_on || constraints->always_on)
-		enable = 1;
-
-	/* Make sure the regulator isn't wrongly enabled or disabled.
-	 * Bootloaders are often sloppy about leaving things on; and
-	 * sometimes Linux wants to use a different model.
-	 */
-	if (enable) {
-		if (ops->enable) {
-			ret = ops->enable(rdev);
-			if (ret < 0)
-				pr_warning("%s: %s disable --> %d\n",
-					       __func__, name, ret);
+	if (constraints->initial_mode) {
+		if (!ops->set_mode) {
+			printk(KERN_ERR "%s: no set_mode operation for %s\n",
+			       __func__, name);
+			ret = -EINVAL;
+			goto out;
 		}
-		if (ret >= 0)
-			rdev->use_count = 1;
-	} else {
-		if (ops->disable) {
-			ret = ops->disable(rdev);
-			if (ret < 0)
-				pr_warning("%s: %s disable --> %d\n",
-					       __func__, name, ret);
+
+		ret = ops->set_mode(rdev, constraints->initial_mode);
+		if (ret < 0) {
+			printk(KERN_ERR
+			       "%s: failed to set initial mode for %s: %d\n",
+			       __func__, name, ret);
+			goto out;
 		}
 	}
 
-	if (ret < 0)
-		rdev->constraints = NULL;
-	else
-		print_constraints(rdev);
+	/* if always_on is set then turn the regulator on if it's not
+	 * already on. */
+	if (constraints->always_on && ops->enable &&
+		((ops->is_enabled && !ops->is_enabled(rdev)) ||
+		 (!ops->is_enabled && !constraints->boot_on))) {
+		ret = ops->enable(rdev);
+		if (ret < 0) {
+			printk(KERN_ERR "%s: failed to enable %s\n",
+				__func__, name);
+			rdev->constraints = NULL;
+			goto out;
+		}
+	}
+	
+	print_constraints(rdev);
 out:
 	return ret;
 }
