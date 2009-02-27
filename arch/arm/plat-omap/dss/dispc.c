@@ -832,7 +832,10 @@ void dispc_set_digit_size(int width, int height)
 int dispc_get_alpha_blending(enum omap_channel ch)
 {
 	u32 config;
+
+	enable_clocks(1);
 	config = dispc_read_reg(DISPC_CONFIG);
+	enable_clocks(0);
 
 	if (ch == OMAP_DSS_CHANNEL_LCD) {
 		if (config & 0x40000)
@@ -855,7 +858,10 @@ void dispc_get_color_keying(enum omap_channel ch, struct omap_color_key *key)
 	const struct dispc_reg tr_reg[] = {
 		DISPC_TRANS_COLOR0, DISPC_TRANS_COLOR1 };
 
+	enable_clocks(1);
 	config = dispc_read_reg(DISPC_CONFIG);
+	enable_clocks(0);
+
 	key->type = 0;
 
 	if (ch == OMAP_DSS_CHANNEL_LCD) {
@@ -871,8 +877,9 @@ void dispc_get_color_keying(enum omap_channel ch, struct omap_color_key *key)
 			key->enable = 1;
 		} else
 			key->enable = 0;
-
+		enable_clocks(1);
 		key->color = dispc_read_reg(tr_reg[ch]);
+		enable_clocks(0);
 	} else if (ch == OMAP_DSS_CHANNEL_DIGIT) {
 		/* check color keying is enabled or not */
 		if (config & 0x1000) {
@@ -887,7 +894,9 @@ void dispc_get_color_keying(enum omap_channel ch, struct omap_color_key *key)
 		} else
 			key->enable = 0;
 
+		enable_clocks(1);
 		key->color = dispc_read_reg(tr_reg[ch]);
+		enable_clocks(0);
 	}
 
 }
