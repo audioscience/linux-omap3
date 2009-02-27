@@ -435,18 +435,19 @@ int check_fb_var(struct fb_info *fbi, struct fb_var_screeninfo *var)
 			((ofbi->rotation == FB_ROTATE_CW) ||
 			 (ofbi->rotation == FB_ROTATE_CCW))) {
 		line_size = (VRFB_WIDTH * var->bits_per_pixel) >> 3;
-		if (line_size * var->yres_virtual > max_frame_size)
+		if (line_size * var->yres_virtual > max_frame_size) {
 			/*Reduce yres_virtual, since we can't change xres */
 			var->yres_virtual = max_frame_size / line_size;
 
-		/* Recheck this, as the virtual size changed. */
-		if (var->xres_virtual < var->xres)
-			var->xres = var->xres_virtual;
-		if (var->yres_virtual < var->yres)
-			var->yres = var->yres_virtual;
-		if (var->xres < xres_min || var->yres < yres_min) {
-			DBG("Cannot fit FB to memory\n");
-			return -EINVAL;
+			/* Recheck this, as the virtual size changed. */
+			if (var->xres_virtual < var->xres)
+				var->xres = var->xres_virtual;
+			if (var->yres_virtual < var->yres)
+				var->yres = var->yres_virtual;
+			if (var->xres < xres_min || var->yres < yres_min) {
+				DBG("Cannot fit FB to memory\n");
+				return -EINVAL;
+			}
 		}
 
 	} else {
@@ -1249,6 +1250,20 @@ static int fbinfo_init(struct omapfb2_device *fbdev, struct fb_info *fbi)
 	var->nonstd = 0;
 
 	DBG("default rotation %d\n", def_rotate);
+	/* When VRFB rotation is enabled, the only possible
+	 * values are 0, 1, 2, 3 for 0, 90, 180, 270 degrees.
+	 * If the rotation is enabled without setting proper
+	 * rotation angle then def_rotate will contain wrong value -1,
+	 * may lead to some issues */
+	if (IS_ROTATION_ENABLED(def_rotate_type)) {
+		if (!IS_VALID_ROTATION(def_rotate)) {
+			DBG("invalid rotation parameter\n");
+			def_rotate = 0;
+		}
+
+	} else {
+		def_rotate = -1;
+	}
 
 	ofbi->rotation_type = def_rotate_type;
 	ofbi->rotation = def_rotate;
