@@ -450,6 +450,8 @@ struct omap_display {
 	void (*enable_alpha_blending)(struct omap_display *display,
 			unsigned int enable);
 	int (*get_alpha_blending)(struct omap_display *display);
+	void (*get_color_keying)(struct omap_display *display,
+			struct omap_color_key *key);
 	int (*update)(struct omap_display *display,
 			       int x, int y, int w, int h);
 	int (*sync)(struct omap_display *display);

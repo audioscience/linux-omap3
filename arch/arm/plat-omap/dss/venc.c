@@ -533,6 +533,12 @@ static int venc_get_alpha_blending(struct omap_display *display)
 	return dispc_get_alpha_blending(OMAP_DSS_CHANNEL_DIGIT);
 }
 
+static void venc_display_get_color_keying(struct omap_display *display,
+	struct omap_color_key *key)
+{
+	dispc_get_color_keying(OMAP_DSS_CHANNEL_DIGIT, key);
+}
+
 void venc_init_display(struct omap_display *display)
 {
 	display->panel = &venc_panel;
@@ -542,6 +548,7 @@ void venc_init_display(struct omap_display *display)
 	display->set_bg_color = venc_display_set_bg_color;
 	display->get_bg_color = venc_display_get_bg_color;
 	display->set_color_keying = venc_display_set_color_keying;
+	display->get_color_keying = venc_display_get_color_keying;
 	display->enable_alpha_blending = venc_enable_alpha_blending;
 	display->get_alpha_blending = venc_get_alpha_blending;
 }

@@ -849,6 +849,49 @@ int dispc_get_alpha_blending(enum omap_channel ch)
 
 }
 
+void dispc_get_color_keying(enum omap_channel ch, struct omap_color_key *key)
+{
+	u32 config;
+	const struct dispc_reg tr_reg[] = {
+		DISPC_TRANS_COLOR0, DISPC_TRANS_COLOR1 };
+
+	config = dispc_read_reg(DISPC_CONFIG);
+	key->type = 0;
+
+	if (ch == OMAP_DSS_CHANNEL_LCD) {
+		/* check color keying is enabled or not */
+		if (config & 0x400) {
+			/* Check whether it is src color keying
+			   or dst color keying */
+			if (config & 0x800)
+				key->type = OMAP_DSS_COLOR_KEY_VID_SRC;
+			else
+				key->type = OMAP_DSS_COLOR_KEY_GFX_DST;
+
+			key->enable = 1;
+		} else
+			key->enable = 0;
+
+		key->color = dispc_read_reg(tr_reg[ch]);
+	} else if (ch == OMAP_DSS_CHANNEL_DIGIT) {
+		/* check color keying is enabled or not */
+		if (config & 0x1000) {
+			/* Check whether it is src color keying
+			   or dst color keying */
+			if (config & 0x2000)
+				key->type = OMAP_DSS_COLOR_KEY_VID_SRC;
+			else
+				key->type = OMAP_DSS_COLOR_KEY_GFX_DST;
+
+			key->enable = 1;
+		} else
+			key->enable = 0;
+
+		key->color = dispc_read_reg(tr_reg[ch]);
+	}
+
+}
+
 u32 dispc_get_plane_fifo_size(enum omap_plane plane)
 {
 	const struct dispc_reg fsz_reg[] = { DISPC_GFX_FIFO_SIZE_STATUS,

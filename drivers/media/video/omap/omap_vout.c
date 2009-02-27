@@ -1187,6 +1187,8 @@ static int vidioc_s_fmt_vid_overlay(struct file *file, void *fh,
 	else
 		vout->win.global_alpha = f->fmt.win.global_alpha;
 
+	vout->win.chromakey = f->fmt.win.chromakey;
+
 	up(&vout->lock);
 	return 0;
 }
@@ -1215,22 +1217,32 @@ static int vidioc_g_fmt_vid_overlay(struct file *file, void *fh,
 {
 	struct omap_vout_device *vout = ((struct omap_vout_fh *) fh)->vout;
 
+	struct omapvideo_info *ovid;
+	struct omap_overlay *ovl;
 	struct v4l2_window *win = &f->fmt.win;
+	struct omap_color_key key;
+
 	memset(win, 0, sizeof(*win));
 
 	/*
-	 * The API has a bit of a problem here.
-	 * We're returning a v4l2_window
-	 * structure, but that structure
-	 * contains pointers to variable-sized
-	 * objects for clipping rectangles and
-	 * clipping bitmaps.  We will just
+	 * The API has a bit of a problem here.  We're returning a v4l2_window
+	 * structure, but that structure contains pointers to variable-sized
+	 * objects for clipping rectangles and clipping bitmaps.  We will just
 	 * return NULLs for those pointers.
 	 */
 	win->w = vout->win.w;
 	win->field = vout->win.field;
-	win->chromakey = vout->win.chromakey;
 	win->global_alpha = vout->win.global_alpha;
+
+	ovid = &(vout->vid_info);
+	ovl = ovid->overlays[0];
+
+	if (ovl->manager && ovl->manager->display &&
+				ovl->manager->display->set_color_keying)
+		ovl->manager->display->get_color_keying(ovl->manager->display,
+				&key);
+
+	win->chromakey = key.color;
 	return 0;
 }
 
@@ -1688,26 +1700,39 @@ static int vidioc_s_fbuf(struct file *file, void *fh,
 	ovid = &(vout->vid_info);
 	ovl = ovid->overlays[0];
 
-	if ((a->flags & V4L2_FBUF_FLAG_CHROMAKEY)) {
-		vout->src_chroma_key_enable = 1;
-		key.enable = 1;
+	if ((a->flags & V4L2_FBUF_FLAG_SRC_CHROMAKEY) &&
+			(a->flags & V4L2_FBUF_FLAG_CHROMAKEY))
+		return -EINVAL;
+	if (a->flags & V4L2_FBUF_FLAG_CHROMAKEY &&
+			(a->flags & V4L2_FBUF_FLAG_LOCAL_ALPHA))
+		return -EINVAL;
+
+	if ((a->flags & V4L2_FBUF_FLAG_SRC_CHROMAKEY)) {
+		vout->fbuf.flags |= V4L2_FBUF_FLAG_SRC_CHROMAKEY;
 		key.type =  OMAP_DSS_COLOR_KEY_VID_SRC;
-		key.color = vout->src_chroma_key;
-		if (ovl->manager && ovl->manager->display &&
-				ovl->manager->display->set_color_keying)
-			ovl->manager->display->set_color_keying(
-				ovl->manager->display, &key);
-	}
-	if (!(a->flags & V4L2_FBUF_FLAG_CHROMAKEY)) {
-		vout->src_chroma_key_enable = 0;
+	} else
+		vout->fbuf.flags &= ~V4L2_FBUF_FLAG_SRC_CHROMAKEY;
+
+	if ((a->flags & V4L2_FBUF_FLAG_CHROMAKEY)) {
+		vout->fbuf.flags |= V4L2_FBUF_FLAG_CHROMAKEY;
+		key.type =  OMAP_DSS_COLOR_KEY_GFX_DST;
+	} else
+		vout->fbuf.flags &=  ~V4L2_FBUF_FLAG_CHROMAKEY;
+
+	if (a->flags & (V4L2_FBUF_FLAG_CHROMAKEY |
+				V4L2_FBUF_FLAG_SRC_CHROMAKEY)) {
+		key.enable = 1;
+		key.color = vout->win.chromakey;
+	} else {
 		key.enable = 0;
 		key.type = OMAP_DSS_COLOR_KEY_VID_SRC;
-		key.color = vout->src_chroma_key;
-		if (ovl->manager && ovl->manager->display
-				&& ovl->manager->display->set_color_keying)
-			ovl->manager->display->set_color_keying(
-				ovl->manager->display, &key);
+		key.color = vout->win.chromakey;
 	}
+	if (ovl->manager && ovl->manager->display &&
+				ovl->manager->display->set_color_keying)
+		ovl->manager->display->set_color_keying(ovl->manager->display,
+				&key);
+
 	if (a->flags & V4L2_FBUF_FLAG_LOCAL_ALPHA) {
 		vout->fbuf.flags |= V4L2_FBUF_FLAG_LOCAL_ALPHA;
 		if (ovl->manager && ovl->manager->display
@@ -1732,6 +1757,7 @@ static int vidioc_g_fbuf(struct file *file, void *fh,
 	struct omap_vout_device *vout = ofh->vout;
 	struct omapvideo_info *ovid;
 	struct omap_overlay *ovl;
+	struct omap_color_key key;
 
 	ovid = &(vout->vid_info);
 	ovl = ovid->overlays[0];
@@ -1739,10 +1765,21 @@ static int vidioc_g_fbuf(struct file *file, void *fh,
 	a->flags = 0x0;
 	a->capability = 0x0;
 
-	a->capability = V4L2_FBUF_CAP_LOCAL_ALPHA | V4L2_FBUF_CAP_CHROMAKEY;
+	a->capability = V4L2_FBUF_CAP_LOCAL_ALPHA | V4L2_FBUF_CAP_SRC_CHROMAKEY
+						| V4L2_FBUF_CAP_CHROMAKEY;
 
-	if (vout->src_chroma_key_enable == 1)
-		a->flags |= V4L2_FBUF_FLAG_CHROMAKEY;
+	if (ovl->manager && ovl->manager->display
+		&& ovl->manager->display->get_color_keying)
+			ovl->manager->display->get_color_keying(
+					ovl->manager->display, &key);
+			if (key.enable) {
+				if (key.type == OMAP_DSS_COLOR_KEY_VID_SRC)
+					a->flags |=
+						V4L2_FBUF_FLAG_SRC_CHROMAKEY;
+				if (key.type == OMAP_DSS_COLOR_KEY_GFX_DST)
+					a->flags |= V4L2_FBUF_FLAG_CHROMAKEY;
+			}
+
 	if (ovl->manager && ovl->manager->display
 			&& ovl->manager->display->get_alpha_blending)
 		if ((ovl->manager->display->get_alpha_blending(
@@ -1971,12 +2008,12 @@ static int omap_vout_setup_video_data(struct omap_vout_device *vout)
 	vout->bpp = RGB565_BPP;
 	vout->fbuf.fmt.width  =  display->panel->timings.x_res;
 	vout->fbuf.fmt.height =  display->panel->timings.y_res;
+	vout->fbuf.flags = 0;
+	vout->fbuf.capability = V4L2_FBUF_CAP_LOCAL_ALPHA |
+				V4L2_FBUF_CAP_SRC_CHROMAKEY |
+				V4L2_FBUF_CAP_CHROMAKEY;
+	vout->win.chromakey = 0;
 
-	/* Set the Color keying variable */
-	vout->src_chroma_key_enable = 0;
-	vout->dst_chroma_key_enable = 0;
-	vout->src_chroma_key = 0;
-	vout->dst_chroma_key = 0;
 	vout->win.global_alpha = 255;
 
 	omap_vout_new_format(pix, &vout->fbuf, &vout->crop, &vout->win);

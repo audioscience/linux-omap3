@@ -234,6 +234,7 @@ void omap_dispc_set_trans_key(enum omap_channel ch,
 		u32 trans_key);
 void omap_dispc_enable_trans_key(enum omap_channel ch, int enable);
 void dispc_enable_alpha_blending(enum omap_channel ch, int enable);
+void dispc_get_color_keying(enum omap_channel ch, struct omap_color_key *key);
 
 void dispc_set_lcd_timings(struct omap_video_timings *timings);
 unsigned long dispc_fclk_rate(void);
