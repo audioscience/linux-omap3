@@ -39,10 +39,14 @@
 #include <mach/mcspi.h>
 #include <mach/mux.h>
 #include <mach/display.h>
+#include <mach/omap-pm.h>
+#include <mach/clock.h>
 
 #include "sdram-micron-mt46h32m32lf-6.h"
 #include "twl4030-generic-scripts.h"
 #include "mmc-twl4030.h"
+#include "pm.h"
+#include "omap3-opp.h"
 #include <linux/regulator/machine.h>
 
 #if defined(CONFIG_OMAP3EVM_PR785) && defined(CONFIG_TWL4030_CORE)
@@ -530,7 +534,8 @@ struct spi_board_info omap3evm_spi_board_info[] = {
 
 static void __init omap3_evm_init_irq(void)
 {
-	omap2_init_common_hw(mt46h32m32lf6_sdrc_params, NULL, NULL, NULL);
+	omap2_init_common_hw(mt46h32m32lf6_sdrc_params, omap3_mpu_rate_table,
+	                     omap3_dsp_rate_table, omap3_l3_rate_table);
 	omap_init_irq();
 	omap_gpio_init();
 	omap3evm_init_smc911x();
