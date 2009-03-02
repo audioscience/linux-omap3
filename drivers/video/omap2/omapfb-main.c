@@ -1255,6 +1255,8 @@ static int fbinfo_init(struct omapfb2_device *fbdev, struct fb_info *fbi)
 	ofbi->rotation_type = def_rotate_type;
 	ofbi->rotation = def_rotate;
 	var->rotate = ofbi->rotation;
+	/* Set global alpha to 255 */
+	var->reserved[0] = 255;
 
 	if (display) {
 		int w, h;
