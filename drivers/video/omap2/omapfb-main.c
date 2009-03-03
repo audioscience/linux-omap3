@@ -988,6 +988,11 @@ static int omapfb_blank(int blank, struct fb_info *fbi)
 
 		break;
 
+	case FB_BLANK_NORMAL:
+		/* FB_BLANK_NORMAL could be implemented.
+		   * Needs DSS additions. */
+	case FB_BLANK_VSYNC_SUSPEND:
+	case FB_BLANK_HSYNC_SUSPEND:
 	case FB_BLANK_POWERDOWN:
 		if (display->state != OMAP_DSS_DISPLAY_ACTIVE) {
 			r = -EINVAL;

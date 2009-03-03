@@ -368,14 +368,10 @@ void dss_clk_enable(enum dss_clock clks)
 	dss_clk_enable_no_ctx(clks);
 
 	if (cpu_is_omap34xx()) {
-		int id = dss_get_ctx_id();
+		unsigned num_clks = count_clk_bits(clks);
 
-		if (id != dss.ctx_id) {
-			DSSDBG("ctx id %u -> id %u\n",
-					dss.ctx_id, id);
+		if (dss.num_clks_enabled == num_clks)
 			restore_all_ctx();
-			dss.ctx_id = id;
-		}
 	}
 }
 
