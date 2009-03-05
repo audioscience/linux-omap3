@@ -229,6 +229,8 @@ static inline void omap_uart_disable_clocks(struct omap_uart_state *uart)
 	clk_disable(uart->fck);
 }
 
+extern void omap_dss_resume_idle();
+
 static void omap_uart_block_sleep(struct omap_uart_state *uart)
 {
 	omap_uart_restore(uart);
@@ -236,6 +238,11 @@ static void omap_uart_block_sleep(struct omap_uart_state *uart)
 	omap_uart_smart_idle_enable(uart, 0);
 	uart->can_sleep = 0;
 	mod_timer(&uart->timer, jiffies + uart->timeout);
+	/*
+	 * Hook DSS resume functionlaity here, so that serial
+	 * interrupt will be wake-up event for DSS
+	 */
+	omap_dss_resume_idle();
 }
 
 static void omap_uart_allow_sleep(struct omap_uart_state *uart)
@@ -269,7 +276,6 @@ void omap_uart_prepare_idle(int num)
 		}
 	}
 }
-
 void omap_uart_resume_idle(int num)
 {
 	struct omap_uart_state *uart;
