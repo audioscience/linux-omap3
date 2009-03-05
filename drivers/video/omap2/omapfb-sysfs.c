@@ -27,6 +27,7 @@
 #include <linux/platform_device.h>
 #include <linux/kernel.h>
 
+#include <mach/pm.h>
 #include <mach/display.h>
 #include <mach/omapfb.h>
 
@@ -898,6 +899,113 @@ err:
 	omapfb_unlock(fbdev);
 	return r;
 }
+#ifdef CONFIG_PM
+
+static u32 dss_sleep_timeout = (1 * 20 * HZ);
+static u32 can_sleep = 0;
+static struct omapfb2_device *omap2fb;
+static struct timer_list timer;
+
+struct workqueue_struct *irq_work_queues; /* workqueue*/
+struct work_struct irq_work_queue;              /* work entry */
+/*
+ * Resumes the DSS Module
+ * Here Clocks will be turned-on, Context will be restored
+ */
+void omap_dss_resume_idle()
+{
+	if (can_sleep == 2) {
+		omap2_block_sleep();
+		can_sleep = 3;
+		queue_work(irq_work_queues, &irq_work_queue);
+	}
+}
+EXPORT_SYMBOL(omap_dss_resume_idle);
+/*
+ * Timer Call-back function
+ */
+static void dss_idle_timer(unsigned long data)
+{
+	can_sleep = 1;
+	queue_work(irq_work_queues, &irq_work_queue);
+}
+
+void omap2fb_timeout_handler(struct work_struct *work)
+{
+	int i;
+	DEFINE_WAIT(wait);
+
+	if (can_sleep == 1) {
+		for (i = 0; i < omap2fb->num_displays; i++)
+			omap2fb->displays[i]->disable(omap2fb->displays[i]);
+
+
+		for (i = 0; i < omap2fb->num_fbs; i++)
+			fb_blank(omap2fb->fbs[i], FB_BLANK_POWERDOWN);
+
+		can_sleep = 2;
+		del_timer(&timer);
+		omap2_allow_sleep();
+	} else if (can_sleep == 3){
+		for (i = 0; i < omap2fb->num_displays; i++)
+			omap2fb->displays[i]->enable(omap2fb->displays[i]);
+
+		for (i = 0; i < omap2fb->num_fbs; i++)
+			fb_blank(omap2fb->fbs[i], FB_BLANK_UNBLANK);
+
+		mod_timer(&timer, jiffies + dss_sleep_timeout);
+		can_sleep = 0;
+	}
+}
+/*
+ * Initialize the Timer fofr DSS, configure the timer to default value
+ * of 10 Sec.
+ */
+void dss_init_timer(struct omapfb2_device *fbdev)
+{
+	omap2fb = fbdev;
+	can_sleep = 0;
+	omap2_block_sleep();
+	setup_timer(&timer, dss_idle_timer,
+			(unsigned long) NULL);
+	mod_timer(&timer, jiffies + dss_sleep_timeout);
+
+	/*
+	 * Enable auto-Idle mode here
+	 */
+}
+
+/*
+ * SYSFS entry to show Time-Out value for DSS
+ */
+static ssize_t dss_sleep_show_timeout(struct device *dev,
+                               struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u\n", dss_sleep_timeout / HZ);
+}
+
+/*
+ * SYSFS entry to reconfigure Time-Out value for DSS
+ */
+static ssize_t dss_sleep_store_timeout(struct device *dev,
+               struct device_attribute *attr, const char *buf, size_t n)
+{
+	unsigned int value;
+
+	if (sscanf(buf, "%u", &value) != 1) {
+		printk(KERN_ERR "sleep_timeout_store: Invalid value\n");
+		return -EINVAL;
+	}
+	if (value == 0) {
+		del_timer(&timer);
+	} else {
+		dss_sleep_timeout = value * HZ;
+		mod_timer(&timer, jiffies + dss_sleep_timeout);
+	}
+
+	return n;
+}
+#endif
 
 
 static DEVICE_ATTR(framebuffers, S_IRUGO | S_IWUSR,
@@ -908,12 +1016,19 @@ static DEVICE_ATTR(managers, S_IRUGO | S_IWUSR,
 		show_managers, store_managers);
 static DEVICE_ATTR(displays, S_IRUGO | S_IWUSR,
 		show_displays, store_displays);
+#ifdef CONFIG_PM
+static DEVICE_ATTR (sleep_timeout, S_IRUGO | S_IWUSR,
+        dss_sleep_show_timeout, dss_sleep_store_timeout);
+#endif
 
 static struct attribute *omapfb_attrs[] = {
 	&dev_attr_framebuffers.attr,
 	&dev_attr_overlays.attr,
 	&dev_attr_managers.attr,
 	&dev_attr_displays.attr,
+#ifdef CONFIG_PM
+	&dev_attr_sleep_timeout.attr,
+#endif
 	NULL,
 };
 
@@ -928,6 +1043,27 @@ void omapfb_create_sysfs(struct omapfb2_device *fbdev)
 	r = sysfs_create_group(&fbdev->dev->kobj, &omapfb_attr_group);
 	if (r)
 		dev_err(fbdev->dev, "failed to create sysfs clk file\n");
+
+
+#ifdef CONFIG_PM
+	/*
+	 * Create Work queue for the FBDEV time out handling.
+	 * This is required since PM and UART are linked up with
+	 * each other under interrupt disable context, and if we tie
+	 * this up with Uart then twl4030 related calls will not work.
+	 * So we need to have seperate Work Queue to handle prepare_idle
+	 * and resume_idle scenarios.
+	 */
+	irq_work_queues = create_singlethread_workqueue("omapfb");
+	if (irq_work_queues == NULL) {
+		printk("Could not create omap2fb workqueue\n");
+		return;
+	}
+	INIT_WORK(&irq_work_queue, omap2fb_timeout_handler);
+
+	dss_init_timer(fbdev);
+#endif
+
 }
 
 void omapfb_remove_sysfs(struct omapfb2_device *fbdev)
