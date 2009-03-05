@@ -264,6 +264,11 @@ static const struct fb_videomode modedb[] = {
 	/* 1280x800, 60 Hz, 47.403 kHz hsync, WXGA 16:10 aspect ratio */
 	NULL, 60, 1280, 800, 12048, 200, 64, 24, 1, 136, 3,
 	0, FB_VMODE_NONINTERLACED
+   }, {
+    /* 720x576 @ 56 Hz, 31.037kHz hsync */
+    /*Need to re-visit, since we are getting 55Hz not 50Hz here*/
+    NULL, 50, 720, 576, 37000, 48, 80, 3, 7, 32, 4,
+    0, FB_VMODE_NONINTERLACED
     },
 };
 
