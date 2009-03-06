@@ -100,6 +100,8 @@ static int omap3_enter_idle(struct cpuidle_device *dev,
 	if (omap_irq_pending())
 		goto return_sleep_time;
 
+	if (!omap3_can_sleep())
+		goto return_sleep_time;
 	/* Execute ARM wfi */
 	omap_sram_idle();
 

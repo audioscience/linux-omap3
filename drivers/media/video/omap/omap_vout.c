@@ -154,6 +154,12 @@ static void omap_vout_cleanup_device(struct omap_vout_device *vout);
 /* module parameters */
 
 /*
+ * This is temperory implementation for supporing CPU Idle with
+ * V4L2 driver.
+ */
+extern atomic_t sleep_block;
+
+/*
  * Maximum amount of memory to use for rendering buffers.
  * Default is enough to four (RGB24) VGA buffers.
  */
@@ -916,10 +922,10 @@ static int omap_vout_release(struct file *file)
 
 	/* Disable all the overlay managers connected with this interface */
 	for (t = 0; t < ovid->num_overlays; t++) {
-			struct omap_overlay *ovl = ovid->overlays[t];
-			if (ovl->manager && ovl->manager->display)
-				ovl->enable(ovl, 0);
-		}
+		struct omap_overlay *ovl = ovid->overlays[t];
+		if (ovl->manager && ovl->manager->display)
+			ovl->enable(ovl, 0);
+	}
 
 	r = omapvid_apply_changes(vout, 0, 0);
 	if (r)
@@ -950,6 +956,19 @@ static int omap_vout_release(struct file *file)
 		videobuf_mmap_free(q);
 
 	kfree(fh);
+
+	for (t = 0; t < ovid->vid_dev->num_displays; t++) {
+		struct omap_display *display =
+			ovid->vid_dev->displays[t];
+		display->disable(display);
+	}
+	/*
+	 * This is temperory implementation to support CPU Idle,
+	 * we are releasing sleep_block so PM code to go into any state.
+	 */
+	if (atomic_read(&sleep_block) > 0)
+		atomic_dec(&sleep_block);
+
 
 	return r;
 }
@@ -1642,6 +1661,23 @@ static int vidioc_streamon(struct file *file, void *fh,
 	else
 		return -EINVAL;
 
+	/*
+	 * This is temperory implementation to support CPU Idle,
+	 * we are blocking PM code to go into any state.
+	 */
+	atomic_inc(&sleep_block);
+
+	/*
+	 * Check for the right location of enabling the display,
+	 * temporory enabling here
+	 */
+	for (t = 0; t < ovid->vid_dev->num_displays; t++) {
+		struct omap_display *display = ovid->vid_dev->displays[t];
+		r = display->enable(display);
+		if (r < 0)
+			/*Must be enabled in FBDEV already*/
+			printk("Already enabled\n");
+	}
 	for (t = 0; t < ovid->num_overlays; t++) {
 		struct omap_overlay *ovl = ovid->overlays[t];
 		if (ovl->manager && ovl->manager->display)
@@ -1678,6 +1714,20 @@ static int vidioc_streamoff(struct file *file, void *fh,
 			if (ovl->manager && ovl->manager->display)
 				ovl->enable(ovl, 0);
 		}
+		/*
+		 * Check for the right location of enabling
+		 * the display, temporory enabling here
+		 */
+		for (t = 0; t < ovid->vid_dev->num_displays; t++) {
+			struct omap_display *display =
+				ovid->vid_dev->displays[t];
+			display->disable(display);
+		}
+		/*
+		 * This is temperory implementation to support CPU Idle,
+		 * we are sleep_block, so that PM code to go into any state.
+		 */
+		atomic_dec(&sleep_block);
 
 		r = omapvid_apply_changes(vout, 0, 0);
 		if (r) {
@@ -1943,6 +1993,9 @@ static int omap_vout_probe(struct platform_device *pdev)
 			display->panel->timings.y_res);
 	}
 	printk(KERN_INFO "display->updated\n");
+
+	def_display->disable(def_display);
+
 	return 0;
 
 error0:
