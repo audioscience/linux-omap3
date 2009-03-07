@@ -77,22 +77,31 @@ static int omap3_enter_idle(struct cpuidle_device *dev,
 {
 	struct omap3_processor_cx *cx = cpuidle_get_statedata(state);
 	struct timespec ts_preidle, ts_postidle, ts_idle;
-	u32 mpu_state = cx->mpu_state, core_state = cx->core_state;
-
-	current_cx_state = *cx;
+	u32 mpu_state, core_state;
 
 	/* Used to keep track of the total time in idle */
 	getnstimeofday(&ts_preidle);
 
+	/*
+	 * Adjust the idle state (if required).
+	 * Also, ensure that usage statistics of correct state are updated.
+	 */
+	if (!enable_off_mode) {
+		if (cx->type > OMAP3_STATE_C4) {
+			state = &(dev->states[OMAP3_STATE_C4 - 1]);
+			dev->last_state = state ;
+
+			cx = cpuidle_get_statedata(state);
+		}
+	}
+
+	current_cx_state = *cx;
+
+	mpu_state = cx->mpu_state;
+	core_state = cx->core_state;
+
 	local_irq_disable();
 	local_fiq_disable();
-
-	if (!enable_off_mode) {
-		if (mpu_state < PWRDM_POWER_RET)
-			mpu_state = PWRDM_POWER_RET;
-		if (core_state < PWRDM_POWER_RET)
-			core_state = PWRDM_POWER_RET;
-	}
 
 	pwrdm_set_next_pwrst(mpu_pd, mpu_state);
 	pwrdm_set_next_pwrst(core_pd, core_state);
