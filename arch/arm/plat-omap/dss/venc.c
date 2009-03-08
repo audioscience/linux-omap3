@@ -422,6 +422,7 @@ static void venc_sync_lost_handler(void *arg, u32 mask)
 
 static int venc_enable_display(struct omap_display *display)
 {
+	void *isr_handle;
 	DSSDBG("venc_enable_display\n");
 
 	mutex_lock(&venc.venc_lock);
@@ -454,14 +455,14 @@ static int venc_enable_display(struct omap_display *display)
 
 	dispc_go(OMAP_DSS_CHANNEL_DIGIT);
 
-	omap_dispc_register_isr(venc_sync_lost_handler, NULL,
+	isr_handle = omap_dispc_register_isr(venc_sync_lost_handler, NULL,
 			DISPC_IRQ_SYNC_LOST_DIGIT);
 
 	dispc_enable_digit_out(1);
 
 	mdelay(20);
 
-	omap_dispc_unregister_isr(venc_sync_lost_handler);
+	omap_dispc_unregister_isr(isr_handle);
 
 	display->state = OMAP_DSS_DISPLAY_ACTIVE;
 

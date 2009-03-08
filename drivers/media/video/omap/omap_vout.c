@@ -67,6 +67,7 @@
 #include <mach/dma.h>
 #include <mach/omapfb.h>
 #include <mach/display.h>
+#include <mach/pm.h>
 
 #include "omap_voutlib.h"
 
@@ -152,12 +153,6 @@ static enum omap_color_mode video_mode_to_dss_mode(struct omap_vout_device
 static void omap_vout_isr(void *arg, unsigned int irqstatus);
 static void omap_vout_cleanup_device(struct omap_vout_device *vout);
 /* module parameters */
-
-/*
- * This is temperory implementation for supporing CPU Idle with
- * V4L2 driver.
- */
-extern atomic_t sleep_block;
 
 /*
  * Maximum amount of memory to use for rendering buffers.
@@ -944,6 +939,22 @@ static int omap_vout_release(struct file *file)
 	if (vout->streaming == fh) {
 		omap_dispc_unregister_isr(vout->isr_handle);
 		vout->streaming = NULL;
+		for (t = 1; t < (ovid->vid_dev->num_videos + 1); t++) {
+			struct omap_display *display =
+				ovid->vid_dev->overlays[t]->manager->display;
+			/* We are not checking retur value here since it is
+			 * this function only returns if somebody has already
+			 * enabled the display
+			 */
+			display->disable(display);
+		}
+		/*
+		 * This is temperory implementation to support CPU Idle,
+		 * we are releasing sleep_block so PM code to go into any state.
+		 * TODO: Once we get proper methoid from PM then need to
+		 * re-visit again.
+		 */
+		omap2_allow_sleep();
 	}
 
 	if (vout->mmap_count != 0)
@@ -956,18 +967,6 @@ static int omap_vout_release(struct file *file)
 		videobuf_mmap_free(q);
 
 	kfree(fh);
-
-	for (t = 0; t < ovid->vid_dev->num_displays; t++) {
-		struct omap_display *display =
-			ovid->vid_dev->displays[t];
-		display->disable(display);
-	}
-	/*
-	 * This is temperory implementation to support CPU Idle,
-	 * we are releasing sleep_block so PM code to go into any state.
-	 */
-	if (atomic_read(&sleep_block) > 0)
-		atomic_dec(&sleep_block);
 
 
 	return r;
@@ -1646,6 +1645,7 @@ static int vidioc_streamon(struct file *file, void *fh,
 	vout->first_int = 1;
 
 	if (omap_vout_calculate_offset(vout)) {
+		vout->streaming = NULL;
 		up(&vout->lock);
 		return -EINVAL;
 	}
@@ -1656,27 +1656,34 @@ static int vidioc_streamon(struct file *file, void *fh,
 			DISPC_IRQ_EVSYNC_ODD;
 
 	handle = omap_dispc_register_isr(omap_vout_isr, vout, mask);
-	if (handle)
+	if (handle) {
 		vout->isr_handle = handle;
-	else
+	} else {
+		vout->streaming = NULL;
+		up(&vout->lock);
 		return -EINVAL;
+	}
 
 	/*
 	 * This is temperory implementation to support CPU Idle,
 	 * we are blocking PM code to go into any state.
+	 * TODO: Once we get proper methoid from PM then need to
+	 * re-visit again.
 	 */
-	atomic_inc(&sleep_block);
+	omap2_block_sleep();
 
 	/*
 	 * Check for the right location of enabling the display,
 	 * temporory enabling here
 	 */
-	for (t = 0; t < ovid->vid_dev->num_displays; t++) {
-		struct omap_display *display = ovid->vid_dev->displays[t];
-		r = display->enable(display);
-		if (r < 0)
-			/*Must be enabled in FBDEV already*/
-			printk("Already enabled\n");
+	for (t = 1; t < (ovid->vid_dev->num_videos + 1); t++) {
+		struct omap_display *display =
+			ovid->vid_dev->overlays[t]->manager->display;
+		/* We are not checking retur value here since it is
+		 * this function only returns if somebody has already
+		 * enabled the display
+		 */
+		display->enable(display);
 	}
 	for (t = 0; t < ovid->num_overlays; t++) {
 		struct omap_overlay *ovl = ovid->overlays[t];
@@ -1718,16 +1725,22 @@ static int vidioc_streamoff(struct file *file, void *fh,
 		 * Check for the right location of enabling
 		 * the display, temporory enabling here
 		 */
-		for (t = 0; t < ovid->vid_dev->num_displays; t++) {
+		for (t = 1; t < (ovid->vid_dev->num_videos + 1); t++) {
 			struct omap_display *display =
-				ovid->vid_dev->displays[t];
+				ovid->vid_dev->overlays[t]->manager->display;
+			/* We are not checking retur value here since it is
+			 * this function only returns if somebody has already
+			 * enabled the display
+			 */
 			display->disable(display);
 		}
 		/*
 		 * This is temperory implementation to support CPU Idle,
 		 * we are sleep_block, so that PM code to go into any state.
+		 * TODO: Once we get proper methoid from PM then need to
+		 * re-visit again.
 		 */
-		atomic_dec(&sleep_block);
+		omap2_allow_sleep();
 
 		r = omapvid_apply_changes(vout, 0, 0);
 		if (r) {
@@ -1978,6 +1991,8 @@ static int omap_vout_probe(struct platform_device *pdev)
 				def_display->set_update_mode(def_display,
 						OMAP_DSS_UPDATE_AUTO);
 		}
+
+		def_display->disable(def_display);
 	 }
 
 	r = omap_vout_create_video_devices(pdev);
@@ -1993,8 +2008,6 @@ static int omap_vout_probe(struct platform_device *pdev)
 			display->panel->timings.y_res);
 	}
 	printk(KERN_INFO "display->updated\n");
-
-	def_display->disable(def_display);
 
 	return 0;
 

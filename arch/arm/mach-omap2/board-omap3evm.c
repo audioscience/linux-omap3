@@ -341,15 +341,17 @@ err_1:
 static int omap3_evm_panel_enable_lcd(struct omap_display *display)
 {
 	if (dvi_enabled) {
-		printk(KERN_DEBUG "cannot enable LCD, DVI is enabled\n");
 		return -EINVAL;
 	}
 #if defined(CONFIG_TWL4030_CORE)
 	if (omap_rev() > OMAP3430_REV_ES1_0) {
 		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
-			ENABLE_VPLL2_DEDICATED, TWL4030_PLL2_DEDICATED);
+				ENABLE_VPLL2_DEDICATED, TWL4030_PLL2_DEDICATED);
 		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
-			ENABLE_VPLL2_DEV_GRP, TWL4030_VPLL2_DEV_GRP);
+				ENABLE_VPLL2_DEV_GRP, TWL4030_VPLL2_DEV_GRP);
+		twl4030_i2c_write_u8(TWL4030_MODULE_LED, 0x10, TWL4030_LED_EN);
+		twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 70, TWL_PWMA_PWMAOFF);
+
 	}
 #endif
 	gpio_direction_output(LCD_PANEL_ENABLE_GPIO, 0);
@@ -365,6 +367,8 @@ static void omap3_evm_panel_disable_lcd(struct omap_display *display)
 				TWL4030_PLL2_DEDICATED);
 		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0x0,
 				TWL4030_VPLL2_DEV_GRP);
+		twl4030_i2c_write_u8(TWL4030_MODULE_LED, 0x11, TWL4030_LED_EN);
+		twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 0, TWL_PWMA_PWMAOFF);
 	}
 #endif
 	gpio_direction_output(LCD_PANEL_ENABLE_GPIO, 1);
@@ -412,7 +416,6 @@ static struct omap_display_data omap3_evm_display_data_tv = {
 static int omap3_evm_panel_enable_dvi(struct omap_display *display)
 {
 	if (lcd_enabled) {
-		printk(KERN_DEBUG "cannot enable DVI, LCD is enabled\n");
 		return -EINVAL;
 	}
 
@@ -422,6 +425,8 @@ static int omap3_evm_panel_enable_dvi(struct omap_display *display)
 			ENABLE_VPLL2_DEDICATED, TWL4030_PLL2_DEDICATED);
 		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
 			ENABLE_VPLL2_DEV_GRP, TWL4030_VPLL2_DEV_GRP);
+		twl4030_i2c_write_u8(TWL4030_MODULE_LED, 0x10, TWL4030_LED_EN);
+		twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 70, TWL_PWMA_PWMAOFF);
 	}
 	twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, 0x80,
 			REG_GPIODATADIR1);
@@ -441,6 +446,8 @@ static void omap3_evm_panel_disable_dvi(struct omap_display *display)
 				TWL4030_PLL2_DEDICATED);
 		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0x0,
 				TWL4030_VPLL2_DEV_GRP);
+		twl4030_i2c_write_u8(TWL4030_MODULE_LED, 0x11, TWL4030_LED_EN);
+		twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 0, TWL_PWMA_PWMAOFF);
 	}
 
 	twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, 0x00,

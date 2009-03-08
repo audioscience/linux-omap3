@@ -110,11 +110,12 @@ static int dpi_display_enable(struct omap_display *display)
 	int r;
 	int is_tft;
 
-	if (display->state != OMAP_DSS_DISPLAY_DISABLED) {
-		DSSERR("display already enabled\n");
+	if (display->ref_count > 0) {
+		display->ref_count++;
 		return -EINVAL;
 	}
-
+	if (display->state != OMAP_DSS_DISPLAY_DISABLED)
+		return -EINVAL;
 	r = panel->enable(display);
 	if (r)
 		return r;
@@ -152,6 +153,7 @@ static int dpi_display_enable(struct omap_display *display)
 	dispc_enable_lcd_out(1);
 
 	display->state = OMAP_DSS_DISPLAY_ACTIVE;
+	display->ref_count++;
 
 	return 0;
 }
@@ -160,6 +162,10 @@ static int dpi_display_resume(struct omap_display *display);
 
 static void dpi_display_disable(struct omap_display *display)
 {
+	if (display->ref_count > 1) {
+		display->ref_count--;
+		return;
+	}
 	if (display->state == OMAP_DSS_DISPLAY_DISABLED)
 		return;
 
@@ -178,6 +184,7 @@ static void dpi_display_disable(struct omap_display *display)
 	dss_clk_disable(DSS_CLK_ICK | DSS_CLK_FCK1);
 
 	display->state = OMAP_DSS_DISPLAY_DISABLED;
+	display->ref_count--;
 }
 
 static int dpi_display_suspend(struct omap_display *display)
