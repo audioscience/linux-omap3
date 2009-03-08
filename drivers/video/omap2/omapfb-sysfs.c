@@ -902,20 +902,23 @@ err:
 #ifdef CONFIG_PM
 
 static u32 dss_sleep_timeout = (1 * 20 * HZ);
-static u32 can_sleep = 0;
+static int can_sleep = -1;
 static struct omapfb2_device *omap2fb;
-static struct timer_list timer;
 
+/*
+ * TODO: Try to accomodate these variables in omapfb2_device
+ * structure.
+ */
+static struct timer_list timer;
 struct workqueue_struct *irq_work_queues; /* workqueue*/
-struct work_struct irq_work_queue;              /* work entry */
+struct work_struct irq_work_queue;        /* work entry */
 /*
  * Resumes the DSS Module
  * Here Clocks will be turned-on, Context will be restored
  */
-void omap_dss_resume_idle()
+void omap_dss_resume_idle(void)
 {
 	if (can_sleep == 2) {
-		omap2_block_sleep();
 		can_sleep = 3;
 		queue_work(irq_work_queues, &irq_work_queue);
 	}
@@ -926,35 +929,31 @@ EXPORT_SYMBOL(omap_dss_resume_idle);
  */
 static void dss_idle_timer(unsigned long data)
 {
-	can_sleep = 1;
-	queue_work(irq_work_queues, &irq_work_queue);
+		can_sleep = 1;
+		queue_work(irq_work_queues, &irq_work_queue);
 }
 
 void omap2fb_timeout_handler(struct work_struct *work)
 {
 	int i;
+	struct omap_display *display;
+
 	DEFINE_WAIT(wait);
 
 	if (can_sleep == 1) {
-		for (i = 0; i < omap2fb->num_displays; i++)
-			omap2fb->displays[i]->disable(omap2fb->displays[i]);
-
-
-		for (i = 0; i < omap2fb->num_fbs; i++)
-			fb_blank(omap2fb->fbs[i], FB_BLANK_POWERDOWN);
-
+		for (i = 0; i < omap2fb->num_fbs; i++) {
+			display = omap2fb->overlays[i]->manager->display;
+			display->disable(display);
+		}
 		can_sleep = 2;
 		del_timer(&timer);
-		omap2_allow_sleep();
 	} else if (can_sleep == 3){
-		for (i = 0; i < omap2fb->num_displays; i++)
+		for (i = 0; i < omap2fb->num_fbs; i++) {
+			display = omap2fb->overlays[i]->manager->display;
 			omap2fb->displays[i]->enable(omap2fb->displays[i]);
-
-		for (i = 0; i < omap2fb->num_fbs; i++)
-			fb_blank(omap2fb->fbs[i], FB_BLANK_UNBLANK);
-
-		mod_timer(&timer, jiffies + dss_sleep_timeout);
+		}
 		can_sleep = 0;
+		mod_timer(&timer, jiffies + dss_sleep_timeout);
 	}
 }
 /*
@@ -965,7 +964,6 @@ void dss_init_timer(struct omapfb2_device *fbdev)
 {
 	omap2fb = fbdev;
 	can_sleep = 0;
-	omap2_block_sleep();
 	setup_timer(&timer, dss_idle_timer,
 			(unsigned long) NULL);
 	mod_timer(&timer, jiffies + dss_sleep_timeout);
@@ -974,7 +972,6 @@ void dss_init_timer(struct omapfb2_device *fbdev)
 	 * Enable auto-Idle mode here
 	 */
 }
-
 /*
  * SYSFS entry to show Time-Out value for DSS
  */
@@ -1000,6 +997,7 @@ static ssize_t dss_sleep_store_timeout(struct device *dev,
 		del_timer(&timer);
 	} else {
 		dss_sleep_timeout = value * HZ;
+		can_sleep = 0;
 		mod_timer(&timer, jiffies + dss_sleep_timeout);
 	}
 

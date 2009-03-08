@@ -718,12 +718,6 @@ struct omap_display *omap_dss_get_display(int no)
 				goto err3;
 	}
 
-	display->ref_count++;
-	/*
-	if (atomic_cmpxchg(&display->ref_count, 0, 1) != 0)
-		return 0;
-*/
-
 	return display;
 err3:
 	if (display->ctrl)
@@ -741,12 +735,13 @@ EXPORT_SYMBOL(omap_dss_get_display);
 
 void omap_dss_put_display(struct omap_display *display)
 {
-	if (--display->ref_count > 0)
+	/*
+	 * Please make sure that you call display->disable
+	 * before calling this function.
+	 */
+	if (display->ref_count != 0)
 		return;
-/*
-	if (atomic_cmpxchg(&display->ref_count, 1, 0) != 1)
-		return;
-*/
+
 	if (display->ctrl) {
 		if (display->ctrl->cleanup)
 			display->ctrl->cleanup(display);
