@@ -1418,7 +1418,6 @@ static int omapfb_create_framebuffers(struct omapfb2_device *fbdev)
 		ofbi = FB2OFB(fbi);
 		ofbi->fbdev = fbdev;
 		ofbi->id = i;
-		ofbi->timeout = HZ/5;
 		/* initialize the vsync wait queue */
 		init_waitqueue_head(&ofbi->vsync_wait);
 		fbdev->num_fbs++;

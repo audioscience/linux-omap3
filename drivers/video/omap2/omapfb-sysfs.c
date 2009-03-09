@@ -900,60 +900,66 @@ err:
 	return r;
 }
 #ifdef CONFIG_PM
+/*
+ * Default time-out value for Fbdev
+ */
+#define OMAP2FB_DEF_SLEEP_TIMEOUT (1 * 20 * HZ)
 
-static u32 dss_sleep_timeout = (1 * 20 * HZ);
-static int can_sleep = -1;
+static int omap2fb_can_sleep = -1;
+/*
+ * TODO: This needs to removed, had to keep this due to uart
+ * wakeup hook.
+ */
 static struct omapfb2_device *omap2fb;
 
 /*
  * TODO: Try to accomodate these variables in omapfb2_device
  * structure.
  */
-static struct timer_list timer;
-struct workqueue_struct *irq_work_queues; /* workqueue*/
-struct work_struct irq_work_queue;        /* work entry */
+static struct workqueue_struct *irq_work_queues; /* workqueue*/
+static struct work_struct irq_work_queue;        /* work entry */
 /*
- * Resumes the DSS Module
+ * Resumes the FBDEV Module
  * Here Clocks will be turned-on, Context will be restored
  */
-void omap_dss_resume_idle(void)
+void omap2fb_resume_idle(void)
 {
-	if (can_sleep == 2) {
-		can_sleep = 3;
+	if (omap2fb_can_sleep == 2) {
+		omap2fb_can_sleep = 3;
 		queue_work(irq_work_queues, &irq_work_queue);
 	}
 }
-EXPORT_SYMBOL(omap_dss_resume_idle);
+EXPORT_SYMBOL(omap2fb_resume_idle);
 /*
  * Timer Call-back function
  */
-static void dss_idle_timer(unsigned long data)
+static void omap2fb_timer_clbk(unsigned long data)
 {
-		can_sleep = 1;
+		omap2fb_can_sleep = 1;
 		queue_work(irq_work_queues, &irq_work_queue);
 }
 
-void omap2fb_timeout_handler(struct work_struct *work)
+void omap2fb_workqueue_handler(struct work_struct *work)
 {
 	int i;
 	struct omap_display *display;
 
 	DEFINE_WAIT(wait);
 
-	if (can_sleep == 1) {
+	if (omap2fb_can_sleep == 1) {
 		for (i = 0; i < omap2fb->num_fbs; i++) {
 			display = omap2fb->overlays[i]->manager->display;
 			display->disable(display);
 		}
-		can_sleep = 2;
-		del_timer(&timer);
-	} else if (can_sleep == 3){
+		omap2fb_can_sleep = 2;
+		del_timer(&omap2fb->timer);
+	} else if (omap2fb_can_sleep == 3){
 		for (i = 0; i < omap2fb->num_fbs; i++) {
 			display = omap2fb->overlays[i]->manager->display;
 			omap2fb->displays[i]->enable(omap2fb->displays[i]);
 		}
-		can_sleep = 0;
-		mod_timer(&timer, jiffies + dss_sleep_timeout);
+		omap2fb_can_sleep = 0;
+		mod_timer(&omap2fb->timer, jiffies + omap2fb->sleep_timeout);
 	}
 }
 /*
@@ -963,10 +969,11 @@ void omap2fb_timeout_handler(struct work_struct *work)
 void dss_init_timer(struct omapfb2_device *fbdev)
 {
 	omap2fb = fbdev;
-	can_sleep = 0;
-	setup_timer(&timer, dss_idle_timer,
-			(unsigned long) NULL);
-	mod_timer(&timer, jiffies + dss_sleep_timeout);
+	omap2fb_can_sleep = 0;
+	fbdev->sleep_timeout = OMAP2FB_DEF_SLEEP_TIMEOUT;
+	setup_timer(&fbdev->timer, omap2fb_timer_clbk,
+			(unsigned long) fbdev);
+	mod_timer(&fbdev->timer, jiffies + fbdev->sleep_timeout);
 
 	/*
 	 * Enable auto-Idle mode here
@@ -978,7 +985,10 @@ void dss_init_timer(struct omapfb2_device *fbdev)
 static ssize_t dss_sleep_show_timeout(struct device *dev,
                                struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%u\n", dss_sleep_timeout / HZ);
+	struct platform_device *pdev = to_platform_device(dev);
+	struct omapfb2_device *fbdev = platform_get_drvdata(pdev);
+
+	return sprintf(buf, "%u\n", fbdev->sleep_timeout / HZ);
 }
 
 /*
@@ -988,17 +998,19 @@ static ssize_t dss_sleep_store_timeout(struct device *dev,
                struct device_attribute *attr, const char *buf, size_t n)
 {
 	unsigned int value;
+	struct platform_device *pdev = to_platform_device(dev);
+	struct omapfb2_device *fbdev = platform_get_drvdata(pdev);
 
 	if (sscanf(buf, "%u", &value) != 1) {
 		printk(KERN_ERR "sleep_timeout_store: Invalid value\n");
 		return -EINVAL;
 	}
 	if (value == 0) {
-		del_timer(&timer);
+		del_timer(&fbdev->timer);
 	} else {
-		dss_sleep_timeout = value * HZ;
-		can_sleep = 0;
-		mod_timer(&timer, jiffies + dss_sleep_timeout);
+		fbdev->sleep_timeout = value * HZ;
+		omap2fb_can_sleep = 0;
+		mod_timer(&fbdev->timer, jiffies + fbdev->sleep_timeout);
 	}
 
 	return n;
@@ -1057,7 +1069,7 @@ void omapfb_create_sysfs(struct omapfb2_device *fbdev)
 		printk("Could not create omap2fb workqueue\n");
 		return;
 	}
-	INIT_WORK(&irq_work_queue, omap2fb_timeout_handler);
+	INIT_WORK(&irq_work_queue, omap2fb_workqueue_handler);
 
 	dss_init_timer(fbdev);
 #endif
