@@ -427,6 +427,11 @@ static int venc_enable_display(struct omap_display *display)
 
 	mutex_lock(&venc.venc_lock);
 
+	if (display->ref_count > 0) {
+		display->ref_count++;
+		mutex_unlock(&venc.venc_lock);
+		return -EINVAL;
+	}
 	if (display->state != OMAP_DSS_DISPLAY_DISABLED) {
 		mutex_unlock(&venc.venc_lock);
 		return -EINVAL;
@@ -465,6 +470,7 @@ static int venc_enable_display(struct omap_display *display)
 	omap_dispc_unregister_isr(isr_handle);
 
 	display->state = OMAP_DSS_DISPLAY_ACTIVE;
+	display->ref_count++;
 
 	mutex_unlock(&venc.venc_lock);
 
@@ -477,6 +483,11 @@ static void venc_disable_display(struct omap_display *display)
 
 	mutex_lock(&venc.venc_lock);
 
+	if (display->ref_count > 1) {
+		display->ref_count--;
+		mutex_unlock(&venc.venc_lock);
+		return;
+	}
 	if (display->state == OMAP_DSS_DISPLAY_DISABLED) {
 		mutex_unlock(&venc.venc_lock);
 		return;
@@ -493,6 +504,7 @@ static void venc_disable_display(struct omap_display *display)
 	venc_enable_clocks(0);
 
 	display->state = OMAP_DSS_DISPLAY_DISABLED;
+	display->ref_count--;
 
 	mutex_unlock(&venc.venc_lock);
 }
