@@ -951,15 +951,22 @@ void omap2fb_workqueue_handler(struct work_struct *work)
 
 	if (omap2fb_can_sleep == 1) {
 		for (i = 0; i < omap2fb->num_fbs; i++) {
-			display = omap2fb->overlays[i]->manager->display;
-			display->disable(display);
+			if (omap2fb->overlays[i]->manager &&
+					omap2fb->overlays[i]->manager->display) {
+				display =
+					omap2fb->overlays[i]->manager->display;
+				display->disable(display);
+			}
 		}
 		omap2fb_can_sleep = 2;
 		del_timer(&omap2fb->timer);
 	} else if (omap2fb_can_sleep == 3){
 		for (i = 0; i < omap2fb->num_fbs; i++) {
-			display = omap2fb->overlays[i]->manager->display;
-			display->enable(display);
+			if (omap2fb->overlays[i]->manager &&
+					omap2fb->overlays[i]->manager->display) {
+				display = omap2fb->overlays[i]->manager->display;
+				display->enable(display);
+			}
 		}
 		omap2fb_can_sleep = 0;
 		mod_timer(&omap2fb->timer, jiffies + omap2fb->sleep_timeout);
