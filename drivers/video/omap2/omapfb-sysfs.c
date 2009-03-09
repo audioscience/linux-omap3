@@ -109,7 +109,6 @@ static int omapfb_detach_framebuffer(struct fb_info *fbi,
 	return 0;
 }
 
-
 static ssize_t show_framebuffers(struct device *dev,
 		struct device_attribute *attr,
 		char *buf)
@@ -960,7 +959,7 @@ void omap2fb_workqueue_handler(struct work_struct *work)
 	} else if (omap2fb_can_sleep == 3){
 		for (i = 0; i < omap2fb->num_fbs; i++) {
 			display = omap2fb->overlays[i]->manager->display;
-			omap2fb->displays[i]->enable(omap2fb->displays[i]);
+			display->enable(display);
 		}
 		omap2fb_can_sleep = 0;
 		mod_timer(&omap2fb->timer, jiffies + omap2fb->sleep_timeout);
@@ -1021,7 +1020,6 @@ static ssize_t dss_sleep_store_timeout(struct device *dev,
 }
 #endif
 
-
 static DEVICE_ATTR(framebuffers, S_IRUGO | S_IWUSR,
 		show_framebuffers, store_framebuffers);
 static DEVICE_ATTR(overlays, S_IRUGO | S_IWUSR,
@@ -1057,7 +1055,6 @@ void omapfb_create_sysfs(struct omapfb2_device *fbdev)
 	r = sysfs_create_group(&fbdev->dev->kobj, &omapfb_attr_group);
 	if (r)
 		dev_err(fbdev->dev, "failed to create sysfs clk file\n");
-
 
 #ifdef CONFIG_PM
 	/*
