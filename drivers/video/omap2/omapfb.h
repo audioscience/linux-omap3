@@ -66,7 +66,6 @@ struct omapfb_info {
 	struct omapfb2_device *fbdev;
 	enum omapfb_rotation_type rotation_type;
 	int rotation;
-	unsigned long timeout;
 	wait_queue_head_t vsync_wait;
 	unsigned long vsync_cnt;
 };
@@ -88,6 +87,11 @@ struct omapfb2_device {
 	struct omap_overlay *overlays[10];
 	int num_managers;
 	struct omap_overlay_manager *managers[10];
+	/*
+	 * Frame-buffer PM suppor
+	 */
+	u32 sleep_timeout;
+	struct timer_list timer;
 };
 
 u32 omapfb_get_region_paddr(struct omapfb_info *ofbi);

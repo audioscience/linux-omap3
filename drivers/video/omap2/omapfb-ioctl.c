@@ -308,7 +308,7 @@ static void omapfb_isr(void *arg, unsigned int irqstatus)
 static int omapfb_wait_for_vsync(struct fb_info *fbi)
 {
 	wait_queue_t wqt;
-	unsigned long cnt;
+	unsigned long cnt, timeout = HZ/5;
 	int ret;
 	void *handle = NULL;
 	u32 mask = 0;
@@ -326,7 +326,7 @@ static int omapfb_wait_for_vsync(struct fb_info *fbi)
 
 	cnt = ofbi->vsync_cnt;
 	ret = wait_event_interruptible_timeout(ofbi->vsync_wait,
-			cnt != ofbi->vsync_cnt, ofbi->timeout);
+			cnt != ofbi->vsync_cnt, timeout);
 	/*
 	 * If the GFX is on TV, then wait for another VSYNC
 	 * to compensate for Interlaced scan
@@ -337,7 +337,7 @@ static int omapfb_wait_for_vsync(struct fb_info *fbi)
 			ret = wait_event_interruptible_timeout(
 					ofbi->vsync_wait,
 					cnt != ofbi->vsync_cnt,
-					ofbi->timeout);
+					timeout);
 		}
 	}
 	omap_dispc_unregister_isr(handle);

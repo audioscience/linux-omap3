@@ -229,7 +229,7 @@ static inline void omap_uart_disable_clocks(struct omap_uart_state *uart)
 	clk_disable(uart->fck);
 }
 #ifdef CONFIG_FB_OMAP2
-extern void omap_dss_resume_idle();
+extern void omap2fb_resume_idle(void);
 #endif
 
 static void omap_uart_block_sleep(struct omap_uart_state *uart)
@@ -244,7 +244,7 @@ static void omap_uart_block_sleep(struct omap_uart_state *uart)
 	 * interrupt will be wake-up event for DSS
 	 */
 #ifdef CONFIG_FB_OMAP2
-	omap_dss_resume_idle();
+	omap2fb_resume_idle();
 #endif
 }
 
