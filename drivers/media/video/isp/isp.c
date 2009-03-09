@@ -2448,7 +2448,6 @@ static int __init isp_init(void)
 
 	return 0;
 }
-EXPORT_SYMBOL(isp_init);
 
 /**
  * isp_cleanup - ISP module cleanup.
