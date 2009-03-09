@@ -864,14 +864,18 @@ static ssize_t store_displays(struct device *dev,
 		//def_display->panel->bpp = bpp;
 	}
 
-	if (enable != (display->state != OMAP_DSS_DISPLAY_DISABLED)) {
-		if (enable) {
-			r = display->enable(display);
-			if (r)
-				dev_err(dev, "failed to enable display\n");
-		} else {
-			display->disable(display);
-		}
+	if (enable) {
+		/*
+		 * We are not checking return value of
+		 * display->enable call, since it only returns if
+		 * display is alreay enabled.
+		 */
+		r = display->enable(display);
+/*		if (r)
+			dev_err(dev, "failed to enable display\n");
+*/
+	} else {
+		display->disable(display);
 	}
 
 	if (display->set_update_mode && display->get_update_mode) {

@@ -939,14 +939,11 @@ static int omap_vout_release(struct file *file)
 	if (vout->streaming == fh) {
 		omap_dispc_unregister_isr(vout->isr_handle);
 		vout->streaming = NULL;
-		for (t = 1; t < (ovid->vid_dev->num_videos + 1); t++) {
-			struct omap_display *display =
-				ovid->vid_dev->overlays[t]->manager->display;
-			/* We are not checking retur value here since it is
-			 * this function only returns if somebody has already
-			 * enabled the display
-			 */
-			display->disable(display);
+		for (t = 0; t < ovid->num_overlays; t++) {
+			struct omap_overlay *ovl = ovid->overlays[t];
+			if (ovl->manager && ovl->manager->display)
+				ovl->manager->display->disable
+					(ovl->manager->display);
 		}
 		/*
 		 * This is temperory implementation to support CPU Idle,
@@ -1672,23 +1669,12 @@ static int vidioc_streamon(struct file *file, void *fh,
 	 */
 	omap2_block_sleep();
 
-	/*
-	 * Check for the right location of enabling the display,
-	 * temporory enabling here
-	 */
-	for (t = 1; t < (ovid->vid_dev->num_videos + 1); t++) {
-		struct omap_display *display =
-			ovid->vid_dev->overlays[t]->manager->display;
-		/* We are not checking retur value here since it is
-		 * this function only returns if somebody has already
-		 * enabled the display
-		 */
-		display->enable(display);
-	}
 	for (t = 0; t < ovid->num_overlays; t++) {
 		struct omap_overlay *ovl = ovid->overlays[t];
-		if (ovl->manager && ovl->manager->display)
+		if (ovl->manager && ovl->manager->display) {
+			ovl->manager->display->enable(ovl->manager->display);
 			ovl->enable(ovl, 1);
+		}
 	}
 
 	r = omapvid_apply_changes(vout, addr, 0);
@@ -1718,21 +1704,11 @@ static int vidioc_streamoff(struct file *file, void *fh,
 
 		for (t = 0; t < ovid->num_overlays; t++) {
 			struct omap_overlay *ovl = ovid->overlays[t];
-			if (ovl->manager && ovl->manager->display)
+			if (ovl->manager && ovl->manager->display) {
 				ovl->enable(ovl, 0);
-		}
-		/*
-		 * Check for the right location of enabling
-		 * the display, temporory enabling here
-		 */
-		for (t = 1; t < (ovid->vid_dev->num_videos + 1); t++) {
-			struct omap_display *display =
-				ovid->vid_dev->overlays[t]->manager->display;
-			/* We are not checking retur value here since it is
-			 * this function only returns if somebody has already
-			 * enabled the display
-			 */
-			display->disable(display);
+				ovl->manager->display->disable
+					(ovl->manager->display);
+			}
 		}
 		/*
 		 * This is temperory implementation to support CPU Idle,
