@@ -82,6 +82,11 @@ static int omap3_enter_idle(struct cpuidle_device *dev,
 	/* Used to keep track of the total time in idle */
 	getnstimeofday(&ts_preidle);
 
+	if (!enable_dyn_sleep)
+		goto return_sleep_time;
+	if (atomic_read(&sleep_block) > 0)
+		goto return_sleep_time;
+
 	/*
 	 * Adjust the idle state (if required).
 	 * Also, ensure that usage statistics of correct state are updated.

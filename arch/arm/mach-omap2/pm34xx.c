@@ -476,13 +476,9 @@ static int omap3_fclks_active(void)
 
 int omap3_can_sleep(void)
 {
-	if (!enable_dyn_sleep)
-		return 0;
 	if (!omap_uart_can_sleep())
 		return 0;
 	if (omap3_fclks_active())
-		return 0;
-	if (atomic_read(&sleep_block) > 0)
 		return 0;
 	return 1;
 }
@@ -534,6 +530,11 @@ err:
 
 static void omap3_pm_idle(void)
 {
+	if (!enable_dyn_sleep)
+		return;
+	if (atomic_read(&sleep_block) > 0)
+		return;
+
 	local_irq_disable();
 	local_fiq_disable();
 
