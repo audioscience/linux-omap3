@@ -32,3 +32,6 @@ obj-$(CONFIG_OMAP_PM_SRF) += omap-pm-srf.o \
 
 # OMAP2/3 Display Subsystem
 obj-y += dss/
+
+# PSP version information
+obj-$(CONFIG_MACH_OMAP3EVM) += psp-version.o
