@@ -725,9 +725,11 @@ int clk_notifier_unregister(struct clk *clk, struct notifier_block *nb)
 		 * XXX ugh, layering violation.  there should be some
 		 * support in the notifier code for this.
 		 */
-		if (!cn->notifier_head.head)
+		if (!cn->notifier_head.head) {
+			/* Free up my clock node too */
+			list_del(&cn->node);
 			kfree(cn);
-
+		}
 	} else {
 		r = -ENOENT;
 	}
