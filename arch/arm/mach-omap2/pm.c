@@ -38,8 +38,6 @@
 #include "pm.h"
 
 atomic_t sleep_block = ATOMIC_INIT(0);
-static int vdd1_locked;
-static int vdd2_locked;
 
 static ssize_t idle_show(struct kobject *, struct kobj_attribute *, char *);
 static ssize_t idle_store(struct kobject *k, struct kobj_attribute *,
@@ -82,6 +80,9 @@ static ssize_t idle_store(struct kobject *kobj, struct kobj_attribute *attr,
 }
 
 #ifdef CONFIG_OMAP_PM_SRF
+static int vdd1_locked;
+static int vdd2_locked;
+
 static ssize_t vdd_opp_show(struct kobject *kobj, struct kobj_attribute *attr,
 			 char *buf)
 {
