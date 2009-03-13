@@ -743,10 +743,25 @@ static int omap_dss_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static int omap_dss_suspend(struct platform_device *pdev, pm_message_t state)
+{
+	DSSDBG("suspend %d\n", state.event);
+
+	return omap_dss_suspend_all_displays();
+}
+
+static int omap_dss_resume(struct platform_device *pdev)
+{
+	DSSDBG("resume\n");
+
+	return omap_dss_resume_all_displays();
+}
 
 static struct platform_driver omap_dss_driver = {
 	.probe          = omap_dss_probe,
 	.remove         = omap_dss_remove,
+	.suspend	= omap_dss_suspend,
+	.resume		= omap_dss_resume,
 	.driver         = {
 		.name   = "omap-dss",
 		.owner  = THIS_MODULE,

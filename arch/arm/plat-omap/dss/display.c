@@ -665,6 +665,59 @@ void initialize_overlays(const char *def_disp_name)
 
 }
 
+int omap_dss_suspend_all_displays(void)
+{
+	int i = 0, r;
+
+	for (i = 0; i < num_displays; ++i) {
+		struct omap_display *display = &displays[i];
+
+		if (!display)
+			continue;
+
+		if (display->state != OMAP_DSS_DISPLAY_ACTIVE) {
+			continue;
+		}
+
+		if (!display->suspend) {
+			DSSERR("display '%s' doesn't implement suspend\n",
+					display->name);
+			r = -ENOSYS;
+			goto err;
+		}
+
+		r = display->suspend(display);
+
+		if (r)
+			goto err;
+	}
+
+	return 0;
+err:
+	/* resume all displays that were suspended */
+	omap_dss_resume_all_displays();
+	return r;
+}
+
+int omap_dss_resume_all_displays(void)
+{
+	int i = 0, r;
+
+	for (i = 0; i < num_displays; ++i) {
+		struct omap_display *display = &displays[i];
+		if (display && display->resume) {
+			if (display->state != OMAP_DSS_DISPLAY_SUSPENDED)
+				continue;
+
+			r = display->resume(display);
+			if (r)
+				return r;
+		}
+	}
+
+	return 0;
+}
+
 int omap_dss_get_num_displays(void)
 {
 	return num_displays;

@@ -1716,45 +1716,9 @@ static int omapfb_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static int omapfb_suspend(struct platform_device *pdev, pm_message_t mesg)
-{
-	struct omapfb2_device *fbdev = platform_get_drvdata(pdev);
-	struct omap_display *display;
-	int i;
-
-	for (i=0; i < fbdev->num_fbs; i++) {
-		if (fbdev->overlays[i]->manager &&
-				fbdev->overlays[i]->manager->display) {
-			display = fbdev->overlays[i]->manager->display;
-			if (display->suspend)
-				display->suspend(display);
-		}
-	}
-
-	pdev->dev.power.power_state = mesg;
-	return 0;
-}
-static int omapfb_resume(struct platform_device *pdev)
-{
-	struct omapfb2_device *fbdev = platform_get_drvdata(pdev);
-	struct omap_display *display;
-	int i;
-
-	for (i=0; i < fbdev->num_fbs; i++) {
-		if (fbdev->overlays[i]->manager &&
-				fbdev->overlays[i]->manager->display) {
-			display = fbdev->overlays[i]->manager->display;
-			if (display->suspend)
-				display->resume(display);
-		}
-	}
-	return 0;
-}
 static struct platform_driver omapfb_driver = {
 	.probe          = omapfb_probe,
 	.remove         = omapfb_remove,
-	.suspend  	= omapfb_suspend,
-	.resume		= omapfb_resume,
 	.driver         = {
 		.name   = "omapfb",
 		.owner  = THIS_MODULE,

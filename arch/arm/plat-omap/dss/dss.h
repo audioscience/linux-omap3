@@ -139,6 +139,8 @@ int initialize_sysfs(struct device *dev);
 void uninitialize_sysfs(struct device *dev);
 void initialize_displays(struct omap_dss_platform_data *pdata);
 void initialize_overlays(const char *def_disp_name);
+int omap_dss_suspend_all_displays(void);
+int omap_dss_resume_all_displays(void);
 
 /* DSS */
 int dss_init(void);
