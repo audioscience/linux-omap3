@@ -1939,8 +1939,21 @@ void dispc_irq_handler(void)
 
 	if (irqstatus & ~handledirqs & DISPC_IRQ_MASK_ERROR) {
 		if (printk_ratelimit()) {
-			DSSERR("dispc irq error status %04x\n",
-			       irqstatus);
+			/* Suppressing the Digital sync lost error
+			   condition as it comes first time everytime
+			   venc comes out of reset and venc will come
+			   out of reset everytime when power management
+			   is enabled and system will go to higher C
+			   states */
+			if (!(irqstatus & DISPC_IRQ_SYNC_LOST_DIGIT))
+				DSSERR("dispc irq error status %04x\n",
+						irqstatus);
+#ifdef DEBUG
+			else
+				DSSERR("dispc irq error status %04x\n",
+						irqstatus);
+#endif
+
 		}
 		if (errors++ > 100) {
 			DSSERR("Excessive DISPC errors\n"
