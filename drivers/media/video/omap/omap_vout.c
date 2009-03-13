@@ -170,6 +170,16 @@ static struct v4l2_queryctrl omap_vout_qctrl[] = {
 		.default_value = -1,
 		.flags         = 0,
 		.type          = V4L2_CTRL_TYPE_INTEGER,
+	},
+	{
+		.id            = V4L2_CID_BG_COLOR,
+		.name          = "Background color",
+		.minimum       = 0,
+		.maximum       = 16777215,/* 24bit RGB Max Value 2^24-1 */
+		.step          = 1,
+		.default_value = 0,
+		.flags         = 0,
+		.type          = V4L2_CTRL_TYPE_INTEGER,
 	}
 };
 
@@ -964,7 +974,6 @@ static int omap_vout_release(struct file *file)
 		videobuf_mmap_free(q);
 
 	kfree(fh);
-
 
 	return r;
 }
