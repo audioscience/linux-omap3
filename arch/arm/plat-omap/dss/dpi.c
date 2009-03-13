@@ -24,6 +24,8 @@
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/errno.h>
+#include <linux/completion.h>
+#include <linux/jiffies.h>
 
 #include <mach/board.h>
 #include <mach/display.h>
@@ -186,17 +188,46 @@ static void dpi_display_disable(struct omap_display *display)
 	display->state = OMAP_DSS_DISPLAY_DISABLED;
 	display->ref_count--;
 }
+/*
+ * Interrupt Service Routine for frame done interrupt.
+ */
+static void dpi_display_isr(void *arg, unsigned int irqstatus)
+{
+	struct omap_display *display = (struct omap_display *)arg;
+
+	complete(&display->frame_done);
+}
 
 static int dpi_display_suspend(struct omap_display *display)
 {
+	void *handle = NULL;
+
 	if (display->state != OMAP_DSS_DISPLAY_ACTIVE)
 		return -EINVAL;
 
 	if (display->panel->suspend)
 		display->panel->suspend(display);
 
-	dispc_enable_lcd_out(0);
+	/*
+	 * Wait for frame done interrupt
+	 */
+	handle = omap_dispc_register_isr(dpi_display_isr, display,
+			DISPC_IRQ_FRAMEDONE);
+	if (!handle)
+		return -EINVAL;
 
+	init_completion(&display->frame_done);
+
+	dispc_enable_lcd_out(0);
+	if (!wait_for_completion_timeout(&display->frame_done,
+				msecs_to_jiffies(500))) {
+		DSSERR("Timeout waiting for FRAME DONE\n");
+	}
+
+	if (omap_dispc_unregister_isr(handle) < 0) {
+		DSSERR("Failed to unregister the ISR\n");
+		return -EINVAL;
+	}
 	dss_clk_disable(DSS_CLK_ICK | DSS_CLK_FCK1);
 
 	display->state = OMAP_DSS_DISPLAY_SUSPENDED;

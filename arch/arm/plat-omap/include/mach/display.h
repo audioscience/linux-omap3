@@ -414,6 +414,8 @@ struct omap_display {
 	/*atomic_t ref_count;*/
 	int ref_count;
 
+	struct completion frame_done;
+
 	enum omap_display_type type;
 	const char *name;
 
