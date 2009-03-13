@@ -387,10 +387,7 @@ static int vidioc_g_fmt_vid_cap(struct file *file, void *fh,
 	struct omap34xxcam_videodev *vdev = ofh->vdev;
 
 	mutex_lock(&vdev->mutex);
-	if (vdev->vdev_sensor_mode)
-		isp_g_fmt_cap(&f->fmt.pix);
-	else
-		f->fmt.pix = vdev->pix;
+	f->fmt.pix = vdev->pix;
 	mutex_unlock(&vdev->mutex);
 
 	return 0;
@@ -1658,23 +1655,20 @@ static int omap34xxcam_open(struct file *file)
 	fh->vdev = vdev;
 
 	/* FIXME: Check that we have sensor now... */
-	if (vdev->vdev_sensor_config.sensor_isp) {
-		vidioc_int_g_fmt_cap(vdev->vdev_sensor, &format);
-	} else {
-		struct v4l2_format f;
+	if (vdev->vdev_sensor_config.sensor_isp)
+		format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
-		if (vidioc_int_g_fmt_cap(vdev->vdev_sensor, &f)) {
-			dev_err(cam->dev,
-				"can't get current pix from sensor!\n");
-			goto out_slave_power_set_standby;
-		}
-		format = f;
-		if (isp_s_fmt_cap(&f.fmt.pix, &format.fmt.pix)) {
-			dev_err(cam->dev,
-				"isp doesn't like the sensor!\n");
-			goto out_slave_power_set_standby;
-		}
+	if (vidioc_int_g_fmt_cap(vdev->vdev_sensor, &format)) {
+		dev_err(cam->dev,
+			"can't get current pix from sensor!\n");
+		goto out_slave_power_set_standby;
 	}
+	if (isp_s_fmt_cap(&format.fmt.pix, &format.fmt.pix)) {
+		dev_err(cam->dev,
+			"isp doesn't like the sensor!\n");
+		goto out_slave_power_set_standby;
+	}
+
 	vdev->pix = format.fmt.pix;
 
 	mutex_unlock(&vdev->mutex);
