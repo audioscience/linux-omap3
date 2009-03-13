@@ -36,8 +36,13 @@
 #include <mach/resource.h>
 #include <mach/omap-pm.h>
 
+#ifdef CONFIG_OMAP_PM_SRF
+#include <mach/omap34xx.h>
+#endif
+
 #include "prm-regbits-34xx.h"
 #include "pm.h"
+
 
 unsigned short enable_dyn_sleep;
 unsigned short clocks_off_while_idle;
