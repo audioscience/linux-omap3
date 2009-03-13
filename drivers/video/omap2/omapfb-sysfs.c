@@ -930,7 +930,8 @@ void omap2fb_resume_idle(void)
 	if (omap2fb_can_sleep == 2) {
 		omap2fb_can_sleep = 3;
 		queue_work(irq_work_queues, &irq_work_queue);
-	}
+	} else if (omap2fb_can_sleep != -1)
+	mod_timer(&omap2fb->timer, jiffies + omap2fb->sleep_timeout);
 }
 EXPORT_SYMBOL(omap2fb_resume_idle);
 /*
@@ -938,8 +939,9 @@ EXPORT_SYMBOL(omap2fb_resume_idle);
  */
 static void omap2fb_timer_clbk(unsigned long data)
 {
-		omap2fb_can_sleep = 1;
-		queue_work(irq_work_queues, &irq_work_queue);
+	omap2fb_can_sleep = 1;
+	queue_work(irq_work_queues, &irq_work_queue);
+	del_timer(&omap2fb->timer);
 }
 
 void omap2fb_workqueue_handler(struct work_struct *work)
@@ -959,7 +961,6 @@ void omap2fb_workqueue_handler(struct work_struct *work)
 			}
 		}
 		omap2fb_can_sleep = 2;
-		del_timer(&omap2fb->timer);
 	} else if (omap2fb_can_sleep == 3){
 		for (i = 0; i < omap2fb->num_fbs; i++) {
 			if (omap2fb->overlays[i]->manager &&
@@ -969,7 +970,6 @@ void omap2fb_workqueue_handler(struct work_struct *work)
 			}
 		}
 		omap2fb_can_sleep = 0;
-		mod_timer(&omap2fb->timer, jiffies + omap2fb->sleep_timeout);
 	}
 }
 /*
