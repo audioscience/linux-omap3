@@ -50,6 +50,10 @@ unsigned short enable_off_mode;
 unsigned short voltage_off_while_idle;
 atomic_t sleep_block = ATOMIC_INIT(0);
 
+#ifdef CONFIG_CPU_IDLE
+extern void omap3_toggle_off_states(unsigned short);
+#endif
+
 static ssize_t idle_show(struct kobject *, struct kobj_attribute *, char *);
 static ssize_t idle_store(struct kobject *k, struct kobj_attribute *,
 			  const char *buf, size_t n);
@@ -115,6 +119,10 @@ static ssize_t idle_store(struct kobject *kobj, struct kobj_attribute *attr,
 	} else if (attr == &enable_off_mode_attr) {
 		enable_off_mode = value;
 		omap3_pm_off_mode_enable(enable_off_mode);
+#ifdef CONFIG_CPU_IDLE
+		if (cpu_is_omap34xx())
+			omap3_toggle_off_states(value);
+#endif
 	} else if (attr == &voltage_off_while_idle_attr) {
 		voltage_off_while_idle = value;
 		if (voltage_off_while_idle)
@@ -260,6 +268,14 @@ static int __init omap_pm_init(void)
 		printk(KERN_ERR "sysfs_create_file failed: %d\n", error);
 		return error;
 	}
+
+#ifdef CONFIG_CPU_IDLE
+	enable_off_mode = 0;
+
+	if (cpu_is_omap34xx())
+		omap3_toggle_off_states(enable_off_mode);
+#endif
+
 #ifdef CONFIG_OMAP_PM_SRF
 	error = sysfs_create_file(power_kobj,
 				  &vdd1_opp_attr.attr);
