@@ -70,12 +70,14 @@ static int _cpuidle_allow_idle(struct powerdomain *pwrdm,
 				struct clockdomain *clkdm)
 {
 	omap2_clkdm_allow_idle(clkdm);
+	return 0;
 }
 
 static int _cpuidle_deny_idle(struct powerdomain *pwrdm,
 				struct clockdomain *clkdm)
 {
 	omap2_clkdm_deny_idle(clkdm);
+	return 0;
 }
 
 /**
