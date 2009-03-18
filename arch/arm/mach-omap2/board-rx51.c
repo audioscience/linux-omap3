@@ -31,6 +31,8 @@
 #include <mach/gpmc.h>
 #include <mach/usb.h>
 
+#include "omap3-opp.h"
+
 static struct omap_lcd_config rx51_lcd_config = {
 	.ctrl_name	= "internal",
 };
@@ -58,7 +60,9 @@ static void __init rx51_init_irq(void)
 {
 	omap_board_config = rx51_config;
 	omap_board_config_size = ARRAY_SIZE(rx51_config);
-	omap2_init_common_hw(NULL, NULL);
+	omap2_init_common_hw(rx51_get_sdram_timings(),
+			     rx51_get_sdram_timings(), omap3_mpu_rate_table,
+			     omap3_dsp_rate_table, omap3_l3_rate_table);
 	omap_init_irq();
 	omap_gpio_init();
 }
