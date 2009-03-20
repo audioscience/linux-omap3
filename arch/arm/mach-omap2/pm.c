@@ -33,6 +33,7 @@
 #include <plat/powerdomain.h>
 #include <plat/omapdev.h>
 #include <plat/resource.h>
+#include <plat/omap34xx.h>
 
 #include "prm-regbits-34xx.h"
 #include "pm.h"
