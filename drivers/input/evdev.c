@@ -21,6 +21,10 @@
 #include <linux/device.h>
 #include "input-compat.h"
 
+ #ifdef CONFIG_ANDROID_POWER
+ #include <linux/android_power.h>
+ #endif
+
 struct evdev {
 	int exist;
 	int open;
@@ -43,10 +47,23 @@ struct evdev_client {
 	struct fasync_struct *fasync;
 	struct evdev *evdev;
 	struct list_head node;
+#ifdef CONFIG_ANDROID_POWER
+	android_suspend_lock_t suspend_lock;
+#endif
 };
 
 static struct evdev *evdev_table[EVDEV_MINORS];
 static DEFINE_MUTEX(evdev_table_mutex);
+
+#ifdef CONFIG_ANDROID_POWER
+static void do_gettimeofday_monotonic(struct timeval *tv)
+{
+	struct timespec ts;
+	ktime_get_ts(&ts);
+	tv->tv_sec = ts.tv_sec;
+	tv->tv_usec = ts.tv_nsec / 1000;
+}
+#endif
 
 static void evdev_pass_event(struct evdev_client *client,
 			     struct input_event *event)
@@ -54,6 +71,9 @@ static void evdev_pass_event(struct evdev_client *client,
 	/*
 	 * Interrupts are disabled, just acquire the lock
 	 */
+#ifdef CONFIG_ANDROID_POWER
+	android_lock_suspend_auto_expire(&client->suspend_lock, 5 * HZ);
+#endif
 	spin_lock(&client->buffer_lock);
 	client->buffer[client->head++] = *event;
 	client->head &= EVDEV_BUFFER_SIZE - 1;
@@ -72,7 +92,11 @@ static void evdev_event(struct input_handle *handle,
 	struct evdev_client *client;
 	struct input_event event;
 
+#ifdef CONFIG_ANDROID_POWER
+	do_gettimeofday_monotonic(&event.time);
+#else
 	do_gettimeofday(&event.time);
+#endif
 	event.type = type;
 	event.code = code;
 	event.value = value;
@@ -236,6 +260,9 @@ static int evdev_release(struct inode *inode, struct file *file)
 	mutex_unlock(&evdev->mutex);
 
 	evdev_detach_client(evdev, client);
+#ifdef CONFIG_ANDROID_POWER
+	android_uninit_suspend_lock(&client->suspend_lock);
+#endif
 	kfree(client);
 
 	evdev_close_device(evdev);
@@ -272,6 +299,10 @@ static int evdev_open(struct inode *inode, struct file *file)
 	}
 
 	spin_lock_init(&client->buffer_lock);
+#ifdef CONFIG_ANDROID_POWER
+	client->suspend_lock.name = "evdev";
+	android_init_suspend_lock(&client->suspend_lock);
+#endif
 	client->evdev = evdev;
 	evdev_attach_client(evdev, client);
 
@@ -370,7 +401,10 @@ static ssize_t evdev_read(struct file *file, char __user *buffer,
 
 		if (input_event_to_user(buffer + retval, &event))
 			return -EFAULT;
-
+#ifdef CONFIG_ANDROID_POWER
+        if(client->head == client->tail)
+           android_unlock_suspend(&client->suspend_lock);
+#endif
 		retval += input_event_size();
 	}
 
