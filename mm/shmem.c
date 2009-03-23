@@ -1515,6 +1515,14 @@ static int shmem_mmap(struct file *file, struct vm_area_struct *vma)
 	return 0;
 }
 
+void shmem_set_file(struct vm_area_struct *vma, struct file *file)
+{
+        if (vma->vm_file)
+                fput(vma->vm_file);
+        vma->vm_file = file;
+        vma->vm_ops = &shmem_vm_ops;
+}
+
 static struct inode *
 shmem_get_inode(struct super_block *sb, int mode, dev_t dev)
 {
