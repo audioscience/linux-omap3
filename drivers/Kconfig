@@ -106,6 +106,8 @@ source "drivers/uio/Kconfig"
 
 source "drivers/xen/Kconfig"
 
+source "drivers/android/Kconfig"
+
 source "drivers/staging/Kconfig"
 
 source "drivers/platform/Kconfig"
