@@ -931,7 +931,9 @@ void omap2fb_resume_idle(void)
 		omap2fb_can_sleep = 3;
 		queue_work(irq_work_queues, &irq_work_queue);
 	} else if (omap2fb_can_sleep != -1)
-	mod_timer(&omap2fb->timer, jiffies + omap2fb->sleep_timeout);
+
+	if (omap2fb->sleep_timeout)
+		mod_timer(&omap2fb->timer, jiffies + omap2fb->sleep_timeout);
 }
 EXPORT_SYMBOL(omap2fb_resume_idle);
 /*
