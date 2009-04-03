@@ -876,6 +876,7 @@ static int omap_vout_mmap(struct file *file, struct vm_area_struct *vma)
 	vma->vm_private_data = (void *) vout;
 	dmabuf = videobuf_to_dma(q->bufs[i]);
 	pos = dmabuf->vmalloc;
+	vma->vm_pgoff = virt_to_phys((void *)pos) >> PAGE_SHIFT;
 	while (size > 0) {
 		unsigned long pfn;
 		pfn = virt_to_phys((void *) pos) >> PAGE_SHIFT;
