@@ -149,6 +149,7 @@ struct omap_vout_device {
 	unsigned int smsshado_phy_addr[4];
 	unsigned int smsshado_virt_addr[4];
 	unsigned int vrfb_context[4];
+	bool vrfb_static_allocation;
 	unsigned int smsshado_size;
 	unsigned char pos;
 	unsigned int src_chroma_key_enable;

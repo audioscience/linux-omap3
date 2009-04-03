@@ -137,10 +137,14 @@ static u32 video1_numbuffers = 3;
 static u32 video2_numbuffers = 3;
 static u32 video1_bufsize = OMAP_VOUT_MAX_BUF_SIZE;
 static u32 video2_bufsize = OMAP_VOUT_MAX_BUF_SIZE;
+static u32 vid1_static_vrfb_alloc;
+static u32 vid2_static_vrfb_alloc;
 module_param(video1_numbuffers, uint, S_IRUGO);
 module_param(video2_numbuffers, uint, S_IRUGO);
 module_param(video1_bufsize, uint, S_IRUGO);
 module_param(video2_bufsize, uint, S_IRUGO);
+module_param(vid1_static_vrfb_alloc, bool, S_IRUGO);
+module_param(vid2_static_vrfb_alloc, bool, S_IRUGO);
 
 static int omap_vout_create_video_devices(struct platform_device *pdev);
 static int omapvid_apply_changes(struct omap_vout_device *vout, u32 addr,
@@ -409,8 +413,10 @@ omap_vout_buffer_setup(struct videobuf_queue *q, unsigned int *count,
 	if (vout->rotation != -1 && *count > 4)
 		*count = 4;
 
-	/* If rotation is enabled, allocate memory for VRFB space also */
-	if (vout->rotation >= 0) {
+	/* If rotation is enabled,
+	   and vrfb buffers are not allocated
+	   boot time than, allocate memory for VRFB space also */
+	if (vout->rotation >= 0 && !vout->vrfb_static_allocation) {
 		for (i = 0; i < *count; i++) {
 			if (!vout->smsshado_virt_addr[i]) {
 				vout->smsshado_virt_addr[i] =
@@ -436,9 +442,13 @@ omap_vout_buffer_setup(struct videobuf_queue *q, unsigned int *count,
 
 			memset((void *) vout->smsshado_virt_addr[i], 0,
 			       vout->smsshado_size);
-
+		}
+	}
+	/* if buffers allocated boot time then only do the
+	 * vrfb configuration */
+	if (vout->rotation >= 0) {
+		for (i = 0; i < *count; i++) {
 			if (vout->rotation == 90 || vout->rotation == 270) {
-
 				omap_vrfb_setup(vout->vrfb_context[i],
 					vout->smsshado_phy_addr[i],
 					vout->pix.height,
@@ -446,7 +456,6 @@ omap_vout_buffer_setup(struct videobuf_queue *q, unsigned int *count,
 					vout->bpp * vout->vrfb_bpp);
 
 			} else {
-
 				omap_vrfb_setup(vout->vrfb_context[i],
 					vout->smsshado_phy_addr[i],
 					vout->pix.width,
@@ -894,13 +903,16 @@ static void omap_vout_free_allbuffers(struct omap_vout_device *vout)
 		vout->buf_virt_addr[i] = 0;
 		vout->buf_phy_addr[i] = 0;
 	}
-	for (i = 0; i < 4; i++) {
-		if (vout->smsshado_virt_addr[i]) {
-			omap_vout_free_buffer(vout->smsshado_virt_addr[i],
-					vout->smsshado_phy_addr[i],
-					vout->smsshado_size);
-			vout->smsshado_virt_addr[i] = 0;
-			vout->smsshado_phy_addr[i] = 0;
+	if (!vout->vrfb_static_allocation) {
+		for (i = 0; i < 4; i++) {
+			if (vout->smsshado_virt_addr[i]) {
+				omap_vout_free_buffer(
+						vout->smsshado_virt_addr[i],
+						vout->smsshado_phy_addr[i],
+						vout->smsshado_size);
+				vout->smsshado_virt_addr[i] = 0;
+				vout->smsshado_phy_addr[i] = 0;
+			}
 		}
 	}
 	vout->buffer_allocated = num_buffers;
@@ -2033,6 +2045,17 @@ static void omap_vout_free_buffers(struct omap_vout_device *vout)
 	}
 }
 
+static void omap_vout_free_vrfb_buffers(struct omap_vout_device *vout)
+{
+	int j;
+	for (j = 0; j < 4; j++) {
+		omap_vout_free_buffer(vout->smsshado_virt_addr[j],
+				vout->smsshado_phy_addr[j],
+				vout->smsshado_size);
+		vout->smsshado_virt_addr[j] = 0;
+		vout->smsshado_phy_addr[j] = 0;
+	}
+}
 static int omap_vout_setup_video_data(struct omap_vout_device *vout)
 {
 	struct v4l2_pix_format *pix;
@@ -2101,6 +2124,34 @@ static int omap_vout_setup_video_data(struct omap_vout_device *vout)
 	return 0;
 
 }
+static int omap_vout_allocate_vrfb_buffers(struct omap_vout_device *vout,
+		int count)
+{
+	int i, j;
+	for (i = 0; i < count; i++) {
+		if (!vout->smsshado_virt_addr[i]) {
+			vout->smsshado_virt_addr[i] =
+				omap_vout_alloc_buffer(vout->smsshado_size,
+						&vout->smsshado_phy_addr[i]);
+		}
+		if (!vout->smsshado_virt_addr[i]) {
+			for (j = 0; j < i; j++) {
+				omap_vout_free_buffer(
+						vout->smsshado_virt_addr[j],
+						vout->smsshado_phy_addr[j],
+						vout->smsshado_size);
+				vout->smsshado_virt_addr[j] = 0;
+				vout->smsshado_phy_addr[j] = 0;
+			}
+			count = 0;
+			return -ENOMEM;
+		}
+		memset((void *) vout->smsshado_virt_addr[i], 0,
+				vout->smsshado_size);
+	}
+	return 0;
+}
+
 static int omap_vout_setup_video_bufs(struct platform_device *pdev, int vid_num)
 {
 	struct omap2video_device *vid_dev = platform_get_drvdata(pdev);
@@ -2109,6 +2160,7 @@ static int omap_vout_setup_video_bufs(struct platform_device *pdev, int vid_num)
 	int image_width, image_height;
 	unsigned numbuffers;
 	struct video_device *vfd;
+	int static_vrfb_allocation = 0, vrfb_num_bufs = 4;
 	struct vrfb vrfb;
 
 	vout = vid_dev->vouts[vid_num];
@@ -2182,6 +2234,20 @@ static int omap_vout_setup_video_bufs(struct platform_device *pdev, int vid_num)
 			for video%d [v4l2]\n", vfd->minor);
 	}
 	init_waitqueue_head(&vout->vrfb_dma_tx.wait);
+
+	/* Allocate VRFB buffers if selected through bootargs */
+	 static_vrfb_allocation = (vid_num == 0) ?
+		 vid1_static_vrfb_alloc : vid2_static_vrfb_alloc;
+
+	 /* statically allocated the VRFB buffer is done through
+	    commands line aruments */
+	 if (static_vrfb_allocation) {
+		if (omap_vout_allocate_vrfb_buffers(vout, vrfb_num_bufs)) {
+			r =  -ENOMEM;
+			goto free_buffers;
+		}
+		vout->vrfb_static_allocation = 1;
+	 }
 
 	return 0;
 
@@ -2627,6 +2693,8 @@ static void omap_vout_cleanup_device(struct omap_vout_device *vout)
 
 	omap_vout_free_buffers(vout);
 
+	if (vout->vrfb_static_allocation)
+		omap_vout_free_vrfb_buffers(vout);
 	kfree(vout);
 
 	if (!(vout->vid))
