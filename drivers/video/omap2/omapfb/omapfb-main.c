@@ -1174,7 +1174,6 @@ static int omapfb_alloc_fbmem(struct fb_info *fbi, unsigned long size,
 	struct omapfb2_mem_region *rg;
 	void __iomem *vaddr;
 	int r;
-	int clear = 0;
 
 	rg = &ofbi->region;
 	memset(rg, 0, sizeof(*rg));
@@ -1184,7 +1183,6 @@ static int omapfb_alloc_fbmem(struct fb_info *fbi, unsigned long size,
 	if (!paddr) {
 		DBG("allocating %lu bytes for fb %d\n", size, ofbi->id);
 		r = omap_vram_alloc(OMAPFB_MEMTYPE_SDRAM, size, &paddr);
-		clear = 1;
 	} else {
 		DBG("reserving %lu bytes at %lx for fb %d\n", size, paddr,
 				ofbi->id);
@@ -1206,9 +1204,6 @@ static int omapfb_alloc_fbmem(struct fb_info *fbi, unsigned long size,
 		}
 
 		DBG("allocated VRAM paddr %lx, vaddr %p\n", paddr, vaddr);
-
-		if (clear)
-			memset_io(vaddr, 0, size);
 	} else {
 		void __iomem *va;
 
@@ -1232,9 +1227,6 @@ static int omapfb_alloc_fbmem(struct fb_info *fbi, unsigned long size,
 		rg->vrfb.vaddr[0] = va;
 
 		vaddr = NULL;
-
-		if (clear)
-			memset_io(va, 0, size);
 	}
 
 	rg->paddr = paddr;
