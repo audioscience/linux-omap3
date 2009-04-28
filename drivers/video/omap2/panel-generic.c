@@ -79,13 +79,13 @@ static struct omap_panel generic_panel = {
 		/* 720 x 480 @ 60 Hz  Reduced blanking VESA CVT 0.31M3-R */
 		.x_res		= 720,
 		.y_res		= 480,
-		.pixel_clock	= 30000,
-		.hfp		= 48,
-		.hsw		= 32,
-		.hbp		= 80,
-		.vfp		= 3,
-		.vsw		= 4,
-		.vbp		= 7,
+		.pixel_clock	= 27700,
+		.hfp		= 24,
+		.hsw		= 40,
+		.hbp		= 96,
+		.vfp		= 10,
+		.vsw		= 3,
+		.vbp		= 32,
 #endif
 	},
 
