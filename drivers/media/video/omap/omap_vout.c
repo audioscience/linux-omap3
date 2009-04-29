@@ -1210,16 +1210,23 @@ static int vidioc_s_fmt_vid_overlay(struct file *file, void *fh,
 {
 	struct omap_vout_device *vout = ((struct omap_vout_fh *) fh)->vout;
 	int err = -EINVAL;
+	struct omap_overlay *ovl;
+	struct omapvideo_info *ovid;
 	struct v4l2_window *win = &f->fmt.win;
 
 	if (down_interruptible(&vout->lock))
 		return -EINVAL;
+	
+	ovid = &vout->vid_info;
+	ovl = ovid->overlays[0];
+
 	err = omap_vout_new_window(&vout->crop, &vout->win, &vout->fbuf, win);
 	if (err) {
 		up(&vout->lock);
 		return err;
 	}
-	if (vout->vid == OMAP_VIDEO1)
+	/* Video1 plane does not support global alpha */
+	if (ovl->id == OMAP_DSS_VIDEO1)
 		vout->win.global_alpha = 255;
 	else
 		vout->win.global_alpha = f->fmt.win.global_alpha;
@@ -2284,7 +2291,13 @@ static int omap_vout_create_video_devices(struct platform_device *pdev)
 		vout->vid = k;
 		vid_dev->vouts[k] = vout;
 		vout->vid_info.vid_dev = vid_dev;
-		vout->vid_info.overlays[0] = vid_dev->overlays[k + 1];
+		
+		/* Select video2 if only 1 overlay is controlled by V4L2 */
+		if (pdev->num_resources == 1)
+			vout->vid_info.overlays[0] = vid_dev->overlays[k + 2];
+		else
+			/* Else select video1 and video2 one by one. */
+			vout->vid_info.overlays[0] = vid_dev->overlays[k + 1];
 		vout->vid_info.num_overlays = 1;
 		vout->vid_info.id = k + 1;
 		vid_dev->num_videos++;
