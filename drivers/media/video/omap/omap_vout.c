@@ -2532,7 +2532,13 @@ err:
 static enum omap_color_mode video_mode_to_dss_mode(struct omap_vout_device
 			*vout)
 {
+	struct omap_overlay *ovl;
+	struct omapvideo_info *ovid;
 	struct v4l2_pix_format *pix = &vout->pix;
+
+	ovid = &vout->vid_info;
+	ovl = ovid->overlays[0];
+
 	switch (pix->pixelformat) {
 
 	case 0:
@@ -2551,7 +2557,7 @@ static enum omap_color_mode video_mode_to_dss_mode(struct omap_vout_device
 
 	case V4L2_PIX_FMT_RGB32:
 	{
-		if (vout->vid == OMAP_VIDEO1)
+		if (ovl->id == OMAP_DSS_VIDEO1)
 			return OMAP_DSS_COLOR_RGB24U;
 		else
 			return OMAP_DSS_COLOR_ARGB32;
