@@ -599,7 +599,12 @@ static int omap_vout_calculate_offset(struct omap_vout_device *vout)
 static enum omap_color_mode video_mode_to_dss_mode(struct omap_vout_device
 			*vout)
 {
+	struct omap_overlay *ovl;
+	struct omapvideo_info *ovid;
 	struct v4l2_pix_format *pix = &vout->pix;
+
+	ovid = &vout->vid_info;
+	ovl = ovid->overlays[0];
 
 	switch (pix->pixelformat) {
 	case 0:
@@ -617,7 +622,7 @@ static enum omap_color_mode video_mode_to_dss_mode(struct omap_vout_device
 		return OMAP_DSS_COLOR_RGB24P;
 
 	case V4L2_PIX_FMT_RGB32:
-		return (vout->vid == OMAP_VIDEO1) ?
+		return (ovl->id == OMAP_DSS_VIDEO1) ?
 			OMAP_DSS_COLOR_RGB24U : OMAP_DSS_COLOR_ARGB32;
 	case V4L2_PIX_FMT_BGR32:
 		return OMAP_DSS_COLOR_RGBX32;
