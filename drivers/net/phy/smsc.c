@@ -136,9 +136,9 @@ static struct phy_driver lan8700_driver = {
 };
 
 static struct phy_driver lan8710_driver = {
-	.phy_id		= 0x0017c0f0, /* OUI=0x00800f, Model#=0x0f */
+	.phy_id		= 0x0007c0f0, /* OUI=0x00800f, Model#=0x0f */
 	.phy_id_mask	= 0xfffffff0,
-	.name		= "SMSC LAN8710",
+	.name		= "SMSC LAN8710/LAN8720",
 
 	.features	= (PHY_BASIC_FEATURES | SUPPORTED_Pause
 				| SUPPORTED_Asym_Pause),
