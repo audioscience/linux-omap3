@@ -516,7 +516,6 @@ static struct platform_device *omap3_evm_devices[] __initdata = {
 	&omap3_evm_dss_device,
 	&omap3evm_smc911x_device,
 	&omap3evm_vout_device,
-
 };
 
 static void __init omap3_evm_init(void)

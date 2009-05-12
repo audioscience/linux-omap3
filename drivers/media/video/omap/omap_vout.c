@@ -217,11 +217,11 @@ static void omap_vout_free_buffer(unsigned long virtaddr, u32 phys_addr,
 
 /* Function for allocating video buffers */
 static int omap_vout_allocate_vrfb_buffers(struct omap_vout_device *vout,
-		int count, int startindex)
+		unsigned int *count, int startindex)
 {
 	int i, j;
 
-	for (i = 0; i < count; i++) {
+	for (i = 0; i < *count; i++) {
 		if (!vout->smsshado_virt_addr[i]) {
 			vout->smsshado_virt_addr[i] =
 				omap_vout_alloc_buffer(vout->smsshado_size,
@@ -241,7 +241,7 @@ static int omap_vout_allocate_vrfb_buffers(struct omap_vout_device *vout,
 				vout->smsshado_virt_addr[j] = 0;
 				vout->smsshado_phy_addr[j] = 0;
 			}
-			count = 0;
+			*count = 0;
 			return -ENOMEM;
 		}
 		memset((void *) vout->smsshado_virt_addr[i], 0,
@@ -366,20 +366,20 @@ static void omap_vout_release_vrfb(struct omap_vout_device *vout)
 }
 
 /* Return true if rotation is 90 or 270 */
-static inline int rotate_90_or_270(struct omap_vout_device *vout)
+static inline int rotate_90_or_270(const struct omap_vout_device *vout)
 {
 	return (vout->rotation == dss_rotation_90_degree ||
 		vout->rotation == dss_rotation_270_degree);
 }
 
 /* Return true if rotation is enabled */
-static inline int rotation_enabled(struct omap_vout_device *vout)
+static inline int rotation_enabled(const struct omap_vout_device *vout)
 {
 	return vout->rotation || vout->mirror;
 }
 
 /* Reverse the rotation degree if mirroring is enabled */
-static inline int calc_rotation(struct omap_vout_device *vout)
+static inline int calc_rotation(const struct omap_vout_device *vout)
 {
 	if (!vout->mirror)
 		return vout->rotation;
@@ -439,7 +439,7 @@ static int omap_vout_vrfb_buffer_setup(struct omap_vout_device *vout,
 	 */
 	if ((rotation_enabled(vout)) &&
 			!vout->vrfb_static_allocation)
-		if (omap_vout_allocate_vrfb_buffers(vout, *count, startindex))
+		if (omap_vout_allocate_vrfb_buffers(vout, count, startindex))
 			return -ENOMEM;
 
 	for (i = 0; i < *count; i++) {
@@ -2182,7 +2182,7 @@ static int __init omap_vout_setup_video_bufs(struct platform_device *pdev,
 	/* statically allocated the VRFB buffer is done through
 	   commands line aruments */
 	if (static_vrfb_allocation) {
-		if (omap_vout_allocate_vrfb_buffers(vout, vrfb_num_bufs, -1)) {
+		if (omap_vout_allocate_vrfb_buffers(vout, &vrfb_num_bufs, -1)) {
 			r =  -ENOMEM;
 			goto free_buffers;
 		}
