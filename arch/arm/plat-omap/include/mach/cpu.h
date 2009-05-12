@@ -283,6 +283,8 @@ IS_OMAP_SUBCLASS(343x, 0x343)
  * cpu_is_omap3515():	True for OMAP3515
  * cpu_is_omap3525():	True for OMAP3525
  * cpu_is_omap3530():	True for OMAP3530
+ * cpu_is_omap3505():	True for OMAP3505
+ * cpu_is_omap3517():	True for OMAP3517
  */
 #define GET_OMAP_TYPE	((omap_rev() >> 16) & 0xffff)
 
@@ -309,6 +311,8 @@ IS_OMAP_TYPE(3503, 0x3503)
 IS_OMAP_TYPE(3515, 0x3515)
 IS_OMAP_TYPE(3525, 0x3525)
 IS_OMAP_TYPE(3530, 0x3530)
+IS_OMAP_TYPE(3505, 0x3505)
+IS_OMAP_TYPE(3517, 0x3517)
 
 #define cpu_is_omap310()		0
 #define cpu_is_omap730()		0
@@ -381,11 +385,15 @@ IS_OMAP_TYPE(3530, 0x3530)
 # undef cpu_is_omap3515
 # undef cpu_is_omap3525
 # undef cpu_is_omap3530
+# undef cpu_is_omap3505
+# undef cpu_is_omap3517
 
 # define cpu_is_omap3503()		is_omap3503()
 # define cpu_is_omap3515()		is_omap3515()
 # define cpu_is_omap3525()		is_omap3525()
 # define cpu_is_omap3530()		is_omap3530()
+# define cpu_is_omap3505()		is_omap3505()
+# define cpu_is_omap3517()		is_omap3517()
 #endif	/* if defined(CONFIG_ARCH_OMAP35XX) */
 
 /* Macros to detect if we have OMAP1 or OMAP2 */
@@ -415,6 +423,8 @@ IS_OMAP_TYPE(3530, 0x3530)
 #define OMAP3515_MASK		0x00150000
 #define OMAP3525_MASK		0x00250000
 #define OMAP3530_MASK		0x00300000
+#define OMAP3505_MASK		0x00050000
+#define OMAP3517_MASK		0x00170000
 
 #define OMAP35XX_MASK_ES2_0	0x00001000
 #define OMAP35XX_MASK_ES2_1	0x00002000

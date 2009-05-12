@@ -38,10 +38,13 @@ config ARCH_OMAP35XX
 	  OMAP35x family of processors based on ARM Cortex-A8
 	  in combination with IVA2.2 core and OpenGL ES2.0
 	  compatible graphics engine.
-	    OMAP3503 - ARM Cortex-A8
-	    OMAP3515 - ARM Cortex-A8 + SGX
-	    OMAP3525 - ARM Cortex-A8 + IVA2.2
-	    OMAP3530 - ARM Cortex-A8 + IVA2.2 + SGX
+	    OMAP3503 - Based on ARM Cortex-A8
+	    OMAP3515 - OMAP3503 + SGX
+	    OMAP3525 - OMAP3503 + IVA2.2
+	    OMAP3530 - OMAP3503 + IVA2.2 + SGX
+
+	    OMAP3505 - Based on ARM Cortex-A8
+	    OMAP3517 - OMAP3505  + SGX
 
 	  ARM Cortex-A8 contains NEON SIMD coprocessor.
 
@@ -126,7 +129,7 @@ config MACH_OMAP_2430SDP
 	bool "OMAP 2430 SDP board"
 	depends on ARCH_OMAP2 && ARCH_OMAP2430
 
-config MACH_OMAP2EVM 
+config MACH_OMAP2EVM
 	bool "OMAP 2530 EVM board"
 	depends on ARCH_OMAP2 && ARCH_OMAP24XX
 
@@ -140,6 +143,10 @@ config MACH_OMAP_3430SDP
 
 config MACH_OMAP3EVM
 	bool "OMAP 3530 EVM board"
+	depends on ARCH_OMAP35XX
+
+config MACH_OMAP3517EVM
+	bool "OMAP 3517 EVM board"
 	depends on ARCH_OMAP35XX
 
 config MACH_OMAP3_BEAGLE
