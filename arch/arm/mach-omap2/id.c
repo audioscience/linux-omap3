@@ -28,7 +28,16 @@ static unsigned int omap_revision;
 
 unsigned int omap_rev(void)
 {
+#ifdef CONFIG_MACH_OMAP3517EVM
+	/* CAUTION: Temporary implementation
+	 *
+	 * While waiting for mechanism to detect OMAP3505 and
+	 * OMAP3517 at runtime; this is a quick-fix.
+	 */
+	return 0x35050000;
+#else
 	return omap_revision;
+#endif
 }
 EXPORT_SYMBOL(omap_rev);
 
