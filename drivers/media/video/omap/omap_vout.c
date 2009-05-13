@@ -1529,6 +1529,7 @@ static int vidioc_queryctrl(struct file *file, void *fh,
 		break;
 	case V4L2_CID_VFLIP:
 		v4l2_ctrl_query_fill(ctrl, 0, 1, 1, 0);
+		break;
 	default:
 		ctrl->name[0] = '\0';
 		return -EINVAL;
