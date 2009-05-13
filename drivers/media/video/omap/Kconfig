@@ -1,8 +1,3 @@
-config VIDEO_OMAP_VIDEOLIB
-	tristate "OMAP Video out library"
-	depends on VIDEO_OMAP3
-	default VIDEO_OMAP3
-
 config VIDEO_OMAP_VIDEOOUT
 	tristate "OMAP Video out driver"
 	select VIDEOBUF_DMA_SG

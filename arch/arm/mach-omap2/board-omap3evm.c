@@ -62,20 +62,6 @@ static struct platform_device omap3evm_smc911x_device = {
 	.resource	= &omap3evm_smc911x_resources [0],
 };
 
-#ifdef CONFIG_FB_OMAP2
-static struct resource omap3evm_vout_resource[3 - CONFIG_FB_OMAP2_NUM_FBS] = {
-};
-#else
-static struct resource omap3evm_vout_resource[2] = {
-};
-#endif
-
-static struct platform_device omap3evm_vout_device = {
-	.name			= "omap_vout",
-	.num_resources	= ARRAY_SIZE(omap3evm_vout_resource),
-	.resource 		= &omap3evm_vout_resource[0],
-	.id		= -1,
-};
 static inline void __init omap3evm_init_smc911x(void)
 {
 	int eth_cs;
@@ -515,7 +501,6 @@ static struct omap_board_config_kernel omap3_evm_config[] __initdata = {
 static struct platform_device *omap3_evm_devices[] __initdata = {
 	&omap3_evm_dss_device,
 	&omap3evm_smc911x_device,
-	&omap3evm_vout_device,
 };
 
 static void __init omap3_evm_init(void)
