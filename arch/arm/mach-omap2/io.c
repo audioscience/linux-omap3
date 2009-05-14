@@ -33,10 +33,18 @@
 
 #include <mach/powerdomain.h>
 
+#ifndef CONFIG_MACH_OMAP3517EVM
 #include "powerdomains.h"
+#else
+#include "powerdomain3517.h"
+#endif
 
 #include <mach/clockdomain.h>
+#ifndef CONFIG_MACH_OMAP3517EVM
 #include "clockdomains.h"
+#else
+#include "clockdomain3517.h"
+#endif
 
 /*
  * The machine specific code may provide the extra mapping besides the

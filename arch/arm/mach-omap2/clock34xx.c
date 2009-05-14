@@ -33,8 +33,11 @@
 
 #include <mach/sdrc.h>
 #include "clock.h"
+#ifndef CONFIG_MACH_OMAP3517EVM
 #include "clock34xx.h"
-#include "prm.h"
+#else
+#include "clock3517.h"
+#endif
 #include "prm-regbits-34xx.h"
 #include "cm.h"
 #include "cm-regbits-34xx.h"
@@ -453,6 +456,7 @@ static int omap3_noncore_dpll_set_rate(struct clk *clk, unsigned long rate)
  * Program the DPLL M2 divider with the rounded target rate.  Returns
  * -EINVAL upon error, or 0 upon success.
  */
+#ifndef CONFIG_MACH_OMAP3517EVM
 static int omap3_core_dpll_m2_set_rate(struct clk *clk, unsigned long rate)
 {
 	u32 new_div = 0;
@@ -496,7 +500,12 @@ static int omap3_core_dpll_m2_set_rate(struct clk *clk, unsigned long rate)
 
 	return 0;
 }
-
+#else
+static int omap3_core_dpll_m2_set_rate(struct clk *clk, unsigned long rate)
+{
+	return 0;
+}
+#endif
 
 /* DPLL autoidle read/set code */
 
@@ -705,10 +714,10 @@ int __init omap2_clk_init(void)
 		clkp = onchip_24xx_clks;
 	}
 #endif
-	if (cpu_is_omap34xx()) {
+	if (cpu_is_omap34xx() || cpu_is_omap3505() || cpu_is_omap3517()) {
 		cpu_mask = RATE_IN_343X;
 		cpu_clkflg = CLOCK_IN_OMAP343X;
-		clkp = onchip_34xx_clks;
+		clkp = onchip_omap3_clks;
 
 		/*
 		 * Update this if there are further clock changes between ES2
@@ -725,8 +734,8 @@ int __init omap2_clk_init(void)
 
 	clk_init(&omap2_clk_functions);
 
-	for (clkp = onchip_34xx_clks;
-	     clkp < onchip_34xx_clks + ARRAY_SIZE(onchip_34xx_clks);
+	for (clkp = onchip_omap3_clks;
+	     clkp < onchip_omap3_clks + ARRAY_SIZE(onchip_omap3_clks);
 	     clkp++) {
 		if ((*clkp)->flags & cpu_clkflg)
 			clk_register(*clkp);
