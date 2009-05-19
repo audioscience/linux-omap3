@@ -37,7 +37,7 @@
 #include <mach/usb.h>
 #include <mach/common.h>
 #include <mach/mcspi.h>
-
+#include <mach/display.h>
 
 /*
  * UART
@@ -80,6 +80,141 @@ static int __init omap3517_evm_i2c_init(void)
  * MTD
  */
 
+
+/*
+ * DSS2
+ */
+#define LCD_BACKLIGHT_PWR	182
+/*
+ * TODO: Need to define depending on Schematics
+ */
+#define LCD_PANEL_PWR		0
+
+static int lcd_enabled;
+static int dvi_enabled;
+
+static void __init omap3517_evm_display_init(void)
+{
+	int r;
+
+	/*
+	 * Enable GPIO 182 = LCD Backlight Power
+	 */
+	r = gpio_request(LCD_BACKLIGHT_PWR, "lcd_backlight_pwr");
+	if (r) {
+		printk(KERN_ERR "failed to get LCD_BACKLIGHT_PWR\n");
+		return;
+	}
+	/*
+	 * Assumption: This pin is being interfaced to some LED driver
+	 * (TPS61048).
+	 * 	1 - enable
+	 *	0 - disable
+	 */
+	gpio_direction_output(LCD_BACKLIGHT_PWR, 1);
+
+
+	/*
+	 * TODO: PWM feature, same goes to backlight driver
+	 *
+	 *	- Need interface details of gptx_pwm_evt/LCD_PWM0 pin
+	 */
+
+	/*
+	 * TODO: LCD panel power
+	 * Currently this pin is floating, not connected to any 3517/05 pins
+	 */
+	r = gpio_request(LCD_PANEL_PWR, "lcd_panel_pwr");
+	if (r) {
+		printk(KERN_ERR "failed to get LCD_PANEL_PWR\n");
+		goto err_1;
+	}
+	/*
+	 * TODO: Verify the polarity of signal depending on LCD panel
+	 * connected
+ */
+	gpio_direction_output(LCD_PANEL_PWR, 1);
+
+	/*
+	 * TODO: DVI/HDMI (TFP410) interface control
+	 */
+
+	return;
+
+err_1:
+	gpio_free(LCD_BACKLIGHT_PWR);
+
+}
+
+static int omap3517_evm_panel_enable_lcd(struct omap_display *display)
+{
+	if (dvi_enabled) {
+		printk(KERN_ERR "cannot enable LCD, DVI is enabled\n");
+		return -EINVAL;
+	}
+	gpio_direction_output(LCD_PANEL_PWR, 1);
+	lcd_enabled = 1;
+	return 0;
+}
+
+static void omap3517_evm_panel_disable_lcd(struct omap_display *display)
+{
+	gpio_direction_output(LCD_PANEL_PWR, 0);
+	lcd_enabled = 0;
+}
+
+/*
+ * TODO: Need to change depending on LCD Panel being used
+ */
+static struct omap_dss_display_config omap3517_evm_display_data = {
+	.type			= OMAP_DISPLAY_TYPE_DPI,
+	.name			= "lcd",
+	.panel_name		= "sharp-ls037v7dw01",
+	.u.dpi.data_lines 	= 18,
+	.panel_enable		= omap3517_evm_panel_enable_lcd,
+	.panel_disable		= omap3517_evm_panel_disable_lcd,
+};
+
+static int omap3517_evm_panel_enable_dvi(struct omap_display *display)
+{
+	if (lcd_enabled) {
+		printk(KERN_ERR "cannot enable DVI, LCD is enabled\n");
+		return -EINVAL;
+	}
+	dvi_enabled = 1;
+
+	return 0;
+}
+
+static void omap3517_evm_panel_disable_dvi(struct omap_display *display)
+{
+	dvi_enabled = 0;
+}
+
+static struct omap_dss_display_config omap3517_evm_display_data_dvi = {
+	.type			= OMAP_DISPLAY_TYPE_DPI,
+	.name			= "dvi",
+	.panel_name		= "panel-generic",
+	.u.dpi.data_lines	= 24,
+	.panel_enable		= omap3517_evm_panel_enable_dvi,
+	.panel_disable		= omap3517_evm_panel_disable_dvi,
+};
+
+static struct omap_dss_board_info omap3517_evm_dss_data = {
+	.num_displays = 2,
+	.displays = {
+		&omap3517_evm_display_data,
+		&omap3517_evm_display_data_dvi,
+	}
+};
+static struct platform_device omap3517_evm_dss_device = {
+	.name		= "omapdss",
+	.id		= -1,
+	.dev            = {
+		.platform_data = &omap3517_evm_dss_data,
+	},
+};
+
 /*
  * Board initialization
  */
@@ -88,6 +223,7 @@ static struct omap_board_config_kernel omap3517_evm_config[] __initdata = {
 };
 
 static struct platform_device *omap3517_evm_devices[] __initdata = {
+	&omap3517_evm_dss_device,
 };
 
 static void __init omap3517_evm_init_irq(void)
@@ -109,6 +245,7 @@ static void __init omap3517_evm_init(void)
 
 	omap_serial_init();
 	omap3517_evm_ethernet_init();
+	omap3517_evm_display_init();
 }
 
 static void __init omap3517_evm_map_io(void)
