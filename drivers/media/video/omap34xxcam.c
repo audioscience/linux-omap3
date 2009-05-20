@@ -882,15 +882,14 @@ static int vidioc_enum_input(struct file *file, void *fh,
 	struct omap34xxcam_videodev *vdev = ((struct omap34xxcam_fh *)fh)->vdev;
 
 	if (vdev->vdev_sensor_mode) {
-		if (vdev->slave_config[OMAP34XXCAM_SLAVE_SENSOR].cur_input
-				== INPUT_CVBS_VI4A) {
+		if (inp->index == 0) {
 			strlcpy(inp->name, "COMPOSITE", sizeof(inp->name));
 			inp->type = V4L2_INPUT_TYPE_CAMERA;
-		} else if (vdev->slave_config[OMAP34XXCAM_SLAVE_SENSOR]
-				.cur_input == INPUT_SVIDEO_VI2C_VI1C) {
+		} else if (inp->index == 1) {
 			strlcpy(inp->name, "S-VIDEO", sizeof(inp->name));
 			inp->type = V4L2_INPUT_TYPE_CAMERA;
-		}
+		} else
+				return -EINVAL;
 	} else {
 		if (inp->index > 0)
 			return -EINVAL;
@@ -916,24 +915,6 @@ static int vidioc_g_input(struct file *file, void *fh, unsigned int *i)
 
 	mutex_lock(&vdev->mutex);
 	if (vdev->vdev_sensor_mode) {
-		if ((vdev->slave_config[OMAP34XXCAM_SLAVE_SENSOR].cur_input
-				!= INPUT_CVBS_VI4A) &&
-				(vdev->slave_config[OMAP34XXCAM_SLAVE_SENSOR].
-				 cur_input != INPUT_SVIDEO_VI2C_VI1C)) {
-			struct v4l2_routing route;
-			route.input = INPUT_CVBS_VI4A;
-			route.output = 0;
-			rval = vidioc_int_s_video_routing(vdev->vdev_sensor,
-					&route);
-			if (rval) {
-				route.input = INPUT_SVIDEO_VI2C_VI1C;
-				rval = vidioc_int_s_video_routing(
-						vdev->vdev_sensor, &route);
-			}
-			if (!rval)
-				vdev->slave_config[OMAP34XXCAM_SLAVE_SENSOR]
-					.cur_input = route.input;
-		}
 		if (vdev->slave_config[OMAP34XXCAM_SLAVE_SENSOR].cur_input
 				== INPUT_CVBS_VI4A)
 			*i = 0;
@@ -968,8 +949,10 @@ static int vidioc_s_input(struct file *file, void *fh, unsigned int i)
 	if (vdev->vdev_sensor_mode) {
 		if (i == 0)
 			route.input = INPUT_CVBS_VI4A;
-		else
+		else if (i == 1)
 			route.input = INPUT_SVIDEO_VI2C_VI1C;
+		else
+			return -EINVAL;
 
 		route.output = 0;
 		rval = vidioc_int_s_video_routing(vdev->vdev_sensor, &route);
@@ -1655,9 +1638,30 @@ static int omap34xxcam_open(struct file *file)
 	fh->vdev = vdev;
 
 	/* FIXME: Check that we have sensor now... */
-	if (vdev->vdev_sensor_config.sensor_isp)
-		format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	if (vdev->vdev_sensor_config.sensor_isp) {
+		if ((vdev->slave_config[OMAP34XXCAM_SLAVE_SENSOR].cur_input
+					!= INPUT_CVBS_VI4A) &&
+				(vdev->slave_config[OMAP34XXCAM_SLAVE_SENSOR].
+				 cur_input != INPUT_SVIDEO_VI2C_VI1C)) {
+			struct v4l2_routing route;
+			int rval;
 
+			route.input = INPUT_CVBS_VI4A;
+			route.output = 0;
+			rval = vidioc_int_s_video_routing(vdev->vdev_sensor,
+					&route);
+			if (rval) {
+				route.input = INPUT_SVIDEO_VI2C_VI1C;
+				rval = vidioc_int_s_video_routing(
+						vdev->vdev_sensor, &route);
+			}
+			if (!rval)
+				vdev->slave_config[OMAP34XXCAM_SLAVE_SENSOR]
+					.cur_input = route.input;
+		}
+
+		format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	}
 	if (vidioc_int_g_fmt_cap(vdev->vdev_sensor, &format)) {
 		dev_err(cam->dev,
 			"can't get current pix from sensor!\n");
