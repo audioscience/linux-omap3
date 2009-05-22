@@ -26,6 +26,7 @@
 #include <linux/spi/ads7846.h>
 #include <linux/i2c/twl4030.h>
 #include <linux/usb/otg.h>
+#include <linux/smsc911x.h>
 
 #include <mach/hardware.h>
 #include <asm/mach-types.h>
@@ -66,11 +67,21 @@ static struct resource omap3evm_smc911x_resources[] = {
 	},
 };
 
+static struct smsc911x_platform_config smsc911x_config = {
+        .phy_interface  = PHY_INTERFACE_MODE_MII,
+        .irq_polarity   = SMSC911X_IRQ_POLARITY_ACTIVE_LOW,
+        .irq_type       = SMSC911X_IRQ_TYPE_OPEN_DRAIN,
+        .flags          = SMSC911X_USE_32BIT,
+};
+
 static struct platform_device omap3evm_smc911x_device = {
-	.name		= "smc911x",
+	.name		= "smsc911x",
 	.id		= -1,
 	.num_resources	= ARRAY_SIZE(omap3evm_smc911x_resources),
 	.resource	= &omap3evm_smc911x_resources[0],
+	.dev  = {
+		  .platform_data = &smsc911x_config,
+	},
 };
 
 static inline void __init omap3evm_init_smc911x(void)
