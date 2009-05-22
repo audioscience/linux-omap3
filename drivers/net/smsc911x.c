@@ -1968,7 +1968,7 @@ static int __devinit smsc911x_drv_probe(struct platform_device *pdev)
 	smsc911x_reg_write(pdata, INT_EN, 0);
 	smsc911x_reg_write(pdata, INT_STS, 0xFFFFFFFF);
 
-	retval = request_irq(dev->irq, smsc911x_irqhandler, IRQF_DISABLED,
+	retval = request_irq(dev->irq, smsc911x_irqhandler, (IRQF_TRIGGER_LOW | IRQF_DISABLED),
 			     dev->name, dev);
 	if (retval) {
 		SMSC_WARNING(PROBE,
