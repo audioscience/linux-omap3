@@ -85,9 +85,9 @@ struct omap_vout_device {
 	 * been allocated
 	 */
 	int buffer_allocated;
-	/* allow to reuse previosuly allocated buffer which is big enough */
+	/* allow to reuse previously allocated buffer which is big enough */
 	int buffer_size;
-	/* keep buffer info accross opens */
+	/* keep buffer info across opens */
 	unsigned long buf_virt_addr[VIDEO_MAX_FRAME];
 	unsigned long buf_phy_addr[VIDEO_MAX_FRAME];
 	enum omap_color_mode dss_mode;
@@ -138,7 +138,7 @@ struct omap_vout_device {
 	s32 tv_field1_offset;
 	void *isr_handle;
 
-	/* Buffer queue variabled */
+	/* Buffer queue variables */
 	struct omap_vout_device *vout;
 	enum v4l2_buf_type type;
 	struct videobuf_queue vbq;
