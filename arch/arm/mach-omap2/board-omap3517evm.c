@@ -41,6 +41,7 @@
 
 extern int oma35x_pmic_init(void);
 
+#include "mmc-twl4030.h"
 /*
  * UART
  */
@@ -234,6 +235,21 @@ static void __init omap3517_evm_init_irq(void)
 	omap_init_irq();
 	omap_gpio_init();
 }
+/*
+ * TODO: Need to change the GPIO pins for 
+ *	Card Detect: 
+ *	Write Protect:
+ */
+static struct twl4030_hsmmc_info mmc[] = {
+	{
+		.mmc            = 1,
+		.wires          = 4,
+		/*TODO: Need to change*/
+		.gpio_cd	= 63,
+		.gpio_wp	= 63,
+	},
+	{}      /* Terminator */
+};
 
 static void __init omap3517_evm_init(void)
 {
@@ -251,6 +267,11 @@ static void __init omap3517_evm_init(void)
 	omap_serial_init();
 	omap3517_evm_ethernet_init();
 	omap3517_evm_display_init();
+
+	/*
+	 * MMC init function
+	 */
+	twl4030_mmc_init(mmc);
 }
 
 static void __init omap3517_evm_map_io(void)

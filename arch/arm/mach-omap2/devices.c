@@ -559,7 +559,11 @@ void __init omap2_init_mmc(struct omap_mmc_platform_data **mmc_data,
 		if (!mmc_data[i])
 			continue;
 
-		omap2_mmc_mux(mmc_data[i], i);
+		/*
+		 * TODO: As of now remove it and depend on reset
+		 * configuration. Need to fix this.
+		 */
+/*		omap2_mmc_mux(mmc_data[i], i);*/
 
 		switch (i) {
 		case 0:

@@ -983,7 +983,10 @@ static int __init omap_mmc_probe(struct platform_device *pdev)
 		goto err1;
 	}
 
-	host->dbclk = clk_get(&pdev->dev, "mmchsdb_fck");
+	/*
+	 * TODO: As of now faked it, need to invastigate and fix
+	 */
+	host->dbclk = clk_get(&pdev->dev, "mmchs_fck");
 	/*
 	 * MMC can still work without debounce clock.
 	 */
