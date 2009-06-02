@@ -141,7 +141,7 @@ static void __init omap3517_evm_display_init(void)
 	/*
 	 * TODO: DVI/HDMI (TFP410) interface control
 	 */
-
+	printk("Display initialized successfully\n");
 	return;
 
 err_1:
@@ -178,6 +178,27 @@ static struct omap_dss_display_config omap3517_evm_display_data = {
 	.panel_disable		= omap3517_evm_panel_disable_lcd,
 };
 
+/*
+ * TV Out: Only used for OMAP3517TEB Board
+ */
+static int omap3517_evm_panel_enable_tv(struct omap_display *display)
+{
+	return 0;
+}
+
+static void omap3517_evm_panel_disable_tv(struct omap_display *display)
+{
+}
+
+static struct omap_dss_display_config omap3517_evm_display_data_tv = {
+	.type = OMAP_DISPLAY_TYPE_VENC,
+	.name = "tv",
+	.u.venc.type = OMAP_DSS_VENC_TYPE_SVIDEO,
+	.panel_enable = omap3517_evm_panel_enable_tv,
+	.panel_disable = omap3517_evm_panel_disable_tv,
+};
+
+
 static int omap3517_evm_panel_enable_dvi(struct omap_display *display)
 {
 	if (lcd_enabled) {
@@ -204,9 +225,10 @@ static struct omap_dss_display_config omap3517_evm_display_data_dvi = {
 };
 
 static struct omap_dss_board_info omap3517_evm_dss_data = {
-	.num_displays = 2,
+	.num_displays = 3,
 	.displays = {
 		&omap3517_evm_display_data,
+		&omap3517_evm_display_data_tv,
 		&omap3517_evm_display_data_dvi,
 	}
 };
@@ -236,8 +258,8 @@ static void __init omap3517_evm_init_irq(void)
 	omap_gpio_init();
 }
 /*
- * TODO: Need to change the GPIO pins for 
- *	Card Detect: 
+ * TODO: Need to change the GPIO pins for
+ *	Card Detect:
  *	Write Protect:
  */
 static struct twl4030_hsmmc_info mmc[] = {
