@@ -644,6 +644,14 @@ int omapfb_setup_overlay(struct fb_info *fbi, struct omap_overlay *ovl,
 		/* setup DSS's view to always 0 degrees */
 		data_start_p = ofbi->region.vrfb.paddr[0];
 		data_start_v = ofbi->region.vrfb.vaddr[0];
+		if (ofbi->rotation == FB_ROTATE_CW ||
+				ofbi->rotation == FB_ROTATE_CCW) {
+			offset = ((var->xoffset * VRFB_WIDTH +
+				var->yoffset) * var->bits_per_pixel) >> 3;
+		} else {
+			offset = ((var->yoffset * VRFB_WIDTH +
+				var->xoffset) * var->bits_per_pixel) >> 3;
+		}
 	} else {
 		data_start_p = omapfb_get_region_paddr(ofbi);
 		data_start_v = omapfb_get_region_vaddr(ofbi);
