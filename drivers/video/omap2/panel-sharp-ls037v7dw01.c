@@ -70,18 +70,15 @@ static struct omap_panel sharp_ls_panel = {
 	/*.set_mode	= sharp_ls_set_mode, */
 
 	.timings = {
-		.x_res = 480,
-		.y_res = 640,
-
-		.pixel_clock	= 19200,
-
-		.hsw		= 2,
-		.hfp		= 1,
-		.hbp		= 28,
-
-		.vsw		= 1,
-		.vfp		= 1,
-		.vbp		= 1,
+		.x_res          = 480,
+		.y_res          = 640,
+		.pixel_clock    = 25190,
+		.hfp            = 78,
+		.hsw            = 2,
+		.hbp            = 88,
+		.vfp            = 5,
+		.vsw            = 1,
+		.vbp            = 2,
 	},
 
 	.acb		= 0x28,
