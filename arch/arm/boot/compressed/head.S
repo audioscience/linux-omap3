@@ -221,7 +221,7 @@ not_relocated:	mov	r0, #0
 		 * sufficiently.  Turn the cache on, set up some
 		 * pointers, and start decompressing.
 		 */
-		bl	cache_on
+/*		bl	cache_on*/
 
 		mov	r1, sp			@ malloc space above stack
 		add	r2, sp, #0x10000	@ 64k max
@@ -597,7 +597,7 @@ proc_types:
 		b	__armv3_mpu_cache_on
 		b	__armv3_mpu_cache_off
 		b	__armv3_mpu_cache_flush
-		
+
 		.word	0x41009400		@ ARM94x
 		.word	0xff00ff00
 		b	__armv4_mpu_cache_on
@@ -774,7 +774,7 @@ __armv4_mpu_cache_flush:
 		mcrne	p15, 0, ip, c7, c5, 0	@ invalidate I cache
 		mcr	p15, 0, ip, c7, c10, 4	@ drain WB
 		mov	pc, lr
-		
+
 
 __armv6_mmu_cache_flush:
 		mov	r1, #0

@@ -803,6 +803,9 @@ enum omap34xx_index {
 	AE5_34XX_GPIO143,
 	H19_34XX_GPIO164_OUT,
 	J25_34XX_GPIO170,
+#ifdef CONFIG_MACH_OMAP3517EVM
+	E25_3517_USB0_DRVVBUS,
+#endif
 };
 
 struct omap_mux_cfg {

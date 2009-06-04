@@ -10,6 +10,9 @@ comment "Enable Host or Gadget support to see Inventra options"
 config USB_MUSB_HDRC
 	depends on (USB || USB_GADGET) && HAVE_CLK
 	depends on !SUPERH
+	select NOP_USB_XCEIV if ARCH_DAVINCI
+	select NOP_USB_XCEIV if MACH_OMAP3EVM
+	select NOP_USB_XCEIV if MACH_OMAP3517EVM
 	select TWL4030_USB if MACH_OMAP_3430SDP
 	select USB_OTG_UTILS
 	tristate 'Inventra Highspeed Dual Role Controller (TI, ADI, ...)'
@@ -20,8 +23,8 @@ config USB_MUSB_HDRC
 	  it's being used with, including the USB peripheral role,
 	  or the USB host role, or both.
 
-	  Texas Instruments parts using this IP include DaVinci 644x,
-	  OMAP 243x, OMAP 343x, and TUSB 6010.
+	  Texas Instruments familiies using this IP include DaVinci
+	  (35x, 644x ...), OMAP 243x, OMAP 3, and TUSB 6010.
 
 	  Analog Devices parts using this IP include Blackfin BF54x,
 	  BF525 and BF527.
@@ -40,7 +43,7 @@ config USB_MUSB_SOC
 	default y if (BF54x && !BF544)
 	default y if (BF52x && !BF522 && !BF523)
 
-comment "DaVinci 644x USB support"
+comment "DaVinci 35x and 644x USB support"
 	depends on USB_MUSB_HDRC && ARCH_DAVINCI
 
 comment "OMAP 243x high speed USB support"
@@ -55,6 +58,7 @@ comment "Blackfin high speed USB Support"
 config USB_TUSB6010
 	boolean "TUSB 6010 support"
 	depends on USB_MUSB_HDRC && !USB_MUSB_SOC
+	select NOP_USB_XCEIV
 	default y
 	help
 	  The TUSB 6010 chip, from Texas Instruments, connects a discrete
@@ -94,7 +98,7 @@ config USB_MUSB_PERIPHERAL
 	  (With a "Mini-AB" connector, you should enable USB OTG.)
 
 config USB_MUSB_OTG
-	depends on USB && USB_GADGET && PM && EXPERIMENTAL
+	depends on USB && USB_GADGET && EXPERIMENTAL
 	bool "Both host and peripheral:  USB OTG (On The Go) Device"
 	select USB_GADGET_MUSB_HDRC
 	select USB_OTG
@@ -150,7 +154,7 @@ config MUSB_PIO_ONLY
 
 config USB_INVENTRA_DMA
 	bool
-	depends on USB_MUSB_HDRC && !MUSB_PIO_ONLY
+	depends on USB_MUSB_HDRC && !MUSB_PIO_ONLY && !MACH_OMAP3517EVM
 	default ARCH_OMAP2430 || ARCH_OMAP34XX || BLACKFIN
 	help
 	  Enable DMA transfers using Mentor's engine.
@@ -161,6 +165,14 @@ config USB_TI_CPPI_DMA
 	default ARCH_DAVINCI
 	help
 	  Enable DMA transfers when TI CPPI DMA is available.
+
+config USB_TI_CPPI41_DMA
+        bool
+        depends on USB_MUSB_HDRC && !MUSB_PIO_ONLY
+        default MACH_OMAP3517EVM
+        select CPPI41
+        help
+          Enable DMA transfers when TI CPPI 4.1 DMA is available.
 
 config USB_TUSB_OMAP_DMA
 	bool

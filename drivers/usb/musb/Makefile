@@ -19,7 +19,11 @@ ifeq ($(CONFIG_ARCH_OMAP2430),y)
 endif
 
 ifeq ($(CONFIG_ARCH_OMAP3430),y)
+   ifeq ($(CONFIG_MACH_OMAP3517EVM),y)
+	musb_hdrc-objs  += omap3517.o
+   else
 	musb_hdrc-objs	+= omap2430.o
+   endif
 endif
 
 ifeq ($(CONFIG_BF54x),y)
@@ -56,6 +60,11 @@ ifneq ($(CONFIG_MUSB_PIO_ONLY),y)
       ifeq ($(CONFIG_USB_TUSB_OMAP_DMA),y)
         musb_hdrc-objs		+= tusb6010_omap.o
 
+      else
+        ifeq ($(CONFIG_USB_TI_CPPI41_DMA),y)
+	  musb_hdrc-objs        += cppi41_dma.o
+
+	endif
       endif
     endif
   endif
@@ -74,4 +83,7 @@ endif
 
 ifeq ($(CONFIG_USB_MUSB_DEBUG),y)
 	EXTRA_CFLAGS += -DDEBUG
+	ifeq ($(CONFIG_PROC_FS),y)
+	musb_hdrc-objs          += musb_procfs.o
+	endif
 endif

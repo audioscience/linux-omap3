@@ -145,38 +145,25 @@ static struct platform_device musb_device = {
 	.resource	= musb_resources,
 };
 
-#ifdef CONFIG_NOP_USB_XCEIV
-static u64 nop_xceiv_dmamask = DMA_32BIT_MASK;
-
-static struct platform_device nop_xceiv_device = {
-	.name		= "nop_usb_xceiv",
-	.id		= -1,
-	.dev = {
-		.dma_mask		= &nop_xceiv_dmamask,
-		.coherent_dma_mask	= DMA_32BIT_MASK,
-		.platform_data		= NULL,
-	},
-};
-#endif
+#define INT_OMAP3517_HSUSB_OTG	71 /* get this from board files later */
 
 void __init usb_musb_init(void)
 {
 	if (cpu_is_omap243x()) {
 		musb_resources[0].start = OMAP243X_HS_BASE;
 		musb_plat.clock = "usbhs_ick";
+	} else if (1 /*TODO: cpu_is_omap3517()*/) {
+		musb_resources[0].start = OMAP3517_HSUSB_OTG_BASE;
+		musb_plat.clock = "usbotg_vbusp_ck";
+		musb_resources[1].start = INT_OMAP3517_HSUSB_OTG;
+		/* set mux config for DRVVBUS */
+		omap_cfg_reg(E25_3517_USB0_DRVVBUS);
 	} else {
 		musb_resources[0].start = OMAP34XX_HSUSB_OTG_BASE;
 		musb_plat.clock = "hsotgusb_ick";
 	}
 
 	musb_resources[0].end = musb_resources[0].start + SZ_8K - 1;
-
-#ifdef CONFIG_NOP_USB_XCEIV
-	if (platform_device_register(&nop_xceiv_device) < 0) {
-		printk(KERN_ERR "Unable to register NOP-XCEIV device\n");
-		return;
-	}
-#endif
 
 	if (platform_device_register(&musb_device) < 0) {
 		printk(KERN_ERR "Unable to register HS-USB (MUSB) device\n");

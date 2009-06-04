@@ -290,6 +290,7 @@ static void __init omap3517_evm_init(void)
 	omap3517_evm_ethernet_init();
 	omap3517_evm_display_init();
 
+	usb_musb_init();
 	/*
 	 * MMC init function
 	 */
