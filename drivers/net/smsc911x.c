@@ -1752,6 +1752,7 @@ static int __devinit smsc911x_init(struct net_device *dev)
 {
 	struct smsc911x_data *pdata = netdev_priv(dev);
 	unsigned int byte_test;
+	u32 mac_high16,mac_low32;
 
 	SMSC_TRACE(PROBE, "Driver Parameters:");
 	SMSC_TRACE(PROBE, "LAN base: 0x%08lX",
@@ -1834,9 +1835,17 @@ static int __devinit smsc911x_init(struct net_device *dev)
 		SMSC_WARNING(PROBE,
 			"This driver is not intended for this chip revision");
 
+        /* save MAC address */
+	 mac_high16 = smsc911x_mac_read(pdata, ADDRH);
+	 mac_low32 = smsc911x_mac_read(pdata, ADDRL);
+
 	/* Reset the LAN911x */
 	if (smsc911x_soft_reset(pdata))
 		return -ENODEV;
+
+	/*restore MAC address */
+	smsc911x_mac_write(pdata, ADDRH, mac_high16);
+	smsc911x_mac_write(pdata, ADDRL, mac_low32);
 
 	/* Disable all interrupt sources until we bring the device up */
 	smsc911x_reg_write(pdata, INT_EN, 0);
