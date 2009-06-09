@@ -162,6 +162,14 @@ config OMAP3EVM_TWL4030
 	  Say yes here if you are using the TWL4030/TPS65950 based power module
 	  for the EVM boards.
 
+config OMAP3EVM_TPS65073
+	bool "TPS65073 Power Module"
+	depends on I2C=y && ARCH_OMAP3
+	select REGULATOR_TPS65073 if REGULATOR
+	help
+	  Say yes here if you are using the TPS65073 based PR801 power module 
+	  for the EVM boards.
+
 endchoice
 endmenu
 
