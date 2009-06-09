@@ -21,9 +21,6 @@
 /*
  * Definitions specific to TWL4030
  */
-#if defined(CONFIG_TWL4030_CORE)
-	/* do stuff specific to TWL4030 */
-#endif
 
 /*
  * Definitions specific to TPS6235x
@@ -32,6 +29,102 @@
 /*
  * Definitions specific to TPS65023
  */
+
+/*
+ * Definitions specific to TPS65073
+ */
+#if defined(CONFIG_OMAP3EVM_TPS65073)
+/* MPU voltage regulator of DCDC type */
+struct regulator_consumer_supply tps65073_mpu_consumers = {
+	.supply = "vdd1",
+};
+
+/* CORE voltage regulator of DCDC type */
+struct regulator_consumer_supply tps65073_core_consumers = {
+	.supply = "vdd2",
+};
+
+/* SRAM/MEM/WKUP_BG/VDDS voltage regulator of DCDC type */
+struct regulator_consumer_supply tps65073_vdds_consumers = {
+	.supply = "vdds",
+};
+
+/* DPLL voltage regulator of LDO type */
+struct regulator_consumer_supply tps65073_dpll_consumers = {
+	.supply = "dpll",
+};
+
+/* MMC voltage regulator of LDO type */
+struct regulator_consumer_supply tps65073_mmc_consumers = {
+	.supply = "mmc",
+};
+
+struct regulator_init_data tps65073_regulator_data[] = {
+	{
+		.constraints = {
+			.min_uV = 725000,
+			.max_uV = 3300000,
+			.valid_ops_mask = (REGULATOR_CHANGE_VOLTAGE |
+				REGULATOR_CHANGE_STATUS),
+			.boot_on = 1,
+		},
+		.num_consumer_supplies = 1,
+		.consumer_supplies = &tps65073_vdds_consumers,
+	},
+	{
+		.constraints = {
+			.min_uV = 725000,
+			.max_uV = 3300000,
+			.valid_ops_mask = (REGULATOR_CHANGE_VOLTAGE |
+				REGULATOR_CHANGE_STATUS),
+			.boot_on = 1,
+		},
+		.num_consumer_supplies = 1,
+		.consumer_supplies = &tps65073_core_consumers,
+	},
+	{
+		.constraints = {
+			.min_uV = 725000,
+			.max_uV = 3300000,
+			.valid_ops_mask = (REGULATOR_CHANGE_VOLTAGE |
+				REGULATOR_CHANGE_STATUS),
+			.boot_on = 1,
+		},
+		.num_consumer_supplies = 1,
+		.consumer_supplies = &tps65073_mpu_consumers,
+	},
+	{
+		.constraints = {
+			.min_uV = 1000000,
+			.max_uV = 3300000,
+			.valid_ops_mask = (REGULATOR_CHANGE_VOLTAGE |
+				REGULATOR_CHANGE_STATUS),
+			.boot_on = 1,
+		},
+		.num_consumer_supplies = 1,
+		.consumer_supplies = &tps65073_dpll_consumers,
+	},
+	{
+		.constraints = {
+			.min_uV = 725000,
+			.max_uV = 3300000,
+			.valid_ops_mask = (REGULATOR_CHANGE_VOLTAGE |
+				REGULATOR_CHANGE_STATUS),
+			.boot_on = 1,
+		},
+		.num_consumer_supplies = 1,
+		.consumer_supplies = &tps65073_mmc_consumers,
+	},
+};
+
+static struct i2c_board_info __initdata board_tps65073_instances[] = {
+	{
+		I2C_BOARD_INFO("tps6507x", 0x48),
+		.flags = I2C_CLIENT_WAKE,
+		.platform_data = &tps65073_regulator_data[0],
+	},
+};
+#endif
 
 static int flag_pmic_twl4030;
 static int flag_pmic_tps6235x;
@@ -113,6 +206,8 @@ int pmic_init(void)
 
 #if defined(CONFIG_OMAP3EVM_TPS65073)
 	/* do stuff specific to TPS65073 */
+	omap_register_i2c_bus(1, 400, board_tps65073_instances,
+		ARRAY_SIZE(board_tps65073_instances));
 #endif
 
 	return 0;
