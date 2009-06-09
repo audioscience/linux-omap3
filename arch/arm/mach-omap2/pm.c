@@ -28,6 +28,7 @@
 #include <asm/mach/time.h>
 #include <asm/atomic.h>
 
+#include "prm-regbits-34xx.h"
 #include "pm.h"
 
 atomic_t sleep_block = ATOMIC_INIT(0);
