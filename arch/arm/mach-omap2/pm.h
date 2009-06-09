@@ -16,6 +16,7 @@
 <<<<<<< HEAD
 extern void *omap3_secure_ram_storage;
 extern unsigned short enable_off_mode;
+extern unsigned short voltage_off_while_idle;
 
 extern void omap3_pm_off_mode_enable(int);
 
