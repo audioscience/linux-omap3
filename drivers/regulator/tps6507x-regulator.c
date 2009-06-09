@@ -231,9 +231,9 @@ static int tps6507x_dcdc_set_voltage(struct regulator_dev *dev,
 			return -EINVAL;
 	}
 
-	if (min_uV < tps->info[dcdc]->min_uV || min_uV > tps->info[dcdc]->min_uV)
+	if (min_uV < tps->info[dcdc]->min_uV || min_uV > tps->info[dcdc]->max_uV)
 		return -EINVAL;
-	if (max_uV < tps->info[dcdc]->max_uV || max_uV > tps->info[dcdc]->max_uV)
+	if (max_uV < tps->info[dcdc]->min_uV || max_uV > tps->info[dcdc]->max_uV)
 		return -EINVAL;
 
 	for (vsel = 0; vsel < tps->info[dcdc]->table_len; vsel++) {
@@ -467,40 +467,40 @@ static const u16 LDO2_VSEL_table[] = {
 static const struct tps_info tps6507x_regs[] = {
 	{
 		.name = "VDCDC1",
-		.min_uV	= 725000,
-		.max_uV	= 3300000,
+		.min_uV = 725000,
+		.max_uV = 3300000,
 		.fixed = 0,
 		.table_len = ARRAY_SIZE(VDCDCx_VSEL_table),
 		.table = VDCDCx_VSEL_table,
 	},
 	{
 		.name = "VDCDC2",
-		.min_uV	= 725000,
-		.max_uV	= 3300000,
+		.min_uV = 725000,
+		.max_uV = 3300000,
 		.fixed = 0,
 		.table_len = ARRAY_SIZE(VDCDCx_VSEL_table),
 		.table = VDCDCx_VSEL_table,
 	},
 	{
 		.name = "VDCDC3",
-		.min_uV	= 725000,
-		.max_uV	= 3300000,
+		.min_uV = 725000,
+		.max_uV = 3300000,
 		.fixed = 0,
 		.table_len = ARRAY_SIZE(VDCDCx_VSEL_table),
 		.table = VDCDCx_VSEL_table,
 	},
 	{
 		.name = "LDO1",
-		.min_uV	= 1000000,
-		.max_uV	= 3300000,
+		.min_uV = 1000000,
+		.max_uV = 3300000,
 		.fixed = 0,
 		.table_len = ARRAY_SIZE(LDO1_VSEL_table),
 		.table = LDO1_VSEL_table,
 	},
 	{
 		.name = "LDO2",
-		.min_uV	= 725000,
-		.max_uV	= 3300000,
+		.min_uV = 725000,
+		.max_uV = 3300000,
 		.fixed = 0,
 		.table_len = ARRAY_SIZE(LDO2_VSEL_table),
 		.table = LDO2_VSEL_table,
