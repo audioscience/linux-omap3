@@ -81,7 +81,7 @@ static struct snd_soc_dai_link omap3evm_dai = {
 	.name = "TWL4030",
 	.stream_name = "TWL4030",
 	.cpu_dai = &omap_mcbsp_dai[0],
-	.codec_dai = &twl4030_dai,
+	.codec_dai = &twl4030_dai[TWL4030_DAI_HIFI],
 	.ops = &omap3evm_ops,
 };
 
@@ -93,10 +93,17 @@ static struct snd_soc_card snd_soc_omap3evm = {
 	.num_links = 1,
 };
 
+/* twl4030 setup */
+static struct twl4030_setup_data twl4030_setup = {
+	.ramp_delay_value = 4,
+	.sysclk = 26000,
+};
+
 /* Audio subsystem */
 static struct snd_soc_device omap3evm_snd_devdata = {
 	.card = &snd_soc_omap3evm,
 	.codec_dev = &soc_codec_dev_twl4030,
+	.codec_data = &twl4030_setup,
 };
 
 static struct platform_device *omap3evm_snd_device;
@@ -106,7 +113,7 @@ static int __init omap3evm_soc_init(void)
 	int ret;
 
 	if (!machine_is_omap3evm()) {
-		pr_debug("Not OMAP3 EVM!\n");
+		pr_err("Not OMAP3 EVM!\n");
 		return -ENODEV;
 	}
 	pr_info("OMAP3 EVM SoC init\n");
