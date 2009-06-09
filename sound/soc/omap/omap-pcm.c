@@ -29,6 +29,7 @@
 #include <sound/soc.h>
 
 #include <mach/dma.h>
+#include <mach/pm.h>
 #include "omap-pcm.h"
 
 static const struct snd_pcm_hardware omap_pcm_hardware = {
@@ -192,6 +193,7 @@ static int omap_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 	case SNDRV_PCM_TRIGGER_RESUME:
 	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
 		prtd->period_index = 0;
+		omap2_block_sleep();
 		omap_start_dma(prtd->dma_ch);
 		break;
 
@@ -200,6 +202,7 @@ static int omap_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
 		prtd->period_index = -1;
 		omap_stop_dma(prtd->dma_ch);
+		omap2_allow_sleep();
 		break;
 	default:
 		ret = -EINVAL;
