@@ -169,6 +169,8 @@ static int dpi_display_enable(struct omap_display *display)
 
 	dispc_enable_lcd_out(1);
 
+	mdelay(300);
+
 	r = panel->enable(display);
 	if (r)
 		goto err3;
@@ -201,6 +203,8 @@ static void dpi_display_disable(struct omap_display *display)
 		dpi_display_resume(display);
 
 	display->panel->disable(display);
+
+	mdelay(300);
 
 	dispc_enable_lcd_out(0);
 

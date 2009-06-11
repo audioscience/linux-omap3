@@ -87,11 +87,12 @@ static int __init omap3517_evm_i2c_init(void)
 /*
  * DSS2
  */
-#define LCD_BACKLIGHT_PWR	182
 /*
  * TODO: Need to define depending on Schematics
  */
-#define LCD_PANEL_PWR		0
+#define LCD_PANEL_PWR		176
+#define LCD_PANEL_BKLIGHT_PWR	182
+#define LCD_PANEL_PWM		181
 
 static int lcd_enabled;
 static int dvi_enabled;
@@ -103,9 +104,9 @@ static void __init omap3517_evm_display_init(void)
 	/*
 	 * Enable GPIO 182 = LCD Backlight Power
 	 */
-	r = gpio_request(LCD_BACKLIGHT_PWR, "lcd_backlight_pwr");
+	r = gpio_request(LCD_PANEL_BKLIGHT_PWR, "lcd_backlight_pwr");
 	if (r) {
-		printk(KERN_ERR "failed to get LCD_BACKLIGHT_PWR\n");
+		printk(KERN_ERR "failed to get LCD_PANEL_BKLIGHT_PWR\n");
 		return;
 	}
 	/*
@@ -114,7 +115,7 @@ static void __init omap3517_evm_display_init(void)
 	 * 	1 - enable
 	 *	0 - disable
 	 */
-	gpio_direction_output(LCD_BACKLIGHT_PWR, 1);
+//	gpio_direction_output(LCD_PANEL_BKLIGHT_PWR, 1);
 
 
 	/*
@@ -122,6 +123,12 @@ static void __init omap3517_evm_display_init(void)
 	 *
 	 *	- Need interface details of gptx_pwm_evt/LCD_PWM0 pin
 	 */
+	r = gpio_request(LCD_PANEL_PWM, "lcd_pwm");
+	if (r) {
+		printk(KERN_ERR "failed to get LCD_PANEL_PWM\n");
+		return;
+	}
+	gpio_direction_output(LCD_PANEL_PWM, 1);
 
 	/*
 	 * TODO: LCD panel power
@@ -135,7 +142,7 @@ static void __init omap3517_evm_display_init(void)
 	/*
 	 * TODO: Verify the polarity of signal depending on LCD panel
 	 * connected
- */
+	 */
 	gpio_direction_output(LCD_PANEL_PWR, 1);
 
 	/*
@@ -145,7 +152,7 @@ static void __init omap3517_evm_display_init(void)
 	return;
 
 err_1:
-	gpio_free(LCD_BACKLIGHT_PWR);
+	gpio_free(LCD_PANEL_BKLIGHT_PWR);
 
 }
 
@@ -155,14 +162,14 @@ static int omap3517_evm_panel_enable_lcd(struct omap_display *display)
 		printk(KERN_ERR "cannot enable LCD, DVI is enabled\n");
 		return -EINVAL;
 	}
-	gpio_direction_output(LCD_PANEL_PWR, 1);
+	gpio_direction_output(LCD_PANEL_BKLIGHT_PWR, 1);
 	lcd_enabled = 1;
 	return 0;
 }
 
 static void omap3517_evm_panel_disable_lcd(struct omap_display *display)
 {
-	gpio_direction_output(LCD_PANEL_PWR, 0);
+	gpio_direction_output(LCD_PANEL_BKLIGHT_PWR, 0);
 	lcd_enabled = 0;
 }
 
@@ -172,8 +179,8 @@ static void omap3517_evm_panel_disable_lcd(struct omap_display *display)
 static struct omap_dss_display_config omap3517_evm_display_data = {
 	.type			= OMAP_DISPLAY_TYPE_DPI,
 	.name			= "lcd",
-	.panel_name		= "sharp-ls037v7dw01",
-	.u.dpi.data_lines 	= 18,
+	.panel_name		= "sharp-lq043t1dg01",
+	.u.dpi.data_lines 	= 16,
 	.panel_enable		= omap3517_evm_panel_enable_lcd,
 	.panel_disable		= omap3517_evm_panel_disable_lcd,
 };
