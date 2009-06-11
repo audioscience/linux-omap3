@@ -343,6 +343,10 @@
 #include "board-omap3evm.h"
 #endif
 
+#ifdef CONFIG_MACH_OMAP3517EVM
+#include "board-omap3517evm.h"
+#endif
+
 #ifdef CONFIG_MACH_OMAP3_BEAGLE
 #include "board-omap3beagle.h"
 #endif

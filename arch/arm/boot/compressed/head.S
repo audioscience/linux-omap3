@@ -221,7 +221,7 @@ not_relocated:	mov	r0, #0
 		 * sufficiently.  Turn the cache on, set up some
 		 * pointers, and start decompressing.
 		 */
-/*		bl	cache_on*/
+		bl	cache_on
 
 		mov	r1, sp			@ malloc space above stack
 		add	r2, sp, #0x10000	@ 64k max
