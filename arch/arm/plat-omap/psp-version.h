@@ -23,7 +23,7 @@
 #define __ARCH_ARM_PLAT_PSP_VERSION_H
 
 #define TI_PSP_ENTRY		"ti-psp-version"
-#define TI_PSP_VERSION		"02.01.01.08"
+#define TI_PSP_VERSION		"02.01.02.09"
 
 #if defined (CONFIG_MACH_OMAP3EVM)
 #define TI_PSP_DEVICE		"OMAP35x"
