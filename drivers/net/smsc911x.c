@@ -1835,7 +1835,7 @@ static int __devinit smsc911x_init(struct net_device *dev)
 		SMSC_WARNING(PROBE,
 			"This driver is not intended for this chip revision");
 
-        /* save MAC address */
+	/* save MAC address */
 	 mac_high16 = smsc911x_mac_read(pdata, ADDRH);
 	 mac_low32 = smsc911x_mac_read(pdata, ADDRL);
 
@@ -1846,6 +1846,14 @@ static int __devinit smsc911x_init(struct net_device *dev)
 	/*restore MAC address */
 	smsc911x_mac_write(pdata, ADDRH, mac_high16);
 	smsc911x_mac_write(pdata, ADDRL, mac_low32);
+
+	/* write it to the dev structure as well */
+	dev->dev_addr[0] = (u8)(mac_low32);
+	dev->dev_addr[1] = (u8)(mac_low32 >> 8);
+	dev->dev_addr[2] = (u8)(mac_low32 >> 16);
+	dev->dev_addr[3] = (u8)(mac_low32 >> 24);
+	dev->dev_addr[4] = (u8)(mac_high16);
+	dev->dev_addr[5] = (u8)(mac_high16 >> 8);
 
 	/* Disable all interrupt sources until we bring the device up */
 	smsc911x_reg_write(pdata, INT_EN, 0);
