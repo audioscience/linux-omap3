@@ -1650,6 +1650,7 @@ int __init musb_gadget_setup(struct musb *musb)
 	musb->g.dev.dma_mask = musb->controller->dma_mask;
 	musb->g.dev.release = musb_gadget_release;
 	musb->g.name = musb_driver_name;
+	musb->gadget_driver = NULL;
 
 	if (is_otg_enabled(musb))
 		musb->g.is_otg = 1;
