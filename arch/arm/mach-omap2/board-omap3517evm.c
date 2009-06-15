@@ -128,7 +128,7 @@ static void __init omap3517_evm_display_init(void)
 	gpio_direction_output(LCD_PANEL_PWM, 1);
 
 	/*
-	 * Enable GPIO 176 = LCD Panel Power enable pin 
+	 * Enable GPIO 176 = LCD Panel Power enable pin
 	 */
 	r = gpio_request(LCD_PANEL_PWR, "lcd_panel_pwr");
 	if (r) {
@@ -295,8 +295,8 @@ static struct twl4030_hsmmc_info mmc[] = {
 		.mmc            = 1,
 		.wires          = 4,
 		/*TODO: Need to change*/
-		.gpio_cd	= 63,
-		.gpio_wp	= 63,
+		.gpio_cd	= 127,
+		.gpio_wp	= 126,
 	},
 	{}      /* Terminator */
 };

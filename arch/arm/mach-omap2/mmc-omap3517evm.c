@@ -1,5 +1,5 @@
 /*
- * linux/arch/arm/mach-omap2/mmc-twl4030.c
+ * linux/arch/arm/mach-omap2/mmc-omap3517evm.c
  *
  * Copyright (C) 2007-2008 Texas Instruments
  * Copyright (C) 2008 Nokia Corporation
@@ -24,9 +24,6 @@
 #include <mach/board.h>
 
 #include "mmc-twl4030.h"
-
-//#if defined(CONFIG_TWL4030_CORE) && \
-//	(defined(CONFIG_MMC_OMAP_HS) || defined(CONFIG_MMC_OMAP_HS_MODULE))
 
 #define LDO_CLR			0x00
 #define VSEL_S2_CLR		0x40
@@ -84,11 +81,9 @@ static int twl_mmc_card_detect(int irq)
 		if (irq != mmc->slots[0].card_detect_irq)
 			continue;
 
-		printk("%s: %d - returning\n", __func__, __LINE__);
 		/* NOTE: assumes card detect signal is active-low */
 		return !gpio_get_value_cansleep(mmc->slots[0].switch_pin);
 	}
-	printk("%s: %d - returning\n", __func__, __LINE__);
 	return -ENOSYS;
 }
 
@@ -109,12 +104,12 @@ static int twl_mmc_late_init(struct device *dev)
 	int ret = 0;
 	int i;
 
-//	ret = gpio_request(mmc->slots[0].switch_pin, "mmc_cd");
-//	if (ret)
-//		goto done;
-//	ret = gpio_direction_input(mmc->slots[0].switch_pin);
-//	if (ret)
-//		goto err;
+	ret = gpio_request(mmc->slots[0].switch_pin, "mmc_cd");
+	if (ret)
+		goto done;
+	ret = gpio_direction_input(mmc->slots[0].switch_pin);
+	if (ret)
+		goto err;
 
 	for (i = 0; i < ARRAY_SIZE(hsmmc); i++) {
 		if (hsmmc[i].name == mmc->slots[0].name) {
@@ -229,7 +224,7 @@ void __init twl4030_mmc_init(struct twl4030_hsmmc_info *controllers)
 			mmc->resume = twl_mmc_resume;
 
 			mmc->slots[0].switch_pin = c->gpio_cd;
-//			mmc->slots[0].card_detect_irq = gpio_to_irq(c->gpio_cd);
+			mmc->slots[0].card_detect_irq = gpio_to_irq(c->gpio_cd);
 			mmc->slots[0].card_detect = twl_mmc_card_detect;
 		} else
 			mmc->slots[0].switch_pin = -EINVAL;
@@ -265,5 +260,3 @@ void __init twl4030_mmc_init(struct twl4030_hsmmc_info *controllers)
 
 	omap2_init_mmc(hsmmc_data, OMAP34XX_NR_MMC);
 }
-
-//#endif
