@@ -23,6 +23,7 @@
 #include <linux/clk.h>
 #include <linux/input.h>
 #include <linux/leds.h>
+#include <linux/backlight.h>
 
 #include <linux/spi/spi.h>
 
@@ -109,19 +110,15 @@ static void __init omap3517_evm_display_init(void)
 		printk(KERN_ERR "failed to get LCD_PANEL_BKLIGHT_PWR\n");
 		return;
 	}
-	/*
-	 * Assumption: This pin is being interfaced to some LED driver
-	 * (TPS61048).
-	 * 	1 - enable
-	 *	0 - disable
-	 */
-//	gpio_direction_output(LCD_PANEL_BKLIGHT_PWR, 1);
+	gpio_direction_output(LCD_PANEL_BKLIGHT_PWR, 1);
 
 
 	/*
-	 * TODO: PWM feature, same goes to backlight driver
+	 * Enable GPIO 181 = LCD Panel PWM
 	 *
-	 *	- Need interface details of gptx_pwm_evt/LCD_PWM0 pin
+	 * We are not supporting configuration range for backlight
+	 * driver, so make it high (by default).
+	 *
 	 */
 	r = gpio_request(LCD_PANEL_PWM, "lcd_pwm");
 	if (r) {
@@ -131,18 +128,13 @@ static void __init omap3517_evm_display_init(void)
 	gpio_direction_output(LCD_PANEL_PWM, 1);
 
 	/*
-	 * TODO: LCD panel power
-	 * Currently this pin is floating, not connected to any 3517/05 pins
+	 * Enable GPIO 176 = LCD Panel Power enable pin 
 	 */
 	r = gpio_request(LCD_PANEL_PWR, "lcd_panel_pwr");
 	if (r) {
 		printk(KERN_ERR "failed to get LCD_PANEL_PWR\n");
 		goto err_1;
 	}
-	/*
-	 * TODO: Verify the polarity of signal depending on LCD panel
-	 * connected
-	 */
 	gpio_direction_output(LCD_PANEL_PWR, 1);
 
 	/*
@@ -162,14 +154,14 @@ static int omap3517_evm_panel_enable_lcd(struct omap_display *display)
 		printk(KERN_ERR "cannot enable LCD, DVI is enabled\n");
 		return -EINVAL;
 	}
-	gpio_direction_output(LCD_PANEL_BKLIGHT_PWR, 1);
+	gpio_direction_output(LCD_PANEL_PWR, 1);
 	lcd_enabled = 1;
 	return 0;
 }
 
 static void omap3517_evm_panel_disable_lcd(struct omap_display *display)
 {
-	gpio_direction_output(LCD_PANEL_BKLIGHT_PWR, 0);
+	gpio_direction_output(LCD_PANEL_PWR, 0);
 	lcd_enabled = 0;
 }
 
@@ -247,6 +239,34 @@ static struct platform_device omap3517_evm_dss_device = {
 	},
 };
 
+
+static void omap3517evm_set_bl_intensity(int intensity)
+{
+	/*Set the backlight intensity*/
+	if (intensity)
+		gpio_direction_output(LCD_PANEL_BKLIGHT_PWR, 1);
+	else
+		gpio_direction_output(LCD_PANEL_BKLIGHT_PWR, 0);
+
+}
+
+static struct generic_bl_info omap3517evm_bl_platform_data = {
+	.name			= "omap3517evm-bklight",
+	.max_intensity		= 1,
+	.default_intensity	= 1,
+	.limit_mask		= 0,
+	.set_bl_intensity	= omap3517evm_set_bl_intensity,
+	.kick_battery		= NULL,
+};
+
+static struct platform_device omap3517evm_bklight_device = {
+	.name			= "generic-bl",
+	.id			= -1,
+	.dev			= {
+		.parent		= &omap3517_evm_dss_device.dev,
+		.platform_data	= &omap3517evm_bl_platform_data,
+	},
+};
 /*
  * Board initialization
  */
@@ -256,6 +276,7 @@ static struct omap_board_config_kernel omap3517_evm_config[] __initdata = {
 
 static struct platform_device *omap3517_evm_devices[] __initdata = {
 	&omap3517_evm_dss_device,
+	&omap3517evm_bklight_device,
 };
 
 static void __init omap3517_evm_init_irq(void)
