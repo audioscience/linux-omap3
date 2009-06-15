@@ -480,6 +480,8 @@ void omap_sram_idle(void)
 
 int omap3_can_sleep(void)
 {
+	if (!enable_dyn_sleep)
+		return 0;
 	if (!omap_uart_can_sleep())
 		return 0;
 	return 1;

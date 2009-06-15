@@ -14,6 +14,7 @@
 #include <mach/powerdomain.h>
 
 extern void *omap3_secure_ram_storage;
+extern unsigned short enable_dyn_sleep;
 extern unsigned short enable_off_mode;
 extern unsigned short voltage_off_while_idle;
 
