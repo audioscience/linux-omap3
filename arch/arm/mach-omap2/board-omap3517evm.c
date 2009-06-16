@@ -39,10 +39,22 @@
 #include <mach/common.h>
 #include <mach/mcspi.h>
 #include <mach/display.h>
+#include <mach/emac.h>
 
 extern int oma35x_pmic_init(void);
 
 #include "mmc-twl4030.h"
+
+#define OMAP3517_EVM_PHY_MASK		(0x4)
+#define OMAP3517_EVM_MDIO_FREQUENCY	(1000000) /*PHY bus frequency */
+
+static struct emac_platform_data omap3517_evm_emac_pdata = {
+        .phy_mask       = OMAP3517_EVM_PHY_MASK,
+        .mdio_max_freq  = OMAP3517_EVM_MDIO_FREQUENCY,
+        .rmii_en        = 1,
+};
+
+
 /*
  * UART
  */
@@ -53,11 +65,71 @@ static struct omap_uart_config omap3517_evm_uart_config __initdata = {
 /*
  * Ethernet
  */
-static int __init omap3517_evm_ethernet_init (void)
+static int eth_addr_setup(char *str)
 {
+        int i;
 
-	return 0 ;
+        if (str == NULL)
+                return 0;
+
+        /* Conversion of a MAC address from a string (AA:BB:CC:DD:EE:FF)
+         * to a 6 bytes array. */
+        for (i = 0; i < ETH_ALEN; i++)
+                omap3517_evm_emac_pdata.mac_addr[i] = simple_strtol(&str[i*3],
+                                                           (char **)NULL, 16);
+
+        return 1;
 }
+/* Get MAC address from kernel boot parameter eth=AA:BB:CC:DD:EE:FF */
+__setup("eth=", eth_addr_setup);
+
+static struct resource omap3517_emac_resources[] = {
+        {
+                .start  = OMAP3517_EMAC_BASE,
+                .end    = OMAP3517_EMAC_BASE + 0x3FFFF,
+                .flags  = IORESOURCE_MEM,
+        },
+        {
+                .start  = INT_3517_EMAC_RX_THRESH_PULSE,
+                .end    = INT_3517_EMAC_RX_THRESH_PULSE,
+                .flags  = IORESOURCE_IRQ,
+        },
+        {
+                .start  = INT_3517_EMAC_RX_PULSE,
+                .end    = INT_3517_EMAC_RX_PULSE,
+                .flags  = IORESOURCE_IRQ,
+        },
+        {
+                .start  = INT_3517_EMAC_TX_PULSE,
+                .end    = INT_3517_EMAC_TX_PULSE,
+                .flags  = IORESOURCE_IRQ,
+        },
+        {
+                .start  = INT_3517_EMAC_MISC_PULSE,
+                .end    = INT_3517_EMAC_MISC_PULSE,
+                .flags  = IORESOURCE_IRQ,
+        },
+};
+
+static struct platform_device omap3517_emac_device = {
+        .name           = "davinci_emac",
+        .id             = 1,
+        .num_resources  = ARRAY_SIZE(omap3517_emac_resources),
+        .resource       = omap3517_emac_resources,
+};
+
+void omap3517_evm_ethernet_init(struct emac_platform_data *pdata)
+{
+        pdata->ctrl_reg_offset          = OMAP3517_EMAC_CNTRL_OFFSET;
+        pdata->ctrl_mod_reg_offset      = OMAP3517_EMAC_CNTRL_MOD_OFFSET;
+        pdata->ctrl_ram_offset          = OMAP3517_EMAC_CNTRL_RAM_OFFSET;
+        pdata->mdio_reg_offset          = OMAP3517_EMAC_MDIO_OFFSET;
+        pdata->ctrl_ram_size            = OMAP3517_EMAC_CNTRL_RAM_SIZE;
+        pdata->version                  = EMAC_VERSION_2;
+        omap3517_emac_device.dev.platform_data     = pdata;
+        platform_device_register(&omap3517_emac_device);
+}
+
 
 /*
  * I2C
@@ -323,7 +395,7 @@ static void __init omap3517_evm_init(void)
 	omap_board_config_size = ARRAY_SIZE(omap3517_evm_config);
 
 	omap_serial_init();
-	omap3517_evm_ethernet_init();
+	omap3517_evm_ethernet_init(&omap3517_evm_emac_pdata);
 	omap3517_evm_display_init();
 
 	omap3517evm_flash_init();
