@@ -56,13 +56,17 @@ struct aic3x_priv {
 	int master;
 };
 
+static u8 pg0_end = AIC3X_GEN_PG0_END;
+static u8 pg1_end = AIC3X_GEN_PG1_END;
+static enum aic3x_codec_variant codec_variant;
+
 /*
  * AIC3X register cache
  * We can't read the AIC3X register space when we are
  * using 2 wire for device control, so we cache them instead.
  * There is no point in caching the reset register
  */
-static const u8 aic3x_reg[AIC3X_CACHEREGNUM] = {
+static const u8 aic3x_reg[] = {
 	0x00, 0x00, 0x00, 0x10,	/* 0 */
 	0x04, 0x00, 0x00, 0x00,	/* 4 */
 	0x00, 0x00, 0x00, 0x01,	/* 8 */
@@ -89,6 +93,35 @@ static const u8 aic3x_reg[AIC3X_CACHEREGNUM] = {
 	0x00, 0x00, 0x00, 0x00,	/* 92 */
 	0x00, 0x00, 0x00, 0x00,	/* 96 */
 	0x00, 0x00, 0x02,	/* 100 */
+
+	0x00, 0x00, 0x00, 0x00, /* 103-127 unused */
+	0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00,
+	0x00,
+
+	0x00, 0x6b, 0xe3, 0x96, /* 0 */
+	0x66, 0x67, 0x5d, 0x6b, /* 4 */
+	0xe3, 0x96, 0x66, 0x67, /* 8 */
+	0x5d, 0x7d, 0x83, 0x84, /* 12 */
+	0xee, 0x7d, 0x83, 0x84, /* 16 */
+	0xee, 0x39, 0x55, 0xf3, /* 20 */
+	0x2d, 0x53, 0x7e, 0x6b, /* 24 */
+	0xe3, 0x96, 0x66, 0x67, /* 28 */
+	0x5d, 0x6b, 0xe3, 0x96, /* 32 */
+	0x66, 0x67, 0x5d, 0x7d, /* 36 */
+	0x83, 0x84, 0xee, 0x7d, /* 40 */
+	0x83, 0x84, 0xee, 0x39, /* 44 */
+	0x55, 0xf3, 0x2d, 0x53, /* 48 */
+	0x7e, 0x7f, 0xff, 0x00, /* 52 */
+	0x00, 0x00, 0x00, 0x00, /* 56 */
+	0x00, 0x00, 0x00, 0x00, /* 60 */
+	0x00, 0x39, 0x55, 0xf3, /* 64 */
+	0x2d, 0x53, 0x7e, 0x39, /* 68 */
+	0x55, 0xf3, 0x2d, 0x53, /* 72 */
+	0x7e,		   /* 76 */
 };
 
 /*
@@ -98,7 +131,8 @@ static inline unsigned int aic3x_read_reg_cache(struct snd_soc_codec *codec,
 						unsigned int reg)
 {
 	u8 *cache = codec->reg_cache;
-	if (reg >= AIC3X_CACHEREGNUM)
+	if ((reg >= pg1_end) ||
+		((reg >= pg0_end) && (reg < AIC3X_GEN_PG1_BEG)))
 		return -1;
 	return cache[reg];
 }
@@ -110,16 +144,14 @@ static inline void aic3x_write_reg_cache(struct snd_soc_codec *codec,
 					 u8 reg, u8 value)
 {
 	u8 *cache = codec->reg_cache;
-	if (reg >= AIC3X_CACHEREGNUM)
-		return;
 	cache[reg] = value;
 }
 
 /*
  * write to the aic3x register space
  */
-static int aic3x_write(struct snd_soc_codec *codec, unsigned int reg,
-		       unsigned int value)
+static int _aic3x_write(struct snd_soc_codec *codec, unsigned int reg,
+			unsigned int value)
 {
 	u8 data[2];
 
@@ -131,6 +163,11 @@ static int aic3x_write(struct snd_soc_codec *codec, unsigned int reg,
 	data[1] = value & 0xff;
 
 	aic3x_write_reg_cache(codec, data[0], data[1]);
+
+	/* adjust for page 1 before updating hardware if necessary */
+	if (data[0] >= AIC3X_GEN_PG1_BEG)
+		data[0] -= AIC3X_GEN_PG1_BEG;
+
 	if (codec->hw_write(codec->control_data, data, 2) == 2)
 		return 0;
 	else
@@ -150,13 +187,29 @@ static int aic3x_read(struct snd_soc_codec *codec, unsigned int reg,
 	aic3x_write_reg_cache(codec, reg, *value);
 	return 0;
 }
+static int aic3x_write(struct snd_soc_codec *codec, unsigned int reg,
+			unsigned int value)
+{
+	u8 cur_pg;
+	u8 reg_pg;
+	int ret = 0;
 
-#define SOC_DAPM_SINGLE_AIC3X(xname, reg, shift, mask, invert) \
-{	.iface = SNDRV_CTL_ELEM_IFACE_MIXER, .name = xname, \
-	.info = snd_soc_info_volsw, \
-	.get = snd_soc_dapm_get_volsw, .put = snd_soc_dapm_put_volsw_aic3x, \
-	.private_value =  SOC_SINGLE_VALUE(reg, shift, mask, invert) }
+	cur_pg = aic3x_read_reg_cache(codec, 0);
+	if (reg < pg0_end)
+		reg_pg = 0;
+	else if ((reg >= AIC3X_GEN_PG1_BEG) && (reg < pg1_end))
+		reg_pg = 1;
+	else
+		return -EIO;
 
+	if (cur_pg != reg_pg)
+		ret = _aic3x_write(codec, 0, reg_pg);
+
+	if (ret == 0)
+		ret = _aic3x_write(codec, reg, value);
+
+	return ret;
+}
 /*
  * All input lines are connected when !0xf and disconnected with 0xf bit field,
  * so we have to use specific dapm_put call for input mixer
@@ -216,6 +269,203 @@ static int snd_soc_dapm_put_volsw_aic3x(struct snd_kcontrol *kcontrol,
 	mutex_unlock(&widget->codec->mutex);
 	return ret;
 }
+#define SOC_DAPM_SINGLE_AIC3X(xname, reg, shift, mask, invert) \
+{	.iface = SNDRV_CTL_ELEM_IFACE_MIXER, .name = xname, \
+	.info = snd_soc_info_volsw, \
+	.get = snd_soc_dapm_get_volsw, .put = snd_soc_dapm_put_volsw_aic3x, \
+	.private_value =  SOC_SINGLE_VALUE(reg, shift, mask, invert) }
+
+#ifdef CONFIG_SND_MIXER_OSS
+static int tlv320aic3x_gain_put(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	int err;
+	int reg_l = kcontrol->private_value & 0x7f;
+	int reg_r = (kcontrol->private_value >> 7) & 0x7f;
+	int shift_l = (kcontrol->private_value >> 14) & 0x1f;
+	int shift_r = (kcontrol->private_value >> 19) & 0x1f;
+	int mask = (kcontrol->private_value >> 24) & 0x0f;
+	int nlevels = (kcontrol->private_value >> 28) & 0x0f;
+	unsigned short val_l, val_r, val_l_mask, val_r_mask;
+
+	val_l_mask = mask << shift_l;
+	val_r_mask = mask << shift_r;
+	val_r = (ucontrol->value.integer.value[0] & mask);
+	val_l = (ucontrol->value.integer.value[1] & mask);
+	val_l = nlevels - val_l;
+	val_r = nlevels - val_r;
+	if (val_l >= nlevels)
+		val_l = mask;
+	if (val_r >= nlevels)
+		val_r = mask;
+	val_l = val_l << shift_l;
+	val_r = val_r << shift_r;
+	err = snd_soc_update_bits(codec, reg_l, val_l_mask, val_l);
+	if (err < 0)
+		return err;
+	err = snd_soc_update_bits(codec, reg_r, val_r_mask, val_r);
+	return err;
+}
+static int tlv320aic3x_gain_get(struct snd_kcontrol *kcontrol,
+				struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	int reg_l = kcontrol->private_value & 0x7f;
+	int reg_r = (kcontrol->private_value >> 7) & 0x7f;
+	int shift_l = (kcontrol->private_value >> 14) & 0x1f;
+	int shift_r = (kcontrol->private_value >> 19) & 0x1f;
+	int mask = (kcontrol->private_value >> 24) & 0x0f;
+	int nlevels = (kcontrol->private_value >> 28) & 0x0f;
+	int val_l, val_r;
+
+	val_l = (aic3x_read_reg_cache(codec, reg_l) >> shift_l) & mask;
+	if (val_l == mask)
+		val_l = nlevels;
+	val_r = (aic3x_read_reg_cache(codec, reg_r) >> shift_r) & mask;
+	if (val_r == mask)
+		val_r = nlevels;
+	ucontrol->value.integer.value[0] = nlevels - val_r;
+	ucontrol->value.integer.value[1] = nlevels - val_l;
+	return 0;
+}
+
+static int tlv320aic3x_gain_info(struct snd_kcontrol *kcontrol,
+				 struct snd_ctl_elem_info *uinfo)
+{
+	uinfo->type = SNDRV_CTL_ELEM_TYPE_INTEGER;
+	uinfo->count = 2;
+	uinfo->value.integer.min = 0;
+	uinfo->value.integer.max = (kcontrol->private_value >> 28) & 0x0f;
+	return 0;
+}
+static int tlv320aic3x_switch_get(struct snd_kcontrol *kcontrol,
+			  struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	int reg_l = kcontrol->private_value & 0x7f;
+	int reg_r = (kcontrol->private_value >> 7) & 0x7f;
+	int shift_l = (kcontrol->private_value >> 14) & 0x1f;
+	int shift_r = (kcontrol->private_value >> 19) & 0x1f;
+	int mask = (kcontrol->private_value >> 24) & 0x0f;
+	int val_l, val_r;
+	val_l = (aic3x_read_reg_cache(codec, reg_l) >> shift_l) & mask;
+	val_r = (aic3x_read_reg_cache(codec, reg_r) >> shift_r) & mask;
+	ucontrol->value.integer.value[0] = ((val_l & val_r) == mask) ? 0 : 1;
+	return 0;
+}
+
+static int tlv320aic3x_switch_put(struct snd_kcontrol *kcontrol,
+				  struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	int err;
+	int reg_l = kcontrol->private_value & 0x7f;
+	int reg_r = (kcontrol->private_value >> 7) & 0x7f;
+	int shift_l = (kcontrol->private_value >> 14) & 0x1f;
+	int shift_r = (kcontrol->private_value >> 19) & 0x1f;
+	int mask = (kcontrol->private_value >> 24) & 0x0f;
+	int val_l, val_r;
+	unsigned short val_mask_l = mask << shift_l;
+	unsigned short val_mask_r = mask << shift_r;
+	if (ucontrol->value.integer.value[0])
+		val_l = val_r = 0; /*Set 0.0 dB gain*/
+	else { /*Disconnect from ADC PGA*/
+		val_l = val_mask_l;
+		val_r = val_mask_r;
+	}
+	err = snd_soc_update_bits(codec, reg_l, val_mask_l, val_l);
+	if (err < 0)
+		return err;
+	err = snd_soc_update_bits(codec, reg_r, val_mask_r, val_r);
+	return err;
+}
+static int tlv320aic3x_switch_info(struct snd_kcontrol *kcontrol,
+				   struct snd_ctl_elem_info *uinfo)
+{
+	uinfo->type = SNDRV_CTL_ELEM_TYPE_INTEGER;
+	uinfo->count = 1;
+	uinfo->value.integer.min = 0;
+	uinfo->value.integer.max = 1;
+	return 0;
+}
+
+#define TLV320AIC3X_GAIN_DOUBLE(xname, reg_left, reg_right, \
+		shift_left, shift_right, mask, nlevels) \
+{      .iface = SNDRV_CTL_ELEM_IFACE_MIXER, .name = (xname), \
+	.info = tlv320aic3x_gain_info, \
+	.get = tlv320aic3x_gain_get, .put = tlv320aic3x_gain_put, \
+	.private_value = (reg_left) | ((reg_right) << 7)  | \
+		((shift_left) << 14) | ((shift_right) << 19) | \
+		((mask) << 24) | ((nlevels) << 28)}
+
+#define TLV320AIC3X_GAIN_SWITCH(xname, reg_left, reg_right, \
+		shift_left, shift_right, mask) \
+{      .iface = SNDRV_CTL_ELEM_IFACE_MIXER, .name = (xname), \
+	.info = tlv320aic3x_switch_info, \
+	.get = tlv320aic3x_switch_get, .put = tlv320aic3x_switch_put, \
+	.private_value = (reg_left) | ((reg_right) << 7)  | \
+		((shift_left) << 14) | ((shift_right) << 19) | \
+		((mask) << 24)}
+#endif
+
+static int tlv320aic3x_dual_reg_info(struct snd_kcontrol *kcontrol,
+				     struct snd_ctl_elem_info *uinfo)
+{
+	uinfo->type = SNDRV_CTL_ELEM_TYPE_INTEGER;
+	uinfo->count = 1;
+	uinfo->value.integer.min = 0;
+	uinfo->value.integer.max = 0xffff;
+	return 0;
+}
+
+static int tlv320aic3x_dual_reg_get(struct snd_kcontrol *kcontrol,
+				    struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	int reg_msb = kcontrol->private_value & 0xff;
+	int reg_lsb = (kcontrol->private_value >> 8) & 0xff;
+	int val = aic3x_read_reg_cache(codec, reg_msb) << 8;
+
+	val |= aic3x_read_reg_cache(codec, reg_lsb);
+
+	/* convert 2's complement to unsigned int */
+	val ^= 0x8000;
+
+	ucontrol->value.integer.value[0] = val;
+
+	return 0;
+}
+static int tlv320aic3x_dual_reg_put(struct snd_kcontrol *kcontrol,
+				    struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_kcontrol_chip(kcontrol);
+	int err;
+	int reg_msb = kcontrol->private_value & 0xff;
+	int reg_lsb = (kcontrol->private_value >> 8) & 0xff;
+	int val_msb, val_lsb;
+
+	val_msb = (ucontrol->value.integer.value[0] >> 8) & 0xff;
+	val_lsb = ucontrol->value.integer.value[0] & 0xff;
+
+	/* convert unsigned int to 2's complement */
+	val_msb ^= 0x80;
+
+	err = snd_soc_update_bits(codec, reg_msb, 0xff, val_msb);
+	if (err < 0)
+		return err;
+	err = snd_soc_update_bits(codec, reg_lsb, 0xff, val_lsb);
+	return err;
+}
+
+#define TLV320AIC3X_DUAL_R(xname, page, reg_msb, reg_lsb) \
+{      .iface = SNDRV_CTL_ELEM_IFACE_MIXER, .name = (xname), \
+	.info = tlv320aic3x_dual_reg_info, \
+	.get = tlv320aic3x_dual_reg_get, .put = tlv320aic3x_dual_reg_put, \
+	.private_value = ((reg_msb) + page) | (((reg_lsb) + page) << 8) }
+
+#define TLV320AIC3X_PG1_DUAL_R(xname, reg_msb, reg_lsb) \
+	TLV320AIC3X_DUAL_R(xname, AIC3X_GEN_PG1_BEG, reg_msb, reg_lsb)
 
 static const char *aic3x_left_dac_mux[] = { "DAC_L1", "DAC_L3", "DAC_L2" };
 static const char *aic3x_right_dac_mux[] = { "DAC_R1", "DAC_R3", "DAC_R2" };
@@ -312,8 +562,60 @@ static const struct snd_kcontrol_new aic3x_snd_controls[] = {
 	SOC_DOUBLE_R("PGA Capture Switch", LADC_VOL, RADC_VOL, 7, 0x01, 1),
 
 	SOC_ENUM("ADC HPF Cut-off", aic3x_enum[ADC_HPF_ENUM]),
+#ifdef CONFIG_SND_MIXER_OSS
+	SOC_DOUBLE_R("Capture Volume", LADC_VOL, RADC_VOL, 0, 0x7f, 0),
+	TLV320AIC3X_GAIN_DOUBLE("Mic Volume", MIC3LR_2_LADC_CTRL,
+		MIC3LR_2_RADC_CTRL, 4, 0, 0xf, 9),
+	TLV320AIC3X_GAIN_SWITCH("Mic Capture Switch", MIC3LR_2_LADC_CTRL,
+		MIC3LR_2_RADC_CTRL, 4, 0, 0xf),
+	TLV320AIC3X_GAIN_DOUBLE("Line Volume", LINE1L_2_LADC_CTRL,
+		LINE1R_2_RADC_CTRL, 3, 3, 0xf, 9),
+	TLV320AIC3X_GAIN_SWITCH("Line Capture Switch", LINE1L_2_LADC_CTRL,
+		LINE1R_2_RADC_CTRL, 3, 3, 0xf),
+#endif
+
+	TLV320AIC3X_PG1_DUAL_R("Left Effects Coefficient N0", 1, 2),
+	TLV320AIC3X_PG1_DUAL_R("Left Effects Coefficient N1", 3, 4),
+	TLV320AIC3X_PG1_DUAL_R("Left Effects Coefficient N2", 5, 6),
+	TLV320AIC3X_PG1_DUAL_R("Left Effects Coefficient N3", 7, 8),
+	TLV320AIC3X_PG1_DUAL_R("Left Effects Coefficient N4", 9, 10),
+	TLV320AIC3X_PG1_DUAL_R("Left Effects Coefficient N5", 11, 12),
+	TLV320AIC3X_PG1_DUAL_R("Left Effects Coefficient D1", 13, 14),
+	TLV320AIC3X_PG1_DUAL_R("Left Effects Coefficient D2", 15, 16),
+	TLV320AIC3X_PG1_DUAL_R("Left Effects Coefficient D4", 17, 18),
+	TLV320AIC3X_PG1_DUAL_R("Left Effects Coefficient D5", 19, 20),
+	TLV320AIC3X_PG1_DUAL_R("Left De-Emphasis Coefficient N0", 21, 22),
+	TLV320AIC3X_PG1_DUAL_R("Left De-Emphasis Coefficient N1", 23, 24),
+	TLV320AIC3X_PG1_DUAL_R("Left De-Emphasis Coefficient D1", 25, 26),
+
+	TLV320AIC3X_PG1_DUAL_R("Right Effects Coefficient N0", 27, 28),
+	TLV320AIC3X_PG1_DUAL_R("Right Effects Coefficient N1", 29, 30),
+	TLV320AIC3X_PG1_DUAL_R("Right Effects Coefficient N2", 31, 32),
+	TLV320AIC3X_PG1_DUAL_R("Right Effects Coefficient N3", 33, 34),
+	TLV320AIC3X_PG1_DUAL_R("Right Effects Coefficient N4", 35, 36),
+	TLV320AIC3X_PG1_DUAL_R("Right Effects Coefficient N5", 37, 38),
+	TLV320AIC3X_PG1_DUAL_R("Right Effects Coefficient D1", 39, 40),
+	TLV320AIC3X_PG1_DUAL_R("Right Effects Coefficient D2", 41, 42),
+	TLV320AIC3X_PG1_DUAL_R("Right Effects Coefficient D4", 43, 44),
+	TLV320AIC3X_PG1_DUAL_R("Right Effects Coefficient D5", 45, 46),
+	TLV320AIC3X_PG1_DUAL_R("Right De-Emphasis Coefficient N0", 47, 48),
+	TLV320AIC3X_PG1_DUAL_R("Right De-Emphasis Coefficient N1", 49, 50),
+	TLV320AIC3X_PG1_DUAL_R("Right De-Emphasis Coefficient D1", 51, 52),
+
+	TLV320AIC3X_PG1_DUAL_R("3-D Attenuation Coefficient", 53, 54),
 };
 
+static const struct snd_kcontrol_new aic3106_snd_controls[] = {
+	TLV320AIC3X_PG1_DUAL_R("Left Capture High Pass Coefficient N0", 65, 66),
+	TLV320AIC3X_PG1_DUAL_R("Left Capture High Pass Coefficient N1", 67, 68),
+	TLV320AIC3X_PG1_DUAL_R("Left Capture High Pass Coefficient D1", 69, 70),
+	TLV320AIC3X_PG1_DUAL_R("Right Capture High Pass Coefficient N0",
+			     71, 72),
+	TLV320AIC3X_PG1_DUAL_R("Right Capture High Pass Coefficient N1",
+			     73, 74),
+	TLV320AIC3X_PG1_DUAL_R("Right Capture High Pass Coefficient D1",
+			     75, 76),
+};
 /* add non dapm controls */
 static int aic3x_add_controls(struct snd_soc_codec *codec)
 {
@@ -326,7 +628,15 @@ static int aic3x_add_controls(struct snd_soc_codec *codec)
 		if (err < 0)
 			return err;
 	}
-
+	if (codec_variant == AIC3106_CODEC) {
+		for (i = 0; i < ARRAY_SIZE(aic3106_snd_controls); i++) {
+			err = snd_ctl_add(codec->card,
+					  snd_soc_cnew(&aic3106_snd_controls[i],
+						       codec, NULL));
+			if (err < 0)
+				return err;
+		}
+	}
 	return 0;
 }
 
@@ -1147,7 +1457,10 @@ static int aic3x_init(struct snd_soc_device *socdev)
 	if (codec->reg_cache == NULL)
 		return -ENOMEM;
 
-	aic3x_write(codec, AIC3X_PAGE_SELECT, PAGE0_SELECT);
+	/* setup register cache sizes */
+	if (codec_variant == AIC3106_CODEC)
+		pg1_end = AIC3106_PG1_END;
+
 	aic3x_write(codec, AIC3X_RESET, SOFT_RESET);
 
 	/* register pcms */
@@ -1234,7 +1547,6 @@ static int aic3x_init(struct snd_soc_device *socdev)
 		printk(KERN_ERR "aic3x: failed to register card\n");
 		goto card_err;
 	}
-
 	return ret;
 
 card_err:
@@ -1270,6 +1582,7 @@ static int aic3x_i2c_probe(struct i2c_client *i2c,
 	ret = aic3x_init(socdev);
 	if (ret < 0)
 		printk(KERN_ERR "aic3x: failed to initialise AIC3X\n");
+
 	return ret;
 }
 
@@ -1355,6 +1668,7 @@ static int aic3x_probe(struct platform_device *pdev)
 	printk(KERN_INFO "AIC3X Audio Codec %s\n", AIC3X_VERSION);
 
 	setup = socdev->codec_data;
+	codec_variant = setup->variant;
 	codec = kzalloc(sizeof(struct snd_soc_codec), GFP_KERNEL);
 	if (codec == NULL)
 		return -ENOMEM;
