@@ -43,8 +43,8 @@ static int omap3517evm_hw_params(struct snd_pcm_substream *substream,
 
 	/* Set codec DAI configuration */
 	ret = snd_soc_dai_set_fmt(codec_dai,
-				  SND_SOC_DAIFMT_I2S |
-				  SND_SOC_DAIFMT_NB_NF |
+				  SND_SOC_DAIFMT_DSP_B |
+				  SND_SOC_DAIFMT_IB_NF |
 				  SND_SOC_DAIFMT_CBM_CFM);
 	if (ret < 0) {
 		printk(KERN_ERR "can't set codec DAI configuration\n");
@@ -53,8 +53,8 @@ static int omap3517evm_hw_params(struct snd_pcm_substream *substream,
 
 	/* Set cpu DAI configuration */
 	ret = snd_soc_dai_set_fmt(cpu_dai,
-				  SND_SOC_DAIFMT_I2S |
-				  SND_SOC_DAIFMT_NB_NF |
+				  SND_SOC_DAIFMT_DSP_B |
+				  SND_SOC_DAIFMT_IB_NF |
 				  SND_SOC_DAIFMT_CBM_CFM);
 	if (ret < 0) {
 		printk(KERN_ERR "can't set cpu DAI configuration\n");
@@ -62,8 +62,8 @@ static int omap3517evm_hw_params(struct snd_pcm_substream *substream,
 	}
 
 	/* Set the codec system clock for DAC and ADC */
-	ret = snd_soc_dai_set_sysclk(codec_dai, 0, 26000000,			//??????????
-				     SND_SOC_CLOCK_IN);
+	ret = snd_soc_dai_set_sysclk(codec_dai, 0, 24576000,
+				     SND_SOC_CLOCK_OUT);
 	if (ret < 0) {
 		printk(KERN_ERR "can't set codec system clock\n");
 		return ret;
@@ -106,7 +106,7 @@ static const struct snd_soc_dapm_route audio_map[] = {
 	{"LINE2R", NULL, "Line In"},
 };
 
-/* Logic for a aic3x as connected on a davinci-evm */
+/* Logic for a aic3x as connected on a omap3517-evm */
 static int evm_aic3x_init(struct snd_soc_codec *codec)
 {
 	/* Add omap3517-evm specific widgets */
@@ -134,8 +134,8 @@ static int evm_aic3x_init(struct snd_soc_codec *codec)
 
 /* Digital audio interface glue - connects codec <--> CPU */
 static struct snd_soc_dai_link omap3517evm_dai = {
-	.name = "TWL4030",
-	.stream_name = "TWL4030",
+	.name = "TLV320AIC3X",
+	.stream_name = "AIC3X",
 	.cpu_dai = &omap_mcbsp_dai[0],
 	.codec_dai = &aic3x_dai,
 	.init = evm_aic3x_init,
@@ -150,11 +150,18 @@ static struct snd_soc_card snd_soc_omap3517evm = {
 	.num_links = 1,
 };
 
+/* Codec specific private data */
+static struct aic3x_setup_data omap3517_evm_aic3x_setup = {
+	.i2c_bus = 1,
+	.i2c_address = 0x18,
+	.variant = AIC3106_CODEC,
+};
+
 /* Audio subsystem */
 static struct snd_soc_device omap3517evm_snd_devdata = {
 	.card = &snd_soc_omap3517evm,
 	.codec_dev = &soc_codec_dev_aic3x,
-	//.codec_data = &twl4030_setup,
+	.codec_data = &omap3517_evm_aic3x_setup,
 };
 
 static struct platform_device *omap3517evm_snd_device;
