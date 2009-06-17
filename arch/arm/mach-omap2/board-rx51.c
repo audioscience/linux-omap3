@@ -33,6 +33,8 @@
 
 #include "omap3-opp.h"
 
+struct omap_sdrc_params *rx51_get_sdram_timings(void);
+
 static struct omap_lcd_config rx51_lcd_config = {
 	.ctrl_name	= "internal",
 };
