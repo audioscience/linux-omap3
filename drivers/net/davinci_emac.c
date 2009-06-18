@@ -67,10 +67,17 @@
 #include <asm/page.h>
 
 #include <mach/emac.h>
+#include <mach/omap3517.h>
 
 static int debug_level;
-module_param(debug_level, int, 0);
+module_param(debug_level, int,0 );
 MODULE_PARM_DESC(debug_level, "DaVinci EMAC debug level (NETIF_MSG bits)");
+
+
+#define BD_TO_HW(x) \
+        ( ( (x) == 0) ? 0 : ( (x) - OMAP3517_EMAC_RAM_ADDR + OMAP3517_EMAC_HW_RAM_ADDR ))
+#define HW_TO_BD(x) \
+        ( ( (x) == 0) ? 0 : ( (x) - OMAP3517_EMAC_HW_RAM_ADDR + OMAP3517_EMAC_RAM_ADDR ))
 
 /* Netif debug messages possible */
 #define DAVINCI_EMAC_DEBUG	(NETIF_MSG_DRV | \
@@ -1029,12 +1036,20 @@ static void emac_int_enable(struct emac_priv *priv)
 		/* NOTE: Rx Threshold and Misc interrupts are not enabled */
 
 		/* ack rxen only then a new pulse will be generated */
+		printk("EMAC INt enable writing to 0x%x val 0x%x\n",(priv->emac_base + EMAC_DM646X_MACEOIVECTOR),EMAC_DM646X_MAC_EOI_C0_RXEN);
 		emac_write(EMAC_DM646X_MACEOIVECTOR,
 			EMAC_DM646X_MAC_EOI_C0_RXEN);
+		/* Make these platform specific */
+		printk("EMAC INt enable2 writing to 0x%x val 0x%x\n",IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR),OMAP3517_CPGMAC_RX_PULSE_CLR);
+		iowrite32(OMAP3517_CPGMAC_RX_PULSE_CLR,
+			IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
 
 		/* ack txen- only then a new pulse will be generated */
 		emac_write(EMAC_DM646X_MACEOIVECTOR,
 			EMAC_DM646X_MAC_EOI_C0_TXEN);
+		/* Make these platform specific */
+		iowrite32(OMAP3517_CPGMAC_TX_PULSE_CLR,
+			 IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
 
 	} else {
 		/* Set DM644x control registers for interrupt control */
@@ -2606,12 +2621,15 @@ static int __devinit davinci_emac_probe(struct platform_device *pdev)
 	struct device *emac_dev;
 
 	/* obtain emac clock from kernel */
-	emac_clk = clk_get(&pdev->dev, NULL);
+	/* Todo - modify in soc independent way */
+	emac_clk = clk_get(&pdev->dev, "cpgmac_vbusp_ck");
 	if (IS_ERR(emac_clk)) {
 		printk(KERN_ERR "DaVinci EMAC: Failed to get EMAC clock\n");
 		return -EBUSY;
 	}
 	emac_bus_frequency = clk_get_rate(emac_clk);
+	printk("EMAC BUS FREQ = 0x%x \n", emac_bus_frequency);
+
 	/* TODO: Probe PHY here if possible */
 
 	ndev = alloc_etherdev(sizeof(struct emac_priv));
@@ -2667,6 +2685,7 @@ static int __devinit davinci_emac_probe(struct platform_device *pdev)
 		release_mem_region(res->start, size);
 		goto probe_quit;
 	}
+        printk("EMAC Ioremap base 0x%X:0x%x\n",priv->remap_addr,res->start);
 	priv->emac_base = priv->remap_addr + pdata->ctrl_reg_offset;
 	ndev->base_addr = (unsigned long)priv->remap_addr;
 

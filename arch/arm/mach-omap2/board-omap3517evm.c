@@ -45,7 +45,7 @@ extern int oma35x_pmic_init(void);
 
 #include "mmc-twl4030.h"
 
-#define OMAP3517_EVM_PHY_MASK		(0x4)
+#define OMAP3517_EVM_PHY_MASK		(0xF)
 #define OMAP3517_EVM_MDIO_FREQUENCY	(1000000) /*PHY bus frequency */
 
 static struct emac_platform_data omap3517_evm_emac_pdata = {
