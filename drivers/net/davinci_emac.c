@@ -73,6 +73,7 @@ static int debug_level;
 module_param(debug_level, int,0 );
 MODULE_PARM_DESC(debug_level, "DaVinci EMAC debug level (NETIF_MSG bits)");
 
+static unsigned int emac_translation_offset=0;
 
 #define BD_TO_HW(x) \
         ( ( (x) == 0) ? 0 : ( (x) - OMAP3517_EMAC_RAM_ADDR + OMAP3517_EMAC_HW_RAM_ADDR ))
@@ -207,6 +208,8 @@ static const char emac_version_string[] = "TI DaVinci EMAC Linux v6.1";
 /** NOTE:: For DM646x the IN_VECTOR has changed */
 #define EMAC_DM646X_MAC_IN_VECTOR_RX_INT_VEC	BIT(EMAC_DEF_RX_CH)
 #define EMAC_DM646X_MAC_IN_VECTOR_TX_INT_VEC	BIT(16 + EMAC_DEF_TX_CH)
+#define EMAC_DM646X_MAC_IN_VECTOR_HOST_INT	      BIT(26)
+#define EMAC_DM646X_MAC_IN_VECTOR_STATPEND_INT	      BIT(27)
 
 /* CPPI bit positions */
 #define EMAC_CPPI_SOP_BIT		BIT(31)
@@ -502,7 +505,14 @@ static unsigned long mdio_max_freq;
 /* EMAC internal utility function */
 static inline u32 emac_virt_to_phys(void __iomem *addr)
 {
-	return (u32 __force) io_v2p(addr);
+	/* Todo: handle address translation in a platform
+	 agnostic way */
+	//return (u32 __force) io_v2p(addr);
+        if (addr == 0){
+		return 0;
+	} else{
+		return ( (u32 __force) (addr - emac_translation_offset) );
+	}
 }
 
 /* Cache macros - Packet buffers would be from skb pool which is cached */
@@ -515,9 +525,9 @@ static inline u32 emac_virt_to_phys(void __iomem *addr)
 	dma_cache_maint((void *)addr, size, DMA_BIDIRECTIONAL)
 
 /* DM644x does not have BD's in cached memory - so no cache functions */
-#define BD_CACHE_INVALIDATE(addr, size)
-#define BD_CACHE_WRITEBACK(addr, size)
-#define BD_CACHE_WRITEBACK_INVALIDATE(addr, size)
+#define BD_CACHE_INVALIDATE(addr, size)       		mb()
+#define BD_CACHE_WRITEBACK(addr, size)			mb()
+#define BD_CACHE_WRITEBACK_INVALIDATE(addr, size)	mb()
 
 /* EMAC TX Host Error description strings */
 static char *emac_txhost_errcodes[16] = {
@@ -1008,6 +1018,18 @@ static void emac_int_disable(struct emac_priv *priv)
 		emac_ctrl_write(EMAC_DM646X_CMTXINTEN, 0x0);
 		/* NOTE: Rx Threshold and Misc interrupts are not disabled */
 
+		/* Make this platform specific, to de-assert the latched
+                 * interrupt we need to acknowledge the same */
+		iowrite32(OMAP3517_CPGMAC_RX_PULSE_CLR,
+			IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
+		iowrite32(OMAP3517_CPGMAC_TX_PULSE_CLR,
+			 IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
+		iowrite32(OMAP3517_CPGMAC_RX_THRESH_CLR,
+			IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
+		iowrite32(OMAP3517_CPGMAC_MISC_PULSE_CLR,
+			 IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
+
+
 		local_irq_restore(flags);
 
 	} else {
@@ -1036,11 +1058,9 @@ static void emac_int_enable(struct emac_priv *priv)
 		/* NOTE: Rx Threshold and Misc interrupts are not enabled */
 
 		/* ack rxen only then a new pulse will be generated */
-		printk("EMAC INt enable writing to 0x%x val 0x%x\n",(priv->emac_base + EMAC_DM646X_MACEOIVECTOR),EMAC_DM646X_MAC_EOI_C0_RXEN);
 		emac_write(EMAC_DM646X_MACEOIVECTOR,
 			EMAC_DM646X_MAC_EOI_C0_RXEN);
 		/* Make these platform specific */
-		printk("EMAC INt enable2 writing to 0x%x val 0x%x\n",IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR),OMAP3517_CPGMAC_RX_PULSE_CLR);
 		iowrite32(OMAP3517_CPGMAC_RX_PULSE_CLR,
 			IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
 
@@ -1073,6 +1093,7 @@ static irqreturn_t emac_irq(int irq, void *dev_id)
 	struct emac_priv *priv = netdev_priv(ndev);
 
 	++priv->isr_count;
+        printk("EI:%d\n",priv->isr_count);
 	if (likely(netif_running(priv->ndev))) {
 		emac_int_disable(priv);
 		napi_schedule(&priv->napi);
@@ -1152,6 +1173,7 @@ static int emac_init_txch(struct emac_priv *priv, u32 ch)
 		curr_bd = mem + (cnt * bd_size);
 		curr_bd->next = txch->bd_pool_head;
 		txch->bd_pool_head = curr_bd;
+		printk("Tx Bd%d address 0x%x\n",cnt,curr_bd);
 	}
 
 	/* reset statistics counters */
@@ -1310,12 +1332,14 @@ static int emac_tx_bdproc(struct emac_priv *priv, u32 ch, u32 budget)
 		return 0;  /* dont handle any pkt completions */
 	}
 
+	printk("In Tx BD Proc \n");
+
 	++txch->proc_count;
 	spin_lock_irqsave(&priv->tx_lock, flags);
 	curr_bd = txch->active_queue_head;
 	if (NULL == curr_bd) {
 		emac_write(EMAC_TXCP(ch),
-			   emac_virt_to_phys(txch->last_hw_bdprocessed));
+			   BD_TO_HW(emac_virt_to_phys(txch->last_hw_bdprocessed)));
 		txch->no_active_pkts++;
 		spin_unlock_irqrestore(&priv->tx_lock, flags);
 		return 0;
@@ -1325,11 +1349,13 @@ static int emac_tx_bdproc(struct emac_priv *priv, u32 ch, u32 budget)
 	while ((curr_bd) &&
 	      ((frame_status & EMAC_CPPI_OWNERSHIP_BIT) == 0) &&
 	      (pkts_processed < budget)) {
-		emac_write(EMAC_TXCP(ch), emac_virt_to_phys(curr_bd));
+		emac_write(EMAC_TXCP(ch),
+			BD_TO_HW(emac_virt_to_phys(curr_bd)));
 		txch->active_queue_head = curr_bd->next;
 		if (frame_status & EMAC_CPPI_EOQ_BIT) {
 			if (curr_bd->next) {	/* misqueued packet */
-				emac_write(EMAC_TXHDP(ch), curr_bd->h_next);
+				emac_write(EMAC_TXHDP(ch),
+					BD_TO_HW(curr_bd->h_next));
 				++txch->mis_queued_packets;
 			} else {
 				txch->queue_active = 0; /* end of queue */
@@ -1402,6 +1428,9 @@ static int emac_send(struct emac_priv *priv, struct emac_netpktobj *pkt, u32 ch)
 	curr_bd->next = NULL;
 	curr_bd->mode = (EMAC_CPPI_SOP_BIT | EMAC_CPPI_OWNERSHIP_BIT |
 			 EMAC_CPPI_EOP_BIT | pkt->pkt_length);
+	/*printk("Send : buff=0x%x len=0x%x mode=0x%x bd=0x%x\n",
+		curr_bd->buff_ptr,  curr_bd->off_b_len,
+		curr_bd->mode, curr_bd);*/
 
 	/* flush the packet from cache if write back cache is present */
 	BD_CACHE_WRITEBACK_INVALIDATE(curr_bd, EMAC_BD_LENGTH_FOR_CACHE);
@@ -1412,10 +1441,12 @@ static int emac_send(struct emac_priv *priv, struct emac_netpktobj *pkt, u32 ch)
 		txch->active_queue_tail = curr_bd;
 		if (1 != txch->queue_active) {
 			emac_write(EMAC_TXHDP(ch),
-					emac_virt_to_phys(curr_bd));
+					BD_TO_HW(emac_virt_to_phys(curr_bd)));
 			txch->queue_active = 1;
 		}
 		++txch->queue_reinit;
+		//printk("S1\n");
+
 	} else {
 		register struct emac_tx_bd __iomem *tail_bd;
 		register u32 frame_status;
@@ -1424,10 +1455,13 @@ static int emac_send(struct emac_priv *priv, struct emac_netpktobj *pkt, u32 ch)
 		tail_bd->next = curr_bd;
 		txch->active_queue_tail = curr_bd;
 		tail_bd = EMAC_VIRT_NOCACHE(tail_bd);
-		tail_bd->h_next = (int)emac_virt_to_phys(curr_bd);
+		mb();
+		printk("SM\n");
+		tail_bd->h_next = BD_TO_HW(emac_virt_to_phys(curr_bd));
 		frame_status = tail_bd->mode;
 		if (frame_status & EMAC_CPPI_EOQ_BIT) {
-			emac_write(EMAC_TXHDP(ch), emac_virt_to_phys(curr_bd));
+			emac_write(EMAC_TXHDP(ch),
+				BD_TO_HW(emac_virt_to_phys(curr_bd)));
 			frame_status &= ~(EMAC_CPPI_EOQ_BIT);
 			tail_bd->mode = frame_status;
 			++txch->end_of_queue_add;
@@ -1617,7 +1651,12 @@ static int emac_init_rxch(struct emac_priv *priv, u32 ch, char *param)
 		}
 
 		/* populate the hardware descriptor */
-		curr_bd->h_next = emac_virt_to_phys(rxch->active_queue_head);
+		curr_bd->h_next =
+			BD_TO_HW(emac_virt_to_phys(rxch->active_queue_head));
+		printk("Populate Rx BD%d at 0x%x: nextlink:0x%x phys:0x%x ",
+			cnt,curr_bd,rxch->active_queue_head,
+			(emac_virt_to_phys(rxch->active_queue_head)));
+
 		/* FIXME buff_ptr = dma_map_single(... data_ptr ...) */
 		curr_bd->buff_ptr = virt_to_phys(curr_bd->data_ptr);
 		curr_bd->off_b_len = rxch->buf_size;
@@ -1628,6 +1667,9 @@ static int emac_init_rxch(struct emac_priv *priv, u32 ch, char *param)
 					      EMAC_BD_LENGTH_FOR_CACHE);
 		curr_bd->next = rxch->active_queue_head;
 		rxch->active_queue_head = curr_bd;
+
+                printk("\t h_next=0x%x next=0x%x\n",
+			curr_bd->h_next,curr_bd->next);
 	}
 
 	/* At this point rxCppi->activeQueueHead points to the first
@@ -1885,7 +1927,7 @@ static void emac_addbd_to_rx_queue(struct emac_priv *priv, u32 ch,
 		rxch->active_queue_tail = curr_bd;
 		if (0 != rxch->queue_active) {
 			emac_write(EMAC_RXHDP(ch),
-				   emac_virt_to_phys(rxch->active_queue_head));
+				   BD_TO_HW(emac_virt_to_phys(rxch->active_queue_head)));
 			rxch->queue_active = 1;
 		}
 	} else {
@@ -1896,11 +1938,12 @@ static void emac_addbd_to_rx_queue(struct emac_priv *priv, u32 ch,
 		rxch->active_queue_tail = curr_bd;
 		tail_bd->next = curr_bd;
 		tail_bd = EMAC_VIRT_NOCACHE(tail_bd);
-		tail_bd->h_next = emac_virt_to_phys(curr_bd);
+		tail_bd->h_next =
+			BD_TO_HW(emac_virt_to_phys(curr_bd));
 		frame_status = tail_bd->mode;
 		if (frame_status & EMAC_CPPI_EOQ_BIT) {
 			emac_write(EMAC_RXHDP(ch),
-					emac_virt_to_phys(curr_bd));
+				BD_TO_HW(emac_virt_to_phys(curr_bd)));
 			frame_status &= ~(EMAC_CPPI_EOQ_BIT);
 			tail_bd->mode = frame_status;
 			++rxch->end_of_queue_add;
@@ -1966,6 +2009,8 @@ static int emac_rx_bdproc(struct emac_priv *priv, u32 ch, u32 budget)
 
 	if (unlikely(1 == rxch->teardown_pending))
 		return 0;
+
+	printk("In Rx BD Proc\n");
 	++rxch->proc_count;
 	spin_lock_irqsave(&priv->rx_lock, flags);
 	pkt_obj.buf_list = &buf_obj;
@@ -1994,7 +2039,8 @@ static int emac_rx_bdproc(struct emac_priv *priv, u32 ch, u32 budget)
 		curr_pkt->num_bufs = 1;
 		curr_pkt->pkt_length =
 			(frame_status & EMAC_RX_BD_PKT_LENGTH_MASK);
-		emac_write(EMAC_RXCP(ch), emac_virt_to_phys(curr_bd));
+		emac_write(EMAC_RXCP(ch),
+			BD_TO_HW(emac_virt_to_phys(curr_bd)));
 		++rxch->processed_bd;
 		last_bd = curr_bd;
 		curr_bd = last_bd->next;
@@ -2005,7 +2051,7 @@ static int emac_rx_bdproc(struct emac_priv *priv, u32 ch, u32 budget)
 			if (curr_bd) {
 				++rxch->mis_queued_packets;
 				emac_write(EMAC_RXHDP(ch),
-					   emac_virt_to_phys(curr_bd));
+					   BD_TO_HW(emac_virt_to_phys(curr_bd)));
 			} else {
 				++rxch->end_of_queue;
 				rxch->queue_active = 0;
@@ -2106,7 +2152,7 @@ static int emac_hw_enable(struct emac_priv *priv)
 		emac_write(EMAC_RXINTMASKSET, BIT(ch));
 		rxch->queue_active = 1;
 		emac_write(EMAC_RXHDP(ch),
-			   emac_virt_to_phys(rxch->active_queue_head));
+			   BD_TO_HW(emac_virt_to_phys(rxch->active_queue_head)));
 	}
 
 	/* Enable MII */
@@ -2149,6 +2195,8 @@ static int emac_poll(struct napi_struct *napi, int budget)
 	/* Check interrupt vectors and call packet processing */
 	status = emac_read(EMAC_MACINVECTOR);
 
+	printk("IN EMAC POll status=0x%x\n",status);
+
 	mask = EMAC_DM644X_MAC_IN_VECTOR_TX_INT_VEC;
 
 	if (priv->version == EMAC_VERSION_2)
@@ -2176,13 +2224,18 @@ static int emac_poll(struct napi_struct *napi, int budget)
 		emac_int_enable(priv);
 	}
 
-	if (unlikely(status & EMAC_DM644X_MAC_IN_VECTOR_HOST_INT)) {
+	mask = EMAC_DM644X_MAC_IN_VECTOR_HOST_INT;
+	if (priv->version == EMAC_VERSION_2)
+		mask = EMAC_DM646X_MAC_IN_VECTOR_HOST_INT;
+
+	if (unlikely(status & mask)) {
 		u32 ch, cause;
 		dev_err(emac_dev, "DaVinci EMAC: Fatal Hardware Error\n");
 		netif_stop_queue(ndev);
 		napi_disable(&priv->napi);
 
 		status = emac_read(EMAC_MACSTATUS);
+		printk("EMAC Host Err Status=0x%x\n",status);
 		cause = ((status & EMAC_MACSTATUS_TXERRCODE_MASK) >>
 			 EMAC_MACSTATUS_TXERRCODE_SHIFT);
 		if (cause) {
@@ -2619,6 +2672,8 @@ static int __devinit davinci_emac_probe(struct platform_device *pdev)
 	unsigned long size;
 	struct emac_platform_data *pdata;
 	struct device *emac_dev;
+	struct clk * clkhd;
+	unsigned long busfreq;
 
 	/* obtain emac clock from kernel */
 	/* Todo - modify in soc independent way */
@@ -2629,6 +2684,23 @@ static int __devinit davinci_emac_probe(struct platform_device *pdev)
 	}
 	emac_bus_frequency = clk_get_rate(emac_clk);
 	printk("EMAC BUS FREQ = 0x%x \n", emac_bus_frequency);
+
+	clkhd= clk_get(NULL,"core_l3_ick");
+	if (IS_ERR(clkhd)) {
+		printk(KERN_ERR "core_ls_clk get failed\n");
+		return -EBUSY;
+	}
+	busfreq = clk_get_rate(clkhd);
+	printk("core l3 freq= 0x%x \n", busfreq);
+
+
+	clkhd= clk_get(NULL,"l3_ick");
+	if (IS_ERR(clkhd)) {
+		printk(KERN_ERR "l3_clk get failed\n");
+		return -EBUSY;
+	}
+	busfreq = clk_get_rate(clkhd);
+	printk("l3 freq= 0x%x \n", busfreq);
 
 	/* TODO: Probe PHY here if possible */
 
@@ -2678,13 +2750,16 @@ static int __devinit davinci_emac_probe(struct platform_device *pdev)
 		goto probe_quit;
 	}
 
-	priv->remap_addr = ioremap(res->start, size);
+	priv->remap_addr = ioremap_nocache(res->start, size);
 	if (!priv->remap_addr) {
 		dev_err(emac_dev, "Unable to map IO\n");
 		rc = -ENOMEM;
 		release_mem_region(res->start, size);
 		goto probe_quit;
 	}
+	/* record the offset for addres translation */
+	emac_translation_offset = priv->remap_addr - res->start;
+
         printk("EMAC Ioremap base 0x%X:0x%x\n",priv->remap_addr,res->start);
 	priv->emac_base = priv->remap_addr + pdata->ctrl_reg_offset;
 	ndev->base_addr = (unsigned long)priv->remap_addr;
