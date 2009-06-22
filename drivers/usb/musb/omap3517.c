@@ -63,6 +63,7 @@
 #define CONF0_VBDTCTEN         (1 << 12)       /* Vbus comparator */
 #define CONF0_REFFREQ_24MHZ    (2 << 8)
 #define CONF0_REFFREQ_26MHZ    (7 << 8)
+#define CONF0_REFFREQ_13MHZ    (6 << 8)
 #define CONF0_REFFREQ          (0xf << 8)
 #define CONF0_PHYCLKGD         (1 << 7)
 #define CONF0_VBUSSENSE        (1 << 6)
@@ -167,7 +168,7 @@ static inline void phy_on(void)
 	cfgchip2 &= ~(CONF0_RESET | CONF0_PHYPWRDN | CONF0_OTGPWRDN |
 		      CONF0_OTGMODE | CONF0_REFFREQ | CONF0_PHY_GPIOMODE);
 	cfgchip2 |= CONF0_SESENDEN | CONF0_VBDTCTEN | CONF0_PHY_PLLON |
-		    CONF0_REFFREQ_26MHZ | CONF0_DATPOL;
+		    CONF0_REFFREQ_13MHZ | CONF0_DATPOL;
 	__raw_writel(cfgchip2, IO_ADDRESS(BASE_OMAP3517_CONF0));
 
 	pr_info("Waiting for PHY clock good...(value 0x%x written in conf0)\n", cfgchip2);
