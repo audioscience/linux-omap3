@@ -62,8 +62,16 @@ static int __init omap3517_evm_ethernet_init (void)
 /*
  * I2C
  */
+static struct i2c_board_info __initdata omap3517evm_i2c_boardinfo[] = {
+	{
+		I2C_BOARD_INFO("tlv320aic3x", 0x20),
+	},
+};
+
 static int __init omap3517_evm_i2c_init(void)
 {
+	omap_register_i2c_bus(2, 100, omap3517evm_i2c_boardinfo,
+			ARRAY_SIZE(omap3517evm_i2c_boardinfo));
 	return 0;
 }
 
