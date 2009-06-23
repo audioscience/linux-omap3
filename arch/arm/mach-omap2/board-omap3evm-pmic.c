@@ -5,15 +5,16 @@
  *
  * Copyright (C) 2009 Texas Instrument Incorporated - http://www.ti.com/
  *
- * This program is free software; you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as  published by the Free
- * Software Foundation version 2.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation version 2.
  *
  * This program is distributed "as is" WITHOUT ANY WARRANTY of any kind,
  * whether express or implied; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * General Public License for more details.
  */
+
 #include <linux/regulator/driver.h>
 #include <linux/regulator/machine.h>
 #include <mach/common.h>
@@ -21,6 +22,8 @@
 /*
  * Definitions specific to TWL4030
  */
+#if defined(CONFIG_TWL4030_CORE)
+#endif
 
 /*
  * Definitions specific to TPS6235x
@@ -29,6 +32,96 @@
 /*
  * Definitions specific to TPS65023
  */
+#if defined(CONFIG_OMAP3EVM_TPS65023)
+/* MPU voltage regulator of DCDC type */
+struct regulator_consumer_supply tps65023_mpu_consumers = {
+	.supply = "vdd1",
+};
+
+/* CORE voltage regulator of DCDC type */
+struct regulator_consumer_supply tps65023_core_consumers = {
+	.supply = "vdd2",
+};
+
+/* SRAM/MEM/WKUP_BG voltage regulator of DCDC type */
+struct regulator_consumer_supply tps65023_vdds_consumers = {
+	.supply = "vdds",
+};
+
+/* DPLL voltage regulator of LDO type */
+struct regulator_consumer_supply tps65023_dpll_consumers = {
+	.supply = "dpll",
+};
+
+/* MMC voltage regulator of LDO type */
+struct regulator_consumer_supply tps65023_mmc_consumers = {
+	.supply = "mmc",
+};
+
+struct regulator_init_data tps65023_regulator_data[] = {
+	{
+		.constraints = {
+			.min_uV = 800000,
+			.max_uV = 1600000,
+			.valid_ops_mask = (REGULATOR_CHANGE_VOLTAGE |
+				REGULATOR_CHANGE_STATUS),
+			.boot_on = 1,
+		},
+		.num_consumer_supplies = 1,
+		.consumer_supplies = &tps65023_mpu_consumers,
+	},
+	{
+		.constraints = {
+			.min_uV = 1800000,
+			.max_uV = 3300000,
+			.valid_ops_mask = REGULATOR_CHANGE_STATUS,
+			.boot_on = 1,
+		},
+		.num_consumer_supplies = 1,
+		.consumer_supplies = &tps65023_core_consumers,
+	},
+	{
+		.constraints = {
+			.min_uV = 1800000,
+			.max_uV = 3300000,
+			.valid_ops_mask = REGULATOR_CHANGE_STATUS,
+			.boot_on = 1,
+		},
+		.num_consumer_supplies = 1,
+		.consumer_supplies = &tps65023_vdds_consumers,
+	},
+	{
+		.constraints = {
+			.min_uV = 1000000,
+			.max_uV = 3150000,
+			.valid_ops_mask = (REGULATOR_CHANGE_VOLTAGE |
+				REGULATOR_CHANGE_STATUS),
+			.boot_on = 1,
+		},
+		.num_consumer_supplies = 1,
+		.consumer_supplies = &tps65023_dpll_consumers,
+	},
+	{
+		.constraints = {
+			.min_uV = 1050000,
+			.max_uV = 3300000,
+			.valid_ops_mask = (REGULATOR_CHANGE_VOLTAGE |
+				REGULATOR_CHANGE_STATUS),
+			.boot_on = 1,
+		},
+		.num_consumer_supplies = 1,
+		.consumer_supplies = &tps65023_mmc_consumers,
+	},
+};
+
+static struct i2c_board_info __initdata board_tps65023_instances[] = {
+	{
+		I2C_BOARD_INFO("tps65023", 0x48),
+		.flags = I2C_CLIENT_WAKE,
+		.platform_data = &tps65023_regulator_data[0],
+	},
+};
+#endif
 
 /*
  * Definitions specific to TPS65073
@@ -202,6 +295,8 @@ int pmic_init(void)
 
 #if defined(CONFIG_OMAP3EVM_TPS65023)
 	/* do stuff specific to TPS65023 */
+	omap_register_i2c_bus(1, 400, board_tps65023_instances,
+		ARRAY_SIZE(board_tps65023_instances));
 #endif
 
 #if defined(CONFIG_OMAP3EVM_TPS65073)
