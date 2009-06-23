@@ -149,6 +149,22 @@ config MACH_OMAP3517EVM
 	bool "OMAP 3517 EVM board"
 	depends on ARCH_OMAP35XX
 
+menu "OMAP3 EVM Power Modules"
+
+choice
+	prompt "Select Power Module"
+	default OMAP3EVM_TWL4030
+
+config OMAP3EVM_TWL4030
+	bool "TWL4030/TPS65950 Power Module"
+	depends on I2C=y && ARCH_OMAP3
+	help
+	  Say yes here if you are using the TWL4030/TPS65950 based power module
+	  for the EVM boards.
+
+endchoice
+endmenu
+
 config MACH_OMAP3_BEAGLE
 	bool "OMAP3 BEAGLE board"
 	depends on ARCH_OMAP3 && ARCH_OMAP34XX
