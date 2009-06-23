@@ -1,17 +1,23 @@
 /*
- * tps65073x.h -- Header file for TPS65073x regulators
+ * tps6507x.h
  *
- * Author : Anuj Aggarwal<anuj.aggarwal@ti.com>
+ * Header file for TI TPS6507x Regulators
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * Copyright (C) 2009 Texas Instrument Incorporated - http://www.ti.com/
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation version 2.
+ *
+ * This program is distributed "as is" WITHOUT ANY WARRANTY of any kind,
+ * whether express or implied; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
  */
 
 /* Register definitions */
-#define	TPS6507X_REG_PPATH1					0X01
-#define	TPS6507X_REG_INT					0X02
+#define	TPS6507X_REG_PPATH1				0X01
+#define	TPS6507X_REG_INT				0X02
 #define	TPS6507X_REG_CHGCONFIG0				0X03
 #define	TPS6507X_REG_CHGCONFIG1				0X04
 #define	TPS6507X_REG_CHGCONFIG2				0X05
@@ -20,7 +26,7 @@
 #define	TPS6507X_REG_TSCMODE				0X08
 #define	TPS6507X_REG_ADRESULT_1				0X09
 #define	TPS6507X_REG_ADRESULT_2				0X0A
-#define	TPS6507X_REG_PGOOD					0X0B
+#define	TPS6507X_REG_PGOOD				0X0B
 #define	TPS6507X_REG_PGOODMASK				0X0C
 #define	TPS6507X_REG_CON_CTRL1				0X0D
 #define	TPS6507X_REG_CON_CTRL2				0X0E

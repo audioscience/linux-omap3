@@ -1,12 +1,18 @@
 /*
- * tps65023-regulator.c -- Supports TPS65023 regulator
+ * tps6507x-regulator.c
  *
- * Author : Anuj Aggarwal<anuj.aggarwal@ti.com>
+ * Regulator driver for TPS65073 PMIC
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * Copyright (C) 2009 Texas Instrument Incorporated - http://www.ti.com/
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation version 2.
+ *
+ * This program is distributed "as is" WITHOUT ANY WARRANTY of any kind,
+ * whether express or implied; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
  */
 
 #include <linux/kernel.h>
@@ -519,7 +525,7 @@ static struct i2c_driver tps_6507x_i2c_driver = {
 		.owner = THIS_MODULE,
 	},
 	.probe = tps_6507x_probe,
-	.remove	= __devexit_p(tps_6507x_remove),
+	.remove = __devexit_p(tps_6507x_remove),
 	.id_table = &tps_6507x_id,
 };
 
