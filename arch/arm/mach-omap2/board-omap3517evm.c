@@ -235,6 +235,9 @@ static void __init omap3517_evm_init_irq(void)
 
 static void __init omap3517_evm_init(void)
 {
+	/* Initialize the PMIC */
+	pmic_init();
+	
 	omap3517_evm_i2c_init();
 
 	platform_add_devices(omap3517_evm_devices,
