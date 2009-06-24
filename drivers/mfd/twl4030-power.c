@@ -320,6 +320,7 @@ static int __init load_triton_script(struct twl4030_script *tscript)
 {
 	u8 address = triton_next_free_address;
 	int err;
+	static u8 mask = 0;
 
 	/* Make sure the script isn't going beyond last valid address */
 	if ((address + tscript->size) > (END_OF_SCRIPT-1)) {
@@ -336,14 +337,20 @@ static int __init load_triton_script(struct twl4030_script *tscript)
 	if (tscript->flags & TRITON_WRST_SCRIPT)
 		err |= config_warmreset_sequence(address);
 
-	if (tscript->flags & TRITON_WAKEUP12_SCRIPT)
+	if (tscript->flags & TRITON_WAKEUP12_SCRIPT) {
 		err |= config_wakeup12_sequence(address);
+		mask |= TRITON_WAKEUP12_SCRIPT;
+	}
 
 	if (tscript->flags & TRITON_WAKEUP3_SCRIPT)
 		err |= config_wakeup3_sequence(address);
 
-	if (tscript->flags & TRITON_SLEEP_SCRIPT)
+	if (tscript->flags & TRITON_SLEEP_SCRIPT) {
+		if (!(mask & TRITON_WAKEUP12_SCRIPT))
+			printk(KERN_WARNING
+			       "TWL4030: Wakeup script not yet loaded. Might lead to boot failure on some boards\n");
 		err |= config_sleep_sequence(address);
+	}
 
 	return err;
 }
