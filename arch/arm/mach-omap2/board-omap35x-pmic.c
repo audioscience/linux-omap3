@@ -22,8 +22,6 @@
 /*
  * Definitions specific to TWL4030
  */
-#if defined(CONFIG_TWL4030_CORE)
-#endif
 
 /*
  * Definitions specific to TPS6235x
@@ -283,7 +281,7 @@ int pmic_is_tps65950(void)
 }
 
 /* Detects the PMIC and initializes it accordingly */
-int pmic_init(void)
+int oma35x_pmic_init(void)
 {
 #if defined(CONFIG_TWL4030_CORE)
 	/* do stuff specific to TWL4030 */

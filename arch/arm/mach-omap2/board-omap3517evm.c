@@ -39,6 +39,8 @@
 #include <mach/mcspi.h>
 #include <mach/display.h>
 
+extern int oma35x_pmic_init(void);
+
 /*
  * UART
  */
@@ -236,7 +238,7 @@ static void __init omap3517_evm_init_irq(void)
 static void __init omap3517_evm_init(void)
 {
 	/* Initialize the PMIC */
-	pmic_init();
+	oma35x_pmic_init();
 	
 	omap3517_evm_i2c_init();
 

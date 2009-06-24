@@ -52,7 +52,7 @@ obj-$(CONFIG_MACH_OMAP_3430SDP)		+= board-3430sdp.o \
 obj-$(CONFIG_MACH_OMAP3EVM)		+= board-omap3evm.o \
 					   mmc-twl4030.o \
 					   board-omap3evm-flash.o \
-					   board-omap3evm-pmic.o \
+					   board-omap35x-pmic.o \
 					   twl4030-generic-scripts.o
 obj-$(CONFIG_MACH_OMAP3_BEAGLE)		+= board-omap3beagle.o \
 					   mmc-twl4030.o \
@@ -82,7 +82,9 @@ obj-$(CONFIG_MACH_OVERO)		+= board-overo.o \
 obj-$(CONFIG_MACH_OMAP3_PANDORA)	+= board-omap3pandora.o \
 					   mmc-twl4030.o
 
-obj-$(CONFIG_MACH_OMAP3517EVM)     += board-omap3517evm.o control3517.o
+obj-$(CONFIG_MACH_OMAP3517EVM)     	+= board-omap3517evm.o \
+					   control3517.o \
+					   board-omap35x-pmic.o
 
 # Platform specific device init code
 obj-$(CONFIG_USB_MUSB_SOC)		+= usb-musb.o
