@@ -29,7 +29,8 @@
 #include <linux/module.h>
 #include <linux/dma-mapping.h>
 
-#include <mach/cppi41.h>
+//#include <mach/cppi41.h>
+#include "cppi41.h"
 
 #undef	CPPI41_DEBUG
 
@@ -244,7 +245,6 @@ int __init cppi41_queue_mgr_init(u8 q_mgr, dma_addr_t rgn0_base, u16 rgn0_size)
 
 	return 0;
 }
-EXPORT_SYMBOL(cppi41_queue_mgr_init);
 
 int __init cppi41_dma_block_init(u8 dma_num, u8 q_mgr, u8 num_order,
 				 u32 *sched_tbl, u8 tbl_size)
@@ -369,7 +369,6 @@ free_queue:
 	return error;
 }
 
-EXPORT_SYMBOL(cppi41_dma_block_init);
 /*
  * cppi41_mem_rgn_alloc - allocate a memory region within the queue manager
  */

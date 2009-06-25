@@ -89,7 +89,6 @@ obj-$(CONFIG_MACH_OMAP3517EVM)     += board-omap3517evm.o control3517.o \
 # Platform specific device init code
 obj-$(CONFIG_USB_MUSB_SOC)		+= usb-musb.o
 obj-$(CONFIG_MACH_OMAP2_TUSB6010)	+= usb-tusb6010.o
-obj-$(CONFIG_USB_TI_CPPI41_DMA)		+= cppi41.o
 
 ifneq ($(CONFIG_USB_EHCI_HCD),)
 	obj-y				+= usb-ehci.o

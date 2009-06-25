@@ -30,7 +30,7 @@
 #include <linux/clk.h>
 #include <linux/io.h>
 
-#include <mach/cppi41.h>
+#include "cppi41.h"
 /* get this from core files later */
 #define OMAP3517_CONF0                  0x0580
 #define OMAP3517_LVL_INTR_CLR		0x0594
