@@ -1871,9 +1871,8 @@ static int emac_dev_setmac_addr(struct net_device *ndev, void *addr)
 
 	/* Store mac addr in priv and rx channel and set it in EMAC hw */
 	memcpy(priv->mac_addr, sa->sa_data, ndev->addr_len);
-	memcpy(rxch->mac_addr, sa->sa_data, ndev->addr_len);
 	memcpy(ndev->dev_addr, sa->sa_data, ndev->addr_len);
-	emac_setmac(priv, EMAC_DEF_RX_CH, rxch->mac_addr);
+	emac_setmac(priv, EMAC_DEF_RX_CH, priv->mac_addr);
 
 	if (netif_msg_drv(priv))
 		dev_notice(emac_dev, "DaVinci EMAC: emac_dev_setmac_addr %s\n",
