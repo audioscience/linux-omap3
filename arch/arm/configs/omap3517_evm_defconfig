@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.29-omap1
-# Thu Jun 18 03:53:54 2009
+# Fri Jun 26 03:37:55 2009
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -607,7 +607,7 @@ CONFIG_NET_ETHERNET=y
 CONFIG_MII=y
 # CONFIG_AX88796 is not set
 # CONFIG_SMC91X is not set
-CONFIG_TI_DAVINCI_EMAC=m
+CONFIG_TI_DAVINCI_EMAC=y
 # CONFIG_DM9000 is not set
 # CONFIG_SMC911X is not set
 # CONFIG_SMSC911X is not set
