@@ -191,6 +191,29 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 	}
 }
 
+#if defined(CONFIG_USB_GADGET_MUSB_HDRC) && defined(CONFIG_MACH_OMAP3517EVM)
+static inline void musb_fifo_read_unaligned(void __iomem *fifo,
+						void __iomem *buf, u16 len)
+{
+	u32		val;
+	int		i;
+
+	if (len > 4) {
+		for (i = 0; i < (len >> 2); i++) {
+			val = musb_readl(fifo, 0);
+			memcpy(buf, &val, 4);
+			buf += 4;
+		}
+		len %= 4;
+	}
+	if (len > 0) {
+		/* Read the rest 1 - 3 bytes from FIFO */
+		val = musb_readl(fifo, 0);
+		memcpy(buf, &val, len);
+	}
+}
+#endif
+
 /*
  * Unload an endpoint's FIFO
  */
@@ -201,6 +224,12 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 	DBG(4, "%cX ep%d fifo %p count %d buf %p\n",
 			'R', hw_ep->epnum, fifo, len, dst);
 
+#if defined(CONFIG_USB_GADGET_MUSB_HDRC) && defined(CONFIG_MACH_OMAP3517EVM)
+	/* Bytewise or wordwise data read from FIFO is corrupted
+	 * if OMAP3517EVM is configured as gadget */
+	musb_fifo_read_unaligned(fifo, dst, len);
+	return;
+#endif
 	/* we can't assume unaligned writes work */
 	if (likely((0x01 & (unsigned long) dst) == 0)) {
 		u16	index = 0;

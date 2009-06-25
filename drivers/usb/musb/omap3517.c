@@ -482,11 +482,11 @@ static irqreturn_t omap3517_interrupt(int irq, void *hci)
  eoi:
 	/* EOI needs to be written for the IRQ to be re-asserted. */
 	if (ret == IRQ_HANDLED || status1 || status2) {
-		musb_writel(reg_base, USB_END_OF_INTR_REG, 0);
 		/* clear level interrupt */
 		lvl_intr = __raw_readl(IO_ADDRESS(BASE_OMAP3517_LVL_INTR_CLR));
 		lvl_intr |= (1 << 4);
  		__raw_writel(lvl_intr, IO_ADDRESS(BASE_OMAP3517_LVL_INTR_CLR));
+		musb_writel(reg_base, USB_END_OF_INTR_REG, 0);
 	}
 
 	/* Poll for ID change */
@@ -501,14 +501,15 @@ static irqreturn_t omap3517_interrupt(int irq, void *hci)
 			 * We sometimes get unhandled IRQs in the peripheral
 			 * mode from EP0 and SOF...
 			 */
-			ERR("Unhandled USB IRQ %08x-%08x\n", status1, status2);
+			DBG(2, "Unhandled USB IRQ %08x-%08x\n",
+					 status1, status2);
 		else if (printk_ratelimit())
 			/*
 			 * We've seen series of spurious interrupts in the
 			 * peripheral mode after USB reset and then after some
 			 * time a real interrupt storm starting...
 			 */
-			ERR("Spurious IRQ, CPPI 4.1 status %08x, %08x\n",
+			DBG(2, "Spurious IRQ, CPPI 4.1 status %08x, %08x\n",
 					 pend1, pend2);
 	}
 	return ret;
