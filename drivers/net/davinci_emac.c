@@ -70,7 +70,6 @@
 #include <mach/omap3517.h>
 
 
-#define PRINTK(args,...)
 
 static int debug_level;
 module_param(debug_level, int,0 );
@@ -1096,7 +1095,6 @@ static irqreturn_t emac_irq(int irq, void *dev_id)
 	struct emac_priv *priv = netdev_priv(ndev);
 
 	++priv->isr_count;
-        PRINTK("EI:%d\n",priv->isr_count);
 	if (likely(netif_running(priv->ndev))) {
 		emac_int_disable(priv);
 		napi_schedule(&priv->napi);
@@ -1176,7 +1174,6 @@ static int emac_init_txch(struct emac_priv *priv, u32 ch)
 		curr_bd = mem + (cnt * bd_size);
 		curr_bd->next = txch->bd_pool_head;
 		txch->bd_pool_head = curr_bd;
-		PRINTK("Tx Bd%d address 0x%x\n",cnt,curr_bd);
 	}
 
 	/* reset statistics counters */
@@ -1335,7 +1332,6 @@ static int emac_tx_bdproc(struct emac_priv *priv, u32 ch, u32 budget)
 		return 0;  /* dont handle any pkt completions */
 	}
 
-	PRINTK("In Tx BD Proc \n");
 
 	++txch->proc_count;
 	spin_lock_irqsave(&priv->tx_lock, flags);
@@ -1432,9 +1428,6 @@ static int emac_send(struct emac_priv *priv, struct emac_netpktobj *pkt, u32 ch)
 	curr_bd->next = NULL;
 	curr_bd->mode = (EMAC_CPPI_SOP_BIT | EMAC_CPPI_OWNERSHIP_BIT |
 			 EMAC_CPPI_EOP_BIT | pkt->pkt_length);
-	/*PRINTK("Send : buff=0x%x len=0x%x mode=0x%x bd=0x%x\n",
-		curr_bd->buff_ptr,  curr_bd->off_b_len,
-		curr_bd->mode, curr_bd);*/
 
 	/* flush the packet from cache if write back cache is present */
 	BD_CACHE_WRITEBACK_INVALIDATE(curr_bd, EMAC_BD_LENGTH_FOR_CACHE);
@@ -1449,7 +1442,6 @@ static int emac_send(struct emac_priv *priv, struct emac_netpktobj *pkt, u32 ch)
 			txch->queue_active = 1;
 		}
 		++txch->queue_reinit;
-		//PRINTK("S1\n");
 		
 	} else {
 		register struct emac_tx_bd __iomem *tail_bd;
@@ -1460,7 +1452,6 @@ static int emac_send(struct emac_priv *priv, struct emac_netpktobj *pkt, u32 ch)
 		txch->active_queue_tail = curr_bd;
 		tail_bd = EMAC_VIRT_NOCACHE(tail_bd);
 		mb();
-		PRINTK("SM\n");
 		tail_bd->h_next = BD_TO_HW(emac_virt_to_phys(curr_bd));
 		frame_status = tail_bd->mode;
 		if (frame_status & EMAC_CPPI_EOQ_BIT) {
@@ -1657,9 +1648,6 @@ static int emac_init_rxch(struct emac_priv *priv, u32 ch, char *param)
 		/* populate the hardware descriptor */
 		curr_bd->h_next =
 			BD_TO_HW(emac_virt_to_phys(rxch->active_queue_head));
-		PRINTK("Populate Rx BD%d at 0x%x: nextlink:0x%x phys:0x%x ",
-			cnt,curr_bd,rxch->active_queue_head,
-			(emac_virt_to_phys(rxch->active_queue_head)));
 
 		/* FIXME buff_ptr = dma_map_single(... data_ptr ...) */
 		curr_bd->buff_ptr = virt_to_phys(curr_bd->data_ptr);
@@ -1672,8 +1660,6 @@ static int emac_init_rxch(struct emac_priv *priv, u32 ch, char *param)
 		curr_bd->next = rxch->active_queue_head;
 		rxch->active_queue_head = curr_bd;
 
-                PRINTK("\t h_next=0x%x next=0x%x\n",
-			curr_bd->h_next,curr_bd->next);  
 	}
 
 	/* At this point rxCppi->activeQueueHead points to the first
@@ -1882,15 +1868,11 @@ static int emac_dev_setmac_addr(struct net_device *ndev, void *addr)
 	struct sockaddr *sa = addr;
 	DECLARE_MAC_BUF(mac);
 
-	printk("addr len =%d\n",ndev->addr_len);
 
 	/* Store mac addr in priv and rx channel and set it in EMAC hw */
 	memcpy(priv->mac_addr, sa->sa_data, ndev->addr_len);
-	printk("cp rxch->mac_addr, rxch=0x%x\n",rxch);
 	memcpy(rxch->mac_addr, sa->sa_data, ndev->addr_len);
-	printk("cp ndev->dev_addr\n");
 	memcpy(ndev->dev_addr, sa->sa_data, ndev->addr_len);
-	printk("setmac\n");
 	emac_setmac(priv, EMAC_DEF_RX_CH, rxch->mac_addr);
 
 	if (netif_msg_drv(priv))
@@ -2019,7 +2001,6 @@ static int emac_rx_bdproc(struct emac_priv *priv, u32 ch, u32 budget)
 	if (unlikely(1 == rxch->teardown_pending))
 		return 0;
 
-	PRINTK("In Rx BD Proc\n");
 	++rxch->proc_count;
 	spin_lock_irqsave(&priv->rx_lock, flags);
 	pkt_obj.buf_list = &buf_obj;
@@ -2204,7 +2185,6 @@ static int emac_poll(struct napi_struct *napi, int budget)
 	/* Check interrupt vectors and call packet processing */
 	status = emac_read(EMAC_MACINVECTOR);
 
-	PRINTK("IN EMAC POll status=0x%x\n",status);
 
 	mask = EMAC_DM644X_MAC_IN_VECTOR_TX_INT_VEC;
 
@@ -2244,7 +2224,6 @@ static int emac_poll(struct napi_struct *napi, int budget)
 		napi_disable(&priv->napi);
 
 		status = emac_read(EMAC_MACSTATUS);
-		PRINTK("EMAC Host Err Status=0x%x\n",status);
 		cause = ((status & EMAC_MACSTATUS_TXERRCODE_MASK) >>
 			 EMAC_MACSTATUS_TXERRCODE_SHIFT);
 		if (cause) {
@@ -2692,24 +2671,7 @@ static int __devinit davinci_emac_probe(struct platform_device *pdev)
 		return -EBUSY;
 	}
 	emac_bus_frequency = clk_get_rate(emac_clk);
-	printk("EMAC BUS FREQ = 0x%x \n", emac_bus_frequency);
 
-	clkhd= clk_get(NULL,"core_l3_ick");
-	if (IS_ERR(clkhd)) {
-		printk(KERN_ERR "core_ls_clk get failed\n");
-		return -EBUSY;
-	}
-	busfreq = clk_get_rate(clkhd);
-	printk("core l3 freq= 0x%x \n", busfreq);
-
-
-	clkhd= clk_get(NULL,"l3_ick");
-	if (IS_ERR(clkhd)) {
-		printk(KERN_ERR "l3_clk get failed\n");
-		return -EBUSY;
-	}
-	busfreq = clk_get_rate(clkhd);
-	printk("l3 freq= 0x%x \n", busfreq);
 
 	/* TODO: Probe PHY here if possible */
 
@@ -2769,7 +2731,6 @@ static int __devinit davinci_emac_probe(struct platform_device *pdev)
 	/* record the offset for addres translation */
 	emac_translation_offset = priv->remap_addr - res->start;
 
-        printk("EMAC Ioremap base 0x%X:0x%x\n",priv->remap_addr,res->start);
 	priv->emac_base = priv->remap_addr + pdata->ctrl_reg_offset;
 	ndev->base_addr = (unsigned long)priv->remap_addr;
 
