@@ -683,6 +683,15 @@ static int omapfb_setup_overlay(struct fb_info *fbi, struct omap_overlay *ovl,
 	if (ofbi->rotation_type == OMAP_DSS_ROT_VRFB) {
 		data_start_p = omapfb_get_region_rot_paddr(ofbi);
 		data_start_v = NULL;
+		if (ofbi->rotation == FB_ROTATE_CW ||
+				ofbi->rotation == FB_ROTATE_CCW) {
+			offset = ((var->xoffset * OMAP_VRFB_LINE_LEN +
+				var->yoffset) * var->bits_per_pixel) >> 3;
+		} else {
+			offset = ((var->yoffset * OMAP_VRFB_LINE_LEN +
+				var->xoffset) * var->bits_per_pixel) >> 3;
+
+		}
 	} else {
 		data_start_p = omapfb_get_region_paddr(ofbi);
 		data_start_v = omapfb_get_region_vaddr(ofbi);
