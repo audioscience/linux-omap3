@@ -134,7 +134,7 @@ static const char emac_version_string[] = "TI DaVinci EMAC Linux v6.1";
 #define EMAC_POLL_WEIGHT		(64) /* Default NAPI poll weight */
 
 /* Buffer descriptor parameters */
-#define EMAC_DEF_TX_MAX_SERVICE		(32) /* TX max service BD's */
+#define EMAC_DEF_TX_MAX_SERVICE		(64) /* TX max service BD's */
 #define EMAC_DEF_RX_MAX_SERVICE		(64) /* should = netdev->weight */
 
 /* EMAC register related defines */
@@ -1050,6 +1050,13 @@ static void emac_int_disable(struct emac_priv *priv)
 static void emac_int_enable(struct emac_priv *priv)
 {
 	if (priv->version == EMAC_VERSION_2) {
+		/* Make this platform specific */
+		iowrite32(OMAP3517_CPGMAC_RX_PULSE_CLR,
+			IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
+		/* Make this platform specific */
+		iowrite32(OMAP3517_CPGMAC_TX_PULSE_CLR,
+			 IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
+
 		emac_ctrl_write(EMAC_DM646X_CMRXINTEN, 0xff);
 		emac_ctrl_write(EMAC_DM646X_CMTXINTEN, 0xff);
 
@@ -1062,16 +1069,10 @@ static void emac_int_enable(struct emac_priv *priv)
 		/* ack rxen only then a new pulse will be generated */
 		emac_write(EMAC_DM646X_MACEOIVECTOR,
 			EMAC_DM646X_MAC_EOI_C0_RXEN);
-		/* Make these platform specific */
-		iowrite32(OMAP3517_CPGMAC_RX_PULSE_CLR,
-			IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
 
 		/* ack txen- only then a new pulse will be generated */
 		emac_write(EMAC_DM646X_MACEOIVECTOR,
 			EMAC_DM646X_MAC_EOI_C0_TXEN);
-		/* Make these platform specific */
-		iowrite32(OMAP3517_CPGMAC_TX_PULSE_CLR,
-			 IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
 
 	} else {
 		/* Set DM644x control registers for interrupt control */
@@ -2176,7 +2177,7 @@ static int emac_poll(struct napi_struct *napi, int budget)
 	struct net_device *ndev = priv->ndev;
 	struct device *emac_dev = &ndev->dev;
 	u32 status = 0;
-	u32 num_pkts = 0;
+	u32 num_pkts = 0, tx_pkts = 0;
 
 	if (!netif_running(ndev))
 		return 0;
@@ -2191,12 +2192,9 @@ static int emac_poll(struct napi_struct *napi, int budget)
 		mask = EMAC_DM646X_MAC_IN_VECTOR_TX_INT_VEC;
 
 	if (status & mask) {
-		num_pkts = emac_tx_bdproc(priv, EMAC_DEF_TX_CH,
+		tx_pkts = emac_tx_bdproc(priv, EMAC_DEF_TX_CH,
 					  EMAC_DEF_TX_MAX_SERVICE);
 	} /* TX processing */
-
-	if(num_pkts)
-		return budget;
 
 	mask = EMAC_DM644X_MAC_IN_VECTOR_RX_INT_VEC;
 
@@ -2207,7 +2205,7 @@ static int emac_poll(struct napi_struct *napi, int budget)
 		num_pkts = emac_rx_bdproc(priv, EMAC_DEF_RX_CH, budget);
 	} /* RX processing */
 
-	if (num_pkts < budget) {
+	if ( (num_pkts < budget) && (tx_pkts < EMAC_DEF_TX_MAX_SERVICE)) {
 		napi_complete(napi);
 		emac_int_enable(priv);
 	}
