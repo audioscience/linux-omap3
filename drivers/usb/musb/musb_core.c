@@ -1633,7 +1633,7 @@ void musb_dma_completion(struct musb *musb, u8 epnum, u8 transmit)
 
 	if (!epnum) {
 #ifndef CONFIG_USB_TUSB_OMAP_DMA
-		if (!is_cppi_enabled()) {
+		if (!is_cppi_enabled() && !is_cppi41_enabled()) {
 			/* endpoint 0 */
 			if (devctl & MUSB_DEVCTL_HM)
 				musb_h_ep0_irq(musb);
@@ -1995,7 +1995,7 @@ bad_config:
 		goto fail2;
 	}
 
-	printk("use_dma=%d, dev->dma_mask=%d\n",use_dma, dev->dma_mask);
+	printk("use_dma=%d, dev->dma_mask=%x\n",use_dma, dev->dma_mask);
 	if (!dev->dma_mask)
 		dev->dma_mask = 1;
 #ifndef CONFIG_MUSB_PIO_ONLY
