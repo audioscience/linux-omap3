@@ -1864,7 +1864,6 @@ static void emac_setmac(struct emac_priv *priv, u32 ch, char *mac_addr)
 static int emac_dev_setmac_addr(struct net_device *ndev, void *addr)
 {
 	struct emac_priv *priv = netdev_priv(ndev);
-	struct emac_rxch *rxch = priv->rxch[EMAC_DEF_RX_CH];
 	struct device *emac_dev = &priv->ndev->dev;
 	struct sockaddr *sa = addr;
 	DECLARE_MAC_BUF(mac);
@@ -2657,8 +2656,6 @@ static int __devinit davinci_emac_probe(struct platform_device *pdev)
 	unsigned long size;
 	struct emac_platform_data *pdata;
 	struct device *emac_dev;
-	struct clk * clkhd;
-	unsigned long busfreq;
 
 	/* obtain emac clock from kernel */
 	/* Todo - modify in soc independent way */
@@ -2726,7 +2723,7 @@ static int __devinit davinci_emac_probe(struct platform_device *pdev)
 		goto probe_quit;
 	}
 	/* record the offset for addres translation */
-	emac_translation_offset = priv->remap_addr - res->start;
+	emac_translation_offset = ( (unsigned int)(priv->remap_addr - res->start) );
 
 	priv->emac_base = priv->remap_addr + pdata->ctrl_reg_offset;
 	ndev->base_addr = (unsigned long)priv->remap_addr;
