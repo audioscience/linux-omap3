@@ -1995,10 +1995,14 @@ bad_config:
 		goto fail2;
 	}
 
+	printk("use_dma=%d, dev->dma_mask=%d\n",use_dma, dev->dma_mask);
+	if (!dev->dma_mask)
+		dev->dma_mask = 1;
 #ifndef CONFIG_MUSB_PIO_ONLY
 	if (use_dma && dev->dma_mask) {
 		struct dma_controller	*c;
 
+		printk("dma_controller_create\n");
 		c = dma_controller_create(musb, musb->mregs);
 		musb->dma_controller = c;
 		if (c)
@@ -2155,7 +2159,7 @@ static int __init musb_probe(struct platform_device *pdev)
 	if (!iomem || irq == 0)
 		return -ENODEV;
 
-	base = ioremap(iomem->start, iomem->end - iomem->start + 1);
+	base = ioremap(iomem->start, 30 * 1024/* iomem->end - iomem->start + 1*/);
 	if (!base) {
 		dev_err(dev, "ioremap failed\n");
 		return -ENOMEM;

@@ -19,6 +19,7 @@
  */
 
 #include <linux/types.h>
+#include "musb_core.h"
 
 /*
  * Queue Manager - Control Registers Region
@@ -458,8 +459,8 @@ struct cppi41_dma_block {
 	const struct cppi41_tx_ch *tx_ch_info;
 };
 
-extern const struct cppi41_queue_mgr cppi41_queue_mgr[];
-extern const struct cppi41_dma_block cppi41_dma_block[];
+extern struct cppi41_queue_mgr cppi41_queue_mgr[];
+extern struct cppi41_dma_block cppi41_dma_block[];
 extern const u8 cppi41_num_queue_mgr;
 extern const u8 cppi41_num_dma_block;
 
@@ -488,7 +489,7 @@ struct cppi41_queue_obj {
  *
  * Returns 0 on success, error otherwise.
  */
-int cppi41_queue_mgr_init(u8 q_mgr, dma_addr_t rgn0_base, u16 rgn0_size);
+int cppi41_queue_mgr_init(struct musb *musb, u8 q_mgr, dma_addr_t rgn0_base, u16 rgn0_size);
 
 /*
  * CPPI 4.1 Queue Manager Memory Region Allocation and De-allocation APIs.

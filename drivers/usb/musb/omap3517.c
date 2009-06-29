@@ -119,12 +119,13 @@ u32 dma_sched_table[] = {
 	0x89098808, 0x8b0b8a0a, 0x8d0d8c0c, 0x00008e0e
 };
 
-int __init cppi41_init(void)
+int __init cppi41_init(struct musb *musb)
 {
 	u16 numch, blknum = usb_cppi41_info.dma_block, order;
 
+	printk("cppi41_init\n");
 	/* Initialize for Linking RAM region 0 alone */
-	cppi41_queue_mgr_init(usb_cppi41_info.q_mgr, 0, 0x3fff);
+	cppi41_queue_mgr_init(musb, usb_cppi41_info.q_mgr, 0, 0x3fff);
 
 	numch =  USB_CPPI41_NUM_CH * 2;
 	order = get_count_order(numch);
@@ -554,7 +555,7 @@ int __init musb_platform_init(struct musb *musb)
 		return -ENODEV;
 
 #ifdef CONFIG_USB_TI_CPPI41_DMA
-	cppi41_init();
+	cppi41_init(musb);
 #endif
 
 	if (is_host_enabled(musb))
