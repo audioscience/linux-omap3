@@ -40,10 +40,9 @@
 #include <mach/mcspi.h>
 #include <mach/display.h>
 #include <mach/emac.h>
+#include "mmc-omap3517evm.h"
 
 extern int oma35x_pmic_init(void);
-
-#include "mmc-twl4030.h"
 
 #define OMAP3517_EVM_PHY_MASK		(0xF)
 #define OMAP3517_EVM_MDIO_FREQUENCY	(1000000) /*PHY bus frequency */
@@ -370,7 +369,7 @@ static void __init omap3517_evm_init_irq(void)
  *	Card Detect:
  *	Write Protect:
  */
-static struct twl4030_hsmmc_info mmc[] = {
+static struct omap3517_hsmmc_info mmc[] = {
 	{
 		.mmc            = 1,
 		.wires          = 4,
@@ -403,7 +402,7 @@ static void __init omap3517_evm_init(void)
 	/*
 	 * MMC init function
 	 */
-	twl4030_mmc_init(mmc);
+	omap3517_mmc_init(mmc);
 }
 
 static void __init omap3517_evm_map_io(void)

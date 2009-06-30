@@ -16,14 +16,12 @@
 #include <linux/interrupt.h>
 #include <linux/delay.h>
 #include <linux/gpio.h>
-#include <linux/i2c/twl4030.h>
 
 #include <mach/hardware.h>
 #include <mach/control.h>
 #include <mach/mmc.h>
 #include <mach/board.h>
-
-#include "mmc-twl4030.h"
+#include "mmc-omap3517evm.h"
 
 #define LDO_CLR			0x00
 #define VSEL_S2_CLR		0x40
@@ -52,23 +50,28 @@ static u16 control_devconf1_offset;
 
 #define HSMMC_NAME_LEN	9
 
-static struct twl_mmc_controller {
+/*
+ * MMC definitions for OMAP2
+ *
+ */
+
+static struct mmc_controller {
 	struct omap_mmc_platform_data	*mmc;
-	u8		twl_vmmc_dev_grp;
-	u8		twl_mmc_dedicated;
+	u8		vmmc_dev_grp;
+	u8		vmmc_dedicated;
 	char		name[HSMMC_NAME_LEN];
 } hsmmc[] = {
 	{
-		.twl_vmmc_dev_grp		= VMMC1_DEV_GRP,
-		.twl_mmc_dedicated		= VMMC1_DEDICATED,
+		.vmmc_dev_grp		= VMMC1_DEV_GRP,
+		.vmmc_dedicated		= VMMC1_DEDICATED,
 	},
 	{
-		.twl_vmmc_dev_grp		= VMMC2_DEV_GRP,
-		.twl_mmc_dedicated		= VMMC2_DEDICATED,
+		.vmmc_dev_grp		= VMMC2_DEV_GRP,
+		.vmmc_dedicated		= VMMC2_DEDICATED,
 	},
 };
 
-static int twl_mmc_card_detect(int irq)
+static int mmc_card_detect(int irq)
 {
 	unsigned i;
 
@@ -87,7 +90,7 @@ static int twl_mmc_card_detect(int irq)
 	return -ENOSYS;
 }
 
-static int twl_mmc_get_ro(struct device *dev, int slot)
+static int mmc_get_ro(struct device *dev, int slot)
 {
 	struct omap_mmc_platform_data *mmc = dev->platform_data;
 
@@ -98,7 +101,7 @@ static int twl_mmc_get_ro(struct device *dev, int slot)
 /*
  * MMC Slot Initialization.
  */
-static int twl_mmc_late_init(struct device *dev)
+static int mmc_late_init(struct device *dev)
 {
 	struct omap_mmc_platform_data *mmc = dev->platform_data;
 	int ret = 0;
@@ -130,7 +133,7 @@ done:
 	return ret;
 }
 
-static void twl_mmc_cleanup(struct device *dev)
+static void mmc_cleanup(struct device *dev)
 {
 	struct omap_mmc_platform_data *mmc = dev->platform_data;
 
@@ -139,7 +142,7 @@ static void twl_mmc_cleanup(struct device *dev)
 
 #ifdef CONFIG_PM
 
-static int twl_mmc_suspend(struct device *dev, int slot)
+static int mmc_suspend(struct device *dev, int slot)
 {
 	struct omap_mmc_platform_data *mmc = dev->platform_data;
 
@@ -147,7 +150,7 @@ static int twl_mmc_suspend(struct device *dev, int slot)
 	return 0;
 }
 
-static int twl_mmc_resume(struct device *dev, int slot)
+static int mmc_resume(struct device *dev, int slot)
 {
 	struct omap_mmc_platform_data *mmc = dev->platform_data;
 
@@ -156,38 +159,34 @@ static int twl_mmc_resume(struct device *dev, int slot)
 }
 
 #else
-#define twl_mmc_suspend	NULL
-#define twl_mmc_resume	NULL
+#define mmc_suspend	NULL
+#define mmc_resume	NULL
 #endif
 
 /*
- * Sets the MMC voltage in twl4030
+ * the MMC power setting function
  */
-static int twl_mmc_set_voltage(struct twl_mmc_controller *c, int vdd)
-{
-	return 0;
-}
 
-static int twl_mmc1_set_power(struct device *dev, int slot, int power_on,
+static int mmc1_set_power(struct device *dev, int slot, int power_on,
 				int vdd)
 {
 	return 0;
 }
 
-static int twl_mmc2_set_power(struct device *dev, int slot, int power_on, int vdd)
+static int mmc2_set_power(struct device *dev, int slot, int power_on, int vdd)
 {
 	return 0;
 }
 
 static struct omap_mmc_platform_data *hsmmc_data[OMAP34XX_NR_MMC] __initdata;
 
-void __init twl4030_mmc_init(struct twl4030_hsmmc_info *controllers)
+void __init omap3517_mmc_init(struct omap3517_hsmmc_info *controllers)
 {
-	struct twl4030_hsmmc_info *c;
+	struct omap3517_hsmmc_info *c;
 	int nr_hsmmc = ARRAY_SIZE(hsmmc_data);
 
 	for (c = controllers; c->mmc; c++) {
-		struct twl_mmc_controller *twl = hsmmc + c->mmc - 1;
+		struct mmc_controller *mmc_control = hsmmc + c->mmc - 1;
 		struct omap_mmc_platform_data *mmc = hsmmc_data[c->mmc - 1];
 
 		if (!c->mmc || c->mmc > nr_hsmmc) {
@@ -205,8 +204,8 @@ void __init twl4030_mmc_init(struct twl4030_hsmmc_info *controllers)
 			return;
 		}
 
-		sprintf(twl->name, "mmc%islot%i", c->mmc, 1);
-		mmc->slots[0].name = twl->name;
+		sprintf(mmc_control->name, "mmc%islot%i", c->mmc, 1);
+		mmc->slots[0].name = mmc_control->name;
 		mmc->nr_slots = 1;
 		mmc->slots[0].ocr_mask = MMC_VDD_165_195 |
 					MMC_VDD_26_27 | MMC_VDD_27_28 |
@@ -216,16 +215,15 @@ void __init twl4030_mmc_init(struct twl4030_hsmmc_info *controllers)
 		mmc->slots[0].internal_clock = !c->ext_clock;
 		mmc->dma_mask = 0xffffffff;
 
-		/* note: twl4030 card detect GPIOs normally switch VMMCx ... */
 		if (1) {
-			mmc->init = twl_mmc_late_init;
-			mmc->cleanup = twl_mmc_cleanup;
-			mmc->suspend = twl_mmc_suspend;
-			mmc->resume = twl_mmc_resume;
+			mmc->init = mmc_late_init;
+			mmc->cleanup = mmc_cleanup;
+			mmc->suspend = mmc_suspend;
+			mmc->resume = mmc_resume;
 
 			mmc->slots[0].switch_pin = c->gpio_cd;
 			mmc->slots[0].card_detect_irq = gpio_to_irq(c->gpio_cd);
-			mmc->slots[0].card_detect = twl_mmc_card_detect;
+			mmc->slots[0].card_detect = mmc_card_detect;
 		} else
 			mmc->slots[0].switch_pin = -EINVAL;
 
@@ -235,7 +233,7 @@ void __init twl4030_mmc_init(struct twl4030_hsmmc_info *controllers)
 			gpio_direction_input(c->gpio_wp);
 
 			mmc->slots[0].gpio_wp = c->gpio_wp;
-			mmc->slots[0].get_ro = twl_mmc_get_ro;
+			mmc->slots[0].get_ro = mmc_get_ro;
 		} else
 			mmc->slots[0].gpio_wp = -EINVAL;
 
@@ -246,10 +244,10 @@ void __init twl4030_mmc_init(struct twl4030_hsmmc_info *controllers)
 
 		switch (c->mmc) {
 		case 1:
-			mmc->slots[0].set_power = twl_mmc1_set_power;
+			mmc->slots[0].set_power = mmc1_set_power;
 			break;
 		case 2:
-			mmc->slots[0].set_power = twl_mmc2_set_power;
+			mmc->slots[0].set_power = mmc2_set_power;
 			break;
 		default:
 			pr_err("MMC%d configuration not supported!\n", c->mmc);
