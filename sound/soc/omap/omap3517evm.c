@@ -152,7 +152,7 @@ static struct snd_soc_card snd_soc_omap3517evm = {
 
 /* Codec specific private data */
 static struct aic3x_setup_data omap3517_evm_aic3x_setup = {
-	.i2c_bus = 1,
+	.i2c_bus = 2,
 	.i2c_address = 0x18,
 	.variant = AIC3106_CODEC,
 };

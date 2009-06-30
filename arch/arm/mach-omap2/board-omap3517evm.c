@@ -136,7 +136,7 @@ void omap3517_evm_ethernet_init(struct emac_platform_data *pdata)
  */
 static struct i2c_board_info __initdata omap3517evm_i2c_boardinfo[] = {
 	{
-		I2C_BOARD_INFO("tlv320aic3x", 0x20),
+		I2C_BOARD_INFO("dummy-device", 0x00),
 	},
 };
 
