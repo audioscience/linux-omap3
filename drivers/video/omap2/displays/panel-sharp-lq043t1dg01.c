@@ -79,7 +79,7 @@ static struct omap_panel sharp_ls_panel = {
 		.x_res = 480,
 		.y_res = 272,
 
-		.pixel_clock	= 19200,
+		.pixel_clock	= 9000,
 
 		.hsw		= 42,
 		.hfp		= 3,
