@@ -45,9 +45,6 @@
 
 #define VMMC_DEV_GRP_P1		0x20
 
-static u16 control_pbias_offset;
-static u16 control_devconf1_offset;
-
 #define HSMMC_NAME_LEN	9
 
 /*
