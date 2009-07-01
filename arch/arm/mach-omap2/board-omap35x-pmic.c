@@ -1,5 +1,5 @@
 /*
- * board-omap3evm-pmic.c
+ * board-omap35x-pmic.c
  *
  * Supports run-time detection of different Power Management ICs.
  *
