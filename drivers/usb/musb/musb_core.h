@@ -528,6 +528,7 @@ static inline void musb_configure_ep0(struct musb *musb)
 
 /***************************** Glue it together *****************************/
 
+extern void print_cppi_reg(struct musb *musb);
 extern const char musb_driver_name[];
 
 extern void musb_start(struct musb *musb);
