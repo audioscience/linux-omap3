@@ -31,7 +31,7 @@
 
 #include "cppi41.h"
 
-#define	CPPI41_DEBUG
+#undef	CPPI41_DEBUG
 
 #ifdef	CPPI41_DEBUG
 #define DBG1(format, args...) printk(format, ##args)
