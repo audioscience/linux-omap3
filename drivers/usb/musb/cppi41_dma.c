@@ -753,30 +753,33 @@ static unsigned cppi41_next_rx_segment(struct cppi41_channel *rx_ch)
 	u32 max_rx_transfer_size = 128 * 1024;
 	u32 i, n_bd , pkt_len;
 
-#ifdef CONFIG_USB_GADGET_MUSB_HDRC
-	max_rx_transfer_size = 512;
-	cppi41_mode_update(rx_ch, USB_TRANSPARENT_MODE);
-	cppi41_set_ep_size(rx_ch, (rx_ch->length < max_rx_transfer_size) ? rx_ch->length : 0);
-#else
-	/*
-	 * Rx can use the generic RNDIS mode where we can probably fit this
-	 * transfer in one PD and one IRQ (or two with a short packet).
-	 */
-	if ((pkt_size & 0x3f) == 0 && length >= 2 * pkt_size) {
-		cppi41_mode_update(rx_ch, USB_GENERIC_RNDIS_MODE);
-		cppi41_autoreq_update(rx_ch, USB_AUTOREQ_ALL_BUT_EOP);
-
-		if (likely(length < 0x10000))
-			pkt_size = length - length % pkt_size;
-		else
-			pkt_size = 0x10000;
-		cppi41_set_ep_size(rx_ch, pkt_size);
-	} else {
+	if (is_peripheral_active(cppi->musb)) {
+		max_rx_transfer_size = 512;
 		cppi41_mode_update(rx_ch, USB_TRANSPARENT_MODE);
-		cppi41_autoreq_update(rx_ch, USB_NO_AUTOREQ);
-	}
-#endif
+		pkt_len = 0;
+		if (rx_ch->length < max_rx_transfer_size)
+			pkt_len = rx_ch->length;
+		cppi41_set_ep_size(rx_ch, pkt_len);
+	} else {
+		/*
+		 * Rx can use the generic RNDIS mode where we can
+		 * probably fit this transfer in one PD and one IRQ
+		 * (or two with a short packet).
+		 */
+		if ((pkt_size & 0x3f) == 0 && length >= 2 * pkt_size) {
+			cppi41_mode_update(rx_ch, USB_GENERIC_RNDIS_MODE);
+			cppi41_autoreq_update(rx_ch, USB_AUTOREQ_ALL_BUT_EOP);
 
+			if (likely(length < 0x10000))
+				pkt_size = length - length % pkt_size;
+			else
+				pkt_size = 0x10000;
+			cppi41_set_ep_size(rx_ch, pkt_size);
+		} else {
+			cppi41_mode_update(rx_ch, USB_TRANSPARENT_MODE);
+			cppi41_autoreq_update(rx_ch, USB_NO_AUTOREQ);
+		}
+	}
 	DBG(4, "RX DMA%u, %s, maxpkt %u, addr %#x, rec'd %u/%u\n",
 	    rx_ch->ch_num, rx_ch->dma_mode ? "accelerated" : "transparent",
 	    pkt_size, rx_ch->start_addr + rx_ch->curr_offset,
@@ -828,11 +831,9 @@ sched:
 		musb_writew(epio, MUSB_RXCSR, csr);
 	}
 
-#ifdef CONFIG_USB_GADGET_MUSB_HDRC
 	/* enable schedular if not enabled */
-	if( n_bd > 0 )
+	if (is_peripheral_active(cppi->musb) && (n_bd > 0))
 		cppi41_enable_sched_rx();
-#endif
 	return 1;
 }
 
@@ -1299,14 +1300,13 @@ static void usb_process_rx_queue(struct cppi41 *cppi, unsigned index)
 		rx_ch = &cppi->rx_cppi_ch[ch_num];
 		rx_ch->channel.actual_len += length;
 
-		if( curr_pd->eop )
-		{
+		if (curr_pd->eop) {
 			curr_pd->eop = 0;
-#ifdef CONFIG_USB_GADGET_MUSB_HDRC
-			/* disable the rx dma schedular  */
-			cppi41_disable_sched_rx();
-			musb_dma_completion(cppi->musb, ep_num, 0);
-#endif
+			/* disable the rx dma schedular */
+			if (is_peripheral_active(cppi->musb)) {
+				cppi41_disable_sched_rx();
+				musb_dma_completion(cppi->musb, ep_num, 0);
+			}
 		}
 
 		/*
@@ -1321,12 +1321,10 @@ static void usb_process_rx_queue(struct cppi41 *cppi, unsigned index)
 
 			/* Rx completion routine callback */
 			musb_dma_completion(cppi->musb, ep_num, 0);
-		} else{
-
-#ifdef CONFIG_USB_GADGET_MUSB_HDRC
-			if( (rx_ch->length - rx_ch->curr_offset) > 0  )
-#endif
-		        cppi41_next_rx_segment(rx_ch);
+		} else {
+			if (is_peripheral_active(cppi->musb) &&
+				((rx_ch->length - rx_ch->curr_offset) > 0))
+				cppi41_next_rx_segment(rx_ch);
 		}
 	}
 }
