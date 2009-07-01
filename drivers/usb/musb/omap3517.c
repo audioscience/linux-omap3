@@ -127,14 +127,14 @@ int __init cppi41_init(struct musb *musb)
 {
 	u16 numch, blknum = usb_cppi41_info.dma_block, order;
 
-	printk("cppi41_init\n");
 	/* Initialize for Linking RAM region 0 alone */
 	cppi41_queue_mgr_init(musb, usb_cppi41_info.q_mgr, 0, 0x3fff);
 
 	numch =  USB_CPPI41_NUM_CH * 2;
 	order = get_count_order(numch);
 
-	if (order < 7)	/* CHECK: twp teardown desc per channel (5 in primus)*/
+	/* TODO: check two teardown desc per channel (5 in primus)*/
+	if (order < 7)
 		order = 7;
 
 	cppi41_dma_block_init(blknum, usb_cppi41_info.q_mgr, order,
@@ -383,7 +383,7 @@ static irqreturn_t omap3517_interrupt(int irq, void *hci)
 	unsigned long flags;
 	irqreturn_t ret = IRQ_NONE;
 	u32 pend1 = 0, pend2 = 0, tx, rx;
-	u32 status1, status2, lvl_intr;
+	u32 epintr, usbintr, lvl_intr;
 
 	spin_lock_irqsave(&musb->lock, flags);
 
@@ -404,47 +404,46 @@ static irqreturn_t omap3517_interrupt(int irq, void *hci)
 		 * substitute for the interrupt status register and reading it
 		 * directly for speed.
 		 */
-#if 1
 		pend1 = musb_readl(reg_base, QMGR_PEND1_REG);
 		pend2 = musb_readl(reg_base, QMGR_PEND2_REG);
-#endif
-		tx = (pend1 >> 31)  | ((pend2 & 1) ? (1 << 1) : 0);
-		rx = (pend2 >> 1) & 0x3;
 
-		if (tx || rx) {
+		/* OMAP3517 uses 63,64,65 and 66 queues as completion queue */
+		if ((pend1 & (1 << 31)) || (pend2 & (7 << 0))) {
+			tx = (pend1 >> 31)  | ((pend2 & 1) ? (1 << 1) : 0);
+			rx = (pend2 >> 1) & 0x3;
 
 			DBG(4, "CPPI 4.1 IRQ: Tx %x, Rx %x\n", tx, rx);
 			cppi41_completion(musb, rx, tx);
 			ret = IRQ_HANDLED;
 		}
 
+		/* TODO: check if this is required */
 		/* handle the undocumented starvation interrupt bit:28 */
-		//if( pend0 & 0x10000000 )
-		//	ret = IRQ_HANDLED;
+		/* if(pend0 & 0x10000000)
+			ret = IRQ_HANDLED;
+		*/
 	}
 
 	/* Acknowledge and handle non-CPPI interrupts */
 	/* Get endpoint interrupts */
-	status1 = musb_readl(reg_base, EP_INTR_SRC_MASKED_REG);
+	epintr = musb_readl(reg_base, EP_INTR_SRC_MASKED_REG);
 
-	if (status1) {
-		musb_writel(reg_base, EP_INTR_SRC_CLEAR_REG, status1);
-		//printk("USB EP IRQ %08x\n", status1);
+	if (epintr) {
+		musb_writel(reg_base, EP_INTR_SRC_CLEAR_REG, epintr);
 
-		musb->int_rx = (status1 & OMAP3517_RX_INTR_MASK) >> USB_INTR_RX_SHIFT;
-		musb->int_tx = (status1 & OMAP3517_TX_INTR_MASK) >> USB_INTR_TX_SHIFT;
+		musb->int_rx = (epintr & OMAP3517_RX_INTR_MASK) >> USB_INTR_RX_SHIFT;
+		musb->int_tx = (epintr & OMAP3517_TX_INTR_MASK) >> USB_INTR_TX_SHIFT;
 	}
 
 	/* Get usb core interrupts */
-	status2 = musb_readl(reg_base, CORE_INTR_SRC_MASKED_REG);
-	if (!status2 && !status1)
+	usbintr = musb_readl(reg_base, CORE_INTR_SRC_MASKED_REG);
+	if (!usbintr && !epintr)
 		goto eoi;
 
-	if (status2) {
-		musb_writel(reg_base, CORE_INTR_SRC_CLEAR_REG, status2);
-		//printk("USB CORE IRQ %08x\n", status2);
+	if (usbintr) {
+		musb_writel(reg_base, CORE_INTR_SRC_CLEAR_REG, usbintr);
 
-		musb->int_usb = (status2 & USB_INTR_USB_MASK) >> USB_INTR_USB_SHIFT;
+		musb->int_usb = (usbintr & USB_INTR_USB_MASK) >> USB_INTR_USB_SHIFT;
 		/* musb->int_regs = regs; */
 	}
 	/*
@@ -455,7 +454,7 @@ static irqreturn_t omap3517_interrupt(int irq, void *hci)
 	 * value but DEVCTL.BDEVICE is invalid without DEVCTL.SESSION set.
 	 * Also, DRVVBUS pulses for SRP (but not at 5V) ...
 	 */
-	if (status2 & (USB_INTR_DRVVBUS << USB_INTR_USB_SHIFT)) {
+	if (usbintr & (USB_INTR_DRVVBUS << USB_INTR_USB_SHIFT)) {
 		int drvvbus = musb_readl(reg_base, USB_STAT_REG);
 		void __iomem *mregs = musb->mregs;
 		u8 devctl = musb_readb(mregs, MUSB_DEVCTL);
@@ -516,11 +515,12 @@ static irqreturn_t omap3517_interrupt(int irq, void *hci)
 
  eoi:
 	/* EOI needs to be written for the IRQ to be re-asserted. */
-	if (ret == IRQ_HANDLED || status1 || status2) {
+	if (ret == IRQ_HANDLED || epintr || usbintr) {
 		/* clear level interrupt */
 		lvl_intr = __raw_readl(IO_ADDRESS(BASE_OMAP3517_LVL_INTR_CLR));
 		lvl_intr |= (1 << 4);
  		__raw_writel(lvl_intr, IO_ADDRESS(BASE_OMAP3517_LVL_INTR_CLR));
+		/* write EOI */
 		musb_writel(reg_base, USB_END_OF_INTR_REG, 0);
 	}
 
@@ -531,13 +531,13 @@ static irqreturn_t omap3517_interrupt(int irq, void *hci)
 	spin_unlock_irqrestore(&musb->lock, flags);
 
 	if (ret != IRQ_HANDLED) {
-		if (status1 || status2)
+		if (epintr || usbintr)
 			/*
 			 * We sometimes get unhandled IRQs in the peripheral
 			 * mode from EP0 and SOF...
 			 */
 			DBG(2, "Unhandled USB IRQ %08x-%08x\n",
-					 status1, status2);
+					 epintr, usbintr);
 		else if (printk_ratelimit())
 			/*
 			 * We've seen series of spurious interrupts in the
@@ -580,9 +580,11 @@ int __init musb_platform_init(struct musb *musb)
 	if (clk_enable(musb->clock) < 0)
 		return -ENODEV;
 
+	DBG(2, "usbotg_vbusp_clk=%lud\n",clk_get_rate(musb->clock));
 	otg_fck = clk_get(NULL, "usbotg_fck");
 	clk_enable(otg_fck);
 
+	DBG(2, "usbotg_phy_clk=%lud\n",clk_get_rate(otg_fck));
 	/* Returns zero if e.g. not clocked */
 	rev = musb_readl(reg_base, USB_REVISION_REG);
 	if (!rev)
@@ -594,7 +596,7 @@ int __init musb_platform_init(struct musb *musb)
 	musb->board_set_vbus = omap3517_set_vbus;
 	omap3517_source_power(musb, 0, 1);
 
-#if 0 /* follow reset procedure */
+#if 0 /* follow recommended reset procedure */
 	/* Reset the controller */
 	musb_writel(reg_base, USB_CTRL_REG, USB_SOFT_RESET_MASK);
 
@@ -614,7 +616,6 @@ int __init musb_platform_init(struct musb *musb)
 	clk_enable(musb->clock);
 
 #else
-
 	/* global reset */
 	sw_reset = __raw_readl(IO_ADDRESS(BASE_OMAP3517_IP_SW_RST));
 
@@ -627,11 +628,6 @@ int __init musb_platform_init(struct musb *musb)
 	/* Reset the controller */
 	musb_writel(reg_base, USB_CTRL_REG, USB_SOFT_RESET_MASK);
 
-#if 0	/* EOI toggle */
-	musb_writel(reg_base, USB_END_OF_INTR_REG, 0);
-	musb_writel(reg_base, USB_END_OF_INTR_REG, 1);
-	musb_writel(reg_base, USB_END_OF_INTR_REG, 0);
-#endif
 	/* Start the on-chip PHY and its PLL. */
 	phy_on();
 
@@ -642,15 +638,6 @@ int __init musb_platform_init(struct musb *musb)
 		cppi41_init(musb);
 #endif
 
-	/* ip clk control wait till VBUSP clk disabled */
-	printk("BASE_OMAP3517_IP_CLK_CTRL = 0x%x\n",
-			__raw_readl(IO_ADDRESS(BASE_OMAP3517_IP_CLK_CTRL)));
-	/* while ((__raw_readl(IO_ADDRESS(BASE_OMAP3517_IP_CLK_CTRL)) & 0x1))
-		cpu_relax();
-	*/
-
-	/* __raw_writel(OMAP3517_KICK0_MAGIC, IO_ADDRESS(OMAP3517_KICK0)); */
-	/* __raw_writel(OMAP3517_KICK1_MAGIC, IO_ADDRESS(OMAP3517_KICK1)); */
 	/* NOTE: IRQs are in mixed mode, not bypass to pure MUSB */
 	printk("OMAP3517 OTG revision %08x, PHY %03x, control %02x\n",
 		 rev, __raw_readl(IO_ADDRESS(BASE_OMAP3517_CONF0)),
@@ -662,11 +649,10 @@ int __init musb_platform_init(struct musb *musb)
 	/* musb_writeb(musb->mregs, 0x7C, 0x40); */
 
 	/* clear level interrupt */
-#if 1
 	lvl_intr = __raw_readl(IO_ADDRESS(BASE_OMAP3517_LVL_INTR_CLR));
 	lvl_intr |= (1 << 4);
 	__raw_writel(lvl_intr, IO_ADDRESS(BASE_OMAP3517_LVL_INTR_CLR));
-#endif
+
 	return 0;
 }
 

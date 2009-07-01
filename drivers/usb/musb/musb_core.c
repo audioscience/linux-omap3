@@ -1984,10 +1984,6 @@ bad_config:
 	musb->isr = generic_interrupt;
 	status = musb_platform_init(musb);
 
-	printk("musb->clock =%s\n", plat->clock);
-	printk("musb->mregs = 0x%p , musb->ctrl_base = 0x%p\n",
-			musb->mregs, musb->ctrl_base);
-
 	if (status < 0)
 		goto fail;
 	if (!musb->isr) {
@@ -2003,7 +1999,6 @@ bad_config:
 	if (use_dma && dev->dma_mask) {
 		struct dma_controller	*c;
 
-		printk("dma_controller_create\n");
 		c = dma_controller_create(musb, musb->mregs);
 		musb->dma_controller = c;
 		if (c)
@@ -2170,8 +2165,6 @@ static int __init musb_probe(struct platform_device *pdev)
 	/* clobbered by use_dma=n */
 	orig_dma_mask = dev->dma_mask;
 #endif
-	printk("musb_probe -> IRQ=%d, iomem->start(PA/VA)=0x%x/0x%p\n",
-			 irq, iomem->start, base);
 	return musb_init_controller(dev, irq, base);
 }
 

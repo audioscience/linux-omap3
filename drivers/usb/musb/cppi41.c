@@ -171,7 +171,6 @@ static struct {
 static u32 *allocated_queues[CPPI41_NUM_QUEUE_MGR];
 
 /* First 32 packet descriptors are reserved for unallocated memory regions. */
-/* 7 => 128 tear down desc */
 static u32 next_desc_index[CPPI41_NUM_QUEUE_MGR] = {1 << 7};
 static u8  next_mem_rgn[CPPI41_NUM_QUEUE_MGR] = {0};
 
@@ -277,9 +276,9 @@ int cppi41_dma_sched_tbl_init(u8 dma_num, u8 q_mgr,
                 val = sched_tbl[i];
                 __raw_writel(val, dma_block->sched_table_base +
                              DMA_SCHED_TABLE_WORD_REG(i));
-                //DBG("DMA scheduler table @ %p, value written: %x\n",
-                  //  dma_block->sched_table_base + DMA_SCHED_TABLE_WORD_REG(i),
-                    //val);
+                DBG1("DMA scheduler table @ %p, value written: %x\n",
+                    dma_block->sched_table_base + DMA_SCHED_TABLE_WORD_REG(i),
+                    val);
         }
 	return 0;
 }
@@ -341,7 +340,7 @@ int __init cppi41_dma_block_init(u8 dma_num, u8 q_mgr, u8 num_order,
 		goto free_queue;
 	}
 	dma_teardown[dma_num].virt_addr = ptr;
-	/*TODO 5->32 td-desc sz */
+	/* TODO check order as 5->32 td-desc sz */
 	error = cppi41_mem_rgn_alloc(q_mgr, dma_teardown[dma_num].phys_addr, 5,
 				     num_order, &dma_teardown[dma_num].mem_rgn);
 	if (error) {
