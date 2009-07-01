@@ -158,6 +158,8 @@ void __init usb_musb_init(void)
 		musb_resources[1].start = INT_OMAP3517_HSUSB_OTG;
 		/* set mux config for DRVVBUS */
 		omap_cfg_reg(E25_3517_USB0_DRVVBUS);
+		/* OMAP3517 can provide max of 500mA */
+		musb_plat.power = 250;
 	} else {
 		musb_resources[0].start = OMAP34XX_HSUSB_OTG_BASE;
 		musb_plat.clock = "hsotgusb_ick";
