@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.29-omap1
-# Mon Jun 29 22:24:32 2009
+# Wed Jul  1 22:18:59 2009
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -1022,7 +1022,9 @@ CONFIG_USB_MUSB_HOST=y
 # CONFIG_USB_MUSB_PERIPHERAL is not set
 # CONFIG_USB_MUSB_OTG is not set
 CONFIG_USB_MUSB_HDRC_HCD=y
-CONFIG_MUSB_PIO_ONLY=y
+# CONFIG_MUSB_PIO_ONLY is not set
+# CONFIG_USB_TI_CPPI_DMA is not set
+CONFIG_USB_TI_CPPI41_DMA=y
 CONFIG_USB_MUSB_DEBUG=y
 
 #
