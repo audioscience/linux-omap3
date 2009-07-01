@@ -489,7 +489,8 @@ struct cppi41_queue_obj {
  *
  * Returns 0 on success, error otherwise.
  */
-int cppi41_queue_mgr_init(struct musb *musb, u8 q_mgr, dma_addr_t rgn0_base, u16 rgn0_size);
+int cppi41_queue_mgr_init(struct musb *musb,
+		u8 q_mgr, dma_addr_t rgn0_base, u16 rgn0_size);
 
 /*
  * CPPI 4.1 Queue Manager Memory Region Allocation and De-allocation APIs.

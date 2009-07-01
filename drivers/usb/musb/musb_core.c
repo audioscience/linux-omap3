@@ -1992,9 +1992,9 @@ bad_config:
 	}
 
 #ifndef CONFIG_MUSB_PIO_ONLY
-	printk("use_dma=%d, dev->dma_mask=%x\n",use_dma, (u32)dev->dma_mask);
+	DBG(2, "use_dma=%d, dev->dma_mask=%x\n", use_dma, (u32)dev->dma_mask);
 	if (use_dma && !dev->dma_mask)
-		dev->dma_mask = (u64*)(1ULL << 31);
+		dev->dma_mask = (u64 *)(1ULL << 31);
 
 	if (use_dma && dev->dma_mask) {
 		struct dma_controller	*c;
@@ -2021,7 +2021,7 @@ bad_config:
 		goto fail2;
 
 #ifdef CONFIG_USB_OTG
-	setup_timer(&musb->otg_timer, musb_otg_timer_func, (unsigned long) musb);
+	setup_timer(&musb->otg_timer, musb_otg_timer_func, (unsigned long)musb);
 #endif
 
 	/* Init IRQ workqueue before request_irq */
@@ -2154,8 +2154,8 @@ static int __init musb_probe(struct platform_device *pdev)
 	iomem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!iomem || irq == 0)
 		return -ENODEV;
-
-	base = ioremap(iomem->start, 30 * 1024/* iomem->end - iomem->start + 1*/);
+	/* TODO: use [iomem->end - iomem->start + 1] */
+	base = ioremap(iomem->start, 30 * 1024);
 	if (!base) {
 		dev_err(dev, "ioremap failed\n");
 		return -ENOMEM;

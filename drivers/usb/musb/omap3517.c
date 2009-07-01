@@ -32,8 +32,8 @@
 
 #include "cppi41.h"
 
- extern int cppi41_dma_sched_tbl_init(u8 dma_num, u8 q_mgr,
-                                  u32 *sched_tbl, u8 tbl_size);
+extern int cppi41_dma_sched_tbl_init(u8 dma_num, u8 q_mgr,
+			u32 *sched_tbl, u8 tbl_size);
 
 /* get this from core files later */
 #define OMAP3517_CONF0                  0x0580
@@ -41,8 +41,10 @@
 #define OMAP3517_IP_SW_RST		0x0598
 #define OMAP3517_IP_CLK_CTRL		0x059c
 #define BASE_OMAP3517_CONF0		(OMAP343X_SCM_BASE + OMAP3517_CONF0)
-#define BASE_OMAP3517_IP_CLK_CTRL	(OMAP343X_SCM_BASE + OMAP3517_IP_CLK_CTRL)
-#define BASE_OMAP3517_LVL_INTR_CLR	(OMAP343X_SCM_BASE + OMAP3517_LVL_INTR_CLR)
+#define BASE_OMAP3517_IP_CLK_CTRL \
+		(OMAP343X_SCM_BASE + OMAP3517_IP_CLK_CTRL)
+#define BASE_OMAP3517_LVL_INTR_CLR \
+		(OMAP343X_SCM_BASE + OMAP3517_LVL_INTR_CLR)
 #define BASE_OMAP3517_IP_SW_RST		(OMAP343X_SCM_BASE + OMAP3517_IP_SW_RST)
 
 #include "musb_core.h"
@@ -144,31 +146,31 @@ int __init cppi41_init(struct musb *musb)
 
 #endif /* CONFIG_USB_TI_CPPI41_DMA */
 
- #ifdef CONFIG_USB_TI_CPPI41_DMA
- int cppi41_disable_sched_rx(void)
- {
-         u16 numch = 7, blknum = usb_cppi41_info.dma_block;
+#ifdef CONFIG_USB_TI_CPPI41_DMA
+int cppi41_disable_sched_rx(void)
+{
+	u16 numch = 7, blknum = usb_cppi41_info.dma_block;
 
 	dma_sched_table[0] = 0x02810100;
 	dma_sched_table[1] = 0x830382;
 
-         cppi41_dma_sched_tbl_init (blknum, usb_cppi41_info.q_mgr,
-                         dma_sched_table, numch);
-         return 0;
- }
+	cppi41_dma_sched_tbl_init(blknum, usb_cppi41_info.q_mgr,
+		dma_sched_table, numch);
+	return 0;
+}
 
- int cppi41_enable_sched_rx(void)
- {
-         u16 numch =8, blknum = usb_cppi41_info.dma_block;
+int cppi41_enable_sched_rx(void)
+{
+	u16 numch = 8, blknum = usb_cppi41_info.dma_block;
 
-         dma_sched_table[0] = 0x81018000;
-         dma_sched_table[1] = 0x83038202;
+	dma_sched_table[0] = 0x81018000;
+	dma_sched_table[1] = 0x83038202;
 
-         cppi41_dma_sched_tbl_init (blknum, usb_cppi41_info.q_mgr,
-                         dma_sched_table, numch);
-         return 0;
- }
- #endif
+	cppi41_dma_sched_tbl_init(blknum, usb_cppi41_info.q_mgr,
+		dma_sched_table, numch);
+	return 0;
+}
+#endif
 
 /*
  * REVISIT (PM): we should be able to keep the PHY in low power mode most
@@ -202,7 +204,7 @@ static inline void phy_on(void)
 		    CONF0_REFFREQ_13MHZ | CONF0_DATPOL;
 	__raw_writel(cfgchip2, IO_ADDRESS(BASE_OMAP3517_CONF0));
 
-	pr_info("Waiting for PHY clock good...(value 0x%x written in conf0)\n", cfgchip2);
+	pr_info("Waiting for PHY clock good...(CONF0=0x%x)\n", cfgchip2);
 	while (!(__raw_readl(IO_ADDRESS(BASE_OMAP3517_CONF0)) & CONF0_PHYCLKGD))
 		cpu_relax();
 }
@@ -408,8 +410,10 @@ static irqreturn_t omap3517_interrupt(int irq, void *hci)
 	if (epintr) {
 		musb_writel(reg_base, EP_INTR_SRC_CLEAR_REG, epintr);
 
-		musb->int_rx = (epintr & OMAP3517_RX_INTR_MASK) >> USB_INTR_RX_SHIFT;
-		musb->int_tx = (epintr & OMAP3517_TX_INTR_MASK) >> USB_INTR_TX_SHIFT;
+		musb->int_rx =
+			(epintr & OMAP3517_RX_INTR_MASK) >> USB_INTR_RX_SHIFT;
+		musb->int_tx =
+			(epintr & OMAP3517_TX_INTR_MASK) >> USB_INTR_TX_SHIFT;
 	}
 
 	/* Get usb core interrupts */
@@ -420,7 +424,8 @@ static irqreturn_t omap3517_interrupt(int irq, void *hci)
 	if (usbintr) {
 		musb_writel(reg_base, CORE_INTR_SRC_CLEAR_REG, usbintr);
 
-		musb->int_usb = (usbintr & USB_INTR_USB_MASK) >> USB_INTR_USB_SHIFT;
+		musb->int_usb =
+			(usbintr & USB_INTR_USB_MASK) >> USB_INTR_USB_SHIFT;
 		/* musb->int_regs = regs; */
 	}
 	/*
@@ -481,7 +486,7 @@ static irqreturn_t omap3517_interrupt(int irq, void *hci)
 	}
 
 	if (musb->int_tx || musb->int_rx || musb->int_usb) {
-	        irqreturn_t mret;
+		irqreturn_t mret;
 
 		mret = musb_interrupt(musb);
 		if (mret == IRQ_HANDLED)
@@ -496,7 +501,7 @@ static irqreturn_t omap3517_interrupt(int irq, void *hci)
 		/* clear level interrupt */
 		lvl_intr = __raw_readl(IO_ADDRESS(BASE_OMAP3517_LVL_INTR_CLR));
 		lvl_intr |= (1 << 4);
- 		__raw_writel(lvl_intr, IO_ADDRESS(BASE_OMAP3517_LVL_INTR_CLR));
+		__raw_writel(lvl_intr, IO_ADDRESS(BASE_OMAP3517_LVL_INTR_CLR));
 		/* write EOI */
 		musb_writel(reg_base, USB_END_OF_INTR_REG, 0);
 	}
@@ -553,11 +558,11 @@ int __init musb_platform_init(struct musb *musb)
 	if (clk_enable(musb->clock) < 0)
 		return -ENODEV;
 
-	DBG(2, "usbotg_vbusp_clk=%lud\n",clk_get_rate(musb->clock));
+	DBG(2, "usbotg_vbusp_clk=%lud\n", clk_get_rate(musb->clock));
 	otg_fck = clk_get(NULL, "usbotg_fck");
 	clk_enable(otg_fck);
 
-	DBG(2, "usbotg_phy_clk=%lud\n",clk_get_rate(otg_fck));
+	DBG(2, "usbotg_phy_clk=%lud\n", clk_get_rate(otg_fck));
 	/* Returns zero if e.g. not clocked */
 	rev = musb_readl(reg_base, USB_REVISION_REG);
 	if (!rev)

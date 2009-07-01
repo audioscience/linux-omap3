@@ -592,7 +592,7 @@ static void rxstate(struct musb *musb, struct musb_request *req)
 
 	csr = musb_readw(epio, MUSB_RXCSR);
 
-	if ((is_cppi_enabled() || is_cppi41_enabled() ) && musb_ep->dma) {
+	if ((is_cppi_enabled() || is_cppi41_enabled()) && musb_ep->dma) {
 		struct dma_controller	*c = musb->dma_controller;
 		struct dma_channel	*channel = musb_ep->dma;
 

@@ -366,8 +366,8 @@ static int cppi41_controller_stop(struct dma_controller *controller)
 	cppi = container_of(controller, struct cppi41, controller);
 
 	/*
-         * pop all the teardwon descriptor queued to tdQueue
-         */
+	 * pop all the teardwon descriptor queued to tdQueue
+	 */
 	cppi41_free_teardown_queue(0);
 
 	/* Free the teardown completion queue */
@@ -788,8 +788,7 @@ static unsigned cppi41_next_rx_segment(struct cppi41_channel *rx_ch)
 	/* calculate number of bd required */
 	n_bd = (length + max_rx_transfer_size - 1)/max_rx_transfer_size;
 
-	for( i=0; i < n_bd; ++i)
-	{
+	for (i = 0; i < n_bd ; ++i) {
 		/* Get Rx packet descriptor from the free pool */
 		curr_pd = usb_get_free_pd(cppi);
 		if (curr_pd == NULL) {
@@ -798,24 +797,25 @@ static unsigned cppi41_next_rx_segment(struct cppi41_channel *rx_ch)
 			goto sched;
 		}
 
-		pkt_len = (length > max_rx_transfer_size) ? max_rx_transfer_size : length;
+		pkt_len =
+		(length > max_rx_transfer_size) ? max_rx_transfer_size : length;
 
-	        hw_desc = &curr_pd->hw_desc;
-	        hw_desc->orig_buf_ptr = rx_ch->start_addr + rx_ch->curr_offset;
-	        hw_desc->orig_buf_len = pkt_len;
+		hw_desc = &curr_pd->hw_desc;
+		hw_desc->orig_buf_ptr = rx_ch->start_addr + rx_ch->curr_offset;
+		hw_desc->orig_buf_len = pkt_len;
 
 		curr_pd->ch_num = rx_ch->ch_num;
-	        curr_pd->ep_num = rx_ch->end_pt->epnum;
+		curr_pd->ep_num = rx_ch->end_pt->epnum;
 
 		curr_pd->eop = (length -= pkt_len) ? 0 : 1;
 		rx_ch->curr_offset += pkt_len;
 
 		/*
-	         * Push the free Rx packet descriptor
+		 * Push the free Rx packet descriptor
 		 * to the free descriptor/buffer queue.
-	         */
+		 */
 		cppi41_queue_push(&rx_ch->queue_obj, curr_pd->dma_addr,
-                          USB_CPPI41_DESC_ALIGN, 0);
+			USB_CPPI41_DESC_ALIGN, 0);
 	}
 
 sched:
@@ -942,7 +942,7 @@ static void usb_tx_ch_teardown(struct cppi41_channel *tx_ch)
 	struct musb *musb = cppi->musb;
 	void __iomem *reg_base = musb->ctrl_base;
 	u32 td_reg, timeout = 0xfffff;
-        u8 ep_num = tx_ch->ch_num + 1;
+	u8 ep_num = tx_ch->ch_num + 1;
 
 	unsigned long pd_addr;
 
@@ -952,24 +952,24 @@ static void usb_tx_ch_teardown(struct cppi41_channel *tx_ch)
 	/* Wait for a descriptor to be queued and pop it... */
 	do {
 		td_reg  = musb_readl(reg_base, USB_TEARDOWN_REG);
-	        td_reg |= USB_TX_TDOWN_MASK(ep_num);
+		td_reg |= USB_TX_TDOWN_MASK(ep_num);
 		musb_writel(reg_base, USB_TEARDOWN_REG, td_reg);
 
 		pd_addr = cppi41_queue_pop(&cppi->queue_obj);
 	} while (!pd_addr && timeout--);
 
-	if( pd_addr ) {
+	if (pd_addr) {
 
-		dprintk("Descriptor (%08lx) popped from teardown completion "
+		dprintk("Descriptor (%08lx) popped from teardown completion"
 			"queue\n", pd_addr);
 
-		if( usb_check_teardown(tx_ch, pd_addr)){
-			dprintk("Teardown Desc (%p) rcvd\n",pd_addr);
-		}else
-			printk("Invalid PD (%08lx) popped from teardown completion "
-			   "queue\n",pd_addr);
-	}else{
-		if( timeout <= 0 )
+		if (usb_check_teardown(tx_ch, pd_addr)) {
+			dprintk("Teardown Desc (%p) rcvd\n", pd_addr);
+		} else
+			printk("Invalid PD(%08lx)popped from TearDn completion"
+				"queue\n", pd_addr);
+	} else {
+		if (timeout <= 0)
 			ERR("Teardown Desc not rcvd\n");
 	}
 }
@@ -990,7 +990,7 @@ static void usb_rx_ch_teardown(struct cppi41_channel *rx_ch)
 	/* Initiate teardown for Rx DMA channel */
 	cppi41_dma_ch_teardown(&rx_ch->dma_ch_obj);
 
-	do{
+	do {
 		struct usb_pkt_desc *curr_pd;
 		unsigned long pd_addr;
 
@@ -999,7 +999,7 @@ static void usb_rx_ch_teardown(struct cppi41_channel *rx_ch)
 			pd_addr = cppi41_queue_pop(&cppi->queue_obj);
 		} while (!pd_addr && timeout--);
 
-		if( timeout <= 0 ){
+		if (timeout <= 0) {
 			ERR("teardown Desc not found\n");
 			break;
 		}
@@ -1034,7 +1034,7 @@ static void usb_rx_ch_teardown(struct cppi41_channel *rx_ch)
 		 * this is protected by critical section.
 		 */
 		usb_put_free_pd(cppi, curr_pd);
-	}while(0);
+	} while (0);
 
 	/* Now restore the default Rx completion queue... */
 	cppi41_dma_ch_default_queue(&rx_ch->dma_ch_obj, usb_cppi41_info.q_mgr,

@@ -257,29 +257,29 @@ int __init cppi41_queue_mgr_init(struct musb *musb, u8 q_mgr, dma_addr_t rgn0_ba
 EXPORT_SYMBOL(cppi41_queue_mgr_init);
 
 int cppi41_dma_sched_tbl_init(u8 dma_num, u8 q_mgr,
-				 u32 *sched_tbl, u8 tbl_size)
+			u32 *sched_tbl, u8 tbl_size)
 {
 	struct cppi41_dma_block *dma_block;
-	int num_reg, k, i,val=0;
+	int num_reg, k, i, val = 0;
 
 	dma_block = (struct cppi41_dma_block *)&cppi41_dma_block[dma_num];
 
 	num_reg = (tbl_size + 3) / 4;
-        for (k = i = 0; i < num_reg; i++) {
+	for (k = i = 0; i < num_reg; i++) {
 #if 0
-                for (val = j = 0; j < 4; j++, k++) {
-                        val >>= 8;
-                        if (k < tbl_size)
-                                val |= sched_tbl[k] << 24;
-                }
+		for (val = j = 0; j < 4; j++, k++) {
+			val >>= 8;
+			if (k < tbl_size)
+				val |= sched_tbl[k] << 24;
+		}
 #endif
-                val = sched_tbl[i];
-                __raw_writel(val, dma_block->sched_table_base +
-                             DMA_SCHED_TABLE_WORD_REG(i));
-                DBG1("DMA scheduler table @ %p, value written: %x\n",
-                    dma_block->sched_table_base + DMA_SCHED_TABLE_WORD_REG(i),
-                    val);
-        }
+		val = sched_tbl[i];
+		__raw_writel(val, dma_block->sched_table_base +
+			DMA_SCHED_TABLE_WORD_REG(i));
+		DBG1("DMA scheduler table @ %p, value written: %x\n",
+		dma_block->sched_table_base + DMA_SCHED_TABLE_WORD_REG(i),
+			val);
+	}
 	return 0;
 }
 EXPORT_SYMBOL(cppi41_dma_sched_tbl_init);
@@ -417,7 +417,7 @@ int cppi41_mem_rgn_alloc(u8 q_mgr, dma_addr_t rgn_addr, u8 size_order,
 	u32 num_desc = 1 << num_order, index, ctrl;
 	int rgn;
 
-	DBG1("%s called with rgn_addr = %08x, size_order = %d, num_order = %d\n",
+	DBG1("%scalled with rgn_addr = %08x, size_order = %d, num_order = %d\n",
 	    __func__, rgn_addr, size_order, num_order);
 
 	if (q_mgr >= cppi41_num_queue_mgr ||
@@ -748,12 +748,11 @@ EXPORT_SYMBOL(cppi41_dma_ch_disable);
 
 void cppi41_free_teardown_queue(int dma_num)
 {
-       unsigned long td_addr;
+	unsigned long td_addr;
 
-       while( (td_addr= cppi41_queue_pop(&dma_teardown[dma_num].queue_obj)) != 0) {
-               DBG1("pop tdDesc(%p) from tdQueue\n", td_addr);
-	}
-
+	while ((td_addr =
+		cppi41_queue_pop(&dma_teardown[dma_num].queue_obj)) != 0)
+		DBG1("pop tdDesc(%p) from tdQueue\n", td_addr);
 }
 EXPORT_SYMBOL(cppi41_free_teardown_queue);
 

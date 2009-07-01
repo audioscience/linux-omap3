@@ -290,7 +290,8 @@ start:
 
 		if (!hw_ep->tx_channel)
 			musb_h_tx_start(hw_ep);
-		else if (is_cppi_enabled() || tusb_dma_omap() || is_cppi41_enabled())
+		else if (is_cppi_enabled() ||
+				tusb_dma_omap() || is_cppi41_enabled())
 			musb_h_tx_dma_start(hw_ep);
 	}
 }
@@ -837,7 +838,8 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 
 		/* kick things off */
 
-		if ((is_cppi_enabled() || is_cppi41_enabled() ||tusb_dma_omap()) && dma_channel) {
+		if ((is_cppi_enabled() || is_cppi41_enabled() ||
+				tusb_dma_omap()) && dma_channel) {
 			/* candidate for DMA */
 			if (dma_channel) {
 				dma_channel->actual_len = 0L;
