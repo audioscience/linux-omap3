@@ -554,10 +554,6 @@ int __init musb_platform_init(struct musb *musb)
 	if (!rev)
 		return -ENODEV;
 
-#ifdef CONFIG_USB_TI_CPPI41_DMA
-	cppi41_init(musb);
-#endif
-
 	if (is_host_enabled(musb))
 		setup_timer(&otg_workaround, otg_timer, (unsigned long) musb);
 
@@ -607,6 +603,11 @@ int __init musb_platform_init(struct musb *musb)
 
 	msleep(15);
 #endif
+
+#ifdef CONFIG_USB_TI_CPPI41_DMA
+		cppi41_init(musb);
+#endif
+
 	/* ip clk control wait till VBUSP clk disabled */
 	printk("BASE_OMAP3517_IP_CLK_CTRL = 0x%x\n",
 			__raw_readl(IO_ADDRESS(BASE_OMAP3517_IP_CLK_CTRL)));

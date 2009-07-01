@@ -138,8 +138,8 @@ struct cppi41_dma_block cppi41_dma_block[CPPI41_NUM_DMA_BLOCK] = {
 };
 EXPORT_SYMBOL(cppi41_dma_block);
 
-/* Queues 0 to 27 are pre-assigned, others are spare */
-static const u32 assigned_queues[] = { 0x0fffffff, 0 };
+/* Queues 0 to 66 are pre-assigned, others are spare */
+static const u32 assigned_queues[] = { 0xffffffff, 0xffffffff, 0x7 };
 
 /* Queue manager information */
 struct cppi41_queue_mgr cppi41_queue_mgr[CPPI41_NUM_QUEUE_MGR] = {
@@ -153,7 +153,7 @@ struct cppi41_queue_mgr cppi41_queue_mgr[CPPI41_NUM_QUEUE_MGR] = {
 		.q_stat_rgn_base =
 			IO_ADDRESS(OMAP3517_HSUSB_OTG_BASE) + 0x6800,
 
-		.num_queue	= 128,
+		.num_queue	= 96,
 		.queue_types	= CPPI41_FREE_DESC_BUF_QUEUE |
 					CPPI41_UNASSIGNED_QUEUE,
 		.base_fdbq_num	= 0,

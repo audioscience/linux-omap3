@@ -1995,10 +1995,11 @@ bad_config:
 		goto fail2;
 	}
 
-	printk("use_dma=%d, dev->dma_mask=%x\n",use_dma, dev->dma_mask);
-	if (!dev->dma_mask)
-		dev->dma_mask = 1;
 #ifndef CONFIG_MUSB_PIO_ONLY
+	printk("use_dma=%d, dev->dma_mask=%x\n",use_dma, (u32)dev->dma_mask);
+	if (use_dma && !dev->dma_mask)
+		dev->dma_mask = (u64*)(1ULL << 31);
+
 	if (use_dma && dev->dma_mask) {
 		struct dma_controller	*c;
 
