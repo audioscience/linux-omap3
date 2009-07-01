@@ -31,6 +31,10 @@
 #include <linux/io.h>
 
 #include "cppi41.h"
+
+ extern int cppi41_dma_sched_tbl_init(u8 dma_num, u8 q_mgr,
+                                  u32 *sched_tbl, u8 tbl_size);
+
 /* get this from core files later */
 #define OMAP3517_CONF0                  0x0580
 #define OMAP3517_LVL_INTR_CLR		0x0594
@@ -139,6 +143,32 @@ int __init cppi41_init(struct musb *musb)
 }
 
 #endif /* CONFIG_USB_TI_CPPI41_DMA */
+
+ #ifdef CONFIG_USB_TI_CPPI41_DMA
+ int cppi41_disable_sched_rx(void)
+ {
+         u16 numch = 7, blknum = usb_cppi41_info.dma_block;
+
+	dma_sched_table[0] = 0x02810100;
+	dma_sched_table[1] = 0x830382;
+
+         cppi41_dma_sched_tbl_init (blknum, usb_cppi41_info.q_mgr,
+                         dma_sched_table, numch);
+         return 0;
+ }
+
+ int cppi41_enable_sched_rx(void)
+ {
+         u16 numch =8, blknum = usb_cppi41_info.dma_block;
+
+         dma_sched_table[0] = 0x81018000;
+         dma_sched_table[1] = 0x83038202;
+
+         cppi41_dma_sched_tbl_init (blknum, usb_cppi41_info.q_mgr,
+                         dma_sched_table, numch);
+         return 0;
+ }
+ #endif
 
 /*
  * REVISIT (PM): we should be able to keep the PHY in low power mode most
@@ -387,6 +417,10 @@ static irqreturn_t omap3517_interrupt(int irq, void *hci)
 			cppi41_completion(musb, rx, tx);
 			ret = IRQ_HANDLED;
 		}
+
+		/* handle the undocumented starvation interrupt bit:28 */
+		//if( pend0 & 0x10000000 )
+		//	ret = IRQ_HANDLED;
 	}
 
 	/* Acknowledge and handle non-CPPI interrupts */

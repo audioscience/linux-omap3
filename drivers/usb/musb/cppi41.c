@@ -256,6 +256,33 @@ int __init cppi41_queue_mgr_init(struct musb *musb, u8 q_mgr, dma_addr_t rgn0_ba
 	return 0;
 }
 
+int cppi41_dma_sched_tbl_init(u8 dma_num, u8 q_mgr,
+				 u32 *sched_tbl, u8 tbl_size)
+{
+	struct cppi41_dma_block *dma_block;
+	int num_reg, k, i,val=0;
+
+	dma_block = &cppi41_dma_block[dma_num];
+
+	num_reg = (tbl_size + 3) / 4;
+        for (k = i = 0; i < num_reg; i++) {
+#if 0
+                for (val = j = 0; j < 4; j++, k++) {
+                        val >>= 8;
+                        if (k < tbl_size)
+                                val |= sched_tbl[k] << 24;
+                }
+#endif
+                val = sched_tbl[i];
+                __raw_writel(val, dma_block->sched_table_base +
+                             DMA_SCHED_TABLE_WORD_REG(i));
+                //DBG("DMA scheduler table @ %p, value written: %x\n",
+                  //  dma_block->sched_table_base + DMA_SCHED_TABLE_WORD_REG(i),
+                    //val);
+        }
+
+}
+EXPORT_SYMBOL(cppi41_dma_sched_tbl_init);
 int __init cppi41_dma_block_init(u8 dma_num, u8 q_mgr, u8 num_order,
 				 u32 *sched_tbl, u8 tbl_size)
 {
