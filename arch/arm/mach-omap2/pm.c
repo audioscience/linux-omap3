@@ -31,7 +31,6 @@
 #include <asm/atomic.h>
 
 #include <plat/powerdomain.h>
-#include <plat/omapdev.h>
 #include <plat/resource.h>
 #include <plat/omap34xx.h>
 
@@ -168,21 +167,6 @@ void omap2_allow_sleep(void)
 
 	i = atomic_dec_return(&sleep_block);
 	BUG_ON(i < 0);
-}
-
-unsigned get_last_off_on_transaction_id(struct device *dev)
-{
-	struct platform_device *pdev = to_platform_device(dev);
-	struct omapdev *odev = omapdev_find_pdev(pdev);
-	struct powerdomain *pwrdm;
-
-	if (odev) {
-		pwrdm = omapdev_get_pwrdm(odev);
-		if (pwrdm)
-			return pwrdm->state_counter[0];
-	}
-
-	return 0;
 }
 
 static int __init omap_pm_init(void)
