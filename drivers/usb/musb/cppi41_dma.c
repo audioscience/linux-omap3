@@ -136,6 +136,57 @@ static void print_pd_list(struct usb_pkt_desc *pd_pool_head)
 	dprintk("\n");
 }
 #endif
+void print_cppi_reg(struct musb *musb)
+{
+	u32 pend0;
+
+	/* cppi41 register sets */
+	pend0 = musb_readl(musb->ctrl_base, 0x4080);
+	DBG(1, "L-RAM RGN0 BASE(0x4080):0x%x\n", pend0);
+
+	pend0 = __raw_readl(musb->ctrl_base + 0x4080);
+	DBG(1, "L-RAM RGN0 BASE (raw_read)(0x4080):0x%x\n", pend0);
+
+	pend0 = musb_readl(musb->ctrl_base, 0x4084);
+	DBG(1, "L-RAM RGN0 SIZE(0x4084):0x%x\n", pend0);
+	pend0 = musb_readl(musb->ctrl_base, 0x4088);
+	DBG(1, "L-RAM RGN1 BASE(0x4088):0x%x\n", pend0);
+
+	pend0 = musb_readl(musb->ctrl_base, 0x5000);
+	DBG(1, "DESC MEM RGN0 BASE(0x5000):0x%x\n", pend0);
+	pend0 = musb_readl(musb->ctrl_base, 0x5004);
+	DBG(1, "DESC MEM RGN0 CTRL(0x5004):0x%x\n", pend0);
+
+	pend0 = musb_readl(musb->ctrl_base, 0x2800);
+	DBG(1, "SCH TABLE W0(0x2800):0x%x\n", pend0);
+	pend0 = musb_readl(musb->ctrl_base, 0x2804);
+	DBG(1, "SCH TABLE W1(0x2804):0x%x\n", pend0);
+	pend0 = musb_readl(musb->ctrl_base, 0x2808);
+	DBG(1, "SCH TABLE W2(0x2808):0x%x\n", pend0);
+	pend0 = musb_readl(musb->ctrl_base, 0x280c);
+	DBG(1, "SCH TABLE W3(0x280c):0x%x\n", pend0);
+	pend0 = musb_readl(musb->ctrl_base, 0x2000);
+	DBG(1, "SCH TABLE CTRL REG(0x2000):0x%x\n", pend0);
+
+	pend0 = musb_readl(musb->ctrl_base, 0x1800);
+	DBG(1, "TX CH0 GLOBAL CFG REG(0x1800):0x%x\n", pend0);
+	pend0 = musb_readl(musb->ctrl_base, 0x1820);
+	DBG(1, "TX CH1 GLOBAL CFG REG(0x1820):0x%x\n", pend0);
+	pend0 = musb_readl(musb->ctrl_base, 0x1840);
+	DBG(1, "TX CH2 GLOBAL CFG REG(0x1840):0x%x\n", pend0);
+	pend0 = musb_readl(musb->ctrl_base, 0x1860);
+	DBG(1, "TX CH3 GLOBAL CFG REG(0x1860):0x%x\n", pend0);
+
+	pend0 = musb_readl(musb->ctrl_base, 0x1000);
+	DBG(1, "Revision register(0x1000):0x%x\n", pend0);
+	pend0 = musb_readl(musb->ctrl_base, 0x1004);
+	DBG(1, "TearDn Free Desc Q(0x1004):0x%x\n", pend0);
+	pend0 = musb_readl(musb->ctrl_base, 0x1008);
+	DBG(1, "Emulation Ctrl Reg(0x1008):0x%x\n", pend0);
+	pend0 = musb_readl(musb->ctrl_base, 0x3000);
+	DBG(1, "Rev Reg II(0x3000):0x%x\n", pend0);
+
+}
 
 static struct usb_pkt_desc *usb_get_free_pd(struct cppi41 *cppi)
 {

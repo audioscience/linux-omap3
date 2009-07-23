@@ -527,6 +527,11 @@ static inline void musb_configure_ep0(struct musb *musb)
 
 /***************************** Glue it together *****************************/
 
+#ifdef CONFIG_USB_TI_CPPI41_DMA
+extern void print_cppi_reg(struct musb *musb);
+#else
+#define print_cppi_reg(x)	do {} while (0)
+#endif
 extern const char musb_driver_name[];
 
 extern void musb_start(struct musb *musb);

@@ -637,6 +637,10 @@ static int musb_proc_write(struct file *file, const char __user *buffer,
 		return -EFAULT;
 
 	switch (cmd) {
+	case 'G':
+		if (musb && is_cppi41_enabled())
+			print_cppi_reg(musb);
+		break;
 	case 'S':
 		if (mbase) {
 			reg = musb_readb(mbase, MUSB_POWER)
@@ -743,6 +747,7 @@ static int musb_proc_write(struct file *file, const char __user *buffer,
 
 	case '?':
 		INFO("?: you are seeing it\n");
+		INFO("G: Get CPPI41 DMA register dump\n");
 		INFO("S: suspend the usb bus\n");
 		INFO("C/c: soft connect enable/disable\n");
 		INFO("I/i: hispeed enable/disable\n");
