@@ -685,3 +685,25 @@ int omap_device_enable_clocks(struct omap_device *od)
 	/* XXX pass along return value here? */
 	return 0;
 }
+
+/**
+ * omap_device_find_pdev - look up an OMAP module by platform_device
+ * @pdev: platform_device to find
+ *
+ * Finds a registered OMAP module by the platform_device associated
+ * with it in the omap_device structure. Returns a pointer to the
+ * struct omap_device if found, or NULL otherwise.
+ */
+
+struct omap_device *omap_device_find_pdev(struct platform_device *pdev)
+{
+	struct omap_device *od;
+
+	if (!pdev)
+		return NULL;
+
+	od = _find_by_pdev(pdev);
+
+	return od;
+}
+
