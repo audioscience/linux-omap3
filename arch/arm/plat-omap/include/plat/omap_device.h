@@ -136,6 +136,6 @@ struct omap_device_pm_latency {
 	int (*activate_func)(struct omap_device *od);
 };
 
-
+struct omap_device *omap_device_find_pdev(struct platform_device *pdev);
 #endif
 
