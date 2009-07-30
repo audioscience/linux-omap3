@@ -29,6 +29,7 @@
 #include <linux/err.h>
 #include <linux/cpufreq.h>
 
+#include <mach/cpu.h>
 #include <mach/clock.h>
 #include <mach/sram.h>
 #include <asm/div64.h>
@@ -759,6 +760,11 @@ void omap2_clk_prepare_for_reboot(void)
  */
 static int __init omap2_clk_arch_init(void)
 {
+	unsigned short opp=0;
+	unsigned short i;
+	unsigned long dsprate;
+	struct omap_opp *opp_table;
+
 	if (!mpurate)
 		return -EINVAL;
 
@@ -768,12 +774,52 @@ static int __init omap2_clk_arch_init(void)
 		printk(KERN_ERR "Could not find matching MPU rate\n");
 #endif
 
+	if (clk_set_rate(&dpll1_ck, mpurate))
+		printk(KERN_ERR "*** Unable to set MPU rate\n");
+	omap3_dpll_recalc(&dpll1_ck, dpll1_ck.parent->rate, CURRENT_RATE);
+
+	/* Get the OPP corresponding to the mpurate */
+	if (mpu_opps) {
+		opp_table = mpu_opps;
+
+		for (i=0;  opp_table[i].opp_id <= MAX_VDD1_OPP; i++)
+			if (opp_table[i].rate == mpurate)
+				break;
+
+		opp = opp_table[i].opp_id;
+
+		pr_debug("Switched to OPP:%d\n", opp);
+	}
+
+	/* Get dsprate corresponding to the opp */
+	if ((cpu_is_omap3430() || cpu_is_omap3530() || cpu_is_omap3525())
+		&& (dsp_opps) && (opp >= VDD1_OPP1) && (opp <= VDD1_OPP5)) {
+			opp_table = dsp_opps;
+
+		for (i=0;  opp_table[i].opp_id <= MAX_VDD1_OPP; i++)
+			if (opp_table[i].opp_id == opp)
+				break;
+
+		dsprate = opp_table[i].rate;
+
+		if (clk_set_rate(&dpll2_ck, dsprate))
+			printk(KERN_ERR "*** Unable to set IVA2 rate\n");
+		omap3_dpll_recalc(&dpll2_ck,
+					dpll2_ck.parent->rate, CURRENT_RATE);
+	}
+
 	recalculate_root_clocks();
 
-	printk(KERN_INFO "Switched to new clocking rate (Crystal/DPLL3/MPU): "
+	printk(KERN_INFO "Switched to new clocking rate (Crystal/Core/MPU): "
 	       "%ld.%01ld/%ld/%ld MHz\n",
-	       (osc_sys_ck.rate / 1000000), (osc_sys_ck.rate / 100000) % 10,
-	       (core_ck.rate / 1000000), (dpll1_fck.rate / 1000000)) ;
+	       (osc_sys_ck.rate / 1000000), ((osc_sys_ck.rate / 100000) % 10),
+	       (core_ck.rate / 1000000), (dpll1_ck.rate / 1000000)) ;
+
+	if (cpu_is_omap3430() || cpu_is_omap3530() || cpu_is_omap3525())
+		printk(KERN_INFO "IVA2 clocking rate: %ld MHz\n",
+		       (dpll2_ck.rate / 1000000)) ;
+
+	calibrate_delay();
 
 	return 0;
 }
@@ -871,10 +917,14 @@ int __init omap2_clk_init(void)
 		}
 	}
 
-	printk(KERN_INFO "Clocking rate (Crystal/DPLL/ARM core): "
+	printk(KERN_INFO "Clocking rate (Crystal/DPLL/MPU core): "
 	       "%ld.%01ld/%ld/%ld MHz\n",
 	       (osc_sys_ck.rate / 1000000), (osc_sys_ck.rate / 100000) % 10,
-	       (core_ck.rate / 1000000), (arm_fck.rate / 1000000));
+               (core_ck.rate / 1000000), (dpll1_ck.rate / 1000000));
+
+	if (cpu_is_omap3430() || cpu_is_omap3530() || cpu_is_omap3525())
+		printk(KERN_INFO "IVA2 clocking rate: %ld MHz\n",
+		       (dpll2_ck.rate / 1000000)) ;
 
 	/*
 	 * Only enable those clocks we will need, let the drivers
