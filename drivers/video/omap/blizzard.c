@@ -27,9 +27,9 @@
 #include <linux/clk.h>
 
 #include <mach/dma.h>
-#include <mach/omapfb.h>
 #include <mach/blizzard.h>
 
+#include "omapfb.h"
 #include "dispc.h"
 
 #define MODULE_NAME				"blizzard"

@@ -27,9 +27,9 @@
 #include <linux/platform_device.h>
 
 #include <mach/sram.h>
-#include <mach/omapfb.h>
 #include <mach/board.h>
 
+#include "omapfb.h"
 #include "dispc.h"
 
 #define MODULE_NAME			"dispc"

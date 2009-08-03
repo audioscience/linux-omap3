@@ -27,8 +27,8 @@
 #include <linux/clk.h>
 
 #include <mach/dma.h>
-#include <mach/omapfb.h>
 #include <mach/hwa742.h>
+#include "omapfb.h"
 
 #define HWA742_REV_CODE_REG       0x0
 #define HWA742_CONFIG_REG         0x2
