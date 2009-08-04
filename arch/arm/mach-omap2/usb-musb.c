@@ -164,6 +164,10 @@ static struct platform_device musb_device = {
 void __init usb_musb_init(void)
 {
 #ifdef CONFIG_USB_MUSB_SOC
+	/* OMAP35x new EVM can source 500mA */
+	if (get_omap3evm_board_rev() >= OMAP3EVM_BOARD_GEN_2)
+		musb_plat.power = 250;
+
 #ifdef CONFIG_NOP_USB_XCEIV
        nop_xceiv_register();
 #endif

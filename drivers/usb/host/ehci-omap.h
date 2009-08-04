@@ -27,6 +27,10 @@
 #include "../../../arch/arm/mach-omap2/cm.h"
 #include "../../../arch/arm/mach-omap2/cm-regbits-34xx.h"
 
+#ifdef CONFIG_MACH_OMAP3EVM
+extern u8 omap3_ehci_phy_reset_gpio;
+#endif
+
 /*
  * OMAP USBHOST Register addresses: PHYSICAL ADDRESSES
  * 	Use omap_readl()/omap_writel() functions

@@ -31,5 +31,8 @@
 
 extern void usb_ehci_init(void);
 
+unsigned short omap3_ehci_phy_reset_gpio;
+EXPORT_SYMBOL(omap3_ehci_phy_reset_gpio);
+
 #endif /* __ASM_ARCH_OMAP_USB_EHCI_H */
 

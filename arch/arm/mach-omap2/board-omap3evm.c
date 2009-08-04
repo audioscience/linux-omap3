@@ -695,6 +695,43 @@ static void omap_init_twl4030(void)
        }
 }
 
+#define TWL4030_VAUX2_1P8V 0x5
+#define ENABLE_VAUX2_DEV_GRP 0x20
+
+/* This is called from twl4030-core.c and is required by
+ * MUSB and EHCI on new OMAP3EVM.
+ */
+void usb_gpio_settings(void)
+{
+	unsigned char val;
+
+	if (omap3evm_board_rev() < OMAP3EVM_BOARD_GEN_2)
+		return;
+
+	/* enable VAUX2 for EHCI */
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+			TWL4030_VAUX2_1P8V, TWL4030_VAUX2_DEDICATED);
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+			ENABLE_VAUX2_DEV_GRP, TWL4030_VAUX2_DEV_GRP);
+
+	/* Enable TWL GPIO Module */
+	twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, 0x04, REG_GPIO_CTRL);
+
+	/*
+	 * Configure GPIO-6 as output
+	 */
+	twl4030_i2c_read_u8(TWL4030_MODULE_GPIO, &val, REG_GPIODATADIR1);
+	val |= 0x4;
+	twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, val, REG_GPIODATADIR1);
+
+	/* Set GPIO6 = 1 */
+	twl4030_i2c_read_u8(TWL4030_MODULE_GPIO, &val, REG_GPIODATAOUT1);
+	val |= 0x40;
+	twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, val, REG_GPIODATAOUT1);
+
+}
+EXPORT_SYMBOL(usb_gpio_settings);
+
 #endif
 
 #if defined(CONFIG_OMAP3EVM_PR785)
@@ -732,6 +769,39 @@ static void __init omap3_evm_init(void)
 #endif
 
 	usb_musb_init();
+
+	if (omap3evm_board_rev() >= OMAP3EVM_BOARD_GEN_2) {
+		/* enable EHCI VBUS using GPIO22 */
+		omap_cfg_reg(AF9_34XX_GPIO22);
+		gpio_request(22, "enable EHCI VBUS");
+		gpio_direction_output(22, 0);
+		gpio_set_value(22, 1);
+
+		/* enable 1.8V using GPIO61 */
+		omap_cfg_reg(U3_34XX_GPIO61);
+		gpio_request(61, "enable 1.8V for EHCI");
+		gpio_direction_output(61, 0);
+		gpio_set_value(61, 0);
+
+		/* setup EHCI phy reset config */
+		omap_cfg_reg(AH14_34XX_GPIO21);
+		omap3_ehci_phy_reset_gpio = 21;
+
+		/* enable MUSB VBUS */
+	#if 0
+		/* Don't enable GPIO based VBUS when MUSB
+		 * PHY is programmed to use EXT VBUS
+		 */
+		omap_cfg_reg(Y21_34XX_GPIO156);
+		gpio_request(156, "enable MUSB VBUS");
+		gpio_direction_output(156, 0);
+		gpio_set_value(156, 1);
+	#endif
+	} else {
+		/* setup EHCI phy reset on MDC */
+		omap_cfg_reg(AF4_34XX_GPIO135);
+		omap3_ehci_phy_reset_gpio = 135;
+	}
 	usb_ehci_init();
 	omap3evm_flash_init();
 	ads7846_dev_init();

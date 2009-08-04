@@ -42,6 +42,8 @@
 #include <mach/cpu.h>
 #endif
 
+extern void usb_gpio_settings(void);
+
 /*
  * The TWL4030 "Triton 2" is one of a family of a multi-function "Power
  * Management and System Companion Device" chips originally designed for
@@ -800,6 +802,9 @@ twl4030_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	}
 
 	status = add_children(pdata, id->driver_data);
+
+	usb_gpio_settings();
+
 fail:
 	if (status < 0)
 		twl4030_remove(client);

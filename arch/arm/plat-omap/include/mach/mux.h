@@ -802,6 +802,12 @@ enum omap34xx_index {
 	AF4_34XX_GPIO135,
 	AE4_34XX_GPIO136,
 
+	/* MUSB and EHCI GPIO's */
+	AH14_34XX_GPIO21,
+	U3_34XX_GPIO61,
+	AF9_34XX_GPIO22,
+	Y21_34XX_GPIO156,
+
 	/* Video-Decoder/Camera/Exp Conn selection GPIO's */
 	AA21_34XX_GPIO157,
 	H1_34XX_GPIO62,

@@ -228,6 +228,7 @@ int __init musb_platform_init(struct musb *musb)
 {
 	struct otg_transceiver *x = otg_get_transceiver();
 	u32 l;
+	u8 val;
 
 #if defined(CONFIG_ARCH_OMAP2430)
 	omap_cfg_reg(AE5_2430_USB0HS_STP);
@@ -253,6 +254,13 @@ int __init musb_platform_init(struct musb *musb)
 	l = omap_readl(OTG_INTERFSEL);
 	l |= ULPI_12PIN;
 	omap_writel(l, OTG_INTERFSEL);
+
+	/* Program PHY to use external Vbus supply on new OMAP3EVM */
+	if (get_omap3evm_board_rev() >= OMAP3EVM_BOARD_GEN_2) {
+		val = musb_readb(musb->mregs, MUSB_ULPI_BUSCONTROL);
+		val |= ULPI_USE_EXTVBUS;
+		musb_writeb(musb->mregs, MUSB_ULPI_BUSCONTROL, val);
+	}
 
 	pr_debug("HS USB OTG: revision 0x%x, sysconfig 0x%02x, "
 			"sysstatus 0x%x, intrfsel 0x%x, simenable  0x%x\n",

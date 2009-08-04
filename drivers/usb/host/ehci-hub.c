@@ -430,7 +430,7 @@ static int check_reset_complete (
 			index + 1);
 
 		// what happens if HCS_N_CC(params) == 0 ?
-#ifndef CONFIG_OMAP3EVM_MISTRAL_DC
+#ifndef CONFIG_MACH_OMAP3EVM
 		port_status |= PORT_OWNER;
 #endif
 		port_status &= ~PORT_RWC_BITS;
@@ -854,7 +854,7 @@ static int ehci_hub_control (
 				ehci_dbg (ehci,
 					"port %d low speed --> companion\n",
 					wIndex + 1);
-#ifndef CONFIG_OMAP3EVM_MISTRAL_DC
+#ifndef CONFIG_MACH_OMAP3EVM
 				temp |= PORT_OWNER;
 #endif
 			} else {

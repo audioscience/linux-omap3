@@ -42,26 +42,6 @@ config USB_EHCI_HCD
 	  To compile this driver as a module, choose M here: the
 	  module will be called ehci-hcd.
 choice
-	prompt "Daughter card used on OMAP35xx EVM"
-	depends on USB_EHCI_HCD && EXPERIMENTAL && ARCH_OMAP34XX \
-		&& MACH_OMAP3EVM
-	---help---
-	Choose daughter card on OMAP35xx EVM
-
-config OMAP3EVM_MISTRAL_DC
-	bool "Mistral daughter card"
-	depends on USB_EHCI_HCD && EXPERIMENTAL && ARCH_OMAP34XX
-	---help---
-	Select this if using Mistral daughter card on OMAP35xx EVM
-
-config OMAP3EVM_OTHER_DC
-	bool "Other daughter card"
-	depends on USB_EHCI_HCD && EXPERIMENTAL && ARCH_OMAP34XX
-	---help---
-	Select this if using any other daughter card on OMAP35xx EVM
-endchoice
-
-choice
 	prompt "Daughter/Extension card used on OMAP3430SDP"
 	depends on USB_EHCI_HCD && EXPERIMENTAL && ARCH_OMAP34XX \
 		&& MACH_OMAP_3430SDP
@@ -110,7 +90,7 @@ menuconfig OMAP_EHCI
 choice
 	prompt "Port1 in PHY/TLL mode" if OMAP_EHCI
 	depends on USB_EHCI_HCD && EXPERIMENTAL && ARCH_OMAP34XX \
-			&& !OMAP3EVM_MISTRAL_DC
+			&& !MACH_OMAP3EVM
 	---help---
 	Choose PHY or TLL mode of operation for Port1
 
@@ -149,14 +129,14 @@ config OMAP_EHCI_PHY_MODE_PORT2
 config OMAP_EHCI_TLL_MODE_PORT2
 	bool "TLL mode"
 	depends on USB_EHCI_HCD && EXPERIMENTAL && ARCH_OMAP34XX \
-			&& !OMAP3EVM_MISTRAL_DC
+			&& !MACH_OMAP3EVM
 	---help---
 	  Port2 in TLL mode
 
 config OMAP_EHCI_PORT2_NC
 	bool "Not Connected"
 	depends on USB_EHCI_HCD && EXPERIMENTAL && ARCH_OMAP34XX \
-			&& !OMAP3EVM_MISTRAL_DC
+			&& !MACH_OMAP3EVM
 	---help---
 	  Port2 not connected
 
@@ -165,7 +145,7 @@ endchoice
 choice
 	prompt "Port3 in PHY/TLL mode" if OMAP_EHCI
 	depends on USB_EHCI_HCD && EXPERIMENTAL && ARCH_OMAP34XX \
-			&& !OMAP3EVM_MISTRAL_DC
+			&& !MACH_OMAP3EVM
 	---help---
 	Choose PHY or TLL mode of operation for Port2
 
@@ -181,7 +161,7 @@ config OMAP_EHCI_TLL_MODE_PORT3
 	---help---
 	  Port3 in TLL mode
 
-config OMAP_EHCI_PORT23_NC
+config OMAP_EHCI_PORT3_NC
 	bool "Not Connected"
 	depends on USB_EHCI_HCD && EXPERIMENTAL && ARCH_OMAP34XX
 	---help---
