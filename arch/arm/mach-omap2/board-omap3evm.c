@@ -20,6 +20,7 @@
 #include <linux/clk.h>
 #include <linux/input.h>
 #include <linux/leds.h>
+#include <linux/backlight.h>
 
 #include <linux/spi/spi.h>
 #include <linux/spi/ads7846.h>
@@ -59,6 +60,35 @@ static int omap3evm_twl_gpio_setup(struct device *dev,
                unsigned gpio, unsigned ngpio);
 #endif
 
+enum {
+	OMAP3EVM_BOARD_GEN_1 = 0, /* EVM Rev between  A - D*/
+	OMAP3EVM_BOARD_GEN_2,	/* EVM Rev >= Rev E*/
+};
+
+static int omap3evm_board_rev(void)
+{
+	void __iomem *ioaddr;
+	unsigned int smsc_id;
+	/*
+	 * The run time detection of EVM revision is done by reading Ethernet
+	 * PHY ID -
+	 *	GEN_1	= 0x
+	 *	GEN_2	= 0x92200000
+	 */
+	ioaddr = ioremap_nocache(OMAP3EVM_ETHR_START + 0x50, 0x4);
+	smsc_id = readl(ioaddr) & 0xFFFF0000;
+	iounmap(ioaddr);
+
+	switch (smsc_id) {
+	/*SMSC9115 chipset*/
+	case 0x01150000:
+		return OMAP3EVM_BOARD_GEN_1;
+	/*SMSC 9220 chipset*/
+	case 0x92200000:
+	default:
+		return OMAP3EVM_BOARD_GEN_2;
+	}
+}
 
 
 static struct resource omap3evm_smc911x_resources[] = {
@@ -79,7 +109,7 @@ static struct smsc911x_platform_config smsc911x_config = {
         .irq_polarity   = SMSC911X_IRQ_POLARITY_ACTIVE_LOW,
         .irq_type       = SMSC911X_IRQ_TYPE_OPEN_DRAIN,
         .flags          = SMSC911X_USE_32BIT,
-};	
+};
 
 
 
@@ -285,9 +315,6 @@ static struct platform_device omap3evm_vout_device = {
 #define ENABLE_VPLL2_DEDICATED	0x05
 #define ENABLE_VPLL2_DEV_GRP	0xE0
 
-#define TWL_PWMA_PWMAON         0x00
-#define TWL_PWMA_PWMAOFF        0x01
-
 static int lcd_enabled;
 static int dvi_enabled;
 
@@ -321,17 +348,6 @@ static void __init omap3_evm_display_init(void)
 		goto err_4;
 	}
 
-	gpio_direction_output(LCD_PANEL_LR, 0);
-	gpio_direction_output(LCD_PANEL_UD, 0);
-	gpio_direction_output(LCD_PANEL_INI, 0);
-	gpio_direction_output(LCD_PANEL_RESB, 0);
-	gpio_direction_output(LCD_PANEL_QVGA, 0);
-
-#if defined(CONFIG_TWL4030_CORE)
-	twl4030_i2c_write_u8(TWL4030_MODULE_LED, 0x11, TWL4030_LED_EN);
-	twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 0x01, TWL4030_LED_PWMON);
-	twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 0x02, TWL4030_LED_PWMOFF);
-#endif
 	gpio_direction_output(LCD_PANEL_RESB, 1);
 	gpio_direction_output(LCD_PANEL_INI, 1);
 	gpio_direction_output(LCD_PANEL_QVGA, 0);
@@ -362,9 +378,6 @@ static int omap3_evm_panel_enable_lcd(struct omap_display *display)
 				ENABLE_VPLL2_DEDICATED, TWL4030_PLL2_DEDICATED);
 		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
 				ENABLE_VPLL2_DEV_GRP, TWL4030_VPLL2_DEV_GRP);
-		twl4030_i2c_write_u8(TWL4030_MODULE_LED, 0x10, TWL4030_LED_EN);
-		twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 70, TWL_PWMA_PWMAOFF);
-
 	}
 #endif
 	gpio_direction_output(LCD_PANEL_ENABLE_GPIO, 0);
@@ -380,8 +393,6 @@ static void omap3_evm_panel_disable_lcd(struct omap_display *display)
 				TWL4030_PLL2_DEDICATED);
 		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0x0,
 				TWL4030_VPLL2_DEV_GRP);
-		twl4030_i2c_write_u8(TWL4030_MODULE_LED, 0x11, TWL4030_LED_EN);
-		twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 0, TWL_PWMA_PWMAOFF);
 	}
 #endif
 	gpio_direction_output(LCD_PANEL_ENABLE_GPIO, 1);
@@ -438,8 +449,6 @@ static int omap3_evm_panel_enable_dvi(struct omap_display *display)
 			ENABLE_VPLL2_DEDICATED, TWL4030_PLL2_DEDICATED);
 		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
 			ENABLE_VPLL2_DEV_GRP, TWL4030_VPLL2_DEV_GRP);
-		twl4030_i2c_write_u8(TWL4030_MODULE_LED, 0x10, TWL4030_LED_EN);
-		twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 70, TWL_PWMA_PWMAOFF);
 	}
 	twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, 0x80,
 			REG_GPIODATADIR1);
@@ -459,8 +468,6 @@ static void omap3_evm_panel_disable_dvi(struct omap_display *display)
 				TWL4030_PLL2_DEDICATED);
 		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0x0,
 				TWL4030_VPLL2_DEV_GRP);
-		twl4030_i2c_write_u8(TWL4030_MODULE_LED, 0x11, TWL4030_LED_EN);
-		twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 0, TWL_PWMA_PWMAOFF);
 	}
 
 	twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, 0x00,
@@ -504,6 +511,53 @@ static struct omap_lcd_config omap3_evm_lcd_config __initdata = {
 	.ctrl_name	= "internal",
 };
 #endif /* CONFIG_OMAP2_DSS */
+
+static void omap3evm_set_bl_intensity(int intensity)
+{
+	unsigned char c;
+
+	if (intensity > 100)
+		return;
+
+#if defined(CONFIG_TWL4030_CORE)
+	/*
+	 * Enable LEDA for backlight
+	 */
+	twl4030_i2c_write_u8(TWL4030_MODULE_LED, 0x11, TWL4030_LED_EN);
+
+	if (omap3evm_board_rev() >= OMAP3EVM_BOARD_GEN_2) {
+		c = ((125 * (100 - intensity)) / 100) + 1;
+		twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 0x7F,
+							TWL4030_LED_PWMOFF);
+		twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, c,
+							TWL4030_LED_PWMON);
+	} else {
+		c = ((125 * (100 - intensity)) / 100) + 2;
+		twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 0x1,
+							TWL4030_LED_PWMON);
+		twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, c,
+							TWL4030_LED_PWMOFF);
+	}
+#endif
+}
+
+static struct generic_bl_info omap3evm_bl_platform_data = {
+	.name			= "omap3evm-bklight",
+	.max_intensity		= 100,
+	.default_intensity	= 70,
+	.limit_mask		= 0,
+	.set_bl_intensity	= omap3evm_set_bl_intensity,
+	.kick_battery		= NULL,
+};
+
+static struct platform_device omap3evm_bklight_device = {
+	.name		= "generic-bl",
+	.id		= -1,
+	.dev		= {
+		.parent		= &omap3_evm_dss_device.dev,
+		.platform_data	= &omap3evm_bl_platform_data,
+	},
+};
 
 static void ads7846_dev_init(void)
 {
@@ -575,6 +629,7 @@ static struct platform_device *omap3_evm_devices[] __initdata = {
 	&omap3_evm_lcd_device,
 #endif /* CONFIG_OMAP2_DSS */
 	&omap3evm_smc911x_device,
+	&omap3evm_bklight_device,
 
 };
 

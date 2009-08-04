@@ -149,13 +149,6 @@ config BACKLIGHT_OMAP1
 	  the PWL module of OMAP1 processors.  Say Y if your board
 	  uses this hardware.
 
-config BACKLIGHT_OMAP3EVM
-	tristate "OMAP3EVM LCD Backlight"
-	depends on BACKLIGHT_CLASS_DEVICE && MACH_OMAP3EVM
-	default y
-	help
-	  This driver controls the LCD backlight for OMAP3EVM.
-
 config BACKLIGHT_HP680
 	tristate "HP Jornada 680 Backlight Driver"
 	depends on BACKLIGHT_CLASS_DEVICE && SH_HP6XX
