@@ -800,6 +800,11 @@ enum omap34xx_index {
 	AG4_34XX_GPIO134,
 	U8_34XX_GPIO54,
 	AE4_34XX_GPIO136,
+
+	/* Video-Decoder/Camera/Exp Conn selection GPIO's */
+	AA21_34XX_GPIO157,
+	H1_34XX_GPIO62,
+	C23_34XX_GPIO98,
 };
 
 struct omap_mux_cfg {
