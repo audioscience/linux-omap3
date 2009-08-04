@@ -39,6 +39,11 @@ config ARCH_OMAP35XX
 	    OMAP3525 - ARM Cortex-A8 + IVA2.2
 	    OMAP3530 - ARM Cortex-A8 + IVA2.2 + SGX
 
+	  These devices differ in the power management capabilities
+	  and specific IPs - USB, EMIF, EMAC, HECC, ...
+            OMAP3505 - ARM Cortex-A8
+            OMAP3517 - ARM Cortex-A8 + SGX
+
 	  ARM Cortex-A8 contains NEON SIMD coprocessor.
 
 comment "OMAP Board Type"
@@ -101,6 +106,10 @@ config MACH_NOKIA_RX51
 config MACH_OMAP_ZOOM2
 	bool "OMAP3 Zoom2 board"
 	depends on ARCH_OMAP3 && ARCH_OMAP34XX
+
+config MACH_OMAP3517EVM
+	bool "OMAP 3517 EVM board"
+	depends on ARCH_OMAP35XX
 
 config MACH_OMAP_4430SDP
 	bool "OMAP 4430 SDP board"
