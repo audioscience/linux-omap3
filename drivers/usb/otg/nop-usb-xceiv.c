@@ -31,6 +31,28 @@
 #include <linux/dma-mapping.h>
 #include <linux/usb/otg.h>
 
+#ifdef CONFIG_TWL4030_CORE
+
+#include <linux/i2c/twl4030.h>
+
+/* In module TWL4030_MODULE_PM_MASTER */
+#define PROTECT_KEY                     0x0E
+
+/* In module TWL4030_MODULE_PM_RECEIVER */
+#define VUSB_DEDICATED1                 0x7D
+#define VUSB_DEDICATED2                 0x7E
+#define VUSB1V5_DEV_GRP                 0x71
+#define VUSB1V5_TYPE                    0x72
+#define VUSB1V5_REMAP                   0x73
+#define VUSB1V8_DEV_GRP                 0x74
+#define VUSB1V8_TYPE                    0x75
+#define VUSB1V8_REMAP                   0x76
+#define VUSB3V1_DEV_GRP                 0x77
+#define VUSB3V1_TYPE                    0x78
+#define VUSB3V1_REMAP                   0x79
+
+#endif
+
 struct nop_usb_xceiv {
 	struct otg_transceiver	otg;
 	struct device		*dev;
@@ -65,6 +87,36 @@ static inline struct nop_usb_xceiv *xceiv_to_nop(struct otg_transceiver *x)
 {
 	return container_of(x, struct nop_usb_xceiv, otg);
 }
+
+#ifdef CONFIG_TWL4030_CORE
+static void twl4030_usb_ldo_init(void)
+{
+	/* Enable writing to power configuration registers */
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_MASTER, 0xC0, PROTECT_KEY);
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_MASTER, 0x0C, PROTECT_KEY);
+
+	/* put VUSB3V1 LDO in active state */
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0, VUSB_DEDICATED2);
+
+	/* input to VUSB3V1 LDO is from VBAT, not VBUS */
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0x14, VUSB_DEDICATED1);
+
+	/* turn on 3.1V regulator */
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0x20, VUSB3V1_DEV_GRP);
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0, VUSB3V1_TYPE);
+
+	/* turn on 1.5V regulator */
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0x20, VUSB1V5_DEV_GRP);
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0, VUSB1V5_TYPE);
+
+	/* turn on 1.8V regulator */
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0x20, VUSB1V8_DEV_GRP);
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0, VUSB1V8_TYPE);
+
+	/* disable access to power configuration registers */
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_MASTER, 0, PROTECT_KEY);
+}
+#endif
 
 static int nop_set_suspend(struct otg_transceiver *x, int suspend)
 {
@@ -135,6 +187,10 @@ static int __devinit nop_usb_xceiv_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, nop);
 
+#ifdef CONFIG_TWL4030_CORE
+	/* twl4030 power configuration */
+	twl4030_usb_ldo_init();
+#endif
 	return 0;
 exit:
 	kfree(nop);

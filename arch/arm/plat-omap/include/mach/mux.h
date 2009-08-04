@@ -799,6 +799,7 @@ enum omap34xx_index {
 	AE5_34XX_GPIO143,
 	AG4_34XX_GPIO134,
 	U8_34XX_GPIO54,
+	AF4_34XX_GPIO135,
 	AE4_34XX_GPIO136,
 
 	/* Video-Decoder/Camera/Exp Conn selection GPIO's */

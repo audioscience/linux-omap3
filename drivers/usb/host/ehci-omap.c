@@ -30,6 +30,7 @@
 #include <mach/gpio.h>
 
 #include "ehci-omap.h"
+#include <mach/mux.h>
 
 
 /* EHCI connected to External PHY */
@@ -50,7 +51,8 @@
 #if defined(CONFIG_OMAP_EHCI_PHY_MODE_PORT1)	|| \
 	defined(CONFIG_OMAP_EHCI_PHY_MODE_PORT2)
 
-#ifdef CONFIG_OMAP3430SDP_750_2083_001
+#if defined(CONFIG_OMAP3430SDP_750_2083_001) || \
+	defined(CONFIG_OMAP3EVM_MISTRAL_DC)
 /* ISSUE1:
  *      ISP1504 for input clocking mode needs special reset handling
  *	Hold the PHY in reset by asserting RESET_N signal
@@ -63,6 +65,9 @@
 #define EXTERNAL_PHY_RESET
 #define	EXT_PHY_RESET_DELAY		(10)
 
+#endif
+
+#ifdef CONFIG_OMAP3430SDP_750_2083_001
 /* ISSUE2:
  * USBHOST supports External charge pump PHYs only
  * Use the VBUS from Port1 to power VBUS of Port2 externally
@@ -243,10 +248,18 @@ static int omap_start_ehc(struct platform_device *dev, struct usb_hcd *hcd)
 
 #ifdef EXTERNAL_PHY_RESET
 	/* Refer: ISSUE1 */
+#ifndef CONFIG_OMAP3EVM_MISTRAL_DC
 	gpio_request(EXT_PHY_RESET_GPIO_PORT1, "USB1 PHY reset");
 	gpio_direction_output(EXT_PHY_RESET_GPIO_PORT1, 0);
+	gpio_set_value(EXT_PHY_RESET_GPIO_PORT1, 0);
+#endif
+	/* GPIO mux configuration */
+#ifdef CONFIG_OMAP3EVM_MISTRAL_DC
+	omap_cfg_reg(AF4_34XX_GPIO135);
+#endif
 	gpio_request(EXT_PHY_RESET_GPIO_PORT2, "USB2 PHY reset");
 	gpio_direction_output(EXT_PHY_RESET_GPIO_PORT2, 0);
+	gpio_set_value(EXT_PHY_RESET_GPIO_PORT2, 0);
 	/* Hold the PHY in RESET for enough time till DIR is high */
 	udelay(EXT_PHY_RESET_DELAY);
 #endif
@@ -366,7 +379,9 @@ static int omap_start_ehc(struct platform_device *dev, struct usb_hcd *hcd)
 	 * Hold the PHY in RESET for enough time till PHY is settled and ready
 	 */
 	udelay(EXT_PHY_RESET_DELAY);
+#ifndef CONFIG_OMAP3EVM_MISTRAL_DC
 	gpio_set_value(EXT_PHY_RESET_GPIO_PORT1, 1);
+#endif
 	gpio_set_value(EXT_PHY_RESET_GPIO_PORT2, 1);
 #endif
 
@@ -452,7 +467,9 @@ static void omap_stop_ehc(struct platform_device *dev, struct usb_hcd *hcd)
 
 
 #ifdef EXTERNAL_PHY_RESET
+#ifndef CONFIG_OMAP3EVM_MISTRAL_DC
 	gpio_free(EXT_PHY_RESET_GPIO_PORT1);
+#endif
 	gpio_free(EXT_PHY_RESET_GPIO_PORT2);
 #endif
 
