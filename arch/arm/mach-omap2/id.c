@@ -28,6 +28,14 @@
 static struct omap_chip_id omap_chip;
 static unsigned int omap_revision;
 
+/* The new OMAP35x devices have assymetric names - OMAP3505 and OMAP3517.
+ * It is not possible to define a common macro to identify them.
+ *
+ * A quick way is to separate them across 'generations' as below.
+ */
+#define OMAP35XX_G1	0x1	/* Applies to 3503, 3515, 3525 and 3530 */
+#define OMAP35XX_G2	0x2	/* Applies to 3505 and 3517 */
+
 
 unsigned int omap_rev(void)
 {
@@ -155,12 +163,71 @@ void __init omap24xx_check_revision(void)
 	pr_info("\n");
 }
 
+static void __init omap34xx_set_revision(u8 rev, char *rev_name)
+{
+	switch (rev) {
+	case 0:
+		omap_revision = OMAP3430_REV_ES2_0;
+		strcat(rev_name, "ES2.0");
+		break;
+	case 2:
+		omap_revision = OMAP3430_REV_ES2_1;
+		strcat(rev_name, "ES2.1");
+		break;
+	case 3:
+		omap_revision = OMAP3430_REV_ES3_0;
+		strcat(rev_name, "ES3.0");
+		break;
+	case 4:
+		omap_revision = OMAP3430_REV_ES3_1;
+		strcat(rev_name, "ES3.1");
+		break;
+	default:
+		/* Use the latest known revision as default */
+		omap_revision = OMAP3430_REV_ES3_1;
+		strcat(rev_name, "Unknown revision");
+	}
+}
+
+static void __init omap35xx_set_revision(u8 rev, u8 gen, char *rev_name)
+{
+	omap_revision = OMAP35XX_CLASS ;
+
+	if (gen == OMAP35XX_G1) {
+		switch (rev) {
+		case 0:	/* Take care of some older boards */
+		case 1:
+			omap_revision |= OMAP35XX_MASK_ES2_0;
+			strcat(rev_name, "ES2.0");
+			break;
+		case 2:
+			omap_revision |= OMAP35XX_MASK_ES2_1;
+			strcat(rev_name, "ES2.1");
+			break;
+		case 3:
+			omap_revision |= OMAP35XX_MASK_ES3_0;
+			strcat(rev_name, "ES3.0");
+			break;
+		case 4:
+			omap_revision |= OMAP35XX_MASK_ES3_1;
+			strcat(rev_name, "ES3.1");
+			break;
+		default:
+			/* Use the latest known revision as default */
+			omap_revision |= OMAP35XX_MASK_ES3_0;
+			strcat(rev_name, "Unknown revision");
+		}
+	} else {
+		strcat(rev_name, "ES1.0");
+	}
+}
+
 void __init omap34xx_check_revision(void)
 {
 	u32 cpuid, idcode;
 	u16 hawkeye;
 	u8 rev;
-	char *rev_name = "ES1.0";
+	char rev_name[16] = "";
 
 	/*
 	 * We cannot access revision registers on ES1.0.
@@ -184,28 +251,12 @@ void __init omap34xx_check_revision(void)
 	rev = (idcode >> 28) & 0xff;
 
 	if (hawkeye == 0xb7ae) {
-		switch (rev) {
-		case 0:
-			omap_revision = OMAP3430_REV_ES2_0;
-			rev_name = "ES2.0";
-			break;
-		case 2:
-			omap_revision = OMAP3430_REV_ES2_1;
-			rev_name = "ES2.1";
-			break;
-		case 3:
-			omap_revision = OMAP3430_REV_ES3_0;
-			rev_name = "ES3.0";
-			break;
-		case 4:
-			omap_revision = OMAP3430_REV_ES3_1;
-			rev_name = "ES3.1";
-			break;
-		default:
-			/* Use the latest known revision as default */
-			omap_revision = OMAP3430_REV_ES3_1;
-			rev_name = "Unknown revision\n";
-		}
+		if (cpu_is_omap35xx())
+			omap35xx_set_revision(rev, OMAP35XX_G1, rev_name);
+		else
+			omap34xx_set_revision(rev, rev_name);
+	} else if (hawkeye == 0xb868) {
+		omap35xx_set_revision(rev, OMAP35XX_G2, rev_name);
 	}
 
 out:
@@ -241,6 +292,24 @@ void __init omap2_check_revision(void)
 	} else if (cpu_is_omap242x()) {
 		/* Currently only supports 2420ES2.1.1 and 2420-all */
 		omap_chip.oc |= CHIP_IS_OMAP2420;
+	} else if (cpu_is_omap35xx()) {
+		/*
+		 * FIXME : Update for OMAP35XX_G2
+		 */
+		omap_chip.oc = CHIP_IS_OMAP3430;
+
+		switch (omap35xx_rev_mask())
+		{
+		case OMAP35XX_MASK_ES3_0:
+			omap_chip.oc |= CHIP_IS_OMAP3430ES3_0;
+			break;
+		case OMAP35XX_MASK_ES3_1:
+			omap_chip.oc |= CHIP_IS_OMAP3430ES3_1;
+			break;
+		default:
+			/* Use ES2 as default */
+			omap_chip.oc |= CHIP_IS_OMAP3430ES2;
+		}
 	} else if (cpu_is_omap343x()) {
 		omap_chip.oc = CHIP_IS_OMAP3430;
 		if (omap_rev() == OMAP3430_REV_ES1_0)
