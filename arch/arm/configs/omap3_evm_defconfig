@@ -231,7 +231,6 @@ CONFIG_MACH_OMAP3EVM=y
 # PR785 Power board selection for OMAP3 EVM
 #
 # CONFIG_OMAP3EVM_PR785 is not set
-# CONFIG_MACH_OMAP3EVM_MMDC is not set
 # CONFIG_MACH_OMAP3_BEAGLE is not set
 # CONFIG_MACH_OVERO is not set
 # CONFIG_MACH_OMAP3_PANDORA is not set

@@ -48,6 +48,7 @@
 #include "mmc-twl4030.h"
 #include "pm.h"
 #include "omap3-opp.h"
+#include "board-omap3evm-dc.h"
 #include <linux/regulator/machine.h>
 #include <linux/smsc911x.h>
 
@@ -89,7 +90,6 @@ static int omap3evm_board_rev(void)
 		return OMAP3EVM_BOARD_GEN_2;
 	}
 }
-
 
 static struct resource omap3evm_smc911x_resources[] = {
 	[0] =	{
@@ -439,6 +439,8 @@ static struct omap_display_data omap3_evm_display_data_tv = {
 
 static int omap3_evm_panel_enable_dvi(struct omap_display *display)
 {
+	unsigned char val;
+
 	if (lcd_enabled) {
 		return -EINVAL;
 	}
@@ -450,9 +452,15 @@ static int omap3_evm_panel_enable_dvi(struct omap_display *display)
 		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
 			ENABLE_VPLL2_DEV_GRP, TWL4030_VPLL2_DEV_GRP);
 	}
-	twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, 0x80,
+	twl4030_i2c_read_u8(TWL4030_MODULE_GPIO, &val,
 			REG_GPIODATADIR1);
-	twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, 0x80,
+	val |= 0x80;
+	twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, val,
+			REG_GPIODATADIR1);
+	twl4030_i2c_read_u8(TWL4030_MODULE_GPIO, &val,
+			REG_GPIODATAOUT1);
+	val |= 0x80;
+	twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, val,
 			REG_GPIODATAOUT1);
 #endif
 	dvi_enabled = 1;
@@ -463,6 +471,8 @@ static int omap3_evm_panel_enable_dvi(struct omap_display *display)
 static void omap3_evm_panel_disable_dvi(struct omap_display *display)
 {
 #if defined(CONFIG_TWL4030_CORE)
+	unsigned char val;
+
 	if (omap_rev() > OMAP3430_REV_ES1_0) {
 		twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0x0,
 				TWL4030_PLL2_DEDICATED);
@@ -470,9 +480,15 @@ static void omap3_evm_panel_disable_dvi(struct omap_display *display)
 				TWL4030_VPLL2_DEV_GRP);
 	}
 
-	twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, 0x00,
+	twl4030_i2c_read_u8(TWL4030_MODULE_GPIO, &val,
 			REG_GPIODATADIR1);
-	twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, 0x00,
+	val &= ~0x80;
+	twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, val,
+			REG_GPIODATADIR1);
+	twl4030_i2c_read_u8(TWL4030_MODULE_GPIO, &val,
+			REG_GPIODATAOUT1);
+	val &= ~0x80;
+	twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, val,
 			REG_GPIODATAOUT1);
 #endif
 	dvi_enabled = 0;
@@ -751,6 +767,8 @@ static void omap_init_pr785(void)
 
 static void __init omap3_evm_init(void)
 {
+	int dec_i2c_id, is_dec_onboard;
+
 	omap3_evm_i2c_init();
 
 	platform_add_devices(omap3_evm_devices, ARRAY_SIZE(omap3_evm_devices));
@@ -808,6 +826,15 @@ static void __init omap3_evm_init(void)
 #ifdef CONFIG_OMAP2_DSS
 	omap3_evm_display_init();
 #endif /* CONFIG_OMAP2_DSS */
+
+	if (omap3evm_board_rev() >= OMAP3EVM_BOARD_GEN_2) {
+		dec_i2c_id = 0x5C;
+		is_dec_onboard = 1;
+	} else {
+		dec_i2c_id = 0x5D;
+		is_dec_onboard = 0;
+	}
+	omap3evmdc_init(is_dec_onboard, 3, dec_i2c_id);
 }
 
 static void __init omap3_evm_map_io(void)

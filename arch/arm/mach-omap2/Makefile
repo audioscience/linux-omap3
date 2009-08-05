@@ -61,8 +61,8 @@ obj-$(CONFIG_MACH_OMAP3EVM)		+= board-omap3evm.o \
 					   mmc-twl4030.o \
 					   usb-musb.o usb-ehci.o \
 					   board-omap3evm-flash.o \
-					   twl4030-generic-scripts.o
-obj-$(CONFIG_MACH_OMAP3EVM_MMDC)	+= board-omap3evm-dc-v4l.o
+					   twl4030-generic-scripts.o \
+					   board-omap3evm-dc-v4l.o
 obj-$(CONFIG_MACH_OMAP3_BEAGLE)		+= board-omap3beagle.o \
 					   usb-musb.o usb-ehci.o \
 					   mmc-twl4030.o \

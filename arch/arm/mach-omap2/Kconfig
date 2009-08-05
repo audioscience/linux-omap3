@@ -153,12 +153,6 @@ config OMAP3EVM_PR785
        so that function-specific drivers can bind to them.
 endmenu
 
-config MACH_OMAP3EVM_MMDC
-	bool "OMAP 3530 EVM Mass Market Daughter Card board"
-	depends on MACH_OMAP3EVM
-	help
-	  Set this if you've got a Mass Market Daughter Card board.
-
 config MACH_OMAP3_BEAGLE
 	bool "OMAP3 BEAGLE board"
 	depends on ARCH_OMAP3 && ARCH_OMAP34XX
