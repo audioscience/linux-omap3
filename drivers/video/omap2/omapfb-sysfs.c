@@ -1018,6 +1018,7 @@ static ssize_t dss_sleep_store_timeout(struct device *dev,
 		return -EINVAL;
 	}
 	if (value == 0) {
+		fbdev->sleep_timeout = 0;
 		del_timer(&fbdev->timer);
 	} else {
 		fbdev->sleep_timeout = value * HZ;
