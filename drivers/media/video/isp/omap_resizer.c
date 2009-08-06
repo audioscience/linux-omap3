@@ -1745,21 +1745,19 @@ static int __init omap_rsz_init(void)
 	struct device_params *device;
 	device = kzalloc(sizeof(struct device_params), GFP_KERNEL);
 	if (!device) {
-		dev_err(rsz_device, OMAP_REZR_NAME ": could not allocate "
-								"memory\n");
+		printk(OMAP_REZR_NAME ": could not allocate memory\n");
 		return -ENOMEM;
 	}
 	device->extra_page_addr = __get_free_pages(GFP_KERNEL | GFP_DMA, 0);
 	if (!device->extra_page_addr) {
-		dev_err(rsz_device, OMAP_REZR_NAME ":Allocation failed. ");
+		printk(OMAP_REZR_NAME ":Allocation failed. ");
 		kfree(device);
 		return -ENOMEM;
 	}
 	ret = alloc_chrdev_region(&dev, 0, 1, OMAP_REZR_NAME);
 	if (ret < 0) {
-		dev_err(rsz_device, OMAP_REZR_NAME ": intialization failed. "
-			"Could not allocate region "
-			"for character device\n");
+		printk(OMAP_REZR_NAME ": intialization failed. "
+			"Could not allocate region for character device\n");
 		goto fail1;
 	}
 
@@ -1772,8 +1770,7 @@ static int __init omap_rsz_init(void)
 	/* Addding character device */
 	ret = cdev_add(&c_dev, dev, 1);
 	if (ret) {
-		dev_err(rsz_device, OMAP_REZR_NAME ": Error adding "
-			"device - %d\n", ret);
+		printk(OMAP_REZR_NAME ": Error adding device - %d\n", ret);
 		goto fail2;
 	}
 	rsz_major = MAJOR(dev);
@@ -1781,7 +1778,7 @@ static int __init omap_rsz_init(void)
 	/* register driver as a platform driver */
 	ret = platform_driver_register(&omap_resizer_driver);
 	if (ret) {
-		dev_err(rsz_device, OMAP_REZR_NAME
+		printk(OMAP_REZR_NAME
 				": Failed to register platform driver!\n");
 		goto fail3;
 	}
@@ -1789,15 +1786,14 @@ static int __init omap_rsz_init(void)
 	/* Register the drive as a platform device */
 	ret = platform_device_register(&omap_resizer_device);
 	if (ret) {
-		dev_err(rsz_device, OMAP_REZR_NAME
+		printk(OMAP_REZR_NAME
 				": Failed to register platform device!\n");
 		goto fail4;
 	}
 
 	rsz_class = class_create(THIS_MODULE, OMAP_REZR_NAME);
 	if (!rsz_class) {
-		dev_err(rsz_device, OMAP_REZR_NAME
-			": Failed to create class!\n");
+		printk(OMAP_REZR_NAME ": Failed to create class!\n");
 		goto fail5;
 	}
 
