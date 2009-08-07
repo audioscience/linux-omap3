@@ -432,7 +432,11 @@ static void omap3_evm_panel_disable_tv(struct omap_display *display)
 static struct omap_display_data omap3_evm_display_data_tv = {
 	.type = OMAP_DISPLAY_TYPE_VENC,
 	.name = "tv",
+#if defined(CONFIG_OMAP2_VENC_OUT_TYPE_SVIDEO)
 	.u.venc.type = OMAP_DSS_VENC_TYPE_SVIDEO,
+#elif defined(CONFIG_OMAP2_VENC_OUT_TYPE_COMPOSITE)
+	.u.venc.type = OMAP_DSS_VENC_TYPE_COMPOSITE,
+#endif
 	.panel_enable = omap3_evm_panel_enable_tv,
 	.panel_disable = omap3_evm_panel_disable_tv,
 };
