@@ -43,6 +43,7 @@
 #include "prm-regbits-34xx.h"
 #include "cm.h"
 #include "cm-regbits-34xx.h"
+#include "omap3-opp.h"
 
 static const struct clkops clkops_noncore_dpll_ops;
 
@@ -1114,12 +1115,52 @@ void omap2_clk_prepare_for_reboot(void)
  */
 static int __init omap2_clk_arch_init(void)
 {
+	short opp=0, valid=0;
+	short i;
+	unsigned long dsprate;
+	struct omap_opp *opp_table;
+
 	if (!mpurate)
 		return -EINVAL;
 
-	/* REVISIT: not yet ready for 343x */
+	/* Check if mpurate is valid */
+	if (mpu_opps) {
+		opp_table = mpu_opps;
+
+		for (i = 1; opp_table[i].opp_id <= MAX_VDD1_OPP; i++) {
+			if (opp_table[i].rate == mpurate) {
+				valid = 1;
+				break;
+			}
+		}
+
+		if (valid) {
+			opp = opp_table[i].opp_id;
+			printk(KERN_INFO "Switching to OPP:%d\n", opp);
+		} else {
+			printk(KERN_ERR "*** Invalid MPU rate specified\n");
+			return 1;
+		}
+	}
+
 	if (clk_set_rate(&dpll1_ck, mpurate))
 		printk(KERN_ERR "*** Unable to set MPU rate\n");
+	omap3_dpll_recalc(&dpll1_ck);
+
+	/* Get dsprate corresponding to the opp */
+	if ((dsp_opps) && (opp >= VDD1_OPP1) && (opp <= VDD1_OPP5)) {
+		opp_table = dsp_opps;
+
+		for (i=0;  opp_table[i].opp_id <= MAX_VDD1_OPP; i++)
+			if (opp_table[i].opp_id == opp)
+				break;
+
+		dsprate = opp_table[i].rate;
+
+		if (clk_set_rate(&dpll2_ck, dsprate))
+			printk(KERN_ERR "*** Unable to set IVA2 rate\n");
+		omap3_dpll_recalc(&dpll2_ck);
+	}
 
 	recalculate_root_clocks();
 
@@ -1127,6 +1168,8 @@ static int __init omap2_clk_arch_init(void)
 	       "%ld.%01ld/%ld/%ld MHz\n",
 	       (osc_sys_ck.rate / 1000000), ((osc_sys_ck.rate / 100000) % 10),
 	       (core_ck.rate / 1000000), (arm_fck.rate / 1000000)) ;
+	printk(KERN_INFO "IVA2 clocking rate: %ld MHz\n",
+	       (iva2_ck.rate / 1000000)) ;
 
 	calibrate_delay();
 
@@ -1199,6 +1242,8 @@ int __init omap2_clk_init(void)
 	       "%ld.%01ld/%ld/%ld MHz\n",
 	       (osc_sys_ck.rate / 1000000), (osc_sys_ck.rate / 100000) % 10,
 	       (core_ck.rate / 1000000), (arm_fck.rate / 1000000));
+	printk(KERN_INFO "IVA2 clocking rate: %ld MHz\n",
+	       (iva2_ck.rate / 1000000)) ;
 
 	/*
 	 * Only enable those clocks we will need, let the drivers
