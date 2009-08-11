@@ -47,6 +47,8 @@ struct vpfe_pixel_format {
 	struct v4l2_fmtdesc fmtdesc;
 	/* bytes per pixel */
 	int bpp;
+	/* decoder format */
+	u32 subdev_pix_fmt;
 };
 
 struct vpfe_std_info {
@@ -61,9 +63,14 @@ struct vpfe_route {
 	u32 output;
 };
 
+enum vpfe_subdev_id {
+	VPFE_SUBDEV_TVP5146 = 1,
+	VPFE_SUBDEV_MT9T031 = 2
+};
+
 struct vpfe_subdev_info {
-	/* Sub device name */
-	char name[32];
+	/* Sub device module name */
+	char module_name[32];
 	/* Sub device group id */
 	int grp_id;
 	/* Number of inputs supported */
@@ -72,12 +79,16 @@ struct vpfe_subdev_info {
 	struct v4l2_input *inputs;
 	/* Sub dev routing information for each input */
 	struct vpfe_route *routes;
-	/* check if sub dev supports routing */
-	int can_route;
 	/* ccdc bus/interface configuration */
 	struct vpfe_hw_if_param ccdc_if_params;
 	/* i2c subdevice board info */
 	struct i2c_board_info board_info;
+	/* Is this a camera sub device ? */
+	unsigned is_camera:1;
+	/* check if sub dev supports routing */
+	unsigned can_route:1;
+	/* registered ? */
+	unsigned registered:1;
 };
 
 struct vpfe_config {
@@ -91,9 +102,12 @@ struct vpfe_config {
 	char *card_name;
 	/* ccdc name */
 	char *ccdc;
-	/* vpfe clock */
-	struct clk *vpssclk;
-	struct clk *slaveclk;
+	/* setup function for the input path */
+	int (*setup_input)(enum vpfe_subdev_id id);
+	/* number of clocks */
+	int num_clocks;
+	/* clocks used for vpfe capture */
+	char *clocks[];
 };
 
 struct vpfe_device {
@@ -104,6 +118,8 @@ struct vpfe_device {
 	struct v4l2_subdev **sd;
 	/* vpfe cfg */
 	struct vpfe_config *cfg;
+	/* clock ptrs for vpfe capture */
+	struct clk **clks;
 	/* V4l2 device */
 	struct v4l2_device v4l2_dev;
 	/* parent device */
