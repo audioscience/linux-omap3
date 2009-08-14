@@ -294,6 +294,8 @@ void __init omap2_init_common_hw(struct omap_sdrc_params *sdrc_cs0,
 		hwmods = omap2420_hwmods;
 	else if (cpu_is_omap2430())
 		hwmods = omap2430_hwmods;
+	else if (cpu_is_omap3505() || cpu_is_omap3517())
+		hwmods = omap3517_hwmods;
 	else if (cpu_is_omap34xx())
 		hwmods = omap34xx_hwmods;
 

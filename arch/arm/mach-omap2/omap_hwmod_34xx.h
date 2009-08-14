@@ -159,8 +159,13 @@ static __initdata struct omap_hwmod *omap34xx_hwmods[] = {
 	NULL,
 };
 
+static __initdata struct omap_hwmod *omap3517_hwmods[] = {
+	NULL,
+};
+
 #else
 # define omap34xx_hwmods		0
+# define omap3517_hwmods		0
 #endif
 
 #endif
