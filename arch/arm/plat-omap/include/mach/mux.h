@@ -894,6 +894,11 @@ enum omap34xx_index {
 	E25_3517_USB0_DRVVBUS,
 	/* OMAP3517 HSUSB port-1 phy reset */
 	N5_3517_GPIO57_OUT,
+	/* MUSB and EHCI GPIO's for OMAP35x new EVM with onboard EHCI */
+	AH14_34XX_GPIO21,
+	U3_34XX_GPIO61,
+	AF9_34XX_GPIO22,
+	Y21_34XX_GPIO156,
 };
 
 struct omap_mux_cfg {
