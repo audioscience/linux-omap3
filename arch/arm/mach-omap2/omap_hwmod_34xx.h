@@ -159,7 +159,13 @@ static __initdata struct omap_hwmod *omap34xx_hwmods[] = {
 	NULL,
 };
 
+/*
+ * XXX This is an initial table for OMAP3505/3517. Need to
+ * populate this taking into account the EMIF, power domain
+ * and clock changes in 3505/3517.
+ */
 static __initdata struct omap_hwmod *omap3517_hwmods[] = {
+	&omap34xx_mpu_hwmod,
 	NULL,
 };
 
