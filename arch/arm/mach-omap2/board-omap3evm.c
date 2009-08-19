@@ -61,12 +61,14 @@ static int omap3evm_twl_gpio_setup(struct device *dev,
                unsigned gpio, unsigned ngpio);
 #endif
 
-enum {
-	OMAP3EVM_BOARD_GEN_1 = 0, /* EVM Rev between  A - D*/
-	OMAP3EVM_BOARD_GEN_2,	/* EVM Rev >= Rev E*/
-};
+static int omap3evm_board_version;
 
-static int omap3evm_board_rev(void)
+int get_omap3evm_board_rev(void)
+{
+	return omap3evm_board_version;
+}
+EXPORT_SYMBOL(get_omap3evm_board_rev);
+static void omap3evm_board_rev(void)
 {
 	void __iomem *ioaddr;
 	unsigned int smsc_id;
@@ -83,11 +85,12 @@ static int omap3evm_board_rev(void)
 	switch (smsc_id) {
 	/*SMSC9115 chipset*/
 	case 0x01150000:
-		return OMAP3EVM_BOARD_GEN_1;
+		omap3evm_board_version = OMAP3EVM_BOARD_GEN_1;
+		break;
 	/*SMSC 9220 chipset*/
 	case 0x92200000:
 	default:
-		return OMAP3EVM_BOARD_GEN_2;
+		omap3evm_board_version = OMAP3EVM_BOARD_GEN_2;
 	}
 }
 
@@ -545,7 +548,7 @@ static void omap3evm_set_bl_intensity(int intensity)
 	 */
 	twl4030_i2c_write_u8(TWL4030_MODULE_LED, 0x11, TWL4030_LED_EN);
 
-	if (omap3evm_board_rev() >= OMAP3EVM_BOARD_GEN_2) {
+	if (get_omap3evm_board_rev() >= OMAP3EVM_BOARD_GEN_2) {
 		c = ((125 * (100 - intensity)) / 100) + 1;
 		twl4030_i2c_write_u8(TWL4030_MODULE_PWMA, 0x7F,
 							TWL4030_LED_PWMOFF);
@@ -725,7 +728,7 @@ void usb_gpio_settings(void)
 {
 	unsigned char val;
 
-	if (omap3evm_board_rev() < OMAP3EVM_BOARD_GEN_2)
+	if (get_omap3evm_board_rev() < OMAP3EVM_BOARD_GEN_2)
 		return;
 
 	/* enable VAUX2 for EHCI */
@@ -773,6 +776,9 @@ static void __init omap3_evm_init(void)
 {
 	int dec_i2c_id, is_dec_onboard;
 
+	/* Get EVM board version and save it */
+	omap3evm_board_rev();
+
 	omap3_evm_i2c_init();
 
 	platform_add_devices(omap3_evm_devices, ARRAY_SIZE(omap3_evm_devices));
@@ -792,7 +798,7 @@ static void __init omap3_evm_init(void)
 
 	usb_musb_init();
 
-	if (omap3evm_board_rev() >= OMAP3EVM_BOARD_GEN_2) {
+	if (get_omap3evm_board_rev() >= OMAP3EVM_BOARD_GEN_2) {
 		/* enable EHCI VBUS using GPIO22 */
 		omap_cfg_reg(AF9_34XX_GPIO22);
 		gpio_request(22, "enable EHCI VBUS");
@@ -831,7 +837,7 @@ static void __init omap3_evm_init(void)
 	omap3_evm_display_init();
 #endif /* CONFIG_OMAP2_DSS */
 
-	if (omap3evm_board_rev() >= OMAP3EVM_BOARD_GEN_2) {
+	if (get_omap3evm_board_rev() >= OMAP3EVM_BOARD_GEN_2) {
 		dec_i2c_id = 0x5C;
 		is_dec_onboard = 1;
 	} else {

@@ -14,6 +14,12 @@
 
 #include <mach/gpio-switch.h>
 
+/* OMAP35x EVM board revision */
+enum {
+	OMAP3EVM_BOARD_GEN_1 = 0, /* EVM Rev between  A - D*/
+	OMAP3EVM_BOARD_GEN_2,   /* EVM Rev >= Rev E*/
+};
+
 /* Different peripheral ids */
 #define OMAP_TAG_CLOCK		0x4f01
 #define OMAP_TAG_SERIAL_CONSOLE 0x4f03
@@ -173,5 +179,8 @@ extern int omap_board_config_size;
 
 /* for TI reference platforms sharing the same debug card */
 extern int debug_card_init(u32 addr, unsigned gpio);
+
+/* OMAP3EVM board revision */
+int get_omap3evm_board_rev(void);
 
 #endif
