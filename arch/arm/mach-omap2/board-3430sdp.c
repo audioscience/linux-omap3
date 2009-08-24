@@ -475,6 +475,11 @@ static inline void board_smc91x_init(void)
 
 #endif
 
+static void enable_board_wakeup_source(void)
+{
+	omap_cfg_reg(AF26_34XX_SYS_NIRQ);
+}
+
 static void __init omap_3430sdp_init(void)
 {
 	omap3430_i2c_init();
@@ -491,6 +496,7 @@ static void __init omap_3430sdp_init(void)
 	usb_musb_init();
 	board_smc91x_init();
 	usb_ehci_init(EHCI_HCD_OMAP_MODE_PHY, true, true, 57, 61);
+	enable_board_wakeup_source();
 }
 
 static void __init omap_3430sdp_map_io(void)
