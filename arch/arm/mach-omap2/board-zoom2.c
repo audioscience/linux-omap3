@@ -97,11 +97,12 @@ static void __init omap_zoom2_init_irq(void)
 	omap_gpio_init();
 }
 
-static struct omap_uart_platform_data zoom2_uart_config __initdata = {
+static struct omap_uart_config zoom2_uart_config __initdata = {
 	.enabled_uarts	= ((1 << 0) | (1 << 1) | (1 << 2)),
 };
 
 static struct omap_board_config_kernel zoom2_config[] __initdata = {
+	{ OMAP_TAG_UART,	&zoom2_uart_config },
 };
 
 static struct regulator_consumer_supply zoom2_vmmc1_supply = {
@@ -268,7 +269,7 @@ static void __init omap_zoom2_init(void)
 	omap_i2c_init();
 	omap_board_config = zoom2_config;
 	omap_board_config_size = ARRAY_SIZE(zoom2_config);
-	omap_serial_init(&zoom2_uart_config);
+	omap_serial_init();
 	omap_zoom2_debugboard_init();
 	usb_musb_init();
 }
