@@ -53,7 +53,6 @@ static int is_dec_onboard;
 #define GPIO136_SEL_CAM		(136)
 /* GPIO pins for GEN_2 EVM */
 #define GPIO98_VID_DEC_RES	(98)
-#define EXP_nCAM_VD_EN		(62)
 #define nCAM_VD_SEL		(157)
 
 #if defined(CONFIG_VIDEO_TVP514X) || defined(CONFIG_VIDEO_TVP514X_MODULE)
@@ -259,36 +258,64 @@ static int omap3evm_set_mux(enum omap3evmdc_mux mux_id, enum config_mux value)
 	val |= 0x40;
 	twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, val, REG_GPIODATAOUT1);
 
-	/* Set GPIO8 = 1 */
-	twl4030_i2c_read_u8(TWL4030_MODULE_GPIO, &val, REG_GPIODATAOUT2);
-	val |= 0x1;
-	twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, val, REG_GPIODATAOUT2);
-
 	switch (mux_id) {
 	case MUX_TVP5146:
 		if (ENABLE_MUX == value) {
-			gpio_set_value(EXP_nCAM_VD_EN, 0);
+			/* Set GPIO8 = 0 */
+			twl4030_i2c_read_u8(TWL4030_MODULE_GPIO, &val,
+					REG_GPIODATAOUT2);
+			val &= ~0x1;
+			twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, val,
+					REG_GPIODATAOUT2);
+
 			gpio_set_value(nCAM_VD_SEL, 1);
 		} else {
-			gpio_set_value(EXP_nCAM_VD_EN, 1);
+			/* Set GPIO8 = 0 */
+			twl4030_i2c_read_u8(TWL4030_MODULE_GPIO, &val,
+					REG_GPIODATAOUT2);
+			val |= 0x1;
+			twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, val,
+					REG_GPIODATAOUT2);
 		}
 		break;
 
 	case MUX_CAMERA_SENSOR:
 		if (ENABLE_MUX == value) {
-			gpio_set_value(EXP_nCAM_VD_EN, 0);
+			/* Set GPIO8 = 0 */
+			twl4030_i2c_read_u8(TWL4030_MODULE_GPIO, &val,
+					REG_GPIODATAOUT2);
+			val &= ~0x1;
+			twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, val,
+					REG_GPIODATAOUT2);
+
 			gpio_set_value(nCAM_VD_SEL, 0);
 		} else {
-			gpio_set_value(EXP_nCAM_VD_EN, 1);
+			/* Set GPIO8 = 0 */
+			twl4030_i2c_read_u8(TWL4030_MODULE_GPIO, &val,
+					REG_GPIODATAOUT2);
+			val |= 0x1;
+			twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, val,
+					REG_GPIODATAOUT2);
 		}
 		break;
 
 	case MUX_EXP_CAMERA_SENSOR:
-		if (ENABLE_MUX == value)
-			gpio_set_value(EXP_nCAM_VD_EN, 1);
-		else
-			gpio_set_value(EXP_nCAM_VD_EN, 0);
+		if (ENABLE_MUX == value) {
+			/* Set GPIO8 = 1 */
+			twl4030_i2c_read_u8(TWL4030_MODULE_GPIO, &val,
+					REG_GPIODATAOUT2);
+			val |= 0x1;
+			twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, val,
+					REG_GPIODATAOUT2);
 
+		} else {
+			/* Set GPIO8 = 0 */
+			twl4030_i2c_read_u8(TWL4030_MODULE_GPIO, &val,
+					REG_GPIODATAOUT2);
+			val &= ~0x1;
+			twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, val,
+					REG_GPIODATAOUT2);
+		}
 		break;
 
 	case NUM_MUX:
@@ -372,13 +399,14 @@ static struct i2c_board_info __initdata tvp5146_i2c_board_info = {
 static int omap3evmdc_mdc_config(void)
 {
 	if (is_dec_onboard) {
-		/* Disable Expansion Connector */
-		omap_cfg_reg(H1_34XX_GPIO62);
-		if (gpio_request(EXP_nCAM_VD_EN, "Exp-Conn En") < 0) {
-			printk(KERN_ERR "Failed to get GPIO 62\n");
-			return -EINVAL;
-		}
-		gpio_direction_output(EXP_nCAM_VD_EN, 0);
+		unsigned char val;
+
+		/* Set GPIO8 = 1 */
+		twl4030_i2c_read_u8(TWL4030_MODULE_GPIO, &val,
+				REG_GPIODATAOUT2);
+		val &= ~0x1;
+		twl4030_i2c_write_u8(TWL4030_MODULE_GPIO, val,
+				REG_GPIODATAOUT2);
 
 		/* Enable Video Decoder */
 		omap_cfg_reg(AA21_34XX_GPIO157);
