@@ -2196,20 +2196,169 @@ static int __devexit musb_remove(struct platform_device *pdev)
 
 #ifdef	CONFIG_PM
 
+static struct musb_context_registers musb_context;
+
+void musb_save_context(void __iomem *musb_base)
+{
+	int i;
+
+	musb_platform_save_context(&musb_context);
+
+	musb_context.faddr = musb_readb(musb_base, MUSB_FADDR);
+	musb_context.power = musb_readb(musb_base, MUSB_POWER);
+	musb_context.intrtx = musb_readw(musb_base, MUSB_INTRTX);
+	musb_context.intrrx = musb_readw(musb_base, MUSB_INTRRX);
+	musb_context.intrtxe = musb_readw(musb_base, MUSB_INTRTXE);
+	musb_context.intrrxe = musb_readw(musb_base, MUSB_INTRRXE);
+	musb_context.intrusb = musb_readb(musb_base, MUSB_INTRUSB);
+	musb_context.intrusbe = musb_readb(musb_base, MUSB_INTRUSBE);
+	musb_context.frame = musb_readw(musb_base, MUSB_FRAME);
+	musb_context.index = musb_readb(musb_base, MUSB_INDEX);
+	musb_context.testmode = musb_readb(musb_base, MUSB_TESTMODE);
+	musb_context.devctl = musb_readb(musb_base, MUSB_DEVCTL);
+
+	for (i = 0; i < MUSB_C_NUM_EPS; ++i) {
+		musb_writeb(musb_base, MUSB_INDEX, i);
+		musb_context.index_regs[i].txmaxp =
+			musb_readw(musb_base, 0x10 + MUSB_TXMAXP);
+		musb_context.index_regs[i].txcsr =
+			musb_readw(musb_base, 0x10 + MUSB_TXCSR);
+		musb_context.index_regs[i].rxmaxp =
+			musb_readw(musb_base, 0x10 + MUSB_RXMAXP);
+		musb_context.index_regs[i].rxcsr =
+			musb_readw(musb_base, 0x10 + MUSB_RXCSR);
+		musb_context.index_regs[i].rxcount =
+			musb_readw(musb_base, 0x10 + MUSB_RXCOUNT);
+		musb_context.index_regs[i].txtype =
+			musb_readb(musb_base, 0x10 + MUSB_TXTYPE);
+		musb_context.index_regs[i].txinterval =
+			musb_readb(musb_base, 0x10 + MUSB_TXINTERVAL);
+		musb_context.index_regs[i].rxtype =
+			musb_readb(musb_base, 0x10 + MUSB_RXTYPE);
+		musb_context.index_regs[i].rxinterval =
+			musb_readb(musb_base, 0x10 + MUSB_RXINTERVAL);
+
+		musb_context.index_regs[i].txfifoadd =
+				musb_read_txfifoadd(musb_base);
+		musb_context.index_regs[i].rxfifoadd =
+				musb_read_rxfifoadd(musb_base);
+		musb_context.index_regs[i].txfifosz =
+				musb_read_txfifosz(musb_base);
+		musb_context.index_regs[i].rxfifosz =
+				musb_read_rxfifosz(musb_base);
+
+		musb_context.index_regs[i].txfunaddr =
+			musb_read_txfunaddr(musb_base, i);
+		musb_context.index_regs[i].txhubaddr =
+			musb_read_txhubaddr(musb_base, i);
+		musb_context.index_regs[i].txhubport =
+			musb_read_txhubport(musb_base, i);
+
+		musb_context.index_regs[i].rxfunaddr =
+			musb_read_rxfunaddr(musb_base, i);
+		musb_context.index_regs[i].rxhubaddr =
+			musb_read_rxhubaddr(musb_base, i);
+		musb_context.index_regs[i].rxhubport =
+			musb_read_rxhubport(musb_base, i);
+	}
+
+	musb_writeb(musb_base, MUSB_INDEX, musb_context.index);
+}
+
+void musb_restore_context(void __iomem *musb_base)
+{
+	int i;
+	void __iomem *ep_target_regs;
+
+	musb_writeb(musb_base, MUSB_FADDR, musb_context.faddr);
+	musb_writeb(musb_base, MUSB_POWER, musb_context.power);
+	musb_writew(musb_base, MUSB_INTRTX, musb_context.intrtx);
+	musb_writew(musb_base, MUSB_INTRRX, musb_context.intrrx);
+	musb_writew(musb_base, MUSB_INTRTXE, musb_context.intrtxe);
+	musb_writew(musb_base, MUSB_INTRRXE, musb_context.intrrxe);
+	musb_writeb(musb_base, MUSB_INTRUSB, musb_context.intrusb);
+	musb_writeb(musb_base, MUSB_INTRUSBE, musb_context.intrusbe);
+	musb_writew(musb_base, MUSB_FRAME, musb_context.frame);
+	musb_writeb(musb_base, MUSB_TESTMODE, musb_context.testmode);
+	musb_writeb(musb_base, MUSB_DEVCTL, musb_context.devctl);
+
+
+	for (i = 0; i < MUSB_C_NUM_EPS; ++i) {
+		musb_writeb(musb_base, MUSB_INDEX, i);
+		musb_writew(musb_base, 0x10 + MUSB_TXMAXP,
+			musb_context.index_regs[i].txmaxp);
+		musb_writew(musb_base, 0x10 + MUSB_TXCSR,
+			musb_context.index_regs[i].txcsr);
+		musb_writew(musb_base, 0x10 + MUSB_RXMAXP,
+			musb_context.index_regs[i].rxmaxp);
+		musb_writew(musb_base, 0x10 + MUSB_RXCSR,
+			musb_context.index_regs[i].rxcsr);
+		musb_writew(musb_base, 0x10 + MUSB_RXCOUNT,
+			musb_context.index_regs[i].rxcount);
+		musb_writeb(musb_base, 0x10 + MUSB_TXTYPE,
+			musb_context.index_regs[i].txtype);
+		musb_writeb(musb_base, 0x10 + MUSB_TXINTERVAL,
+			musb_context.index_regs[i].txinterval);
+		musb_writeb(musb_base, 0x10 + MUSB_RXTYPE,
+			musb_context.index_regs[i].rxtype);
+		musb_writeb(musb_base, 0x10 + MUSB_RXINTERVAL,
+			musb_context.index_regs[i].rxinterval);
+
+		musb_write_txfifosz(musb_base,
+			musb_context.index_regs[i].txfifosz);
+		musb_write_rxfifosz(musb_base,
+			musb_context.index_regs[i].rxfifosz);
+		musb_write_txfifoadd(musb_base,
+			musb_context.index_regs[i].txfifoadd);
+		musb_write_rxfifoadd(musb_base,
+			musb_context.index_regs[i].rxfifoadd);
+
+		musb_write_txfunaddr(musb_base, i,
+			musb_context.index_regs[i].txfunaddr);
+		musb_write_txhubaddr(musb_base, i,
+			musb_context.index_regs[i].txhubaddr);
+		musb_write_txhubport(musb_base, i,
+			musb_context.index_regs[i].txhubport);
+
+		ep_target_regs = musb_read_target_reg_base(i, musb_base);
+
+		musb_write_rxfunaddr(ep_target_regs,
+			musb_context.index_regs[i].rxfunaddr);
+		musb_write_rxhubaddr(ep_target_regs,
+			musb_context.index_regs[i].rxhubaddr);
+		musb_write_rxhubport(ep_target_regs,
+			musb_context.index_regs[i].rxhubport);
+	}
+
+	musb_writeb(musb_base, MUSB_INDEX, musb_context.index);
+
+	musb_platform_restore_context(&musb_context);
+}
+
 static int musb_suspend(struct platform_device *pdev, pm_message_t message)
 {
 	unsigned long	flags;
 	struct musb	*musb = dev_to_musb(&pdev->dev);
+	u8 reg;
 
 	if (!musb->clock)
 		return 0;
 
 	spin_lock_irqsave(&musb->lock, flags);
 
+	musb_save_context(musb->mregs);
+
 	if (is_peripheral_active(musb)) {
-		/* FIXME force disconnect unless we know USB will wake
-		 * the system up quickly enough to respond ...
+		/* System is entering into suspend where gadget would not be
+		 * able to respond to host and thus it will be in an unknown
+		 * state for host.Re-enumemation of gadget is required after
+		 * resume to make the gadget functional thus doing a force
+		 * disconnect.
 		 */
+		reg = musb_readb(musb->mregs, MUSB_POWER);
+		reg &= ~MUSB_POWER_SOFTCONN;
+		musb_writeb(musb->mregs, MUSB_POWER, reg);
+
 	} else if (is_host_active(musb)) {
 		/* we know all the children are suspended; sometimes
 		 * they will even be wakeup-enabled.
@@ -2236,6 +2385,8 @@ static int musb_resume_early(struct platform_device *pdev)
 	else
 		clk_enable(musb->clock);
 
+	musb_restore_context(musb->mregs);
+
 	/* for static cmos like DaVinci, register values were preserved
 	 * unless for some reason the whole soc powered down or the USB
 	 * module got reset through the PSC (vs just being disabled).
@@ -2246,6 +2397,8 @@ static int musb_resume_early(struct platform_device *pdev)
 #else
 #define	musb_suspend	NULL
 #define	musb_resume_early	NULL
+#define musb_save_context	do {} while (0)
+#define musb_restore_context	do {} while (0)
 #endif
 
 static struct platform_driver musb_driver = {
