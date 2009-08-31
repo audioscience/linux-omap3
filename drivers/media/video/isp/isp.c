@@ -456,13 +456,21 @@ static void isp_enable_interrupts(int is_raw)
 
 static void isp_disable_interrupts(void)
 {
-	isp_reg_and(OMAP3_ISP_IOMEM_MAIN, ISP_IRQ0ENABLE,
-		    ~(IRQ0ENABLE_CCDC_LSC_PREF_ERR_IRQ |
-			IRQ0ENABLE_HS_VS_IRQ |
-			IRQ0ENABLE_CCDC_VD0_IRQ |
-			IRQ0ENABLE_CCDC_VD1_IRQ |
-			IRQ0ENABLE_PRV_DONE_IRQ |
-			IRQ0ENABLE_RSZ_DONE_IRQ));
+	if (isp_obj.bt656ifen == 0)
+		isp_reg_and(OMAP3_ISP_IOMEM_MAIN, ISP_IRQ0ENABLE,
+				~(IRQ0ENABLE_CCDC_LSC_PREF_ERR_IRQ |
+					IRQ0ENABLE_HS_VS_IRQ |
+					IRQ0ENABLE_CCDC_VD0_IRQ |
+					IRQ0ENABLE_CCDC_VD1_IRQ |
+					IRQ0ENABLE_PRV_DONE_IRQ |
+					IRQ0ENABLE_RSZ_DONE_IRQ));
+	else
+		isp_reg_and(OMAP3_ISP_IOMEM_MAIN, ISP_IRQ0ENABLE,
+				~(IRQ0ENABLE_CCDC_LSC_PREF_ERR_IRQ |
+					IRQ0ENABLE_HS_VS_IRQ |
+					IRQ0ENABLE_CCDC_VD0_IRQ |
+					IRQ0ENABLE_CCDC_VD1_IRQ |
+					IRQ0ENABLE_PRV_DONE_IRQ));
 }
 
 /**
@@ -960,14 +968,13 @@ static irqreturn_t omap34xx_isp_isr(int irq, void *_isp)
 
 	if ((irqstatus & CCDC_VD0) == CCDC_VD0) {
 		if (isp_obj.module.pix.field == V4L2_FIELD_INTERLACED) {
-			/* Skip even fields */
-			if (isp_obj.module.current_field == 0) {
-				return IRQ_HANDLED;
+			/* Skip even fields, and process only odd fields */
+			if (isp_obj.module.current_field != 0) {
+				if (RAW_CAPTURE(&isp_obj))
+					isp_buf_process(bufs);
 			}
 		}
 
-		if (RAW_CAPTURE(&isp_obj))
-			isp_buf_process(bufs);
 	}
 
 	if ((irqstatus & PREV_DONE) == PREV_DONE) {
@@ -1409,7 +1416,7 @@ int isp_buf_process(struct isp_bufs *bufs)
 		isp_disable_interrupts();
 		if (RAW_CAPTURE(&isp_obj))
 			ispccdc_enable(0);
-		else
+		else if (isp_obj.bt656ifen == 0)
 			ispresizer_enable(0);
 		/*
 		 * We must wait for the HS_VS since before that the
