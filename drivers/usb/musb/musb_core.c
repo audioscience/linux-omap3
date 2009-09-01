@@ -113,6 +113,10 @@
 #endif
 
 
+#ifdef	CONFIG_PM
+void __iomem    *musb_base;
+unsigned short musb_clock_on = 1;
+#endif
 
 unsigned musb_debug;
 module_param_named(debug, musb_debug, uint, S_IRUGO | S_IWUSR);
@@ -1947,6 +1951,9 @@ bad_config:
 		goto fail2;
 	}
 
+#ifdef CONFIG_PM
+	musb_base = musb->mregs;
+#endif
 #ifndef CONFIG_MUSB_PIO_ONLY
 	if (use_dma && dev->dma_mask) {
 		struct dma_controller	*c;
@@ -2299,6 +2306,9 @@ static int musb_suspend(struct device *dev)
 	if (!musb->clock)
 		return 0;
 
+	if (!musb_clock_on)
+		return 0;
+
 	spin_lock_irqsave(&musb->lock, flags);
 
 	musb_save_context();
@@ -2324,6 +2334,9 @@ static int musb_suspend(struct device *dev)
 		musb->set_clock(musb->clock, 0);
 	else
 		clk_disable(musb->clock);
+
+	musb_clock_on = 0;
+
 	spin_unlock_irqrestore(&musb->lock, flags);
 	return 0;
 }
@@ -2336,12 +2349,17 @@ static int musb_resume_noirq(struct device *dev)
 	if (!musb->clock)
 		return 0;
 
+	if (musb_clock_on)
+		return 0;
+
 	if (musb->set_clock)
 		musb->set_clock(musb->clock, 1);
 	else
 		clk_enable(musb->clock);
 
-	musb_restore_context(musb->mregs);
+	musb_clock_on = 1;
+
+	musb_restore_context();
 
 	/* for static cmos like DaVinci, register values were preserved
 	 * unless for some reason the whole soc powered down or the USB
