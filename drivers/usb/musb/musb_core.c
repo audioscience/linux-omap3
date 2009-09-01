@@ -114,6 +114,10 @@
 
 #define TA_WAIT_BCON(m) max_t(int, (m)->a_wait_bcon, OTG_TIME_A_WAIT_BCON)
 
+#ifdef	CONFIG_PM
+void __iomem    *musb_base;
+unsigned short musb_clock_on = 1;
+#endif
 
 unsigned musb_debug;
 module_param_named(debug, musb_debug, uint, S_IRUGO | S_IWUSR);
@@ -1995,6 +1999,9 @@ bad_config:
 		goto fail2;
 	}
 
+#ifdef CONFIG_PM
+	musb_base = musb->mregs;
+#endif
 #ifndef CONFIG_MUSB_PIO_ONLY
 	if (use_dma && dev->dma_mask) {
 		struct dma_controller	*c;
@@ -2198,9 +2205,12 @@ static int __devexit musb_remove(struct platform_device *pdev)
 
 static struct musb_context_registers musb_context;
 
-void musb_save_context(void __iomem *musb_base)
+void musb_save_context(void)
 {
 	int i;
+
+	if (!musb_clock_on)
+		return;
 
 	musb_platform_save_context(&musb_context);
 
@@ -2265,10 +2275,13 @@ void musb_save_context(void __iomem *musb_base)
 	musb_writeb(musb_base, MUSB_INDEX, musb_context.index);
 }
 
-void musb_restore_context(void __iomem *musb_base)
+void musb_restore_context(void)
 {
 	int i;
 	void __iomem *ep_target_regs;
+
+	if (!musb_clock_on)
+		return;
 
 	musb_writeb(musb_base, MUSB_FADDR, musb_context.faddr);
 	musb_writeb(musb_base, MUSB_POWER, musb_context.power);
@@ -2344,9 +2357,12 @@ static int musb_suspend(struct platform_device *pdev, pm_message_t message)
 	if (!musb->clock)
 		return 0;
 
+	if (!musb_clock_on)
+		return 0;
+
 	spin_lock_irqsave(&musb->lock, flags);
 
-	musb_save_context(musb->mregs);
+	musb_save_context();
 
 	if (is_peripheral_active(musb)) {
 		/* System is entering into suspend where gadget would not be
@@ -2369,6 +2385,9 @@ static int musb_suspend(struct platform_device *pdev, pm_message_t message)
 		musb->set_clock(musb->clock, 0);
 	else
 		clk_disable(musb->clock);
+
+	musb_clock_on = 0;
+
 	spin_unlock_irqrestore(&musb->lock, flags);
 	return 0;
 }
@@ -2380,12 +2399,17 @@ static int musb_resume_early(struct platform_device *pdev)
 	if (!musb->clock)
 		return 0;
 
+	if (musb_clock_on)
+		return 0;
+
 	if (musb->set_clock)
 		musb->set_clock(musb->clock, 1);
 	else
 		clk_enable(musb->clock);
 
-	musb_restore_context(musb->mregs);
+	musb_clock_on = 1;
+
+	musb_restore_context();
 
 	/* for static cmos like DaVinci, register values were preserved
 	 * unless for some reason the whole soc powered down or the USB
