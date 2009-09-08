@@ -415,8 +415,10 @@ void omap_sram_idle(void)
 						OMAP3_PRM_VOLTCTRL_OFFSET);
 		}
 		/* Enable IO-PAD and IO-CHAIN wakeups */
-		prm_set_mod_reg_bits(OMAP3430_EN_IO, WKUP_MOD, PM_WKEN);
-		omap3_enable_io_chain();
+		if (!cpu_is_omap3505() && !cpu_is_omap3517()) {
+			prm_set_mod_reg_bits(OMAP3430_EN_IO, WKUP_MOD, PM_WKEN);
+			omap3_enable_io_chain();
+		}
 	}
 
 	/*
@@ -490,11 +492,12 @@ void omap_sram_idle(void)
 	}
 
 	/* Disable IO-PAD and IO-CHAIN wakeup */
-	if (core_next_state < PWRDM_POWER_ON) {
-		prm_clear_mod_reg_bits(OMAP3430_EN_IO, WKUP_MOD, PM_WKEN);
-		omap3_disable_io_chain();
+	if (!cpu_is_omap3505() && !cpu_is_omap3517()) {
+		if (core_next_state < PWRDM_POWER_ON) {
+			prm_clear_mod_reg_bits(OMAP3430_EN_IO, WKUP_MOD, PM_WKEN);
+			omap3_disable_io_chain();
+		}
 	}
-
 
 	pwrdm_post_transition();
 
@@ -963,8 +966,13 @@ void omap3_pm_off_mode_enable(int enable)
 	struct power_state *pwrst;
 	u32 state;
 
-	if (enable)
-		state = PWRDM_POWER_OFF;
+	/* No OFF mode support on OMAP3505/17 */
+	if (enable) {
+		if (cpu_is_omap3517() | cpu_is_omap3505())
+			state = PWRDM_POWER_RET;
+		else
+			state = PWRDM_POWER_OFF;
+	}
 	else
 		state = PWRDM_POWER_RET;
 
