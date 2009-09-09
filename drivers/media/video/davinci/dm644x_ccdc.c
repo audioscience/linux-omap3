@@ -156,7 +156,7 @@ void ccdc_setwin(struct v4l2_rect *image_win,
 		/* Since first line doesn't have any data */
 		vert_start += 1;
 		/* configure VDINT0 */
-		val = (vert_start << CCDC_VDINT_VDINT0_SHIFT);
+		val = ((vert_nr_lines - 10) << CCDC_VDINT_VDINT0_SHIFT);
 		regw(val, CCDC_VDINT);
 
 	} else {
@@ -405,7 +405,7 @@ void ccdc_config_ycbcr(void)
 		 * configure the FID, VD, HD pin polarity,
 		 * fld,hd pol positive, vd negative, 8-bit data
 		 */
-		syn_mode |= CCDC_SYN_MODE_VD_POL_NEGATIVE | CCDC_SYN_MODE_8BITS;
+		syn_mode |= CCDC_SYN_MODE_VD_POL_NEGATIVE | CCDC_SYN_MODE_10BITS;
 	} else {
 		/* y/c external sync mode */
 		syn_mode |= (((params->fid_pol & CCDC_FID_POL_MASK) <<

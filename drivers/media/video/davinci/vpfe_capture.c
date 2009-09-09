@@ -78,7 +78,7 @@
 #include "ccdc_hw_device.h"
 
 static int debug;
-static u32 numbuffers = 3;
+static u32 numbuffers = 2;
 static u32 bufsize = (720 * 576 * 2);
 static int interface;
 
@@ -130,8 +130,8 @@ struct ccdc_config {
 
 /* data structures */
 static struct vpfe_config_params config_params = {
-	.min_numbuffers = 3,
-	.numbuffers = 3,
+	.min_numbuffers = 2,
+	.numbuffers = 2,
 	.min_bufsize = 720 * 480 * 2,
 	.device_bufsize = 720 * 576 * 2,
 };
@@ -665,6 +665,7 @@ static void vpfe_process_buffer_complete(struct vpfe_device *vpfe_dev)
 	vpfe_dev->cur_frm = vpfe_dev->next_frm;
 }
 
+unsigned int fid_chk[1000], fid_cnt;
 /* ISR for VINT0*/
 static irqreturn_t vpfe_isr(int irq, void *dev_id)
 {
@@ -698,6 +699,10 @@ static irqreturn_t vpfe_isr(int irq, void *dev_id)
 	/* interlaced or TB capture check which field we are in hardware */
 	fid = ccdc_dev->hw_ops.getfid();
 
+#if 1
+	fid_chk[fid_cnt] = fid;
+	fid_cnt++;
+#endif
 	/* switch the software maintained field id */
 	vpfe_dev->field_id ^= 1;
 	v4l2_dbg(1, debug, &vpfe_dev->v4l2_dev, "field id = %x:%x.\n",
@@ -812,6 +817,14 @@ static int vpfe_release(struct file *file)
 	struct vpfe_subdev_info *sdinfo;
 	int ret;
 
+#if 1
+	int i;
+
+	for(i = 0; i < fid_cnt; i++)
+		printk("fid_chk[%d] - %d\n", i, fid_chk[i]);
+
+	fid_cnt = 0;
+#endif
 	v4l2_dbg(1, debug, &vpfe_dev->v4l2_dev, "vpfe_release\n");
 
 	/* Get the device lock */
