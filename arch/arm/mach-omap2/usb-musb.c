@@ -216,6 +216,9 @@ void __init usb_musb_init(void)
 		/* OMAP3517 MUSB has 32K FIFO */
 		musb_config.ram_bits = 13; /* 2^(13+2) = 32K */
 	} else {
+		/* OMAP35x new EVM can source 500mA */
+		if (get_omap3evm_board_rev() >= OMAP3EVM_BOARD_GEN_2)
+			musb_plat.power = 250;
 		musb_resources[0].start = OMAP34XX_HSUSB_OTG_BASE;
 		musb_resources[0].end = musb_resources[0].start + SZ_8K - 1;
 	}
