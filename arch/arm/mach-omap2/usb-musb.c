@@ -199,17 +199,33 @@ static struct platform_device musb_device = {
 
 void __init usb_musb_init(void)
 {
-	if (cpu_is_omap243x())
+	if (cpu_is_omap243x()) {
 		musb_resources[0].start = OMAP243X_HS_BASE;
-	else
+		musb_resources[0].end = musb_resources[0].start + SZ_8K - 1;
+	} else if (cpu_is_omap3517()) {
 		musb_resources[0].start = OMAP34XX_HSUSB_OTG_BASE;
-	musb_resources[0].end = musb_resources[0].start + SZ_8K - 1;
+		musb_plat.clock = "usbotg_ck";
+		musb_resources[1].start = INT_3517_HSUSB_OTG;
+		/* set mux config for DRVVBUS */
+		omap_cfg_reg(E25_3517_USB0_DRVVBUS);
+		/* OMAP3517 can provide max of 500mA */
+		musb_plat.power = 250;
+		/* OMAP3517 has to map for CPPI4.1 registers also */
+		musb_resources[0].end = musb_resources[0].start
+						+ (2 * SZ_16K) - 1;
+		/* OMAP3517 MUSB has 32K FIFO */
+		musb_config.ram_bits = 13; /* 2^(13+2) = 32K */
+	} else {
+		musb_resources[0].start = OMAP34XX_HSUSB_OTG_BASE;
+		musb_resources[0].end = musb_resources[0].start + SZ_8K - 1;
+	}
 
 	/*
 	 * REVISIT: This line can be removed once all the platforms using
 	 * musb_core.c have been converted to use use clkdev.
 	 */
-	musb_plat.clock = "ick";
+	if (!cpu_is_omap3517())
+		musb_plat.clock = "ick";
 
 	if (platform_device_register(&musb_device) < 0) {
 		printk(KERN_ERR "Unable to register HS-USB (MUSB) device\n");
