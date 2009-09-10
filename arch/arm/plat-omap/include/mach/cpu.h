@@ -333,6 +333,12 @@ IS_OMAP_TYPE(3517, 0x3517)
 #define cpu_is_omap2423()		0
 #define cpu_is_omap2430()		0
 #define cpu_is_omap3430()		0
+#define cpu_is_omap3503() 		0
+#define cpu_is_omap3515()		0
+#define cpu_is_omap3525()		0
+#define cpu_is_omap3530()		0
+#define cpu_is_omap3505()		0
+#define cpu_is_omap3517()		0
 
 /*
  * Whether we have MULTI_OMAP1 or not, we still need to distinguish
