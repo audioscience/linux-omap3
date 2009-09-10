@@ -54,6 +54,39 @@
 #define OMAP3EVM_ETHR_GPIO_IRQ	176
 #define OMAP3EVM_SMC911X_CS	5
 
+static int omap3evm_board_version;
+
+int get_omap3evm_board_rev(void)
+{
+	return omap3evm_board_version;
+}
+EXPORT_SYMBOL(get_omap3evm_board_rev);
+static void omap3evm_board_rev(void)
+{
+	void __iomem *ioaddr;
+	unsigned int smsc_id;
+	/*
+	 * The run time detection of EVM revision is done by reading Ethernet
+	 * PHY ID -
+	 *	GEN_1	= 0x
+	 *	GEN_2	= 0x92200000
+	 */
+	ioaddr = ioremap_nocache(OMAP3EVM_ETHR_START + 0x50, 0x4);
+	smsc_id = readl(ioaddr) & 0xFFFF0000;
+	iounmap(ioaddr);
+
+	switch (smsc_id) {
+	/*SMSC9115 chipset*/
+	case 0x01150000:
+		omap3evm_board_version = OMAP3EVM_BOARD_GEN_1;
+		break;
+	/*SMSC 9220 chipset*/
+	case 0x92200000:
+	default:
+		omap3evm_board_version = OMAP3EVM_BOARD_GEN_2;
+	}
+}
+
 static struct resource omap3evm_smc911x_resources[] = {
 	[0] =	{
 		.start	= OMAP3EVM_ETHR_START,
@@ -324,6 +357,8 @@ static struct ehci_hcd_omap_platform_data ehci_pdata __initconst = {
 
 static void __init omap3_evm_init(void)
 {
+	omap3evm_board_rev();
+
 	omap3_evm_i2c_init();
 
 	platform_add_devices(omap3_evm_devices, ARRAY_SIZE(omap3_evm_devices));

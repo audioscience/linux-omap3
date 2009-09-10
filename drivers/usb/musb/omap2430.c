@@ -36,6 +36,7 @@
 #include <asm/mach-types.h>
 #include <mach/hardware.h>
 #include <mach/mux.h>
+#include <mach/board.h>
 
 #include "musb_core.h"
 #include "omap2430.h"
