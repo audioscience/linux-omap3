@@ -91,7 +91,10 @@ static struct platform_device *omap3517_evm_devices[] __initdata = {
 
 static void __init omap3517_evm_init_irq(void)
 {
-	omap2_init_common_hw(NULL, NULL, NULL, NULL);
+	omap_board_config = omap3517_evm_config;
+	omap_board_config_size = ARRAY_SIZE(omap3517_evm_config);
+
+	omap2_init_common_hw(NULL, NULL, NULL, NULL, NULL);
 	omap_init_irq();
 	omap_gpio_init();
 }
@@ -102,9 +105,6 @@ static void __init omap3517_evm_init(void)
 
 	platform_add_devices(omap3517_evm_devices,
 				ARRAY_SIZE(omap3517_evm_devices));
-
-	omap_board_config = omap3517_evm_config;
-	omap_board_config_size = ARRAY_SIZE(omap3517_evm_config);
 
 	omap_serial_init();
 	omap3517_evm_ethernet_init();
