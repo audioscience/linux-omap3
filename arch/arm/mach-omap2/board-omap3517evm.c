@@ -38,14 +38,6 @@
 #include <mach/common.h>
 #include <mach/mcspi.h>
 
-
-/*
- * UART
- */
-static struct omap_uart_config omap3517_evm_uart_config __initdata = {
-	.enabled_uarts	= ((1 << 0) | (1 << 1) | (1 << 2)),
-};
-
 /*
  * Ethernet
  */
@@ -83,7 +75,6 @@ static int __init omap3517_evm_i2c_init(void)
  * Board initialization
  */
 static struct omap_board_config_kernel omap3517_evm_config[] __initdata = {
-	{ OMAP_TAG_UART,	&omap3517_evm_uart_config },
 };
 
 static struct platform_device *omap3517_evm_devices[] __initdata = {
