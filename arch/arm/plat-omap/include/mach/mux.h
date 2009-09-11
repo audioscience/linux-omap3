@@ -899,6 +899,10 @@ enum omap34xx_index {
 	U3_34XX_GPIO61,
 	AF9_34XX_GPIO22,
 	Y21_34XX_GPIO156,
+
+	AA16_34XX_GPI181,
+	AE17_34XX_GPIO182,
+	AE15_34XX_GPIO176,
 };
 
 struct omap_mux_cfg {
