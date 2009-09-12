@@ -1224,13 +1224,13 @@ static int ioctl_s_power(struct v4l2_int_device *s, enum v4l2_power on)
 					0x01);
 		/* Disable mux for TVP5146/47 decoder data path */
 		if (decoder->pdata->power_set)
-			err |= decoder->pdata->power_set(on);
+			err |= decoder->pdata->power_set(s, on);
 		decoder->state = STATE_NOT_DETECTED;
 		break;
 
 	case V4L2_POWER_STANDBY:
 		if (decoder->pdata->power_set)
-			err = decoder->pdata->power_set(on);
+			err = decoder->pdata->power_set(s, on);
 		break;
 
 	case V4L2_POWER_ON:
@@ -1242,7 +1242,7 @@ static int ioctl_s_power(struct v4l2_int_device *s, enum v4l2_power on)
 				(struct tvp514x_init_seq *)
 				decoder->id->driver_data;
 
-			err = decoder->pdata->power_set(on);
+			err = decoder->pdata->power_set(s, on);
 
 			/* Power Up Sequence */
 			for (i = 0; i < int_seq->no_regs; i++) {

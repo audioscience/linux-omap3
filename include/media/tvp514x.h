@@ -105,8 +105,8 @@ enum tvp514x_output {
  */
 struct tvp514x_platform_data {
 	char *master;
-	int (*power_set) (enum v4l2_power on);
-	int (*ifparm) (struct v4l2_ifparm *p);
+	int (*power_set) (struct v4l2_int_device *, enum v4l2_power);
+	int (*ifparm) (struct v4l2_ifparm *);
 	int (*priv_data_set) (void *);
 	/* Interface control params */
 	bool clk_polarity;
