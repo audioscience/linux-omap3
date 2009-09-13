@@ -120,6 +120,7 @@ obj-$(CONFIG_VIDEO_CAFE_CCIC) += cafe_ccic.o
 obj-$(CONFIG_VIDEO_OMAP3) += omap/
 
 obj-y				+= isp/
+obj-$(CONFIG_VIDEO_OMAP3)	+= omap34xxcam.o
 
 obj-$(CONFIG_USB_DABUSB)        += dabusb.o
 obj-$(CONFIG_USB_OV511)         += ov511.o
