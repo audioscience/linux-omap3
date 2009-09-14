@@ -54,7 +54,11 @@ obj-$(CONFIG_VIDEO_KS0127) += ks0127.o
 obj-$(CONFIG_VIDEO_THS7303) += ths7303.o
 obj-$(CONFIG_VIDEO_VINO) += indycam.o
 obj-$(CONFIG_VIDEO_TVP5150) += tvp5150.o
+ifeq ($(CONFIG_MACH_OMAP3517EVM),y)
+obj-$(CONFIG_VIDEO_TVP514X) += tvp514x-sd.o
+else
 obj-$(CONFIG_VIDEO_TVP514X) += tvp514x.o
+endif
 obj-$(CONFIG_VIDEO_MSP3400) += msp3400.o
 obj-$(CONFIG_VIDEO_CS5345) += cs5345.o
 obj-$(CONFIG_VIDEO_CS53L32A) += cs53l32a.o
