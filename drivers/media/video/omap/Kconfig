@@ -1,12 +1,6 @@
-config VIDEO_OMAP_VIDEOOUT
-	tristate "OMAP Video out driver"
-	select VIDEOBUF_DMA_SG
-	select VIDEOBUF_GEN
-	depends on VIDEO_OMAP3
-	default VIDEO_OMAP3
-
 choice
         prompt "TV Mode"
+	depends on VIDEO_OMAP3_VOUT
         default NTSC_M
 
 config NTSC_M

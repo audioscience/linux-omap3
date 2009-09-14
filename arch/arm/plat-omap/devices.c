@@ -359,8 +359,8 @@ static inline void omap_init_rng(void) {}
 
 /*---------------------------------------------------------------------------*/
 
-#if defined(CONFIG_VIDEO_OMAP_VIDEOOUT) || \
-	defined(CONFIG_VIDEO_OMAP_VIDEOOUT_MODULE)
+#if defined(CONFIG_VIDEO_OMAP3_VOUT) || \
+	defined(CONFIG_VIDEO_OMAP3_VOUT_MODULE)
 #ifdef CONFIG_FB_OMAP2
 static struct resource omap3evm_vout_resource[3 - CONFIG_FB_OMAP2_NUM_FBS] = {
 };

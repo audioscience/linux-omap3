@@ -117,10 +117,10 @@ obj-$(CONFIG_VIDEO_CX2341X) += cx2341x.o
 
 obj-$(CONFIG_VIDEO_CAFE_CCIC) += cafe_ccic.o
 
-obj-$(CONFIG_VIDEO_OMAP3) += omap/
+obj-$(CONFIG_VIDEO_OMAP3_VOUT) += omap/
 
 obj-y				+= isp/
-obj-$(CONFIG_VIDEO_OMAP3)	+= omap34xxcam.o
+obj-$(CONFIG_VIDEO_OMAP3_CAM)	+= omap34xxcam.o
 obj-$(CONFIG_VIDEO_MT9P012)     += mt9p012.o
 obj-$(CONFIG_VIDEO_DW9710)	+= dw9710.o
 obj-$(CONFIG_VIDEO_TPS61059)    += tps61059.o
