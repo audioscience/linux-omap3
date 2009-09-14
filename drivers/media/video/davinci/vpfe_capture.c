@@ -2425,15 +2425,21 @@ static int vpfe_remove(struct platform_device *pdev)
 static int
 vpfe_suspend(struct device *dev)
 {
+	struct vpfe_device *vpfe_dev = dev_get_drvdata(dev);
+
+	vpfe_disable_clock(vpfe_dev);
 	/* add suspend code here later */
-	return -1;
+	return 0;
 }
 
 static int
 vpfe_resume(struct device *dev)
 {
+	struct vpfe_device *vpfe_dev = dev_get_drvdata(dev);
+
+	vpfe_enable_clock(vpfe_dev);
 	/* add resume code here later */
-	return -1;
+	return 0;
 }
 
 static struct dev_pm_ops vpfe_dev_pm_ops = {
