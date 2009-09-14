@@ -17,6 +17,7 @@
 
 #include <linux/kernel.h>
 #include <linux/init.h>
+#include <linux/dma-mapping.h>
 #include <linux/platform_device.h>
 #include <linux/delay.h>
 #include <linux/err.h>
@@ -31,6 +32,7 @@
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
 
+#include <mach/omap3517.h>
 #include <mach/gpio.h>
 #include <mach/board.h>
 #include <mach/mux.h>
@@ -38,6 +40,9 @@
 #include <mach/common.h>
 #include <mach/mcspi.h>
 #include <mach/display.h>
+
+#include <media/davinci/vpfe_capture.h>
+#include <media/tvp514x-sd.h>
 
 /*
  * Ethernet
@@ -53,6 +58,10 @@ static int __init omap3517_evm_ethernet_init (void)
  */
 static int __init omap3517_evm_i2c_init(void)
 {
+	omap_register_i2c_bus(1, 400, NULL, 0);
+	omap_register_i2c_bus(2, 400, NULL, 0);
+	omap_register_i2c_bus(3, 400, NULL, 0);
+
 	return 0;
 }
 
@@ -240,6 +249,114 @@ static struct platform_device omap3517_evm_dss_device = {
 	},
 };
 
+static struct resource vpfe_resources[] = {
+	{
+		.start          = INT_3517_CCDC_VD0,
+		.end            = INT_3517_CCDC_VD0,
+		.flags          = IORESOURCE_IRQ,
+	},
+	{
+		.start          = INT_3517_CCDC_VD1,
+		.end            = INT_3517_CCDC_VD1,
+		.flags          = IORESOURCE_IRQ,
+	},
+	{
+		.start          = OMAP3517_IPSS_VPFE_BASE,
+		.end            = OMAP3517_IPSS_VPFE_BASE + 0xffff,
+		.flags          = IORESOURCE_MEM,
+	},
+	{
+		.start          = OMAP3517_LVL_INTR_CLEAR,
+		.end            = OMAP3517_LVL_INTR_CLEAR + 0x4,
+		.flags          = IORESOURCE_MEM,
+	},
+};
+
+static u64 vpfe_dma_mask = DMA_BIT_MASK(32);
+
+static struct platform_device vpfe_capture_dev = {
+	.name		= CAPTURE_DRV_NAME,
+	.id		= -1,
+	.num_resources	= ARRAY_SIZE(vpfe_resources),
+	.resource	= vpfe_resources,
+	.dev = {
+		.dma_mask		= &vpfe_dma_mask,
+		.coherent_dma_mask	= DMA_BIT_MASK(32),
+	},
+};
+
+static void omap3517evm_set_vpfe_config(struct vpfe_config *cfg)
+{
+	vpfe_capture_dev.dev.platform_data = cfg;
+}
+
+#define TVP514X_STD_ALL	(V4L2_STD_NTSC | V4L2_STD_PAL)
+/* Inputs available at the TVP5146 */
+static struct v4l2_input tvp5146_inputs[] = {
+	{
+		.index = 0,
+		.name = "Composite",
+		.type = V4L2_INPUT_TYPE_CAMERA,
+		.std = TVP514X_STD_ALL,
+	},
+	{
+		.index = 1,
+		.name = "S-Video",
+		.type = V4L2_INPUT_TYPE_CAMERA,
+		.std = TVP514X_STD_ALL,
+	},
+};
+
+/*
+ * this is the route info for connecting each input to decoder
+ * ouput that goes to vpfe. There is a one to one correspondence
+ * with tvp5146_inputs
+ */
+static struct vpfe_route tvp5146_routes[] = {
+	{
+		.input = INPUT_CVBS_VI1A,
+		.output = OUTPUT_10BIT_422_EMBEDDED_SYNC,
+	},
+	{
+		.input = INPUT_SVIDEO_VI2C_VI1C,
+		.output = OUTPUT_10BIT_422_EMBEDDED_SYNC,
+	},
+};
+
+static struct tvp514x_platform_data tvp5146_pdata = {
+	.clk_polarity = 0,
+	.hs_polarity = 1,
+	.vs_polarity = 1
+};
+
+static struct vpfe_subdev_info vpfe_sub_devs[] = {
+	{
+		.module_name = TVP514X_MODULE_NAME,
+		.grp_id = VPFE_SUBDEV_TVP5146,
+		.num_inputs = ARRAY_SIZE(tvp5146_inputs),
+		.inputs = tvp5146_inputs,
+		.routes = tvp5146_routes,
+		.can_route = 1,
+		.ccdc_if_params = {
+			.if_type = VPFE_BT656,
+			.hdpol = VPFE_PINPOL_POSITIVE,
+			.vdpol = VPFE_PINPOL_POSITIVE,
+		},
+		.board_info = {
+			I2C_BOARD_INFO("tvp5146", 0x5C),
+			.platform_data = &tvp5146_pdata,
+		},
+	},
+};
+
+static struct vpfe_config vpfe_cfg = {
+	.num_subdevs = ARRAY_SIZE(vpfe_sub_devs),
+	.sub_devs = vpfe_sub_devs,
+	.card_name = "OMAP3517 EVM",
+	.ccdc = "DM6446 CCDC",
+	.num_clocks = 2,
+	.clocks = {"vpfe_ck", "vpfe_pck"},
+};
 /*
  * Board initialization
  */
@@ -248,6 +365,7 @@ static struct omap_board_config_kernel omap3517_evm_config[] __initdata = {
 
 static struct platform_device *omap3517_evm_devices[] __initdata = {
 	&omap3517_evm_dss_device,
+	&vpfe_capture_dev,
 };
 
 static void __init omap3517_evm_init_irq(void)
@@ -298,6 +416,9 @@ static void __init omap3517_evm_init(void)
 
 static void __init omap3517_evm_map_io(void)
 {
+	/* setup input configuration for VPFE input devices */
+	omap3517evm_set_vpfe_config(&vpfe_cfg);
+
 	omap2_set_globals_35xx();
 	omap2_map_common_io();
 }

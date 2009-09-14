@@ -121,6 +121,7 @@ obj-$(CONFIG_VIDEO_CX2341X) += cx2341x.o
 
 obj-$(CONFIG_VIDEO_CAFE_CCIC) += cafe_ccic.o
 
+<<<<<<< HEAD:drivers/media/video/Makefile
 obj-$(CONFIG_VIDEO_OMAP3_VOUT) += omap/
 
 obj-y				+= isp/
@@ -131,6 +132,9 @@ obj-$(CONFIG_VIDEO_TPS61059)    += tps61059.o
 obj-$(CONFIG_VIDEO_OV3640)	+= ov3640.o
 obj-$(CONFIG_VIDEO_IMX046)      += imx046.o
 obj-$(CONFIG_VIDEO_LV8093)      += lv8093.o
+
+obj-$(CONFIG_VIDEO_OMAP3_VOUT) += omap/
+obj-y += davinci/
 
 obj-$(CONFIG_USB_DABUSB)        += dabusb.o
 obj-$(CONFIG_USB_OV511)         += ov511.o
