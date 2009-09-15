@@ -357,7 +357,7 @@ static struct regulator_init_data omap3evm_vaux2 = {
 static struct twl4030_hsmmc_info mmc[] = {
 	{
 		.mmc		= 1,
-		.wires		= 4,
+		.wires		= 8,
 		.gpio_cd	= -EINVAL,
 		.gpio_wp	= 63,
 	},
@@ -399,6 +399,7 @@ static int omap3evm_twl_gpio_setup(struct device *dev,
 		unsigned gpio, unsigned ngpio)
 {
 	/* gpio + 0 is "mmc0_cd" (input/IRQ) */
+	omap_cfg_reg(AF26_34XX_GPIO0);
 	omap_cfg_reg(L8_34XX_GPIO63);
 	mmc[0].gpio_cd = gpio + 0;
 	twl4030_mmc_init(mmc);
@@ -432,6 +433,8 @@ static struct twl4030_gpio_platform_data omap3evm_gpio_data = {
 	.irq_base	= TWL4030_GPIO_IRQ_BASE,
 	.irq_end	= TWL4030_GPIO_IRQ_END,
 	.use_leds	= true,
+	.pulldowns	= BIT(2) | BIT(6) | BIT(8) | BIT(13)
+			| BIT(16) | BIT(17),
 	.setup		= omap3evm_twl_gpio_setup,
 };
 
