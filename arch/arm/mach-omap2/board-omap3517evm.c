@@ -40,6 +40,7 @@
 #include <mach/common.h>
 #include <mach/mcspi.h>
 #include <mach/display.h>
+#include <mach/emac.h>
 
 #include <media/davinci/vpfe_capture.h>
 #include <media/tvp514x-sd.h>
@@ -47,11 +48,91 @@
 /*
  * Ethernet
  */
-static int __init omap3517_evm_ethernet_init (void)
-{
 
-	return 0 ;
+
+#define OMAP3517_EVM_PHY_MASK          (0xF)
+#define OMAP3517_EVM_MDIO_FREQUENCY    (1000000) /*PHY bus frequency */
+
+static struct emac_platform_data omap3517_evm_emac_pdata = {
+        .phy_mask       = OMAP3517_EVM_PHY_MASK,
+        .mdio_max_freq  = OMAP3517_EVM_MDIO_FREQUENCY,
+        .rmii_en        = 1,
+};
+
+static int __init eth_addr_setup(char *str)
+{
+        int i;
+
+        if (str == NULL)
+                return 0;
+
+        /* Conversion of a MAC address from a string (AA:BB:CC:DD:EE:FF)
+         * to a 6 bytes array. */
+        for (i = 0; i < ETH_ALEN; i++)
+                omap3517_evm_emac_pdata.mac_addr[i] = simple_strtol(&str[i*3],
+                                                           (char **)NULL, 16);
+        return 1;
+ }
+
+/* Get MAC address from kernel boot parameter eth=AA:BB:CC:DD:EE:FF */
+//__setup("eth=", eth_addr_setup);
+
+static struct resource omap3517_emac_resources[] = {
+        {
+                .start  = OMAP3517_EMAC_BASE,
+                .end    = OMAP3517_EMAC_BASE + 0x3FFFF,
+                .flags  = IORESOURCE_MEM,
+        },
+        {
+                .start  = INT_3517_EMAC_RXTHRESH_IRQ,
+                .end    = INT_3517_EMAC_RXTHRESH_IRQ,
+                .flags  = IORESOURCE_IRQ,
+        },
+        {
+                .start  = INT_3517_EMAC_RX_IRQ,
+                .end    = INT_3517_EMAC_RX_IRQ,
+                .flags  = IORESOURCE_IRQ,
+        },
+        {
+                .start  = INT_3517_EMAC_TX_IRQ,
+                .end    = INT_3517_EMAC_TX_IRQ,
+                .flags  = IORESOURCE_IRQ,
+        },
+        {
+                .start  = INT_3517_EMAC_MISC_IRQ,
+                .end    = INT_3517_EMAC_MISC_IRQ,
+                .flags  = IORESOURCE_IRQ,
+        },
+};
+
+static struct platform_device omap3517_emac_device = {
+        .name           = "davinci_emac",
+        .id             = 1,
+        .num_resources  = ARRAY_SIZE(omap3517_emac_resources),
+        .resource       = omap3517_emac_resources,
+};
+
+void omap3517_evm_ethernet_init(struct emac_platform_data *pdata)
+{
+	unsigned int regval;
+
+        pdata->ctrl_reg_offset          = OMAP3517_EMAC_CNTRL_OFFSET;
+        pdata->ctrl_mod_reg_offset      = OMAP3517_EMAC_CNTRL_MOD_OFFSET;
+        pdata->ctrl_ram_offset          = OMAP3517_EMAC_CNTRL_RAM_OFFSET;
+        pdata->mdio_reg_offset          = OMAP3517_EMAC_MDIO_OFFSET;
+        pdata->ctrl_ram_size            = OMAP3517_EMAC_CNTRL_RAM_SIZE;
+        pdata->version                  = EMAC_VERSION_2;
+        omap3517_emac_device.dev.platform_data     = pdata;
+        platform_device_register(&omap3517_emac_device);
+	regval = ioread32(OMAP2_IO_ADDRESS(OMAP3517_IP_SW_RESET));
+	regval = regval & (~0x2);
+	iowrite32(regval,OMAP2_IO_ADDRESS(OMAP3517_IP_SW_RESET));
+
 }
+
+
+
+
 
 /*
  * I2C
@@ -405,7 +486,7 @@ static void __init omap3517_evm_init(void)
 				ARRAY_SIZE(omap3517_evm_devices));
 
 	omap_serial_init();
-	omap3517_evm_ethernet_init();
+        omap3517_evm_ethernet_init(&omap3517_evm_emac_pdata);
 
 	usb_musb_init();
 	/* Setup EHCI phy reset padconfig for port1 using GPIO57 */
