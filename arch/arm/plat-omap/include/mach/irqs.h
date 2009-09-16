@@ -512,6 +512,8 @@
 #define INT_44XX_PARTHASH_IRQ	(79 + IRQ_GIC_START)
 #define INT_44XX_MMC3_IRQ	(94 + IRQ_GIC_START)
 
+/* OMAP3517 has different musb interrupt line */
+#define INT_3517_HSUSB_OTG            71
 
 /* Max. 128 level 2 IRQs (OMAP1610), 192 GPIOs (OMAP730/850) and
  * 16 MPUIO lines */
