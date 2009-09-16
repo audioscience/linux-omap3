@@ -351,7 +351,7 @@ static struct ehci_hcd_omap_platform_data ehci_pdata __initconst = {
 	.chargepump = false,
 	.phy_reset  = true,
 	.reset_gpio_port[0]  = -EINVAL,
-	.reset_gpio_port[1]  = 135,
+	.reset_gpio_port[1]  = -EINVAL,
 	.reset_gpio_port[2]  = -EINVAL
 };
 
@@ -371,9 +371,39 @@ static void __init omap3_evm_init(void)
 	/* OMAP3EVM uses ISP1504 phy and so register nop transceiver */
 	usb_nop_xceiv_register();
 #endif
+	if (get_omap3evm_board_rev() >= OMAP3EVM_BOARD_GEN_2) {
+		/* enable EHCI VBUS using GPIO22 */
+		omap_cfg_reg(AF9_34XX_GPIO22);
+		gpio_request(22, "enable EHCI VBUS");
+		gpio_direction_output(22, 0);
+		gpio_set_value(22, 1);
+
+		/* enable 1.8V using GPIO61 */
+		omap_cfg_reg(U3_34XX_GPIO61);
+		gpio_request(61, "enable 1.8V for EHCI");
+		gpio_direction_output(61, 0);
+		gpio_set_value(61, 0);
+
+		/* setup EHCI phy reset config */
+		omap_cfg_reg(AH14_34XX_GPIO21);
+		ehci_pdata.reset_gpio_port[1] = 21;
+
+		/* enable MUSB VBUS */
+	#if 0
+		/* Don't enable GPIO based VBUS when MUSB
+		 * PHY is programmed to use EXT VBUS
+		 */
+		omap_cfg_reg(Y21_34XX_GPIO156);
+		gpio_request(156, "enable MUSB VBUS");
+		gpio_direction_output(156, 0);
+		gpio_set_value(156, 1);
+	#endif
+	} else {
+		/* setup EHCI phy reset on MDC */
+		omap_cfg_reg(AF4_34XX_GPIO135_OUT);
+		ehci_pdata.reset_gpio_port[1] = 135;
+	}
 	usb_musb_init();
-	/* Setup EHCI phy reset padconfig */
-	omap_cfg_reg(AF4_34XX_GPIO135_OUT);
 	usb_ehci_init(&ehci_pdata);
 	ads7846_dev_init();
 }
