@@ -2181,7 +2181,7 @@ static int emac_poll(struct napi_struct *napi, int budget)
 	struct net_device *ndev = priv->ndev;
 	struct device *emac_dev = &ndev->dev;
 	u32 status = 0;
-	u32 num_pkts = 0;
+	u32 num_pkts = 0, tx_pkts = 0;
 
 	if (!netif_running(ndev))
 		return 0;
@@ -2195,12 +2195,10 @@ static int emac_poll(struct napi_struct *napi, int budget)
 		mask = EMAC_DM646X_MAC_IN_VECTOR_TX_INT_VEC;
 
 	if (status & mask) {
-		num_pkts = emac_tx_bdproc(priv, EMAC_DEF_TX_CH,
+		tx_pkts = emac_tx_bdproc(priv, EMAC_DEF_TX_CH,
 					  EMAC_DEF_TX_MAX_SERVICE);
 	} /* TX processing */
 
-	if (num_pkts)
-		return budget;
 
 	mask = EMAC_DM644X_MAC_IN_VECTOR_RX_INT_VEC;
 
@@ -2211,7 +2209,7 @@ static int emac_poll(struct napi_struct *napi, int budget)
 		num_pkts = emac_rx_bdproc(priv, EMAC_DEF_RX_CH, budget);
 	} /* RX processing */
 
-	if (num_pkts < budget) {
+	if ( (num_pkts < budget) && (tx_pkts < EMAC_DEF_TX_MAX_SERVICE)) {
 		napi_complete(napi);
 		emac_int_enable(priv);
 	}
