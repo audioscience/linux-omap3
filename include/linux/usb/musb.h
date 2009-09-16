@@ -105,7 +105,7 @@ extern int tusb6010_platform_retime(unsigned is_refclk);
 
 #endif	/* OMAP2 */
 
-#ifdef CONFIG_USB_MUSB_HDRC
+#ifdef CONFIG_USB_MUSB_SOC
 extern void musb_save_context(void);
 extern void musb_restore_context(void);
 #else

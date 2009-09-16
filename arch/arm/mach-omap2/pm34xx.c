@@ -26,6 +26,7 @@
 #include <linux/err.h>
 #include <linux/gpio.h>
 #include <linux/clk.h>
+#include <linux/usb/musb.h>
 
 #include <mach/sram.h>
 #include <mach/prcm.h>
@@ -407,6 +408,10 @@ void omap_sram_idle(void)
 			prm_set_mod_reg_bits(OMAP3430_AUTO_OFF,
 					     OMAP3430_GR_MOD,
 					     OMAP3_PRM_VOLTCTRL_OFFSET);
+#ifndef CONFIG_USB_MUSB_HDRC_MODULE
+			/* Save the MUSB context */
+			musb_save_context();
+#endif
 			omap3_core_save_context();
 			omap3_prcm_save_context();
 		} else if (core_next_state == PWRDM_POWER_RET) {
@@ -461,6 +466,10 @@ void omap_sram_idle(void)
 			omap3_prcm_restore_context();
 			omap3_sram_restore_context();
 			omap2_sms_restore_context();
+#ifndef CONFIG_USB_MUSB_HDRC_MODULE
+			/* Restore the MUSB context */
+			musb_restore_context();
+#endif
 		}
 		omap_uart_resume_idle(0);
 		omap_uart_resume_idle(1);
