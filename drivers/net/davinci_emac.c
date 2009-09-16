@@ -67,10 +67,18 @@
 #include <asm/page.h>
 
 #include <mach/emac.h>
+#include <mach/omap3517.h>
+
 
 static int debug_level;
 module_param(debug_level, int, 0);
 MODULE_PARM_DESC(debug_level, "DaVinci EMAC debug level (NETIF_MSG bits)");
+
+
+#define BD_TO_HW(x) \
+        ( ( (x) == 0) ? 0 : ( (x) - OMAP3517_EMAC_RAM_ADDR + OMAP3517_EMAC_HW_RAM_ADDR ))
+#define HW_TO_BD(x) \
+        ( ( (x) == 0) ? 0 : ( (x) - OMAP3517_EMAC_HW_RAM_ADDR + OMAP3517_EMAC_RAM_ADDR ))
 
 /* Netif debug messages possible */
 #define DAVINCI_EMAC_DEBUG	(NETIF_MSG_DRV | \
@@ -1032,10 +1040,17 @@ static void emac_int_enable(struct emac_priv *priv)
 		emac_write(EMAC_DM646X_MACEOIVECTOR,
 			EMAC_DM646X_MAC_EOI_C0_RXEN);
 
+                /* Make these platform specific */
+                iowrite32(OMAP3517_CPGMAC_RX_PULSE_CLR,
+                        IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
+
+
 		/* ack txen- only then a new pulse will be generated */
 		emac_write(EMAC_DM646X_MACEOIVECTOR,
 			EMAC_DM646X_MAC_EOI_C0_TXEN);
-
+               /* Make these platform specific */
+                iowrite32(OMAP3517_CPGMAC_TX_PULSE_CLR,
+                         IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
 	} else {
 		/* Set DM644x control registers for interrupt control */
 		emac_ctrl_write(EMAC_CTRL_EWCTL, 0x1);
@@ -2613,11 +2628,19 @@ static int __devinit davinci_emac_probe(struct platform_device *pdev)
 	struct device *emac_dev;
 
 	/* obtain emac clock from kernel */
+#ifdef CONFIG_MACH_OMAP3517EVM
+	emac_clk = clk_get(&pdev->dev, "cpgmac_vbusp_ck");
+	if (IS_ERR(emac_clk)) {
+		printk(KERN_ERR "3517 EMAC: Failed to get EMAC clock\n");
+		return -EBUSY;
+	}
+#else
 	emac_clk = clk_get(&pdev->dev, NULL);
 	if (IS_ERR(emac_clk)) {
 		printk(KERN_ERR "DaVinci EMAC: Failed to get EMAC clock\n");
 		return -EBUSY;
 	}
+#endif
 	emac_bus_frequency = clk_get_rate(emac_clk);
 	/* TODO: Probe PHY here if possible */
 
