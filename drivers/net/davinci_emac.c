@@ -2216,7 +2216,11 @@ static int emac_poll(struct napi_struct *napi, int budget)
 		emac_int_enable(priv);
 	}
 
-	if (unlikely(status & EMAC_DM644X_MAC_IN_VECTOR_HOST_INT)) {
+        mask = EMAC_DM644X_MAC_IN_VECTOR_HOST_INT;
+        if (priv->version == EMAC_VERSION_2)
+                mask = EMAC_DM646X_MAC_IN_VECTOR_HOST_INT;
+
+	if (unlikely(status & mask )) {
 		u32 ch, cause;
 		dev_err(emac_dev, "DaVinci EMAC: Fatal Hardware Error\n");
 		netif_stop_queue(ndev);
