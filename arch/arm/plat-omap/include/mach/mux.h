@@ -889,6 +889,9 @@ enum omap34xx_index {
 
 	/* SYS_NIRQ T2 INT1 */
 	AF26_34XX_SYS_NIRQ,
+
+	/* OMAP3517 OTG DRVVBUS */
+	E25_3517_USB0_DRVVBUS,
 };
 
 struct omap_mux_cfg {
