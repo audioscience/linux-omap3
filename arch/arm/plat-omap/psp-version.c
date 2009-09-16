@@ -62,7 +62,6 @@ static int __init init_psp_module(void)
 			NULL);
 
 	if (vers_file != NULL) {
-		vers_file->owner = THIS_MODULE;
 
 		printk (KERN_INFO TI_PSP_DEVICE \
 					" Linux PSP version " TI_PSP_VERSION \
