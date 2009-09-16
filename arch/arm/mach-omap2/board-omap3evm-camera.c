@@ -33,6 +33,7 @@
 #include <linux/i2c/twl4030.h>
 
 #include <mach/mux.h>
+#include <mach/board.h>
 
 #include <media/v4l2-int-device.h>
 #include <media/tvp514x.h>
@@ -45,8 +46,9 @@
 
 #define MODULE_NAME			"omap3evmdc"
 
+#define TVP5146_I2C_BUSNUM		3
 /* Is decoder present on-board or Daughter card */
-static int is_dec_onboard;
+static bool is_dec_onboard;
 
 /* GPIO pins Daughter Card */
 #define GPIO134_SEL_TVP_Y	(134)
@@ -56,7 +58,12 @@ static int is_dec_onboard;
 #define GPIO98_VID_DEC_RES	(98)
 #define nCAM_VD_SEL		(157)
 
-static int cam_inited;
+#ifndef TRUE
+#define TRUE			1
+#endif
+#ifndef FALSE
+#define FALSE			0
+#endif
 
 #if defined(CONFIG_VIDEO_TVP514X) || defined(CONFIG_VIDEO_TVP514X_MODULE)
 #if defined(CONFIG_VIDEO_OMAP3_CAM) || defined(CONFIG_VIDEO_OMAP3_CAM_MODULE)
@@ -465,13 +472,18 @@ static int omap3evmdc_mdc_config(void)
  *
  * @return result of operation - 0 is success
  */
-int __init omap3evmdc_init(int is_onboard, int dec_i2c_bus, int dec_i2c_id)
+int __init omap3evmdc_init(void)
 {
 	int err;
 
-	cam_inited = 0;
 	/* Status of Video Decoder : On Board or DC */
-	is_dec_onboard = is_onboard;
+	if (get_omap3evm_board_rev() >= OMAP3EVM_BOARD_GEN_2) {
+		is_dec_onboard = TRUE;
+		tvp5146_i2c_board_info.addr = 0x5C;
+	} else {
+		is_dec_onboard = FALSE;
+		tvp5146_i2c_board_info.addr = 0x5D;
+	}
 
 	err = omap3evmdc_mdc_config();
 	if (err) {
@@ -486,8 +498,7 @@ int __init omap3evmdc_init(int is_onboard, int dec_i2c_bus, int dec_i2c_id)
 	 * be registered with I2C using i2c_register_board_info().
 	 */
 #if defined(CONFIG_VIDEO_TVP514X) || defined(CONFIG_VIDEO_TVP514X_MODULE)
-	tvp5146_i2c_board_info.addr = dec_i2c_id;
-	err = i2c_register_board_info(dec_i2c_bus,
+	err = i2c_register_board_info(TVP5146_I2C_BUSNUM,
 					&tvp5146_i2c_board_info, 1);
 	if (err) {
 		printk(KERN_ERR MODULE_NAME \
@@ -499,3 +510,4 @@ int __init omap3evmdc_init(int is_onboard, int dec_i2c_bus, int dec_i2c_id)
 
 	return 0;
 }
+arch_initcall(omap3evmdc_init);

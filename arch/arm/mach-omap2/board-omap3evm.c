@@ -201,6 +201,7 @@ static void __init omap3_evm_display_init(void)
 		printk(KERN_ERR "failed to get lcd_panel_envdd\n");
 		goto err_5;
 	}
+	gpio_direction_output(OMAP3EVM_LCD_PANEL_ENVDD, 0);
 
 	return;
 
@@ -223,9 +224,12 @@ static int omap3_evm_enable_lcd(struct omap_dss_device *dssdev)
 		printk(KERN_ERR "cannot enable LCD, DVI is enabled\n");
 		return -EINVAL;
 	}
-
 	gpio_set_value(OMAP3EVM_LCD_PANEL_ENVDD, 0);
-	gpio_set_value(OMAP3EVM_LCD_PANEL_BKLIGHT_GPIO, 1);
+	if (get_omap3evm_board_rev() >= OMAP3EVM_BOARD_GEN_2)
+		gpio_set_value(OMAP3EVM_LCD_PANEL_BKLIGHT_GPIO, 0);
+	else
+		gpio_set_value(OMAP3EVM_LCD_PANEL_BKLIGHT_GPIO, 1);
+
 	lcd_enabled = 1;
 	return 0;
 }
@@ -233,7 +237,11 @@ static int omap3_evm_enable_lcd(struct omap_dss_device *dssdev)
 static void omap3_evm_disable_lcd(struct omap_dss_device *dssdev)
 {
 	gpio_set_value(OMAP3EVM_LCD_PANEL_ENVDD, 1);
-	gpio_set_value(OMAP3EVM_LCD_PANEL_BKLIGHT_GPIO, 0);
+	if (get_omap3evm_board_rev() >= OMAP3EVM_BOARD_GEN_2)
+		gpio_set_value(OMAP3EVM_LCD_PANEL_BKLIGHT_GPIO, 1);
+	else
+		gpio_set_value(OMAP3EVM_LCD_PANEL_BKLIGHT_GPIO, 0);
+
 	lcd_enabled = 0;
 }
 
@@ -697,8 +705,6 @@ static void __init omap3_evm_init(void)
 	usb_musb_init();
 	usb_ehci_init(&ehci_pdata);
 	ads7846_dev_init();
-
-	omap3evmdc_init(0, 3, 0x5D);
 
 	omap3_evm_display_init();
 }
