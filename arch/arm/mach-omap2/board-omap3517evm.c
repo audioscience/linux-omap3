@@ -350,12 +350,13 @@ static struct vpfe_subdev_info vpfe_sub_devs[] = {
 };
 
 static struct vpfe_config vpfe_cfg = {
-	.num_subdevs = ARRAY_SIZE(vpfe_sub_devs),
-	.sub_devs = vpfe_sub_devs,
-	.card_name = "OMAP3517 EVM",
-	.ccdc = "DM6446 CCDC",
-	.num_clocks = 2,
-	.clocks = {"vpfe_ck", "vpfe_pck"},
+	.num_subdevs	= ARRAY_SIZE(vpfe_sub_devs),
+	.sub_devs	= vpfe_sub_devs,
+	.card_name	= "OMAP3517 EVM",
+	.ccdc		= "DM6446 CCDC",
+	.num_clocks	= 2,
+	.clocks		= {"vpfe_ck", "vpfe_pck"},
+	.i2c_adapter_id	= 3,
 };
 /*
  * Board initialization

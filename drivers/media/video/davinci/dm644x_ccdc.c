@@ -41,8 +41,6 @@
 #include <media/davinci/dm644x_ccdc.h>
 #include <media/davinci/vpss.h>
 
-#include <mach/omap3517.h>
-
 #include "dm644x_ccdc_regs.h"
 #include "ccdc_hw_device.h"
 
@@ -156,7 +154,7 @@ void ccdc_setwin(struct v4l2_rect *image_win,
 		/* Since first line doesn't have any data */
 		vert_start += 1;
 		/* configure VDINT0 */
-		val = ((vert_nr_lines - 10) << CCDC_VDINT_VDINT0_SHIFT);
+		val = (vert_start << CCDC_VDINT_VDINT0_SHIFT);
 		regw(val, CCDC_VDINT);
 
 	} else {
@@ -406,6 +404,10 @@ void ccdc_config_ycbcr(void)
 		 * fld,hd pol positive, vd negative, 8-bit data
 		 */
 		syn_mode |= CCDC_SYN_MODE_VD_POL_NEGATIVE | CCDC_SYN_MODE_10BITS;
+		/*
+		 * Enable A-Law
+		 */
+		regw(regr(CCDC_ALAW) | CCDC_ALAW_ENABLE, CCDC_ALAW);
 	} else {
 		/* y/c external sync mode */
 		syn_mode |= (((params->fid_pol & CCDC_FID_POL_MASK) <<
@@ -425,7 +427,8 @@ void ccdc_config_ycbcr(void)
 	 * internal register on vsync
 	 */
 	regw((params->pix_order << CCDC_CCDCFG_Y8POS_SHIFT) |
-		 CCDC_LATCH_ON_VSYNC_DISABLE, CCDC_CCDCFG);
+		 CCDC_LATCH_ON_VSYNC_DISABLE | CCDC_CCDCFG_BW656_10BIT,
+		 CCDC_CCDCFG);
 
 	/*
 	 * configure the horizontal line offset. This should be a
@@ -858,6 +861,7 @@ static void ccdc_clr_intr(void *__iomem ccdc_intr_clr_addr, int vdint)
 		vpfe_int_clr |= 0x80;
 
 	__raw_writel(vpfe_int_clr, ccdc_intr_clr_addr);
+	vpfe_int_clr = __raw_readl(ccdc_intr_clr_addr);
 }
 static struct ccdc_hw_device ccdc_hw_dev = {
 	.name = "DM6446 CCDC",

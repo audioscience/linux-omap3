@@ -102,6 +102,8 @@ struct vpfe_config {
 	char *ccdc;
 	/* setup function for the input path */
 	int (*setup_input)(enum vpfe_subdev_id id);
+	/*I2c Bus adapter no*/
+	int i2c_adapter_id;
 	/* number of clocks */
 	int num_clocks;
 	/* clocks used for vpfe capture */

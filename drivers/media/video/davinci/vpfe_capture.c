@@ -665,7 +665,6 @@ static void vpfe_process_buffer_complete(struct vpfe_device *vpfe_dev)
 	vpfe_dev->cur_frm = vpfe_dev->next_frm;
 }
 
-unsigned int fid_chk[1000], fid_cnt;
 /* ISR for VINT0*/
 static irqreturn_t vpfe_isr(int irq, void *dev_id)
 {
@@ -699,10 +698,6 @@ static irqreturn_t vpfe_isr(int irq, void *dev_id)
 	/* interlaced or TB capture check which field we are in hardware */
 	fid = ccdc_dev->hw_ops.getfid();
 
-#if 1
-	fid_chk[fid_cnt] = fid;
-	fid_cnt++;
-#endif
 	/* switch the software maintained field id */
 	vpfe_dev->field_id ^= 1;
 	v4l2_dbg(1, debug, &vpfe_dev->v4l2_dev, "field id = %x:%x.\n",
@@ -817,14 +812,6 @@ static int vpfe_release(struct file *file)
 	struct vpfe_subdev_info *sdinfo;
 	int ret;
 
-#if 1
-	int i;
-
-	for(i = 0; i < fid_cnt; i++)
-		printk("fid_chk[%d] - %d\n", i, fid_chk[i]);
-
-	fid_cnt = 0;
-#endif
 	v4l2_dbg(1, debug, &vpfe_dev->v4l2_dev, "vpfe_release\n");
 
 	/* Get the device lock */
@@ -1584,7 +1571,7 @@ static int vpfe_reqbufs(struct file *file, void *priv,
 	vpfe_dev->memory = req_buf->memory;
 	videobuf_queue_dma_contig_init(&vpfe_dev->buffer_queue,
 				&vpfe_videobuf_qops,
-				&vpfe_dev->v4l2_dev,
+				vpfe_dev->v4l2_dev.dev,
 				&vpfe_dev->irqlock,
 				req_buf->type,
 				vpfe_dev->fmt.fmt.pix.field,
@@ -2171,7 +2158,7 @@ static __init int vpfe_probe(struct platform_device *pdev)
 	}
 	vpfe_dev->ccdc_irq1 = res1->start;
 
-	/* Get address base of CCDC */
+	/* Get address base of CCDC INTR Clr Reg */
 	res1 = platform_get_resource(pdev, IORESOURCE_MEM, 1);
 	if (!res1) {
 		v4l2_err(pdev->dev.driver,
@@ -2186,11 +2173,12 @@ static __init int vpfe_probe(struct platform_device *pdev)
 		ret = -ENXIO;
 		goto probe_disable_clock;
 	}
-	ccdc_cfg->ccdc_intr_clr_addr = ioremap_nocache(res1->start, 0x4);
+	ccdc_cfg->ccdc_intr_clr_addr = ioremap_nocache(res1->start,
+			res1->end - res1->start + 1);
 	if (!ccdc_cfg->ccdc_intr_clr_addr) {
 		v4l2_err(pdev->dev.driver, "Unable to ioremap ccdc addr\n");
 		ret = -ENXIO;
-		goto probe_out_release_mem1;
+		goto probe_out_release_mem2;
 	}
 
 	/* Get address base of CCDC */
@@ -2199,7 +2187,7 @@ static __init int vpfe_probe(struct platform_device *pdev)
 		v4l2_err(pdev->dev.driver,
 			"Unable to get register address map\n");
 		ret = -ENOENT;
-		goto probe_disable_clock;
+		goto probe_out_unmap2;
 	}
 
 	ccdc_cfg->ccdc_addr_size = res1->end - res1->start + 1;
@@ -2208,7 +2196,7 @@ static __init int vpfe_probe(struct platform_device *pdev)
 		v4l2_err(pdev->dev.driver,
 			"Failed request_mem_region for ccdc base\n");
 		ret = -ENXIO;
-		goto probe_disable_clock;
+		goto probe_out_unmap2;
 	}
 	ccdc_cfg->ccdc_addr = ioremap_nocache(res1->start,
 					     ccdc_cfg->ccdc_addr_size);
@@ -2293,7 +2281,7 @@ static __init int vpfe_probe(struct platform_device *pdev)
 	 * For DM64x - 1
 	 * For OMAP3517 - 3
 	 */
-	i2c_adap = i2c_get_adapter(3);
+	i2c_adap = i2c_get_adapter(vpfe_cfg->i2c_adapter_id);
 	vpfe_cfg = pdev->dev.platform_data;
 	num_subdevs = vpfe_cfg->num_subdevs;
 	vpfe_dev->sd = kmalloc(sizeof(struct v4l2_subdev *) * num_subdevs,
@@ -2387,6 +2375,10 @@ probe_out_release_irq:
 probe_out_unmap1:
 	iounmap(ccdc_cfg->ccdc_addr);
 probe_out_release_mem1:
+	release_mem_region(res1->start, res1->end - res1->start + 1);
+probe_out_unmap2:
+	iounmap(ccdc_cfg->ccdc_intr_clr_addr);
+probe_out_release_mem2:
 	release_mem_region(res1->start, res1->end - res1->start + 1);
 probe_disable_clock:
 	vpfe_disable_clock(vpfe_dev);
