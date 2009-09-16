@@ -1030,13 +1030,13 @@ static void emac_int_disable(struct emac_priv *priv)
                 /* Make this platform specific, to de-assert the latched
                   * interrupt we need to acknowledge the same */
                 iowrite32(OMAP3517_CPGMAC_RX_PULSE_CLR,
-                        IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
+                        OMAP2_IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
                 iowrite32(OMAP3517_CPGMAC_TX_PULSE_CLR,
-                         IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
+                         OMAP2_IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
                 iowrite32(OMAP3517_CPGMAC_RX_THRESH_CLR,
-                        IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
+                        OMAP2_IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
                 iowrite32(OMAP3517_CPGMAC_MISC_PULSE_CLR,
-                         IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
+                         OMAP2_IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
 #endif
 
 		local_irq_restore(flags);
@@ -1057,6 +1057,14 @@ static void emac_int_disable(struct emac_priv *priv)
 static void emac_int_enable(struct emac_priv *priv)
 {
 	if (priv->version == EMAC_VERSION_2) {
+
+#ifdef CONFIG_MACH_OMAP3517EVM
+		/* Make this platform specific */
+		iowrite32(OMAP3517_CPGMAC_RX_PULSE_CLR,
+			OMAP2_IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
+		iowrite32(OMAP3517_CPGMAC_TX_PULSE_CLR,
+			OMAP2_IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
+#endif
 		emac_ctrl_write(EMAC_DM646X_CMRXINTEN, 0xff);
 		emac_ctrl_write(EMAC_DM646X_CMTXINTEN, 0xff);
 
@@ -1070,17 +1078,9 @@ static void emac_int_enable(struct emac_priv *priv)
 		emac_write(EMAC_DM646X_MACEOIVECTOR,
 			EMAC_DM646X_MAC_EOI_C0_RXEN);
 
-                /* Make these platform specific */
-                iowrite32(OMAP3517_CPGMAC_RX_PULSE_CLR,
-                        IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
-
-
 		/* ack txen- only then a new pulse will be generated */
 		emac_write(EMAC_DM646X_MACEOIVECTOR,
 			EMAC_DM646X_MAC_EOI_C0_TXEN);
-               /* Make these platform specific */
-                iowrite32(OMAP3517_CPGMAC_TX_PULSE_CLR,
-                         IO_ADDRESS(OMAP3517_LVL_INTR_CLEAR));
 	} else {
 		/* Set DM644x control registers for interrupt control */
 		emac_ctrl_write(EMAC_CTRL_EWCTL, 0x1);
