@@ -108,6 +108,8 @@ static void __init omap3517_evm_init(void)
 
 	omap_serial_init();
 	omap3517_evm_ethernet_init();
+
+	usb_musb_init();
 }
 
 static void __init omap3517_evm_map_io(void)
