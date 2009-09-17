@@ -45,6 +45,8 @@
 #include <media/davinci/vpfe_capture.h>
 #include <media/tvp514x-sd.h>
 
+extern void omap35x_pmic_init(void);
+
 /*
  * Ethernet
  */
@@ -128,27 +130,21 @@ void omap3517_evm_ethernet_init(struct emac_platform_data *pdata)
 	regval = regval & (~0x2);
 	iowrite32(regval,OMAP2_IO_ADDRESS(OMAP3517_IP_SW_RESET));
 
+	return 0 ;
 }
-
-
-
-
 
 /*
  * I2C
  */
 static int __init omap3517_evm_i2c_init(void)
 {
-	omap_register_i2c_bus(1, 400, NULL, 0);
+	/* I2C bus 1 is getting registered from omap35x_pmic_init */
+
 	omap_register_i2c_bus(2, 400, NULL, 0);
 	omap_register_i2c_bus(3, 400, NULL, 0);
 
 	return 0;
 }
-
-/*
- * Power Management IC
- */
 
 /*
  * MTD
@@ -480,6 +476,8 @@ static struct ehci_hcd_omap_platform_data ehci_pdata __initconst = {
 
 static void __init omap3517_evm_init(void)
 {
+	omap35x_pmic_init();
+
 	omap3517_evm_i2c_init();
 
 	platform_add_devices(omap3517_evm_devices,
