@@ -136,11 +136,18 @@ void omap3517_evm_ethernet_init(struct emac_platform_data *pdata)
 /*
  * I2C
  */
+static struct i2c_board_info __initdata omap3517evm_i2c_boardinfo[] = {
+	{
+	I2C_BOARD_INFO("tlv320aic23", 0x1A),
+	},
+};
+
 static int __init omap3517_evm_i2c_init(void)
 {
 	/* I2C bus 1 is getting registered from omap35x_pmic_init */
 
-	omap_register_i2c_bus(2, 400, NULL, 0);
+	omap_register_i2c_bus(2, 400, omap3517evm_i2c_boardinfo,
+			ARRAY_SIZE(omap3517evm_i2c_boardinfo));
 	omap_register_i2c_bus(3, 400, NULL, 0);
 
 	return 0;
