@@ -87,6 +87,46 @@ config MACH_OMAP3EVM
 	bool "OMAP 3530 EVM board"
 	depends on ARCH_OMAP35XX
 
+config PMIC_TWL4030
+	bool "TWL4030/TPS65950 Power Module"
+	default y
+	depends on TWL4030_CORE && MACH_OMAP3EVM
+	select REGULATOR_TWL4030 if REGULATOR
+	help
+	  Say yes here if you are using the TWL4030/TPS65950 based power module
+	  for the EVM boards.
+
+config PMIC_TPS65023
+	bool "TPS65023 Power Module"
+	default n
+	depends on I2C=y && MACH_OMAP3EVM
+	select REGULATOR_TPS65023 if REGULATOR
+	help
+	  Say yes here if you are using the TPS65023 based power module for the
+	  EVM boards.
+
+config PMIC_TPS65073
+	bool "TPS65073 Power Module"
+	default n
+	depends on I2C=y && MACH_OMAP3EVM
+	select REGULATOR_TPS65073 if REGULATOR
+	help
+	  Say yes here if you are using the TPS65073 based power module for the
+	  EVM boards.
+
+config MACH_OMAP3517EVM
+	bool "OMAP 3517 EVM board"
+	depends on ARCH_OMAP35XX
+
+config PMIC_TPS65023
+	bool "TPS65023 Power Module"
+	default y
+	depends on I2C=y && MACH_OMAP3517EVM
+	select REGULATOR_TPS65023 if REGULATOR
+	help
+	  Say yes here if you are using the TPS65023 based power module for the
+	  EVM boards.
+
 config MACH_OMAP3_PANDORA
 	bool "OMAP3 Pandora"
 	depends on ARCH_OMAP3 && ARCH_OMAP34XX
@@ -106,10 +146,6 @@ config MACH_NOKIA_RX51
 config MACH_OMAP_ZOOM2
 	bool "OMAP3 Zoom2 board"
 	depends on ARCH_OMAP3 && ARCH_OMAP34XX
-
-config MACH_OMAP3517EVM
-	bool "OMAP 3517 EVM board"
-	depends on ARCH_OMAP35XX
 
 config MACH_OMAP_4430SDP
 	bool "OMAP 4430 SDP board"
