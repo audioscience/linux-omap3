@@ -22,6 +22,89 @@
 /*
  * Definitions specific to TWL4030/TPS65950
  */
+#if defined(CONFIG_PMIC_TWL4030)
+#if defined(CONFIG_MACH_OMAP3EVM)
+#include <linux/i2c/twl4030.h>
+
+extern struct twl4030_platform_data omap3evm_twldata;
+
+/* 1.8V VDAC */
+static struct regulator_consumer_supply twl4030_vdac_supply[] = {
+	{
+		.supply	= "vdda_dac",
+	//.dev		= &omap3_evm_dss_device.dev,
+	},
+};
+
+/* VDAC for DSS driving S-Video */
+static struct regulator_init_data omap3evm_vdac = {
+	.constraints = {
+		.min_uV	= 1800000,
+		.max_uV	= 1800000,
+		.apply_uV = true,
+		.valid_modes_mask = REGULATOR_MODE_NORMAL
+			| REGULATOR_MODE_STANDBY,
+		.valid_ops_mask	= REGULATOR_CHANGE_MODE
+			| REGULATOR_CHANGE_STATUS,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(twl4030_vdac_supply),
+	.consumer_supplies = twl4030_vdac_supply,
+};
+
+/* VPLL2 for digital video outputs */
+static struct regulator_consumer_supply twl4030_vpll2_supply[] = {
+	{
+		.supply	= "vdds_sdi",
+	//.dev		= &omap3_evm_lcd_device.dev,
+	},
+};
+
+static struct regulator_init_data omap3evm_vpll2 = {
+	.constraints = {
+		.min_uV	= 1800000,	//TBD
+		.max_uV	= 1800000,	//TBD
+		.apply_uV = true,
+		.valid_modes_mask = REGULATOR_MODE_NORMAL
+			| REGULATOR_MODE_STANDBY,
+		.valid_ops_mask = REGULATOR_CHANGE_MODE
+			| REGULATOR_CHANGE_STATUS,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(twl4030_vpll2_supply),
+	.consumer_supplies = twl4030_vpll2_supply,
+};
+
+/* 3.0V VMMC1 */
+static struct regulator_consumer_supply twl4030_vmmc1_supply[] = {
+	{
+		.supply	= "vdds_mmc1",
+	},
+	{
+		.supply = "vdds_sim",
+	},
+};
+
+static struct regulator_init_data omap3evm_vmmc1 = {
+	.constraints = {
+		.min_uV	= 1850000,	//TBD
+		.max_uV	= 3150000,	//TBD
+		.valid_modes_mask = REGULATOR_MODE_NORMAL
+			| REGULATOR_MODE_STANDBY,
+		.valid_ops_mask	= REGULATOR_CHANGE_VOLTAGE
+			| REGULATOR_CHANGE_MODE	| REGULATOR_CHANGE_STATUS,
+	},
+	.num_consumer_supplies = ARRAY_SIZE(twl4030_vmmc1_supply),
+	.consumer_supplies = twl4030_vmmc1_supply,
+};
+
+static void __init pmic_twl4030_init(void)
+{
+	/* Initialize the regulator specific fields here */
+	omap3evm_twldata.vdac = &omap3evm_vdac;
+	omap3evm_twldata.vpll2 = &omap3evm_vpll2;
+	omap3evm_twldata.vmmc1 = &omap3evm_vmmc1;
+}
+#endif	/* OMAP3EVM */
+#endif	/* PMIC_TWL4030 */
 
 /*
  * Definitions specific to TPS65023
