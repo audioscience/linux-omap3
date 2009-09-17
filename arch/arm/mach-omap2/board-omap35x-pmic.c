@@ -104,7 +104,11 @@ static void __init pmic_twl4030_init(void)
 	omap3evm_twldata.vmmc1 = &omap3evm_vmmc1;
 }
 #endif	/* OMAP3EVM */
-#endif	/* PMIC_TWL4030 */
+#else
+static inline void pmic_twl4030_init(void)
+{
+}
+#endif	/* CONFIG_PMIC_TWL4030 */
 
 /*
  * Definitions specific to TPS65023
