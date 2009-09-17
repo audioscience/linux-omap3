@@ -505,6 +505,8 @@ struct emac_priv {
 
 /* clock frequency for EMAC */
 static struct clk *emac_clk;
+static struct clk *emac_phy_clk = NULL;
+
 static unsigned long emac_bus_frequency;
 static unsigned long mdio_max_freq;
 
@@ -1443,7 +1445,7 @@ static int emac_send(struct emac_priv *priv, struct emac_netpktobj *pkt, u32 ch)
 		txch->active_queue_tail = curr_bd;
 		if (1 != txch->queue_active) {
 			emac_write(EMAC_TXHDP(ch),
-					emac_virt_to_phys(curr_bd));
+				BD_TO_HW(emac_virt_to_phys(curr_bd)));
 			txch->queue_active = 1;
 		}
 		++txch->queue_reinit;
@@ -2664,9 +2666,16 @@ static int __devinit davinci_emac_probe(struct platform_device *pdev)
 
 	/* obtain emac clock from kernel */
 #ifdef CONFIG_MACH_OMAP3517EVM
-	emac_clk = clk_get(&pdev->dev, "cpgmac_vbusp_ck");
+	emac_clk = clk_get(&pdev->dev, "emac_ck");
 	if (IS_ERR(emac_clk)) {
 		printk(KERN_ERR "3517 EMAC: Failed to get EMAC clock\n");
+		return -EBUSY;
+	}
+
+	emac_phy_clk = clk_get(&pdev->dev,"emac_phy_ck");
+	if( IS_ERR(emac_phy_clk)){
+		printk(KERN_ERR "3517 EMAC: Failed to get EMAC PHY Clock \n");
+		clk_put(emac_clk);
 		return -EBUSY;
 	}
 #else
@@ -2677,12 +2686,14 @@ static int __devinit davinci_emac_probe(struct platform_device *pdev)
 	}
 #endif
 	emac_bus_frequency = clk_get_rate(emac_clk);
+
 	/* TODO: Probe PHY here if possible */
 
 	ndev = alloc_etherdev(sizeof(struct emac_priv));
 	if (!ndev) {
 		printk(KERN_ERR "DaVinci EMAC: Error allocating net_device\n");
 		clk_put(emac_clk);
+		if (emac_phy_clk) clk_put(emac_phy_clk);
 		return -ENOMEM;
 	}
 
@@ -2732,8 +2743,8 @@ static int __devinit davinci_emac_probe(struct platform_device *pdev)
 		release_mem_region(res->start, size);
 		goto probe_quit;
 	}
-	/* Record the offset for address translation*/
-	emac_translation_offset = (unsigned int) priv->remap_addr - res->start;
+	/* record the offset for addres translation */
+	emac_translation_offset = ( (unsigned int)(priv->remap_addr - res->start) );
 
 	priv->emac_base = priv->remap_addr + pdata->ctrl_reg_offset;
 	ndev->base_addr = (unsigned long)priv->remap_addr;
@@ -2771,6 +2782,7 @@ static int __devinit davinci_emac_probe(struct platform_device *pdev)
 	}
 
 	clk_enable(emac_clk);
+	if(emac_phy_clk) clk_enable(emac_phy_clk);
 
 	/* MII/Phy intialisation, mdio bus registration */
 	emac_mii = mdiobus_alloc();
@@ -2817,6 +2829,7 @@ no_irq_res:
 
 probe_quit:
 	clk_put(emac_clk);
+	if(emac_phy_clk) clk_put(emac_phy_clk);
 	free_netdev(ndev);
 	return rc;
 }
@@ -2848,7 +2861,9 @@ static int __devexit davinci_emac_remove(struct platform_device *pdev)
 	iounmap(priv->remap_addr);
 
 	clk_disable(emac_clk);
+	if(emac_phy_clk) clk_disable(emac_phy_clk);
 	clk_put(emac_clk);
+	if(emac_phy_clk) clk_put(emac_phy_clk);
 
 	return 0;
 }
