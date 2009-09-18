@@ -438,8 +438,10 @@ void omap_sram_idle(void)
 	    core_next_state == PWRDM_POWER_OFF)
 		sdrc_pwr = sdrc_read_reg(SDRC_POWER);
 
+#ifdef CONFIG_DEBUG_FS
 	if (regset_save_on_suspend)
 		pm_dbg_regset_save(1);
+#endif
 
 	/*
 	 * omap3_arm_context is the location where ARM registers
@@ -1220,7 +1222,9 @@ static void __init configure_vc(void)
 	prm_write_mod_reg(prm_setup.voltsetup2, OMAP3430_GR_MOD,
 			OMAP3_PRM_VOLTSETUP2_OFFSET);
 
+#ifdef CONFIG_DEBUG_FS
 	pm_dbg_regset_init(1);
+#endif
 }
 
 static int __init omap3_pm_early_init(void)

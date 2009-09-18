@@ -53,7 +53,9 @@ int omap2_pm_debug;
 	regs[reg_count].name = #reg; \
 	regs[reg_count++].val = __raw_readl(OMAP2_IO_ADDRESS(0x480fe000 + (off)))
 
+#ifdef CONFIG_DEBUG_FS
 static int __init pm_dbg_init(void);
+#endif
 
 void omap2_pm_dump(int mode, int resume, unsigned int us)
 {
