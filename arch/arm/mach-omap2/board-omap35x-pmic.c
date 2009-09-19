@@ -25,14 +25,18 @@
 #if defined(CONFIG_PMIC_TWL4030)
 #if defined(CONFIG_MACH_OMAP3EVM)
 #include <linux/i2c/twl4030.h>
+#include <linux/platform_device.h>
+
+#include <mach/display.h>
 
 extern struct twl4030_platform_data omap3evm_twldata;
-
+extern struct platform_device omap3_evm_dss_device;
+extern struct omap_dss_device omap3_evm_lcd_device;
 /* 1.8V VDAC */
 static struct regulator_consumer_supply twl4030_vdac_supply[] = {
 	{
 		.supply	= "vdda_dac",
-	//.dev		= &omap3_evm_dss_device.dev,
+		.dev		= &omap3_evm_dss_device.dev,
 	},
 };
 
@@ -54,8 +58,11 @@ static struct regulator_init_data omap3evm_vdac = {
 /* VPLL2 for digital video outputs */
 static struct regulator_consumer_supply twl4030_vpll2_supply[] = {
 	{
+		.supply	= "vdvi",
+		.dev	= &omap3_evm_lcd_device.dev,
+	},
+	{
 		.supply	= "vdds_sdi",
-	//.dev		= &omap3_evm_lcd_device.dev,
 	},
 };
 

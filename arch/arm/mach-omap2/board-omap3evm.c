@@ -248,7 +248,7 @@ static void omap3_evm_disable_lcd(struct omap_dss_device *dssdev)
 	lcd_enabled = 0;
 }
 
-static struct omap_dss_device omap3_evm_lcd_device = {
+struct omap_dss_device omap3_evm_lcd_device = {
 	.type			= OMAP_DISPLAY_TYPE_DPI,
 	.name			= "lcd",
 	.driver_name		= "sharp_ls_panel",
@@ -315,7 +315,7 @@ static struct omap_dss_board_info omap3_evm_dss_data = {
 	.default_device	= &omap3_evm_lcd_device,
 };
 
-static struct platform_device omap3_evm_dss_device = {
+struct platform_device omap3_evm_dss_device = {
 	.name		= "omapdss",
 	.id		= -1,
 	.dev		= {
