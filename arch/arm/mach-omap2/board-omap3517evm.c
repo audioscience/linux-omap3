@@ -25,6 +25,10 @@
 #include <linux/input.h>
 #include <linux/leds.h>
 
+#include <linux/mtd/mtd.h>
+#include <linux/mtd/partitions.h>
+#include <linux/mtd/nand.h>
+
 #include <linux/spi/spi.h>
 
 #include <mach/hardware.h>
@@ -41,9 +45,72 @@
 #include <mach/mcspi.h>
 #include <mach/display.h>
 #include <mach/emac.h>
+#include <mach/gpmc.h>
+#include <mach/nand.h>
 
 #include <media/davinci/vpfe_capture.h>
 #include <media/tvp514x-sd.h>
+
+#define GPMC_CS0_BASE  0x60
+#define GPMC_CS_SIZE   0x30
+
+#define NAND_BLOCK_SIZE         SZ_128K
+
+static struct mtd_partition omap3517evm_nand_partitions[] = {
+        /* All the partition sizes are listed in terms of NAND block size */
+        {
+                .name           = "xloader-nand",
+                .offset         = 0,
+                .size           = 4*(NAND_BLOCK_SIZE),
+                .mask_flags     = MTD_WRITEABLE
+        },
+        {
+                .name           = "uboot-nand",
+                .offset         = MTDPART_OFS_APPEND,
+                .size           = 14*(NAND_BLOCK_SIZE),
+                .mask_flags     = MTD_WRITEABLE
+        },
+        {
+                .name           = "params-nand",
+
+                .offset         = MTDPART_OFS_APPEND,
+                .size           = 2*(NAND_BLOCK_SIZE)
+        },
+        {
+                .name           = "linux-nand",
+                .offset         = MTDPART_OFS_APPEND,
+                .size           = 40*(NAND_BLOCK_SIZE)
+        },
+        {
+                .name           = "jffs2-nand",
+                .size           = MTDPART_SIZ_FULL,
+                .offset         = MTDPART_OFS_APPEND,
+        },
+};
+
+static struct omap_nand_platform_data omap3517evm_nand_data = {
+        .parts          = omap3517evm_nand_partitions,
+        .nr_parts       = ARRAY_SIZE(omap3517evm_nand_partitions),
+        .nand_setup     = NULL,
+        .dma_channel    = -1,           /* disable DMA in OMAP NAND driver */
+        .dev_ready      = NULL,
+};
+
+static struct resource omap3517evm_nand_resource = {
+        .flags          = IORESOURCE_MEM,
+};
+
+static struct platform_device omap3517evm_nand_device = {
+        .name           = "omap2-nand",
+        .id             = 0,
+        .dev            = {
+                .platform_data  = &omap3517evm_nand_data,
+        },
+        .num_resources  = 1,
+        .resource       = &omap3517evm_nand_resource,
+};
+
+
 
 extern void omap35x_pmic_init(void);
 
@@ -130,7 +197,7 @@ void omap3517_evm_ethernet_init(struct emac_platform_data *pdata)
 	regval = regval & (~0x2);
 	iowrite32(regval,OMAP2_IO_ADDRESS(OMAP3517_IP_SW_RESET));
 
-	return 0 ;
+	return ;
 }
 
 /*
@@ -481,6 +548,43 @@ static struct ehci_hcd_omap_platform_data ehci_pdata __initconst = {
 	.reset_gpio_port[2]  = -EINVAL
 };
 
+
+void __init omap3517evm_flash_init(void)
+{
+        u8              cs = 0;
+        u8              nandcs = GPMC_CS_NUM + 1;
+        u32             gpmc_base_add = OMAP34XX_GPMC_VIRT;
+
+        while (cs < GPMC_CS_NUM) {
+                u32 ret = 0;
+                ret = gpmc_cs_read_reg(cs, GPMC_CS_CONFIG1);
+
+                if ((ret & 0xC00) == 0x800) {
+                        /* Found it!! */
+                        if (nandcs > GPMC_CS_NUM)
+                                nandcs = cs;
+                }
+                cs++;
+        }
+        if ((nandcs > GPMC_CS_NUM)) {
+                printk(KERN_INFO "NAND: Unable to find configuration "
+                                " in GPMC\n ");
+                return;
+        }
+
+        if (nandcs < GPMC_CS_NUM) {
+                omap3517evm_nand_data.cs        = nandcs;
+                omap3517evm_nand_data.gpmc_cs_baseaddr = (void *)(gpmc_base_add +
+                                        GPMC_CS0_BASE + nandcs * GPMC_CS_SIZE);
+                omap3517evm_nand_data.gpmc_baseaddr   = (void *) (gpmc_base_add);
+
+                if (platform_device_register(&omap3517evm_nand_device) < 0) {
+                        printk(KERN_ERR "Unable to register NAND device\n");
+                }
+        }
+}
+
+
 static void __init omap3517_evm_init(void)
 {
 	omap35x_pmic_init();
@@ -497,6 +601,8 @@ static void __init omap3517_evm_init(void)
 	/* Setup EHCI phy reset padconfig for port1 using GPIO57 */
 	omap_cfg_reg(N5_3517_GPIO57_OUT);
 	usb_ehci_init(&ehci_pdata);
+
+	omap3517evm_flash_init();
 
 	omap3517_evm_display_init();
 }
