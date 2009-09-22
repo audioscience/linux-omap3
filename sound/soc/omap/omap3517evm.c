@@ -47,7 +47,7 @@ static int omap3517evm_hw_params(struct snd_pcm_substream *substream,
 	/* Set codec DAI configuration */
 	ret = snd_soc_dai_set_fmt(codec_dai,
 				  SND_SOC_DAIFMT_DSP_B |
-				  SND_SOC_DAIFMT_NB_IF |
+				  SND_SOC_DAIFMT_NB_NF |
 				  SND_SOC_DAIFMT_CBM_CFM);
 	if (ret < 0) {
 		printk(KERN_ERR "can't set codec DAI configuration\n");
@@ -57,7 +57,7 @@ static int omap3517evm_hw_params(struct snd_pcm_substream *substream,
 	/* Set cpu DAI configuration */
 	ret = snd_soc_dai_set_fmt(cpu_dai,
 				  SND_SOC_DAIFMT_DSP_B |
-				  SND_SOC_DAIFMT_NB_IF |
+				  SND_SOC_DAIFMT_NB_NF |
 				  SND_SOC_DAIFMT_CBM_CFM);
 	if (ret < 0) {
 		printk(KERN_ERR "can't set cpu DAI configuration\n");
@@ -66,7 +66,7 @@ static int omap3517evm_hw_params(struct snd_pcm_substream *substream,
 
 	/* Set the codec system clock for DAC and ADC */
 	ret = snd_soc_dai_set_sysclk(codec_dai, 0,
-			CODEC_CLOCK, SND_SOC_CLOCK_OUT);
+			CODEC_CLOCK, SND_SOC_CLOCK_IN);
 	if (ret < 0) {
 		printk(KERN_ERR "can't set codec system clock\n");
 		return ret;
