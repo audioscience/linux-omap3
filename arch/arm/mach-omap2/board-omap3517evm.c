@@ -50,6 +50,7 @@
 
 #include <media/davinci/vpfe_capture.h>
 #include <media/tvp514x-sd.h>
+#include <linux/can/platform/ti_hecc.h>
 
 #define GPMC_CS0_BASE  0x60
 #define GPMC_CS_SIZE   0x30
@@ -113,6 +114,56 @@ static struct platform_device omap3517evm_nand_device = {
 
 
 extern void omap35x_pmic_init(void);
+
+/*
+ * HECC information 
+ */
+
+#define OMAP3517_HECC_BASE      0x5C050000
+#define INT_3517_HECC_0         24
+#define INT_3517_HECC_1         28
+
+static struct resource omap3517_hecc_resources[] = {
+        {
+                .start  = OMAP3517_HECC_BASE,
+                .end    = OMAP3517_HECC_BASE + 0x3FFF,
+                .flags  = IORESOURCE_MEM,
+        },
+        {
+                .start  = INT_3517_HECC_0,
+                .end    = INT_3517_HECC_0,
+                .flags  = IORESOURCE_IRQ,
+        },
+};
+
+static struct platform_device omap3517_hecc_device = {
+        .name           = "ti_hecc",
+        .id             = 1,
+        .num_resources  = ARRAY_SIZE(omap3517_hecc_resources),
+        .resource       = omap3517_hecc_resources,
+};
+
+#define OMAP3517_HECC_SCC_HECC_OFFSET   0
+#define OMAP3517_HECC_SCC_RAM_OFFSET    0x3000
+#define OMAP3517_HECC_RAM_OFFSET        0x3000
+#define OMAP3517_HECC_MBOX_OFFSET       0x2000
+#define OMAP3517_HECC_INT_LINE          0
+#define OMAP3517_HECC_VERSION           1
+
+static struct ti_hecc_platform_data omap3517_evm_hecc_pdata = {
+        .scc_hecc_offset        = OMAP3517_HECC_SCC_HECC_OFFSET,
+        .scc_ram_offset         = OMAP3517_HECC_SCC_RAM_OFFSET,
+        .hecc_ram_offset        = OMAP3517_HECC_RAM_OFFSET,
+        .mbox_offset            = OMAP3517_HECC_MBOX_OFFSET,
+        .int_line               = OMAP3517_HECC_INT_LINE,
+        .version                = OMAP3517_HECC_VERSION,
+};
+
+static void omap3517_evm_hecc_init(struct ti_hecc_platform_data *pdata)
+{
+        omap3517_hecc_device.dev.platform_data = pdata;
+        platform_device_register(&omap3517_hecc_device);
+}
 
 /*
  * Ethernet
@@ -596,6 +647,7 @@ static void __init omap3517_evm_init(void)
 
 	omap_serial_init();
         omap3517_evm_ethernet_init(&omap3517_evm_emac_pdata);
+        omap3517_evm_hecc_init(&omap3517_evm_hecc_pdata);
 
 	usb_musb_init();
 	/* Setup EHCI phy reset padconfig for port1 using GPIO57 */
