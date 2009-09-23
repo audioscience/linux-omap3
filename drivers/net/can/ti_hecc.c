@@ -466,7 +466,7 @@ static int ti_hecc_do_set_mode(struct net_device *ndev, enum can_mode mode)
  * is stopped when all the mailboxes are busy or when there is a priority
  * value roll-over happens.
  */
-static netdev_tx_t ti_hecc_xmit(struct sk_buff *skb, struct net_device *ndev)
+static int ti_hecc_xmit(struct sk_buff *skb, struct net_device *ndev)
 {
 	struct ti_hecc_priv *priv = netdev_priv(ndev);
 	struct can_frame *cf = (struct can_frame *)skb->data;
@@ -922,7 +922,7 @@ static int ti_hecc_probe(struct platform_device *pdev)
 	ndev->netdev_ops = &ti_hecc_netdev_ops;
 
 	/* Note: clk name would change using hecc_vbusp_ck temporarily */
-	priv->clk = clk_get(&pdev->dev, "hecc_vbusp_ck");
+	priv->clk = clk_get(&pdev->dev, "hecc_ck");
 	if (IS_ERR(priv->clk)) {
 		dev_err(&pdev->dev, "no clock available\n");
 		err = PTR_ERR(priv->clk);
