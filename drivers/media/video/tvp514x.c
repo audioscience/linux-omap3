@@ -1201,7 +1201,7 @@ static int ioctl_g_priv(struct v4l2_int_device *s, void *p)
 	if (NULL == decoder->pdata->priv_data_set)
 		return -EINVAL;
 
-	return decoder->pdata->priv_data_set(p);
+	return decoder->pdata->priv_data_set(s, p);
 }
 
 /**
