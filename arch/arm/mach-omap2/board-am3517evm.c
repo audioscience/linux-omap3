@@ -48,6 +48,7 @@
 
 #include <media/ti-media/vpfe_capture.h>
 #include <media/tvp514x.h>
+#include <linux/can/platform/ti_hecc.h>
 
 #include "mmc-am3517evm.h"
 #include "board-omap35x-pmic.h"
@@ -668,6 +669,46 @@ static int __init am3517_evm_i2c_init(void)
 }
 
 /*
+ * HECC information
+ */
+
+static struct resource am3517_hecc_resources[] = {
+        {
+                .start  = AM3517_IPSS_HECC_BASE,
+                .end    = AM3517_IPSS_HECC_BASE + 0x3FFF,
+                .flags  = IORESOURCE_MEM,
+        },
+        {
+                .start  = INT_3517_HECC0_IRQ,
+                .end    = INT_3517_HECC0_IRQ,
+                .flags  = IORESOURCE_IRQ,
+        },
+};
+
+static struct platform_device am3517_hecc_device = {
+        .name           = "ti_hecc",
+        .id             = 1,
+        .num_resources  = ARRAY_SIZE(am3517_hecc_resources),
+        .resource       = am3517_hecc_resources,
+};
+
+static struct ti_hecc_platform_data am3517_evm_hecc_pdata = {
+        .scc_hecc_offset        = AM3517_HECC_SCC_HECC_OFFSET,
+        .scc_ram_offset         = AM3517_HECC_SCC_RAM_OFFSET,
+        .hecc_ram_offset        = AM3517_HECC_RAM_OFFSET,
+        .mbox_offset            = AM3517_HECC_MBOX_OFFSET,
+        .int_line               = AM3517_HECC_INT_LINE,
+        .version                = AM3517_HECC_VERSION,
+};
+
+static void am3517_evm_hecc_init(struct ti_hecc_platform_data *pdata)
+{
+        am3517_hecc_device.dev.platform_data = pdata;
+        platform_device_register(&am3517_hecc_device);
+}
+
+
+/*
  * Board initialization
  */
 static struct omap_board_config_kernel am3517_evm_config[] __initdata = {
@@ -745,6 +786,7 @@ static void __init am3517_evm_init(void)
 	am3517_mmc_init(mmc);
 
 	am3517_evm_ethernet_init(&am3517_evm_emac_pdata);
+	am3517_evm_hecc_init(&am3517_evm_hecc_pdata);
 
 	/* TSC 2004 */
 	omap_cfg_reg(U1_34XX_GPIO65);
