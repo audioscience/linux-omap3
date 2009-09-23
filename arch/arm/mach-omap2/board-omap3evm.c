@@ -74,6 +74,7 @@
 #define OMAP3EVM_SMC911X_CS	5
 
 extern void omap35x_pmic_init(void);
+extern struct regulator_consumer_supply twl4030_vmmc1_supply[];
 
 static int omap3evm_board_version;
 
@@ -496,8 +497,9 @@ static int omap3evm_twl_gpio_setup(struct device *dev,
 	twl4030_mmc_init(mmc);
 
 	/* link regulators to MMC adapters */
-// 	omap3evm_vmmc1_supply.dev = mmc[0].dev;
-// 	omap3evm_vsim_supply.dev = mmc[0].dev;
+	twl4030_vmmc1_supply[0].dev = mmc[0].dev;		/* VMMC */
+	twl4030_vmmc1_supply[1].dev = mmc[0].dev;		/* VMMC_AUX */
+
 	/*
 	 * Most GPIOs are for USB OTG.  Some are mostly sent to
 	 * the P2 connector; notably LEDA for the LCD backlight.
