@@ -24,19 +24,19 @@
  */
 #if defined(CONFIG_PMIC_TWL4030)
 #if defined(CONFIG_MACH_OMAP3EVM)
-#include <linux/i2c/twl4030.h>
 #include <linux/platform_device.h>
-
+#include <linux/i2c/twl4030.h>
 #include <mach/display.h>
 
 extern struct twl4030_platform_data omap3evm_twldata;
 extern struct platform_device omap3_evm_dss_device;
 extern struct omap_dss_device omap3_evm_lcd_device;
+
 /* 1.8V VDAC */
 static struct regulator_consumer_supply twl4030_vdac_supply[] = {
 	{
 		.supply	= "vdda_dac",
-		.dev		= &omap3_evm_dss_device.dev,
+		.dev = &omap3_evm_dss_device.dev,
 	},
 };
 
@@ -59,7 +59,7 @@ static struct regulator_init_data omap3evm_vdac = {
 static struct regulator_consumer_supply twl4030_vpll2_supply[] = {
 	{
 		.supply	= "vdvi",
-		.dev	= &omap3_evm_lcd_device.dev,
+		.dev = &omap3_evm_lcd_device.dev,
 	},
 	{
 		.supply	= "vdds_sdi",
@@ -68,8 +68,9 @@ static struct regulator_consumer_supply twl4030_vpll2_supply[] = {
 
 static struct regulator_init_data omap3evm_vpll2 = {
 	.constraints = {
-		.min_uV	= 1800000,	//TBD
-		.max_uV	= 1800000,	//TBD
+		/* TBD: Min/Max voltages need to be verified */
+		.min_uV	= 1800000,
+		.max_uV	= 1800000,
 		.apply_uV = true,
 		.valid_modes_mask = REGULATOR_MODE_NORMAL
 			| REGULATOR_MODE_STANDBY,
@@ -81,9 +82,18 @@ static struct regulator_init_data omap3evm_vpll2 = {
 };
 
 /* 3.0V VMMC1 */
-static struct regulator_consumer_supply twl4030_vmmc1_supply[] = {
+struct regulator_consumer_supply twl4030_vmmc1_supply[] = {
 	{
-		.supply	= "vdds_mmc1",
+		/* TBD: Supply name in spec (vdds_mmc1) is different */
+		.supply	= "vmmc",
+	},
+	{
+		/*
+		 * TBD: Regulator created temporarily so that MMC
+		 * driver doesn't fail. Hard-coded supply names
+		 * need to be removed from the MMC driver.
+		 */
+		.supply	= "vmmc_aux",
 	},
 	{
 		.supply = "vdds_sim",
@@ -92,8 +102,9 @@ static struct regulator_consumer_supply twl4030_vmmc1_supply[] = {
 
 static struct regulator_init_data omap3evm_vmmc1 = {
 	.constraints = {
-		.min_uV	= 1850000,	//TBD
-		.max_uV	= 3150000,	//TBD
+		/* TBD: Min/Max voltages need to be verified */
+		.min_uV	= 1850000,
+		.max_uV	= 3150000,
 		.valid_modes_mask = REGULATOR_MODE_NORMAL
 			| REGULATOR_MODE_STANDBY,
 		.valid_ops_mask	= REGULATOR_CHANGE_VOLTAGE
