@@ -78,6 +78,7 @@ obj-$(CONFIG_MACH_OMAP3EVM)		+= board-omap3evm.o \
 					   board-omap35x-pmic.o
 obj-$(CONFIG_MACH_OMAP3517EVM)		+= control3517.o \
 					   board-omap3517evm.o \
+					   mmc-omap3517evm.o \
 					   board-omap35x-pmic.o
 obj-$(CONFIG_MACH_OMAP3_PANDORA)	+= board-omap3pandora.o \
 					   mmc-twl4030.o
