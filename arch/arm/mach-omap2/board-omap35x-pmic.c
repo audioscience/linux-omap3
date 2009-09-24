@@ -504,7 +504,7 @@ static struct i2c_board_info __initdata board_tps65073_instances[] = {
 	{
 		I2C_BOARD_INFO("tps65073", 0x48),
 		.flags = I2C_CLIENT_WAKE,
-		.platform_data = &tps65023_regulator_data[0],
+		.platform_data = &tps65073_regulator_data[0],
 	},
 };
 
