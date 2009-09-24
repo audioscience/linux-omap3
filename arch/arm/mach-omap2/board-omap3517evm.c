@@ -445,7 +445,7 @@ static struct omap_dss_board_info omap3517_evm_dss_data = {
 #endif
 };
 
-static struct platform_device omap3517_evm_dss_device = {
+struct platform_device omap3517_evm_dss_device = {
 	.name		= "omapdss",
 	.id		= -1,
 	.dev		= {

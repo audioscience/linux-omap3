@@ -17,6 +17,7 @@
 
 #include <linux/regulator/driver.h>
 #include <linux/regulator/machine.h>
+#include <linux/platform_device.h>
 #include <mach/common.h>
 
 /*
@@ -24,7 +25,6 @@
  */
 #if defined(CONFIG_PMIC_TWL4030)
 #if defined(CONFIG_MACH_OMAP3EVM)
-#include <linux/platform_device.h>
 #include <linux/i2c/twl4030.h>
 #include <mach/display.h>
 
@@ -257,6 +257,8 @@ static void __init pmic_tps65023_init(void)
 #endif	/* OMAP3EVM */
 
 #if defined(CONFIG_MACH_OMAP3517EVM)
+extern struct platform_device omap3517_evm_dss_device;
+
 /* 1.2V */
 static struct regulator_consumer_supply tps65023_dcdc1_consumers[] = {
 	{
@@ -297,6 +299,7 @@ static struct regulator_consumer_supply tps65023_ldo1_consumers[] = {
 	},
 	{
 		.supply = "vdda_dac",
+		.dev = &omap3517_evm_dss_device.dev,
 	},
 };
 
