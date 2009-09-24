@@ -161,6 +161,8 @@ struct tps_info {
 	const u16 *table;
 };
 
+struct tps_pmic *tps;
+
 struct tps_pmic {
 	struct regulator_desc desc[TPS6507X_NUM_REGULATOR];
 	struct i2c_client *client;
@@ -545,7 +547,6 @@ int tps_6507x_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	const struct tps_info *info = (void *)id->driver_data;
 	struct regulator_init_data *init_data;
 	struct regulator_dev *rdev;
-	struct tps_pmic *tps;
 	int i;
 
 	if (!i2c_check_functionality(client->adapter,
@@ -688,6 +689,51 @@ static struct i2c_driver tps_6507x_i2c_driver = {
 	.remove = __devexit_p(tps_6507x_remove),
 	.id_table = tps_6507x_id,
 };
+
+/*
+ * tps6507x_i2c_read_u8 - read a 8 bit register from TPS6507x
+ * @val: the data read
+ * @reg: register address
+ *
+ * Returns result of operation - 0 is success
+ *
+ * Note: The location, look and feel of this API might change when
+ * TPS6507x gets fitted into MFD (Multi Function Driver) framework.
+ */
+int tps6507x_i2c_read_u8(u8 *val, u8 reg)
+{
+	if (unlikely(!tps)) {
+		pr_err("tps6507x: Invalid tps handle\n");
+		return -EPERM;
+	}
+	*val = tps_6507x_reg_read(tps, reg);
+
+	return 0;
+}
+EXPORT_SYMBOL(tps6507x_i2c_read_u8);
+
+/*
+ * tps6507x_i2c_write_u8 - write a 8 bit register in TPS6507x
+ * @val: the 8 bit value to be written
+ * @reg: register address
+ *
+ * Returns result of operation - 0 is success
+ * Note: The location, look and feel of this API might change when
+ * TPS6507x gets fitted into MFD (Multi Function Driver) framework.
+ */
+int tps6507x_i2c_write_u8(u8 val, u8 reg)
+{
+	int status;
+
+	if (unlikely(!tps)) {
+		pr_err("tps6507x: Invalid tps handle\n");
+		return -EPERM;
+	}
+	status = tps_6507x_reg_write(tps, reg, val);
+
+	return status;
+}
+EXPORT_SYMBOL(tps6507x_i2c_write_u8);
 
 /**
  * tps_6507x_init
