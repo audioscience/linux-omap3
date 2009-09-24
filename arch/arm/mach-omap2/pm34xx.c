@@ -254,7 +254,7 @@ static int _prcm_int_handle_wakeup(void)
 	c = prcm_clear_mod_irqs(WKUP_MOD, 1);
 	c += prcm_clear_mod_irqs(CORE_MOD, 1);
 	c += prcm_clear_mod_irqs(OMAP3430_PER_MOD, 1);
-	if (omap_rev_gt_1_0()) {
+	if (omap_rev_gt_1_0() || cpu_is_omap3505() || cpu_is_omap3517()) {
 		c += prcm_clear_mod_irqs(CORE_MOD, 3);
 		c += prcm_clear_mod_irqs(OMAP3430ES2_USBHOST_MOD, 1);
 	}
@@ -792,7 +792,7 @@ static void __init prcm_setup_regs(void)
 	prm_write_mod_reg(0, OMAP3430_NEON_MOD, PM_WKDEP);
 	prm_write_mod_reg(0, OMAP3430_CAM_MOD, PM_WKDEP);
 	prm_write_mod_reg(0, OMAP3430_PER_MOD, PM_WKDEP);
-	if (omap_rev_gt_1_0()) {
+	if (omap_rev_gt_1_0() || cpu_is_omap3505() || cpu_is_omap3517()) {
 		prm_write_mod_reg(0, OMAP3430ES2_SGX_MOD, PM_WKDEP);
 		prm_write_mod_reg(0, OMAP3430ES2_USBHOST_MOD, PM_WKDEP);
 	} else
@@ -843,7 +843,7 @@ static void __init prcm_setup_regs(void)
 		OMAP3430_AUTO_DES1,
 		CORE_MOD, CM_AUTOIDLE2);
 
-	if (omap_rev_gt_1_0()) {
+	if (omap_rev_gt_1_0() || cpu_is_omap3505() || cpu_is_omap3517()) {
 		cm_write_mod_reg(
 			OMAP3430_AUTO_MAD2D |
 			OMAP3430ES2_AUTO_USBTLL,
@@ -891,7 +891,7 @@ static void __init prcm_setup_regs(void)
 		OMAP3430_PER_MOD,
 		CM_AUTOIDLE);
 
-	if (omap_rev_gt_1_0()) {
+	if (omap_rev_gt_1_0() || cpu_is_omap3505() || cpu_is_omap3517()) {
 		cm_write_mod_reg(
 			OMAP3430ES2_AUTO_USBHOST,
 			OMAP3430ES2_USBHOST_MOD,
