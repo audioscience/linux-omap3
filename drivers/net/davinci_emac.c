@@ -2823,11 +2823,44 @@ static int __devexit davinci_emac_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_PM
+static
+int davinci_emac_suspend(struct platform_device *pdev, pm_message_t state)
+{
+	struct net_device *dev = platform_get_drvdata(pdev);
+
+	if (netif_running(dev))
+		emac_dev_stop(dev);
+
+	clk_disable(emac_clk);
+	if(emac_phy_clk)
+		clk_disable(emac_phy_clk);
+
+	return 0;
+}
+
+static int davinci_emac_resume(struct platform_device *pdev)
+{
+	struct net_device *dev = platform_get_drvdata(pdev);
+
+	if(emac_phy_clk)
+		clk_enable(emac_phy_clk);
+
+	clk_enable(emac_clk);
+
+	if (netif_running(dev))
+		emac_dev_open(dev);
+
+	return 0;
+}
+#else
+#define davinci_emac_suspend NULL
+#define davinci_emac_resume  NULL
+#endif
+
 /**
  * davinci_emac_driver: EMAC platform driver structure
- *
- * We implement only probe and remove functions - suspend/resume and
- * others not supported by this module
+ * Suspend/Resume supported for non-OFF mode use cases
  */
 static struct platform_driver davinci_emac_driver = {
 	.driver = {
@@ -2836,6 +2869,8 @@ static struct platform_driver davinci_emac_driver = {
 	},
 	.probe = davinci_emac_probe,
 	.remove = __devexit_p(davinci_emac_remove),
+	.suspend = davinci_emac_suspend,
+	.resume = davinci_emac_resume,
 };
 
 /**
