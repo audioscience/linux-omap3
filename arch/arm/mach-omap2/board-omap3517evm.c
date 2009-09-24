@@ -646,6 +646,14 @@ static struct omap3517_hsmmc_info mmc[] = {
                .gpio_cd        = 127,
                .gpio_wp        = 126,
        },
+       {
+               .mmc            = 2,
+               .wires          = 4,
+               /*TODO: Need to change*/
+               .gpio_cd        = 128,
+               .gpio_wp        = 129,
+       },
+
        {}      /* Terminator */
 };
 
