@@ -131,25 +131,25 @@ static struct mtd_partition omap3evm_nand_partitions[] = {
         {
                 .name           = "xloader-nand",
                 .offset         = 0,
-                .size           = 4*(SZ_128K),
+                .size           = 4*(NAND_BLOCK_SIZE),
                 .mask_flags     = MTD_WRITEABLE
         },
         {
                 .name           = "uboot-nand",
                 .offset         = MTDPART_OFS_APPEND,
-                .size           = 14*(SZ_128K),
+                .size           = 14*(NAND_BLOCK_SIZE),
                 .mask_flags     = MTD_WRITEABLE
         },
         {
                 .name           = "params-nand",
 
                 .offset         = MTDPART_OFS_APPEND,
-                .size           = 2*(SZ_128K)
+                .size           = 2*(NAND_BLOCK_SIZE)
         },
         {
                 .name           = "linux-nand",
                 .offset         = MTDPART_OFS_APPEND,
-                .size           = 40*(SZ_128K)
+                .size           = 40*(NAND_BLOCK_SIZE)
         },
         {
                 .name           = "jffs2-nand",
