@@ -52,6 +52,8 @@
 #include <media/tvp514x-sd.h>
 #include <linux/can/platform/ti_hecc.h>
 
+#include "mmc-omap3517evm.h"
+
 #define GPMC_CS0_BASE  0x60
 #define GPMC_CS_SIZE   0x30
 
@@ -636,6 +638,18 @@ void __init omap3517evm_flash_init(void)
 }
 
 
+static struct omap3517_hsmmc_info mmc[] = {
+       {
+               .mmc            = 1,
+               .wires          = 4,
+               /*TODO: Need to change*/
+               .gpio_cd        = 127,
+               .gpio_wp        = 126,
+       },
+       {}      /* Terminator */
+};
+
+
 static void __init omap3517_evm_init(void)
 {
 	omap35x_pmic_init();
@@ -657,6 +671,9 @@ static void __init omap3517_evm_init(void)
 	omap3517evm_flash_init();
 
 	omap3517_evm_display_init();
+
+	/* MMC init function */
+	omap3517_mmc_init(mmc);
 }
 
 static void __init omap3517_evm_map_io(void)
