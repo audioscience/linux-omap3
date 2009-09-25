@@ -236,7 +236,7 @@ static struct smsc911x_platform_config smsc911x_config = {
         .phy_interface  = PHY_INTERFACE_MODE_MII,
         .irq_polarity   = SMSC911X_IRQ_POLARITY_ACTIVE_LOW,
         .irq_type       = SMSC911X_IRQ_TYPE_OPEN_DRAIN,
-        .flags          = SMSC911X_USE_32BIT,
+        .flags          = (SMSC911X_USE_32BIT | SMSC911X_SAVE_MAC_ADDRESS),
 };
 
 static struct platform_device omap3evm_smc911x_device = {
