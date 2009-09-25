@@ -235,7 +235,9 @@ void __init usb_musb_init(void)
 		return;
 	}
 
-	usb_musb_pm_init();
+	/* usb_musb_pm_init is not required for OMAP3517 */
+	if (!cpu_is_omap3517())
+		usb_musb_pm_init();
 }
 
 #else
