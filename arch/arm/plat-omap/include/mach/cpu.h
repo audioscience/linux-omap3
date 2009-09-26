@@ -537,11 +537,10 @@ OMAP_REV_FUNCTIONS(3_1)
  * chips at ES2 and beyond, but not, for example, any OMAP lines after
  * OMAP3.
  */
-#define CHIP_GE_OMAP3430ES3_1		(CHIP_IS_OMAP3430ES3_1)
-#define CHIP_GE_OMAP3430ES3		(CHIP_IS_OMAP3430ES3_0 | \
-					 CHIP_GE_OMAP3430ES3_1)
 #define CHIP_GE_OMAP3430ES2		(CHIP_IS_OMAP3430ES2 | \
-					 CHIP_GE_OMAP3430ES3)
+					 CHIP_IS_OMAP3430ES3_0 | \
+					 CHIP_IS_OMAP3430ES3_1)
+#define CHIP_GE_OMAP3430ES3_1		(CHIP_IS_OMAP3430ES3_1)
 
 
 int omap_chip_is(struct omap_chip_id oci);
