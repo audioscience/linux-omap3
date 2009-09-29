@@ -37,6 +37,7 @@
 
 #include <media/v4l2-common.h>
 #include <media/v4l2-ioctl.h>
+#include <media/v4l2-int-device.h>
 #include <media/tvp514x.h>
 
 #include "omap34xxcam.h"
