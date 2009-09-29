@@ -862,10 +862,10 @@ static int omapfb_set_par(struct fb_info *fbi)
 static int omapfb_pan_display(struct fb_var_screeninfo *var,
 		struct fb_info *fbi)
 {
-	struct omapfb_info *ofbi = FB2OFB(fbi);
+//	struct omapfb_info *ofbi = FB2OFB(fbi);
 	int r = 0;
 
-	DBG("pan_display(%d)\n", ofbi->id);
+	DBG("pan_display(%d)\n", FB2OFB(fbi)->id);
 
 	if (var->xoffset != fbi->var.xoffset ||
 	    var->yoffset != fbi->var.yoffset) {
