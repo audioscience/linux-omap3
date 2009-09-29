@@ -225,7 +225,7 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 	DBG(4, "%cX ep%d fifo %p count %d buf %p\n",
 			'R', hw_ep->epnum, fifo, len, dst);
 
-	if (cpu_is_omap3517() && is_peripheral_active(hw_ep->musb)) {
+	if (cpu_is_omap3517()) {
 		/* Bytewise or wordwise data read from FIFO is corrupted
 		 * if OMAP3517EVM is configured as gadget */
 		musb_fifo_read_unaligned(fifo, dst, len);
