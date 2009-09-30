@@ -395,7 +395,11 @@ static struct omap_dss_device omap3_evm_tv_device = {
 	.type			= OMAP_DISPLAY_TYPE_VENC,
 	.name			= "tv",
 	.driver_name		= "venc",
+#if defined(CONFIG_OMAP2_VENC_OUT_TYPE_SVIDEO)
 	.phy.venc.type		= OMAP_DSS_VENC_TYPE_SVIDEO,
+#elif defined(CONFIG_OMAP2_VENC_OUT_TYPE_COMPOSITE)
+	.u.venc.type		= OMAP_DSS_VENC_TYPE_COMPOSITE,
+#endif
 	.platform_enable	= omap3_evm_enable_tv,
 	.platform_disable	= omap3_evm_disable_tv,
 };
@@ -730,7 +734,7 @@ void __init omap3evm_flash_init(void)
                         printk(KERN_ERR "Unable to register OneNAND device\n");
         }
 }
-     
+
 
 static void __init omap3_evm_init(void)
 {
