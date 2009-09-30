@@ -274,7 +274,7 @@ read_again:
 	err = i2c_smbus_read_byte_data(client, reg);
 	if (err == -1) {
 		if (retry <= I2C_RETRY_COUNT) {
-			v4l2_warn(sd, "Read: retry ... %d\n", retry);
+			v4l2_dbg(1, debug, sd, "Read: retry ... %d\n", retry);
 			retry++;
 			msleep_interruptible(10);
 			goto read_again;
@@ -316,7 +316,7 @@ write_again:
 	err = i2c_smbus_write_byte_data(client, reg, val);
 	if (err) {
 		if (retry <= I2C_RETRY_COUNT) {
-			v4l2_warn(sd, "Write: retry ... %d\n", retry);
+			v4l2_dbg(1, debug, sd, "Write: retry ... %d\n", retry);
 			retry++;
 			msleep_interruptible(10);
 			goto write_again;

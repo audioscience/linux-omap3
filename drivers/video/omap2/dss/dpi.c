@@ -153,7 +153,7 @@ static int dpi_display_enable(struct omap_dss_device *dssdev)
 	}
 
 	if (dssdev->state != OMAP_DSS_DISPLAY_DISABLED) {
-		DSSERR("display already enabled\n");
+		DSSWARN("display already enabled\n");
 		r = -EINVAL;
 		goto err1;
 	}
