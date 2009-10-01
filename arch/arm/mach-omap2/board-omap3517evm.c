@@ -197,7 +197,7 @@ static int __init eth_addr_setup(char *str)
  }
 
 /* Get MAC address from kernel boot parameter eth=AA:BB:CC:DD:EE:FF */
-//__setup("eth=", eth_addr_setup);
+__setup("eth=", eth_addr_setup);
 
 static struct resource omap3517_emac_resources[] = {
         {
@@ -583,7 +583,7 @@ static void __init omap3517_evm_init_irq(void)
 	omap_gpio_init();
 }
 
-static struct ehci_hcd_omap_platform_data ehci_pdata __initconst = {
+static struct ehci_hcd_omap_platform_data ehci_pdata __initdata = {
 
 	.port_mode[0] = EHCI_HCD_OMAP_MODE_PHY,
 #if defined(CONFIG_PANEL_SHARP_LQ043T1DG01) || \
