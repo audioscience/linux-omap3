@@ -940,18 +940,20 @@ static irqreturn_t omap34xx_isp_isr(int irq, void *_pdev)
 	 * We need to wait for the first HS_VS interrupt from CCDC.
 	 * Otherwise our frame (and everything else) might be bad.
 	 */
-	switch (wait_hs_vs) {
-	case 1:
-		/*
-		 * Enable preview for the first time. We just have
-		 * missed the start-of-frame so we can do it now.
-		 */
-		if (irqstatus & HS_VS && !RAW_CAPTURE(isp))
-			isppreview_enable(&isp->isp_prev);
-	default:
-		goto out_ignore_buff;
-	case 0:
-		break;
+	if (irqstatus & HS_VS) {
+		switch (wait_hs_vs) {
+		case 1:
+			/*
+			 * Enable preview for the first time. We just have
+			 * missed the start-of-frame so we can do it now.
+			 */
+			if (irqstatus & HS_VS && !RAW_CAPTURE(isp))
+				isppreview_enable(&isp->isp_prev);
+		default:
+			goto out_ignore_buff;
+		case 0:
+			break;
+		}
 	}
 
 	if (irqstatus & RESZ_DONE) {
@@ -1607,7 +1609,8 @@ static void isp_buf_init(struct device *dev)
 
 	bufs->queue = 0;
 	bufs->done = 0;
-	bufs->wait_hs_vs = isp->config->wait_hs_vs;
+	if (isp->config)
+		bufs->wait_hs_vs = isp->config->wait_hs_vs;
 	for (sg = 0; sg < NUM_BUFS; sg++) {
 		if (bufs->buf[sg].vb) {
 			isp_vbq_sync(bufs->buf[sg].vb, DMA_FROM_DEVICE);

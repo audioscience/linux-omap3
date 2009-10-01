@@ -1486,17 +1486,16 @@ static int rsz_release(struct inode *inode, struct file *filp)
 		timeout++;
 		schedule();
 	}
-	/* Free memory allocated to the buffers */
-	for (i = 0 ; i < VIDEO_MAX_FRAME ; i++) {
-		struct videobuf_dmabuf *dma = NULL;
-		if (!q->bufs[i])
-			continue;
-		dma = videobuf_to_dma(q->bufs[i]);
-		videobuf_dma_unmap(q, dma);
-		videobuf_dma_free(dma);
-	}
+	if (mutex_lock_interruptible(&device_config->reszwrap_mutex))
+		return -EINTR;
+	device_config->opened--;
+	mutex_unlock(&device_config->reszwrap_mutex);
+	/* This will Free memory allocated to the buffers,
+	 * and flushes the queue
+	 */
+	isp_stop(fh->dev);
+	videobuf_queue_cancel(q);
 
-	videobuf_mmap_free(q);
 	fh->rsz_bufsize = 0;
 	filp->private_data = NULL;
 
