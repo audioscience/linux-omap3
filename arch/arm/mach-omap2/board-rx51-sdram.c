@@ -79,7 +79,7 @@ static u32 cm_base = CM_BASE;
 
 static inline u32 cm_read_reg(int idx)
 {
-	return *(u32 *)OMAP2_IO_ADDRESS(cm_base + idx);
+	return *(u32 *)OMAP2_L4_IO_ADDRESS(cm_base + idx);
 }
 
 static const unsigned long sys_clk_rate_table[] = {
@@ -90,8 +90,8 @@ static unsigned long get_sys_clk_rate(void)
 {
 	unsigned long rate;
 
-	rate = sys_clk_rate_table[*(u32 *)OMAP2_IO_ADDRESS(PRM_CLKSEL) & 0x07];
-	if (((*(u32 *)OMAP2_IO_ADDRESS(PRM_CLKSRC_CTRL) >> 6) & 0x03) == 0x02)
+	rate = sys_clk_rate_table[*(u32 *)OMAP2_L4_IO_ADDRESS(PRM_CLKSEL) & 0x07];
+	if (((*(u32 *)OMAP2_L4_IO_ADDRESS(PRM_CLKSRC_CTRL) >> 6) & 0x03) == 0x02)
 		rate /= 2;
 	return rate;
 }
