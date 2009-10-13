@@ -523,9 +523,17 @@ static int tvp514x_querystd(struct v4l2_subdev *sd, v4l2_std_id *std_id)
 	enum tvp514x_std current_std;
 	enum tvp514x_input input_sel;
 	u8 sync_lock_status, lock_mask;
+	int err;
 
 	if (std_id == NULL)
 		return -EINVAL;
+
+	err = tvp514x_write_reg(sd, REG_VIDEO_STD,
+			VIDEO_STD_AUTO_SWITCH_BIT);
+	if (err < 0)
+		return err;
+
+	msleep(LOCK_RETRY_DELAY);
 
 	/* get the current standard */
 	current_std = tvp514x_get_current_std(sd);
@@ -642,6 +650,15 @@ static int tvp514x_s_routing(struct v4l2_subdev *sd,
 			(output >= OUTPUT_INVALID))
 		/* Index out of bound */
 		return -EINVAL;
+
+	/* Since this api is goint to detect the input, it is required
+	   to set the standard in the auto switch mode */
+	err = tvp514x_write_reg(sd, REG_VIDEO_STD,
+			VIDEO_STD_AUTO_SWITCH_BIT);
+	if (err < 0)
+		return err;
+
+	msleep(LOCK_RETRY_DELAY);
 
 	input_sel = input;
 	output_sel = output;
