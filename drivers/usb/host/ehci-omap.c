@@ -659,6 +659,9 @@ static int ehci_hcd_omap_probe(struct platform_device *pdev)
 		goto err_add_hcd;
 	}
 
+	/* here we "know" root ports should always stay powered */
+	ehci_port_power(omap->ehci, 1);
+
 	return 0;
 
 err_add_hcd:
@@ -785,6 +788,8 @@ static const struct hc_driver ehci_omap_hc_driver = {
 	.hub_control		= ehci_hub_control,
 	.bus_suspend		= ehci_bus_suspend,
 	.bus_resume		= ehci_bus_resume,
+	.relinquish_port	= ehci_relinquish_port,
+	.port_handed_over	= ehci_port_handed_over,
 
 	.clear_tt_buffer_complete = ehci_clear_tt_buffer_complete,
 };
