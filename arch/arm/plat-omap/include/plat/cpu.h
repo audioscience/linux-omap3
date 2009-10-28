@@ -381,16 +381,16 @@ IS_OMAP_TYPE(3430, 0x3430)
 # undef cpu_is_omap3525
 # undef cpu_is_omap3530
 # define cpu_is_omap3430()		is_omap3430()
-# define cpu_is_omap3503		(cpu_is_omap3430() &&		\
+# define cpu_is_omap3503()		(cpu_is_omap3430() &&		\
 						(!omap3_has_iva()) &&	\
 						(!omap3_has_sgx()))
-# define cpu_is_omap3515		(cpu_is_omap3430() &&		\
+# define cpu_is_omap3515()		(cpu_is_omap3430() &&		\
 						(omap3_has_iva()) &&	\
 						(!omap3_has_sgx()))
-# define cpu_is_omap3525		(cpu_is_omap3430() &&		\
+# define cpu_is_omap3525()		(cpu_is_omap3430() &&		\
 						(omap3_has_sgx()) &&	\
 						(!omap3_has_iva()))
-# define cpu_is_omap3530		(cpu_is_omap3430())
+# define cpu_is_omap3530()		(cpu_is_omap3430())
 # undef cpu_is_omap3630
 # define cpu_is_omap3630()		is_omap363x()
 #endif
