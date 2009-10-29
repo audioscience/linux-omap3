@@ -30,6 +30,25 @@
 #include <plat/common.h>
 
 /*
+ * I2C
+ */
+static struct i2c_board_info __initdata am3517evm_i2c_boardinfo[] = {
+	{
+	I2C_BOARD_INFO("tlv320aic23", 0x1A),
+	},
+};
+
+static int __init am3517_evm_i2c_init(void)
+{
+	omap_register_i2c_bus(1, 400, NULL, 0);
+	omap_register_i2c_bus(2, 400, am3517evm_i2c_boardinfo,
+			ARRAY_SIZE(am3517evm_i2c_boardinfo));
+	omap_register_i2c_bus(3, 400, NULL, 0);
+
+	return 0;
+}
+
+/*
  * Board initialization
  */
 static struct omap_board_config_kernel am3517_evm_config[] __initdata = {
@@ -50,6 +69,8 @@ static void __init am3517_evm_init_irq(void)
 
 static void __init am3517_evm_init(void)
 {
+	am3517_evm_i2c_init();
+
 	platform_add_devices(am3517_evm_devices,
 				ARRAY_SIZE(am3517_evm_devices));
 
