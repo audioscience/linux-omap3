@@ -713,6 +713,16 @@ static struct ehci_hcd_omap_platform_data ehci_pdata __initconst = {
 	.aux[2]	= 0,
 };
 
+/*
+ * Set wakeup sources for the board
+ */
+static void __init omap3_evm_wakeup_sources(void)
+{
+	pr_info("omap3evm: Adding wakeup sources");
+
+	omap_cfg_reg(AF26_34XX_SYS_NIRQ);
+}
+
 static void __init omap3_evm_init(void)
 {
 	omap3_evm_get_revision();
@@ -768,6 +778,8 @@ static void __init omap3_evm_init(void)
 	ads7846_dev_init();
 	omap3evm_init_smsc911x();
 	omap3_evm_display_init();
+
+	omap3_evm_wakeup_sources();
 }
 
 static void __init omap3_evm_map_io(void)
