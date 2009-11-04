@@ -214,7 +214,6 @@ static int omap3_evm_enable_lcd(struct omap_dss_device *dssdev)
 		printk(KERN_ERR "cannot enable LCD, DVI is enabled\n");
 		return -EINVAL;
 	}
-
 	gpio_set_value(OMAP3EVM_LCD_PANEL_ENVDD, 0);
 	gpio_set_value(OMAP3EVM_LCD_PANEL_BKLIGHT_GPIO, 1);
 
@@ -670,8 +669,6 @@ static void __init omap3_evm_init(void)
 	omap_cfg_reg(AF4_34XX_GPIO135_OUT);
 	usb_ehci_init(&ehci_pdata);
 	ads7846_dev_init();
-
-	omap3evmdc_init(1, 3, 0x5c);
 
 	omap3_evm_display_init();
 }
