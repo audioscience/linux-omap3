@@ -638,7 +638,7 @@ static void __init omap3_evm_init(void)
 	usb_ehci_init(&ehci_pdata);
 	ads7846_dev_init();
 
-	omap3evmdc_init(0, 3, 0x5D);
+	omap3evmdc_init(1, 3, 0x5c);
 
 	omap3_evm_display_init();
 }
