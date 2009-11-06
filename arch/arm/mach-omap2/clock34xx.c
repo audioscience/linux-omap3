@@ -321,6 +321,14 @@ static struct omap_clk omap34xx_clks[] = {
 	CLK(NULL,	"secure_32k_fck", &secure_32k_fck, CK_343X | CK_35XX),
 	CLK(NULL,	"gpt12_fck",	&gpt12_fck,	CK_343X | CK_35XX),
 	CLK(NULL,	"wdt1_fck",	&wdt1_fck,	CK_343X | CK_35XX),
+	CLK(NULL, "emac_ck", &emac_ck,  CK_35XX),
+	CLK(NULL, "emac_phy_ck", &emac_phy_ck, CK_35XX),
+	CLK(NULL, "usbotg_ck", &usbotg_ck, CK_35XX),
+	CLK(NULL, "usbotg_phy_ck", &usbotg_phy_ck, CK_35XX),
+	CLK(NULL, "hecc_ck", &hecc_ck, CK_35XX),
+	CLK(NULL, "vpfe_ck", &vpfe_ck, CK_35XX),
+	CLK(NULL, "vpfe_pck", &vpfe_pck, CK_35XX),
+	CLK(NULL, "uart4_ick", &uart4_ick, CK_35XX),
 };
 
 /* CM_AUTOIDLE_PLL*.AUTO_* bit values */

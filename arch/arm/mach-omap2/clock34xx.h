@@ -2990,4 +2990,90 @@ static struct clk wdt1_fck = {
 	.recalc		= &followparent_recalc,
 };
 
+/* Clocks for OMAP3517/AM3517 */
+static struct clk emac_ck = {
+	.name       = "emac_ck",
+	.ops        = &clkops_omap2_dflt,
+	.parent     = &core_l3_ick,
+	.clkdm_name = "core_l3_clkdm",
+	.enable_reg = OMAP343X_CTRL_REGADDR(OMAP3517_CONTROL_IP_CLK_CTRL),
+	.enable_bit = OMAP3517_CPGMAC_VBUSP_CLK_SHIFT,
+	.recalc     = &followparent_recalc,
+};
+
+static struct clk emac_phy_ck = {
+	.name       = "emac_phy_ck",
+	.ops        = &clkops_omap2_dflt,
+	.clkdm_name = "core_l3_clkdm",
+	.rate       = 50000000,
+	.enable_reg = OMAP343X_CTRL_REGADDR(OMAP3517_CONTROL_IP_CLK_CTRL),
+	.enable_bit = OMAP3517_CPGMAC_FCLK_SHIFT,
+	.recalc     = &omap2_clksel_recalc,
+};
+
+static struct clk usbotg_ck = {
+	.name       = "usbotg_ck",
+	.ops        = &clkops_omap2_dflt,
+	.parent     = &core_l3_ick,
+	.clkdm_name = "core_l3_clkdm",
+	.enable_reg = OMAP343X_CTRL_REGADDR(OMAP3517_CONTROL_IP_CLK_CTRL),
+	.enable_bit = OMAP3517_USBOTG_VBUSP_CLK_SHIFT,
+	.recalc     = &followparent_recalc,
+};
+
+static struct clk usbotg_phy_ck = {
+	.name       = "usbotg_phy_ck",
+	.ops        = &clkops_omap2_dflt,
+	.parent     = &sys_ck,
+	.clkdm_name = "core_l3_clkdm",
+	.enable_reg = OMAP343X_CTRL_REGADDR(OMAP3517_CONTROL_IP_CLK_CTRL),
+	.enable_bit = OMAP3517_USBOTG_FCLK_SHIFT,
+	.recalc     = &followparent_recalc,
+};
+
+static struct clk hecc_ck = {
+	.name       = "hecc_ck",
+	.ops        = &clkops_omap2_dflt,
+	.parent     = &sys_ck,
+	.clkdm_name = "core_l3_clkdm",
+	.enable_reg = OMAP343X_CTRL_REGADDR(OMAP3517_CONTROL_IP_CLK_CTRL),
+	.enable_bit = OMAP3517_HECC_VBUSP_CLK_SHIFT,
+	.recalc     = &followparent_recalc,
+};
+
+static struct clk vpfe_ck = {
+	.name       = "vpfe_ck",
+	.ops        = &clkops_omap2_dflt,
+	.parent     = &core_l3_ick,
+	.clkdm_name = "core_l3_clkdm",
+	.enable_reg = OMAP343X_CTRL_REGADDR(OMAP3517_CONTROL_IP_CLK_CTRL),
+	.enable_bit = OMAP3517_VPFE_VBUSP_CLK_SHIFT,
+	.recalc     = &followparent_recalc,
+};
+
+static struct clk vpfe_pck = {
+	.name       = "vpfe_pck",
+	.ops        = &clkops_omap2_dflt,
+	.clkdm_name = "core_l3_clkdm",
+	.rate       = 27000000,
+	.enable_reg = OMAP343X_CTRL_REGADDR(OMAP3517_CONTROL_IP_CLK_CTRL),
+	.enable_bit = OMAP3517_VPFE_FCLK_SHIFT,
+	.recalc     = &omap2_clksel_recalc,
+};
+
+/*
+ * On AM3517 MSPro is removed and another UART is connected on that
+ * L4 interface port. The UART1/2 functional clock acts as the functional
+ * clock for UART4. No separate fclk control available.
+ */
+static struct clk uart4_ick = {
+	.name       = "uart4_ick",
+	.ops        = &clkops_omap2_dflt_wait,
+	.parent     = &core_l4_ick,
+	.enable_reg = OMAP_CM_REGADDR(CORE_MOD, CM_ICLKEN1),
+	.enable_bit = OMAP3430_EN_MSPRO_SHIFT,
+	.clkdm_name = "core_l4_clkdm",
+	.recalc     = &followparent_recalc,
+};
+
 #endif
