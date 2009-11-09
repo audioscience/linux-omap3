@@ -365,6 +365,8 @@ static void __init am3517_evm_init(void)
 	omap_serial_init();
 
 	am3517_evm_display_init();
+
+	usb_musb_init();
 }
 
 static void __init am3517_evm_map_io(void)

@@ -13,6 +13,7 @@ config USB_MUSB_HDRC
 	select NOP_USB_XCEIV if ARCH_DAVINCI
 	select TWL4030_USB if MACH_OMAP_3430SDP
 	select NOP_USB_XCEIV if MACH_OMAP3EVM
+	select NOP_USB_XCEIV if MACH_OMAP3517EVM
 	select USB_OTG_UTILS
 	tristate 'Inventra Highspeed Dual Role Controller (TI, ADI, ...)'
 	help
@@ -153,7 +154,7 @@ config MUSB_PIO_ONLY
 
 config USB_INVENTRA_DMA
 	bool
-	depends on USB_MUSB_HDRC && !MUSB_PIO_ONLY
+	depends on USB_MUSB_HDRC && !MUSB_PIO_ONLY && !MACH_OMAP3517EVM
 	default ARCH_OMAP2430 || ARCH_OMAP34XX || BLACKFIN
 	help
 	  Enable DMA transfers using Mentor's engine.
@@ -177,7 +178,7 @@ config USB_TI_CPPI_DMA
 config USB_TI_CPPI41_DMA
 	bool
 	depends on USB_MUSB_HDRC && !MUSB_PIO_ONLY
-	default ARCH_DAVINCI_DA830
+	default ARCH_DAVINCI_DA830 || MACH_OMAP3517EVM
 	select CPPI41
 	help
 	 Enable DMA transfers when TI CPPI 4.1 DMA is available.

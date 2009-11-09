@@ -850,6 +850,9 @@ enum omap34xx_index {
 	AH14_34XX_GPIO21,
 	AF9_34XX_GPIO22,
 	U3_34XX_GPIO61,
+
+	/* AM3517 OTG DRVVBUS */
+	E25_3517_USB0_DRVVBUS,
 };
 
 struct omap_mux_cfg {
