@@ -30,6 +30,8 @@
 #include <plat/common.h>
 #include <plat/control.h>
 #include <plat/display.h>
+#include <plat/usb.h>
+#include <plat/mux.h>
 
 #include <media/ti-media/vpfe_capture.h>
 #include <media/tvp514x.h>
@@ -356,6 +358,23 @@ static void __init am3517_evm_init_irq(void)
 	omap_gpio_init();
 }
 
+static struct ehci_hcd_omap_platform_data ehci_pdata __initdata = {
+
+	.port_mode[0] = EHCI_HCD_OMAP_MODE_PHY,
+#if defined(CONFIG_PANEL_SHARP_LQ043T1DG01) || \
+                defined(CONFIG_PANEL_SHARP_LQ043T1DG01_MODULE)
+	.port_mode[1] = EHCI_HCD_OMAP_MODE_UNKNOWN,
+#else
+	.port_mode[1] = EHCI_HCD_OMAP_MODE_PHY,
+#endif
+	.port_mode[2] = EHCI_HCD_OMAP_MODE_UNKNOWN,
+
+	.phy_reset  = true,
+	.reset_gpio_port[0]  = 57,
+	.reset_gpio_port[1]  = -EINVAL,
+	.reset_gpio_port[2]  = -EINVAL
+};
+
 static void __init am3517_evm_init(void)
 {
 	am3517_evm_i2c_init();
@@ -367,6 +386,9 @@ static void __init am3517_evm_init(void)
 	am3517_evm_display_init();
 
 	usb_musb_init();
+	/* Setup EHCI phy reset padconfig for port1 using GPIO57 */
+	omap_cfg_reg(N5_3517_GPIO57_OUT);
+	usb_ehci_init(&ehci_pdata);
 }
 
 static void __init am3517_evm_map_io(void)

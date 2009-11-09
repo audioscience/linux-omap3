@@ -853,6 +853,8 @@ enum omap34xx_index {
 
 	/* AM3517 OTG DRVVBUS */
 	E25_3517_USB0_DRVVBUS,
+	/* AM3517 HSUSB port-1 phy reset */
+	N5_3517_GPIO57_OUT,
 };
 
 struct omap_mux_cfg {
