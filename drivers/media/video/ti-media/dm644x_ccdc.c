@@ -37,8 +37,8 @@
 #include <linux/platform_device.h>
 #include <linux/uaccess.h>
 #include <linux/videodev2.h>
-#include <media/davinci/dm644x_ccdc.h>
-#include <media/davinci/vpss.h>
+#include <media/ti-media/dm644x_ccdc.h>
+#include <media/ti-media/vpss.h>
 #include "dm644x_ccdc_regs.h"
 #include "ccdc_hw_device.h"
 

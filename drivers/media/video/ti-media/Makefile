@@ -1,5 +1,5 @@
 #
-# Makefile for the davinci video device drivers.
+# Makefile for the TI video device drivers.
 #
 
 # VPIF
