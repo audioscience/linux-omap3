@@ -199,10 +199,14 @@ static struct platform_device musb_device = {
 
 void __init usb_musb_init(void)
 {
-	if (cpu_is_omap243x())
+	if (cpu_is_omap243x()) {
 		musb_resources[0].start = OMAP243X_HS_BASE;
-	else
+	} else {
 		musb_resources[0].start = OMAP34XX_HSUSB_OTG_BASE;
+		/* OMAP3EVM Rev >= E can source 500mA */
+		if (get_omap3_evm_rev() >= OMAP3EVM_BOARD_GEN_2)
+			musb_plat.power = 250;
+	}
 	musb_resources[0].end = musb_resources[0].start + SZ_8K - 1;
 
 	/*
