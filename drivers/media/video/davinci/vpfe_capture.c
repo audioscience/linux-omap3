@@ -563,6 +563,11 @@ static int vpfe_initialize_device(struct vpfe_device *vpfe_dev)
 	ret = ccdc_dev->hw_ops.open(vpfe_dev->pdev);
 	if (!ret)
 		vpfe_dev->initialized = 1;
+
+	/* Clear all VPFE/CCDC interrupts */
+	if (vpfe_dev->cfg->clr_intr)
+		vpfe_dev->cfg->clr_intr(-1);
+
 unlock:
 	mutex_unlock(&ccdc_lock);
 	return ret;
@@ -663,8 +668,11 @@ static irqreturn_t vpfe_isr(int irq, void *dev_id)
 	field = vpfe_dev->fmt.fmt.pix.field;
 
 	/* if streaming not started, don't do anything */
-	if (!vpfe_dev->started)
+	if (!vpfe_dev->started) {
+		if (vpfe_dev->cfg->clr_intr)
+			vpfe_dev->cfg->clr_intr(irq);
 		return IRQ_HANDLED;
+	}
 
 	/* only for 6446 this will be applicable */
 	if (NULL != ccdc_dev->hw_ops.reset)
@@ -676,6 +684,8 @@ static irqreturn_t vpfe_isr(int irq, void *dev_id)
 			"frame format is progressive...\n");
 		if (vpfe_dev->cur_frm != vpfe_dev->next_frm)
 			vpfe_process_buffer_complete(vpfe_dev);
+		if (vpfe_dev->cfg->clr_intr)
+			vpfe_dev->cfg->clr_intr(irq);
 		return IRQ_HANDLED;
 	}
 
@@ -703,6 +713,8 @@ static irqreturn_t vpfe_isr(int irq, void *dev_id)
 			if (field == V4L2_FIELD_SEQ_TB)
 				vpfe_schedule_bottom_field(vpfe_dev);
 
+			if (vpfe_dev->cfg->clr_intr)
+				vpfe_dev->cfg->clr_intr(irq);
 			return IRQ_HANDLED;
 		}
 		/*
@@ -723,6 +735,9 @@ static irqreturn_t vpfe_isr(int irq, void *dev_id)
 		 */
 		vpfe_dev->field_id = fid;
 	}
+	if (vpfe_dev->cfg->clr_intr)
+		vpfe_dev->cfg->clr_intr(irq);
+
 	return IRQ_HANDLED;
 }
 
@@ -734,8 +749,11 @@ static irqreturn_t vdint1_isr(int irq, void *dev_id)
 	v4l2_dbg(1, debug, &vpfe_dev->v4l2_dev, "\nInside vdint1_isr...\n");
 
 	/* if streaming not started, don't do anything */
-	if (!vpfe_dev->started)
+	if (!vpfe_dev->started) {
+		if (vpfe_dev->cfg->clr_intr)
+			vpfe_dev->cfg->clr_intr(irq);
 		return IRQ_HANDLED;
+	}
 
 	spin_lock(&vpfe_dev->dma_queue_lock);
 	if ((vpfe_dev->fmt.fmt.pix.field == V4L2_FIELD_NONE) &&
@@ -743,6 +761,10 @@ static irqreturn_t vdint1_isr(int irq, void *dev_id)
 	    vpfe_dev->cur_frm == vpfe_dev->next_frm)
 		vpfe_schedule_next_buffer(vpfe_dev);
 	spin_unlock(&vpfe_dev->dma_queue_lock);
+
+	if (vpfe_dev->cfg->clr_intr)
+		vpfe_dev->cfg->clr_intr(irq);
+
 	return IRQ_HANDLED;
 }
 

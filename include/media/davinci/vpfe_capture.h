@@ -104,6 +104,8 @@ struct vpfe_config {
 	char *ccdc;
 	/* setup function for the input path */
 	int (*setup_input)(enum vpfe_subdev_id id);
+	/* Function for Clearing the interrupt */
+	void (*clr_intr)(int vdint);
 	/* number of clocks */
 	int num_clocks;
 	/* clocks used for vpfe capture */
