@@ -422,6 +422,10 @@ struct twl4030_platform_data {
 	struct regulator_init_data		*vaux3;
 	struct regulator_init_data		*vaux4;
 
+	struct regulator_init_data		*vusb1v5;
+	struct regulator_init_data		*vusb1v8;
+	struct regulator_init_data		*vusb3v1;
+
 	/* REVISIT more to come ... _nothing_ should be hard-wired */
 };
 
