@@ -367,6 +367,21 @@ static struct platform_device omap3evm_camkit_device = {
 	.id		= -1,
 };
 
+/* Create supplies for VAUX2 */
+REGULATOR_CONSUMER_SINGLE_SUPPLY(vaux2, hsusb1, NULL);
+/* VAUX2 for EHCI module on OMAP3EVM Rev >= E */
+TWL_VAUX2_DATA;
+
+/* Create supplies for VUSB1V5 */
+REGULATOR_CONSUMER_SINGLE_SUPPLY(vusb1v5, hsusb1-aux, NULL);
+/* VUSB1V5 for EHCI module on OMAP3EVM Rev < E*/
+TWL_VUSB1V5_DATA;
+
+/* Create supplies for VUSB1V8 */
+REGULATOR_CONSUMER_SINGLE_SUPPLY(vusb1v8, hsusb1, NULL);
+/* VUSB1V8 for EHCI module */
+TWL_VUSB1V8_DATA;
+
 static struct twl4030_hsmmc_info mmc[] = {
 	{
 		.mmc		= 1,
@@ -611,6 +626,13 @@ static struct ehci_hcd_omap_platform_data ehci_pdata __initconst = {
 static void __init omap3_evm_init(void)
 {
 	omap3_evm_get_revision();
+
+	if (get_omap3_evm_rev() >= OMAP3EVM_BOARD_GEN_2) {
+		omap3evm_twldata.vaux2 = &vaux2_data[0];
+	} else {
+		omap3evm_twldata.vusb1v5 = &vusb1v5_data[0];
+		omap3evm_twldata.vusb1v8 = &vusb1v8_data[0];
+	}
 
 	omap3_evm_i2c_init();
 
