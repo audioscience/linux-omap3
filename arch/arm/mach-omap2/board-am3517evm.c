@@ -36,6 +36,7 @@
 #include <media/ti-media/vpfe_capture.h>
 #include <media/tvp514x.h>
 
+#include "mmc-am3517evm.h"
 /*
  * VPFE - Video Decoder interface
  */
@@ -375,6 +376,24 @@ static struct ehci_hcd_omap_platform_data ehci_pdata __initdata = {
 	.reset_gpio_port[2]  = -EINVAL
 };
 
+static struct am3517_hsmmc_info mmc[] = {
+       {
+               .mmc            = 1,
+               .wires          = 4,
+               /*TODO: Need to change*/
+               .gpio_cd        = 127,
+               .gpio_wp        = 126,
+       },
+       {
+               .mmc            = 2,
+               .wires          = 4,
+               /*TODO: Need to change*/
+               .gpio_cd        = 128,
+               .gpio_wp        = 129,
+       },
+       {}      /* Terminator */
+};
+
 static void __init am3517_evm_init(void)
 {
 	am3517_evm_i2c_init();
@@ -389,6 +408,9 @@ static void __init am3517_evm_init(void)
 	/* Setup EHCI phy reset padconfig for port1 using GPIO57 */
 	omap_cfg_reg(N5_3517_GPIO57_OUT);
 	usb_ehci_init(&ehci_pdata);
+
+	/* MMC init function */
+	am3517_mmc_init(mmc);
 }
 
 static void __init am3517_evm_map_io(void)
