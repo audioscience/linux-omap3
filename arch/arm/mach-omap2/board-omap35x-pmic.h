@@ -83,7 +83,7 @@
 	}
 
 /* Define regulator initialization data */
-#define REGULATOR_INIT_DATA(regulator, n, min, max, modes, ops, apply_uv_f) \
+#define REGULATOR_INIT_DATA(regulator,n,min,max,modes,ops,reg_on,apply_uv) \
 	REGULATOR_INIT_DATA_START(regulator) = { \
 	REGULATOR_INIT_DATA_DEFINE(regulator, n, min, max, modes, ops, \
 			reg_on, apply_uv), \

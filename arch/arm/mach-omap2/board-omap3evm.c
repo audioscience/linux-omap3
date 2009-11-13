@@ -353,14 +353,14 @@ REGULATOR_CONSUMER_SINGLE_SUPPLY(vsim, vmmc_aux, NULL);
 REGULATOR_INIT_DATA(vmmc1, VMMC1, 1850000, 3150000,
 		TWL_REGULATOR_MODES_DEFAULT,
 		TWL_REGULATOR_OPS_DEFAULT | REGULATOR_CHANGE_VOLTAGE,
-		false);
+		false, false);
 
 /* VSIM for MMC1 pins DAT4..DAT7 (2 mA, plus card == max 50 mA) */
 /* Create init data for VMMC1 */
 REGULATOR_INIT_DATA(vsim, VSIM, 1800000, 3000000,
 		TWL_REGULATOR_MODES_DEFAULT,
 		TWL_REGULATOR_OPS_DEFAULT | REGULATOR_CHANGE_VOLTAGE,
-		false);
+		false, false);
 
 static struct platform_device omap3evm_camkit_device = {
 	.name		= "omap3evm_camkit",
@@ -596,7 +596,7 @@ REGULATOR_CONSUMER_SINGLE_SUPPLY(vpll2, vdvi, &omap3_evm_lcd_device.dev);
 REGULATOR_INIT_DATA(vpll2, VDVI, 1800000, 1800000,
 		TWL_REGULATOR_MODES_DEFAULT,
 		TWL_REGULATOR_OPS_DEFAULT,
-		true);
+		false, true);
 
 static struct twl4030_platform_data omap3evm_twldata __initdata = {
 	.irq_base	= TWL4030_IRQ_BASE,
