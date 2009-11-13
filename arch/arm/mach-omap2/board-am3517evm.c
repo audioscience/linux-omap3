@@ -37,6 +37,8 @@
 #include <media/tvp514x.h>
 
 #include "mmc-am3517evm.h"
+#include "board-omap35x-pmic.h"
+
 /*
  * VPFE - Video Decoder interface
  */
@@ -181,26 +183,6 @@ static struct platform_device vpfe_capture_dev = {
 	},
 };
 
-/*
- * I2C
- */
-static struct i2c_board_info __initdata am3517evm_i2c_boardinfo[] = {
-	{
-	I2C_BOARD_INFO("tlv320aic23", 0x1A),
-	},
-};
-
-static int __init am3517_evm_i2c_init(void)
-{
-	omap_register_i2c_bus(1, 400, NULL, 0);
-	omap_register_i2c_bus(2, 400, am3517evm_i2c_boardinfo,
-			ARRAY_SIZE(am3517evm_i2c_boardinfo));
-	omap_register_i2c_bus(3, 400, NULL, 0);
-
-	return 0;
-}
-
-
 #define LCD_PANEL_PWR		176
 #define LCD_PANEL_BKLIGHT_PWR	182
 #define LCD_PANEL_PWM		181
@@ -338,6 +320,80 @@ struct platform_device am3517_evm_dss_device = {
 		.platform_data	= &am3517_evm_dss_data,
 	},
 };
+
+/* PMIC specific initialization */
+/* Consumers -> Supplies mapping */
+/* VDCDC1 -> VDD_CORE */
+REGULATOR_CONSUMER_SINGLE_SUPPLY(vdcdc1, vdd_core, NULL);
+/* VDCDC2 -> VDDSHV */
+REGULATOR_CONSUMER_SINGLE_SUPPLY(vdcdc2, vddshv, NULL);
+/* VDCDC2 |-> VDDS
+	  |-> VDDS_SRAM_CORE_BG
+	  |-> VDDS_SRAM_MPU */
+REGULATOR_COMSUMER_START(vdcdc3) = {
+	REGULATOR_COMSUMER_DEFINE(vdds, NULL),
+	REGULATOR_COMSUMER_DEFINE(vdds_sram_core_bg, NULL),
+	REGULATOR_COMSUMER_DEFINE(vdds_sram_mpu, NULL),
+};
+/* LDO1 |-> VDDA1P8V_USBPHY
+	|-> VDDA_DAC */
+REGULATOR_COMSUMER_START(vldo1) = {
+	REGULATOR_COMSUMER_DEFINE(vdda1p8v_usbphy, NULL),
+	REGULATOR_COMSUMER_DEFINE(vdda_dac, NULL),
+};
+/* LDO2 -> VDDA3P3V_USBPHY */
+REGULATOR_CONSUMER_SINGLE_SUPPLY(vldo2, vdda3p3v_usbphy, NULL);
+
+/* Regulator initialization data */
+REGULATOR_INIT_DATA_START(tps65023) = {
+	/* VDCDC1 */
+	REGULATOR_INIT_DATA_DEFINE(vdcdc1, VDD_CORE, 1200000, 1200000,
+			REGULATOR_MODE_NORMAL, REGULATOR_CHANGE_STATUS,
+			true, false),
+	/* VDCDC2 */
+	REGULATOR_INIT_DATA_DEFINE(vdcdc2, VDDSHV, 3300000, 3300000,
+			REGULATOR_MODE_NORMAL, REGULATOR_CHANGE_STATUS,
+			true, false),
+	/* VDCDC3 */
+	REGULATOR_INIT_DATA_DEFINE(vdcdc3, VDDS, 1800000, 1800000,
+			REGULATOR_MODE_NORMAL, REGULATOR_CHANGE_STATUS,
+			true, false),
+	/* LDO1 */
+	REGULATOR_INIT_DATA_DEFINE(vldo1, VDAC/VUSBPHY, 1800000, 1800000,
+			REGULATOR_MODE_NORMAL, REGULATOR_CHANGE_STATUS,
+			false, false),
+	/* LDO2 */
+	REGULATOR_INIT_DATA_DEFINE(vldo2, VUSBPHY, 3300000, 3300000,
+			REGULATOR_MODE_NORMAL, REGULATOR_CHANGE_STATUS,
+			false, false),
+};
+
+/* I2C1 */
+static struct i2c_board_info __initdata am3517evm_i2c1_boardinfo[] = {
+	{
+		I2C_BOARD_INFO("tps65023", 0x48),
+		.flags = I2C_CLIENT_WAKE,
+		.platform_data = &tps65023_data[0],
+	},
+};
+/* I2C2 */
+static struct i2c_board_info __initdata am3517evm_i2c2_boardinfo[] = {
+	{
+	I2C_BOARD_INFO("tlv320aic23", 0x1A),
+	},
+};
+
+static int __init am3517_evm_i2c_init(void)
+{
+	omap_register_i2c_bus(1, 400, am3517evm_i2c1_boardinfo,
+			ARRAY_SIZE(am3517evm_i2c1_boardinfo));
+	omap_register_i2c_bus(2, 400, am3517evm_i2c2_boardinfo,
+			ARRAY_SIZE(am3517evm_i2c2_boardinfo));
+	omap_register_i2c_bus(3, 400, NULL, 0);
+
+	return 0;
+}
+
 /*
  * Board initialization
  */
@@ -397,6 +453,8 @@ static struct am3517_hsmmc_info mmc[] = {
 static void __init am3517_evm_init(void)
 {
 	am3517_evm_i2c_init();
+
+	regulator_has_full_constraints();
 
 	platform_add_devices(am3517_evm_devices,
 				ARRAY_SIZE(am3517_evm_devices));
