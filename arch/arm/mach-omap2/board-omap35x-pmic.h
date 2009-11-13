@@ -44,21 +44,28 @@
 /* Define regulator with multiple supplies attached to it like */
 	/*
 	REGULATOR_COMSUMER_START(name) = {
-	REGULATOR_COMSUMER_DEFINE(supply, device),
-	REGULATOR_COMSUMER_DEFINE(supply, device),
-	REGULATOR_COMSUMER_DEFINE(supply, device),
+		REGULATOR_COMSUMER_DEFINE(supply, device),
+		REGULATOR_COMSUMER_DEFINE(supply, device),
+		REGULATOR_COMSUMER_DEFINE(supply, device),
 	}
 	*/
 
+/* Define constraints flags */
+#define REGULATOR_CONSTRAINTS_FLAGS(reg_always_on, reg_boot_on, reg_apply_uV) \
+			.always_on = reg_always_on, \
+			.boot_on = reg_boot_on, \
+			.apply_uV = reg_apply_uV,
+
 /* Define regulation constraints */
-#define REGULATOR_CONSTRAINTS(n, min, max, modes, ops, apply_uv_f) \
+#define REGULATOR_CONSTRAINTS(n, min, max, modes, ops, reg_on, apply_uv) \
 		{ \
 			.name = #n, \
 			.min_uV	= min, \
 			.max_uV	= max, \
 			.valid_modes_mask = modes, \
 			.valid_ops_mask	= ops, \
-			.apply_uV = apply_uv_f, \
+			.always_on = reg_on, \
+			.apply_uV = apply_uv, \
 		},
 
 /* Declare the regulator initialization data */
@@ -67,19 +74,19 @@
 
 /* Populate various fields in the regulator initialization data */
 #define REGULATOR_INIT_DATA_DEFINE(regulator, n, min, max, modes, ops, \
-		apply_uv_f) \
+		reg_on, apply_uv) \
 	{ \
 		.constraints = REGULATOR_CONSTRAINTS(n, min, max, modes, ops, \
-				apply_uv_f) \
+				reg_on, apply_uv) \
 		.num_consumer_supplies = ARRAY_SIZE(regulator##_consumers), \
 		.consumer_supplies = regulator##_consumers, \
-	},
+	}
 
 /* Define regulator initialization data */
 #define REGULATOR_INIT_DATA(regulator, n, min, max, modes, ops, apply_uv_f) \
 	REGULATOR_INIT_DATA_START(regulator) = { \
 	REGULATOR_INIT_DATA_DEFINE(regulator, n, min, max, modes, ops, \
-			apply_uv_f) \
+			reg_on, apply_uv), \
 	}
 
 /*
@@ -128,82 +135,82 @@
 #define TWL_VAUX1_DATA	REGULATOR_INIT_DATA(vaux1, VAUX1, 2800000, 2800000, \
 						TWL_REGULATOR_MODES_DEFAULT, \
 						TWL_REGULATOR_OPS_DEFAULT, \
-						true)
+						false, true)
 
 /* VAUX2 */
 #define TWL_VAUX2_DATA	REGULATOR_INIT_DATA(vaux2, VAUX2, 2800000, 2800000, \
 						TWL_REGULATOR_MODES_DEFAULT, \
 						TWL_REGULATOR_OPS_DEFAULT, \
-						true)
+						false, true)
 
 /* VAUX3 */
 #define TWL_VAUX3_DATA	REGULATOR_INIT_DATA(vaux3, VAUX3, 2800000, 2800000, \
 						TWL_REGULATOR_MODES_DEFAULT, \
 						TWL_REGULATOR_OPS_DEFAULT, \
-						true)
+						false, true)
 
 /* VAUX4 */
 #define TWL_VAUX4_DATA	REGULATOR_INIT_DATA(vaux4, VAUX4, 1800000, 1800000, \
 						TWL_REGULATOR_MODES_DEFAULT, \
 						TWL_REGULATOR_OPS_DEFAULT, \
-						true)
+						false, true)
 
 /* VMMC1 */
 #define TWL_VMMC1_DATA	REGULATOR_INIT_DATA(vmmc1, VMMC1, 1850000, 3150000, \
 						TWL_REGULATOR_MODES_DEFAULT, \
 						TWL_REGULATOR_OPS_DEFAULT, \
-						true)
+						false, true)
 
 /* VMMC2 */
 #define TWL_VMMC2_DATA	REGULATOR_INIT_DATA(vmmc2, VMMC2, 1850000, 1850000, \
 						TWL_REGULATOR_MODES_DEFAULT, \
 						TWL_REGULATOR_OPS_DEFAULT, \
-						true)
+						false, true)
 
 /* VPLL1 */
 #define TWL_VPLL1_DATA	REGULATOR_INIT_DATA(vpll1, VPLL1, 1300000, 1300000, \
 						TWL_REGULATOR_MODES_DEFAULT, \
 						TWL_REGULATOR_OPS_DEFAULT, \
-						true)
+						false, true)
 
 /* VPLL2 */
 #define TWL_VPLL2_DATA	REGULATOR_INIT_DATA(vpll2, VDVI, 1800000, 1800000, \
 						TWL_REGULATOR_MODES_DEFAULT, \
 						TWL_REGULATOR_OPS_DEFAULT, \
-						false)
+						false, true)
 
 /* VSIM */
 #define TWL_VSIM_DATA	REGULATOR_INIT_DATA(vsim, VSIM, 1800000, 3000000, \
 						TWL_REGULATOR_MODES_DEFAULT, \
 						TWL_REGULATOR_OPS_DEFAULT, \
-						false)
+						false, true)
 
 /* VDAC */
 #define TWL_VDAC_DATA	REGULATOR_INIT_DATA(vdac, VDAC, 1800000, 1800000, \
 						TWL_REGULATOR_MODES_DEFAULT, \
 						TWL_REGULATOR_OPS_DEFAULT, \
-						true)
+						false, true)
 
 /* VUSB1V5 */
 #define TWL_VUSB1V5_DATA	REGULATOR_INIT_DATA(vusb1v5, VUSB1V5, \
 						1500000, 1500000, \
 						TWL_REGULATOR_MODES_DEFAULT, \
 						TWL_REGULATOR_OPS_DEFAULT, \
-						true)
+						false, true)
 
 /* VUSB1V8 */
 #define TWL_VUSB1V8_DATA	REGULATOR_INIT_DATA(vusb1v8, VUSB1V8, \
 						1800000, 1800000, \
 						TWL_REGULATOR_MODES_DEFAULT, \
 						TWL_REGULATOR_OPS_DEFAULT, \
-						true)
+						false, true)
 
 /* VUSB3V1 */
 #define TWL_VUSB3V1_DATA	REGULATOR_INIT_DATA(vusb3v1, VUSB3V1, \
 						3100000, 3100000, \
 						TWL_REGULATOR_MODES_DEFAULT, \
 						TWL_REGULATOR_OPS_DEFAULT, \
-						true)
+						false, true)
 
 #endif	/* CONFIG_PMIC_TWL4030 || CONFIG_TWL4030_CORE */
 
