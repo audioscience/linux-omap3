@@ -25,6 +25,8 @@ struct emac_platform_data {
 	u32 mdio_max_freq;
 	u8 rmii_en;
 	u8 version;
+	void (*wrapper_interrupt_enable) (void);
+	void (*wrapper_interrupt_disable) (void);
 };
 
 enum {
