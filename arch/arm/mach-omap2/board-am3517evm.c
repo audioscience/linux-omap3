@@ -20,6 +20,7 @@
 #include <linux/init.h>
 #include <linux/platform_device.h>
 #include <linux/gpio.h>
+#include <linux/davinci_emac.h>
 
 #include <mach/hardware.h>
 #include <asm/mach-types.h>
@@ -32,12 +33,107 @@
 #include <plat/display.h>
 #include <plat/usb.h>
 #include <plat/mux.h>
+#include <plat/am3517.h>
 
 #include <media/ti-media/vpfe_capture.h>
 #include <media/tvp514x.h>
 
 #include "mmc-am3517evm.h"
 #include "board-omap35x-pmic.h"
+
+#define AM3517_EVM_PHY_MASK          (0xF)
+#define AM3517_EVM_MDIO_FREQUENCY    (1000000) /*PHY bus frequency */
+
+static struct emac_platform_data am3517_evm_emac_pdata = {
+	.phy_mask       = AM3517_EVM_PHY_MASK,
+	.mdio_max_freq  = AM3517_EVM_MDIO_FREQUENCY,
+	.rmii_en        = 1,
+};
+
+static struct resource am3517_emac_resources[] = {
+	{
+		.start  = AM3517_IPSS_EMAC_BASE,
+		.end    = AM3517_IPSS_EMAC_BASE + 0x3FFFF,
+		.flags  = IORESOURCE_MEM,
+	},
+	{
+		.start  = INT_3517_EMAC_RXTHRESH_IRQ,
+		.end    = INT_3517_EMAC_RXTHRESH_IRQ,
+		.flags  = IORESOURCE_IRQ,
+	},
+	{
+		.start  = INT_3517_EMAC_RX_IRQ,
+		.end    = INT_3517_EMAC_RX_IRQ,
+		.flags  = IORESOURCE_IRQ,
+	},
+	{
+		.start  = INT_3517_EMAC_TX_IRQ,
+		.end    = INT_3517_EMAC_TX_IRQ,
+		.flags  = IORESOURCE_IRQ,
+	},
+	{
+		.start  = INT_3517_EMAC_MISC_IRQ,
+		.end    = INT_3517_EMAC_MISC_IRQ,
+		.flags  = IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device am3517_emac_device = {
+        .name           = "davinci_emac",
+        .id             = 1,
+        .num_resources  = ARRAY_SIZE(am3517_emac_resources),
+        .resource       = am3517_emac_resources,
+};
+
+static void am3517_enable_ethernet_int(void)
+{
+	u32 regval;
+
+	regval = omap_ctrl_readl(OMAP3517_CONTROL_LVL_INTR_CLEAR);
+	regval = (regval | AM3517_CPGMAC_RX_PULSE_CLR |
+		AM3517_CPGMAC_TX_PULSE_CLR | AM3517_CPGMAC_MISC_PULSE_CLR |
+		AM3517_CPGMAC_RX_THRESH_CLR);
+        omap_ctrl_writel(regval,OMAP3517_CONTROL_LVL_INTR_CLEAR);
+	regval = omap_ctrl_readl(OMAP3517_CONTROL_LVL_INTR_CLEAR);
+
+}
+
+static void am3517_disable_ethernet_int(void)
+{
+	u32 regval;
+
+	regval = omap_ctrl_readl(OMAP3517_CONTROL_LVL_INTR_CLEAR);
+	regval = (regval | AM3517_CPGMAC_RX_PULSE_CLR |
+			AM3517_CPGMAC_TX_PULSE_CLR);
+        omap_ctrl_writel(regval,OMAP3517_CONTROL_LVL_INTR_CLEAR);
+	regval = omap_ctrl_readl(OMAP3517_CONTROL_LVL_INTR_CLEAR);
+
+}
+
+void am3517_evm_ethernet_init(struct emac_platform_data *pdata)
+ {
+	unsigned int regval;
+
+	pdata->ctrl_reg_offset          = AM3517_EMAC_CNTRL_OFFSET;
+	pdata->ctrl_mod_reg_offset      = AM3517_EMAC_CNTRL_MOD_OFFSET;
+	pdata->ctrl_ram_offset          = AM3517_EMAC_CNTRL_RAM_OFFSET;
+	pdata->mdio_reg_offset          = AM3517_EMAC_MDIO_OFFSET;
+	pdata->ctrl_ram_size            = AM3517_EMAC_CNTRL_RAM_SIZE;
+	pdata->version                  = EMAC_VERSION_2;
+	pdata->hw_ram_addr		= AM3517_EMAC_HW_RAM_ADDR;
+	pdata->wrapper_interrupt_enable	= am3517_enable_ethernet_int;
+	pdata->wrapper_interrupt_disable= am3517_disable_ethernet_int;
+	am3517_emac_device.dev.platform_data     = pdata;
+	platform_device_register(&am3517_emac_device);
+
+	regval = omap_ctrl_readl(OMAP3517_CONTROL_IP_SW_RESET);
+	regval = regval & (~(AM3517_CPGMAC_SW_RST));
+	omap_ctrl_writel(regval,OMAP3517_CONTROL_IP_SW_RESET);
+	regval = omap_ctrl_readl(OMAP3517_CONTROL_IP_SW_RESET);
+
+	return ;
+ }
+
 
 /*
  * VPFE - Video Decoder interface
@@ -469,6 +565,8 @@ static void __init am3517_evm_init(void)
 
 	/* MMC init function */
 	am3517_mmc_init(mmc);
+
+	am3517_evm_ethernet_init(&am3517_evm_emac_pdata);
 }
 
 static void __init am3517_evm_map_io(void)
