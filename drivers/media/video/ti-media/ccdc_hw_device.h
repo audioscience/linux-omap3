@@ -91,6 +91,10 @@ struct ccdc_hw_ops {
 	void (*setfbaddr) (unsigned long addr);
 	/* Pointer to function to get field id */
 	int (*getfid) (void);
+
+	/* suspend/resume support */
+	void (*save_context)(void);
+	void (*restore_context)(void);
 };
 
 struct ccdc_hw_device {

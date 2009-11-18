@@ -2421,18 +2421,31 @@ static int vpfe_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static int
-vpfe_suspend(struct device *dev)
+static int vpfe_suspend(struct device *dev)
 {
-	/* add suspend code here later */
-	return -1;
+	struct vpfe_device *vpfe_dev = dev_get_drvdata(dev);;
+
+	if (ccdc_dev->hw_ops.save_context)
+		ccdc_dev->hw_ops.save_context();
+	ccdc_dev->hw_ops.enable(0);
+
+	if (vpfe_dev)
+		vpfe_disable_clock(vpfe_dev);
+
+	return 0;
 }
 
-static int
-vpfe_resume(struct device *dev)
+static int vpfe_resume(struct device *dev)
 {
-	/* add resume code here later */
-	return -1;
+	struct vpfe_device *vpfe_dev = dev_get_drvdata(dev);;
+
+	if (vpfe_dev)
+		vpfe_enable_clock(vpfe_dev);
+
+	if (ccdc_dev->hw_ops.restore_context)
+		ccdc_dev->hw_ops.restore_context();
+
+	return 0;
 }
 
 static struct dev_pm_ops vpfe_dev_pm_ops = {
