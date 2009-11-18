@@ -70,7 +70,6 @@ out:
 }
 EXPORT_SYMBOL(omap_type);
 
-
 /*----------------------------------------------------------------------------*/
 
 #define OMAP_TAP_IDCODE		0x0204
@@ -175,6 +174,14 @@ void __init omap3_check_features(void)
 	OMAP3_CHECK_FEATURE(status, SGX);
 	OMAP3_CHECK_FEATURE(status, NEON);
 	OMAP3_CHECK_FEATURE(status, ISP);
+
+	/*
+	 * Does it support 720MHz?
+	 */
+	status = ((OMAP3_SKUID_MASK & read_tap_reg(OMAP3_PRODID))
+			& OMAP3_SKUID_720MHZ) ? 1 : 0 ;
+	if (status)
+		omap3_features |= OMAP3_HAS_720M;
 
 	/*
 	 * TODO: Get additional info (where applicable)
@@ -338,6 +345,7 @@ void __init omap3_cpuinfo(void)
 	OMAP3_SHOW_FEATURE(sgx);
 	OMAP3_SHOW_FEATURE(neon);
 	OMAP3_SHOW_FEATURE(isp);
+	OMAP3_SHOW_FEATURE(720m);
 }
 
 /*

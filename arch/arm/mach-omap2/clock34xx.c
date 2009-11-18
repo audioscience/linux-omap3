@@ -1152,6 +1152,15 @@ static int __init omap2_clk_arch_init(void)
 	if (!mpurate)
 		return -EINVAL;
 
+	if ((mpurate == S720M) && !omap3_has_720m()) {
+		/*
+		 * Silicon doesn't support this rate.
+		 * Use the next highest.
+		 */
+		mpurate = S600M;
+		printk(KERN_ERR "*** This silicon doesn't support 720MHz\n");
+	}
+
 	/* Check if mpurate is valid */
 	if (mpu_opps) {
 		opp_table = mpu_opps;
@@ -1177,7 +1186,9 @@ static int __init omap2_clk_arch_init(void)
 	omap3_dpll_recalc(&dpll1_ck);
 
 	/* Get dsprate corresponding to the opp */
-	if ((dsp_opps) && (opp >= VDD1_OPP1) && (opp <= VDD1_OPP5)) {
+	if ((cpu_is_omap3430() || cpu_is_omap3530() || cpu_is_omap3525())
+		&& (dsp_opps)
+		&& (opp >= MIN_VDD1_OPP) && (opp <= MAX_VDD1_OPP)) {
 		opp_table = dsp_opps;
 
 		for (i=0;  opp_table[i].opp_id <= MAX_VDD1_OPP; i++)
