@@ -398,12 +398,13 @@ void omap3_clk_lock_dpll5(void)
 static int __init omap2_clk_arch_init(void)
 {
 	struct clk *osc_sys_ck, *dpll1_ck, *arm_fck, *core_ck;
-	struct clk *dpll2_ck, *iva2_ck;
+	struct clk *dpll2_ck, *iva2_ck, *dpll3_m2_ck;
 	unsigned long osc_sys_rate;
-	unsigned long dsprate;
+	unsigned long dsprate, l3rate;
 	struct omap_opp *opp_table;
 	short opp=0, valid=0, i;
 	short err = 0 ;
+	int l3div;
 
 	if (!mpurate)
 		return -EINVAL;
@@ -444,6 +445,12 @@ static int __init omap2_clk_arch_init(void)
 		pr_err("*** Failed to get iva2_ck.\n");
 	}
 
+	dpll3_m2_ck = clk_get(NULL, "dpll3_m2_ck");
+	if (dpll3_m2_ck == NULL) {
+		err = 1;
+		pr_err("*** Failed to get dpll3_m2_ck.\n");
+	}
+
 	if (err)
 		return 1;
 
@@ -477,6 +484,18 @@ static int __init omap2_clk_arch_init(void)
 
 	if (clk_set_rate(dpll1_ck, mpurate))
 		printk(KERN_ERR "*** Unable to set MPU rate\n");
+
+	/* Select VDD2_OPP2, if VDD1_OPP1 is chosen */
+	if (opp == VDD1_OPP1) {
+		l3div = cm_read_mod_reg(CORE_MOD, CM_CLKSEL) &
+			OMAP3430_CLKSEL_L3_MASK;
+
+		l3rate = l3_opps[VDD2_OPP2].rate * l3div;
+		if (clk_set_rate(dpll3_m2_ck, l3rate))
+			pr_err("*** Unable to set L3 rate(%lu)\n", l3rate);
+		else
+			pr_info("Switching to L3 rate: %lu\n", l3rate);
+	}
 
 	/* Get dsprate corresponding to the opp */
 	if ((cpu_is_omap3430() || cpu_is_omap3530() || cpu_is_omap3525())
