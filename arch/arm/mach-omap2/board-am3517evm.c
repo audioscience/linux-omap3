@@ -21,6 +21,8 @@
 #include <linux/platform_device.h>
 #include <linux/gpio.h>
 #include <linux/davinci_emac.h>
+#include <linux/irq.h>
+#include <linux/i2c/tsc2004.h>
 
 #include <mach/hardware.h>
 #include <asm/mach-types.h>
@@ -28,6 +30,7 @@
 #include <asm/mach/map.h>
 
 #include <plat/board.h>
+#include <plat/mux.h>
 #include <plat/common.h>
 #include <plat/control.h>
 #include <plat/display.h>
@@ -134,6 +137,59 @@ void am3517_evm_ethernet_init(struct emac_platform_data *pdata)
 	return ;
  }
 
+
+/*
+ * TSC 2004 Support
+ */
+#define	GPIO_TSC2004_IRQ	65
+
+static int tsc2004_init_irq(void)
+{
+	int ret = 0;
+
+	ret = gpio_request(GPIO_TSC2004_IRQ, "tsc2004-irq");
+	if (ret < 0) {
+		printk(KERN_WARNING "failed to request GPIO#%d: %d\n",
+				GPIO_TSC2004_IRQ, ret);
+		return ret;
+	}
+
+	if (gpio_direction_input(GPIO_TSC2004_IRQ)) {
+		printk(KERN_WARNING "GPIO#%d cannot be configured as "
+				"input\n", GPIO_TSC2004_IRQ);
+		return -ENXIO;
+	}
+
+	omap_set_gpio_debounce(GPIO_TSC2004_IRQ, 1);
+	omap_set_gpio_debounce_time(GPIO_TSC2004_IRQ, 0xa);
+	return ret;
+}
+
+static void tsc2004_exit_irq(void)
+{
+	gpio_free(GPIO_TSC2004_IRQ);
+}
+
+static int tsc2004_get_irq_level(void)
+{
+	return gpio_get_value(GPIO_TSC2004_IRQ) ? 0 : 1;
+}
+
+struct tsc2004_platform_data am3517evm_tsc2004data = {
+	.model = 2004,
+	.x_plate_ohms = 180,
+	.get_pendown_state = tsc2004_get_irq_level,
+	.init_platform_hw = tsc2004_init_irq,
+	.exit_platform_hw = tsc2004_exit_irq,
+};
+
+static struct i2c_board_info __initdata am3517evm_tsc_i2c_boardinfo[] = {
+	{
+		I2C_BOARD_INFO("tsc2004", 0x4B),
+		.type		= "tsc2004",
+		.platform_data	= &am3517evm_tsc2004data,
+	},
+};
 
 /*
  * VPFE - Video Decoder interface
@@ -567,6 +623,12 @@ static void __init am3517_evm_init(void)
 	am3517_mmc_init(mmc);
 
 	am3517_evm_ethernet_init(&am3517_evm_emac_pdata);
+
+	/* TSC 2004 */
+	omap_cfg_reg(U1_34XX_GPIO65);
+	am3517evm_tsc_i2c_boardinfo[0].irq = gpio_to_irq(GPIO_TSC2004_IRQ);
+	i2c_register_board_info(1, am3517evm_tsc_i2c_boardinfo,
+				ARRAY_SIZE(am3517evm_tsc_i2c_boardinfo));
 }
 
 static void __init am3517_evm_map_io(void)
