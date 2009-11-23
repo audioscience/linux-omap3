@@ -1237,7 +1237,7 @@ static int __init omap2_clk_arch_init(void)
 		if (clk_set_rate(&dpll3_m2_ck, l3rate))
 			printk(KERN_ERR "*** Unable to set L3 rate(%ld)\n", l3rate);
 		else
-			printk(KERN_INFO "Switching to L3 rate:%d\n", l3rate);
+			printk(KERN_INFO "Switching to L3 rate:%ld\n", l3rate);
 
 		omap3_dpll_recalc(&dpll3_m2_ck);
 	}
