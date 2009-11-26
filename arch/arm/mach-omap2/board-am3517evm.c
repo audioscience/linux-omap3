@@ -235,6 +235,11 @@ void am3517_evm_ethernet_init(struct emac_platform_data *pdata)
 	omap_ctrl_writel(regval,OMAP3517_CONTROL_IP_SW_RESET);
 	regval = omap_ctrl_readl(OMAP3517_CONTROL_IP_SW_RESET);
 
+	regval = omap_ctrl_readl(OMAP3517_CONTROL_IP_CLK_CTRL);
+	regval = regval |(1 << OMAP3517_CPGMAC_VBUSP_CLK_SHIFT) |
+			(1 << OMAP3517_CPGMAC_FCLK_SHIFT);
+	omap_ctrl_writel(regval,OMAP3517_CONTROL_IP_CLK_CTRL);
+	regval = omap_ctrl_readl(OMAP3517_CONTROL_IP_CLK_CTRL);
 	return ;
  }
 
