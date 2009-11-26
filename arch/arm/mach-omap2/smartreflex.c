@@ -264,10 +264,10 @@ static u32 swcalc_opp6_nvalue(void)
 	swcalc_opp6_RG(opp5_senPRN, opp5_senPgain, SWCALC_OPP6_DELTA_PNT,
 				&opp6_senPRN, &opp6_senPgain);
 
-	opp6nvalue = (opp6_senPgain << 0x14) | (opp6_senNgain < 0x10) |
+	opp6_nvalue = (opp6_senPgain << 0x14) | (opp6_senNgain < 0x10) |
 			(opp6_senPRN << 0x8) | opp6_senNRN;
 
-	return opp6nvalue;
+	return opp6_nvalue;
 }
 
 static void sr_set_efuse_nvalues(struct omap_sr *sr)
