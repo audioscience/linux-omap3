@@ -825,8 +825,12 @@ static int __init omap3_evm_i2c_init(void)
 
 static void ads7846_dev_init(void)
 {
-	if (gpio_request(OMAP3_EVM_TS_GPIO, "ADS7846 pendown") < 0)
+	if (gpio_request(OMAP3_EVM_TS_GPIO, "ADS7846 pendown") < 0) {
 		printk(KERN_ERR "can't get ads7846 pen down GPIO\n");
+		return;
+	}
+
+	omap_cfg_reg(AC3_34XX_GPIO175);
 
 	gpio_direction_input(OMAP3_EVM_TS_GPIO);
 

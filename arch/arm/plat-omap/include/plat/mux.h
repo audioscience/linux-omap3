@@ -856,6 +856,9 @@ enum omap34xx_index {
 	E25_3517_USB0_DRVVBUS,
 	/* AM3517 HSUSB port-1 phy reset */
 	N5_3517_GPIO57_OUT,
+
+	/* GPIO175 (Touchscreen PEN_IRQ in OMAP3EVM) */
+	AC3_34XX_GPIO175,
 };
 
 struct omap_mux_cfg {
