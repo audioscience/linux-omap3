@@ -696,7 +696,7 @@ static struct ti_hecc_platform_data am3517_evm_hecc_pdata = {
         .scc_hecc_offset        = AM3517_HECC_SCC_HECC_OFFSET,
         .scc_ram_offset         = AM3517_HECC_SCC_RAM_OFFSET,
         .hecc_ram_offset        = AM3517_HECC_RAM_OFFSET,
-        .mbox_offset            = AM3517_HECC_MBOX_OFFSET,
+	.mbx_offset 		= AM3517_HECC_MBOX_OFFSET,
         .int_line               = AM3517_HECC_INT_LINE,
         .version                = AM3517_HECC_VERSION,
 };

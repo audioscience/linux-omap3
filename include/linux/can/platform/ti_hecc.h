@@ -20,7 +20,7 @@
  * @scc_hecc_offset:	mostly 0 - should really never change
  * @scc_ram_offset:	SCC RAM offset
  * @hecc_ram_offset:	HECC RAM offset
- * @mbox_offset:	Mailbox RAM offset
+ * @mbx_offset:		Mailbox RAM offset
  * @int_line:		Interrupt line to use - 0 or 1
  * @version:		version for future use
  *
@@ -32,7 +32,7 @@ struct ti_hecc_platform_data {
 	u32 scc_hecc_offset;
 	u32 scc_ram_offset;
 	u32 hecc_ram_offset;
-	u32 mbox_offset;
+	u32 mbx_offset;
 	u32 int_line;
 	u32 version;
 };
