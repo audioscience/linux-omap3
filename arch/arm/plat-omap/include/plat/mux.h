@@ -811,6 +811,7 @@ enum omap34xx_index {
 	H1_34XX_GPIO62,
 	C23_34XX_GPIO98,
 	U1_34XX_GPIO65,
+	M2_34XX_GPIO55,
 
 	/* OMAP3 SDRC CKE signals to SDR/DDR ram chips */
 	H16_34XX_SDRC_CKE0,
