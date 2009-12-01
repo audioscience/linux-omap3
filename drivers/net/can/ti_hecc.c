@@ -964,6 +964,38 @@ static int __devexit ti_hecc_remove(struct platform_device *pdev)
 	return 0;
 }
 
+
+#ifdef CONFIG_PM
+static int ti_hecc_suspend(struct platform_device *pdev, pm_message_t state)
+{
+	struct net_device *dev = platform_get_drvdata(pdev);
+	struct ti_hecc_priv *priv = netdev_priv(dev);
+
+	if (netif_running(dev))
+		ti_hecc_stop(dev);
+
+	clk_disable(priv->clk);
+
+	return 0;
+}
+
+static int ti_hecc_resume(struct platform_device *pdev)
+{
+	struct net_device *dev = platform_get_drvdata(pdev);
+	struct ti_hecc_priv *priv = netdev_priv(dev);
+
+	clk_enable(priv->clk);
+
+	if (netif_running(dev))
+		ti_hecc_start(dev);
+
+	return 0;
+}
+#else
+#define ti_hecc_suspend NULL
+#define ti_hecc_resume NULL
+#endif
+
 /* TI HECC netdevice driver: platform driver structure */
 static struct platform_driver ti_hecc_driver = {
 	.driver = {
@@ -972,6 +1004,8 @@ static struct platform_driver ti_hecc_driver = {
 	},
 	.probe = ti_hecc_probe,
 	.remove = __devexit_p(ti_hecc_remove),
+	.suspend = ti_hecc_suspend,
+	.resume = ti_hecc_resume,
 };
 
 static int __init ti_hecc_init_driver(void)
@@ -979,14 +1013,15 @@ static int __init ti_hecc_init_driver(void)
 	printk(KERN_INFO DRV_DESC "\n");
 	return platform_driver_register(&ti_hecc_driver);
 }
-module_init(ti_hecc_init_driver);
 
 static void __exit ti_hecc_exit_driver(void)
 {
 	printk(KERN_INFO DRV_DESC " unloaded\n");
 	platform_driver_unregister(&ti_hecc_driver);
 }
+
 module_exit(ti_hecc_exit_driver);
+module_init(ti_hecc_init_driver);
 
 MODULE_AUTHOR("Anant Gole <anantgole@ti.com>");
 MODULE_LICENSE("GPL v2");
