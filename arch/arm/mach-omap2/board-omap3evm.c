@@ -322,8 +322,16 @@ static void __init omap3_evm_display_init(void)
 	}
 	gpio_direction_output(OMAP3EVM_LCD_PANEL_ENVDD, 0);
 
+	r = gpio_request(OMAP3EVM_LCD_PANEL_BKLIGHT_GPIO, "lcd_panel_bklight");
+	if (r) {
+		printk(KERN_ERR "failed to get lcd_panel_bklight\n");
+		goto err_6;
+	}
+
 	return;
 
+err_6:
+	gpio_free(OMAP3EVM_LCD_PANEL_ENVDD);
 err_5:
 	gpio_free(OMAP3EVM_LCD_PANEL_UD);
 err_4:
