@@ -39,10 +39,6 @@
 
 atomic_t sleep_block = ATOMIC_INIT(0);
 
-static ssize_t idle_show(struct kobject *, struct kobj_attribute *, char *);
-static ssize_t idle_store(struct kobject *k, struct kobj_attribute *,
-			  const char *buf, size_t n);
-
 #ifdef CONFIG_OMAP_PM_SRF
 static ssize_t vdd_opp_show(struct kobject *, struct kobj_attribute *, char *);
 static ssize_t vdd_opp_store(struct kobject *k, struct kobj_attribute *,
@@ -58,26 +54,6 @@ static struct kobj_attribute vdd2_lock_attr =
 	__ATTR(vdd2_lock, 0644, vdd_opp_show, vdd_opp_store);
 
 #endif
-
-static ssize_t idle_show(struct kobject *kobj, struct kobj_attribute *attr,
-			 char *buf)
-{
-	return -EINVAL;
-}
-
-static ssize_t idle_store(struct kobject *kobj, struct kobj_attribute *attr,
-			  const char *buf, size_t n)
-{
-	unsigned short value;
-
-	if (sscanf(buf, "%hu", &value) != 1 ||
-	    (value != 0 && value != 1)) {
-		printk(KERN_ERR "idle_store: Invalid value\n");
-		return -EINVAL;
-	}
-
-	return n;
-}
 
 #ifdef CONFIG_OMAP_PM_SRF
 #include <plat/omap34xx.h>
