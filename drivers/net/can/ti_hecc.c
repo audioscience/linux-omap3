@@ -971,8 +971,13 @@ static int ti_hecc_suspend(struct platform_device *pdev, pm_message_t state)
 	struct net_device *dev = platform_get_drvdata(pdev);
 	struct ti_hecc_priv *priv = netdev_priv(dev);
 
-	if (netif_running(dev))
-		ti_hecc_close(dev);
+	if (netif_running(dev)) {
+		netif_stop_queue(dev);
+		netif_device_detach(dev);
+	}
+
+	hecc_set_bit(priv, HECC_CANMC, HECC_CANMC_PDR);
+	priv->can.state = CAN_STATE_SLEEPING;
 
 	clk_disable(priv->clk);
 
@@ -986,8 +991,13 @@ static int ti_hecc_resume(struct platform_device *pdev)
 
 	clk_enable(priv->clk);
 
-	if (netif_running(dev))
-		ti_hecc_open(dev);
+	hecc_clear_bit(priv, HECC_CANMC, HECC_CANMC_PDR);
+	priv->can.state = CAN_STATE_ERROR_ACTIVE;
+
+	if (netif_running(dev)) {
+		netif_device_attach(dev);
+		netif_start_queue(dev);
+	}
 
 	return 0;
 }
