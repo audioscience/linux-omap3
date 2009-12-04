@@ -824,7 +824,6 @@ static int ti_hecc_open(struct net_device *ndev)
 		return err;
 	}
 
-	clk_enable(priv->clk);
 	ti_hecc_start(ndev);
 	napi_enable(&priv->napi);
 	netif_start_queue(ndev);
@@ -840,7 +839,6 @@ static int ti_hecc_close(struct net_device *ndev)
 	napi_disable(&priv->napi);
 	ti_hecc_stop(ndev);
 	free_irq(ndev->irq, ndev);
-	clk_disable(priv->clk);
 	close_candev(ndev);
 
 	return 0;
@@ -925,6 +923,7 @@ static int ti_hecc_probe(struct platform_device *pdev)
 	netif_napi_add(ndev, &priv->napi, ti_hecc_rx_poll,
 		HECC_DEF_NAPI_WEIGHT);
 
+	clk_enable(priv->clk);
 	err = register_candev(ndev);
 	if (err) {
 		dev_err(&pdev->dev, "register_candev() failed\n");
@@ -953,6 +952,7 @@ static int __devexit ti_hecc_remove(struct platform_device *pdev)
 	struct net_device *ndev = platform_get_drvdata(pdev);
 	struct ti_hecc_priv *priv = netdev_priv(ndev);
 
+	clk_disable(priv->clk);
 	clk_put(priv->clk);
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	iounmap(priv->base);
@@ -972,7 +972,7 @@ static int ti_hecc_suspend(struct platform_device *pdev, pm_message_t state)
 	struct ti_hecc_priv *priv = netdev_priv(dev);
 
 	if (netif_running(dev))
-		ti_hecc_stop(dev);
+		ti_hecc_close(dev);
 
 	clk_disable(priv->clk);
 
@@ -987,7 +987,7 @@ static int ti_hecc_resume(struct platform_device *pdev)
 	clk_enable(priv->clk);
 
 	if (netif_running(dev))
-		ti_hecc_start(dev);
+		ti_hecc_open(dev);
 
 	return 0;
 }
