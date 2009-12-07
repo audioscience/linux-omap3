@@ -479,10 +479,7 @@ static int vidioc_g_fmt_vid_cap(struct file *file, void *fh,
 		return -EINVAL;
 
 	mutex_lock(&vdev->mutex);
-	if (vdev->vdev_sensor_mode)
-		isp_g_fmt_cap(isp, &f->fmt.pix);
-	else
-		f->fmt.pix = vdev->pix;
+	f->fmt.pix = vdev->pix;
 	mutex_unlock(&vdev->mutex);
 
 	return 0;
