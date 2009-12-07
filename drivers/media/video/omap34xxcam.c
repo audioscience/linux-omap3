@@ -349,7 +349,7 @@ static int omap34xxcam_vbq_prepare(struct videobuf_queue *vbq,
 			if ((vb->baddr + vb->bsize) > vma->vm_end) {
 				dev_err(&vdev->vfd->dev,
 						"User Buffer Allocation:" \
-						"err=%lu[%lu]\n",\
+						"err=%lu[%u]\n",\
 						(vma->vm_end - vb->baddr),
 						vb->bsize);
 				return -ENOMEM;
