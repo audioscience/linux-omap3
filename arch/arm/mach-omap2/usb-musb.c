@@ -32,6 +32,7 @@
 #include <mach/irqs.h>
 #include <plat/mux.h>
 #include <plat/usb.h>
+#include <plat/am35xx.h>
 
 #define OTG_SYSCONFIG	   0x404
 #define OTG_SYSC_SOFTRESET BIT(1)
@@ -201,29 +202,45 @@ static struct platform_device musb_device = {
 
 void __init usb_musb_init(void)
 {
-	if (cpu_is_omap243x())
+	if (cpu_is_omap243x()) {
 		musb_resources[0].start = OMAP243X_HS_BASE;
-	else
+		musb_resources[0].end = musb_resources[0].start + SZ_8K - 1;
+	} else if (cpu_is_omap3517() || cpu_is_omap3505()) {
+		musb_resources[0].start = AM35XX_IPSS_USBOTGSS_BASE;
+		/* musb_plat.clock = "usbotg_ck"; */
+		musb_resources[1].start = INT_35XX_USBOTG_IRQ;
+		/* AM3517 can provide max of 500mA */
+		musb_plat.power = 250;
+		/* AM3517 has to map for CPPI4.1 registers also */
+		musb_resources[0].end = musb_resources[0].start
+						+ (2 * SZ_16K) - 1;
+		/* AM3517 MUSB has 32K FIFO */
+		musb_config.ram_bits = 13; /* 2^(13+2) = 32K */
+	} else {
 		musb_resources[0].start = OMAP34XX_HSUSB_OTG_BASE;
-	musb_resources[0].end = musb_resources[0].start + SZ_8K - 1;
+		musb_resources[0].end = musb_resources[0].start + SZ_8K - 1;
+	}
 
 	/*
 	 * REVISIT: This line can be removed once all the platforms using
 	 * musb_core.c have been converted to use use clkdev.
 	 */
-	musb_plat.clock = "ick";
+	if (!cpu_is_omap3517() && !cpu_is_omap3505())
+		musb_plat.clock = "ick";
 
 	if (platform_device_register(&musb_device) < 0) {
 		printk(KERN_ERR "Unable to register HS-USB (MUSB) device\n");
 		return;
 	}
 
-	usb_musb_pm_init();
+	if (!cpu_is_omap3517() && !cpu_is_omap3505())
+		usb_musb_pm_init();
 }
 
 #else
 void __init usb_musb_init(void)
 {
-	usb_musb_pm_init();
+	if (!cpu_is_omap3517() && !cpu_is_omap3505())
+		usb_musb_pm_init();
 }
 #endif /* CONFIG_USB_MUSB_SOC */
