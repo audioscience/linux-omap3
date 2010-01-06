@@ -831,7 +831,7 @@ int __init musb_platform_init(struct musb *musb)
 		clk_enable(musb->clock);
 
 	DBG(2, "usbotg_ck=%lud\n", clk_get_rate(musb->clock));
-	otg_fck = clk_get(NULL, "usbotg_phy_ck");
+	otg_fck = clk_get(musb->controller, "fck");
 	clk_enable(otg_fck);
 
 	DBG(2, "usbotg_phy_ck=%lud\n", clk_get_rate(otg_fck));

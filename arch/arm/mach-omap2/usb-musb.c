@@ -207,7 +207,6 @@ void __init usb_musb_init(void)
 		musb_resources[0].end = musb_resources[0].start + SZ_8K - 1;
 	} else if (cpu_is_omap3517() || cpu_is_omap3505()) {
 		musb_resources[0].start = AM35XX_IPSS_USBOTGSS_BASE;
-		/* musb_plat.clock = "usbotg_ck"; */
 		musb_resources[1].start = INT_35XX_USBOTG_IRQ;
 		/* AM3517 can provide max of 500mA */
 		musb_plat.power = 250;
@@ -230,8 +229,7 @@ void __init usb_musb_init(void)
 	 * REVISIT: This line can be removed once all the platforms using
 	 * musb_core.c have been converted to use use clkdev.
 	 */
-	if (!cpu_is_omap3517() && !cpu_is_omap3505())
-		musb_plat.clock = "ick";
+	musb_plat.clock = "ick";
 
 	if (platform_device_register(&musb_device) < 0) {
 		printk(KERN_ERR "Unable to register HS-USB (MUSB) device\n");
