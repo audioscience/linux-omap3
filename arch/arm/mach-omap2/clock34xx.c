@@ -356,17 +356,38 @@ static int __init omap2_clk_arch_init(void)
 {
 	struct clk *osc_sys_ck, *dpll1_ck, *arm_fck, *core_ck;
 	unsigned long osc_sys_rate;
+	short err = 0 ;
 
 	if (!mpurate)
 		return -EINVAL;
 
-	/* XXX test these for success */
 	dpll1_ck = clk_get(NULL, "dpll1_ck");
-	arm_fck = clk_get(NULL, "arm_fck");
-	core_ck = clk_get(NULL, "core_ck");
-	osc_sys_ck = clk_get(NULL, "osc_sys_ck");
+	if (dpll1_ck == NULL) {
+		err = 1;
+		pr_err("*** Failed to get dpll1_ck.\n");
+	}
 
-	/* REVISIT: not yet ready for 343x */
+	arm_fck = clk_get(NULL, "arm_fck");
+	if (arm_fck == NULL) {
+		err = 1;
+		pr_err("*** Failed to get arm_fck.\n");
+	}
+
+	core_ck = clk_get(NULL, "core_ck");
+	if (core_ck == NULL) {
+		err = 1;
+		pr_err("*** Failed to get core_ck.\n");
+	}
+
+	osc_sys_ck = clk_get(NULL, "osc_sys_ck");
+	if (osc_sys_ck == NULL) {
+		err = 1;
+		pr_err("*** Failed to get osc_sys_ck.\n");
+	}
+
+	if (err)
+		return 1;
+
 	if (clk_set_rate(dpll1_ck, mpurate))
 		printk(KERN_ERR "*** Unable to set MPU rate\n");
 
