@@ -409,7 +409,7 @@ void ccdc_config_ycbcr(void)
 		/*
 		 * Enable A-Law
 		 */
-		regw(regr(CCDC_ALAW) | CCDC_ALAW_ENABLE, CCDC_ALAW);
+		regw(0x6 | CCDC_ALAW_ENABLE, CCDC_ALAW);
 	} else {
 		/* y/c external sync mode */
 		syn_mode |= (((params->fid_pol & CCDC_FID_POL_MASK) <<
