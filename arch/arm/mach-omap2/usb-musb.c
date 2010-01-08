@@ -30,9 +30,9 @@
 
 #include <mach/hardware.h>
 #include <mach/irqs.h>
+#include <mach/am35xx.h>
 #include <plat/mux.h>
 #include <plat/usb.h>
-#include <plat/am35xx.h>
 
 #define OTG_SYSCONFIG	   0x404
 #define OTG_SYSC_SOFTRESET BIT(1)
