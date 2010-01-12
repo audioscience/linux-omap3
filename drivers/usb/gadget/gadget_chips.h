@@ -279,7 +279,7 @@ static inline bool gadget_supports_altsettings(struct usb_gadget *gadget)
  */
 static inline bool gadget_dma32(struct usb_gadget *gadget)
 {
-	if (gadget_is_musbhdrc(gadget))
+	if (gadget_is_musbhdrc(gadget) && cpu_is_omap3630())
 		return true;
 	return false;
 }
