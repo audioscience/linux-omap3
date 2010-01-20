@@ -648,11 +648,11 @@ static int board_keymap[] = {
 	KEY(2, 0, KEY_A),
 	KEY(2, 1, KEY_E),
 	KEY(2, 2, KEY_J),
-	KEY(2, 3, KEY_K),
+	KEY(2, 3, KEY_O),
 
 	KEY(3, 0, KEY_B),
 	KEY(3, 1, KEY_F),
-	KEY(3, 2, KEY_O),
+	KEY(3, 2, KEY_K),
 	KEY(3, 3, KEY_P)
 };
 
