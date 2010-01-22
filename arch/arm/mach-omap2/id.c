@@ -350,6 +350,7 @@ void __init omap3_cpuinfo(void)
 	OMAP3_SHOW_FEATURE(neon);
 	OMAP3_SHOW_FEATURE(isp);
 	OMAP3_SHOW_FEATURE(720m);
+	OMAP3_SHOW_FEATURE(192mhz_clk);
 
 	printk(")\n");
 }
