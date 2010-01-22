@@ -421,6 +421,24 @@ int omap2_dflt_clk_enable(struct clk *clk)
 	return 0;
 }
 
+int omap2_dflt_clk_enable_with_dpll4m3_restore(struct clk *clk)
+{
+	u32 v, ret;
+
+	ret = omap2_dflt_clk_enable(clk);
+
+	if (omap_rev() < OMAP3630_REV_ES1_0)
+		return ret;
+
+	v = __raw_readl(OMAP34XX_CM_REGADDR(OMAP3430_DSS_MOD, CM_CLKSEL));
+	v = (1 << OMAP3430_CLKSEL_TV_SHIFT);
+	__raw_writel(v, OMAP34XX_CM_REGADDR(OMAP3430_DSS_MOD, CM_CLKSEL));
+	v -= (1 << OMAP3430_CLKSEL_TV_SHIFT);
+	 __raw_writel(v, OMAP34XX_CM_REGADDR(OMAP3430_DSS_MOD, CM_CLKSEL));
+
+	return ret;
+}
+
 void omap2_dflt_clk_disable(struct clk *clk)
 {
 	u32 v;

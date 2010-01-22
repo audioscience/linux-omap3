@@ -95,7 +95,7 @@ void omap2_clk_dflt_find_companion(struct clk *clk, void __iomem **other_reg,
 				   u8 *other_bit);
 void omap2_clk_dflt_find_idlest(struct clk *clk, void __iomem **idlest_reg,
 				u8 *idlest_bit);
-
+int omap2_dflt_clk_enable_with_dpll4m3_restore(struct clk *clk);
 extern u8 cpu_mask;
 
 extern const struct clkops clkops_omap2_dflt_wait;

@@ -120,6 +120,13 @@ const struct clkops clkops_omap3430es2_dss_usbhost_wait = {
 	.find_companion = omap2_clk_dflt_find_companion,
 };
 
+const struct clkops clkops_omap2_dflt_wait_restore = {
+	.enable		= omap2_dflt_clk_enable_with_dpll4m3_restore,
+	.disable	= omap2_dflt_clk_disable,
+	.find_companion	= omap2_clk_dflt_find_companion,
+	.find_idlest	= omap2_clk_dflt_find_idlest,
+};
+
 /**
  * omap3430es2_clk_hsotgusb_find_idlest - return CM_IDLEST info for HSOTGUSB
  * @clk: struct clk * being enabled
