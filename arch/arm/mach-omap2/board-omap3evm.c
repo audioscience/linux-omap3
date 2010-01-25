@@ -280,6 +280,8 @@ static inline void __init omap3evm_init_smsc911x(void) { return; }
 #define OMAP3EVM_LCD_PANEL_BKLIGHT_GPIO	210
 #define OMAP3EVM_DVI_PANEL_EN_GPIO	199
 
+#define ENABLE_VPLL2_DEV_GRP	0xE0
+
 static int lcd_enabled;
 static int dvi_enabled;
 
@@ -411,6 +413,8 @@ static int omap3_evm_enable_dvi(struct omap_dss_device *dssdev)
 		return -EINVAL;
 	}
 
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, ENABLE_VPLL2_DEV_GRP,
+			TWL4030_VPLL2_DEV_GRP);
 	gpio_set_value(OMAP3EVM_DVI_PANEL_EN_GPIO, 1);
 
 	dvi_enabled = 1;
@@ -419,6 +423,8 @@ static int omap3_evm_enable_dvi(struct omap_dss_device *dssdev)
 
 static void omap3_evm_disable_dvi(struct omap_dss_device *dssdev)
 {
+	twl4030_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, 0x0,
+			TWL4030_VPLL2_DEV_GRP);
 	gpio_set_value(OMAP3EVM_DVI_PANEL_EN_GPIO, 0);
 
 	dvi_enabled = 0;

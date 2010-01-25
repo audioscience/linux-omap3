@@ -608,6 +608,7 @@ struct twl4030_platform_data {
 int twl4030_sih_setup(int module);
 
 /* Offsets to Power Registers */
+#define TWL4030_VPLL2_DEV_GRP		0x33
 #define TWL4030_VDAC_DEV_GRP		0x3B
 #define TWL4030_VDAC_DEDICATED		0x3E
 #define TWL4030_VAUX1_DEV_GRP		0x17
