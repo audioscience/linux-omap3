@@ -3983,7 +3983,9 @@ int sata_link_hardreset(struct ata_link *link, const unsigned long *timing,
 						    ATA_TMOUT_PMP_SRST_WAIT);
 			if (time_after(pmp_deadline, deadline))
 				pmp_deadline = deadline;
-			ata_wait_ready(link, pmp_deadline, check_ready);
+			rc = ata_wait_ready(link, pmp_deadline, check_ready);
+			if (!rc)
+				goto out;
 		}
 		rc = -EAGAIN;
 		goto out;
@@ -6299,18 +6301,13 @@ int ata_host_activate(struct ata_host *host, int irq,
 		return ata_host_register(host, sht);
 	}
 
-	rc = devm_request_irq(host->dev, irq, irq_handler, irq_flags,
-			      dev_driver_string(host->dev), host);
-	if (rc)
-		return rc;
-
 	for (i = 0; i < host->n_ports; i++)
 		ata_port_desc(host->ports[i], "irq %d", irq);
 
 	rc = ata_host_register(host, sht);
-	/* if failed, just free the IRQ and leave ports alone */
-	if (rc)
-		devm_free_irq(host->dev, irq, host);
+	if(!rc)
+		rc = devm_request_irq(host->dev, irq, irq_handler, irq_flags,
+			      dev_driver_string(host->dev), host);
 
 	return rc;
 }

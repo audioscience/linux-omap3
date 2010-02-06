@@ -1087,13 +1087,21 @@ static void ahci_dev_config(struct ata_device *dev)
 	}
 }
 
-static unsigned int ahci_dev_classify(struct ata_port *ap)
+static u32 ahci_read_sig(struct ata_port *ap)
 {
 	void __iomem *port_mmio = ahci_port_base(ap);
-	struct ata_taskfile tf;
 	u32 tmp;
 
 	tmp = readl(port_mmio + PORT_SIG);
+	return tmp;
+}
+
+static unsigned int ahci_dev_classify(struct ata_port *ap)
+{
+	struct ata_taskfile tf;
+	u32 tmp;
+
+	tmp = ahci_read_sig(ap);
 	tf.lbah		= (tmp >> 24)	& 0xff;
 	tf.lbam		= (tmp >> 16)	& 0xff;
 	tf.lbal		= (tmp >> 8)	& 0xff;
@@ -1200,8 +1208,20 @@ int ahci_do_softreset(struct ata_link *link, unsigned int *class,
 	unsigned long now, msecs;
 	struct ata_taskfile tf;
 	int rc;
+	u8 is_pm;
 
 	DPRINTK("ENTER\n");
+
+	if (ahci_read_sig(ap) != 0xffffffff) {
+		is_pm = 0;
+		*class = ahci_dev_classify(ap);
+		return 0;	
+	} else {
+		is_pm = 1;
+		ahci_hardreset(link, class, deadline);
+		if (ahci_read_sig(ap) != 0xffffffff)
+			is_pm = 0;
+	}
 
 	/* prepare for SRST (AHCI-1.1 10.4.1) */
 	rc = ahci_kick_engine(ap);
@@ -1244,6 +1264,9 @@ int ahci_do_softreset(struct ata_link *link, unsigned int *class,
 				"device not ready, treating as offline\n");
 		*class = ATA_DEV_NONE;
 	} else if (rc) {
+		if (!is_pm)
+			return ahci_hardreset(link, class, deadline);
+
 		/* link occupied, -ENODEV too is an error */
 		reason = "device not ready";
 		goto fail;
