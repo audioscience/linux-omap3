@@ -1212,16 +1212,17 @@ int ahci_do_softreset(struct ata_link *link, unsigned int *class,
 
 	DPRINTK("ENTER\n");
 
-	if (ahci_read_sig(ap) != 0xffffffff) {
-		is_pm = 0;
-		*class = ahci_dev_classify(ap);
-		return 0;	
-	} else {
-		is_pm = 1;
-		ahci_hardreset(link, class, deadline);
-		if (ahci_read_sig(ap) != 0xffffffff)
+	if (ata_is_host_link(link))
+		if (ahci_read_sig(ap) != 0xffffffff) {
 			is_pm = 0;
-	}
+			*class = ahci_dev_classify(ap);
+			return 0;	
+		} else {
+			is_pm = 1;
+			ahci_hardreset(link, class, deadline);
+			if (ahci_read_sig(ap) != 0xffffffff)
+				is_pm = 0;
+		}
 
 	/* prepare for SRST (AHCI-1.1 10.4.1) */
 	rc = ahci_kick_engine(ap);
