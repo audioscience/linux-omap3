@@ -13,8 +13,8 @@
 #include <linux/delay.h>
 #include <linux/module.h>
 
-void __spin_lock_init(spinlock_t *lock, const char *name,
-		      struct lock_class_key *key)
+void __atomic_spin_lock_init(atomic_spinlock_t *lock, const char *name,
+			     struct lock_class_key *key)
 {
 #ifdef CONFIG_DEBUG_LOCK_ALLOC
 	/*
@@ -29,8 +29,9 @@ void __spin_lock_init(spinlock_t *lock, const char *name,
 	lock->owner_cpu = -1;
 }
 
-EXPORT_SYMBOL(__spin_lock_init);
+EXPORT_SYMBOL(__atomic_spin_lock_init);
 
+#ifndef CONFIG_PREEMPT_RT
 void __rwlock_init(rwlock_t *lock, const char *name,
 		   struct lock_class_key *key)
 {
@@ -46,10 +47,10 @@ void __rwlock_init(rwlock_t *lock, const char *name,
 	lock->owner = SPINLOCK_OWNER_INIT;
 	lock->owner_cpu = -1;
 }
-
 EXPORT_SYMBOL(__rwlock_init);
+#endif
 
-static void spin_bug(spinlock_t *lock, const char *msg)
+static void spin_bug(atomic_spinlock_t *lock, const char *msg)
 {
 	struct task_struct *owner = NULL;
 
@@ -73,7 +74,7 @@ static void spin_bug(spinlock_t *lock, const char *msg)
 #define SPIN_BUG_ON(cond, lock, msg) if (unlikely(cond)) spin_bug(lock, msg)
 
 static inline void
-debug_spin_lock_before(spinlock_t *lock)
+debug_spin_lock_before(atomic_spinlock_t *lock)
 {
 	SPIN_BUG_ON(lock->magic != SPINLOCK_MAGIC, lock, "bad magic");
 	SPIN_BUG_ON(lock->owner == current, lock, "recursion");
@@ -81,16 +82,16 @@ debug_spin_lock_before(spinlock_t *lock)
 							lock, "cpu recursion");
 }
 
-static inline void debug_spin_lock_after(spinlock_t *lock)
+static inline void debug_spin_lock_after(atomic_spinlock_t *lock)
 {
 	lock->owner_cpu = raw_smp_processor_id();
 	lock->owner = current;
 }
 
-static inline void debug_spin_unlock(spinlock_t *lock)
+static inline void debug_spin_unlock(atomic_spinlock_t *lock)
 {
 	SPIN_BUG_ON(lock->magic != SPINLOCK_MAGIC, lock, "bad magic");
-	SPIN_BUG_ON(!spin_is_locked(lock), lock, "already unlocked");
+	SPIN_BUG_ON(!atomic_spin_is_locked(lock), lock, "already unlocked");
 	SPIN_BUG_ON(lock->owner != current, lock, "wrong owner");
 	SPIN_BUG_ON(lock->owner_cpu != raw_smp_processor_id(),
 							lock, "wrong CPU");
@@ -98,7 +99,7 @@ static inline void debug_spin_unlock(spinlock_t *lock)
 	lock->owner_cpu = -1;
 }
 
-static void __spin_lock_debug(spinlock_t *lock)
+static void __spin_lock_debug(atomic_spinlock_t *lock)
 {
 	u64 i;
 	u64 loops = loops_per_jiffy * HZ;
@@ -125,7 +126,7 @@ static void __spin_lock_debug(spinlock_t *lock)
 	}
 }
 
-void _raw_spin_lock(spinlock_t *lock)
+void _raw_spin_lock(atomic_spinlock_t *lock)
 {
 	debug_spin_lock_before(lock);
 	if (unlikely(!__raw_spin_trylock(&lock->raw_lock)))
@@ -133,7 +134,7 @@ void _raw_spin_lock(spinlock_t *lock)
 	debug_spin_lock_after(lock);
 }
 
-int _raw_spin_trylock(spinlock_t *lock)
+int _raw_spin_trylock(atomic_spinlock_t *lock)
 {
 	int ret = __raw_spin_trylock(&lock->raw_lock);
 
@@ -148,11 +149,13 @@ int _raw_spin_trylock(spinlock_t *lock)
 	return ret;
 }
 
-void _raw_spin_unlock(spinlock_t *lock)
+void _raw_spin_unlock(atomic_spinlock_t *lock)
 {
 	debug_spin_unlock(lock);
 	__raw_spin_unlock(&lock->raw_lock);
 }
+
+#ifndef CONFIG_PREEMPT_RT
 
 static void rwlock_bug(rwlock_t *lock, const char *msg)
 {
@@ -295,3 +298,4 @@ void _raw_write_unlock(rwlock_t *lock)
 	debug_write_unlock(lock);
 	__raw_write_unlock(&lock->raw_lock);
 }
+#endif

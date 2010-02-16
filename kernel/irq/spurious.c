@@ -28,7 +28,7 @@ static int try_one_irq(int irq, struct irq_desc *desc)
 	struct irqaction *action;
 	int ok = 0, work = 0;
 
-	spin_lock(&desc->lock);
+	atomic_spin_lock(&desc->lock);
 	/* Already running on another processor */
 	if (desc->status & IRQ_INPROGRESS) {
 		/*
@@ -37,13 +37,13 @@ static int try_one_irq(int irq, struct irq_desc *desc)
 		 */
 		if (desc->action && (desc->action->flags & IRQF_SHARED))
 			desc->status |= IRQ_PENDING;
-		spin_unlock(&desc->lock);
+		atomic_spin_unlock(&desc->lock);
 		return ok;
 	}
 	/* Honour the normal IRQ locking */
 	desc->status |= IRQ_INPROGRESS;
 	action = desc->action;
-	spin_unlock(&desc->lock);
+	atomic_spin_unlock(&desc->lock);
 
 	while (action) {
 		/* Only shared IRQ handlers are safe to call */
@@ -54,9 +54,9 @@ static int try_one_irq(int irq, struct irq_desc *desc)
 		}
 		action = action->next;
 	}
-	local_irq_disable();
+
 	/* Now clean up the flags */
-	spin_lock(&desc->lock);
+	atomic_spin_lock_irq(&desc->lock);
 	action = desc->action;
 
 	/*
@@ -68,9 +68,9 @@ static int try_one_irq(int irq, struct irq_desc *desc)
 		 * Perform real IRQ processing for the IRQ we deferred
 		 */
 		work = 1;
-		spin_unlock(&desc->lock);
+		atomic_spin_unlock(&desc->lock);
 		handle_IRQ_event(irq, action);
-		spin_lock(&desc->lock);
+		atomic_spin_lock(&desc->lock);
 		desc->status &= ~IRQ_PENDING;
 	}
 	desc->status &= ~IRQ_INPROGRESS;
@@ -80,7 +80,7 @@ static int try_one_irq(int irq, struct irq_desc *desc)
 	 */
 	if (work && desc->chip && desc->chip->end)
 		desc->chip->end(irq);
-	spin_unlock(&desc->lock);
+	atomic_spin_unlock(&desc->lock);
 
 	return ok;
 }
@@ -288,6 +288,11 @@ MODULE_PARM_DESC(noirqdebug, "Disable irq lockup detection when true");
 
 static int __init irqfixup_setup(char *str)
 {
+#ifdef CONFIG_PREEMPT_RT
+	printk(KERN_WARNING "irqfixup boot option not supported "
+		"w/ CONFIG_PREEMPT_RT\n");
+	return 1;
+#endif
 	irqfixup = 1;
 	printk(KERN_WARNING "Misrouted IRQ fixup support enabled.\n");
 	printk(KERN_WARNING "This may impact system performance.\n");
@@ -301,6 +306,11 @@ MODULE_PARM_DESC("irqfixup", "0: No fixup, 1: irqfixup mode, 2: irqpoll mode");
 
 static int __init irqpoll_setup(char *str)
 {
+#ifdef CONFIG_PREEMPT_RT
+	printk(KERN_WARNING "irqpoll boot option not supported "
+		"w/ CONFIG_PREEMPT_RT\n");
+	return 1;
+#endif
 	irqfixup = 2;
 	printk(KERN_WARNING "Misrouted IRQ fixup and polling support "
 				"enabled\n");

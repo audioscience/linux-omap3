@@ -69,7 +69,11 @@ struct page {
 						 */
 	    };
 #if USE_SPLIT_PTLOCKS
+#ifndef CONFIG_PREEMPT_RT
 	    spinlock_t ptl;
+#else
+	    spinlock_t *ptl;
+#endif
 #endif
 	    struct kmem_cache *slab;	/* SLUB: Pointer to slab */
 	    struct page *first_page;	/* Compound tail pages */
@@ -244,6 +248,9 @@ struct mm_struct {
 
 	/* Architecture-specific MM context */
 	mm_context_t context;
+
+	/* realtime bits */
+	struct list_head	delayed_drop;
 
 	/* Swap token stuff */
 	/*

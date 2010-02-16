@@ -18,7 +18,7 @@ extern void __enable_irq(struct irq_desc *desc, unsigned int irq, bool resume);
 extern struct lock_class_key irq_desc_lock_class;
 extern void init_kstat_irqs(struct irq_desc *desc, int node, int nr);
 extern void clear_kstat_irqs(struct irq_desc *desc);
-extern spinlock_t sparse_irq_lock;
+extern atomic_spinlock_t sparse_irq_lock;
 
 #ifdef CONFIG_SPARSE_IRQ
 /* irq_desc_ptrs allocated at boot time */
@@ -43,6 +43,19 @@ static inline void unregister_handler_proc(unsigned int irq,
 extern int irq_select_affinity_usr(unsigned int irq);
 
 extern void irq_set_thread_affinity(struct irq_desc *desc);
+
+/* Inline functions for support of irq chips on slow busses */
+static inline void chip_bus_lock(unsigned int irq, struct irq_desc *desc)
+{
+	if (unlikely(desc->chip->bus_lock))
+		desc->chip->bus_lock(irq);
+}
+
+static inline void chip_bus_sync_unlock(unsigned int irq, struct irq_desc *desc)
+{
+	if (unlikely(desc->chip->bus_sync_unlock))
+		desc->chip->bus_sync_unlock(irq);
+}
 
 /*
  * Debugging printout:

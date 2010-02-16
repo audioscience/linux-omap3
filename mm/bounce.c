@@ -13,6 +13,7 @@
 #include <linux/init.h>
 #include <linux/hash.h>
 #include <linux/highmem.h>
+#include <linux/interrupt.h>
 #include <asm/tlbflush.h>
 
 #include <trace/events/block.h>
@@ -49,11 +50,11 @@ static void bounce_copy_vec(struct bio_vec *to, unsigned char *vfrom)
 	unsigned long flags;
 	unsigned char *vto;
 
-	local_irq_save(flags);
+	local_irq_save_nort(flags);
 	vto = kmap_atomic(to->bv_page, KM_BOUNCE_READ);
 	memcpy(vto + to->bv_offset, vfrom, to->bv_len);
 	kunmap_atomic(vto, KM_BOUNCE_READ);
-	local_irq_restore(flags);
+	local_irq_restore_nort(flags);
 }
 
 #else /* CONFIG_HIGHMEM */

@@ -607,6 +607,9 @@ struct perf_counter {
 	int				pending_kill;
 	int				pending_disable;
 	struct perf_pending_entry	pending;
+#ifdef CONFIG_PREEMPT_RT
+	struct perf_pending_entry	pending_softirq;
+#endif
 
 	atomic_t			event_limit;
 
@@ -628,7 +631,7 @@ struct perf_counter_context {
 	 * Protect the states of the counters in the list,
 	 * nr_active, and the list:
 	 */
-	spinlock_t			lock;
+	atomic_spinlock_t		lock;
 	/*
 	 * Protect the list of counters.  Locking either mutex or lock
 	 * is sufficient to ensure the list doesn't change; to change
@@ -698,6 +701,7 @@ extern void perf_counter_exit_task(struct task_struct *child);
 extern void perf_counter_free_task(struct task_struct *task);
 extern void set_perf_counter_pending(void);
 extern void perf_counter_do_pending(void);
+extern void perf_counter_do_pending_softirq(void);
 extern void perf_counter_print_debug(void);
 extern void __perf_disable(void);
 extern bool __perf_enable(void);
@@ -761,6 +765,8 @@ extern int sysctl_perf_counter_mlock;
 extern int sysctl_perf_counter_sample_rate;
 
 extern void perf_counter_init(void);
+extern void perf_tpcounter_event(int event_id, u64 addr, u64 count,
+				 void *record, int entry_size);
 
 #ifndef perf_misc_flags
 #define perf_misc_flags(regs)	(user_mode(regs) ? PERF_EVENT_MISC_USER : \
@@ -780,6 +786,7 @@ static inline int perf_counter_init_task(struct task_struct *child)	{ return 0; 
 static inline void perf_counter_exit_task(struct task_struct *child)	{ }
 static inline void perf_counter_free_task(struct task_struct *task)	{ }
 static inline void perf_counter_do_pending(void)			{ }
+static inline void perf_counter_do_pending_softirq(void)		{ }
 static inline void perf_counter_print_debug(void)			{ }
 static inline void perf_disable(void)					{ }
 static inline void perf_enable(void)					{ }

@@ -37,6 +37,7 @@
 #include <linux/workqueue.h>
 #include <linux/profile.h>
 #include <linux/rcupdate.h>
+#include <linux/posix-timers.h>
 #include <linux/moduleparam.h>
 #include <linux/kallsyms.h>
 #include <linux/writeback.h>
@@ -451,6 +452,8 @@ static noinline void __init_refok rest_init(void)
 {
 	int pid;
 
+	system_state = SYSTEM_BOOTING_SCHEDULER_OK;
+
 	kernel_thread(kernel_init, NULL, CLONE_FS | CLONE_SIGHAND);
 	numa_default_policy();
 	pid = kernel_thread(kthreadd, NULL, CLONE_FS | CLONE_FILES);
@@ -463,8 +466,7 @@ static noinline void __init_refok rest_init(void)
 	 */
 	init_idle_bootup_task(current);
 	rcu_scheduler_starting();
-	preempt_enable_no_resched();
-	schedule();
+	preempt_enable_and_schedule();
 	preempt_disable();
 
 	/* Call into cpu_idle with preempt disabled */
@@ -715,6 +717,9 @@ asmlinkage void __init start_kernel(void)
 
 	ftrace_init();
 
+#ifdef CONFIG_PREEMPT_RT
+	WARN_ON(irqs_disabled());
+#endif
 	/* Do the rest non-__init'ed, we're now alive */
 	rest_init();
 }
@@ -817,9 +822,11 @@ static void __init do_basic_setup(void)
 static void __init do_pre_smp_initcalls(void)
 {
 	initcall_t *call;
+	extern int spawn_desched_task(void);
 
 	for (call = __initcall_start; call < __early_initcall_end; call++)
 		do_one_initcall(*call);
+	spawn_desched_task();
 }
 
 static void run_init_process(char *init_filename)
@@ -855,6 +862,9 @@ static noinline int init_post(void)
 		printk(KERN_WARNING "Failed to execute %s\n",
 				ramdisk_execute_command);
 	}
+#ifdef CONFIG_PREEMPT_RT
+	WARN_ON(irqs_disabled());
+#endif
 
 	/*
 	 * We try each of these until one succeeds.
@@ -921,7 +931,71 @@ static int __init kernel_init(void * unused)
 		ramdisk_execute_command = NULL;
 		prepare_namespace();
 	}
+#ifdef CONFIG_PREEMPT_RT
+	WARN_ON(irqs_disabled());
+#endif
 
+#define DEBUG_COUNT (defined(CONFIG_DEBUG_RT_MUTEXES) + \
+	defined(CONFIG_IRQSOFF_TRACER) + defined(CONFIG_PREEMPT_TRACER) + \
+	defined(CONFIG_STACK_TRACER) + defined(CONFIG_INTERRUPT_OFF_HIST) + \
+	defined(CONFIG_PREEMPT_OFF_HIST) + \
+	defined(CONFIG_WAKEUP_LATENCY_HIST) + \
+	defined(CONFIG_MISSED_TIMER_OFFSETS_HIST) + \
+	defined(CONFIG_DEBUG_SLAB) + defined(CONFIG_DEBUG_PAGEALLOC) + \
+	defined(CONFIG_LOCKDEP) + \
+	(defined(CONFIG_FTRACE) - defined(CONFIG_FTRACE_MCOUNT_RECORD)))
+
+#if DEBUG_COUNT > 0
+	printk(KERN_ERR "*****************************************************************************\n");
+	printk(KERN_ERR "*                                                                           *\n");
+#if DEBUG_COUNT == 1
+	printk(KERN_ERR "*  REMINDER, the following debugging option is turned on in your .config:   *\n");
+#else
+	printk(KERN_ERR "*  REMINDER, the following debugging options are turned on in your .config: *\n");
+#endif
+	printk(KERN_ERR "*                                                                           *\n");
+#ifdef CONFIG_DEBUG_RT_MUTEXES
+	printk(KERN_ERR "*        CONFIG_DEBUG_RT_MUTEXES                                            *\n");
+#endif
+#ifdef CONFIG_IRQSOFF_TRACER
+	printk(KERN_ERR "*        CONFIG_IRQSOFF_TRACER                                              *\n");
+#endif
+#ifdef CONFIG_PREEMPT_TRACER
+	printk(KERN_ERR "*        CONFIG_PREEMPT_TRACER                                              *\n");
+#endif
+#if defined(CONFIG_FTRACE) && !defined(CONFIG_FTRACE_MCOUNT_RECORD)
+	printk(KERN_ERR "*        CONFIG_FTRACE                                                      *\n");
+#endif
+#ifdef CONFIG_INTERRUPT_OFF_HIST
+	printk(KERN_ERR "*        CONFIG_INTERRUPT_OFF_HIST                                          *\n");
+#endif
+#ifdef CONFIG_PREEMPT_OFF_HIST
+	printk(KERN_ERR "*        CONFIG_PREEMPT_OFF_HIST                                            *\n");
+#endif
+#ifdef CONFIG_WAKEUP_LATENCY_HIST
+	printk(KERN_ERR "*        CONFIG_WAKEUP_LATENCY_HIST                                         *\n");
+#endif
+#ifdef CONFIG_MISSED_TIMER_OFFSETS_HIST
+	printk(KERN_ERR "*        CONFIG_MISSED_TIMER_OFFSETS_HIST                                   *\n");
+#endif
+#ifdef CONFIG_DEBUG_SLAB
+	printk(KERN_ERR "*        CONFIG_DEBUG_SLAB                                                  *\n");
+#endif
+#ifdef CONFIG_DEBUG_PAGEALLOC
+	printk(KERN_ERR "*        CONFIG_DEBUG_PAGEALLOC                                             *\n");
+#endif
+#ifdef CONFIG_LOCKDEP
+	printk(KERN_ERR "*        CONFIG_LOCKDEP                                                     *\n");
+#endif
+	printk(KERN_ERR "*                                                                           *\n");
+#if DEBUG_COUNT == 1
+	printk(KERN_ERR "*  it may increase runtime overhead and latencies.                          *\n");
+#else
+	printk(KERN_ERR "*  they may increase runtime overhead and latencies.                        *\n");
+#endif
+	printk(KERN_ERR "*                                                                           *\n");
+	printk(KERN_ERR "*****************************************************************************\n");
+#endif
 	/*
 	 * Ok, we have completed the initial bootup, and
 	 * we're essentially up and running. Get rid of the

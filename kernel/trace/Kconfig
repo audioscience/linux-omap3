@@ -41,7 +41,7 @@ config HAVE_FTRACE_MCOUNT_RECORD
 config HAVE_HW_BRANCH_TRACER
 	bool
 
-config HAVE_FTRACE_SYSCALLS
+config HAVE_SYSCALL_TRACEPOINTS
 	bool
 
 config TRACER_MAX_TRACE
@@ -60,8 +60,13 @@ config EVENT_TRACING
 	bool
 
 config CONTEXT_SWITCH_TRACER
-	select MARKERS
 	bool
+
+config RING_BUFFER_ALLOW_SWAP
+	bool
+	help
+	 Allow the use of ring_buffer_swap_cpu.
+	 Adds a very slight overhead to tracing when enabled.
 
 # All tracer options should select GENERIC_TRACER. For those options that are
 # enabled by all tracers (context switch and event tracer) they select TRACING.
@@ -138,7 +143,6 @@ config FUNCTION_GRAPH_TRACER
 	  the return value. This is done by setting the current return 
 	  address on the current task structure into a stack of calls.
 
-
 config IRQSOFF_TRACER
 	bool "Interrupts-off Latency Tracer"
 	default n
@@ -147,6 +151,7 @@ config IRQSOFF_TRACER
 	select TRACE_IRQFLAGS
 	select GENERIC_TRACER
 	select TRACER_MAX_TRACE
+	select RING_BUFFER_ALLOW_SWAP
 	help
 	  This option measures the time spent in irqs-off critical
 	  sections, with microsecond accuracy.
@@ -161,6 +166,24 @@ config IRQSOFF_TRACER
 	  enabled. This option and the preempt-off timing option can be
 	  used together or separately.)
 
+config INTERRUPT_OFF_HIST
+	bool "Interrupts-off Latency Histogram"
+	depends on IRQSOFF_TRACER
+	help
+	  This option generates continuously updated histograms (one per cpu)
+	  of the duration of time periods with interrupts disabled. The
+	  histograms are disabled by default. To enable them, write a non-zero
+	  number to
+
+	      /sys/kernel/debug/tracing/latency_hist/enable/preemptirqsoff
+
+	  If PREEMPT_OFF_HIST is also selected, additional histograms (one
+	  per cpu) are generated that accumulate the duration of time periods
+	  when both interrupts and preemption are disabled. The histogram data
+	  will be located in the debug file system at
+
+	      /sys/kernel/debug/tracing/latency_hist/irqsoff
+
 config PREEMPT_TRACER
 	bool "Preemption-off Latency Tracer"
 	default n
@@ -168,6 +191,7 @@ config PREEMPT_TRACER
 	depends on PREEMPT
 	select GENERIC_TRACER
 	select TRACER_MAX_TRACE
+	select RING_BUFFER_ALLOW_SWAP
 	help
 	  This option measures the time spent in preemption off critical
 	  sections, with microsecond accuracy.
@@ -182,14 +206,23 @@ config PREEMPT_TRACER
 	  enabled. This option and the irqs-off timing option can be
 	  used together or separately.)
 
-config SYSPROF_TRACER
-	bool "Sysprof Tracer"
-	depends on X86
-	select GENERIC_TRACER
-	select CONTEXT_SWITCH_TRACER
+config PREEMPT_OFF_HIST
+	bool "Preemption-off Latency Histogram"
+	depends on PREEMPT_TRACER
 	help
-	  This tracer provides the trace needed by the 'Sysprof' userspace
-	  tool.
+	  This option generates continuously updated histograms (one per cpu)
+	  of the duration of time periods with preemption disabled. The
+	  histograms are disabled by default. To enable them, write a non-zero
+	  number to
+
+	      /sys/kernel/debug/tracing/latency_hist/enable/preemptirqsoff
+
+	  If INTERRUPT_OFF_HIST is also selected, additional histograms (one
+	  per cpu) are generated that accumulate the duration of time periods
+	  when both interrupts and preemption are disabled. The histogram data
+	  will be located in the debug file system at
+
+	      /sys/kernel/debug/tracing/latency_hist/preemptoff
 
 config SCHED_TRACER
 	bool "Scheduling Latency Tracer"
@@ -199,6 +232,55 @@ config SCHED_TRACER
 	help
 	  This tracer tracks the latency of the highest priority task
 	  to be scheduled in, starting from the point it has woken up.
+
+config WAKEUP_LATENCY_HIST
+	bool "Scheduling Latency Histogram"
+	depends on SCHED_TRACER
+	help
+	  This option generates continuously updated histograms (one per cpu)
+	  of the scheduling latency of the highest priority task.
+	  The histograms are disabled by default. To enable them, write a
+	  non-zero number to
+
+	      /sys/kernel/debug/tracing/latency_hist/enable/wakeup
+
+	  Two different algorithms are used, one to determine the latency of
+	  processes that exclusively use the highest priority of the system and
+	  another one to determine the latency of processes that share the
+	  highest system priority with other processes. The former is used to
+	  improve hardware and system software, the latter to optimize the
+	  priority design of a given system. The histogram data will be
+	  located in the debug file system at
+
+	      /sys/kernel/debug/tracing/latency_hist/wakeup
+
+	  and
+
+	      /sys/kernel/debug/tracing/latency_hist/wakeup/sharedprio
+
+config MISSED_TIMER_OFFSETS_HIST
+	depends on GENERIC_TIME
+	select GENERIC_TRACER
+	bool "Missed timer offsets histogram"
+	help
+	  Generate a histogram of missed timer offsets in microseconds. The
+	  histograms are disabled by default. To enable them, write a non-zero
+	  number to
+
+	      /sys/kernel/debug/tracing/latency_hist/enable/missed_timer_offsets
+
+ 	  The histogram data will be located in the debug file system at
+
+	      /sys/kernel/debug/tracing/latency_hist/missed_timer_offsets
+
+config SYSPROF_TRACER
+	bool "Sysprof Tracer"
+	depends on X86
+	select GENERIC_TRACER
+	select CONTEXT_SWITCH_TRACER
+	help
+	  This tracer provides the trace needed by the 'Sysprof' userspace
+	  tool.
 
 config ENABLE_DEFAULT_TRACERS
 	bool "Trace process context switches and events"
@@ -211,7 +293,7 @@ config ENABLE_DEFAULT_TRACERS
 
 config FTRACE_SYSCALLS
 	bool "Trace syscalls"
-	depends on HAVE_FTRACE_SYSCALLS
+	depends on HAVE_SYSCALL_TRACEPOINTS
 	select GENERIC_TRACER
 	select KALLSYMS
 	help
@@ -349,6 +431,7 @@ config STACK_TRACER
 
 config HW_BRANCH_TRACER
 	depends on HAVE_HW_BRANCH_TRACER
+	depends on !PREEMPT_RT
 	bool "Trace hw branches"
 	select GENERIC_TRACER
 	help
@@ -376,7 +459,7 @@ config KMEMTRACE
 	  If unsure, say N.
 
 config WORKQUEUE_TRACER
-	bool "Trace workqueues"
+	bool "Trace workqueues" if !PREEMPT_RT
 	select GENERIC_TRACER
 	help
 	  The workqueue tracer provides some statistical informations
@@ -461,6 +544,18 @@ config FTRACE_STARTUP_TEST
 	  a series of tests are made to verify that the tracer is
 	  functioning properly. It will do tests on all the configured
 	  tracers of ftrace.
+
+config EVENT_TRACE_TEST_SYSCALLS
+	bool "Run selftest on syscall events"
+	depends on FTRACE_STARTUP_TEST
+	help
+	 This option will also enable testing every syscall event.
+	 It only enables the event and disables it and runs various loads
+	 with the event enabled. This adds a bit more time for kernel boot
+	 up since it runs this on every system call defined.
+
+	 TBD - enable a way to actually call the syscalls as we test their
+	       events
 
 config MMIOTRACE
 	bool "Memory mapped IO tracing"

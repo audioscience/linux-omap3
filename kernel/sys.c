@@ -33,6 +33,7 @@
 #include <linux/getcpu.h>
 #include <linux/task_io_accounting_ops.h>
 #include <linux/seccomp.h>
+#include <linux/hardirq.h>
 #include <linux/cpu.h>
 #include <linux/ptrace.h>
 #include <linux/fs_struct.h>
@@ -164,6 +165,7 @@ SYSCALL_DEFINE3(setpriority, int, which, int, who, int, niceval)
 		niceval = 19;
 
 	read_lock(&tasklist_lock);
+	rcu_read_lock();
 	switch (which) {
 		case PRIO_PROCESS:
 			if (who)
@@ -199,6 +201,7 @@ SYSCALL_DEFINE3(setpriority, int, which, int, who, int, niceval)
 			break;
 	}
 out_unlock:
+	rcu_read_unlock();
 	read_unlock(&tasklist_lock);
 out:
 	return error;
@@ -280,6 +283,15 @@ out_unlock:
  */
 void emergency_restart(void)
 {
+	/*
+	 * Call the notifier chain if we are not in an
+	 * atomic context:
+	 */
+#ifdef CONFIG_PREEMPT
+	if (!in_atomic() && !irqs_disabled())
+		blocking_notifier_call_chain(&reboot_notifier_list,
+					     SYS_RESTART, NULL);
+#endif
 	machine_emergency_restart();
 }
 EXPORT_SYMBOL_GPL(emergency_restart);

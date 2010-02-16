@@ -75,7 +75,7 @@ extern unsigned long mktime(const unsigned int year, const unsigned int mon,
 			    const unsigned int day, const unsigned int hour,
 			    const unsigned int min, const unsigned int sec);
 
-extern void set_normalized_timespec(struct timespec *ts, time_t sec, long nsec);
+extern void set_normalized_timespec(struct timespec *ts, time_t sec, s64 nsec);
 extern struct timespec timespec_add_safe(const struct timespec lhs,
 					 const struct timespec rhs);
 
@@ -99,7 +99,7 @@ static inline struct timespec timespec_sub(struct timespec lhs,
 
 extern struct timespec xtime;
 extern struct timespec wall_to_monotonic;
-extern seqlock_t xtime_lock;
+extern atomic_seqlock_t xtime_lock;
 
 extern unsigned long read_persistent_clock(void);
 extern int update_persistent_clock(struct timespec now);

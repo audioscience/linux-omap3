@@ -94,6 +94,7 @@ TRACE_EVENT(sched_wakeup,
 		__field(	pid_t,	pid			)
 		__field(	int,	prio			)
 		__field(	int,	success			)
+		__field(	int,	cpu			)
 	),
 
 	TP_fast_assign(
@@ -101,11 +102,12 @@ TRACE_EVENT(sched_wakeup,
 		__entry->pid		= p->pid;
 		__entry->prio		= p->prio;
 		__entry->success	= success;
+		__entry->cpu		= task_cpu(p);
 	),
 
-	TP_printk("task %s:%d [%d] success=%d",
+	TP_printk("task %s:%d [%d] success=%d [%03d]",
 		  __entry->comm, __entry->pid, __entry->prio,
-		  __entry->success)
+		  __entry->success, __entry->cpu)
 );
 
 /*
@@ -125,6 +127,7 @@ TRACE_EVENT(sched_wakeup_new,
 		__field(	pid_t,	pid			)
 		__field(	int,	prio			)
 		__field(	int,	success			)
+		__field(	int,	cpu			)
 	),
 
 	TP_fast_assign(
@@ -132,11 +135,12 @@ TRACE_EVENT(sched_wakeup_new,
 		__entry->pid		= p->pid;
 		__entry->prio		= p->prio;
 		__entry->success	= success;
+		__entry->cpu		= task_cpu(p);
 	),
 
-	TP_printk("task %s:%d [%d] success=%d",
+	TP_printk("task %s:%d [%d] success=%d [%03d]",
 		  __entry->comm, __entry->pid, __entry->prio,
-		  __entry->success)
+		  __entry->success, __entry->cpu)
 );
 
 /*
@@ -260,6 +264,37 @@ TRACE_EVENT(sched_process_exit,
 
 	TP_printk("task %s:%d [%d]",
 		  __entry->comm, __entry->pid, __entry->prio)
+);
+
+/*
+ * Tracepoint for priority boosting/deboosting of a task:
+ *
+ * (NOTE: the 'rq' argument is not used by generic trace events,
+ *        but used by the latency tracer plugin. )
+ */
+TRACE_EVENT(sched_task_setprio,
+
+	TP_PROTO(struct rq *rq, struct task_struct *p, int oldprio),
+
+	TP_ARGS(rq, p, oldprio),
+
+	TP_STRUCT__entry(
+		__array(	char,	comm,	TASK_COMM_LEN	)
+		__field(	pid_t,	pid			)
+		__field(	int,	prio			)
+		__field(	int,	oldprio			)
+	),
+
+	TP_fast_assign(
+		memcpy(__entry->comm, p->comm, TASK_COMM_LEN);
+		__entry->pid		= p->pid;
+		__entry->prio		= p->prio;
+		__entry->oldprio	= oldprio;
+	),
+
+	TP_printk("task %s:%d [%d] oldprio=%d",
+		  __entry->comm, __entry->pid, __entry->prio,
+		  __entry->oldprio)
 );
 
 /*

@@ -77,22 +77,14 @@
  * Are we doing bottom half or hardware interrupt processing?
  * Are we in a softirq context? Interrupt context?
  */
-#define in_irq()		(hardirq_count())
-#define in_softirq()		(softirq_count())
-#define in_interrupt()		(irq_count())
+#define in_irq()	(hardirq_count() || (current->flags & PF_HARDIRQ))
+#define in_softirq()	(softirq_count() || (current->flags & PF_SOFTIRQ))
+#define in_interrupt()	(irq_count())
 
 /*
  * Are we in NMI context?
  */
 #define in_nmi()	(preempt_count() & NMI_MASK)
-
-#if defined(CONFIG_PREEMPT)
-# define PREEMPT_INATOMIC_BASE kernel_locked()
-# define PREEMPT_CHECK_OFFSET 1
-#else
-# define PREEMPT_INATOMIC_BASE 0
-# define PREEMPT_CHECK_OFFSET 0
-#endif
 
 /*
  * Are we running in atomic context?  WARNING: this macro cannot
@@ -101,14 +93,7 @@
  * used in the general case to determine whether sleeping is possible.
  * Do not use in_atomic() in driver code.
  */
-#define in_atomic()	((preempt_count() & ~PREEMPT_ACTIVE) != PREEMPT_INATOMIC_BASE)
-
-/*
- * Check whether we were atomic before we did preempt_disable():
- * (used by the scheduler, *after* releasing the kernel lock)
- */
-#define in_atomic_preempt_off() \
-		((preempt_count() & ~PREEMPT_ACTIVE) != PREEMPT_CHECK_OFFSET)
+#define in_atomic()		((preempt_count() & ~PREEMPT_ACTIVE) != 0)
 
 #ifdef CONFIG_PREEMPT
 # define preemptible()	(preempt_count() == 0 && !irqs_disabled())

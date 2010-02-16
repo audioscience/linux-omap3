@@ -1595,7 +1595,12 @@ static irqreturn_t serial8250_interrupt(int irq, void *dev_id)
 
 		l = l->next;
 
-		if (l == i->head && pass_counter++ > PASS_LIMIT) {
+		/*
+		 * On preempt-rt we can be preempted and run in our
+		 * own thread.
+		 */
+		if (!preempt_rt() && l == i->head &&
+		    pass_counter++ > PASS_LIMIT) {
 			/* If we hit this, we're dead. */
 			printk(KERN_ERR "serial8250: too much work for "
 				"irq%d\n", irq);
@@ -2747,14 +2752,10 @@ serial8250_console_write(struct console *co, const char *s, unsigned int count)
 
 	touch_nmi_watchdog();
 
-	local_irq_save(flags);
-	if (up->port.sysrq) {
-		/* serial8250_handle_port() already took the lock */
-		locked = 0;
-	} else if (oops_in_progress) {
-		locked = spin_trylock(&up->port.lock);
-	} else
-		spin_lock(&up->port.lock);
+	if (up->port.sysrq || oops_in_progress || preempt_rt())
+		locked = spin_trylock_irqsave(&up->port.lock, flags);
+	else
+		spin_lock_irqsave(&up->port.lock, flags);
 
 	/*
 	 *	First save the IER then disable the interrupts
@@ -2786,8 +2787,7 @@ serial8250_console_write(struct console *co, const char *s, unsigned int count)
 		check_modem_status(up);
 
 	if (locked)
-		spin_unlock(&up->port.lock);
-	local_irq_restore(flags);
+		spin_unlock_irqrestore(&up->port.lock, flags);
 }
 
 static int __init serial8250_console_setup(struct console *co, char *options)

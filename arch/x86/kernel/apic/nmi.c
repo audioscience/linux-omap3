@@ -90,7 +90,9 @@ static inline unsigned int get_timer_irqs(int cpu)
  */
 static __init void nmi_cpu_busy(void *data)
 {
+#ifndef CONFIG_PREEMPT_RT
 	local_irq_enable_in_hardirq();
+#endif
 	/*
 	 * Intentionally don't use cpu_relax here. This is
 	 * to make sure that the performance counter really ticks,
@@ -416,12 +418,12 @@ nmi_watchdog_tick(struct pt_regs *regs, unsigned reason)
 
 	/* We can be called before check_nmi_watchdog, hence NULL check. */
 	if (backtrace_mask != NULL && cpumask_test_cpu(cpu, backtrace_mask)) {
-		static DEFINE_SPINLOCK(lock);	/* Serialise the printks */
+		static DEFINE_ATOMIC_SPINLOCK(lock);	/* Serialise the printks */
 
-		spin_lock(&lock);
+		atomic_spin_lock(&lock);
 		printk(KERN_WARNING "NMI backtrace for cpu %d\n", cpu);
 		dump_stack();
-		spin_unlock(&lock);
+		atomic_spin_unlock(&lock);
 		cpumask_clear_cpu(cpu, backtrace_mask);
 	}
 

@@ -33,6 +33,7 @@
 #include <linux/bootmem.h>
 #include <linux/syscalls.h>
 #include <linux/kexec.h>
+#include <linux/semaphore.h>
 
 #include <asm/uaccess.h>
 
@@ -77,7 +78,7 @@ EXPORT_SYMBOL(oops_in_progress);
  * provides serialisation for access to the entire console
  * driver system.
  */
-static DECLARE_MUTEX(console_sem);
+static DEFINE_SEMAPHORE(console_sem);
 struct console *console_drivers;
 EXPORT_SYMBOL_GPL(console_drivers);
 
@@ -96,7 +97,7 @@ static int console_locked, console_suspended;
  * It is also used in interesting ways to provide interlocking in
  * release_console_sem().
  */
-static DEFINE_SPINLOCK(logbuf_lock);
+static DEFINE_ATOMIC_SPINLOCK(logbuf_lock);
 
 #define LOG_BUF_MASK (log_buf_len-1)
 #define LOG_BUF(idx) (log_buf[(idx) & LOG_BUF_MASK])
@@ -175,7 +176,7 @@ static int __init log_buf_len_setup(char *str)
 			goto out;
 		}
 
-		spin_lock_irqsave(&logbuf_lock, flags);
+		atomic_spin_lock_irqsave(&logbuf_lock, flags);
 		log_buf_len = size;
 		log_buf = new_log_buf;
 
@@ -189,7 +190,7 @@ static int __init log_buf_len_setup(char *str)
 		log_start -= offset;
 		con_start -= offset;
 		log_end -= offset;
-		spin_unlock_irqrestore(&logbuf_lock, flags);
+		atomic_spin_unlock_irqrestore(&logbuf_lock, flags);
 
 		printk(KERN_NOTICE "log_buf_len: %d\n", log_buf_len);
 	}
@@ -301,18 +302,18 @@ int do_syslog(int type, char __user *buf, int len)
 		if (error)
 			goto out;
 		i = 0;
-		spin_lock_irq(&logbuf_lock);
+		atomic_spin_lock_irq(&logbuf_lock);
 		while (!error && (log_start != log_end) && i < len) {
 			c = LOG_BUF(log_start);
 			log_start++;
-			spin_unlock_irq(&logbuf_lock);
+			atomic_spin_unlock_irq(&logbuf_lock);
 			error = __put_user(c,buf);
 			buf++;
 			i++;
 			cond_resched();
-			spin_lock_irq(&logbuf_lock);
+			atomic_spin_lock_irq(&logbuf_lock);
 		}
-		spin_unlock_irq(&logbuf_lock);
+		atomic_spin_unlock_irq(&logbuf_lock);
 		if (!error)
 			error = i;
 		break;
@@ -333,7 +334,7 @@ int do_syslog(int type, char __user *buf, int len)
 		count = len;
 		if (count > log_buf_len)
 			count = log_buf_len;
-		spin_lock_irq(&logbuf_lock);
+		atomic_spin_lock_irq(&logbuf_lock);
 		if (count > logged_chars)
 			count = logged_chars;
 		if (do_clear)
@@ -350,12 +351,12 @@ int do_syslog(int type, char __user *buf, int len)
 			if (j + log_buf_len < log_end)
 				break;
 			c = LOG_BUF(j);
-			spin_unlock_irq(&logbuf_lock);
+			atomic_spin_unlock_irq(&logbuf_lock);
 			error = __put_user(c,&buf[count-1-i]);
 			cond_resched();
-			spin_lock_irq(&logbuf_lock);
+			atomic_spin_lock_irq(&logbuf_lock);
 		}
-		spin_unlock_irq(&logbuf_lock);
+		atomic_spin_unlock_irq(&logbuf_lock);
 		if (error)
 			break;
 		error = i;
@@ -418,9 +419,13 @@ static void __call_console_drivers(unsigned start, unsigned end)
 
 	for (con = console_drivers; con; con = con->next) {
 		if ((con->flags & CON_ENABLED) && con->write &&
-				(cpu_online(smp_processor_id()) ||
-				(con->flags & CON_ANYTIME)))
+				console_atomic_safe(con) &&
+				(cpu_online(raw_smp_processor_id()) ||
+				 (con->flags & CON_ANYTIME))) {
+			set_printk_might_sleep(1);
 			con->write(con, &LOG_BUF(start), end - start);
+			set_printk_might_sleep(0);
+		}
 	}
 }
 
@@ -531,9 +536,10 @@ static void zap_locks(void)
 	oops_timestamp = jiffies;
 
 	/* If a crash is occurring, make sure we can't deadlock */
-	spin_lock_init(&logbuf_lock);
+	atomic_spin_lock_init(&logbuf_lock);
 	/* And make sure that we print immediately */
-	init_MUTEX(&console_sem);
+	semaphore_init(&console_sem);
+	zap_rt_locks();
 }
 
 #if defined(CONFIG_PRINTK_TIME)
@@ -615,7 +621,8 @@ static inline int can_use_console(unsigned int cpu)
  * interrupts disabled. It should return with 'lockbuf_lock'
  * released but interrupts still disabled.
  */
-static int acquire_console_semaphore_for_printk(unsigned int cpu)
+static int acquire_console_semaphore_for_printk(unsigned int cpu,
+						unsigned long flags)
 {
 	int retval = 0;
 
@@ -635,7 +642,9 @@ static int acquire_console_semaphore_for_printk(unsigned int cpu)
 		}
 	}
 	printk_cpu = UINT_MAX;
-	spin_unlock(&logbuf_lock);
+	atomic_spin_unlock(&logbuf_lock);
+	lockdep_on();
+	local_irq_restore(flags);
 	return retval;
 }
 static const char recursion_bug_msg [] =
@@ -657,7 +666,7 @@ asmlinkage int vprintk(const char *fmt, va_list args)
 	preempt_disable();
 	/* This stops the holder of console_sem just where we want him */
 	raw_local_irq_save(flags);
-	this_cpu = smp_processor_id();
+	this_cpu = raw_smp_processor_id();
 
 	/*
 	 * Ouch, printk recursed into itself!
@@ -672,14 +681,16 @@ asmlinkage int vprintk(const char *fmt, va_list args)
 		 */
 		if (!oops_in_progress) {
 			recursion_bug = 1;
-			goto out_restore_irqs;
+			raw_local_irq_restore(flags);
+			goto out;
 		}
 		zap_locks();
 	}
 
 	lockdep_off();
-	spin_lock(&logbuf_lock);
+	atomic_spin_lock(&logbuf_lock);
 	printk_cpu = this_cpu;
+	preempt_enable();
 
 	if (recursion_bug) {
 		recursion_bug = 0;
@@ -767,14 +778,10 @@ asmlinkage int vprintk(const char *fmt, va_list args)
 	 * will release 'logbuf_lock' regardless of whether it
 	 * actually gets the semaphore or not.
 	 */
-	if (acquire_console_semaphore_for_printk(this_cpu))
+	if (acquire_console_semaphore_for_printk(this_cpu, flags))
 		release_console_sem();
 
-	lockdep_on();
-out_restore_irqs:
-	raw_local_irq_restore(flags);
-
-	preempt_enable();
+out:
 	return printed_len;
 }
 EXPORT_SYMBOL(printk);
@@ -1030,22 +1037,43 @@ void release_console_sem(void)
 	console_may_schedule = 0;
 
 	for ( ; ; ) {
-		spin_lock_irqsave(&logbuf_lock, flags);
+		atomic_spin_lock_irqsave(&logbuf_lock, flags);
 		wake_klogd |= log_start - log_end;
 		if (con_start == log_end)
 			break;			/* Nothing to print */
 		_con_start = con_start;
 		_log_end = log_end;
 		con_start = log_end;		/* Flush */
-		spin_unlock(&logbuf_lock);
+
+		/*
+		 * on PREEMPT_RT, call console drivers with
+		 * interrupts enabled (if printk was called
+		 * with interrupts disabled):
+		 */
+#ifdef CONFIG_PREEMPT_RT
+		atomic_spin_unlock_irqrestore(&logbuf_lock, flags);
+#else
+		atomic_spin_unlock(&logbuf_lock);
 		stop_critical_timings();	/* don't trace print latency */
+#endif
 		call_console_drivers(_con_start, _log_end);
 		start_critical_timings();
+#ifndef CONFIG_PREEMPT_RT
 		local_irq_restore(flags);
+#endif
 	}
 	console_locked = 0;
+	atomic_spin_unlock_irqrestore(&logbuf_lock, flags);
 	up(&console_sem);
-	spin_unlock_irqrestore(&logbuf_lock, flags);
+	/*
+	 * On PREEMPT_RT kernels __wake_up may sleep, so wake syslogd
+	 * up only if we are in a preemptible section. We normally dont
+	 * printk from non-preemptible sections so this is for the emergency
+	 * case only.
+	 */
+#ifdef CONFIG_PREEMPT_RT
+	if (!in_atomic() && !irqs_disabled())
+#endif
 	if (wake_klogd)
 		wake_up_klogd();
 }
@@ -1247,9 +1275,9 @@ void register_console(struct console *console)
 		 * release_console_sem() will print out the buffered messages
 		 * for us.
 		 */
-		spin_lock_irqsave(&logbuf_lock, flags);
+		atomic_spin_lock_irqsave(&logbuf_lock, flags);
 		con_start = log_start;
-		spin_unlock_irqrestore(&logbuf_lock, flags);
+		atomic_spin_unlock_irqrestore(&logbuf_lock, flags);
 	}
 	release_console_sem();
 }
@@ -1320,6 +1348,23 @@ int printk_ratelimit(void)
 	return __ratelimit(&printk_ratelimit_state);
 }
 EXPORT_SYMBOL(printk_ratelimit);
+
+static DEFINE_ATOMIC_SPINLOCK(warn_lock);
+
+void __WARN_ON(const char *func, const char *file, const int line)
+{
+	unsigned long flags;
+
+	atomic_spin_lock_irqsave(&warn_lock, flags);
+	printk("%s/%d[CPU#%d]: BUG in %s at %s:%d\n",
+		current->comm, current->pid, raw_smp_processor_id(),
+		func, file, line);
+	dump_stack();
+	atomic_spin_unlock_irqrestore(&warn_lock, flags);
+}
+
+EXPORT_SYMBOL(__WARN_ON);
+
 
 /**
  * printk_timed_ratelimit - caller-controlled printk ratelimiting
