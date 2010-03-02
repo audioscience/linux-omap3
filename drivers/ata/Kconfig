@@ -59,11 +59,17 @@ config SATA_PMP
 
 config SATA_AHCI
 	tristate "AHCI SATA support"
-	depends on PCI
 	help
 	  This option enables support for AHCI Serial ATA.
 
 	  If unsure, say N.
+
+config SATA_AHCI_PCI
+	tristate "PCI AHCI SATA support"
+	depends on SATA_AHCI && PCI
+	default y
+	help
+	  This option enables support for PCI AHCI Serial ATA controllers.
 
 config SATA_SIL24
 	tristate "Silicon Image 3124/3132 SATA support"
