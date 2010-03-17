@@ -663,5 +663,5 @@ static inline void musb_debug_delete(char *name, struct musb *data)
 {
 }
 #endif
-
+#define	cpu_is_omap3517()	0
 #endif	/* __MUSB_CORE_H__ */
