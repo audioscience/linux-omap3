@@ -266,6 +266,9 @@ static void txstate(struct musb *musb, struct musb_request *req)
 	u16			fifo_count = 0, csr;
 	int			use_dma = 0;
 
+	if (musb->can_dma_queue)
+		return;
+
 	musb_ep = req->ep;
 
 	/* we shouldn't get here while DMA is active ... but we do ... */
@@ -786,9 +789,9 @@ void musb_g_rx(struct musb *musb, u8 epnum)
 	}
 
 	if (dma && (csr & MUSB_RXCSR_DMAENAB)) {
-		csr &= ~(MUSB_RXCSR_AUTOCLEAR
-				| MUSB_RXCSR_DMAENAB
-				| MUSB_RXCSR_DMAMODE);
+		csr &= ~(MUSB_RXCSR_AUTOCLEAR);
+		if (!musb->can_dma_queue)
+			csr &= ~(MUSB_RXCSR_DMAENAB | MUSB_RXCSR_DMAMODE);
 		musb_writew(epio, MUSB_RXCSR,
 			MUSB_RXCSR_P_WZC_BITS | csr);
 
@@ -816,6 +819,9 @@ void musb_g_rx(struct musb *musb, u8 epnum)
 			return;
 #endif
 		musb_g_giveback(musb_ep, request, 0);
+
+		if (musb->can_dma_queue)
+			return;
 
 		request = next_request(musb_ep);
 		if (!request)
@@ -1163,7 +1169,8 @@ static int musb_gadget_queue(struct usb_ep *ep, struct usb_request *req,
 	list_add_tail(&(request->request.list), &(musb_ep->req_list));
 
 	/* it this is the head of the queue, start i/o ... */
-	if (!musb_ep->busy && &request->request.list == musb_ep->req_list.next)
+	if (musb->can_dma_queue || !musb_ep->busy
+		&& &request->request.list == musb_ep->req_list.next)
 		musb_ep_restart(musb, request);
 
 cleanup:
@@ -2020,7 +2027,7 @@ __acquires(musb->lock)
 
 
 	/* what speed did we negotiate? */
-#ifdef CONFIG_MACH_OMAP3517EVM
+#ifdef CONFIG_MACH_OMAP3517EVM || defined(CONFIG_ARCH_TI816X)
 	musb->read_mask &= ~AM3517_READ_ISSUE_POWER;
 #endif
 	power = musb_readb(mbase, MUSB_POWER);

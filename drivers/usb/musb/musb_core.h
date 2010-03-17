@@ -479,7 +479,7 @@ struct musb {
 	struct usb_gadget	g;			/* the gadget */
 	struct usb_gadget_driver *gadget_driver;	/* its driver */
 #endif
-
+	u8			can_dma_queue; /* dma queue logic enable */
 	struct musb_hdrc_config	*config;
 
 #ifdef MUSB_CONFIG_PROC_FS
