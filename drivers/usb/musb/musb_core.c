@@ -2053,6 +2053,9 @@ bad_config:
 			? "DMA" : "PIO",
 			musb->nIrq);
 
+	if (status == 0)
+		musb_debug_create("driver/musb_hdrc", musb);
+
 	return 0;
 
 fail4:
@@ -2132,6 +2135,7 @@ static int __exit musb_remove(struct platform_device *pdev)
 	 *  - OTG mode: both roles are deactivated (or never-activated)
 	 */
 	musb_shutdown(pdev);
+	musb_debug_delete("driver/musb_hdrc", musb);
 #ifdef CONFIG_USB_MUSB_HDRC_HCD
 	if (musb->board_mode == MUSB_HOST)
 		usb_remove_hcd(musb_to_hcd(musb));
