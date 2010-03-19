@@ -2033,6 +2033,9 @@ __acquires(musb->lock)
 	power = musb_readb(mbase, MUSB_POWER);
 	musb->g.speed = (power & MUSB_POWER_HSMODE)
 			? USB_SPEED_HIGH : USB_SPEED_FULL;
+	/* forced to high speed in device g_file_storage
+	 * HS bit not set even though bus is highspeed */
+	musb->g.speed = USB_SPEED_HIGH;
 
 	/* start in USB_STATE_DEFAULT */
 	musb->is_active = 1;
