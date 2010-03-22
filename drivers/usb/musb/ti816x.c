@@ -1096,6 +1096,7 @@ int musb_platform_init(struct musb *musb)
 
 #ifdef CONFIG_USB_TI_CPPI41_DMA
 	cppi41_init(musb);
+	musb->can_dma_queue = 1;
 #endif
 
 	musb->a_wait_bcon = A_WAIT_BCON_TIMEOUT;
