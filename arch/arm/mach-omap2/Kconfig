@@ -148,6 +148,13 @@ config MACH_SBC3530
 	select OMAP_PACKAGE_CUS
 	select OMAP_MUX
 
+comment "TI816X Board Type"
+	depends on ARCH_TI816X
+
+config MACH_TI8168_EVM
+	bool "TI8168 evaluation module"
+	depends on ARCH_TI816X
+
 config MACH_OMAP_3630SDP
 	bool "OMAP3630 SDP board"
 	depends on ARCH_OMAP3
@@ -176,3 +183,9 @@ config OMAP3_SDRC_AC_TIMING
 	  wish to say no.  Selecting yes without understanding what is
 	  going on could result in system crashes;
 
+config TI8168_SIM
+	bool "TI8168 simulator build"
+	depends on MACH_TI8168_EVM
+	help
+	  Configure to TI8168 build to work on simulator. Generally only affects
+	  clock rate configurations.

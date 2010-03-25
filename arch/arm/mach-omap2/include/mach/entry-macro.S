@@ -18,12 +18,20 @@
 #include <plat/omap24xx.h>
 #include <plat/omap34xx.h>
 #include <plat/omap44xx.h>
+#include <plat/ti816x.h>
 
 #include <plat/multi.h>
 
 #define OMAP2_IRQ_BASE		OMAP2_L4_IO_ADDRESS(OMAP24XX_IC_BASE)
 #define OMAP3_IRQ_BASE		OMAP2_L4_IO_ADDRESS(OMAP34XX_IC_BASE)
 #define OMAP4_IRQ_BASE		OMAP2_L4_IO_ADDRESS(OMAP44XX_GIC_CPU_BASE)
+/*
+ * !@@ This is not used currently, as the macro get_irqnr_preamble below assumes
+ * OMAP3 if the processor is Cortex A8 and (fortunately) OMAP3 and Netra have
+ * same INTC base. TODO: check if we can have more specific checks on A8 case -
+ * though it is not really needed.
+ */
+#define TI816X_IRQ_BASE		TI816X_L4_SLOW_IO_ADDRESS(TI816X_ARM_INTC_BASE)
 #define INTCPS_SIR_IRQ_OFFSET	0x0040	/* omap2/3 active interrupt offset */
 #define	ACTIVEIRQ_MASK		0x7f	/* omap2/3 active interrupt bits */
 
@@ -112,8 +120,8 @@ omap_irq_base:	.word	0
 /*
  * Optimized irq functions for omap2, 3 and 4
  */
-
-#if defined(CONFIG_ARCH_OMAP2) || defined(CONFIG_ARCH_OMAP3)
+#if defined(CONFIG_ARCH_OMAP2) || defined(CONFIG_ARCH_OMAP3)	\
+	|| defined(CONFIG_ARCH_TI816X)
 		.macro  get_irqnr_preamble, base, tmp
 #ifdef CONFIG_ARCH_OMAP2
 		ldr	\base, =OMAP2_IRQ_BASE
@@ -132,6 +140,12 @@ omap_irq_base:	.word	0
 		bne	9999f
 		ldr	\irqnr, [\base, #0xd8] /* IRQ pending reg 3 */
 		cmp	\irqnr, #0x0
+#ifdef CONFIG_ARCH_TI816X
+		/* !@@@ Netra specific, might crash on other OMAPs */
+		bne	9999f
+		ldr	\irqnr, [\base, #0xf8] /* IRQ pending reg 4 */
+		cmp	\irqnr, #0x0
+#endif
 9999:
 		ldrne	\irqnr, [\base, #INTCPS_SIR_IRQ_OFFSET]
 		and	\irqnr, \irqnr, #ACTIVEIRQ_MASK /* Clear spurious bits */

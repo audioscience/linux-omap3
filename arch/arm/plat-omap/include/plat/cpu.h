@@ -87,6 +87,7 @@ unsigned int omap_rev(void);
  * cpu_is_omap243x():	True for OMAP2430
  * cpu_is_omap343x():	True for OMAP3430
  * cpu_is_omap443x():	True for OMAP4430
+ * cpu_is_ti816x():	True for TI8168
  */
 #define GET_OMAP_CLASS	(omap_rev() & 0xff)
 
@@ -203,6 +204,10 @@ IS_OMAP_SUBCLASS(443x, 0x443)
 # if defined(CONFIG_ARCH_OMAP3430)
 #  undef  cpu_is_omap343x
 #  define cpu_is_omap343x()		1
+# endif
+# if defined(CONFIG_ARCH_TI816X)
+#  undef  cpu_is_ti816x
+#  define cpu_is_ti816x()		1
 # endif
 #endif
 
@@ -357,7 +362,7 @@ IS_OMAP_TYPE(3517, 0x3517)
 #define cpu_class_is_omap1()	(cpu_is_omap7xx() || cpu_is_omap15xx() || \
 				cpu_is_omap16xx())
 #define cpu_class_is_omap2()	(cpu_is_omap24xx() || cpu_is_omap34xx() || \
-				cpu_is_omap44xx())
+				cpu_is_omap44xx() || cpu_is_ti816x())
 
 /* Various silicon revisions for omap2 */
 #define OMAP242X_CLASS		0x24200024

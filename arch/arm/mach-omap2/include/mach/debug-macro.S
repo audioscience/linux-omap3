@@ -66,6 +66,12 @@ omap_uart_lsr:	.word	0
 		beq	34f			@ configure OMAP3UART4
 		cmp	\rx, #OMAP4UART4	@ only on 44xx
 		beq	44f			@ configure OMAP4UART4
+		cmp	\rx, #TI816XUART1	@ ti816x UART offsets different
+		beq	81f			@ configure UART1
+		cmp	\rx, #TI816XUART2	@ ti816x UART offsets different
+		beq	82f			@ configure UART2
+		cmp	\rx, #TI816XUART3	@ ti816x UART offsets different
+		beq	83f			@ configure UART3
 		cmp	\rx, #ZOOM_UART		@ only on zoom2/3
 		beq	95f			@ configure ZOOM_UART
 
@@ -88,7 +94,13 @@ omap_uart_lsr:	.word	0
 		b	98f
 44:		mov	\rx, #UART_OFFSET(OMAP4_UART4_BASE)
 		b	98f
-95:		ldr	\rx, =ZOOM_UART_BASE
+81:		mov	\rx, #UART_OFFSET(TI816X_UART1_BASE)
+		b	98f
+82:		mov	\rx, #UART_OFFSET(TI816X_UART2_BASE)
+		b	98f
+83:		mov	\rx, #UART_OFFSET(TI816X_UART3_BASE)
+		b	98f
+95:		mov	\rx, #ZOOM_UART_BASE
 		ldr	\tmp, =omap_uart_phys
 		str	\rx, [\tmp, #0]
 		ldr	\rx, =ZOOM_UART_VIRT

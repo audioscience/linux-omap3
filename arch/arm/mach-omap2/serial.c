@@ -683,7 +683,7 @@ void __init omap_serial_early_init(void)
 		}
 
 		/* FIXME: Remove this once the clkdev is ready */
-		if (!cpu_is_omap44xx()) {
+		if (!cpu_is_omap44xx() && !cpu_is_ti816x()) {
 			if (!uart->ick || !uart->fck)
 				continue;
 		}
@@ -721,11 +721,13 @@ void __init omap_serial_init_port(int port)
 	pdev = &uart->pdev;
 	dev = &pdev->dev;
 
-	/* Don't proceed if there's no clocks available */
-	if (unlikely(!uart->ick || !uart->fck)) {
-		WARN(1, "%s: can't init uart%d, no clocks available\n",
-		     kobject_name(&dev->kobj), port);
-		return;
+	/* FIXME: Remove this once the clkdev is ready */
+	if (!cpu_is_ti816x()) {
+		if (unlikely(!uart->ick || !uart->fck)) {
+			WARN(1, "%s: can't init uart%d, no clocks available\n",
+					kobject_name(&dev->kobj), port);
+			return;
+		}
 	}
 
 	omap_uart_enable_clocks(uart);
@@ -746,10 +748,11 @@ void __init omap_serial_init_port(int port)
 
 	/*
 	 * omap44xx: Never read empty UART fifo
+	 * ti816x: Never read empty UART fifo
 	 * omap3xxx: Never read empty UART fifo on UARTs
 	 * with IP rev >=0x52
 	 */
-	if (cpu_is_omap44xx()) {
+	if (cpu_is_omap44xx() || cpu_is_ti816x()) {
 		uart->p->serial_in = serial_in_override;
 		uart->p->serial_out = serial_out_override;
 	} else if ((serial_read_reg(uart->p, UART_OMAP_MVER) & 0xFF)

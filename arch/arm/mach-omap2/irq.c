@@ -48,7 +48,7 @@ static struct omap_irq_bank {
 	{
 		/* MPU INTC */
 		.base_reg	= 0,
-		.nr_irqs	= 96,
+		.nr_irqs	= INTCPS_NR_IRQS,	/* !@@@ was 96, */
 	},
 };
 
@@ -201,6 +201,8 @@ void __init omap_init_irq(void)
 			base = OMAP24XX_IC_BASE;
 		else if (cpu_is_omap34xx())
 			base = OMAP34XX_IC_BASE;
+		else if (cpu_is_ti816x())
+			base = TI816X_ARM_INTC_BASE;
 
 		BUG_ON(!base);
 

@@ -45,10 +45,17 @@
 #define _OMAP_TIMER_ID_OFFSET		0x00
 #define _OMAP_TIMER_OCP_CFG_OFFSET	0x10
 #define _OMAP_TIMER_SYS_STAT_OFFSET	0x14
+#ifdef CONFIG_ARCH_TI816X
+#define _OMAP_TIMER_STAT_OFFSET		0x28
+#define _OMAP_TIMER_INT_EN_OFFSET	0x2c
+#define _OMAP_TIMER_WAKEUP_EN_OFFSET	0x34
+#define _OMAP_TIMER_CTRL_OFFSET		0x38
+#else
 #define _OMAP_TIMER_STAT_OFFSET		0x18
 #define _OMAP_TIMER_INT_EN_OFFSET	0x1c
 #define _OMAP_TIMER_WAKEUP_EN_OFFSET	0x20
 #define _OMAP_TIMER_CTRL_OFFSET		0x24
+#endif
 #define		OMAP_TIMER_CTRL_GPOCFG		(1 << 14)
 #define		OMAP_TIMER_CTRL_CAPTMODE	(1 << 13)
 #define		OMAP_TIMER_CTRL_PT		(1 << 12)
@@ -62,10 +69,17 @@
 #define		OMAP_TIMER_CTRL_POSTED		(1 << 2)
 #define		OMAP_TIMER_CTRL_AR		(1 << 1) /* auto-reload enable */
 #define		OMAP_TIMER_CTRL_ST		(1 << 0) /* start timer */
+#ifdef CONFIG_ARCH_TI816X
+#define _OMAP_TIMER_COUNTER_OFFSET	0x3c
+#define _OMAP_TIMER_LOAD_OFFSET		0x40
+#define _OMAP_TIMER_TRIGGER_OFFSET	0x44
+#define _OMAP_TIMER_WRITE_PEND_OFFSET	0x48
+#else
 #define _OMAP_TIMER_COUNTER_OFFSET	0x28
 #define _OMAP_TIMER_LOAD_OFFSET		0x2c
 #define _OMAP_TIMER_TRIGGER_OFFSET	0x30
 #define _OMAP_TIMER_WRITE_PEND_OFFSET	0x34
+#endif
 #define		WP_NONE			0	/* no write pending bit */
 #define		WP_TCLR			(1 << 0)
 #define		WP_TCRR			(1 << 1)
@@ -77,10 +91,17 @@
 #define		WP_TCVR			(1 << 7)
 #define		WP_TOCR			(1 << 8)
 #define		WP_TOWR			(1 << 9)
+#ifdef CONFIG_ARCH_TI816X
+#define _OMAP_TIMER_MATCH_OFFSET	0x4c
+#define _OMAP_TIMER_CAPTURE_OFFSET	0x50
+#define _OMAP_TIMER_IF_CTRL_OFFSET	0x54
+#define _OMAP_TIMER_CAPTURE2_OFFSET	0x58
+#else
 #define _OMAP_TIMER_MATCH_OFFSET	0x38
 #define _OMAP_TIMER_CAPTURE_OFFSET	0x3c
 #define _OMAP_TIMER_IF_CTRL_OFFSET	0x40
 #define _OMAP_TIMER_CAPTURE2_OFFSET		0x44	/* TCAR2, 34xx only */
+#endif
 #define _OMAP_TIMER_TICK_POS_OFFSET		0x48	/* TPIR, 34xx only */
 #define _OMAP_TIMER_TICK_NEG_OFFSET		0x4c	/* TNIR, 34xx only */
 #define _OMAP_TIMER_TICK_COUNT_OFFSET		0x50	/* TCVR, 34xx only */
@@ -153,7 +174,7 @@
 struct omap_dm_timer {
 	unsigned long phys_base;
 	int irq;
-#ifdef CONFIG_ARCH_OMAP2PLUS
+#if defined(CONFIG_ARCH_OMAP2PLUS) || defined(CONFIG_ARCH_TI816X)
 	struct clk *iclk, *fclk;
 #endif
 	void __iomem *io_base;
@@ -278,6 +299,31 @@ static const int omap4_dm_timer_count = ARRAY_SIZE(omap4_dm_timers);
 #define omap4_dm_source_clocks		NULL
 #endif	/* CONFIG_ARCH_OMAP4 */
 
+#ifdef CONFIG_ARCH_TI816X
+static struct omap_dm_timer netra_dm_timers[] = {
+	{ .phys_base = 0x4802C000, .irq = TI816X_IRQ_GPT1, .reserved = 1 },
+	{ .phys_base = 0x4802E000, .irq = TI816X_IRQ_GPT2 },
+	{ .phys_base = 0x48040000, .irq = TI816X_IRQ_GPT3 },
+	{ .phys_base = 0x48042000, .irq = TI816X_IRQ_GPT4 },
+	{ .phys_base = 0x48044000, .irq = TI816X_IRQ_GPT5 },
+	{ .phys_base = 0x48046000, .irq = TI816X_IRQ_GPT6 },
+	{ .phys_base = 0x48048000, .irq = TI816X_IRQ_GPT7 },
+	{ .phys_base = 0x4804A000, .irq = TI816X_IRQ_GPT8 },
+};
+static const char *netra_dm_source_names[] __initdata = {
+	"sys_ck", /* !@2 TODO: Add 32K timer source */
+	NULL
+};
+static struct clk *netra_dm_source_clocks[1];
+static const int netra_dm_timer_count = ARRAY_SIZE(netra_dm_timers);
+
+#else
+#define netra_dm_timers			NULL
+#define netra_dm_timer_count		0
+#define netra_dm_source_names		NULL
+#define netra_dm_source_clocks		NULL
+#endif	/* CONFIG_ARCH_TI816X */
+
 static struct omap_dm_timer *dm_timers;
 static const char **dm_source_names;
 static struct clk **dm_source_clocks;
@@ -319,7 +365,14 @@ static void omap_dm_timer_wait_for_reset(struct omap_dm_timer *timer)
 	int c;
 
 	c = 0;
+
+#ifndef CONFIG_ARCH_TI816X
 	while (!(omap_dm_timer_read_reg(timer, OMAP_TIMER_SYS_STAT_REG) & 1)) {
+#else
+	/* XXX !@0 As per dmtimer func spec */
+	while (omap_dm_timer_read_reg(timer, OMAP_TIMER_OCP_CFG_REG) & 1) {
+#endif
+
 		c++;
 		if (c > 100000) {
 			printk(KERN_ERR "Timer failed to reset\n");
@@ -425,7 +478,7 @@ void omap_dm_timer_enable(struct omap_dm_timer *timer)
 	if (timer->enabled)
 		return;
 
-#ifdef CONFIG_ARCH_OMAP2PLUS
+#if defined(CONFIG_ARCH_OMAP2PLUS) || defined(CONFIG_ARCH_TI816X)
 	if (cpu_class_is_omap2()) {
 		clk_enable(timer->fclk);
 		clk_enable(timer->iclk);
@@ -441,7 +494,7 @@ void omap_dm_timer_disable(struct omap_dm_timer *timer)
 	if (!timer->enabled)
 		return;
 
-#ifdef CONFIG_ARCH_OMAP2PLUS
+#if defined(CONFIG_ARCH_OMAP2PLUS) || defined(CONFIG_ARCH_TI816X)
 	if (cpu_class_is_omap2()) {
 		clk_disable(timer->iclk);
 		clk_disable(timer->fclk);
@@ -533,7 +586,7 @@ void omap_dm_timer_stop(struct omap_dm_timer *timer)
 	if (l & OMAP_TIMER_CTRL_ST) {
 		l &= ~0x1;
 		omap_dm_timer_write_reg(timer, OMAP_TIMER_CTRL_REG, l);
-#ifdef CONFIG_ARCH_OMAP2PLUS
+#ifdef CONFIG_ARCH_OMAP2PLUS /* !@0 TODO: Applicable for Netra? */
 		/* Readback to make sure write has completed */
 		omap_dm_timer_read_reg(timer, OMAP_TIMER_CTRL_REG);
 		 /*
@@ -762,6 +815,11 @@ int __init omap_dm_timer_init(void)
 		dm_timer_count = omap4_dm_timer_count;
 		dm_source_names = omap4_dm_source_names;
 		dm_source_clocks = omap4_dm_source_clocks;
+	} else if (cpu_is_ti816x()) {
+		dm_timers = netra_dm_timers;
+		dm_timer_count = netra_dm_timer_count;
+		dm_source_names = netra_dm_source_names;
+		dm_source_clocks = netra_dm_source_clocks;
 	}
 
 	if (cpu_class_is_omap2())
@@ -778,7 +836,7 @@ int __init omap_dm_timer_init(void)
 		timer->io_base = ioremap(timer->phys_base, map_size);
 		BUG_ON(!timer->io_base);
 
-#ifdef CONFIG_ARCH_OMAP2PLUS
+#if defined(CONFIG_ARCH_OMAP2PLUS) || defined(CONFIG_ARCH_TI816X)
 		if (cpu_class_is_omap2()) {
 			char clk_name[16];
 			sprintf(clk_name, "gpt%d_ick", i + 1);

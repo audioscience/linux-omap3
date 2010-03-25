@@ -108,6 +108,28 @@
 #define OMAP4430_PRM_DEVICE_MOD		0x1b00
 #define OMAP4430_PRM_INSTR_MOD		0x1f00
 
+/*
+ * !@3 Note: There do no seem separate spaced instances of CM & PRM as in OMAPx
+ */
+
+#define TI816X_PRM_DEVICE_MOD			0x0000	/* 256B */
+#define TI816X_CM_DEVICE_MOD			0x0100	/* 256B */
+#define TI816X_PRM_OCP_SOCKET_MOD		0x0200	/* 256B */
+#define TI816X_CM_DPLL_MOD			0x0300	/* 256B */
+#define TI816X_CM_ACTIVE_MOD			0x0400	/* 256B */
+#define TI816X_CM_DEFAULT_MOD			0x0500	/* 256B */
+#define TI816X_CM_IVAHD0_MOD			0x0600	/* 256B */
+#define TI816X_CM_IVAHD1_MOD			0x0700	/* 256B */
+#define TI816X_CM_IVAHD2_MOD			0x0800	/* 256B */
+#define TI816X_CM_SGX_MOD			0x0900	/* 256B */
+#define TI816X_PRM_ACTIVE_MOD			0x0a00	/* 256B */
+#define TI816X_PRM_DEFAULT_MOD			0x0b00	/* 256B */
+#define TI816X_PRM_IVAHD0_MOD			0x0c00	/* 256B */
+#define TI816X_PRM_IVAHD1_MOD			0x0d00	/* 256B */
+#define TI816X_PRM_IVAHD2_MOD			0x0e00	/* 256B */
+#define TI816X_PRM_SGX_MOD			0x0f00	/* 256B */
+#define TI816X_CM_ALWON_MOD			0x1400	/* 1KB */
+#define TI816X_PRM_ALWON_MOD			0x1800	/* 1KB */
 /* SCRM instances */
 
 #define OMAP4430_SCRM_SCRM_MOD	0x0000

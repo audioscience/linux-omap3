@@ -216,6 +216,12 @@
  */
 
 /*
+ * !@0 TODO: Add TI816X specific data. Since this is totally different w.r.t.
+ * OMAPx devices, it may be better to add those in separate file
+ * (control-ti816x.h for example).
+ */
+
+/*
  * Control module register bit defines - these should eventually go into
  * their own regbits file.  Some of these will be complicated, depending
  * on the device type (general-purpose, emulator, test, secure, bad, other)
@@ -349,7 +355,7 @@
 
 
 #ifndef __ASSEMBLY__
-#ifdef CONFIG_ARCH_OMAP2PLUS
+#if defined(CONFIG_ARCH_OMAP2PLUS) || defined(CONFIG_ARCH_TI816X)
 extern void __iomem *omap_ctrl_base_get(void);
 extern u8 omap_ctrl_readb(u16 offset);
 extern u16 omap_ctrl_readw(u16 offset);

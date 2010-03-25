@@ -28,7 +28,7 @@ struct clkops {
 						  u8 *);
 };
 
-#ifdef CONFIG_ARCH_OMAP2PLUS
+#if defined(CONFIG_ARCH_OMAP2PLUS) || defined(CONFIG_ARCH_TI816X)
 
 struct clksel_rate {
 	u32			val;
@@ -101,7 +101,8 @@ struct dpll_data {
 	u8			min_divider;
 	u8			max_divider;
 	u8			modes;
-#if defined(CONFIG_ARCH_OMAP3) || defined(CONFIG_ARCH_OMAP4)
+#if defined(CONFIG_ARCH_OMAP3) || defined(CONFIG_ARCH_OMAP4) \
+		|| defined(CONFIG_ARCH_TI816X)
 	void __iomem		*autoidle_reg;
 	void __iomem		*idlest_reg;
 	u32			autoidle_mask;
@@ -133,7 +134,7 @@ struct clk {
 	__s8			usecount;
 	u8			fixed_div;
 	u8			flags;
-#ifdef CONFIG_ARCH_OMAP2PLUS
+#if defined(CONFIG_ARCH_OMAP2PLUS) || defined(CONFIG_ARCH_TI816X)
 	void __iomem		*clksel_reg;
 	u32			clksel_mask;
 	const struct clksel	*clksel;
@@ -202,6 +203,7 @@ extern struct clk dummy_ck;
 #define RATE_IN_3430ES2		(1 << 3)	/* 3430ES2 rates only */
 #define RATE_IN_36XX		(1 << 4)
 #define RATE_IN_4430		(1 << 5)
+#define RATE_IN_TI816X		(1 << 7)
 
 #define RATE_IN_24XX		(RATE_IN_242X | RATE_IN_243X)
 

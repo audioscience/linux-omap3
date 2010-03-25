@@ -38,6 +38,7 @@
 #include "clock2xxx.h"
 #include "clock3xxx.h"
 #include "clock44xx.h"
+#include "clock816x.h"
 
 #include <plat/omap-pm.h>
 #include <plat/powerdomain.h>
@@ -230,6 +231,17 @@ static struct map_desc omap44xx_io_desc[] __initdata = {
 };
 #endif
 
+#ifdef CONFIG_ARCH_TI816X
+static struct map_desc ti816x_io_desc[] __initdata = {
+	{
+		.virtual	= L4_SLOW_TI816X_VIRT,
+		.pfn		= __phys_to_pfn(L4_SLOW_TI816X_PHYS),
+		.length		= L4_SLOW_TI816X_SIZE,
+		.type		= MT_DEVICE
+	},
+};
+#endif
+
 static void __init _omap2_map_common_io(void)
 {
 	/* Normally devicemaps_init() would flush caches and tlb after
@@ -240,8 +252,11 @@ static void __init _omap2_map_common_io(void)
 	flush_cache_all();
 
 	omap2_check_revision();
-	omap_sram_init();
-	omap_vram_reserve_sdram();
+
+	if (!cpu_is_ti816x()) {
+		omap_sram_init();
+		omap_vram_reserve_sdram();
+	}
 }
 
 #ifdef CONFIG_ARCH_OMAP2420
@@ -274,6 +289,14 @@ void __init omap34xx_map_common_io(void)
 void __init omap44xx_map_common_io(void)
 {
 	iotable_init(omap44xx_io_desc, ARRAY_SIZE(omap44xx_io_desc));
+	_omap2_map_common_io();
+}
+#endif
+
+#ifdef CONFIG_ARCH_TI816X
+void __init ti816x_map_common_io()
+{
+	iotable_init(ti816x_io_desc, ARRAY_SIZE(ti816x_io_desc));
 	_omap2_map_common_io();
 }
 #endif
@@ -317,6 +340,8 @@ void __init omap2_init_common_hw(struct omap_sdrc_params *sdrc_cs0,
 {
 	pwrdm_init(powerdomains_omap);
 	clkdm_init(clockdomains_omap, clkdm_autodeps);
+
+#ifndef CONFIG_ARCH_TI816X	/* !@@ TODO: Enable on support */
 	if (cpu_is_omap242x())
 		omap2420_hwmod_init();
 	else if (cpu_is_omap243x())
@@ -326,6 +351,7 @@ void __init omap2_init_common_hw(struct omap_sdrc_params *sdrc_cs0,
 	omap2_mux_init();
 	/* The OPP tables have to be registered before a clk init */
 	omap_pm_if_early_init(mpu_opps, dsp_opps, l3_opps);
+#endif
 
 	if (cpu_is_omap2420())
 		omap2420_clk_init();
@@ -335,13 +361,20 @@ void __init omap2_init_common_hw(struct omap_sdrc_params *sdrc_cs0,
 		omap3xxx_clk_init();
 	else if (cpu_is_omap44xx())
 		omap4xxx_clk_init();
+	else if (cpu_is_ti816x())
+		ti816x_clk_init();
 	else
 		pr_err("Could not init clock framework - unknown CPU\n");
 
 	omap_serial_early_init();
-	if (cpu_is_omap24xx() || cpu_is_omap34xx())   /* FIXME: OMAP4 */
+
+	if (cpu_is_omap24xx() || cpu_is_omap34xx())   /* FIXME: OMAP4, TI8168 */
 		omap_hwmod_late_init();
+
+#ifndef CONFIG_ARCH_TI816X	/* !@@ TODO: Enable on support */
 	omap_pm_if_init();
+#endif
+
 	if (cpu_is_omap24xx() || cpu_is_omap34xx()) {
 		omap2_sdrc_init(sdrc_cs0, sdrc_cs1);
 		_omap2_init_reprogram_sdrc();
