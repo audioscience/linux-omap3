@@ -44,8 +44,11 @@ static void __init ti8168_evm_init(void)
 	omap_board_config = generic_config;
 	omap_board_config_size = ARRAY_SIZE(generic_config);
 	omap_serial_init();
+/*
+There are two instances of I2C in TI 816x but currently only one instance
+is used by TI 816x EVM. Registering a single isntance
+*/
 	omap_register_i2c_bus(1, 100, NULL, 0);
-	omap_register_i2c_bus(2, 100, NULL, 0);
 }
 
 static void __init ti8168_evm_map_io(void)

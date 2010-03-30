@@ -49,4 +49,11 @@ void __init omap2_i2c_mux_pins(int bus_id)
 		sprintf(mux_name, "i2c%i_sda.i2c%i_sda", bus_id, bus_id);
 		omap_mux_init_signal(mux_name, OMAP_PIN_INPUT);
 	}
+/* Add i2c pin mux initialisation for TI 816x processors */
+/* No need to enable Mux as both I2C instances are not muxed */
+/* I2C0 is used by Base EVM and all board control peripehrals */
+/* I2C1 is used by DSS-M3 to control all videorelated peripherals */
+	if (cpu_is_ti816x()) {
+	}
+
 }
