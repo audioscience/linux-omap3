@@ -198,6 +198,55 @@ static struct clk gpt3_fck = {
 	.recalc		= &omap2_clksel_recalc,
 #endif
 };
+
+/*
+ *
+ *	TODO:	1. Approriate enable_reg macro
+ *		2. clock frequencies
+ *		3. Appropriate enable_bit value
+ */
+static struct clk mmchs1_ick = {
+	.name		= "mmchs1_ick",
+	.ops		= &clkops_omap2_dflt_wait,
+	.parent		= &omap_32k_ck,
+	.clkdm_name	= "core_l4_clkdm",
+	.enable_reg	= 0,
+	.enable_bit	= 0,
+	.recalc		= &followparent_recalc,
+};
+
+/*
+ *
+ *	TODO:	1. Approriate enable_reg macro
+ *		2. clock frequencies
+ *		3. Appropriate enable_bit value
+ */
+static struct clk mmchs1_fck = {
+	.name		= "mmchs1_ick",
+	.ops		= &clkops_omap2_dflt_wait,
+	.parent		= &omap_32k_ck,
+	.clkdm_name	= "core_l3_clkdm",
+	.enable_reg	= 0,
+	.enable_bit	= 0,
+	.recalc		= &followparent_recalc,
+};
+
+/*
+ *
+ *	TODO:	1. Approriate enable_reg macro
+ *		2. clock frequencies
+ *		3. Appropriate enable_bit value
+ */
+static struct clk mmchsdb1_fck = {
+	.name		= "mmchsdb1_fck",
+	.ops		= &clkops_omap2_dflt_wait,
+	.parent		= &omap_32k_ck,
+	.clkdm_name	= "core_l4_clkdm",
+	.enable_reg	= 0,
+	.enable_bit	= 0,
+	.recalc		= &followparent_recalc,
+};
+
 /*
  * clkdev
  */
@@ -206,6 +255,9 @@ static struct omap_clk ti816x_clks[] = {
 	CLK(NULL,	"sys_clkin_ck",	&sys_clkin_ck,	CK_TI816X),
 	CLK(NULL,	"gpt2_fck",	&gpt2_fck,	CK_TI816X),
 	CLK(NULL,	"gpt3_fck",	&gpt3_fck,	CK_TI816X),
+	CLK("mmci-omap-hs.0",	"ick",	&mmchs1_ick,	CK_TI816X),
+	CLK("mmci-omap-hs.0",	"fck",	&mmchs1_fck,	CK_TI816X),
+	CLK("mmci-omap-hs.0",	"mmchsdb_fck",	&mmchsdb1_fck,	CK_TI816X),
 };
 
 int __init ti816x_clk_init(void)

@@ -200,7 +200,11 @@ static int nop_mmc_set_power(struct device *dev, int slot, int power_on,
 	return 0;
 }
 
+#ifndef CONFIG_ARCH_TI816X
 static struct omap_mmc_platform_data *hsmmc_data[OMAP34XX_NR_MMC] __initdata;
+#else
+static struct omap_mmc_platform_data *hsmmc_data[TI816X_NR_MMC] __initdata;
+#endif
 
 void __init omap2_hsmmc_init(struct omap2_hsmmc_info *controllers)
 {
@@ -209,26 +213,29 @@ void __init omap2_hsmmc_init(struct omap2_hsmmc_info *controllers)
 	int i;
 	u32 reg;
 
-	if (!cpu_is_omap44xx()) {
-		if (cpu_is_omap2430()) {
-			control_pbias_offset = OMAP243X_CONTROL_PBIAS_LITE;
-			control_devconf1_offset = OMAP243X_CONTROL_DEVCONF1;
-		} else {
-			control_pbias_offset = OMAP343X_CONTROL_PBIAS_LITE;
-			control_devconf1_offset = OMAP343X_CONTROL_DEVCONF1;
-		}
-	} else {
+	if (cpu_is_omap44xx()) {
 		control_pbias_offset = OMAP44XX_CONTROL_PBIAS_LITE;
 		control_mmc1 = OMAP44XX_CONTROL_MMC1;
 		reg = omap_ctrl_readl(control_mmc1);
 		reg |= (OMAP4_CONTROL_SDMMC1_PUSTRENGTHGRP0 |
-			OMAP4_CONTROL_SDMMC1_PUSTRENGTHGRP1);
+				OMAP4_CONTROL_SDMMC1_PUSTRENGTHGRP1);
 		reg &= ~(OMAP4_CONTROL_SDMMC1_PUSTRENGTHGRP2 |
-			OMAP4_CONTROL_SDMMC1_PUSTRENGTHGRP3);
+				OMAP4_CONTROL_SDMMC1_PUSTRENGTHGRP3);
 		reg |= (OMAP4_CONTROL_SDMMC1_DR0_SPEEDCTRL |
-			OMAP4_CONTROL_SDMMC1_DR1_SPEEDCTRL |
-			OMAP4_CONTROL_SDMMC1_DR2_SPEEDCTRL);
+				OMAP4_CONTROL_SDMMC1_DR1_SPEEDCTRL |
+				OMAP4_CONTROL_SDMMC1_DR2_SPEEDCTRL);
 		omap_ctrl_writel(reg, control_mmc1);
+	} else if (cpu_is_ti816x()) {
+		/*
+		 * TODO:Add TI816X specific definitions here.
+		 * Control.h yet to be populated
+		 */
+	} else if (cpu_is_omap2430()) {
+		control_pbias_offset = OMAP243X_CONTROL_PBIAS_LITE;
+		control_devconf1_offset = OMAP243X_CONTROL_DEVCONF1;
+	} else {
+		control_pbias_offset = OMAP343X_CONTROL_PBIAS_LITE;
+		control_devconf1_offset = OMAP343X_CONTROL_DEVCONF1;
 	}
 
 	for (c = controllers; c->mmc; c++) {
@@ -313,6 +320,8 @@ void __init omap2_hsmmc_init(struct omap2_hsmmc_info *controllers)
 						omap_hsmmc1_after_set_reg;
 				}
 			}
+			/* TODO: Do we need these functions for TI816X? */
+			/* on-chip level shifting via PBIAS0/PBIAS1 */
 
 			/* Omap3630 HSMMC1 supports only 4-bit */
 			if (cpu_is_omap3630() && c->wires > 4) {
@@ -341,7 +350,11 @@ void __init omap2_hsmmc_init(struct omap2_hsmmc_info *controllers)
 		hsmmc_data[c->mmc - 1] = mmc;
 	}
 
-	omap2_init_mmc(hsmmc_data, OMAP34XX_NR_MMC);
+	if (!cpu_is_ti816x()) {
+		omap2_init_mmc(hsmmc_data, OMAP34XX_NR_MMC);
+	} else {
+		omap2_init_mmc(hsmmc_data, TI816X_NR_MMC);
+	}
 
 	/* pass the device nodes back to board setup code */
 	for (c = controllers; c->mmc; c++) {

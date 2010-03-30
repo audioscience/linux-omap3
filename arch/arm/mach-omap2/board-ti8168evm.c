@@ -31,6 +31,18 @@
 #include "clock.h"
 #include "clockdomains.h"
 #include "powerdomains.h"
+#include "mux.h"
+#include "hsmmc.h"
+
+static struct omap2_hsmmc_info mmc[] = {
+	{
+		.mmc		= 1,
+		.wires		= 4,		/* FIXME: Should this be 8? */
+		.gpio_cd	= -EINVAL,	/* FIXME: GPIO numbers */
+		.gpio_wp	= 63,
+	},
+	{}	/* Terminator */
+};
 
 static struct omap2_mcspi_device_config m25p32_mcspi_config = {
     .turbo_mode = 0,
@@ -78,6 +90,9 @@ There are two instances of I2C in TI 816x but currently only one instance
 is used by TI 816x EVM. Registering a single isntance
 */
 	omap_register_i2c_bus(1, 100, NULL, 0);
+	/* TODO: Decide on the GPIO pin number */
+	omap_mux_init_gpio(63, OMAP_PIN_INPUT);
+	omap2_hsmmc_init(mmc);
 }
 
 static void __init ti8168_evm_map_io(void)

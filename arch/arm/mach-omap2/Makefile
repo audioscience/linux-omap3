@@ -141,7 +141,8 @@ obj-$(CONFIG_MACH_OMAP3_TOUCHBOOK)	+= board-omap3touchbook.o \
 					   hsmmc.o
 obj-$(CONFIG_MACH_OMAP_4430SDP)		+= board-4430sdp.o \
 					   hsmmc.o
-obj-$(CONFIG_MACH_TI8168_EVM)		+= board-ti8168evm.o
+obj-$(CONFIG_MACH_TI8168_EVM)		+= board-ti8168evm.o \
+					   hsmmc.o
 
 obj-$(CONFIG_MACH_OMAP3517EVM)		+= board-am3517evm.o
 

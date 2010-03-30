@@ -233,7 +233,6 @@ static inline void omap_init_mcpdm(void) {}
 	defined(CONFIG_MMC_OMAP_HS) || defined(CONFIG_MMC_OMAP_HS_MODULE)
 
 #define OMAP_MMC_NR_RES		2
-
 /*
  * Register MMC devices. Called from mach-omap1 and mach-omap2 device init.
  */

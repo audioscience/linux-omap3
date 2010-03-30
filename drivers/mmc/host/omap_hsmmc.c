@@ -2099,8 +2099,13 @@ static int __init omap_hsmmc_probe(struct platform_device *pdev)
 	/* Select DMA lines */
 	switch (host->id) {
 	case OMAP_MMC1_DEVID:
-		host->dma_line_tx = OMAP24XX_DMA_MMC1_TX;
-		host->dma_line_rx = OMAP24XX_DMA_MMC1_RX;
+		if (!cpu_is_ti816x()) {
+			host->dma_line_tx = OMAP24XX_DMA_MMC1_TX;
+			host->dma_line_rx = OMAP24XX_DMA_MMC1_RX;
+		} else {
+			host->dma_line_tx = 24;
+			host->dma_line_rx = 25;
+		}
 		break;
 	case OMAP_MMC2_DEVID:
 		host->dma_line_tx = OMAP24XX_DMA_MMC2_TX;
