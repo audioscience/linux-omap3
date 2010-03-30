@@ -65,8 +65,8 @@ static struct resource i2c_resources[][2] = {
 #if	defined(CONFIG_ARCH_OMAP4)
 	{ I2C_RESOURCE_BUILDER(OMAP4_I2C_BASE4, 0) },
 #endif
-#if 	define(CONFIG_ARCH_TI816X)
-	{ I2C_RESOURCE_BUILDER(TI816x_I2C_BASE0, INT_TI816x_I2C0_IRQ) },
+#if 	defined(CONFIG_ARCH_TI816X)
+	{ I2C_RESOURCE_BUILDER(TI816x_I2C_BASE0, TI816X_IRQ_I2C0) },
 #endif
 };
 
