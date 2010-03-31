@@ -34,6 +34,8 @@
 
 #ifdef CONFIG_USB_MUSB_SOC
 
+#define MAX_MUSB_CONTROLLERS	1
+
 static struct resource musb_resources[] = {
 	[0] = { /* start and end set dynamically */
 		.flags	= IORESOURCE_MEM,
@@ -75,20 +77,24 @@ static struct musb_hdrc_platform_data musb_plat = {
 
 static u64 musb_dmamask = DMA_BIT_MASK(32);
 
-static struct platform_device musb_device = {
-	.name		= "musb_hdrc",
-	.id		= -1,
-	.dev = {
-		.dma_mask		= &musb_dmamask,
-		.coherent_dma_mask	= DMA_BIT_MASK(32),
-		.platform_data		= &musb_plat,
-	},
-	.num_resources	= ARRAY_SIZE(musb_resources),
-	.resource	= musb_resources,
+static struct platform_device musb_devices[] = {
+	{
+		.name		= "musb_hdrc",
+		.id		= -1,
+		.dev = {
+			.dma_mask		= &musb_dmamask,
+			.coherent_dma_mask	= DMA_BIT_MASK(32),
+			.platform_data		= &musb_plat,
+		},
+		.num_resources	= ARRAY_SIZE(musb_resources),
+		.resource	= musb_resources,
+	}
 };
 
 void __init usb_musb_init(struct omap_musb_board_data *board_data)
 {
+	int i;
+
 	if (cpu_is_omap243x()) {
 		musb_resources[0].start = OMAP243X_HS_BASE;
 		musb_resources[0].end = musb_resources[0].start + SZ_4K - 1;
@@ -117,8 +123,12 @@ void __init usb_musb_init(struct omap_musb_board_data *board_data)
 	musb_plat.mode = board_data->mode;
 	musb_plat.extvbus = board_data->extvbus;
 
-	if (platform_device_register(&musb_device) < 0)
-		printk(KERN_ERR "Unable to register HS-USB (MUSB) device\n");
+	for (i = 0; i < MAX_MUSB_CONTROLLERS; i++) {
+		if (MAX_MUSB_CONTROLLERS > 1)
+			musb_devices[i].id = i;
+		if (platform_device_register(&musb_devices[i]) < 0)
+			printk(KERN_ERR "Unable to register HS-USB (MUSB) device\n");
+	}
 }
 
 #else
