@@ -93,6 +93,10 @@
 #define TI816X_L4_SLOW_IO_OFFSET	0xb2000000
 #define TI816X_L4_SLOW_IO_ADDRESS(pa)	IOMEM((pa) + TI816X_L4_SLOW_IO_OFFSET)
 
+
+#define TI816X_GPMC_IO_OFFSET		0xa9000000
+#define TI816X_GPMC_IO_ADDRESS(pa)	IOMEM((pa) + TI816X_GPMC_IO_OFFSET)
+
 /*
  * ----------------------------------------------------------------------------
  * Omap1 specific IO mapping
@@ -254,6 +258,13 @@
 						/* 0x48000000 --> 0xd8000000 */
 #define L4_SLOW_TI816X_VIRT	(L4_SLOW_TI816X_PHYS + TI816X_L4_SLOW_IO_OFFSET)
 #define L4_SLOW_TI816X_SIZE	SZ_4M
+
+
+
+#define TI816X_GPMC_PHYS	TI816X_GPMC_BASE
+						/* 0x50000000 --> upto 16MB */
+#define TI816X_GPMC_VIRT	(TI816X_GPMC_PHYS + TI816X_GPMC_IO_OFFSET)
+#define TI816X_GPMC_SIZE	SZ_1M
 
 /*
  * ----------------------------------------------------------------------------

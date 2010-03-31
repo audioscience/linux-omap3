@@ -129,6 +129,8 @@ void __iomem *omap_ioremap(unsigned long p, size_t size, unsigned int type)
 		if (BETWEEN(p, L4_SLOW_TI816X_PHYS, L4_SLOW_TI816X_SIZE))
 			return XLATE(p, L4_SLOW_TI816X_PHYS,
 					L4_SLOW_TI816X_VIRT);
+		if (BETWEEN(p, TI816X_GPMC_PHYS, OMAP44XX_GPMC_SIZE))
+			return XLATE(p, TI816X_GPMC_PHYS, TI816X_GPMC_VIRT);
 	}
 #endif
 	return __arm_ioremap_caller(p, size, type, __builtin_return_address(0));
