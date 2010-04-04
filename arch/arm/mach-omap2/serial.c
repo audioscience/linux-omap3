@@ -82,7 +82,12 @@ static LIST_HEAD(uart_list);
 static struct plat_serial8250_port serial_platform_data0[] = {
 	{
 		.irq		= 72,
+#ifndef CONFIG_TI8168_SIM
 		.flags		= UPF_BOOT_AUTOCONF,
+#else
+		/* WA: Skip loopback test as it fails on simulator */
+		.flags		= UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,
+#endif
 		.iotype		= UPIO_MEM,
 		.regshift	= 2,
 		.uartclk	= OMAP24XX_BASE_BAUD * 16,
@@ -608,9 +613,30 @@ static unsigned int serial_in_override(struct uart_port *up, int offset)
 {
 	if (UART_RX == offset) {
 		unsigned int lsr;
-		lsr = __serial_read_reg(up, UART_LSR);
-		if (!(lsr & UART_LSR_DR))
-			return -EPERM;
+
+		/*
+		 * TI8168 specific workaround: check LCR if this register is
+		 * being  accessed as DLL. If it is, then skip LSR check and
+		 * perform the read as I have observed that the LSR check fails
+		 * during the 8250 driver init specifically when early console
+		 * is enabled ('earlyprintk') and the driver
+		 * autoconfig_read_divisor_id() routine writes back the DLL
+		 * value as 0xff which results into wrong baud setting till it
+		 * is again overridden by set_termios.
+		 *
+		 * Note: This delay (till setting proper baud) feels much longer
+		 * in case of emulation builds but for now it best to avoid even
+		 * on actual h/w.
+		 *
+		 * TODO: This WA can be later removed if the delay is OK or
+		 * can be added for all 'chips' after complete tests are done.
+		 */
+		if (!cpu_is_ti816x() ||
+			!(__serial_read_reg(up, UART_LCR) & UART_LCR_DLAB)) {
+			lsr = __serial_read_reg(up, UART_LSR);
+			if (!(lsr & UART_LSR_DR))
+				return -EPERM;
+		}
 	}
 
 	return __serial_read_reg(up, offset);
@@ -621,6 +647,7 @@ static void serial_out_override(struct uart_port *up, int offset, int value)
 	unsigned int status, tmout = 10000;
 
 	status = __serial_read_reg(up, UART_LSR);
+
 	while (!(status & UART_LSR_THRE)) {
 		/* Wait up to 10ms for the character(s) to be sent. */
 		if (--tmout == 0)
