@@ -45,6 +45,7 @@ omap_uart_lsr:	.word	0
 		/* Check the debug UART configuration set in uncompress.h */
 		mrc	p15, 0, \rx, c1, c0
 		tst	\rx, #1			@ MMU enabled?
+
 		ldreq	\rx, =OMAP_UART_INFO
 		ldrne	\rx, =__phys_to_virt(OMAP_UART_INFO)
 		ldr	\rx, [\rx, #0]
