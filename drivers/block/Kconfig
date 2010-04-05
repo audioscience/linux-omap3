@@ -488,4 +488,18 @@ config BLK_DEV_HD
 
 	  If unsure, say N.
 
+config SIMBLKDEV
+	bool "TI8168 simulator block device support"
+	help
+          Choose Y if want to use the emulated harddisk on simulator. Harddisk
+	   image file must be located in
+          c:\temp\hd.img on windows PC.
+
+	  If unsure, say Y.
+
+config  SIMBLKDEV_PHYSADDR
+        hex
+        default 0x40290000
+        depends on SIMBLKDEV
+
 endif # BLK_DEV

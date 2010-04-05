@@ -1,0 +1,15 @@
+config  SIMFS
+	bool "Local filesystem support"
+	help
+	  Choose Y here if you want to access files residing on your PC
+          drives. This is supported only on TI simulator M5.1
+          release onwards.
+
+	  If unsure, say Y.
+
+	  Most people say Y here.
+
+config  SIMFS_PHYSADDR
+	hex
+	default 0x40280000
+	depends on SIMFS

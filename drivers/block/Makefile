@@ -39,3 +39,4 @@ obj-$(CONFIG_XEN_BLKDEV_FRONTEND)	+= xen-blkfront.o
 obj-$(CONFIG_BLK_DEV_DRBD)     += drbd/
 
 swim_mod-objs	:= swim.o swim_asm.o
+obj-$(CONFIG_SIMBLKDEV)	        += simblkdev.o
