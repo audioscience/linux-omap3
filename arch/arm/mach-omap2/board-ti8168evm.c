@@ -14,15 +14,73 @@
  */
 #include <linux/kernel.h>
 #include <linux/init.h>
+#include <linux/platform_device.h>
+#include <linux/mtd/mtd.h>
+#include <linux/mtd/partitions.h>
+#include <linux/device.h>
+#include <linux/spi/spi.h>
+#include <linux/spi/flash.h>
 
 #include <mach/hardware.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
 
+#include <plat/mcspi.h>
 #include <plat/irqs.h>
 #include <plat/board.h>
 #include <plat/common.h>
+
+/* SPI fLash information */
+struct mtd_partition ti816x_spi_partitions[] = {
+	/* All the partition sizes are listed in terms of NAND block size */
+	{
+		.name		= "U-Boot",
+		.offset		= 0,	/* Offset = 0x0 */
+		.size		= 64 * SZ_4K,
+		.mask_flags	= MTD_WRITEABLE,	/* force read-only */
+	},
+	{
+		.name		= "U-Boot Env",
+		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x40000 */
+		.size		= 2 * SZ_4K,
+	},
+	{
+		.name		= "Kernel",
+		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x42000 */
+		.size		= 640 * SZ_4K,
+	},
+	{
+		.name		= "File System",
+		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x2C2000 */
+		.size		= MTDPART_SIZ_FULL,		/* size = 1.24 MiB */
+	}
+};
+
+const struct flash_platform_data ti816x_spi_flash = {
+	.type		= "w25x32",
+	.name		= "spi_flash",
+	.parts		= ti816x_spi_partitions,
+	.nr_parts	= ARRAY_SIZE(ti816x_spi_partitions),
+};
+
+struct spi_board_info __initdata ti816x_spi_slave_info[] = {
+	{
+		.modalias	= "m25p80",
+		.platform_data	= &ti816x_spi_flash,
+		.irq		= -1,
+		.max_speed_hz	= 75000000,
+		.bus_num	= 1,
+		.chip_select	= 0,
+	},
+};
+
+static void __init ti816x_spi_init(void)
+{
+	spi_register_board_info(ti816x_spi_slave_info,
+				ARRAY_SIZE(ti816x_spi_slave_info));
+}
+
 
 static void __init ti8168_evm_init_irq(void)
 {
@@ -33,8 +91,8 @@ static void __init ti8168_evm_init_irq(void)
 static void __init ti8168_evm_init(void)
 {
 	omap_serial_init();
+	ti816x_spi_init();
 }
-
 
 static void __init ti8168_evm_map_io(void)
 {
