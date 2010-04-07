@@ -12,12 +12,15 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/device.h>
+#include <linux/spi/spi.h>
+#include <linux/spi/flash.h>
 
 #include <mach/hardware.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
 
+#include <plat/mcspi.h>
 #include <plat/irqs.h>
 #include <plat/mux.h>
 #include <plat/usb.h>
@@ -28,6 +31,28 @@
 #include "clock.h"
 #include "clockdomains.h"
 #include "powerdomains.h"
+
+static struct omap2_mcspi_device_config m25p32_mcspi_config = {
+    .turbo_mode = 0,
+    .single_channel = 1,    /* 0: slave, 1: master */
+};
+
+static struct flash_platform_data m25p32_flash_data = {
+	.type			= "m25p32",
+};
+
+static struct spi_board_info ti8168_evm_spi_info[] __initconst = {
+	{
+		.modalias       = "m25p32",
+		.max_speed_hz   = 10 * 1000 * 1000,
+		.bus_num        = 0,
+		.chip_select    = 0,
+		.mode           = SPI_MODE_0,
+		.controller_data = &m25p32_mcspi_config,
+		.platform_data = &m25p32_flash_data,
+		.irq			= TI816X_IRQ_SPI,
+	},
+};
 
 static void __init ti8168_evm_init_irq(void)
 {
@@ -43,6 +68,10 @@ static void __init ti8168_evm_init(void)
 {
 	omap_board_config = generic_config;
 	omap_board_config_size = ARRAY_SIZE(generic_config);
+
+	spi_register_board_info(ti8168_evm_spi_info,
+				ARRAY_SIZE(ti8168_evm_spi_info));
+
 	omap_serial_init();
 /*
 There are two instances of I2C in TI 816x but currently only one instance
