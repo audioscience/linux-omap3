@@ -76,9 +76,9 @@ int omap_request_dma(int dev_id, const char *dev_name,
              void (*callback)(int lch, u16 ch_status, void *data),
              void *data, int *dma_ch_out)
 {
-	dma_ch_out = edma_alloc_channel(dev_id, callback, data, EVENTQ_2);
+	*dma_ch_out = edma_alloc_channel(dev_id, callback, data, EVENTQ_2);
 
-	if ((-1) == dma_ch_out)
+	if (*dma_ch_out < 0)
 		return (-1);
 	else
 		return 0;
