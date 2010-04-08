@@ -29,6 +29,42 @@
 
 #include "mux.h"
 
+#define TI816X_RTC_BASE           0x480C0000
+
+#if defined(CONFIG_RTC_DRV_OMAP) || defined(CONFIG_RTC_DRV_OMAP_MODULE)
+
+static struct resource rtc_resources[] = {
+        {
+                .start          = TI816X_RTC_BASE,
+                .end            = TI816X_RTC_BASE + 0x5f,
+                .flags          = IORESOURCE_MEM,
+        },
+        {
+                .start          = TI816X_IRQ_RTC,
+                .flags          = IORESOURCE_IRQ,
+        },
+        {
+                .start          = TI816X_IRQ_RTC_ALARM,
+                .flags          = IORESOURCE_IRQ,
+        },
+};
+
+static struct platform_device ti816x_rtc_device = {
+        .name           = "omap_rtc",
+        .id             = -1,
+        .num_resources  = ARRAY_SIZE(rtc_resources),
+        .resource       = rtc_resources,
+};
+
+static int ti816x_init_rtc(void)
+{
+        return(platform_device_register(&ti816x_rtc_device));
+}
+#else
+static inline void ti816x_init_rtc(void) {}
+#endif
+
+
 #if defined(CONFIG_VIDEO_OMAP2) || defined(CONFIG_VIDEO_OMAP2_MODULE)
 
 static struct resource cam_resources[] = {
