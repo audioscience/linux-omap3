@@ -266,13 +266,9 @@ static void txstate(struct musb *musb, struct musb_request *req)
 	u16			fifo_count = 0, csr;
 	int			use_dma = 0;
 
-	if (musb->can_dma_queue)
-		return;
-
 	musb_ep = req->ep;
-
 	/* we shouldn't get here while DMA is active ... but we do ... */
-	if (dma_channel_status(musb_ep->dma) == MUSB_DMA_STATUS_BUSY) {
+	if (!musb->can_dma_queue && dma_channel_status(musb_ep->dma) == MUSB_DMA_STATUS_BUSY) {
 		DBG(4, "dma pending...\n");
 		return;
 	}
@@ -284,7 +280,7 @@ static void txstate(struct musb *musb, struct musb_request *req)
 	fifo_count = min(max_ep_writesize(musb, musb_ep),
 			(int)(request->length - request->actual));
 
-	if (csr & MUSB_TXCSR_TXPKTRDY) {
+	if (!musb->can_dma_queue && (csr & MUSB_TXCSR_TXPKTRDY)) {
 		DBG(5, "%s old packet still ready , txcsr %03x\n",
 				musb_ep->end_point.name, csr);
 		return;
@@ -453,7 +449,7 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 		DBG(20, "underrun on ep%d, req %p\n", epnum, request);
 	}
 
-	if (dma_channel_status(dma) == MUSB_DMA_STATUS_BUSY) {
+	if (!musb->can_dma_queue && (dma_channel_status(dma) == MUSB_DMA_STATUS_BUSY)) {
 		/*
 		 * SHOULD NOT HAPPEN... has with CPPI though, after
 		 * changing SENDSTALL (and other cases); harmless?
@@ -527,7 +523,8 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 			}
 		}
 
-		txstate(musb, to_musb_request(request));
+		if (!musb->can_dma_queue)
+			txstate(musb, to_musb_request(request));
 	}
 }
 
@@ -780,7 +777,7 @@ void musb_g_rx(struct musb *musb, u8 epnum)
 		DBG(4, "%s, incomprx\n", musb_ep->end_point.name);
 	}
 
-	if (dma_channel_status(dma) == MUSB_DMA_STATUS_BUSY) {
+	if (!musb->can_dma_queue && (dma_channel_status(dma) == MUSB_DMA_STATUS_BUSY)) {
 		/* "should not happen"; likely RXPKTRDY pending for DMA */
 		DBG((csr & MUSB_RXCSR_DMAENAB) ? 4 : 1,
 			"%s busy, csr %04x\n",
@@ -1169,8 +1166,8 @@ static int musb_gadget_queue(struct usb_ep *ep, struct usb_request *req,
 	list_add_tail(&(request->request.list), &(musb_ep->req_list));
 
 	/* it this is the head of the queue, start i/o ... */
-	if (musb->can_dma_queue || !musb_ep->busy
-		&& &request->request.list == musb_ep->req_list.next)
+	if (musb->can_dma_queue || (!musb_ep->busy
+		&& &request->request.list == musb_ep->req_list.next))
 		musb_ep_restart(musb, request);
 
 cleanup:
