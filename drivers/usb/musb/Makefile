@@ -18,6 +18,10 @@ ifeq ($(CONFIG_ARCH_OMAP2430),y)
 	musb_hdrc-objs	+= omap2430.o
 endif
 
+ifeq ($(CONFIG_ARCH_NETRA),y)
+       musb_hdrc-objs  += ti816x.o
+endif
+
 ifeq ($(CONFIG_ARCH_OMAP3430),y)
    ifeq ($(CONFIG_MACH_OMAP3517EVM),y)
 	musb_hdrc-objs  += am3517.o
