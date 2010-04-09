@@ -192,7 +192,7 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 	}
 }
 
-#if !defined(CONFIG_MACH_OMAP3517EVM)
+#if !defined(CONFIG_MACH_OMAP3517EVM) && !defined(CONFIG_ARCH_TI816X)
 /*
  * Unload an endpoint's FIFO
  */

@@ -33,16 +33,16 @@
 
 /*#include <plat/control.h>*/
 #include "cppi41.h"
-#include "am_netra.h"
+#include "ti816x.h"
 
 #include "musb_core.h"
 #include "cppi41_dma.h"
 
 struct musb *g_musb;
 
-#undef USB_NETRA_DEBUG
+#undef USB_TI816X_DEBUG
 
-#ifdef USB_NETRA_DEBUG
+#ifdef USB_TI816X_DEBUG
 #define	dprintk(x, ...) printk(x, ## __VA_ARGS__)
 #else
 #define dprintk(x, ...)
@@ -127,8 +127,8 @@ int usbotg_ss_init(struct musb *musb)
 	int status = 0;
 
 	if (!usbss.init_done) {
-		usbss.base = ioremap(NETRA_IPSS_USBSS_BASE,
-				NETRA_IPSS_USBSS_LEN);
+		usbss.base = ioremap(TI816X_USBSS_BASE,
+				TI816X_USBSS_LEN);
 		usbss.intc_base = ioremap(0x50000000, 0x400);
 		spin_lock_init(&usbss.lock);
 		usbss.init_done = 1;
@@ -466,8 +466,8 @@ int __init cppi41_init(struct musb *musb)
 	u32 offs = 0x2000;
 	u32 nIrq = 10;
 
-	cppi41_dma_base = ioremap(NETRA_USB_CPPIDMA_BASE,
-					NETRA_USB_CPPIDMA_LEN);
+	cppi41_dma_base = ioremap(TI816X_USB_CPPIDMA_BASE,
+					TI816X_USB_CPPIDMA_LEN);
 
 	printk(KERN_INFO "cppi41_dma_base = %p\n", cppi41_dma_base);
 
@@ -661,7 +661,7 @@ static int vbus_state = -1;
 #define portstate(stmt)
 #endif
 
-static void netra_source_power(struct musb *musb, int is_on, int immediate)
+static void ti816x_source_power(struct musb *musb, int is_on, int immediate)
 {
 	if (is_on)
 		is_on = 1;
@@ -671,10 +671,10 @@ static void netra_source_power(struct musb *musb, int is_on, int immediate)
 	vbus_state = is_on;		/* 0/1 vs "-1 == unknown/init" */
 }
 
-static void netra_set_vbus(struct musb *musb, int is_on)
+static void ti816x_set_vbus(struct musb *musb, int is_on)
 {
 	WARN_ON(is_on && is_peripheral_active(musb));
-	netra_source_power(musb, is_on, 0);
+	ti816x_source_power(musb, is_on, 0);
 }
 
 #define	POLL_SECONDS	2
@@ -866,7 +866,7 @@ static irqreturn_t cppi41dma_Interrupt(int irq, void *hci)
 	return ret;
 }
 
-static irqreturn_t netra_interrupt(int irq, void *hci)
+static irqreturn_t ti816x_interrupt(int irq, void *hci)
 {
 	struct musb  *musb = hci;
 	void __iomem *reg_base = musb->ctrl_base;
@@ -955,7 +955,7 @@ static irqreturn_t netra_interrupt(int irq, void *hci)
 		}
 
 		/* NOTE: this must complete power-on within 100 ms. */
-		netra_source_power(musb, drvvbus, 0);
+		ti816x_source_power(musb, drvvbus, 0);
 		DBG(2, "VBUS %s (%s)%s, devctl %02x\n",
 				drvvbus ? "on" : "off",
 				otg_state_string(musb),
@@ -1072,8 +1072,8 @@ int musb_platform_init(struct musb *musb)
 	if (is_host_enabled(musb))
 		setup_timer(&otg_workaround, otg_timer, (unsigned long) musb);
 
-	musb->board_set_vbus = netra_set_vbus;
-	netra_source_power(musb, 0, 1);
+	musb->board_set_vbus = ti816x_set_vbus;
+	ti816x_source_power(musb, 0, 1);
 
 	/* follow recommended reset procedure */
 	/* Reset the controller */
@@ -1100,7 +1100,7 @@ int musb_platform_init(struct musb *musb)
 #endif
 
 	musb->a_wait_bcon = A_WAIT_BCON_TIMEOUT;
-	musb->isr = netra_interrupt;
+	musb->isr = ti816x_interrupt;
 
 	/* set musb controller to host mode */
 	if (is_host_enabled(musb))
@@ -1119,7 +1119,7 @@ int musb_platform_exit(struct musb *musb)
 	if (is_host_enabled(musb))
 		del_timer_sync(&otg_workaround);
 
-	netra_source_power(musb, 0, 1);
+	ti816x_source_power(musb, 0, 1);
 
 	/* Delay to avoid problems with module reload... */
 	if (is_host_enabled(musb) && musb->xceiv->default_a) {
