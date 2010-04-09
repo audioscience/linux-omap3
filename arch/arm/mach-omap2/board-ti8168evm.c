@@ -62,7 +62,7 @@ static struct spi_board_info ti8168_evm_spi_info[] __initconst = {
 		.mode           = SPI_MODE_0,
 		.controller_data = &m25p32_mcspi_config,
 		.platform_data = &m25p32_flash_data,
-		.irq			= TI816X_IRQ_SPI,
+		.irq		= TI816X_IRQ_SPI,
 	},
 };
 
@@ -84,6 +84,78 @@ static struct omap_board_config_kernel generic_config[] = {
 
 int __init ti_ahci_register(u8 num_inst);
 
+/* FIX ME: Check the address of I2C expander */
+
+static struct i2c_board_info __initdata ti816x_i2c_boardinfo[] = {
+	{
+		I2C_BOARD_INFO("eeprom", 0x50),
+	},
+
+	{
+		I2C_BOARD_INFO("cpld", 0x23),
+	},
+};
+
+/* FIX ME: Check on the Bit Value */
+
+#define TI816X_EVM_CIR_UART BIT(5)
+
+static struct i2c_client *cpld_reg0_client;
+/* CPLD Register 0 Client: used for I/O Control */
+static int cpld_reg0_probe(struct i2c_client *client,
+			const struct i2c_device_id *id)
+{
+	u8 data;
+	struct i2c_msg msg[2] = {
+		{
+			.addr = client->addr,
+			.flags = I2C_M_RD,
+			.len = 1,
+			.buf = &data,
+		},
+		{
+			.addr = client->addr,
+			.flags = 0,
+			.len = 1,
+			.buf = &data,
+		},
+	};
+
+	cpld_reg0_client = client;
+
+	/* Clear UART CIR to enable cir operation. */
+		i2c_transfer(client->adapter, msg, 1);
+		data &= ~(TI816X_EVM_CIR_UART);
+		i2c_transfer(client->adapter, msg + 1, 1);
+	return 0;
+}
+
+
+static const struct i2c_device_id cpld_reg_ids[] = {
+		{ "cpld_reg0", 0, },
+		{ },
+};
+
+static struct i2c_driver ti816xevm_cpld_driver = {
+	.driver.name    = "cpld_reg0",
+	.id_table       = cpld_reg_ids,
+	.probe          = cpld_reg0_probe,
+};
+
+
+static int __init ti816x_evm_i2c_init(void)
+{
+/*
+There are two instances of I2C in TI 816x but currently only one instance
+is used by TI 816x EVM. Registering a single isntance
+*/
+	omap_register_i2c_bus(1, 100, ti816x_i2c_boardinfo,
+		ARRAY_SIZE(ti816x_i2c_boardinfo));
+	return 0;
+}
+
+
+
 static void __init ti8168_evm_init(void)
 {
 	omap_board_config = generic_config;
@@ -93,11 +165,6 @@ static void __init ti8168_evm_init(void)
 				ARRAY_SIZE(ti8168_evm_spi_info));
 
 	omap_serial_init();
-/*
-There are two instances of I2C in TI 816x but currently only one instance
-is used by TI 816x EVM. Registering a single isntance
-*/
-	omap_register_i2c_bus(1, 100, NULL, 0);
 	/* TODO: Decide on the GPIO pin number */
 	omap_mux_init_gpio(63, OMAP_PIN_INPUT);
 	omap2_hsmmc_init(mmc);
@@ -107,7 +174,11 @@ is used by TI 816x EVM. Registering a single isntance
 
 	/* register ahci interface for 2 SATA ports */
 	ti_ahci_register(2);
+	ti816x_evm_i2c_init();
+	i2c_add_driver(&ti816xevm_cpld_driver);
+
 }
+
 
 static void __init ti8168_evm_map_io(void)
 {
@@ -116,7 +187,7 @@ static void __init ti8168_evm_map_io(void)
 }
 
 MACHINE_START(TI8168_EVM, "ti8168evm")
-	/* Maintainer: Paul Mundt <paul.mundt@nokia.com> */
+	/* Maintainer: Texas Instruments */
 	.phys_io	= 0x48000000,
 	.io_pg_offst	= ((0xfa000000) >> 18) & 0xfffc,
 	.boot_params	= 0x80000100,
@@ -125,3 +196,7 @@ MACHINE_START(TI8168_EVM, "ti8168evm")
 	.init_machine	= ti8168_evm_init,
 	.timer		= &omap_timer,
 MACHINE_END
+
+
+
+
