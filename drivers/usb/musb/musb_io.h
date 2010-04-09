@@ -56,7 +56,8 @@ static inline void writesb(const void __iomem *addr, const void *buf, int len)
 
 #endif
 
-#if !defined(CONFIG_BLACKFIN) && !defined(CONFIG_MACH_OMAP3517EVM)
+#if !defined(CONFIG_BLACKFIN) && !defined(CONFIG_MACH_OMAP3517EVM)	\
+	&& !defined(CONFIG_ARCH_TI816X)
 
 /* NOTE:  these offsets are all in bytes */
 
@@ -136,7 +137,7 @@ static inline void musb_writew(void __iomem *addr, unsigned offset, u16 data)
 static inline void musb_writel(void __iomem *addr, unsigned offset, u32 data)
 	{ bfin_write16(addr + offset, (u16) data); }
 
-#elif defined(CONFIG_MACH_OMAP3517EVM)
+#elif defined(CONFIG_MACH_OMAP3517EVM) || defined(CONFIG_ARCH_TI816X)
 
 /* AM3517 has a limitation on read operation. Only 32 bit read is
  * allowed and thus 8bit and 16bit read has to be handled differently
