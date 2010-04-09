@@ -18,7 +18,7 @@ ifeq ($(CONFIG_ARCH_OMAP2430),y)
 	musb_hdrc-objs	+= omap2430.o
 endif
 
-ifeq ($(CONFIG_ARCH_NETRA),y)
+ifeq ($(CONFIG_ARCH_TI816X),y)
        musb_hdrc-objs  += ti816x.o
 endif
 
