@@ -112,7 +112,9 @@
 #include "davinci.h"
 #endif
 
-
+#ifdef CONFIG_ARCH_DAVINCI
+#include "ti618x.h"
+#endif
 
 unsigned musb_debug;
 module_param_named(debug, musb_debug, uint, S_IRUGO | S_IWUSR);
@@ -975,7 +977,8 @@ static void musb_shutdown(struct platform_device *pdev)
  * more than selecting one of a bunch of predefined configurations.
  */
 #if defined(CONFIG_USB_TUSB6010) || \
-	defined(CONFIG_ARCH_OMAP2430) || defined(CONFIG_ARCH_OMAP3)
+	defined(CONFIG_ARCH_OMAP2430) || defined(CONFIG_ARCH_OMAP3) || \
+	defined(CONFIG_ARCH_TI816X)
 static ushort __initdata fifo_mode = 4;
 #else
 static ushort __initdata fifo_mode = 2;
@@ -2061,9 +2064,14 @@ bad_config:
 			? "DMA" : "PIO",
 			musb->nIrq);
 
-	if (status == 0)
-		musb_debug_create("driver/musb_hdrc", musb);
-
+	if (status == 0) {
+		u8 drvbuf[50];
+		if (cpu_is_ti816x()) {
+			sprintf(drvbuf, "driver/musb_hdrc.%d", 0);
+			musb_debug_create(drvbuf, musb);
+		} else
+			musb_debug_create("driver/musb_hdrc", musb);
+	}
 #ifdef CONFIG_USB_MUSB_HDRC_HCD
 	musb->gb_queue = create_singlethread_workqueue(dev_name(dev));
 	if (musb->gb_queue == NULL)
