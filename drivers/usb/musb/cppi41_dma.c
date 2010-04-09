@@ -150,6 +150,7 @@ static int queue_count(struct list_head *head)
 	return count;
 }
 
+#ifdef DEBUG_CPPI_TD
 static void list_print(struct list_head *head)
 {
 	struct list_head *ptrhead = head;
@@ -157,11 +158,11 @@ static void list_print(struct list_head *head)
 	int count = 1;
 
 	if (list_empty(ptrhead))
-		printk(KERN_DEBUG, "list is empty\n");
+		printk(KERN_DEBUG "list is empty\n");
 	while (ptrhead->next != head) {
 		curr_pd = container_of(ptrhead->next,
 				struct usb_pkt_desc, list);
-		printk(KERN_DEBUG, "%d. curr_pd(%p)\n", count,
+		printk(KERN_DEBUG "%d. curr_pd(%p)\n", count,
 			curr_pd);
 		ptrhead = ptrhead->next;
 		count++;
@@ -170,7 +171,6 @@ static void list_print(struct list_head *head)
 	}
 }
 
-#ifdef DEBUG_CPPI_TD
 static void print_pd_list(struct usb_pkt_desc *pd_pool_head)
 {
 	struct usb_pkt_desc *curr_pd = pd_pool_head;
@@ -256,7 +256,7 @@ int cppi41_send_bd_queue(struct cppi41_channel *cppi_ch)
 				}
 			}
 			if (!ie_enabled && flag)
-				printk(KERN_DEBUG, "Warning: tx bd interupt not enabled\n");
+				printk(KERN_DEBUG "Warning: tx bd interupt not enabled\n");
 		}
 	} else {
 		dprintk("rx-s/w bd count =%d\n", queue_cnt);
@@ -293,7 +293,7 @@ int cppi41_send_bd_queue(struct cppi41_channel *cppi_ch)
 					}
 			}
 			if (!ie_enabled && flag)
-				printk(KERN_DEBUG, "Warning: rx bd interupt not enabled\n");
+				printk(KERN_DEBUG "Warning: rx bd interupt not enabled\n");
 		}
 	}
 	/* return the num of bd pushed to dma queue */
@@ -872,7 +872,7 @@ static void cppi41_set_ep_size(struct cppi41_channel *rx_ch, u32 pkt_size)
 static unsigned cppi41_next_rx_segment(struct cppi41_channel *rx_ch)
 {
 	struct cppi41 *cppi = rx_ch->channel.private_data;
-	struct usb_pkt_desc *curr_pd, *first_pd;
+	struct usb_pkt_desc *curr_pd, *first_pd = 0;
 	struct cppi41_host_pkt_desc *hw_desc;
 	u32 length = rx_ch->length - rx_ch->curr_offset;
 	u32 pkt_size = rx_ch->pkt_size;

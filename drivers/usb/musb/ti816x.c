@@ -469,7 +469,7 @@ int __init cppi41_init(struct musb *musb)
 	cppi41_dma_base = ioremap(NETRA_USB_CPPIDMA_BASE,
 					NETRA_USB_CPPIDMA_LEN);
 
-	printk(KERN_INFO, "cppi41_dma_base = %p\n", cppi41_dma_base);
+	printk(KERN_INFO "cppi41_dma_base = %p\n", cppi41_dma_base);
 
 	/* init mappings */
 	cppi41_queue_mgr[0].q_mgr_rgn_base	= (void *)((u32)cppi41_dma_base
@@ -493,7 +493,7 @@ int __init cppi41_init(struct musb *musb)
 	/* Initialize for Linking RAM region 0 alone */
 	cppi41_queue_mgr_init(usb_cppi41_info.q_mgr, 0, 0x3fff);
 
-	printk(KERN_INFO, "cppi41_queue_mgr_init done\n");
+	printk(KERN_INFO "cppi41_queue_mgr_init done\n");
 	numch =  USB_CPPI41_NUM_CH * 2;
 	order = get_count_order(numch);
 
@@ -507,9 +507,9 @@ int __init cppi41_init(struct musb *musb)
 #ifdef CONFIG_USB_TI_CPPI41_DMA
 	/* attach to the IRQ */
 	if (request_irq(nIrq, cppi41dma_Interrupt, 0, "musb_dma", musb))
-		printk(KERN_INFO, "request_irq %d failed!\n", nIrq);
+		printk(KERN_INFO "request_irq %d failed!\n", nIrq);
 	else
-		printk(KERN_INFO, "registerd cppi-dma Intr @ IRQ %d\n", nIrq);
+		printk(KERN_INFO "registerd cppi-dma Intr @ IRQ %d\n", nIrq);
 #endif
 
 #define USBSS_INTR_RX_STARV	0x00000001
@@ -812,7 +812,7 @@ static irqreturn_t cppi41dma_Interrupt(int irq, void *hci)
 		if (intr_status)
 			usbss_write(USBSS_IRQ_STATUS, intr_status);
 		else
-			printk(KERN_DEBUG, "spurious usbss intr\n");
+			printk(KERN_DEBUG "spurious usbss intr\n");
 
 		dprintk("amIsr: intr_status = %x\n", intr_status);
 		if (intr_status & (0xf04|USBSS_INTR_RX_STARV)) {
@@ -897,7 +897,7 @@ static irqreturn_t netra_interrupt(int irq, void *hci)
 	/* Get usb core interrupts */
 	usbintr = musb_readl(reg_base, USB_CORE_INTR_STATUS_REG);
 	if (!usbintr && !epintr) {
-		printk(KERN_DEBUG, "c[%x]ep[%x]\n", usbintr, epintr);
+		printk(KERN_DEBUG "c[%x]ep[%x]\n", usbintr, epintr);
 		goto eoi;
 	}
 
