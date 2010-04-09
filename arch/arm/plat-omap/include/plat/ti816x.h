@@ -37,4 +37,22 @@
 
 #define TI816X_GPMC_BASE	0x50000000
 
+#define TI816X_USBSS_BASE	0x47400000
+#define TI816X_USBSS_LEN	0xFFF
+#define TI816X_USB0_BASE	0x47401000
+#define TI816X_USB1_BASE	0x47401800
+#define TI816X_USB_CPPIDMA_BASE	0x47402000
+#define TI816X_USB_CPPIDMA_LEN	0x5FFF
+
+#ifdef TI816X_PRE_SILICON_HAPS
+/* only for HAPS54 platform */
+#define TI816X_USBSS_IRQ	10 /* usb subsystem interrupt*/
+#define TI816X_USB0_IRQ		11 /* usb controller0 intrpt */
+#define TI816X_USB1_IRQ		12 /* usb controller1 intrpt */
+#else
+#define TI816X_USBSS_IRQ	49 /* usb subsystem interrupt*/
+#define TI816X_USB0_IRQ		50 /* usb controller0 intrpt */
+#define TI816X_USB1_IRQ		51 /* usb controller1 intrpt */
+#endif
+
 #endif /* __ASM_ARCH_TI816X_H */

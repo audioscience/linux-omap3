@@ -88,7 +88,7 @@ static struct platform_device musb_devices[] = {
 		},
 		.num_resources	= ARRAY_SIZE(musb_resources),
 		.resource	= musb_resources,
-	}
+	},
 };
 
 void __init usb_musb_init(struct omap_musb_board_data *board_data)
@@ -111,6 +111,10 @@ void __init usb_musb_init(struct omap_musb_board_data *board_data)
 		musb_resources[1].start = OMAP44XX_IRQ_HS_USB_MC_N;
 		musb_resources[2].start = OMAP44XX_IRQ_HS_USB_DMA_N;
 		musb_resources[0].end = musb_resources[0].start + SZ_4K - 1;
+	} else if (cpu_is_ti816x()) {
+		musb_resources[0].start = TI816X_USB0_BASE;
+		musb_resources[1].start = TI816X_USBSS_IRQ;
+		musb_resources[0].end = musb_resources[0].start + SZ_2K - 1;
 	}
 
 	/*
