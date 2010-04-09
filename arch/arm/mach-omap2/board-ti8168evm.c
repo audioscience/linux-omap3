@@ -66,6 +66,12 @@ static struct spi_board_info ti8168_evm_spi_info[] __initconst = {
 	},
 };
 
+static struct omap_musb_board_data musb_board_data = {
+	.interface_type		= MUSB_INTERFACE_ULPI,
+	.mode			= MUSB_OTG,
+	.power			= 500,
+};
+
 static void __init ti8168_evm_init_irq(void)
 {
 	omap2_gp_clockevent_set_gptimer(2);
@@ -93,6 +99,9 @@ is used by TI 816x EVM. Registering a single isntance
 	/* TODO: Decide on the GPIO pin number */
 	omap_mux_init_gpio(63, OMAP_PIN_INPUT);
 	omap2_hsmmc_init(mmc);
+
+	/* initialize usb */
+	usb_musb_init(&musb_board_data);
 }
 
 static void __init ti8168_evm_map_io(void)
