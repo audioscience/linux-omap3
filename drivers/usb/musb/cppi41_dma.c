@@ -428,11 +428,6 @@ static int __init cppi41_controller_start(struct dma_controller *controller)
 	musb_writel(reg_base, USB_TX_MODE_REG, 0);
 	musb_writel(reg_base, USB_RX_MODE_REG, 0);
 
-	cppi->can_dma_queue = 1;
-	if (cpu_is_ti816x()) {
-		cppi->inf_mode = 1;
-		cppi->defer_intr = 1;
-	}
 	return 1;
 
  free_queue:
@@ -764,9 +759,10 @@ static unsigned cppi41_next_tx_segment(struct cppi41_channel *tx_ch)
 				cppi41_queue_push(&tx_ch->queue_obj,
 					curr_pd->dma_addr,
 					USB_CPPI41_DESC_ALIGN, pkt_size);
-			} else
+			} else {
 				list_add_tail(&(curr_pd->list),
 						&(tx_ch->req_list));
+			}
 		} else {
 			hw_desc->orig_buf_len |= 0x80000000;
 			cppi41_queue_push(&tx_ch->queue_obj, curr_pd->dma_addr,
@@ -1068,9 +1064,11 @@ static int cppi41_channel_program(struct dma_channel *channel,	u16 maxpacket,
 				  u8 mode, dma_addr_t dma_addr, u32 length)
 {
 	struct cppi41_channel *cppi_ch;
+	struct cppi41 *cppi;
 	unsigned queued;
 
 	cppi_ch = container_of(channel, struct cppi41_channel, channel);
+	cppi = cppi_ch->channel.private_data;
 
 	switch (channel->status) {
 	case MUSB_DMA_STATUS_BUS_ABORT:
@@ -1091,7 +1089,8 @@ static int cppi41_channel_program(struct dma_channel *channel,	u16 maxpacket,
 		break;
 	}
 
-	channel->status = MUSB_DMA_STATUS_BUSY;
+	if (!cppi->can_dma_queue)
+		channel->status = MUSB_DMA_STATUS_BUSY;
 
 	/* Set the transfer parameters, then queue up the first segment */
 	cppi_ch->start_addr = dma_addr;
@@ -1414,6 +1413,13 @@ struct dma_controller * __init dma_controller_create(struct musb  *musb,
 	cppi->controller.channel_release = cppi41_channel_release;
 	cppi->controller.channel_program = cppi41_channel_program;
 	cppi->controller.channel_abort = cppi41_channel_abort;
+
+	musb->can_dma_queue = 1;
+	cppi->can_dma_queue = 1;
+	if (cpu_is_ti816x()) {
+		cppi->inf_mode = 0;
+		cppi->defer_intr = 0;
+	}
 
 	return &cppi->controller;
 }
