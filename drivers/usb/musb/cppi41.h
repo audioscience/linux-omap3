@@ -135,7 +135,13 @@
 #define DMA_CH_RX_DEFAULT_RQ_QNUM_SHIFT 0
 #define DMA_CH_RX_DEFAULT_RQ_QNUM_MASK	(0xfff << \
 					 DMA_CH_RX_DEFAULT_RQ_QNUM_SHIFT)
-
+#define DMA_CH_RX_MAX_BUF_CNT_SHIFT     26
+#define DMA_CH_RX_BUF_MODE_DIS          0
+#define DMA_CH_RX_BUF_CNT1              1
+#define DMA_CH_RX_BUF_CNT2              2
+#define DMA_CH_RX_BUF_CNT3              3
+#define DMA_CH_RX_BUF_CNT4              4
+#define DMA_CH_RX_BUF_CNT_VAL           (DMA_CH_RX_BUF_CNT2)
 /* Rx Channel N Host Packet Configuration Register A/B bits */
 #define DMA_CH_RX_HOST_FDQ_QMGR_SHIFT(n) (12 + 16 * ((n) & 1))
 #define DMA_CH_RX_HOST_FDQ_QMGR_MASK(n)  (3 << DMA_CH_RX_HOST_FDQ_QMGR_SHIFT(n))
@@ -202,7 +208,9 @@ struct cppi41_host_pkt_desc {
 	u32 next_desc_ptr;	/* Pointer to the next buffer descriptor */
 	u32 orig_buf_len;	/* Original buffer length */
 	u32 orig_buf_ptr;	/* Original buffer pointer */
-	u32 stk_comms_info[2];	/* Network stack private communications info */
+	/*u32 stk_comms_info[2];*/ /*FIXME commented to fix host pkt desc to
+					align 64 bytes */
+				/* Network stack private communications info */
 };
 
 /*
@@ -408,6 +416,12 @@ struct cppi41_rx_ch_cfg {
 	u8 retry_starved;	/* 0 = Drop packet on descriptor/buffer */
 				/* starvartion, 1 = DMA retries FIFO block */
 				/* transfer at a later time */
+	u8 rx_max_buf_cnt;	/* The DMA ignores the SOP bit and closes up
+				 * a packet after a max_buf_cnt buffer has been
+				 * filled OR if the EOP field is set in the
+				 * info word 0
+				 */
+	u8 rx_pause;		/* pause the dma */
 	struct cppi41_queue rx_queue; /* Rx complete packets queue */
 	union {
 		struct cppi41_host_pkt_cfg host_pkt; /* Host packet */
