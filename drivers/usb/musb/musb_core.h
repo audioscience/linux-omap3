@@ -374,6 +374,7 @@ struct musb {
 
 	struct device		*controller;
 	void __iomem		*ctrl_base;
+	void __iomem            *usbss_base;
 	void __iomem		*mregs;
 
 #ifdef CONFIG_USB_TUSB6010
@@ -382,7 +383,7 @@ struct musb {
 	void __iomem		*sync_va;
 #endif
 
-#ifdef CONFIG_MACH_OMAP3517EVM
+#if defined(CONFIG_MACH_OMAP3517EVM) || defined(CONFIG_ARCH_TI816X)
 /* Backup registers required for the workaround of AM3517 bytewise
  * read issue. FADDR, POWER, INTRTXE, INTRRXE and INTRUSBE register
  * read would actually clear the interrupt registers and would cause
