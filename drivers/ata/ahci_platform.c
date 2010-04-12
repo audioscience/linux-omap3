@@ -19,8 +19,8 @@
 #include <linux/device.h>
 #include <linux/libata.h>
 #include <linux/platform_device.h>
+#include <linux/ahci_platform.h>
 #include "ahci.h"
-#include "ahci_platform.h"
 
 static int __devinit ahci_probe(struct platform_device *pdev)
 {
