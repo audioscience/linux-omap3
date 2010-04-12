@@ -3,6 +3,7 @@ obj-$(CONFIG_ATA)		+= libata.o
 
 obj-$(CONFIG_SATA_AHCI)		+= ahci.o
 obj-$(CONFIG_SATA_AHCI_PCI)	+= ahci_pci.o
+obj-$(CONFIG_SATA_AHCI_PLATFORM)+= ahci_platform.o
 obj-$(CONFIG_SATA_SVW)		+= sata_svw.o
 obj-$(CONFIG_ATA_PIIX)		+= ata_piix.o
 obj-$(CONFIG_SATA_PROMISE)	+= sata_promise.o

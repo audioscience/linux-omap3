@@ -71,6 +71,15 @@ config SATA_AHCI_PCI
 	help
 	  This option enables support for PCI AHCI Serial ATA controllers.
 
+config SATA_AHCI_PLATFORM
+	tristate "Platform AHCI SATA support"
+	depends on SATA_AHCI
+	help
+	  This option enables support for Platform AHCI Serial ATA
+	  controllers.
+
+	  If unsure, say N.
+
 config SATA_SIL24
 	tristate "Silicon Image 3124/3132 SATA support"
 	depends on PCI
