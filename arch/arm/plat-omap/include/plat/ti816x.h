@@ -44,6 +44,8 @@
 #define TI816X_USB_CPPIDMA_BASE	0x47402000
 #define TI816X_USB_CPPIDMA_LEN	0x5FFF
 
+#define TI816X_SATA_BASE	0x4A140000
+
 #ifdef TI816X_PRE_SILICON_HAPS
 /* only for HAPS54 platform */
 #define TI816X_USBSS_IRQ	10 /* usb subsystem interrupt*/

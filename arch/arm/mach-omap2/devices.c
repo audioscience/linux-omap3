@@ -15,8 +15,10 @@
 #include <linux/platform_device.h>
 #include <linux/io.h>
 #include <linux/clk.h>
+#include <linux/ahci_platform.h>
 
 #include <mach/hardware.h>
+#include <mach/irqs.h>
 #include <asm/mach-types.h>
 #include <asm/mach/map.h>
 
@@ -895,6 +897,110 @@ static void omap_init_vout(void)
 static inline void omap_init_vout(void) {}
 #endif
 
+#define P0PHYCR		0x178  /* SATA PHY0 Control Register offset
+                                * from AHCI base)
+                                */
+#define P1PHYCR		0x1F8  /* SATA PHY0 Control Register offset
+                                * from AHCI base)
+                                */
+
+#define PHY_MPY		8 /* bits3:0     4 Clock Sources at 100MHz */
+#define PHY_LB		0 /* bits5:4     2 */
+#define PHY_LOS		1 /* bit6        1 */
+#define PHY_RXINVPAIR	0 /* bit7        1 */
+#define PHY_RXTERM	0 /* bits9:8     2 */
+#define PHY_RXCDR	0 /* bits12:10   3 */
+#define PHY_RXEQ	1 /* bits16:13   4 */
+#define PHY_TXINVPAIR	0 /* bit17       1 */
+#define PHY_TXCM	0 /* bit18       1 */
+#define PHY_TXSWING	3 /* bits21:19   3 */
+#define PHY_TXDE	0 /* bits25:22   4 */
+#define PHY_OVERRIDE	0 /* bit30       1 */
+#define PHY_ENPLL	1 /* bit31       1 */
+u8	ti_num_ahci_inst = 1;
+
+static int ahci_plat_init(struct device *dev)
+{
+	u32     	phy_val = 0;
+	void __iomem	*base;
+
+#if 0
+	/* Power up the PHY clock source */
+	if (cpu_is_davinci_da850())
+		__raw_writel(0, IO_ADDRESS(DA850_SATA_CLK_PWRDN));
+#endif
+	phy_val = PHY_MPY << 0 | PHY_LB << 4 | PHY_LOS << 6 |
+			PHY_RXINVPAIR << 7 | PHY_RXTERM << 8 |
+			PHY_RXCDR  << 10 | PHY_RXEQ << 13 |
+			PHY_RXINVPAIR << 17 | PHY_TXCM << 18 |
+			PHY_TXSWING << 19 | PHY_TXDE << 22 |
+			PHY_OVERRIDE << 30 | PHY_ENPLL  << 31;
+
+	base = ioremap(TI816X_SATA_BASE, 0x10ffff);
+	if (!base) {
+		printk(KERN_WARNING
+				"%s: Unable to map SATA, "
+				"cannot turn on PHY.\n",  __func__);
+		return -1;
+	}
+
+	/* Initialize the SATA PHY */
+	writel(phy_val,	base + P0PHYCR);
+
+	/* ti816x platform has 2 SATA PHY's Initialize the second instance */
+	if (cpu_is_ti816x() && (ti_num_ahci_inst > 1))
+		writel(phy_val, base + P1PHYCR);
+
+	iounmap(base);
+
+	return 0;
+}
+
+static void ahci_plat_exit(struct device *dev)
+{
+#if 0
+	/* Power down the PHY clock source */
+	if (cpu_is_davinci_da850())
+		__raw_writel(1, IO_ADDRESS(DA850_SATA_CLK_PWRDN));
+#endif
+}
+
+static struct resource ahci_resources[] = {
+	{
+		.start	=	TI816X_SATA_BASE,
+		.end	=	TI816X_SATA_BASE + 0x10fff,
+		.flags	=	IORESOURCE_MEM,
+	},
+	{
+		.start	=	TI816X_IRQ_SATA,
+		.flags	=	IORESOURCE_IRQ,
+	}
+};
+
+struct ahci_platform_data ahci_pdata = {
+		.init 	=	ahci_plat_init,
+		.exit	=	ahci_plat_exit,
+	};
+
+static struct platform_device ti_ahci_device = {
+	.name	=	"ahci",
+	.id	=	-1,
+	.dev	=	{
+				.platform_data = &ahci_pdata,
+				.coherent_dma_mask = 0xffffffff,
+			},
+	.num_resources = ARRAY_SIZE(ahci_resources),
+	.resource	= ahci_resources,
+};
+
+int __init ti_ahci_register(u8 num_inst)
+{
+	num_inst = num_inst ? num_inst : 1;
+	ti_num_ahci_inst = num_inst;
+	ahci_pdata.force_port_map = (1 << num_inst) - 1;
+	ahci_pdata.mask_port_map = 0;
+	return platform_device_register(& ti_ahci_device);
+}
 /*-------------------------------------------------------------------------*/
 
 static int __init omap2_init_devices(void)

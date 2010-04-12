@@ -82,6 +82,8 @@ static void __init ti8168_evm_init_irq(void)
 static struct omap_board_config_kernel generic_config[] = {
 };
 
+int __init ti_ahci_register(u8 num_inst);
+
 static void __init ti8168_evm_init(void)
 {
 	omap_board_config = generic_config;
@@ -102,6 +104,9 @@ is used by TI 816x EVM. Registering a single isntance
 
 	/* initialize usb */
 	usb_musb_init(&musb_board_data);
+
+	/* register ahci interface for 2 SATA ports */
+	ti_ahci_register(2);
 }
 
 static void __init ti8168_evm_map_io(void)
