@@ -30,8 +30,8 @@
 #include <linux/clk.h>
 #include <linux/io.h>
 #include <linux/usb/otg.h>
+#include <plat/control.h>
 
-/*#include <plat/control.h>*/
 #include "cppi41.h"
 #include "ti816x.h"
 
@@ -56,6 +56,13 @@ struct musb *g_musb;
 #define QMGR_PEND0_REG		0x4090
 #define QMGR_PEND1_REG		0x4094
 #define QMGR_PEND2_REG		0x4098
+
+#define TI816X_USBCTRL_OFFS			0x0620
+#define	TI816X_USBPHY0_NORMAL_MODE		(1 << 0)
+#define	TI816X_USBPHY1_NORMAL_MODE		(1 << 1)
+#define	TI816X_USBPHY_REFCLK_OSC		(1 << 8)
+#define TI816X_USBPHY_CTRL0_OFFS		0x0624
+#define TI816X_USBPHY_CTRL1_OFFS		0x0628
 
 /* USB 2.0 PHY Control */
 #define CONF2_PHY_GPIOMODE     (1 << 23)
@@ -570,40 +577,31 @@ int cppi41_enable_sched_rx(void)
 
 static inline void phy_on(void)
 {
-#if 0
-	u32 devconf2;
+	u32 usbphycfg;
+
+	pr_info("phy_on..\n");
 	/*
 	 * Start the on-chip PHY and its PLL.
 	 */
-	devconf2 = omap_ctrl_readl(OMAP3517_CONTROL_DEVCONF2);
+	usbphycfg = omap_ctrl_readl(TI816X_USBCTRL_OFFS);
+	usbphycfg |= (TI816X_USBPHY0_NORMAL_MODE | TI816X_USBPHY1_NORMAL_MODE);
+	usbphycfg &= ~(TI816X_USBPHY_REFCLK_OSC);
+	omap_ctrl_writel(usbphycfg, TI816X_USBCTRL_OFFS);
 
-	devconf2 &= ~(CONF2_RESET | CONF2_PHYPWRDN | CONF2_OTGPWRDN |
-			CONF2_OTGMODE | CONF2_REFFREQ | CONF2_PHY_GPIOMODE);
-	devconf2 |= CONF2_SESENDEN | CONF2_VBDTCTEN | CONF2_PHY_PLLON |
-		    CONF2_REFFREQ_13MHZ | CONF2_DATPOL;
-
-	omap_ctrl_writel(devconf2, OMAP3517_CONTROL_DEVCONF2);
-
-	pr_info("Waiting for PHY clock good...\n");
-	while (!(omap_ctrl_readl(OMAP3517_CONTROL_DEVCONF2)
-			& CONF2_PHYCLKGD))
-		cpu_relax();
-#endif
+	pr_info("usbphy_ctrl0=%x\n", omap_ctrl_readl(TI816X_USBPHY_CTRL0_OFFS));
+	pr_info("usbphy_ctrl1=%x\n", omap_ctrl_readl(TI816X_USBPHY_CTRL0_OFFS));
 }
 
 static inline void phy_off(void)
 {
-#if 0
-	u32 devconf2;
-	/*
-	 * Power down the on-chip PHY.
-	 */
-	devconf2 = omap_ctrl_readl(OMAP3517_CONTROL_DEVCONF2);
+	u32 usbphycfg;
 
-	devconf2 &= ~CONF2_PHY_PLLON;
-	devconf2 |=  CONF2_PHYPWRDN | CONF2_OTGPWRDN;
-	omap_ctrl_writel(devconf2, OMAP3517_CONTROL_DEVCONF2);
-#endif
+	pr_info("phy_off..\n");
+
+	usbphycfg = omap_ctrl_readl(TI816X_USBCTRL_OFFS);
+	usbphycfg &= ~(TI816X_USBPHY0_NORMAL_MODE | TI816X_USBPHY1_NORMAL_MODE
+			| TI816X_USBPHY_REFCLK_OSC);
+	omap_ctrl_writel(usbphycfg, TI816X_USBCTRL_OFFS);
 }
 
 /*
