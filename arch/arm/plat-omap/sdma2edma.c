@@ -130,10 +130,10 @@ void omap_stop_dma(int lch)
 }
 
 /**
- * omap_cleanup_dma - Brin back DMA to initial state
+ * omap_cleanup_dma - Bring back DMA to initial state
  * @lch: channel being cleaned up
  *
- * It cleans ParamEntry qand bring back EDMA to initial state if media has
+ * It cleans ParamEntry and bring back EDMA to initial state if media has
  * been removed before EDMA has finished.It is usedful for removable media.
  *
  *
@@ -174,18 +174,23 @@ void omap_cleanup_dma(int lch)
  * transfer one frame to (or from) the FIFO.  It will probably use
  * efficient burst modes to access memory.
  *
+ * . dma_trigger and channel number, this is ignored for EDMA
+ * . Setting bcnt_rld same as bcnt
  * TODO
- * . what is dma_trigger and src_or_dst_synch ?
- * . Setting bcnt_rld for edma_set_transfer_params() to always 0.
- *   bcnt_rld is used only for A-Synchronized transfers; this specifies
- *   the value to reload into bcnt when it decrements to zero
+ * . what is src_or_dst_synch?
  */
 void omap_set_dma_transfer_params(int lch, int data_type, int elem_count,
                   int frame_count, int sync_mode,
                   int dma_trigger, int src_or_dst_synch)
 {
-	edma_set_transfer_params(lch, data_type, elem_count, frame_count, 0,
-					(enum sync_dimension)sync_mode);
+	if ((enum sync_dimension)sync_mode > ABSYNC) {
+		printk("SDMA2EDMA: Line:%d : Param \'sync_mode\' our of range\n",
+				__LINE__);
+		return;
+	}
+
+	edma_set_transfer_params(lch, (u16)data_type, (u16)elem_count,
+			(u16)frame_count, (u16)elem_count, (enum sync_dimension)sync_mode);
 }
 
 /**
@@ -202,7 +207,6 @@ void omap_set_dma_transfer_params(int lch, int data_type, int elem_count,
  *
  * TODO
  * . Not sure about dst_ei and dst_fi
- * . Not sure about mapping dest_amode to address_mode in edma
  * . fifo_width for edma is not available in sdma API hence setting it to
  *   W8BIT
  * . dest_port is ignored
@@ -211,6 +215,12 @@ void omap_set_dma_dest_params(int lch, int dest_port, int dest_amode,
                   unsigned long dest_start,
                   int dst_ei, int dst_fi)
 {
+	if ((enum address_mode)dest_mode > FIFO) {
+		printk("SDMA2EDMA: Line:%d : Param \'dest_amode\' our of range\n",
+				__LINE__);
+		return;
+	}
+
 	edma_set_dest((unsigned)lch, (enum dma_addr_t)dest_start,
 					(enum address_mode)dest_mode, W8BIT);
 
@@ -231,7 +241,6 @@ void omap_set_dma_dest_params(int lch, int dest_port, int dest_amode,
  *
  * TODO
  * . Not sure about src_ei and src_fi
- * . Not sure about mapping src_amode to address_mode in edma
  * . fifo_width for edma is not available in sdma API hence setting it to
  *   W8BIT
  * . src_port is ignored
@@ -240,6 +249,12 @@ void omap_set_dma_src_params(int lch, int src_port, int src_amode,
                   unsigned long src_start,
                   int src_ei, int src_fi)
 {
+	if ((enum address_mode)src_mode > FIFO) {
+		printk("SDMA2EDMA: Line:%d : Param \'src_amode\' our of range\n",
+				__LINE__);
+		return;
+	}
+
 	edma_set_src((unsigned)lch, (enum dma_addr_t)src_start,
 					(enum address_mode)src_mode, W8BIT);
 
