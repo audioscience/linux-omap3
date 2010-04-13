@@ -19,7 +19,13 @@
 #define DAVINCI_MCASP_H
 
 #include <linux/io.h>
+
+#ifndef CONFIG_ARCH_TI816X
 #include <mach/asp.h>
+#else
+#include <plat/asp.h>
+#endif
+
 #include "davinci-pcm.h"
 
 extern struct snd_soc_dai davinci_mcasp_dai[];

@@ -29,6 +29,7 @@
 #include <plat/mux.h>
 #include <mach/gpio.h>
 #include <plat/mmc.h>
+#include <plat/asp.h>
 
 #include "mux.h"
 
@@ -1012,6 +1013,45 @@ int __init ti_ahci_register(u8 num_inst)
 	ahci_pdata.mask_port_map = 0;
 	return platform_device_register(& ti_ahci_device);
 }
+
+#if defined(CONFIG_ARCH_TI816X)
+
+static struct resource ti816x_mcasp_resource[] = {
+	{
+		.name = "mcasp",
+		.start = TI816X_ASP2_BASE,
+		.end = TI816X_ASP2_BASE + (SZ_1K * 12) - 1,
+		.flags = IORESOURCE_MEM,
+	},
+	/* TX event */
+	{
+		.start = TI816X_ASP2_RX_INT,
+		.end = TI816X_ASP2_RX_INT,
+		.flags = IORESOURCE_DMA,
+	},
+	/* RX event */
+	{
+		.start = TI816X_ASP2_TX_INT,
+		.end = TI816X_ASP2_TX_INT,
+		.flags = IORESOURCE_DMA,
+	},
+};
+
+static struct platform_device ti816x_mcasp_device = {
+	.name = "davinci-mcasp",
+	.id = 2,
+	.num_resources = ARRAY_SIZE(ti816x_mcasp_resource),
+	.resource = ti816x_mcasp_resource,
+};
+
+void __init ti816x_register_mcasp(int id, struct snd_platform_data *pdata)
+{
+	ti816x_mcasp_device.dev.platform_data = pdata;
+	platform_device_register(&ti816x_mcasp_device);
+}
+#endif
+
+
 /*-------------------------------------------------------------------------*/
 
 #if defined(CONFIG_ARCH_TI816X)

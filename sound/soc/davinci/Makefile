@@ -16,3 +16,8 @@ obj-$(CONFIG_SND_DM6467_SOC_EVM) += snd-soc-evm.o
 obj-$(CONFIG_SND_DA830_SOC_EVM) += snd-soc-evm.o
 obj-$(CONFIG_SND_DA850_SOC_EVM) += snd-soc-evm.o
 obj-$(CONFIG_SND_DAVINCI_SOC_SFFSDR) += snd-soc-sffsdr.o
+
+obj-$(CONFIG_SND_TI816X_SOC_EVM) += snd-soc-evm.o
+obj-$(CONFIG_SND_TI816X_SOC) += snd-soc-davinci.o
+obj-$(CONFIG_SND_TI816X_SOC_I2S) += snd-soc-davinci-i2s.o
+obj-$(CONFIG_SND_TI816X_SOC_MCASP) += snd-soc-davinci-mcasp.o

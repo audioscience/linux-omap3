@@ -12,9 +12,13 @@
 #ifndef _DAVINCI_PCM_H
 #define _DAVINCI_PCM_H
 
+#ifndef CONFIG_ARCH_TI816X
 #include <mach/edma.h>
 #include <mach/asp.h>
-
+#else
+#include <plat/asp.h>
+#include <asm/hardware/edma.h>
+#endif
 
 struct davinci_pcm_dma_params {
 	int channel;			/* sync dma channel ID */
