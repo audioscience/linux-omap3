@@ -46,15 +46,4 @@
 
 #define TI816X_SATA_BASE	0x4A140000
 
-#ifdef TI816X_PRE_SILICON_HAPS
-/* only for HAPS54 platform */
-#define TI816X_USBSS_IRQ	10 /* usb subsystem interrupt*/
-#define TI816X_USB0_IRQ		11 /* usb controller0 intrpt */
-#define TI816X_USB1_IRQ		12 /* usb controller1 intrpt */
-#else
-#define TI816X_USBSS_IRQ	49 /* usb subsystem interrupt*/
-#define TI816X_USB0_IRQ		50 /* usb controller0 intrpt */
-#define TI816X_USB1_IRQ		51 /* usb controller1 intrpt */
-#endif
-
 #endif /* __ASM_ARCH_TI816X_H */
