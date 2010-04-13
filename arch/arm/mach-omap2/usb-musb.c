@@ -31,6 +31,7 @@
 #include <mach/am35xx.h>
 #include <plat/mux.h>
 #include <plat/usb.h>
+#include <plat/irqs-ti816x.h>
 
 #ifdef CONFIG_USB_MUSB_SOC
 
@@ -113,7 +114,7 @@ void __init usb_musb_init(struct omap_musb_board_data *board_data)
 		musb_resources[0].end = musb_resources[0].start + SZ_4K - 1;
 	} else if (cpu_is_ti816x()) {
 		musb_resources[0].start = TI816X_USB0_BASE;
-		musb_resources[1].start = TI816X_USBSS_IRQ;
+		musb_resources[1].start = TI816X_IRQ_USBSS;
 		musb_resources[0].end = musb_resources[0].start + SZ_2K - 1;
 	}
 
