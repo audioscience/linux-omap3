@@ -10,9 +10,6 @@
 #ifndef __MUSB_HDRDF_H__
 #define __MUSB_HDRDF_H__
 
-
-#define	NETRA_USB0_OTGSS_OFFS		0x1000
-
 /* Netra USB susbsystem register offsets */
 #define USBSS_REVISION			0x0000
 #define USBSS_SYSCONFIG			0x0010
