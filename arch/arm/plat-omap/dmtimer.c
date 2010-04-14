@@ -300,7 +300,7 @@ static const int omap4_dm_timer_count = ARRAY_SIZE(omap4_dm_timers);
 #endif	/* CONFIG_ARCH_OMAP4 */
 
 #ifdef CONFIG_ARCH_TI816X
-static struct omap_dm_timer netra_dm_timers[] = {
+static struct omap_dm_timer ti816x_dm_timers[] = {
 	{ .phys_base = 0x4802C000, .irq = TI816X_IRQ_GPT1, .reserved = 1 },
 	{ .phys_base = 0x4802E000, .irq = TI816X_IRQ_GPT2 },
 	{ .phys_base = 0x48040000, .irq = TI816X_IRQ_GPT3 },
@@ -310,18 +310,18 @@ static struct omap_dm_timer netra_dm_timers[] = {
 	{ .phys_base = 0x48048000, .irq = TI816X_IRQ_GPT7 },
 	{ .phys_base = 0x4804A000, .irq = TI816X_IRQ_GPT8 },
 };
-static const char *netra_dm_source_names[] __initdata = {
+static const char *ti816x_dm_source_names[] __initdata = {
 	"sys_ck", /* !@2 TODO: Add 32K timer source */
 	NULL
 };
-static struct clk *netra_dm_source_clocks[1];
-static const int netra_dm_timer_count = ARRAY_SIZE(netra_dm_timers);
+static struct clk *ti816x_dm_source_clocks[1];
+static const int ti816x_dm_timer_count = ARRAY_SIZE(ti816x_dm_timers);
 
 #else
-#define netra_dm_timers			NULL
-#define netra_dm_timer_count		0
-#define netra_dm_source_names		NULL
-#define netra_dm_source_clocks		NULL
+#define ti816x_dm_timers		NULL
+#define ti816x_dm_timer_count		0
+#define ti816x_dm_source_names		NULL
+#define ti816x_dm_source_clocks		NULL
 #endif	/* CONFIG_ARCH_TI816X */
 
 static struct omap_dm_timer *dm_timers;
@@ -586,7 +586,7 @@ void omap_dm_timer_stop(struct omap_dm_timer *timer)
 	if (l & OMAP_TIMER_CTRL_ST) {
 		l &= ~0x1;
 		omap_dm_timer_write_reg(timer, OMAP_TIMER_CTRL_REG, l);
-#ifdef CONFIG_ARCH_OMAP2PLUS /* !@0 TODO: Applicable for Netra? */
+#if defined(CONFIG_ARCH_OMAP2PLUS) || defined(CONFIG_ARCH_TI816X)
 		/* Readback to make sure write has completed */
 		omap_dm_timer_read_reg(timer, OMAP_TIMER_CTRL_REG);
 		 /*
@@ -816,10 +816,10 @@ int __init omap_dm_timer_init(void)
 		dm_source_names = omap4_dm_source_names;
 		dm_source_clocks = omap4_dm_source_clocks;
 	} else if (cpu_is_ti816x()) {
-		dm_timers = netra_dm_timers;
-		dm_timer_count = netra_dm_timer_count;
-		dm_source_names = netra_dm_source_names;
-		dm_source_clocks = netra_dm_source_clocks;
+		dm_timers = ti816x_dm_timers;
+		dm_timer_count = ti816x_dm_timer_count;
+		dm_source_names = ti816x_dm_source_names;
+		dm_source_clocks = ti816x_dm_source_clocks;
 	}
 
 	if (cpu_class_is_omap2())

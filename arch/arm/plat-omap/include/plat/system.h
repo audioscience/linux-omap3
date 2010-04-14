@@ -46,11 +46,6 @@ static inline void arch_reset(char mode, const char *cmd)
 		omap1_arch_reset(mode, cmd);
 	else
 		omap_prcm_arch_reset(mode, cmd);
-
-	/*
-	 * !@@ TODO: Take care of Netra Cold reset. It has different PRCM layout
-	 * and offsets and cannot fit readily into existing mach-omap2/prcm.c
-	 */
 }
 
 #endif

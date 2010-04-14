@@ -1,19 +1,25 @@
 /*
- * irqs-ti816x.h
- *  TI816X family interrupts
+ * arch/arm/plat-omap/include/plat/irqs-ti816x.h
  *
- * Copyright (C) 2010 Texas Instruments, Inc.
+ * ti816x family interrupts.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
+ * Copyright (C) 2010 Texas Instruments, Inc. - http://www.ti.com/
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation version 2.
+ *
+ * This program is distributed "as is" WITHOUT ANY WARRANTY of any
+ * kind, whether express or implied; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
 
 #ifndef __ARCH_ARM_MACH_OMAP2_TI816X_IRQS_H
 #define __ARCH_ARM_MACH_OMAP2_TI816X_IRQS_H
 
 /*
- * Netra Interrupts
+ * TI816X Interrupts
  */
 #define TI816X_IRQ_EMU		0
 #define TI816X_IRQ_COMMTX	1

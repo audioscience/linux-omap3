@@ -2439,7 +2439,7 @@ static unsigned int serial8250_port_size(struct uart_8250_port *pt)
 {
 	if (pt->port.iotype == UPIO_AU)
 		return 0x1000;
-#if defined(CONFIG_ARCH_OMAP) || defined(CONFIG_ARCH_NETRA)
+#if defined(CONFIG_ARCH_OMAP) || defined(CONFIG_ARCH_TI816X)
 	if (is_omap_port(pt))
 		return 0x16 << pt->port.regshift;
 #endif

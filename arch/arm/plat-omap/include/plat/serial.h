@@ -51,7 +51,7 @@
 #define OMAP4_UART3_BASE	0x48020000
 #define OMAP4_UART4_BASE	0x4806e000
 
-/* Netra serial ports */
+/* TI816X serial ports */
 #define TI816X_UART1_BASE	0x48020000
 #define TI816X_UART2_BASE	0x48022000
 #define TI816X_UART3_BASE	0x48024000

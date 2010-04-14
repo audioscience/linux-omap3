@@ -26,10 +26,9 @@
 #define OMAP3_IRQ_BASE		OMAP2_L4_IO_ADDRESS(OMAP34XX_IC_BASE)
 #define OMAP4_IRQ_BASE		OMAP2_L4_IO_ADDRESS(OMAP44XX_GIC_CPU_BASE)
 /*
- * !@@ This is not used currently, as the macro get_irqnr_preamble below assumes
- * OMAP3 if the processor is Cortex A8 and (fortunately) OMAP3 and Netra have
- * same INTC base. TODO: check if we can have more specific checks on A8 case -
- * though it is not really needed.
+ * FIXME: This is not used currently, as the macro get_irqnr_preamble below
+ * assumes OMAP3 if the processor is Cortex A8 and OMAP3 and TI816X have
+ * same INTC base.
  */
 #define TI816X_IRQ_BASE		TI816X_L4_SLOW_IO_ADDRESS(TI816X_ARM_INTC_BASE)
 #define INTCPS_SIR_IRQ_OFFSET	0x0040	/* omap2/3 active interrupt offset */
@@ -141,7 +140,6 @@ omap_irq_base:	.word	0
 		ldr	\irqnr, [\base, #0xd8] /* IRQ pending reg 3 */
 		cmp	\irqnr, #0x0
 #ifdef CONFIG_ARCH_TI816X
-		/* !@@@ Netra specific, might crash on other OMAPs */
 		bne	9999f
 		ldr	\irqnr, [\base, #0xf8] /* IRQ pending reg 4 */
 		cmp	\irqnr, #0x0

@@ -899,7 +899,7 @@ void omap2_clkdm_allow_idle(struct clockdomain *clkdm)
 
 	/*
 	 * XXX This should be removed once TI adds wakeup/sleep
-	 * dependency code and data for OMAP4, Netra.
+	 * dependency code and data for OMAP4, TI816X
 	 */
 	if (cpu_is_omap44xx()) {
 		WARN_ONCE(1, "clockdomain: OMAP4 wakeup/sleep dependency "
@@ -944,7 +944,7 @@ void omap2_clkdm_deny_idle(struct clockdomain *clkdm)
 
 	/*
 	 * XXX This should be removed once TI adds wakeup/sleep
-	 * dependency code and data for OMAP4, Netra.
+	 * dependency code and data for OMAP4, TI816X.
 	 */
 	if (cpu_is_omap44xx()) {
 		WARN_ONCE(1, "clockdomain: OMAP4 wakeup/sleep dependency "

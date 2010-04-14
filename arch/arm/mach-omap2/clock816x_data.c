@@ -1,18 +1,18 @@
 /*
- * OMAP3-specific clock framework functions
+ * arch/arm/mach-omap2/clock816x_data.c
  *
- * Copyright (C) 2007-2008 Texas Instruments, Inc.
- * Copyright (C) 2007-2009 Nokia Corporation
+ * Clock data for ti816x.
  *
- * Written by Paul Walmsley
- * Testing and integration fixes by Jouni Högander
+ * Copyright (C) 2010 Texas Instruments, Inc. - http://www.ti.com/
  *
- * Parts of this code are based on code written by
- * Richard Woodruff, Tony Lindgren, Tuukka Tikkanen, Karthik Dasu
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation version 2.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
+ * This program is distributed "as is" WITHOUT ANY WARRANTY of any
+ * kind, whether express or implied; without even the implied warranty
+ * of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
 
 #include <linux/kernel.h>
@@ -25,9 +25,7 @@
 #include "clock.h"
 #include "clock816x.h"
 #include "cm.h"
-#include "cm-regbits-44xx.h"
 #include "prm.h"
-#include "prm-regbits-44xx.h"
 
 /*
  * Secure 32K clock is selected outside of PRCM using SECURE_CLK_CTRL. This is
@@ -92,7 +90,7 @@ static struct clk sys_clkin_ck = {
 };
 
 /*
- * In Netra, DPLL control is outside PRCM thus, we skip following in the
+ * In ti816x, DPLL control is outside PRCM thus, we skip following in the
  * subsequent data:
  *	1. Setting clock source
  *	2. Divisor as fed into PLL

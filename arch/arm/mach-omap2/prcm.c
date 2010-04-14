@@ -163,10 +163,6 @@ void omap_prcm_arch_reset(char mode, const char *cmd)
 	if (cpu_is_omap44xx())
 		prm_set_mod_reg_bits(OMAP_RST_DPLL3_MASK, prcm_offs,
 						 OMAP4_RM_RSTCTRL);
-
-	/*
-	 * !@@ TODO: Add for Netra
-	 */
 }
 
 static inline u32 __omap_prcm_read(void __iomem *base, s16 module, u16 reg)

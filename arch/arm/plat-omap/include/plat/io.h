@@ -85,7 +85,7 @@
 /*
  * Currently only considering L4 Slow space for TI816X.
  *
- * !@1 Netra TODO:
+ * TODO:
  *	* Add L4 fast (CPGMAC etc)?
  *	* Add L3 - not sure about peripherals involved
  *	* Move static mapping window up (to 0xf800000 like other OMAPs)

@@ -41,8 +41,11 @@
 #include <asm/localtimer.h>
 
 /* MAX_GPTIMER_ID: number of GPTIMERs on the chip */
-#define MAX_GPTIMER_ID		12 /* !@@ TODO: Make this to variable to handle
-				      Netra case (8 timers) */
+#ifndef CONFIG_ARCH_TI816X
+#define MAX_GPTIMER_ID		12
+#else
+#define MAX_GPTIMER_ID		8
+#endif
 
 static struct omap_dm_timer *gptimer;
 static struct clock_event_device clockevent_gpt;
@@ -136,12 +139,6 @@ static void __init omap2_gp_clockevent_init(void)
 	BUG_ON(gptimer == NULL);
 	gptimer_wakeup = gptimer;
 
-	/*
-	 * !@@
-	 * TODO: Handle Netra case for timer1 (secure timer). Probably give a
-	 * warning. Anyway, the request_specific would return error since the
-	 * timer is marked as 'reserved' in dmtimer.c for now.
-	 */
 #if defined(CONFIG_OMAP_32K_TIMER)
 	src = OMAP_TIMER_SRC_32_KHZ;
 #else
