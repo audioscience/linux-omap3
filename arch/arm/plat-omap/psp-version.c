@@ -54,6 +54,8 @@ static int show_version(char *page, char **start,
 		strcpy(cpu_name, "AM3517");
 	} else if (cpu_is_omap3430()) {
 		strcpy(cpu_name, "OMAP35x");
+	} else if (cpu_is_ti816x()) {
+		strcpy(cpu_name, "TI816X");
 	} else {
 		strcpy(cpu_name, "");
 	}
@@ -93,6 +95,8 @@ static int __init init_psp_module(void)
 			strcpy(cpu_name, "AM3517");
 		} else if (cpu_is_omap3430()) {
 			strcpy(cpu_name, "OMAP35x");
+		} else if (cpu_is_ti816x()) {
+			strcpy(cpu_name, "TI816X");
 		} else {
 			strcpy(cpu_name, "");
 		}
