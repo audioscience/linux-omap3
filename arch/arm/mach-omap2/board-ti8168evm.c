@@ -115,9 +115,9 @@ static struct platform_device ti816x_evm_norflash_device = {
 static struct omap2_hsmmc_info mmc[] = {
 	{
 		.mmc		= 1,
-		.wires		= 4,		/* FIXME: Should this be 8? */
-		.gpio_cd	= -EINVAL,	/* FIXME: GPIO numbers */
-		.gpio_wp	= 63,
+		.wires		= 4,
+		.gpio_cd	= -EINVAL,/* Dedicated pins for CD and WP */
+		.gpio_wp	= -EINVAL,
 	},
 	{}	/* Terminator */
 };

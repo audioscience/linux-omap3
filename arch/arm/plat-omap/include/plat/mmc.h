@@ -37,9 +37,9 @@
 #define OMAP4_MMC_REG_OFFSET	0x100
 
 #define TI816X_NR_MMC		1
-/* FIXME: Should this be L4 interconnect size or Regsiter map size? */
-#define TI816X_HSMMC_SIZE	OMAP4_HSMMC_SIZE
-#define TI816X_MMC1_BASE	0x48060100
+#define TI816X_HSMMC_SIZE	0x10000
+#define TI816X_MMC1_BASE	0x48060100 /* TI816X MMC/SD config base */
+#define TI816X_MMC1_HL_BASE	0x48060000 /* TI816X HL configuration*/
 
 #define HSMMC5			(1 << 4)
 #define HSMMC4			(1 << 3)

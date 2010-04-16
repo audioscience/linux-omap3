@@ -102,6 +102,7 @@
 #define SRD			(1 << 26)
 #define SOFTRESET		(1 << 1)
 #define RESETDONE		(1 << 0)
+#define CINS			(1 << 6)
 
 /*
  * FIXME: Most likely all the data using these _DEVID defines should come
@@ -186,6 +187,8 @@ struct omap_hsmmc_host {
 
 	struct	omap_mmc_platform_data	*pdata;
 };
+
+static irqreturn_t omap_hsmmc_cd_handler(int irq, void *dev_id);
 
 static int omap_hsmmc_card_detect(struct device *dev, int slot)
 {
@@ -1039,6 +1042,10 @@ static irqreturn_t omap_hsmmc_irq(int irq, void *dev_id)
 				end_trans = 1;
 		}
 	}
+
+	/* Schedule card detect here ONLY if irq for CD isn't registerted*/
+	if (!mmc_slot(host).card_detect_irq && (status & CINS))
+		omap_hsmmc_cd_handler(irq, dev_id);
 
 	OMAP_HSMMC_WRITE(host->base, STAT, status);
 	/* Flush posted write */
