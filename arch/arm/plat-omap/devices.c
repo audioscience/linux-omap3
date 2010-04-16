@@ -30,6 +30,7 @@
 #include <plat/mcbsp.h>
 #include <plat/dsp_common.h>
 #include <plat/omap44xx.h>
+#include <plat/dma.h>
 
 #if	defined(CONFIG_OMAP_DSP) || defined(CONFIG_OMAP_DSP_MODULE)
 
@@ -232,7 +233,8 @@ static inline void omap_init_mcpdm(void) {}
 #if defined(CONFIG_MMC_OMAP) || defined(CONFIG_MMC_OMAP_MODULE) || \
 	defined(CONFIG_MMC_OMAP_HS) || defined(CONFIG_MMC_OMAP_HS_MODULE)
 
-#define OMAP_MMC_NR_RES		2
+#define OMAP_MMC_NR_RES		4
+
 /*
  * Register MMC devices. Called from mach-omap1 and mach-omap2 device init.
  */
@@ -254,6 +256,65 @@ int __init omap_mmc_add(const char *name, int id, unsigned long base,
 	res[0].flags = IORESOURCE_MEM;
 	res[1].start = res[1].end = irq;
 	res[1].flags = IORESOURCE_IRQ;
+	/* Populate DMA lines based on the instance used. Rx first,Tx next*/
+	switch (id) {
+	case 0:
+		if (cpu_is_ti816x()) {
+			/*
+			 * TODO :This will be macros once the common EDMA
+			 * file for TI816X is included
+			 */
+			res[2].start = 25;
+			res[2].end = 25;
+			res[2].flags = IORESOURCE_DMA;
+			res[3].start = 24;
+			res[3].end = 24;
+			res[3].flags = IORESOURCE_DMA;
+		} else {
+			res[2].start = OMAP24XX_DMA_MMC1_RX;
+			res[2].end = OMAP24XX_DMA_MMC1_RX;
+			res[2].flags = IORESOURCE_DMA;
+			res[3].start = OMAP24XX_DMA_MMC1_TX;
+			res[3].end = OMAP24XX_DMA_MMC1_TX;
+			res[3].flags = IORESOURCE_DMA;
+		}
+		break;
+	case 1:
+		res[2].start = OMAP24XX_DMA_MMC2_RX;
+		res[2].end = OMAP24XX_DMA_MMC2_RX;
+		res[2].flags = IORESOURCE_DMA;
+		res[3].start = OMAP24XX_DMA_MMC2_TX;
+		res[3].end = OMAP24XX_DMA_MMC2_TX;
+		res[3].flags = IORESOURCE_DMA;
+		break;
+	case 2:
+		res[2].start = OMAP34XX_DMA_MMC3_RX;
+		res[2].end = OMAP34XX_DMA_MMC3_RX;
+		res[2].flags = IORESOURCE_DMA;
+		res[3].start = OMAP34XX_DMA_MMC3_TX;
+		res[3].end = OMAP34XX_DMA_MMC3_TX;
+		res[3].flags = IORESOURCE_DMA;
+		break;
+	case 3:
+		res[2].start = OMAP44XX_DMA_MMC4_RX;
+		res[2].end = OMAP44XX_DMA_MMC4_RX;
+		res[2].flags = IORESOURCE_DMA;
+		res[3].start = OMAP44XX_DMA_MMC4_TX;
+		res[3].end = OMAP44XX_DMA_MMC4_TX;
+		res[3].flags = IORESOURCE_DMA;
+		break;
+	case 4:
+		res[2].start = OMAP44XX_DMA_MMC5_RX;
+		res[2].end = OMAP44XX_DMA_MMC5_RX;
+		res[2].flags = IORESOURCE_DMA;
+		res[3].start = OMAP44XX_DMA_MMC5_TX;
+		res[3].end = OMAP44XX_DMA_MMC5_TX;
+		res[3].flags = IORESOURCE_DMA;
+		break;
+	default:
+		ret = -ENODEV;
+		goto fail;
+	}
 
 	ret = platform_device_add_resources(pdev, res, ARRAY_SIZE(res));
 	if (ret == 0)
