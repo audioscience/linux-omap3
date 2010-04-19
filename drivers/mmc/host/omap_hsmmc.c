@@ -56,6 +56,7 @@
 #define OMAP_HSMMC_IE		0x0134
 #define OMAP_HSMMC_ISE		0x0138
 #define OMAP_HSMMC_CAPA		0x0140
+#define OMAP_HSMMC_PSTATE	0x0124
 
 #define VS18			(1 << 26)
 #define VS30			(1 << 25)
@@ -103,6 +104,10 @@
 #define SOFTRESET		(1 << 1)
 #define RESETDONE		(1 << 0)
 #define CINS			(1 << 6)
+#define PSTATE_CINS_SHIFT	16
+#define PSTATE_WP_SHIFT		19
+#define IE_CINS			0x00000040
+#define IE_CINS_SHIFT		6
 
 /*
  * FIXME: Most likely all the data using these _DEVID defines should come
@@ -193,25 +198,40 @@ static irqreturn_t omap_hsmmc_cd_handler(int irq, void *dev_id);
 static int omap_hsmmc_card_detect(struct device *dev, int slot)
 {
 	struct omap_mmc_platform_data *mmc = dev->platform_data;
+	struct omap_hsmmc_host *host =
+		platform_get_drvdata(to_platform_device(dev));
 
-	/* NOTE: assumes card detect signal is active-low */
-	return !gpio_get_value_cansleep(mmc->slots[0].switch_pin);
+	if (mmc->version != MMC_CTRL_VERSION_2)
+		/* NOTE: assumes card detect signal is active-low */
+		return !gpio_get_value_cansleep(mmc->slots[0].switch_pin);
+	else
+		return OMAP_HSMMC_READ(host->base, PSTATE) >> PSTATE_CINS_SHIFT;
 }
 
 static int omap_hsmmc_get_wp(struct device *dev, int slot)
 {
 	struct omap_mmc_platform_data *mmc = dev->platform_data;
+	struct omap_hsmmc_host *host =
+		platform_get_drvdata(to_platform_device(dev));
 
-	/* NOTE: assumes write protect signal is active-high */
-	return gpio_get_value_cansleep(mmc->slots[0].gpio_wp);
+	if (mmc->version != MMC_CTRL_VERSION_2)
+		/* NOTE: assumes write protect signal is active-high */
+		return gpio_get_value_cansleep(mmc->slots[0].gpio_wp);
+	else
+		return OMAP_HSMMC_READ(host->base, PSTATE) >> PSTATE_WP_SHIFT;
 }
 
 static int omap_hsmmc_get_cover_state(struct device *dev, int slot)
 {
 	struct omap_mmc_platform_data *mmc = dev->platform_data;
+	struct omap_hsmmc_host *host =
+		platform_get_drvdata(to_platform_device(dev));
 
-	/* NOTE: assumes card detect signal is active-low */
-	return !gpio_get_value_cansleep(mmc->slots[0].switch_pin);
+	if (mmc->version != MMC_CTRL_VERSION_2)
+		/* NOTE: assumes card detect signal is active-low */
+		return !gpio_get_value_cansleep(mmc->slots[0].switch_pin);
+	else
+		return OMAP_HSMMC_READ(host->base, PSTATE) >> PSTATE_CINS_SHIFT;
 }
 
 #ifdef CONFIG_PM
@@ -219,16 +239,28 @@ static int omap_hsmmc_get_cover_state(struct device *dev, int slot)
 static int omap_hsmmc_suspend_cdirq(struct device *dev, int slot)
 {
 	struct omap_mmc_platform_data *mmc = dev->platform_data;
+	struct omap_hsmmc_host *host =
+		platform_get_drvdata(to_platform_device(dev));
 
-	disable_irq(mmc->slots[0].card_detect_irq);
+	if (mmc-version != MMC_CTRL_VERSION_2)
+		disable_irq(mmc->slots[0].card_detect_irq);
+	else
+		OMAP_HSMMC_WRITE(host->base, IE,
+			OMAP_HSMMC_READ(host->base, IE) & ~IE_CINS)
 	return 0;
 }
 
 static int omap_hsmmc_resume_cdirq(struct device *dev, int slot)
 {
 	struct omap_mmc_platform_data *mmc = dev->platform_data;
+	struct omap_hsmmc_host *host =
+		platform_get_drvdata(to_platform_device(dev));
 
-	enable_irq(mmc->slots[0].card_detect_irq);
+	if (mmc-version != MMC_CTRL_VERSION_2)
+		enable_irq(mmc->slots[0].card_detect_irq);
+	else
+		OMAP_HSMMC_WRITE(host->base, IE,
+			OMAP_HSMMC_READ(host->base, IE) | IE_CINS)
 	return 0;
 }
 
@@ -496,6 +528,14 @@ static int omap_hsmmc_gpio_init(struct omap_mmc_platform_data *pdata)
 			goto err_free_wp;
 	} else
 		pdata->slots[0].gpio_wp = -EINVAL;
+
+	if (pdata->version == MMC_CTRL_VERSION_2) {
+		pdata->suspend = omap_hsmmc_suspend_cdirq;
+		pdata->resume = omap_hsmmc_resume_cdirq;
+		pdata->slots[0].get_cover_state = omap_hsmmc_get_cover_state;
+		pdata->slots[0].get_ro = omap_hsmmc_get_wp;
+		pdata->slots[0].card_detect = omap_hsmmc_card_detect;
+	}
 
 	return 0;
 
@@ -1044,7 +1084,7 @@ static irqreturn_t omap_hsmmc_irq(int irq, void *dev_id)
 	}
 
 	/* Schedule card detect here ONLY if irq for CD isn't registerted*/
-	if (!mmc_slot(host).card_detect_irq && (status & CINS))
+	if ((host->pdata->version == MMC_CTRL_VERSION_2) && (status & CINS))
 		omap_hsmmc_cd_handler(irq, dev_id);
 
 	OMAP_HSMMC_WRITE(host->base, STAT, status);
