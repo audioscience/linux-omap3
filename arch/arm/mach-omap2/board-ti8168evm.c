@@ -243,8 +243,6 @@ static void __init ti8168_evm_init(void)
 				ARRAY_SIZE(ti8168_evm_spi_info));
 
 	omap_serial_init();
-	/* TODO: Decide on the GPIO pin number */
-	omap_mux_init_gpio(63, OMAP_PIN_INPUT);
 	omap2_hsmmc_init(mmc);
 
 	/* initialize usb */

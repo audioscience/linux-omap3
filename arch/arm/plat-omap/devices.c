@@ -235,6 +235,10 @@ static inline void omap_init_mcpdm(void) {}
 
 #define OMAP_MMC_NR_RES		4
 
+#ifdef CONFIG_ARCH_TI816X
+#define TI816X_DMA_MMC1_RX	25
+#define TI816X_DMA_MMC1_TX	24
+#endif
 /*
  * Register MMC devices. Called from mach-omap1 and mach-omap2 device init.
  */
@@ -260,15 +264,11 @@ int __init omap_mmc_add(const char *name, int id, unsigned long base,
 	switch (id) {
 	case 0:
 		if (cpu_is_ti816x()) {
-			/*
-			 * TODO :This will be macros once the common EDMA
-			 * file for TI816X is included
-			 */
-			res[2].start = 25;
-			res[2].end = 25;
+			res[2].start = TI816X_DMA_MMC1_RX;
+			res[2].end = TI816X_DMA_MMC1_RX;
 			res[2].flags = IORESOURCE_DMA;
-			res[3].start = 24;
-			res[3].end = 24;
+			res[3].start = TI816X_DMA_MMC1_TX;
+			res[3].end = TI816X_DMA_MMC1_TX;
 			res[3].flags = IORESOURCE_DMA;
 		} else {
 			res[2].start = OMAP24XX_DMA_MMC1_RX;

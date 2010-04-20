@@ -323,8 +323,12 @@ void __init omap2_hsmmc_init(struct omap2_hsmmc_info *controllers)
 						omap_hsmmc1_after_set_reg;
 				}
 			}
-			/* TODO: Do we need these functions for TI816X? */
-			/* on-chip level shifting via PBIAS0/PBIAS1 */
+
+			/* FIXME: Check if correct and rearrange */
+			if (cpu_is_ti816x()) {
+				mmc->slots[0].before_set_reg = NULL;
+				mmc->slots[0].after_set_reg = NULL;
+			}
 
 			/* Omap3630 HSMMC1 supports only 4-bit */
 			if (cpu_is_omap3630() && c->wires > 4) {
