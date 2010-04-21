@@ -453,6 +453,10 @@ static inline int omap44xx_sram_init(void)
 
 int __init omap_sram_init(void)
 {
+	/* TODO */
+	if (cpu_is_ti816x())
+		return 0;
+
 	omap_detect_sram();
 	omap_map_sram();
 

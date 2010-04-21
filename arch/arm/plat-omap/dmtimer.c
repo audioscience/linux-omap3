@@ -371,7 +371,6 @@ static void omap_dm_timer_wait_for_reset(struct omap_dm_timer *timer)
 #ifndef CONFIG_ARCH_TI816X
 	while (!(omap_dm_timer_read_reg(timer, OMAP_TIMER_SYS_STAT_REG) & 1)) {
 #else
-	/* XXX !@0 As per dmtimer func spec */
 	while (omap_dm_timer_read_reg(timer, OMAP_TIMER_OCP_CFG_REG) & 1) {
 #endif
 

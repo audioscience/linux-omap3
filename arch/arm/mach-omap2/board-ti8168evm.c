@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-omap2/board-ti8168evm.c
  *
- * Code for TI8168 EVM. Also supports Simulator and Zebu environments.
+ * Code for TI8168 EVM.
  *
  * Copyright (C) 2010 Texas Instruments, Inc. - http://www.ti.com/
  *

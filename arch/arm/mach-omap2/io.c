@@ -259,10 +259,8 @@ static void __init _omap2_map_common_io(void)
 
 	omap2_check_revision();
 
-	if (!cpu_is_ti816x()) {
-		omap_sram_init();
-		omap_vram_reserve_sdram();
-	}
+	omap_sram_init();
+	omap_vram_reserve_sdram();
 }
 
 #ifdef CONFIG_ARCH_OMAP2420
@@ -347,7 +345,6 @@ void __init omap2_init_common_hw(struct omap_sdrc_params *sdrc_cs0,
 	pwrdm_init(powerdomains_omap);
 	clkdm_init(clockdomains_omap, clkdm_autodeps);
 
-#ifndef CONFIG_ARCH_TI816X	/* !@@ TODO: Enable on support */
 	if (cpu_is_omap242x())
 		omap2420_hwmod_init();
 	else if (cpu_is_omap243x())
@@ -357,7 +354,6 @@ void __init omap2_init_common_hw(struct omap_sdrc_params *sdrc_cs0,
 	omap2_mux_init();
 	/* The OPP tables have to be registered before a clk init */
 	omap_pm_if_early_init(mpu_opps, dsp_opps, l3_opps);
-#endif
 
 	if (cpu_is_omap2420())
 		omap2420_clk_init();
@@ -377,9 +373,7 @@ void __init omap2_init_common_hw(struct omap_sdrc_params *sdrc_cs0,
 	if (cpu_is_omap24xx() || cpu_is_omap34xx())   /* FIXME: OMAP4, TI8168 */
 		omap_hwmod_late_init();
 
-#ifndef CONFIG_ARCH_TI816X	/* !@@ TODO: Enable on support */
 	omap_pm_if_init();
-#endif
 
 	if (cpu_is_omap24xx() || cpu_is_omap34xx()) {
 		omap2_sdrc_init(sdrc_cs0, sdrc_cs1);

@@ -410,7 +410,7 @@
 #endif
 
 #ifdef CONFIG_ARCH_TI816X
-#define NR_IRQS			128	/* !@1 TODO: GPIO, MSI etc IRQs */
+#define NR_IRQS			128	/* TODO: Add GPIO, MSI etc IRQs */
 #else
 #define NR_IRQS			TWL_IRQ_END
 #endif

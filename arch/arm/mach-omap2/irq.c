@@ -48,7 +48,7 @@ static struct omap_irq_bank {
 	{
 		/* MPU INTC */
 		.base_reg	= 0,
-		.nr_irqs	= INTCPS_NR_IRQS,	/* !@@@ was 96, */
+		.nr_irqs	= INTCPS_NR_IRQS,
 	},
 };
 

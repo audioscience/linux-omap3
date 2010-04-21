@@ -567,19 +567,6 @@ config ARCH_W90X900
 	  <http://www.nuvoton.com/hq/enu/ProductAndSales/ProductLines/
 		ConsumerElectronicsIC/ARMMicrocontroller/ARMMicrocontroller>
 
-# !@@@ Plan to move this inside plat-omap/Kconfig and use remaining defs from
-# ARCH_OMAP below as applicable
-config ARCH_TI816X
-	bool "TI8168 device support"
-	select GENERIC_GPIO
-	select ARCH_REQUIRE_GPIOLIB
-	select GENERIC_TIME
-	select GENERIC_CLOCKEVENTS
-	select COMMON_CLKDEV
-	select CPU_V7
-	help
-	  Support for TI's TI816X systems.
-
 config ARCH_NUC93X
 	bool "Nuvoton NUC93X CPU"
 	select CPU_ARM926T
@@ -815,6 +802,17 @@ config ARCH_OMAP
 	select ARCH_HAS_HOLES_MEMORYMODEL
 	help
 	  Support for TI's OMAP platform (OMAP1 and OMAP2).
+
+config ARCH_TI816X
+	bool "TI816X device support"
+	select GENERIC_GPIO
+	select ARCH_REQUIRE_GPIOLIB
+	select GENERIC_TIME
+	select GENERIC_CLOCKEVENTS
+	select COMMON_CLKDEV
+	select CPU_V7
+	help
+	  Support for TI's TI816X systems.
 
 endchoice
 

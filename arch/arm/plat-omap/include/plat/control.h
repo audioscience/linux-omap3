@@ -216,7 +216,7 @@
  */
 
 /*
- * !@0 TODO: Add TI816X specific data. Since this is totally different w.r.t.
+ * TODO: Add TI816X specific data. Since this is totally different w.r.t.
  * OMAPx devices, it may be better to add those in separate file
  * (control-ti816x.h for example).
  */
