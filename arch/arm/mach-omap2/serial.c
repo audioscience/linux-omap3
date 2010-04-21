@@ -82,12 +82,7 @@ static LIST_HEAD(uart_list);
 static struct plat_serial8250_port serial_platform_data0[] = {
 	{
 		.irq		= 72,
-#ifndef CONFIG_TI8168_SIM
 		.flags		= UPF_BOOT_AUTOCONF,
-#else
-		/* WA: Skip loopback test as it fails on simulator */
-		.flags		= UPF_BOOT_AUTOCONF | UPF_SKIP_TEST,
-#endif
 		.iotype		= UPIO_MEM,
 		.regshift	= 2,
 		.uartclk	= OMAP24XX_BASE_BAUD * 16,
