@@ -20,6 +20,16 @@
 #include <linux/device.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/flash.h>
+#include <linux/platform_device.h>
+#include <linux/gpio.h>
+#include <linux/i2c.h>
+#include <linux/i2c/pcf857x.h>
+#include <linux/i2c/at24.h>
+#include <linux/mtd/mtd.h>
+#include <linux/mtd/nand.h>
+#include <linux/mtd/partitions.h>
+#include <linux/mtd/physmap.h>
+#include <linux/phy.h>
 
 #include <mach/hardware.h>
 #include <asm/mach-types.h>
@@ -39,6 +49,68 @@
 #include "powerdomains.h"
 #include "mux.h"
 #include "hsmmc.h"
+
+
+#if defined(CONFIG_MTD_PHYSMAP) || \
+    defined(CONFIG_MTD_PHYSMAP_MODULE)
+#define HAS_NOR 1
+#else
+#define HAS_NOR 0
+#endif
+
+static struct mtd_partition ti816x_evm_norflash_partitions[] = {
+	/* bootloader (U-Boot, etc) in first 5 sectors */
+	{
+		.name		= "bootloader",
+		.offset		= 0,
+		.size		= 5 * SZ_128K,
+		.mask_flags	= MTD_WRITEABLE, /* force read-only */
+	},
+	/* bootloader params in the next 1 sectors */
+	{
+		.name		= "params",
+		.offset		= MTDPART_OFS_APPEND,
+		.size		= SZ_128K,
+		.mask_flags	= 0,
+	},
+	/* kernel */
+	{
+		.name		= "kernel",
+		.offset		= MTDPART_OFS_APPEND,
+		.size		= SZ_2M,
+		.mask_flags	= 0
+	},
+	/* file system */
+	{
+		.name		= "filesystem",
+		.offset		= MTDPART_OFS_APPEND,
+		.size		= MTDPART_SIZ_FULL,
+		.mask_flags	= 0
+	}
+};
+
+static struct physmap_flash_data ti816x_evm_norflash_data = {
+	.width		= 2,
+	.parts		= ti816x_evm_norflash_partitions,
+	.nr_parts	= ARRAY_SIZE(ti816x_evm_norflash_partitions),
+};
+
+#define TI816X_EVM_NOR_BASE			0x0000000
+static struct resource ti816x_evm_norflash_resource = {
+	.start		= TI816X_EVM_NOR_BASE,
+	.end		= TI816X_EVM_NOR_BASE + SZ_64M - 1,
+	.flags		= IORESOURCE_MEM,
+};
+
+static struct platform_device ti816x_evm_norflash_device = {
+	.name		= "physmap-flash",
+	.id		= 0,
+	.dev		= {
+		.platform_data	= &ti816x_evm_norflash_data,
+	},
+	.num_resources	= 1,
+	.resource	= &ti816x_evm_norflash_resource,
+};
 
 static struct omap2_hsmmc_info mmc[] = {
 	{
@@ -183,6 +255,8 @@ static void __init ti8168_evm_init(void)
 	ti816x_evm_i2c_init();
 	i2c_add_driver(&ti816xevm_cpld_driver);
 
+	if (HAS_NOR)
+		platform_device_register(&ti816x_evm_norflash_device);
 }
 
 
