@@ -615,21 +615,19 @@ static unsigned int serial_in_override(struct uart_port *up, int offset)
 		unsigned int lsr;
 
 		/*
-		 * TI8168 specific workaround: check LCR if this register is
-		 * being  accessed as DLL. If it is, then skip LSR check and
-		 * perform the read as I have observed that the LSR check fails
-		 * during the 8250 driver init specifically when early console
-		 * is enabled ('earlyprintk') and the driver
-		 * autoconfig_read_divisor_id() routine writes back the DLL
-		 * value as 0xff which results into wrong baud setting till it
-		 * is again overridden by set_termios.
+		 * ti816x specific workaround: Skipping UART_LSR_DR status check
+		 * in case the RX register is being accessed as DLL. Otherwise,
+		 * on detecting UART_LSR_DR status cleared, the return value
+		 * would be 0xff taken as DLL by autoconfig_read_divisor_id
+		 * which writes back the same resulting into wrong baud setting.
+		 * Of course, this is corrected later by set_termios, but, on
+		 * emulation platforms this delay is considerable (few minutes).
+		 * Also, if something bad happens before the init is executed,
+		 * then we will never get debug prints even with 'earlyprintk'.
 		 *
-		 * Note: This delay (till setting proper baud) feels much longer
-		 * in case of emulation builds but for now it best to avoid even
-		 * on actual h/w.
-		 *
-		 * TODO: This WA can be later removed if the delay is OK or
-		 * can be added for all 'chips' after complete tests are done.
+		 * TODO: This WA can be later removed if the delay is not much
+		 * on actual h/w or needs to be made common across Omaps (who
+		 * have overridden routine) and ti816x.
 		 */
 		if (!cpu_is_ti816x() ||
 			!(__serial_read_reg(up, UART_LCR) & UART_LCR_DLAB)) {
@@ -710,7 +708,7 @@ void __init omap_serial_early_init(void)
 		}
 
 		/* FIXME: Remove this once the clkdev is ready */
-		if (!cpu_is_omap44xx() && !cpu_is_ti816x()) {
+		if (!cpu_is_omap44xx()) {
 			if (!uart->ick || !uart->fck)
 				continue;
 		}
@@ -748,13 +746,10 @@ void __init omap_serial_init_port(int port)
 	pdev = &uart->pdev;
 	dev = &pdev->dev;
 
-	/* FIXME: Remove this once the clkdev is ready */
-	if (!cpu_is_ti816x()) {
-		if (unlikely(!uart->ick || !uart->fck)) {
-			WARN(1, "%s: can't init uart%d, no clocks available\n",
-					kobject_name(&dev->kobj), port);
-			return;
-		}
+	if (unlikely(!uart->ick || !uart->fck)) {
+		WARN(1, "%s: can't init uart%d, no clocks available\n",
+				kobject_name(&dev->kobj), port);
+		return;
 	}
 
 	omap_uart_enable_clocks(uart);
