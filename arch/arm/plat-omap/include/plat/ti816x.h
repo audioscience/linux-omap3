@@ -39,4 +39,14 @@
 
 #define TI816X_SATA_BASE	0x4A140000
 
+/* TODO move below dma event macros to dma header */
+#define TI816X_DMA_SPI1_TX0			16
+#define TI816X_DMA_SPI1_RX0			17
+#define TI816X_DMA_SPI1_TX1			18
+#define TI816X_DMA_SPI1_RX1			19
+#define TI816X_DMA_SPI1_TX2			20
+#define TI816X_DMA_SPI1_RX2			21
+#define TI816X_DMA_SPI1_TX3			22
+#define TI816X_DMA_SPI1_RX3			23
+
 #endif /* __ASM_ARCH_TI816X_H */

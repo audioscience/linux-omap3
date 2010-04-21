@@ -1000,16 +1000,6 @@ static int __init omap2_mcspi_reset(struct omap2_mcspi *mcspi)
 
 #if defined(CONFIG_ARCH_TI816X)
 
-/* TODO move below dma event macros to plat-omap  for TI816x */
-#define TI816X_DMA_SPI1_TX0			16
-#define TI816X_DMA_SPI1_RX0			17
-#define TI816X_DMA_SPI1_TX1			18
-#define TI816X_DMA_SPI1_RX1			19
-#define TI816X_DMA_SPI1_TX2			20
-#define TI816X_DMA_SPI1_RX2			21
-#define TI816X_DMA_SPI1_TX3			22
-#define TI816X_DMA_SPI1_RX3			23
-
 static u8 __initdata spi1_rxdma_id [] = {
 	TI816X_DMA_SPI1_RX0,
 	TI816X_DMA_SPI1_RX1,

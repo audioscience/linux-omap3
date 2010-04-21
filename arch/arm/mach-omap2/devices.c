@@ -344,6 +344,15 @@ static struct omap2_mcspi_platform_config omap2_mcspi1_config = {
 	.num_cs		= 4,
 };
 
+#ifdef CONFIG_ARCH_TI816X
+static struct resource omap2_mcspi1_resources[] = {
+	{
+		.start		= TI816X_MCSPI1_BASE,
+		.end		= TI816X_MCSPI1_BASE + 0xff,
+		.flags		= IORESOURCE_MEM,
+	},
+};
+#else
 static struct resource omap2_mcspi1_resources[] = {
 	{
 		.start		= OMAP2_MCSPI1_BASE,
@@ -351,6 +360,7 @@ static struct resource omap2_mcspi1_resources[] = {
 		.flags		= IORESOURCE_MEM,
 	},
 };
+#endif
 
 static struct platform_device omap2_mcspi1 = {
 	.name		= "omap2_mcspi",
