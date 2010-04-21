@@ -108,8 +108,11 @@
 #define OMAP4430_PRM_DEVICE_MOD		0x1b00
 #define OMAP4430_PRM_INSTR_MOD		0x1f00
 
+/* TI816X PRCM module offsets */
+
 /*
- * !@3 Note: There do no seem separate spaced instances of CM & PRM as in OMAPx
+ * FIXME: There are no separate spaced instances of CM & PRM as in OMAPx, but we
+ * could still seggregate the offsets for clarity.
  */
 
 #define TI816X_PRM_DEVICE_MOD			0x0000	/* 256B */
@@ -130,6 +133,7 @@
 #define TI816X_PRM_SGX_MOD			0x0f00	/* 256B */
 #define TI816X_CM_ALWON_MOD			0x1400	/* 1KB */
 #define TI816X_PRM_ALWON_MOD			0x1800	/* 1KB */
+
 /* SCRM instances */
 
 #define OMAP4430_SCRM_SCRM_MOD	0x0000

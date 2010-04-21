@@ -25,23 +25,40 @@
 #include "clock.h"
 #include "clock816x.h"
 #include "cm.h"
+#include "cm-regbits-816x.h"
 #include "prm.h"
 
 /*
- * Secure 32K clock is selected outside of PRCM using SECURE_CLK_CTRL. This is
- * fed to Timer0, WDT and RTC. For now, we skip access to SECURE_CLK_CTRL.
+ * Notes:
  *
- * !@2 TODO: Considering only SYSCLK18 for now
+ * - Various leaf modules clocks don't have separate interface and functional
+ *   clock gating controls. Moreover, interface clock parents (SYSCLKs) do not
+ *   have enable/disable controls. Thus, we can probably remove interface clocks
+ *   and use dummy clocks instead. Only issue could be related to disabling
+ *   SYSCLK parents (PLL). At present, the 'ick' are provided with clkops_null
+ *   operations for enable/disable (since they are taken care by 'fck's).
+ *
+ * - Skipping PLL data and configuration for now. All the PLL (root) clocks are
+ *   referred with their default rates.
+ *
+ * - Use 'null' operations for few SYSCLKs (such as 4, 5, 6 etc.), which do not
+ *   have software control for enable/disable (control registers are RO).
+ *
+ * - Numbering for modules such as UART, I2C, Timer etc., which have multiple
+ *   instances, starts from 1 while register definitions are maintained starting
+ *   from 0 as per spec. This is followed to avoid confusion with omaps, where
+ *   the numbering start from 1.
  */
-static struct clk secure_32k_fck = {
-	.name		= "secure_32k_fck",
+
+static struct clk secure_32k_ck = {
+	.name		= "secure_32k_ck",
 	.ops		= &clkops_null,
 	.rate		= 32768,
 	.flags		= RATE_IN_TI816X | DEFAULT_RATE,
 };
 
-static struct clk omap_32k_ck = {
-	.name		= "omap_32k_ck",
+static struct clk sys_32k_ck = {
+	.name		= "sys_32k_ck",
 	.ops		= &clkops_null,
 	.rate		= 32768,
 	.flags		= RATE_IN_TI816X | DEFAULT_RATE,
@@ -50,212 +67,387 @@ static struct clk omap_32k_ck = {
 static struct clk tclkin_ck = {
 	.name		= "tclkin_ck",
 	.ops		= &clkops_null,
-	.rate		= 32768,		/* FIXME */
+	.rate		= 32768,		/* TODO: Check */
 	.flags		= RATE_IN_TI816X | DEFAULT_RATE,
 };
-
-/*
- * PLL data
- *
- * !@1 TODO: Add macros and reorganize as appropriate
- */
-
-
-
-/*
- * Assuming CLKIN fixed @ 27MHz for now. This allows getting rid of "virtual"
- * clocks for osc.
- * !@2 TODO: Need to sample CLK_CTL (0x648) to get the device oscillator
- * frequency selection (but this will just give the range and not the actual
- * frequency of SYS_CLKIN as done for OMAP4 with SYS_CLKSEL.
- */
 
 static struct clk sys_clkin_ck = {
 	.name		= "sys_clkin_ck",
 	.ops		= &clkops_null,
-	.init		= &omap2_init_clksel_parent,	/* !@3 Can probably get
-							   rid of this as we are
-							   anyway using fixed
-							   clock input value */
-	.clksel_reg	= NULL,		/* This will catch the case where these
-					   clksel values are reuired by some
-					   clock functions, e.g.,
-					   omap2_clksel_get_divisor */
-	.clksel_mask	= 0,
-	.clksel		= NULL,		/* !@3 Hardcoded rate skips executing
-					   'init' for rate setting */
-	/* REVISIT: deal with autoextclkmode? */
-	.recalc		= NULL,		/* !@3 Not supported for sys_clkin
-					   currently */
+	.rate		= 27000000,
+	.flags		= RATE_IN_TI816X | DEFAULT_RATE,
+};
+
+static struct clk main_pll_clk4_ck = {
+	.name		= "main_pll_clk4_ck",
+	.ops		= &clkops_null,
+	.rate		= 500000000,
+	.flags		= RATE_IN_TI816X | DEFAULT_RATE,
+};
+
+static const struct clksel_rate div2_sysclk4_rates[] = {
+	{ .div = 1, .val = 0, .flags = RATE_IN_TI816X | DEFAULT_RATE },
+	{ .div = 2, .val = 1, .flags = RATE_IN_TI816X },
+	{ .div = 0 },
+};
+
+static const struct clksel sysclk4_div[] = {
+	{ .parent = &main_pll_clk4_ck, .rates = div2_sysclk4_rates },
+	{ .parent = NULL },
+};
+
+static struct clk sysclk4_ck = {
+	.name		= "sysclk4_ck",
+	.parent		= &main_pll_clk4_ck,
+	.clksel		= sysclk4_div,
+	.init		= &omap2_init_clksel_parent,
+	.ops		= &clkops_null,
+	.clksel_reg	= TI816X_CM_DPLL_SYSCLK4_CLKSEL,
+	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
+	.recalc		= &omap2_clksel_recalc,
+};
+
+static const struct clksel_rate div_4_1_rates[] = {
+	{ .div = 4, .val = 1, .flags = RATE_IN_TI816X | DEFAULT_RATE },
+	{ .div = 0 },
+};
+
+static const struct clksel sysclk6_div[] = {
+	{ .parent = &sysclk4_ck, .rates = div_4_1_rates },
+	{ .parent = NULL },
+};
+
+static struct clk sysclk6_ck = {
+	.name		= "sysclk6_ck",
+	.parent		= &sysclk4_ck,
+	.clksel		= sysclk6_div,
+	.init		= &omap2_init_clksel_parent,
+	.ops		= &clkops_null,
+	.clksel_reg	= TI816X_CM_DPLL_SYSCLK6_CLKSEL,
+	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
+	.recalc		= &omap2_clksel_recalc,
+};
+
+static struct clk uart1_ick = {
+	.name		= "uart1_ick",
+	.parent		= &sysclk6_ck,
+	.ops		= &clkops_null,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
+
+static struct clk uart2_ick = {
+	.name		= "uart2_ick",
+	.parent		= &sysclk6_ck,
+	.ops		= &clkops_null,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
+
+static struct clk uart3_ick = {
+	.name		= "uart3_ick",
+	.parent		= &sysclk6_ck,
+	.ops		= &clkops_null,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
 };
 
 /*
- * In ti816x, DPLL control is outside PRCM thus, we skip following in the
- * subsequent data:
- *	1. Setting clock source
- *	2. Divisor as fed into PLL
- *
- * Ofcourse, we will control internal clock sources (SYSCLKx etc) using CM_DPLL
- * register configurations.
+ * Points to note about timer conventions:
+ * 1) We are referring dmtimers as gptimers to match omap convention
+ * 2) Skipping gptimer1 as it is secure mode timer.
  */
 
-/* DPLLS */
-/* ................................ skip! (see above) */
+static struct clk gpt2_ick = {
+	.name		= "gpt2_ick",
+	.parent		= &sysclk6_ck,
+	.ops		= &clkops_null,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
 
-/*
- * TODO: Update flags as -
- *	- RATE_IN_TI816X for clksel_rate data
- *	- CLOCK_IN_TI816X for clk data
- *
- *	This needs also to be taken care at initialization so that the flags
- *	match. !@0
- */
+static struct clk gpt3_ick = {
+	.name		= "gpt3_ick",
+	.parent		= &sysclk6_ck,
+	.ops		= &clkops_null,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
 
-#if 0
+static struct clk gpmc_ick = {
+	.name		= "gpmc_ick",
+	.parent		= &sysclk6_ck,
+	.ops		= &clkops_null,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
+
+static struct clk i2c1_ick = {
+	.name		= "i2c1_ick",
+	.parent		= &sysclk6_ck,
+	.ops		= &clkops_null,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
+
+static struct clk i2c2_ick = {
+	.name		= "i2c2_ick",
+	.parent		= &sysclk6_ck,
+	.ops		= &clkops_null,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
+
+static struct clk mmchs1_ick = {
+	.name		= "mmchs1_ick",
+	.parent		= &sysclk6_ck,
+	.ops		= &clkops_null,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
+
+static struct clk ddr_pll_clk2_ck = {
+	.name		= "ddr_pll_clk2_ck",
+	.ops		= &clkops_null,
+	.rate		= 96000000,
+	.flags		= RATE_IN_TI816X | DEFAULT_RATE,
+};
+
+static const struct clksel_rate div3_sysclk10_rates[] = {
+	{ .div = 1, .val = 0, .flags = RATE_IN_TI816X },
+	{ .div = 2, .val = 1, .flags = RATE_IN_TI816X | DEFAULT_RATE },
+	{ .div = 3, .val = 2, .flags = RATE_IN_TI816X },
+	{ .div = 0 },
+};
+
+static const struct clksel sysclk10_div[] = {
+	{ .parent = &ddr_pll_clk2_ck, .rates = div3_sysclk10_rates },
+	{ .parent = NULL },
+};
+
+static struct clk sysclk10_ck = {
+	.name		= "sysclk10_ck",
+	.parent		= &ddr_pll_clk2_ck,
+	.clksel		= sysclk10_div,
+	.init		= &omap2_init_clksel_parent,
+	.ops		= &clkops_null,
+	.clksel_reg	= TI816X_CM_DPLL_SYSCLK10_CLKSEL,
+	.clksel_mask	= TI816X_CLKSEL_0_2_MASK,
+	.recalc		= &omap2_clksel_recalc,
+};
+
+static struct clk uart1_fck = {
+	.name		= "uart1_fck",
+	.parent		= &sysclk10_ck,
+	.ops		= &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_ALWON_UART_0_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
+
+static struct clk uart2_fck = {
+	.name		= "uart2_fck",
+	.parent		= &sysclk10_ck,
+	.ops		= &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_ALWON_UART_1_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
+
+static struct clk uart3_fck = {
+	.name		= "uart3_fck",
+	.parent		= &sysclk10_ck,
+	.ops		= &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_ALWON_UART_2_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
+
+static struct clk gpmc_fck = {
+	.name		= "gpmc_fck",
+	.parent		= &sysclk10_ck,
+	.ops		= &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_ALWON_GPMC_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
+
+static struct clk i2c1_fck = {
+	.name		= "i2c1_fck",
+	.parent		= &sysclk10_ck,
+	.ops		= &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_ALWON_I2C_0_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
+
+static struct clk i2c2_fck = {
+	.name		= "i2c2_fck",
+	.parent		= &sysclk10_ck,
+	.ops		= &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_ALWON_I2C_1_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
+
+static struct clk mmchs1_fck = {
+	.name		= "mmchs1_fck",
+	.parent		= &sysclk10_ck,
+	.ops		= &clkops_omap2_dflt_wait,
+	.enable_reg	= TI816X_CM_ALWON_SDIO_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
+
+static struct clk audio_pll_clk1_ck = {
+	.name		= "audio_pll_clk1_ck",
+	.ops		= &clkops_null,
+	.rate		= 32768,
+	.flags		= RATE_IN_TI816X | DEFAULT_RATE,
+};
+
+static const struct clksel_rate div3_audio_pll_a_rates[] = {
+	{ .div = 1, .val = 0, .flags = RATE_IN_TI816X | DEFAULT_RATE },
+	{ .div = 2, .val = 1, .flags = RATE_IN_TI816X },
+	{ .div = 3, .val = 2, .flags = RATE_IN_TI816X },
+	{ .div = 0 },
+};
+
+static const struct clksel audio_pll_a_div[] = {
+	{ .parent = &audio_pll_clk1_ck, .rates = div3_audio_pll_a_rates },
+	{ .parent = NULL },
+};
+
+static struct clk audio_pll_a_ck = {
+	.name		= "audio_pll_a_ck",
+	.parent		= &audio_pll_clk1_ck,
+	.init		= &omap2_init_clksel_parent,
+	.clksel		= audio_pll_a_div,
+	.ops		= &clkops_null,
+	.clksel_reg	= TI816X_CM_DPLL_APA_CLKSEL,
+	.clksel_mask	= TI816X_CLKSEL_0_2_MASK,
+	.recalc		= &omap2_clksel_recalc,
+};
+
 static const struct clksel_rate div_1_0_rates[] = {
-	{ .div = 1, .val = 0, .flags = RATE_FIXED },
+	{ .div = 1, .val = 0, .flags = RATE_IN_TI816X | DEFAULT_RATE },
 	{ .div = 0 },
 };
 
 static const struct clksel_rate div_1_1_rates[] = {
-	{ .div = 1, .val = 1, .flags = RATE_FIXED },
+	{ .div = 1, .val = 1, .flags = RATE_IN_TI816X | DEFAULT_RATE },
 	{ .div = 0 },
 };
 
 static const struct clksel_rate div_1_2_rates[] = {
-	{ .div = 1, .val = 2, .flags = RATE_FIXED },
+	{ .div = 1, .val = 2, .flags = RATE_IN_TI816X | DEFAULT_RATE },
 	{ .div = 0 },
 };
 
-static const struct clksel ti816x_gpt2to8_clksel[] = {
-	{ .parent = &sys_clkin_ck, .rates = div_1_0_rates },
-	{ .parent = &sysclk18_ck, .rates = div_1_1_rates },
-	{ .parent = &tclkin_ck, .rates = div_1_2_rates },
+static const struct clksel sysclk18_mux_sel[] = {
+	{ .parent = &sys_32k_ck, .rates = div_1_0_rates },
+	{ .parent = &audio_pll_a_ck, .rates = div_1_1_rates },
 	{ .parent = NULL}
 };
 
-static struct clk gpt2to8_refclk_mux_ck = {
-	.name		= "gpt2to8_refclk_mux_ck",
-	.parent		= &sysclk18_ck,
-	.clksel		= ti816x_gpt2to8_clksel,
+static struct clk sysclk18_ck = {
+	.name		= "sysclk18_ck",
+	.parent		= &audio_pll_a_ck,
 	.init		= &omap2_init_clksel_parent,
-	.clksel_reg	= TI816X_CM_TIMER1_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
+	.clksel		= sysclk18_mux_sel,
+	.ops		= &clkops_omap2_dflt,
+	.clksel_reg	= TI816X_CM_DPLL_SYSCLK18_CLKSEL,
+	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
 	.recalc		= &omap2_clksel_recalc,
-	.ops		= &clkops_null,
-	.flags		= RATE_FIXED,
 };
-#endif
+
+static const struct clksel gpt2to8_mux_sel[] = {
+	{ .parent = &tclkin_ck, .rates = div_1_0_rates },
+	{ .parent = &sysclk18_ck, .rates = div_1_1_rates },
+	{ .parent = &sys_clkin_ck, .rates = div_1_2_rates },
+	{ .parent = NULL}
+};
 
 static struct clk gpt2_fck = {
 	.name		= "gpt2_fck",
-	.ops		= &clkops_omap2_dflt_wait,
-#ifndef CONFIG_TI8168_SIM
+	.parent		= &sysclk18_ck,
 	.init		= &omap2_init_clksel_parent,
-#else
-	.rate		= 1024*1024,	/* !@@ Skip CM module access for parent.
-					   Also, keep clock rate lower to have
-					   lower timer count for simulators. */
-#endif
-	.enable_reg	= NULL,
-	.enable_bit	= -1,
-	.clksel_reg	= NULL,
-	.clksel_mask	= -1,
-#ifndef CONFIG_TI8168_SIM
-	.clksel		= gpt2to8_refclk_mux_ck,
-#endif
-	.clkdm_name	= "per_clkdm",
-#ifndef CONFIG_TI8168_SIM
+	.clksel		= gpt2to8_mux_sel,
+	.ops		= &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_ALWON_TIMER_1_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clksel_reg	= TI816X_CM_DPLL_TIMER1_CLKSEL,
+	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &omap2_clksel_recalc,
-#endif
 };
 
-/*
- * !@1 XXX: Just added for clocksource (free-running. Check if really needed and
- * if omap2_gp_clocksource_init called from omap2_gp_timer_init can be avoided
- */
 static struct clk gpt3_fck = {
 	.name		= "gpt3_fck",
-	.ops		= &clkops_omap2_dflt_wait,
-#ifndef CONFIG_TI8168_SIM
+	.parent		= &sysclk18_ck,
+	.clksel		= gpt2to8_mux_sel,
 	.init		= &omap2_init_clksel_parent,
-#else
-	.rate		= 1024*1024,	/* !@@ Skip CM module access for parent.
-					   Also, keep clock rate lower to have
-					   lower timer count for simulators. */
-#endif
-	.enable_reg	= NULL,
-	.enable_bit	= -1,
-	.clksel_reg	= NULL,
-	.clksel_mask	= -1,
-#ifndef CONFIG_TI8168_SIM
-	.clksel		= omap343x_gpt_clksel,
-#endif
-	.clkdm_name	= "per_clkdm",
-#ifndef CONFIG_TI8168_SIM
+	.ops		= &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_ALWON_TIMER_2_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clksel_reg	= TI816X_CM_DPLL_TIMER2_CLKSEL,
+	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &omap2_clksel_recalc,
-#endif
 };
 
-/*
- *
- *	TODO:	1. Approriate enable_reg macro
- *		2. clock frequencies
- *		3. Appropriate enable_bit value
- */
-static struct clk mmchs1_ick = {
-	.name		= "mmchs1_ick",
-	.ops		= &clkops_omap2_dflt_wait,
-	.parent		= &omap_32k_ck,
-	.clkdm_name	= "core_l4_clkdm",
-	.enable_reg	= 0,
-	.enable_bit	= 0,
-	.recalc		= &followparent_recalc,
-};
-
-/*
- *
- *	TODO:	1. Approriate enable_reg macro
- *		2. clock frequencies
- *		3. Appropriate enable_bit value
- */
-static struct clk mmchs1_fck = {
-	.name		= "mmchs1_ick",
-	.ops		= &clkops_omap2_dflt_wait,
-	.parent		= &omap_32k_ck,
-	.clkdm_name	= "core_l3_clkdm",
-	.enable_reg	= 0,
-	.enable_bit	= 0,
-	.recalc		= &followparent_recalc,
-};
-
-/*
- *
- *	TODO:	1. Approriate enable_reg macro
- *		2. clock frequencies
- *		3. Appropriate enable_bit value
- */
 static struct clk mmchsdb1_fck = {
 	.name		= "mmchsdb1_fck",
-	.ops		= &clkops_omap2_dflt_wait,
-	.parent		= &omap_32k_ck,
-	.clkdm_name	= "core_l4_clkdm",
-	.enable_reg	= 0,
-	.enable_bit	= 0,
+	.parent		= &sysclk18_ck,
+	.ops		= &clkops_null,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &followparent_recalc,
 };
 
 /*
  * clkdev
+ *
+ * FIXME: Some of the external clocks (e.g., tclk) are kept here for
+ * completeness.
  */
 static struct omap_clk ti816x_clks[] = {
-	CLK(NULL,	"omap_32k_ck",	&omap_32k_ck,	CK_TI816X),
-	CLK(NULL,	"sys_clkin_ck",	&sys_clkin_ck,	CK_TI816X),
-	CLK(NULL,	"gpt2_fck",	&gpt2_fck,	CK_TI816X),
-	CLK(NULL,	"gpt3_fck",	&gpt3_fck,	CK_TI816X),
-	CLK("mmci-omap-hs.0",	"ick",	&mmchs1_ick,	CK_TI816X),
-	CLK("mmci-omap-hs.0",	"fck",	&mmchs1_fck,	CK_TI816X),
-	CLK("mmci-omap-hs.0",	"mmchsdb_fck",	&mmchsdb1_fck,	CK_TI816X),
+	CLK(NULL,		"secure_32k_ck",	&secure_32k_ck,		CK_TI816X),
+	CLK(NULL,		"sys_32k_ck",		&sys_32k_ck,		CK_TI816X),
+	CLK(NULL,		"tclkin_ck",		&tclkin_ck,		CK_TI816X),
+	CLK(NULL,		"sys_clkin_ck",		&sys_clkin_ck,		CK_TI816X),
+	CLK(NULL,		"main_pll_clk4_ck",	&main_pll_clk4_ck,	CK_TI816X),
+	CLK(NULL,		"sysclk4_ck",		&sysclk4_ck,		CK_TI816X),
+	CLK(NULL,		"sysclk6_ck",		&sysclk6_ck,		CK_TI816X),
+	CLK(NULL,		"uart1_ick",		&uart1_ick,		CK_TI816X),
+	CLK(NULL,		"uart2_ick",		&uart2_ick,		CK_TI816X),
+	CLK(NULL,		"uart3_ick",		&uart3_ick,		CK_TI816X),
+	CLK(NULL,		"gpt2_ick",		&gpt2_ick,		CK_TI816X),
+	CLK(NULL,		"gpt3_ick",		&gpt3_ick,		CK_TI816X),
+	CLK(NULL,		"gpmc_ick",		&gpmc_ick,		CK_TI816X),
+	CLK("i2c_omap.1",	"ick",			&i2c1_ick,		CK_TI816X),
+	CLK("i2c_omap.2",	"ick",			&i2c2_ick,		CK_TI816X),
+	CLK("mmci-omap-hs.0",	"ick",			&mmchs1_ick,		CK_TI816X),
+	CLK(NULL,		"sysclk10_ck",		&sysclk10_ck,		CK_TI816X),
+	CLK(NULL,		"uart1_fck",		&uart1_fck,		CK_TI816X),
+	CLK(NULL,		"uart2_fck",		&uart2_fck,		CK_TI816X),
+	CLK(NULL,		"uart3_fck",		&uart3_fck,		CK_TI816X),
+	CLK(NULL,		"gpmc_fck",		&gpmc_fck,		CK_TI816X),
+	CLK("i2c_omap.1",	"fck",			&i2c1_fck,		CK_TI816X),
+	CLK("i2c_omap.2",	"fck",			&i2c2_fck,		CK_TI816X),
+	CLK("mmci-omap-hs.0",	"fck",			&mmchs1_fck,		CK_TI816X),
+	CLK(NULL,		"audio_pll_clk1_ck",	&audio_pll_clk1_ck,	CK_TI816X),
+	CLK(NULL,		"audio_pll_a_ck",	&audio_pll_a_ck,	CK_TI816X),
+	CLK(NULL,		"sysclk18_ck",		&sysclk18_ck,		CK_TI816X),
+	CLK(NULL,		"gpt2_fck",		&gpt2_fck,		CK_TI816X),
+	CLK(NULL,		"gpt3_fck",		&gpt3_fck,		CK_TI816X),
+	CLK("mmci-omap-hs.0",	"mmchsdb_fck",		&mmchsdb1_fck,		CK_TI816X),
 };
 
 int __init ti816x_clk_init(void)
