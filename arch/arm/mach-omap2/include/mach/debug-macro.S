@@ -50,9 +50,6 @@ omap_uart_lsr:	.word	0
 		ldrne	\rx, =__phys_to_virt(OMAP_UART_INFO)
 		ldr	\rx, [\rx, #0]
 
-		/* Select the UART to use based on the UART1 scratchpad value */
-		cmp	\rx, #0			@ no port configured?
-		beq	21f			@ if none, try to use UART1
 		cmp	\rx, #OMAP2UART1	@ OMAP2/3/4UART1
 		beq	21f			@ configure OMAP2/3/4UART1
 		cmp	\rx, #OMAP2UART2	@ OMAP2/3/4UART2
