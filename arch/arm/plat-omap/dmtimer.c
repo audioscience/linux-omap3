@@ -311,10 +311,12 @@ static struct omap_dm_timer ti816x_dm_timers[] = {
 	{ .phys_base = 0x4804A000, .irq = TI816X_IRQ_GPT8 },
 };
 static const char *ti816x_dm_source_names[] __initdata = {
-	"sys_ck", /* !@2 TODO: Add 32K timer source */
+	"sys_clkin_ck",
+	"sys_clk18_ck",
+	"tclkin_ck",
 	NULL
 };
-static struct clk *ti816x_dm_source_clocks[1];
+static struct clk *ti816x_dm_source_clocks[3];
 static const int ti816x_dm_timer_count = ARRAY_SIZE(ti816x_dm_timers);
 
 #else
