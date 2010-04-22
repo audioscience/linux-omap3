@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.34-rc2
-# Thu Apr 22 19:07:01 2010
+# Fri Apr 23 09:08:56 2010
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -247,7 +247,6 @@ CONFIG_OMAP_PM_NOOP=y
 # TI816X Board Type
 #
 CONFIG_MACH_TI8168_EVM=y
-CONFIG_TI8168_SIM=y
 
 #
 # Processor Type

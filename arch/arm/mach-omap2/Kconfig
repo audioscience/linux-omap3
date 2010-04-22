@@ -182,10 +182,3 @@ config OMAP3_SDRC_AC_TIMING
 	  users who will wish to say yes at this point - almost everyone will
 	  wish to say no.  Selecting yes without understanding what is
 	  going on could result in system crashes;
-
-config TI8168_SIM
-	bool "TI8168 simulator build"
-	depends on MACH_TI8168_EVM
-	help
-	  Configure to TI8168 build to work on simulator. Generally only affects
-	  clock rate configurations.
