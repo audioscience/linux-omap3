@@ -152,6 +152,15 @@ static struct clk uart3_ick = {
 	.recalc		= &followparent_recalc,
 };
 
+static struct clk mcspi1_ick = {
+	.name		= "mcspi1_ick",
+	.parent		= &sysclk6_ck,
+	.ops		= &clkops_null,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
+
+
 /*
  * Points to note about timer conventions:
  * 1) We are referring dmtimers as gptimers to match omap convention
@@ -265,6 +274,18 @@ static struct clk uart3_fck = {
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &followparent_recalc,
 };
+
+static struct clk mcspi1_fck = {
+	.name		= "mcspi1_fck",
+	.parent		= &sysclk10_ck,
+	.ops		= &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_ALWON_UART_2_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
+
+
 
 static struct clk gpmc_fck = {
 	.name		= "gpmc_fck",
@@ -428,6 +449,7 @@ static struct omap_clk ti816x_clks[] = {
 	CLK(NULL,		"uart1_ick",		&uart1_ick,		CK_TI816X),
 	CLK(NULL,		"uart2_ick",		&uart2_ick,		CK_TI816X),
 	CLK(NULL,		"uart3_ick",		&uart3_ick,		CK_TI816X),
+	CLK("omap-mcspi.1",	"ick",			&mcspi1_ick,	CK_TI816X),
 	CLK(NULL,		"gpt2_ick",		&gpt2_ick,		CK_TI816X),
 	CLK(NULL,		"gpt3_ick",		&gpt3_ick,		CK_TI816X),
 	CLK(NULL,		"gpmc_ick",		&gpmc_ick,		CK_TI816X),
@@ -438,6 +460,7 @@ static struct omap_clk ti816x_clks[] = {
 	CLK(NULL,		"uart1_fck",		&uart1_fck,		CK_TI816X),
 	CLK(NULL,		"uart2_fck",		&uart2_fck,		CK_TI816X),
 	CLK(NULL,		"uart3_fck",		&uart3_fck,		CK_TI816X),
+	CLK("omap2_mcspi.1",	"fck",		&mcspi1_fck,	CK_TI816X),
 	CLK(NULL,		"gpmc_fck",		&gpmc_fck,		CK_TI816X),
 	CLK("i2c_omap.1",	"fck",			&i2c1_fck,		CK_TI816X),
 	CLK("i2c_omap.2",	"fck",			&i2c2_fck,		CK_TI816X),
