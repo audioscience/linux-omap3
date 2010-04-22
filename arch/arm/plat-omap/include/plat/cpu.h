@@ -128,6 +128,7 @@ IS_OMAP_SUBCLASS(443x, 0x443)
 #define cpu_is_omap343x()		0
 #define cpu_is_omap44xx()		0
 #define cpu_is_omap443x()		0
+#define cpu_is_ti816x()			0
 
 #if defined(MULTI_OMAP1)
 # if defined(CONFIG_ARCH_OMAP730)
