@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.34-rc2
-# Wed Apr 21 15:10:00 2010
+# Thu Apr 22 19:07:01 2010
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -208,7 +208,6 @@ CONFIG_MMU=y
 # CONFIG_ARCH_KS8695 is not set
 # CONFIG_ARCH_NS9XXX is not set
 # CONFIG_ARCH_W90X900 is not set
-CONFIG_ARCH_TI816X=y
 # CONFIG_ARCH_NUC93X is not set
 # CONFIG_ARCH_PNX4008 is not set
 # CONFIG_ARCH_PXA is not set
@@ -229,6 +228,7 @@ CONFIG_ARCH_TI816X=y
 # CONFIG_ARCH_NOMADIK is not set
 # CONFIG_ARCH_DAVINCI is not set
 # CONFIG_ARCH_OMAP is not set
+CONFIG_ARCH_TI816X=y
 
 #
 # TI OMAP Implementations
@@ -240,6 +240,8 @@ CONFIG_ARCH_TI816X=y
 CONFIG_OMAP_MPU_TIMER=y
 # CONFIG_OMAP_32K_TIMER is not set
 CONFIG_OMAP_DM_TIMER=y
+# CONFIG_OMAP_PM_NONE is not set
+CONFIG_OMAP_PM_NOOP=y
 
 #
 # TI816X Board Type
