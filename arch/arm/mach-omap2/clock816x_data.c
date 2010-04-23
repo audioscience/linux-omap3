@@ -279,13 +279,11 @@ static struct clk mcspi1_fck = {
 	.name		= "mcspi1_fck",
 	.parent		= &sysclk10_ck,
 	.ops		= &clkops_omap2_dflt,
-	.enable_reg	= TI816X_CM_ALWON_UART_2_CLKCTRL,
+	.enable_reg	= TI816X_CM_ALWON_SPI_CLKCTRL,
 	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &followparent_recalc,
 };
-
-
 
 static struct clk gpmc_fck = {
 	.name		= "gpmc_fck",
