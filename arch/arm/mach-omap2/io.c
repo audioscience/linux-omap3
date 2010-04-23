@@ -23,7 +23,7 @@
 #include <linux/io.h>
 #include <linux/clk.h>
 #include <linux/omapfb.h>
-
+#include <linux/ti816xfb.h>
 #include <asm/tlb.h>
 
 #include <asm/mach/map.h>
@@ -47,6 +47,7 @@
 #include <plat/clockdomain.h>
 #include "clockdomains.h"
 #include <plat/omap_hwmod.h>
+#include <plat/ti816x_ram.h>
 
 /*
  * The machine specific code may provide the extra mapping besides the
@@ -261,6 +262,7 @@ static void __init _omap2_map_common_io(void)
 
 	omap_sram_init();
 	omap_vram_reserve_sdram();
+
 }
 
 #ifdef CONFIG_ARCH_OMAP2420
