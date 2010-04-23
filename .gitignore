@@ -30,7 +30,7 @@ modules.builtin
 *.lzma
 *.patch
 *.gcno
-
+*.bak
 #
 # Top-level generic files
 #
