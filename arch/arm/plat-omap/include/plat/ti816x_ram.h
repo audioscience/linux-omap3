@@ -22,8 +22,8 @@
  * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-#ifndef __TI816X_RAM_H
-#define __TI816X_RAM_H
+#ifndef __TI816X_RAM_H__
+#define __TI816X_RAM_H__
 
 #include <asm/types.h>
 
