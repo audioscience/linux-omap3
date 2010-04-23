@@ -1,0 +1,27 @@
+menuconfig TI816X_VPSS
+        tristate "TI816X Video Processing Subsystem (EXPERIMENTAL)"
+        depends on ARCH_TI816X
+        help
+          TI816X Video Processing Subsystem
+
+if TI816X_VPSS
+
+config TI816X_VPSS_VRAM_SIZE
+	int "VRAM size (MB)"
+	range 0 128
+	default 50
+	help
+	  The amount of SDRAM to reserve at boot time for video RAM use.
+	  This VRAM will be used by ti816xfb and other drivers that need
+	  large continuous RAM area for video use.
+
+	  You can also set this with "vram=<bytes>" kernel argument, or
+	  in the board file.
+
+config TI816X_VPSS_DEBUG_SUPPORT
+        bool "Debug support"
+	default y
+	help
+	  This enables debug messages.
+
+endif
