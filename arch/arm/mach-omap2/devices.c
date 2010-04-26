@@ -21,6 +21,7 @@
 #include <mach/irqs.h>
 #include <asm/mach-types.h>
 #include <asm/mach/map.h>
+#include <asm/hardware/edma.h>
 
 #include <plat/control.h>
 #include <plat/tc.h>
@@ -1013,6 +1014,134 @@ int __init ti_ahci_register(u8 num_inst)
 }
 /*-------------------------------------------------------------------------*/
 
+#if defined(CONFIG_ARCH_TI816X)
+
+#define TI816X_TPCC_BASE		0x49000000
+#define TI816X_TPTC0_BASE		0x49800000
+#define TI816X_TPTC1_BASE		0x49900000
+#define TI816X_TPTC2_BASE		0x49a00000
+#define TI816X_TPTC3_BASE		0x49b00000
+
+static const s16 ti816x_dma_rsv_chans[][2] = {
+	/* (offset, number) */
+	{ 0,  4},	/* !@@@ TODO replace as appropriate - Sundaram*/
+	{13,  3},
+	{24,  4},
+	{30,  2},
+	{54,  3},
+	{-1, -1}
+};
+
+static const s16 ti816x_dma_rsv_slots[][2] = {
+	/* (offset, number) */
+	{ 0,  4},	/* !@@@ TODO replace as appropriate - Sundaram*/
+	{13,  3},
+	{24,  4},
+	{30,  2},
+	{54,  3},
+	{128, 384},
+	{-1, -1}
+};
+
+/* Four Transfer Controllers on TI816X */
+static const s8 ti816x_queue_tc_mapping[][4] = {
+	/* {event queue no, TC no} */
+	{0, 0},
+	{1, 1},
+	{2, 2},
+	{3, 3},
+	{-1, -1}
+};
+static const s8 ti816x_queue_priority_mapping[][2] = {
+	/* {event queue no, Priority} */
+	{0, 4},	/* !@@@ TODO replace as appropriate - Sundaram*/
+	{1, 0},
+	{2, 5},
+	{3, 1},
+	{-1, -1}
+};
+static struct edma_soc_info ti816x_edma_info[] = {
+	{
+		.n_channel		= 64,
+		.n_region		= 5,	/* 0-2, 4-5 */
+		.n_slot			= 512,
+		.n_tc			= 4,
+		.n_cc			= 1,
+		.rsv_chans		= ti816x_dma_rsv_chans,
+		.rsv_slots		= ti816x_dma_rsv_slots,
+		.queue_tc_mapping	= ti816x_queue_tc_mapping,
+		.queue_priority_mapping	= ti816x_queue_priority_mapping,
+	},
+};
+static struct resource ti816x_edma_resources[] = {
+	{
+		.name	= "edma_cc0",
+		.start	= TI816X_TPCC_BASE,
+		.end	= TI816X_TPCC_BASE + SZ_32K - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.name	= "edma_tc0",
+		.start	= TI816X_TPTC0_BASE,
+		.end	= TI816X_TPTC0_BASE + SZ_1K - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.name	= "edma_tc1",
+		.start	= TI816X_TPTC1_BASE,
+		.end	= TI816X_TPTC1_BASE + SZ_1K - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.name	= "edma_tc2",
+		.start	= TI816X_TPTC2_BASE,
+		.end	= TI816X_TPTC2_BASE + SZ_1K - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.name	= "edma_tc3",
+		.start	= TI816X_TPTC3_BASE,
+		.end	= TI816X_TPTC3_BASE + SZ_1K - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.name	= "edma0",
+		.start	= TI816X_IRQ_EDMA_COMP,
+		.flags	= IORESOURCE_IRQ,
+	},
+	{
+		.name	= "edma0_err",
+		.start	= TI816X_IRQ_EDMA_ERR,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+static struct platform_device ti816x_edma_device = {
+	.name		= "edma",
+	.id		= -1,	/* !@@@ TODO replace as appropriate - Sundaram*/
+	.dev = {
+		.platform_data = ti816x_edma_info,
+	},
+	.num_resources	= ARRAY_SIZE(ti816x_edma_resources),
+	.resource	= ti816x_edma_resources,
+};
+int __init ti816x_register_edma(void)
+{
+	struct platform_device *pdev;
+
+	if (cpu_is_ti816x())
+		pdev = &ti816x_edma_device;
+	else
+		return -ENODEV;
+
+	return platform_device_register(pdev);
+}
+
+#else
+static inline void ti816x_register_edma(void) {}
+#endif
+
+/*-------------------------------------------------------------------------*/
+
 static int __init omap2_init_devices(void)
 {
 	/* please keep these calls, and their implementations above,
@@ -1026,6 +1155,7 @@ static int __init omap2_init_devices(void)
 	omap_init_sti();
 	omap_init_sha1_md5();
 	omap_init_vout();
+	ti816x_register_edma();
 
 	return 0;
 }
