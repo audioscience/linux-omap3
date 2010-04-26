@@ -1,5 +1,5 @@
 /*
- * EDMA3 support for DaVinci
+ * EDMA3 support for DaVinci	!@@@ TODO replace as appropriate - Sundaram
  *
  * Copyright (C) 2006-2009 Texas Instruments.
  *
@@ -24,7 +24,7 @@
 #include <linux/platform_device.h>
 #include <linux/io.h>
 
-#include <mach/edma.h>
+#include <asm/hardware/edma.h>
 
 /* Offsets matching "struct edmacc_param" */
 #define PARM_OPT		0x00
@@ -510,6 +510,18 @@ static irqreturn_t dma_tc0err_handler(int irq, void *data)
 static irqreturn_t dma_tc1err_handler(int irq, void *data)
 {
 	dev_dbg(data, "dma_tc1err_handler\n");
+	return IRQ_HANDLED;
+}
+
+static irqreturn_t dma_tc2err_handler(int irq, void *data)
+{
+	dev_dbg(data, "dma_tc2err_handler\n");
+	return IRQ_HANDLED;
+}
+
+static irqreturn_t dma_tc3err_handler(int irq, void *data)
+{
+	dev_dbg(data, "dma_tc3err_handler\n");
 	return IRQ_HANDLED;
 }
 
@@ -1539,18 +1551,32 @@ static int __init edma_probe(struct platform_device *pdev)
 	}
 
 	if (tc_errs_handled) {
-		status = request_irq(IRQ_TCERRINT0, dma_tc0err_handler, 0,
+		status = request_irq(TI81XX_IRQ_TPTC0, dma_tc0err_handler, 0,
 					"edma_tc0", &pdev->dev);
 		if (status < 0) {
 			dev_dbg(&pdev->dev, "request_irq %d failed --> %d\n",
-				IRQ_TCERRINT0, status);
+				TI81XX_IRQ_TPTC0, status);
 			return status;
 		}
-		status = request_irq(IRQ_TCERRINT, dma_tc1err_handler, 0,
+		status = request_irq(TI81XX_IRQ_TPTC1, dma_tc1err_handler, 0,
 					"edma_tc1", &pdev->dev);
 		if (status < 0) {
 			dev_dbg(&pdev->dev, "request_irq %d --> %d\n",
-				IRQ_TCERRINT, status);
+				TI81XX_IRQ_TPTC1, status);
+			return status;
+		}
+		status = request_irq(TI81XX_IRQ_TPTC2, dma_tc2err_handler, 0,
+					"edma_tc2", &pdev->dev);
+		if (status < 0) {
+			dev_dbg(&pdev->dev, "request_irq %d failed --> %d\n",
+				TI81XX_IRQ_TPTC2, status);
+			return status;
+		}
+		status = request_irq(TI81XX_IRQ_TPTC3, dma_tc3err_handler, 0,
+					"edma_tc3", &pdev->dev);
+		if (status < 0) {
+			dev_dbg(&pdev->dev, "request_irq %d --> %d\n",
+				TI81XX_IRQ_TPTC3, status);
 			return status;
 		}
 	}
