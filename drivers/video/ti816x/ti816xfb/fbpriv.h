@@ -38,7 +38,7 @@
 #ifdef DEBUG
 extern unsigned int fb_debug;
 #define TFBDBG(format, ...) \
-        if (fb_debug) \
+	if (fb_debug) \
 		printk(KERN_INFO"TI816XFB: " format, ## __VA_ARGS__)
 #else
 #define TFBDBG(format, ...)
@@ -49,10 +49,10 @@ extern unsigned int fb_debug;
 #define TI816XFB_BPP	32
 
 struct ti816xfb_alloc_list {
-	struct list_head 		list;
-	dma_addr_t 			phy_addr;
-	void 				*cpu_addr;
-	u32 				size;
+	struct list_head    list;
+	dma_addr_t          phy_addr;
+	void                *cpu_addr;
+	u32                 size;
 };
 
 
@@ -62,20 +62,20 @@ struct ti816xfb_alloc_list {
  *
  */
 struct ti816xfb_info {
-	int 				idx;
-	int	 			enable;
-	struct mutex	   		rqueue_mutex;
-	struct ti816xfb_device 		*fbdev;
-	struct list_head 		alloc_list;
-	struct ti816xfb_mem_region 	mreg;
-	struct vps_grpx_ctrl 		*gctrl;
-	dma_addr_t 			pclut;
-	void 				*vclut;
-	enum ti816xfb_data_format  	pixfmt;
-	u32 				pseudo_palette[16];
-	enum ti816xfb_mem_mode  		mmode;
-	wait_queue_head_t 		vsync_wait;
-	unsigned long 			vsync_cnt;
+	int                           idx;
+	int                           enable;
+	struct mutex                  rqueue_mutex;
+	struct ti816xfb_device        *fbdev;
+	struct list_head              alloc_list;
+	struct ti816xfb_mem_region    mreg;
+	struct vps_grpx_ctrl          *gctrl;
+	dma_addr_t                    pclut;
+	void                          *vclut;
+	enum ti816xfb_data_format     pixfmt;
+	u32                           pseudo_palette[16];
+	enum ti816xfb_mem_mode        mmode;
+	wait_queue_head_t             vsync_wait;
+	unsigned long                 vsync_cnt;
 };
 
 /**
@@ -84,15 +84,14 @@ struct ti816xfb_info {
  *
  */
 struct ti816xfb_device {
-	struct device			*dev;
-	int 				num_fbs;
-	struct fb_info			*fbs[TI816X_FB_NUM];
-	int 				num_grpx;
-	struct vps_grpx_ctrl 		*gctrl[TI816X_FB_NUM];
+	struct device           *dev;
+	int                     num_fbs;
+	struct fb_info          *fbs[TI816X_FB_NUM];
+	int                     num_grpx;
+	struct vps_grpx_ctrl    *gctrl[TI816X_FB_NUM];
 };
 
 int ti816xfb_fbinfo_init(struct ti816xfb_device *fbdev, struct fb_info *fbi);
-
 int ti816xfb_realloc_fbmem(struct fb_info *fbi, unsigned long size);
 int ti816xfb_create_sysfs(struct ti816xfb_device *fbdev);
 void ti816xfb_remove_sysfs(struct ti816xfb_device *fbdev);

@@ -242,7 +242,8 @@ static int grpx_pre_start(struct vps_grpx_ctrl *gctrl)
 		gctrl->set_input(gctrl, w, h, fmt);
 
 	/*check the setting and reset to resolution if necessary*/
-	if (gctrl->gregparams->regionwidth + gctrl->gregparams->regionposx > w) {
+	if (gctrl->gregparams->regionwidth +
+	    gctrl->gregparams->regionposx > w) {
 		gctrl->gregparams->regionwidth = w;
 		gctrl->gregparams->regionposx = 0;
 		bpp = grpx_getbpp(gctrl->inputf->bpp);
@@ -254,7 +255,8 @@ static int grpx_pre_start(struct vps_grpx_ctrl *gctrl)
 					(w * bpp >> 3);
 
 	}
-	if (gctrl->gregparams->regionheight + gctrl->gregparams->regionposy > h) {
+	if (gctrl->gregparams->regionheight +
+	    gctrl->gregparams->regionposy > h) {
 		gctrl->gregparams->regionheight = h;
 		gctrl->gregparams->regionposy = 0;
 	}

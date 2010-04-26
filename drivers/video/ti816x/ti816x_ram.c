@@ -40,7 +40,7 @@
 #define DBG(format, ...)
 #endif
 
-//#if defined(CONFIG_FB_TI816X) || defined(CONFIG_FB_TI816X_MODULE)
+#if defined(CONFIG_FB_TI816X) || defined(CONFIG_FB_TI816X_MODULE)
 
 /* postponed regions are used to temporarily store region information at boot
  * time when we cannot yet allocate the region list */
@@ -281,7 +281,7 @@ void *ti816x_vram_alloc(int mtype, size_t size, unsigned long *paddr)
 	unsigned pages;
 
 
-	BUG_ON(mtype > TI816XFB_MEMTYPE_MAX|| !size);
+	BUG_ON((mtype > TI816XFB_MEMTYPE_MAX) || (!size));
 
 	DBG("alloc mem type %d size %d\n", mtype, size);
 
@@ -390,7 +390,7 @@ static int __init ti816xfb_early_vram(char *p)
 	if (*p == ',')
 		ti816xfb_def_sdram_vram_start = simple_strtoul(p + 1, &p, 16);
 
-	printk(KERN_INFO "vram size = %d at %d \n",
+	printk(KERN_INFO "vram size = %d at %d\n",
 		ti816xfb_def_sdram_vram_size, ti816xfb_def_sdram_vram_start);
 	return 0;
 }
@@ -425,7 +425,7 @@ void __init ti816xfb_reserve_sdram(void)
 	}
 #endif
 
-	printk(KERN_INFO "reserved size = %d at %d \n",
+	printk(KERN_INFO "reserved size = %d at %d\n",
 		size, paddr);
 
 
@@ -451,7 +451,9 @@ void __init ti816xfb_reserve_sdram(void)
 		}
 	} else {
 		if (size > sdram_size) {
-			printk(KERN_ERR "FB: Illegal SDRAM size %d for VRAM %d\n",size, (u32)sdram_size);
+			printk(KERN_ERR "FB: Illegal SDRAM size %d for VRAM %d\n",
+			       size,
+			       (u32)sdram_size);
 			return;
 		}
 
@@ -469,10 +471,10 @@ void __init ti816x_set_sdram_vram(u32 size, u32 start)
 	ti816xfb_sdram_vram_start = start;
 	ti816xfb_sdram_vram_size = size;
 
-	printk(KERN_INFO "board vram size = %d at %d \n",
+	printk(KERN_INFO "board vram size = %d at %d\n",
 		ti816xfb_sdram_vram_size, ti816xfb_sdram_vram_start);
 
 }
 
-//#endif
+#endif
 

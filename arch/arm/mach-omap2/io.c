@@ -261,8 +261,14 @@ static void __init _omap2_map_common_io(void)
 	omap2_check_revision();
 
 	omap_sram_init();
-	omap_vram_reserve_sdram();
 
+	/*need differ OMAP or TI816x to reserve the DRR*/
+	if (!cpu_is_ti816x())
+		omapfb_reserve_sdram();
+	else
+		ti816xfb_reserve_sdram();
+
+	omap_vram_reserve_sdram();
 }
 
 #ifdef CONFIG_ARCH_OMAP2420
