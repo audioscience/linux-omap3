@@ -1057,11 +1057,11 @@ int musb_platform_init(struct musb *musb)
 	else
 		clk_enable(musb->clock);
 
-	DBG(2, "usbotg_ck=%lud\n", clk_get_rate(musb->clock));
-	otg_fck = clk_get(NULL, "usbotg_phy_ck");
+	DBG(2, "usbotg_ick=%lud\n", clk_get_rate(musb->clock));
+	otg_fck = clk_get(NULL, "usbotg_ick");
 	clk_enable(otg_fck);
 
-	DBG(2, "usbotg_phy_ck=%lud\n", clk_get_rate(otg_fck));
+	DBG(2, "usbotg_ick=%lud\n", clk_get_rate(otg_fck));
 	/* Returns zero if e.g. not clocked */
 	rev = musb_readl(reg_base, USB_REVISION_REG);
 	if (!rev)

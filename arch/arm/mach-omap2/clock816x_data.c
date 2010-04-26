@@ -160,6 +160,13 @@ static struct clk mcspi1_ick = {
 	.recalc		= &followparent_recalc,
 };
 
+static struct clk usbotg_ick = {
+	.name           = "usbotg_ick",
+	.parent         = &sysclk6_ck,
+	.ops            = &clkops_null,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc         = &followparent_recalc,
+};
 
 /*
  * Points to note about timer conventions:
@@ -458,6 +465,7 @@ static struct omap_clk ti816x_clks[] = {
 	CLK(NULL,		"uart1_fck",		&uart1_fck,		CK_TI816X),
 	CLK(NULL,		"uart2_fck",		&uart2_fck,		CK_TI816X),
 	CLK(NULL,		"uart3_fck",		&uart3_fck,		CK_TI816X),
+	CLK(NULL,		"usbotg_ick",		&usbotg_ick,		CK_TI816X),
 	CLK("omap2_mcspi.1",	"fck",		&mcspi1_fck,	CK_TI816X),
 	CLK(NULL,		"gpmc_fck",		&gpmc_fck,		CK_TI816X),
 	CLK("i2c_omap.1",	"fck",			&i2c1_fck,		CK_TI816X),
