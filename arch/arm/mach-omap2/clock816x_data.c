@@ -168,13 +168,6 @@ static struct clk usbotg_ick = {
 	.recalc         = &followparent_recalc,
 };
 
-static struct clk sata_ick = {
-	.name           = "sata_ick",
-	.parent         = &sysclk5_ck,
-	.ops            = &clkops_null,
-	.clkdm_name	= "alwon_l3_slow_clkdm",
-	.recalc         = &followparent_recalc,
-};
 /*
  * Points to note about timer conventions:
  * 1) We are referring dmtimers as gptimers to match omap convention
@@ -227,6 +220,35 @@ static struct clk mmchs1_ick = {
 	.ops		= &clkops_null,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &followparent_recalc,
+};
+
+static const struct clksel_rate div_2_1_rates[] = {
+	{ .div = 2, .val = 1, .flags = RATE_IN_TI816X | DEFAULT_RATE },
+	{ .div = 0 },
+};
+
+static const struct clksel sysclk5_div[] = {
+	{ .parent = &sysclk4_ck, .rates = div_2_1_rates },
+	{ .parent = NULL },
+};
+
+static struct clk sysclk5_ck = {
+	.name		= "sysclk5_ck",
+	.parent		= &sysclk4_ck,
+	.clksel		= sysclk5_div,
+	.init		= &omap2_init_clksel_parent,
+	.ops		= &clkops_null,
+	.clksel_reg	= TI816X_CM_DPLL_SYSCLK5_CLKSEL,
+	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
+	.recalc		= &omap2_clksel_recalc,
+};
+
+static struct clk sata_ick = {
+	.name           = "sata_ick",
+	.parent         = &sysclk5_ck,
+	.ops            = &clkops_null,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc         = &followparent_recalc,
 };
 
 static struct clk ddr_pll_clk2_ck = {
@@ -473,6 +495,7 @@ static struct omap_clk ti816x_clks[] = {
 	CLK(NULL,		"uart2_fck",		&uart2_fck,		CK_TI816X),
 	CLK(NULL,		"uart3_fck",		&uart3_fck,		CK_TI816X),
 	CLK(NULL,		"usbotg_ick",		&usbotg_ick,		CK_TI816X),
+	CLK(NULL,		"sysclk5_ck",		&sysclk5_ck,		CK_TI816X),
 	CLK(NULL,		"sata_ick",		&sata_ick,		CK_TI816X),
 	CLK("omap2_mcspi.1",	"fck",		&mcspi1_fck,	CK_TI816X),
 	CLK(NULL,		"gpmc_fck",		&gpmc_fck,		CK_TI816X),
