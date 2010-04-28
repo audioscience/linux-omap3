@@ -1130,8 +1130,10 @@ int __init ti816x_register_edma(void)
 
 	if (cpu_is_ti816x())
 		pdev = &ti816x_edma_device;
-	else
+	else {
 		return -ENODEV;
+		pr_err("%s: platform not supported\n", __func__);
+	}
 
 	return platform_device_register(pdev);
 }
