@@ -60,8 +60,6 @@ struct snd_platform_data {
 	 * when compared to previous behavior.
 	 */
 	unsigned enable_channel_combine:1;
-	unsigned sram_size_playback;
-	unsigned sram_size_capture;
 
 	/* McASP specific fields */
 	int tdm_slots;
