@@ -885,7 +885,13 @@ static int davinci_mcasp_probe(struct platform_device *pdev)
 	clk_enable(dev->clk);
 	dev->clk_active = 1;
 
-	dev->base = (void __iomem *)IO_ADDRESS(mem->start);
+	dev->base = ioremap(mem->start, resource_size(mem));
+	if (!dev->base) {
+		dev_err(&pdev->dev, "ioremap failed\n");
+		ret = -ENOMEM;
+		goto err_ioremap;
+	}
+
 	dev->op_mode = pdata->op_mode;
 	dev->tdm_slots = pdata->tdm_slots;
 	dev->num_serializer = pdata->num_serializer;
@@ -906,7 +912,7 @@ static int davinci_mcasp_probe(struct platform_device *pdev)
 	if (!res) {
 		dev_err(&pdev->dev, "no DMA resource\n");
 		ret = -ENODEV;
-		goto err_release_region;
+		goto err_ioremap;
 	}
 
 	dma_data->channel = res->start;
@@ -921,7 +927,7 @@ static int davinci_mcasp_probe(struct platform_device *pdev)
 	if (!res) {
 		dev_err(&pdev->dev, "no DMA resource\n");
 		ret = -ENODEV;
-		goto err_release_region;
+		goto err_ioremap;
 	}
 
 	dma_data->channel = res->start;
@@ -929,9 +935,11 @@ static int davinci_mcasp_probe(struct platform_device *pdev)
 	ret = snd_soc_register_dai(&pdev->dev, &davinci_mcasp_dai[pdata->op_mode]);
 
 	if (ret != 0)
-		goto err_release_region;
+		goto err_ioremap;
 	return 0;
 
+err_ioremap:
+	iounmap(dev->base);
 err_release_region:
 	release_mem_region(mem->start, (mem->end - mem->start) + 1);
 err_release_data:
