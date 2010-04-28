@@ -930,16 +930,6 @@ config NET_NETX
 	  To compile this driver as a module, choose M here. The module
 	  will be called netx-eth.
 
-config TI_DAVINCI_EMAC
-	tristate "TI DaVinci EMAC Support"
-	depends on ARM && ( ARCH_DAVINCI || ARCH_OMAP3 )
-	select PHYLIB
-	help
-	  This driver supports TI's DaVinci Ethernet .
-
-	  To compile this driver as a module, choose M here: the module
-	  will be called davinci_emac_driver.  This is recommended.
-
 config DM9000
 	tristate "DM9000 support"
 	depends on ARM || BLACKFIN || MIPS
@@ -2051,6 +2041,19 @@ config DL2K
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called dl2k.
+
+config TI_DAVINCI_EMAC
+	tristate "TI DaVinci EMAC Support"
+	depends on ARM
+	select PHYLIB
+	help
+	  This driver supports TI's DaVinci Ethernet. The TI EMAC
+	  peripheral can support 10/100/1000 mode of operation. Support
+	  for gigabit mode is optional and depends on the SoC where
+	  the EMAC peripheral is integrated.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called davinci_emac_driver.
 
 config E1000
 	tristate "Intel(R) PRO/1000 Gigabit Ethernet support"
