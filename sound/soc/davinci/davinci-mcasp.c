@@ -881,7 +881,7 @@ static int davinci_mcasp_probe(struct platform_device *pdev)
 	clk_enable(dev->clk);
 	dev->clk_active = 1;
 
-	dev->base = (void __iomem *)IO_ADDRESS(mem->start);
+	dev->base = ioremap(mem->start);
 	dev->op_mode = pdata->op_mode;
 	dev->tdm_slots = pdata->tdm_slots;
 	dev->num_serializer = pdata->num_serializer;
