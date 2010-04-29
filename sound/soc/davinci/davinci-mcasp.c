@@ -23,6 +23,8 @@
 #include <linux/io.h>
 #include <linux/clk.h>
 
+#include <asm/io.h>
+
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
@@ -881,7 +883,7 @@ static int davinci_mcasp_probe(struct platform_device *pdev)
 	clk_enable(dev->clk);
 	dev->clk_active = 1;
 
-	dev->base = ioremap(mem->start);
+	dev->base = ioremap(mem->start, (mem->end - mem->start) + 1);
 	dev->op_mode = pdata->op_mode;
 	dev->tdm_slots = pdata->tdm_slots;
 	dev->num_serializer = pdata->num_serializer;
@@ -893,8 +895,7 @@ static int davinci_mcasp_probe(struct platform_device *pdev)
 
 	dma_data = &dev->dma_params[SNDRV_PCM_STREAM_PLAYBACK];
 	dma_data->eventq_no = pdata->eventq_no;
-	dma_data->dma_addr = (dma_addr_t) (pdata->tx_dma_offset +
-							io_v2p(dev->base));
+	dma_data->dma_addr = (dma_addr_t) (pdata->tx_dma_offset + mem->start);
 
 	/* first TX, then RX */
 	res = platform_get_resource(pdev, IORESOURCE_DMA, 0);
@@ -907,8 +908,7 @@ static int davinci_mcasp_probe(struct platform_device *pdev)
 
 	dma_data = &dev->dma_params[SNDRV_PCM_STREAM_CAPTURE];
 	dma_data->eventq_no = pdata->eventq_no;
-	dma_data->dma_addr = (dma_addr_t)(pdata->rx_dma_offset +
-							io_v2p(dev->base));
+	dma_data->dma_addr = (dma_addr_t)(pdata->rx_dma_offset + mem->start);
 
 	res = platform_get_resource(pdev, IORESOURCE_DMA, 1);
 	if (!res) {

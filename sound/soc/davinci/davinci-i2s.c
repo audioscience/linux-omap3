@@ -524,13 +524,13 @@ static int davinci_i2s_probe(struct platform_device *pdev)
 	}
 	clk_enable(dev->clk);
 
-	dev->base = ioremap(mem->start);
+	dev->base = ioremap(mem->start, (mem->end - mem->start) + 1);
 
 	dev->dma_params[SNDRV_PCM_STREAM_PLAYBACK].dma_addr =
-	    (dma_addr_t)(io_v2p(dev->base) + DAVINCI_MCBSP_DXR_REG);
+	    (dma_addr_t)(mem->start + DAVINCI_MCBSP_DXR_REG);
 
 	dev->dma_params[SNDRV_PCM_STREAM_CAPTURE].dma_addr =
-	    (dma_addr_t)(io_v2p(dev->base) + DAVINCI_MCBSP_DRR_REG);
+	    (dma_addr_t)(mem->start + DAVINCI_MCBSP_DRR_REG);
 
 	/* first TX, then RX */
 	res = platform_get_resource(pdev, IORESOURCE_DMA, 0);
