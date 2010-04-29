@@ -1138,6 +1138,10 @@ void __init vps_fvid2_grpx_ctrl_init(struct vps_grpx_ctrl *gctrl)
 
 
 	/* for fvid2 interface variables*/
+	kfree(gctrl->cbparams);
+	gctrl->cbparams = NULL;
+	gctrl->cbp_phy = 0;
+
 	kfree(gctrl->inputf);
 	gctrl->inputf = NULL;
 	gctrl->inputf_phy = 0;
@@ -1164,9 +1168,10 @@ int __init vps_grpx_init(struct platform_device *pdev)
 	for (i = 0; i < VPS_DISP_GRPX_MAX_INST; i++) {
 		struct vps_grpx_ctrl *gctrl;
 		gctrl = kzalloc(sizeof(*gctrl), GFP_KERNEL);
+
 		if (gctrl == NULL) {
 			GRPXERR("failed to allocate grpx%d\n", i);
-			return -EINVAL;
+			BUG_ON(gctrl == NULL);
 		}
 
 		vps_grpx_params_alloc(gctrl);

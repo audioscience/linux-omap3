@@ -786,7 +786,8 @@ int vps_dc_init(struct platform_device *pdev)
 	if (disp_ctrl->fvid2_handle == NULL) {
 		DCDBG("Create FVID2 DC handle status 0x%08x.\n", status);
 		r = -EINVAL;
-	}
+	} else
+		r = 0;
 
    return r;
 }
@@ -797,40 +798,43 @@ int vps_dc_exit(struct platform_device *pdev)
 	int r = 0;
 	int i;
 	DCDBG("DC EXIT\n");
-	kfree(disp_ctrl->nodeinfo);
-	disp_ctrl->nodeinfo = NULL;
-	disp_ctrl->ninfo_phy = 0;
 
-	kfree(disp_ctrl->vinfo);
-	disp_ctrl->vinfo = NULL;
-	disp_ctrl->vinfo_phy = 0;;
+	if (disp_ctrl) {
+		kfree(disp_ctrl->nodeinfo);
+		disp_ctrl->nodeinfo = NULL;
+		disp_ctrl->ninfo_phy = 0;
 
-	kfree(disp_ctrl->dccfg);
-	disp_ctrl->dccfg = NULL;
-	disp_ctrl->dccfg_phy = 0;
+		kfree(disp_ctrl->vinfo);
+		disp_ctrl->vinfo = NULL;
+		disp_ctrl->vinfo_phy = 0;;
 
-	if (disp_ctrl->enabled_venc_ids != 0)
-		r = vps_fvid2_control(disp_ctrl->fvid2_handle,
-				      IOCTL_VPS_DCTRL_DISABLE_VENC,
-				      (void *)virt_to_phys
-					(&disp_ctrl->enabled_venc_ids),
-				      NULL);
+		kfree(disp_ctrl->dccfg);
+		disp_ctrl->dccfg = NULL;
+		disp_ctrl->dccfg_phy = 0;
+		/*This is not used currently*/
+		if (disp_ctrl->enabled_venc_ids != 0)
+			r = vps_fvid2_control(disp_ctrl->fvid2_handle,
+					      IOCTL_VPS_DCTRL_DISABLE_VENC,
+					      (void *)virt_to_phys
+						(&disp_ctrl->enabled_venc_ids),
+					      NULL);
 
-	if (disp_ctrl->fvid2_handle) {
-		r = vps_fvid2_delete(disp_ctrl->fvid2_handle, NULL);
-		if (r) {
-			DCERR("failed to delete DC fvid2 handle.\n");
-			return r;
+		if (disp_ctrl->fvid2_handle) {
+			r = vps_fvid2_delete(disp_ctrl->fvid2_handle, NULL);
+			if (r) {
+				DCERR("failed to delete DC fvid2 handle.\n");
+				return r;
+			}
 		}
-	}
-	disp_ctrl->fvid2_handle = NULL;
+		disp_ctrl->fvid2_handle = NULL;
 
-	for (i = 0; i < VPS_DC_MAX_VENC; i++) {
-		kobject_del(&disp_ctrl->blenders[i].kobj);
-		kobject_put(&disp_ctrl->blenders[i].kobj);
+		for (i = 0; i < VPS_DC_MAX_VENC; i++) {
+			kobject_del(&disp_ctrl->blenders[i].kobj);
+			kobject_put(&disp_ctrl->blenders[i].kobj);
+		}
+		kfree(disp_ctrl);
+		disp_ctrl = NULL;
 	}
-	kfree(disp_ctrl);
-
 	return r;
 }
 
