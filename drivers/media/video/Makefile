@@ -166,6 +166,7 @@ obj-$(CONFIG_USB_VIDEO_CLASS)	+= uvc/
 obj-$(CONFIG_VIDEO_SAA7164)     += saa7164/
 
 obj-$(CONFIG_VIDEO_IR_I2C)  += ir-kbd-i2c.o
+obj-$(CONFIG_TILER_OMAP)	+= tiler/
 
 obj-$(CONFIG_ARCH_DAVINCI)	+= davinci/
 
