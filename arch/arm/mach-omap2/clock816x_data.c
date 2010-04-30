@@ -464,7 +464,7 @@ static const struct clksel_rate div_sysclk20_rates[] = {
 };
 
 static const struct clksel sysclk20_div[] = {
-	{ .parent = &audio_pll_clk3_ck, .rates = &div_sysclk20_rates },
+	{ .parent = &audio_pll_clk3_ck, .rates = div_sysclk20_rates },
 	{ .parent = NULL },
 };
 
@@ -476,7 +476,7 @@ static const struct clksel_rate div_sysclk21_rates[] = {
 };
 
 static const struct clksel sysclk21_div[] = {
-	{ .parent = &audio_pll_clk4_ck, .rates = &div_sysclk21_rates },
+	{ .parent = &audio_pll_clk4_ck, .rates = div_sysclk21_rates },
 	{ .parent = NULL },
 };
 
@@ -488,7 +488,7 @@ static const struct clksel_rate div_sysclk22_rates[] = {
 };
 
 static const struct clksel sysclk22_div[] = {
-	{ .parent = &audio_pll_clk5_ck, .rates = &div_sysclk22_rates },
+	{ .parent = &audio_pll_clk5_ck, .rates = div_sysclk22_rates },
 	{ .parent = NULL },
 };
 
