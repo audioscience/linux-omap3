@@ -769,10 +769,6 @@ static inline void omap2_mmc_mux(struct omap_mmc_platform_data *mmc_controller,
 		 * For MMC3 the pins need to be muxed in the board-*.c files
 		 */
 	}
-
-	if (cpu_is_ti816x()) {
-		/* TODO:Add the pinmux details for TI816X here */
-	}
 }
 
 void __init omap2_init_mmc(struct omap_mmc_platform_data **mmc_data,
