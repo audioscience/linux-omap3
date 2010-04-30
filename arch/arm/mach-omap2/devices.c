@@ -1084,7 +1084,7 @@ static const s16 ti816x_dma_rsv_slots[][2] = {
 };
 
 /* Four Transfer Controllers on TI816X */
-static const s8 ti816x_queue_tc_mapping[][4] = {
+static const s8 ti816x_queue_tc_mapping[][2] = {
 	/* {event queue no, TC no} */
 	{0, 0},
 	{1, 1},
