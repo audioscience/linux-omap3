@@ -44,6 +44,7 @@
 #include <plat/common.h>
 #include <plat/timer-gp.h>
 #include <plat/asp.h>
+#include <plat/mmc.h>
 
 #include "clock.h"
 #include "clockdomains.h"
@@ -119,6 +120,7 @@ static struct omap2_hsmmc_info mmc[] = {
 		.wires		= 4,
 		.gpio_cd	= -EINVAL,/* Dedicated pins for CD and WP */
 		.gpio_wp	= -EINVAL,
+		.ocr_mask	= MMC_VDD_32_33 | MMC_VDD_33_34,
 	},
 	{}	/* Terminator */
 };
