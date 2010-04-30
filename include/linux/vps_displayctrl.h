@@ -1237,7 +1237,7 @@ struct vps_dccreateconfig {
  * \return  vps_sok if successful, else suitable error code
  */
 #define IOCTL_VPS_DCTRL_HDMI_ATTACH_HPD_CB                                  \
-				     (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x01u)
+				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x01u)
 
 /**
  *
@@ -1296,7 +1296,191 @@ struct vps_dccreateconfig {
 #define IOCTL_VPS_DCTRL_HDMI_READ_EDID                                      \
 				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x04u)
 
+/**
+ *
+ * \brief This control command could be used to used start DISPLAY on HDMI port.
+ *
+ * \par Before display could be started, following conditions HAVE to be met.
+ *      1. An sink is dected and HDMI port is configured to suit sinks needs.
+ *      2. FVID2_start API has been called.
+ *
+ * \param   cmdArgs [IN] Pointer of type Vps_DcOnchipEncoderCmd, which
+ *                       initializes following members
+ *                       .vencId    = Paired VENC,VPS_DC_VENC_HDMI in this case.
+ *                       .encoderId = VPS_DC_ENCODER_HDMI
+ *                       .cmd       = This macro
+ *                       .argument  = NULL
+ *                       .additionalArgs = NULL
+ *
+ * \return  VPS_SOK if successful, else suitable error code
+ */
+#define IOCTL_VPS_DCTRL_HDMI_START                                             \
+				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x05u)
 
+/**
+ *
+ * \brief This control command could be used to used stop DISPLAY on HDMI port.
+ *
+ *
+ * \param   cmdArgs [IN] Pointer of type Vps_DcOnchipEncoderCmd, which
+ *                       initializes following members
+ *                       .vencId    = Paired VENC,VPS_DC_VENC_HDMI in this case.
+ *                       .encoderId = VPS_DC_ENCODER_HDMI
+ *                       .cmd       = This macro
+ *                       .argument  = NULL
+ *                       .additionalArgs = NULL
+ *
+ * \return  VPS_SOK if successful, else suitable error code
+ */
+#define IOCTL_VPS_DCTRL_HDMI_STOP                                              \
+				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x06u)
+
+/**
+ *
+ * \brief This control command could be used to query the status of HDMI port.
+ *        Returns TRUE if streaming on this port, FALSE otherwise.
+ *
+ * \param   cmdArgs [IN] Pointer of type Vps_DcOnchipEncoderCmd, which
+ *                       initializes following members
+ *                       .vencId    = Paired VENC,VPS_DC_VENC_HDMI in this case.
+ *                       .encoderId = VPS_DC_ENCODER_HDMI
+ *                       .cmd       = This macro
+ *                       .argument  = Pointer to variable of type UInt32
+ *                       .additionalArgs = NULL
+ *
+ * \return  VPS_SOK if successful, else suitable error code
+ */
+#define IOCTL_VPS_DCTRL_HDMI_GET_STATUS                                        \
+				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x07u)
+
+
+/**
+ * \brief This control command retrieves the current (basic) RF configuration.
+ *
+ *         When any of the configurable parameters of the RF Modulator is
+ *         required to be modified, it is expected to retrieve the current
+ *         configuration, modify the required parameter(s) and apply the
+ *         configuration via IOCTL_VPS_DCTRL_RF_SET_CONFIG.
+ *
+ * \par CAUTION By default, the configurable parameters may be turned OFF.
+ *      Caller is expected to turn ON the required parameter(s) and
+ *      update the config with IOCTL_VPS_DCTRL_RF_SET_CONFIG command.
+ *
+ * \param   cmdArgs [IN] Pointer of type Vps_DcOnchipEncoderCmd, which
+ *                       initializes following members
+ *                       .vencId    = Paired VENC ,VPS_DC_VENC_SD in this case.
+ *                       .encoderId = VPS_DC_ENCODER_RF
+ *                       .cmd       = This macro
+ *                       .argument  = Pointer to structure of type
+ *                                     #Vps_RfConfig
+ *                       .additionalArgs = NULL
+ *
+ * \return  VPS_SOK if successful, else suitable error code
+ */
+#define IOCTL_VPS_DCTRL_RF_GET_CONFIG                                        \
+				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x10u)
+
+/**
+ * \brief This control command applies the supplied (basic) RF configuration.
+ *
+ *        Provided the values supplied are valid and encoder is not enabled.
+ *
+ * \param   cmdArgs [IN] Pointer of type Vps_DcOnchipEncoderCmd, which
+ *                       initializes following members
+ *                       .vencId    = Paired VENC ,VPS_DC_VENC_SD in this case.
+ *                       .encoderId = VPS_DC_ENCODER_RF
+ *                       .cmd       = This macro
+ *                       .argument  = Pointer to structure of type
+ *                                     #Vps_RfConfig
+ *                       .additionalArgs = NULL
+ *
+ * \return  VPS_SOK if successful, else suitable error code
+ */
+#define IOCTL_VPS_DCTRL_RF_SET_CONFIG                                        \
+				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x11u)
+
+/**
+ * \brief This control command retrieves the current expert RF configuration.
+ *
+ *         When any of the configurable parameters of the RF Modulator is
+ *         required to be modified, it is expected to retrieve the current
+ *         configuration, modify the required parameter(s) and apply the
+ *         configuration via IOCTL_VPS_DCTRL_RF_SET_EXPERT_CONFIG.
+ *
+ * \par CAUTION By default, the configurable parameters may be turned OFF.
+ *      Caller is expected to turn ON the required parameter(s) and
+ *      update the config with IOCTL_VPS_DCTRL_RF_SET_EXPERT_CONFIG command.
+ *
+ * \param   cmdArgs [IN] Pointer of type Vps_DcOnchipEncoderCmd, which
+ *                       initializes following members
+ *                       .vencId    = Paired VENC ,VPS_DC_VENC_SD in this case.
+ *                       .encoderId = VPS_DC_ENCODER_RF
+ *                       .cmd       = This macro
+ *                       .argument  = Pointer to structure of type
+ *                                     #VpsHal_RfExpertConfig
+ *                       .additionalArgs = NULL
+ *
+ * \return  VPS_SOK if successful, else suitable error code
+ */
+#define IOCTL_VPS_DCTRL_RF_GET_EXPERT_CONFIG                                 \
+				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x12u)
+
+/**
+ * \brief This control command applies the supplied expert RF configuration.
+ *
+ *        Provided the values supplied are valid and encoder is not enabled.
+ *
+ * \param   cmdArgs [IN] Pointer of type Vps_DcOnchipEncoderCmd, which
+ *                       initializes following members
+ *                       .vencId    = Paired VENC ,VPS_DC_VENC_SD in this case.
+ *                       .encoderId = VPS_DC_ENCODER_RF
+ *                       .cmd       = This macro
+ *                       .argument  = Pointer to structure of type
+ *                                     #VpsHal_RfExpertConfig
+ *                       .additionalArgs = NULL
+ *
+ * \return  VPS_SOK if successful, else suitable error code
+ */
+#define IOCTL_VPS_DCTRL_RF_SET_EXPERT_CONFIG                                 \
+				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x13u)
+
+/**
+ *
+ * \brief Switch ON the RF Modulator DAC.
+ *
+ *  This control command could be used to switch ON the RF Modulator DAC.
+ *
+ * \param   cmdArgs [IN] Pointer of type Vps_DcOnchipEncoderCmd, which
+ *                       initializes following members
+ *                       .vencId    = Paired VENC ,VPS_DC_VENC_SD in this case.
+ *                       .encoderId = VPS_DC_ENCODER_RF
+ *                       .cmd       = This macro
+ *                       .argument  = NULL
+ *                       .additionalArgs = NULL
+ *
+ * \return  vps_sok if successful, else suitable error code
+ */
+#define IOCTL_VPS_DCTRL_RF_START                                             \
+				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x14u)
+
+/**
+ *
+ * \brief Switch OFF the RF Modulator DAC.
+ *
+ *  This control command could be used to switch OFF the RF Modulator DAC.
+ *
+ * \param   cmdArgs [IN] Pointer of type Vps_DcOnchipEncoderCmd, which
+ *                       initializes following members
+ *                       .vencId    = Paired VENC ,VPS_DC_VENC_SD in this case.
+ *                       .encoderId = VPS_DC_ENCODER_RF
+ *                       .cmd       = This macro
+ *                       .argument  = NULL
+ *                       .additionalArgs = NULL
+ *
+ * \return  vps_sok if successful, else suitable error code
+ */
+#define IOCTL_VPS_DCTRL_RF_STOP                                              \
+				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x15u)
 /** \brief maximum number of on-chip encoders control/configure ioctl commands
  *
  *  marker used to denote the maximum number of on-chip ioctls supported
@@ -1309,7 +1493,7 @@ struct vps_dccreateconfig {
 /* @} */
 
 
-/* ========================================================================== */
+
 /*             structure required for on-chip encoder control                 */
 /* ========================================================================== */
 
@@ -1333,6 +1517,12 @@ struct vps_dconchipencodercmd {
 	/**< command arguments that would be required. */
 	void                *additionalargs;
 	/**< additional arguments if any. */
+	u32 (*Vps_DcOnChipEnc_CbFxn) (u32 vencId,
+				      u32 encoderId,
+				      u32 sinkState,
+				      void *appData);
+	/**< Application provided callback function - Used only when cmd is
+	 #IOCTL_VPS_DCTRL_HDMI_ATTACH_HPD_CB */
 };
 
 

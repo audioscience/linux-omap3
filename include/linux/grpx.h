@@ -36,14 +36,15 @@
 
 
 struct vps_grpx_state {
-	bool				isfmtset;
-	bool				isparamset;
-	bool				isstarted;
-	bool				clutSet;
-	bool				scset;
-	bool				stenset;
-	bool				regset;
-	bool				varset;
+	bool                            isfmtset;
+	bool                            isparamset;
+	bool                            isstarted;
+	bool                            isdcConfig;
+	bool                            clutSet;
+	bool                            scset;
+	bool                            stenset;
+	bool                            regset;
+	bool                            varset;
 };
 
 /*vsync call back for the application*/
@@ -51,60 +52,63 @@ typedef void (*vsync_callback_t)(void *arg);
 
 struct vps_grpx_ctrl{
 	struct kobject                  kobj;
-	u32				grpx_num;
-	struct mutex			gmutex;
-	struct list_head		list;
+	u32                             grpx_num;
+	struct mutex                    gmutex;
+	struct list_head                list;
 	/*fvid2 control handle*/
-	void				*handle;
-	struct vps_grpx_state		gstate;
-	struct vps_grpxcreateparams	*gcparam;
-	u32				gcp_phy;
-	struct vps_grpxcreatestatus	*gcstatus;
-	u32				gcs_phy;
-	/*region parameters*/
-	struct vps_grpxregionparams	*gregparams;
-	u32				gregp_phy;
+	void                            *handle;
+	struct vps_grpx_state           gstate;
+	/*create params*/
+	struct vps_grpxcreateparams     *gcparam;
+	u32                             gcp_phy;
+	/*create status*/
+	struct vps_grpxcreatestatus     *gcstatus;
+	u32                             gcs_phy;
 	/* scaling parameters*/
-	struct vps_grpxscparams		*gscparams;
-	u32				gscp_phy;
-	struct vps_grpxsccoeff		*gsccoeff;
-	u32				gscoff_phy;
+	struct vps_grpxscparams         *gscparams;
+	u32                             gscp_phy;
+	struct vps_grpxsccoeff          *gsccoeff;
+	u32                             gscoff_phy;
 	/*runtime change parameters*/
-	struct vps_grpxrtparams		*grtconfig;
-	u32				grtc_phy;
+	struct vps_grpxrtparams         *grtconfig;
+	u32                             grtc_phy;
 	/*default params*/
-	struct vps_grpxrtparams		*gparams;
-	u32				gp_phy;
+	struct vps_grpxrtparams         *gparams;
+	u32                             gp_phy;
 	/* runtime undate list*/
-	struct vps_grpxrtlist		*grtlist;
+	struct vps_grpxrtlist           *grtlist;
 	u32				grtlist_phy;
 	/*parameter list*/
-	struct vps_grpxparamlist	*glist;
-	u32				glist_phy;
+	struct vps_grpxparamlist        *glist;
+	u32                             glist_phy;
 	/*last buffer address*/
-	u32				buffer_addr;
-	/* This is the FVID2 varables*/
-	struct fvid2_cbparams		*cbparams;
-	u32				cbp_phy;
-	struct fvid2_format		*inputf;
-	u32				inputf_phy;
-	struct fvid2_framelist		*framelist;
-	u32				frmls_phy;
-	struct fvid2_frame		*frames;
-	u32				frm_phy;
+	u32                             buffer_addr;
+	/* The followings  are the FVID2 varables*/
+	/*fvid2 create params*/
+	struct fvid2_cbparams           *cbparams;
+	u32                             cbp_phy;
+	/* set format params*/
+	struct fvid2_format             *inputf;
+	u32                             inputf_phy;
+	/*frame list*/
+	struct fvid2_framelist          *framelist;
+	u32                             frmls_phy;
+	/*frames*/
+	struct fvid2_frame              *frames;
+	u32                             frm_phy;
 
-	vsync_callback_t		vsync_cb;
-	void				*vcb_arg;
+	vsync_callback_t                vsync_cb;
+	void                            *vcb_arg;
 	/*output format*/
-	u32				framewidth;
-	u32				frameheight;
-	u8				scformat;
+	u32                             framewidth;
+	u32                             frameheight;
+	u8                              scformat;
 
 	/*display controller settings*/
-	struct vps_dcconfig		dccfg;
-	int				numends;
-	int				snode;
-	int				enodes[VPS_DC_MAX_VENC];
+	struct vps_dcconfig             dccfg;
+	int                             numends;
+	int                             snode;
+	int                             enodes[VPS_DC_MAX_VENC];
 
 	/*function pointer*/
 	int (*apply_changes)(struct vps_grpx_ctrl *gctrl);

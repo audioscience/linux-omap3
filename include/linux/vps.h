@@ -66,19 +66,19 @@
  */
 /** \brief IOCTL base address for the IOCTLs common to display, capture and
  *  mem to mem drivers. */
-#define VPS_COMMON_IOCTL_BASE                 (FVID2_USER_BASE + 0x00000000u)
+#define VPS_COMMON_IOCTL_BASE            (FVID2_USER_BASE + 0x00000000u)
 /** \brief IOCTL base address for the display driver IOCTLs. */
-#define VPS_DISP_IOCTL_BASE                   (FVID2_USER_BASE + 0x00010000u)
+#define VPS_DISP_IOCTL_BASE              (FVID2_USER_BASE + 0x00010000u)
 /** \brief IOCTL base address for the capture driver IOCTLs. */
-#define VPS_CAPT_IOCTL_BASE                   (FVID2_USER_BASE + 0x00020000u)
+#define VPS_CAPT_IOCTL_BASE              (FVID2_USER_BASE + 0x00020000u)
 /** \brief IOCTL base address for the M2M driver IOCTLs. */
-#define VPS_M2M_IOCTL_BASE              (FVID2_USER_BASE + 0x00030000u)
+#define VPS_M2M_IOCTL_BASE               (FVID2_USER_BASE + 0x00030000u)
 /** \brief IOCTL base address for the display controller driver IOCTLs. */
-#define VPS_DCTRL_IOCTL_BASE            (FVID2_USER_BASE + 0x00040000u)
+#define VPS_DCTRL_IOCTL_BASE             (FVID2_USER_BASE + 0x00040000u)
 /** \brief IOCTL base address for the noise filter M2M driver IOCTLs. */
-#define VPS_M2M_NSF_IOCTL_BASE          (FVID2_USER_BASE + 0x00050000u)
+#define VPS_M2M_NSF_IOCTL_BASE           (FVID2_USER_BASE + 0x00050000u)
 /** \brief IOCTL base address for the video decoder driver IOCTLs. */
-#define VPS_VID_DEC_IOCTL_BASE          (FVID2_USER_BASE + 0x00060000u)
+#define VPS_VID_DEC_IOCTL_BASE           (FVID2_USER_BASE + 0x00060000u)
 
 /**
  *  \brief VPS video buffer alignment. All application buffer address and
@@ -89,11 +89,6 @@
 /** \brief Multi window layout ID base for the user created layouts. */
 #define VPS_USER_LAYOUT_ID_BASE         (100u)
 
-/**
- *  \brief Invalid Multi window layout ID used to ignore the selection
- *  in runtime parameter.
- */
-#define VPS_INVALID_LAYOUT_ID           (0xFFFFFFFFu)
 
 /*
  *  Common IOCTLS for display, M2M and capture driver
@@ -108,16 +103,6 @@
  *
 */
 #define IOCTL_VPS_SET_COEFFS           (VPS_COMMON_IOCTL_BASE + 0x0000u)
-/**
- *  \brief Set mosaic or region based graphic configuration IOCTL.
- *
- *  \param cmdArgs       [IN]  Vps_MultiWinParams *
- *  \param cmdStatusArgs [OUT] NULL
- *
- *  \return FVID_SOK on success, else failure
- *
- */
-#define IOCTL_VPS_SET_MULTI_WIN_PARAMS  (VPS_COMMON_IOCTL_BASE + 0x0001u)
 
 /**
  *  \brief Set the GRPX region parameters
@@ -235,6 +220,21 @@
  *
  */
 #define IOCTL_VPS_SELECT_LAYOUT         (VPS_COMMON_IOCTL_BASE + 0x0009u)
+
+/**
+ *  \brief Deletes all the mosaic or region based graphic layouts created by
+ *  IOCTL_VPS_CREATE_LAYOUT IOCTL.
+ *
+ *  This IOCTL could not be called when display is in progress with one of the
+ *  created layout or when requests are pending with the M2M driver.
+ *
+ *  \param cmdArgs       [IN]  NULL
+ *  \param cmdStatusArgs [OUT] NULL
+ *
+ *  \return FVID_SOK on success, else failure
+ *
+ */
+#define IOCTL_VPS_DELETE_ALL_LAYOUT     (VPS_COMMON_IOCTL_BASE + 0x000Au)
 
 /** \brief Floor a integer value. */
 #define VpsUtils_floor(val, align)  (((val) / (align)) * (align))
@@ -419,33 +419,6 @@ struct vps_createlayoutstatus {
 };
 
 /**
- *  struct vps_deletelayoutparams
- *  \brief structure to be passed for delete multiple window
- *  (mosaic/region based graphics) layout ioctl.
- */
-struct vps_deletelayoutparams {
-	u32                  deleteall;
-	/**< when true, this ioctl will delete all the user created layout and
-	the layout id will be ignored. also make sure that this is called
-	when display operation is stopped. if false, then this ioctl will
-	delete that particular layout. */
-	u32                  layoutid;
-	/**< id of user layout to be deleted. this should be a valid layout id
-	as returned by create multiple window layout ioctl. */
-};
-
-/**
- *  struct vps_selectlayoutparams
- *  \brief structure to be passed for selecting the multiple window
- *  (mosaic/region based graphics) layout.
- */
-struct vps_selectlayoutparams {
-	u32                  layoutid;
-	/**< id of user layout to be selected. this should be a valid layout
-	     id as returned by create multiple window layout ioctl. */
-};
-
-/**
  *  struct Vps_SliceParams
  *  \brief Configuration for slice level processing at create time.
  */
@@ -456,7 +429,6 @@ struct vps_sliceparams {
 	u16            numlinesperslice;
 	/**< Number of lines in a slice. */
 } ;
-
 
 #endif
 

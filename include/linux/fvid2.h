@@ -31,57 +31,57 @@
  */
 
 /** \brief FVID2 API call successful. */
-#define FVID2_SOK				((int) 0)
+#define FVID2_SOK                               ((int) 0)
 /** \brief FVID2 API call returned with error as failed. It may be some
  *  hardware failure or software failure */
-#define FVID2_EFAIL				((int) -1)
+#define FVID2_EFAIL                             ((int) -1)
 /** \brief FVID2 API call returned with error as bad arguments. Typically
  *  NULL pointer passed to the FVID2 API where its not expected. */
-#define FVID2_EBADARGS				((int) -2)
+#define FVID2_EBADARGS                          ((int) -2)
 /** \brief FVID2 API call returned with error as invalid parameters. Typically
  *  when parameters are not valid. */
-#define FVID2_EINVALID_PARAMS			((int) -3)
+#define FVID2_EINVALID_PARAMS                   ((int) -3)
 /** \brief FVID2 API call returned with error as device already in use. Tried
  *  to open the driver maximum + 1 times.  Display and Capture driver suppports
  *  single open, while M2M driver supports multiple open. */
-#define FVID2_EDEVICE_INUSE			((int) -4)
+#define FVID2_EDEVICE_INUSE                     ((int) -4)
 /** \brief FVID2 API call returned with error as timed out. Typically API is
  *  waiting for some condition and returned as condition not happened
  *  in the timeout period. */
-#define FVID2_ETIMEOUT				((int) -5)
+#define FVID2_ETIMEOUT                          ((int) -5)
 /** \brief FVID2 API call returned with error as allocation failure. Typically
  *  memory or resource allocation failure. */
-#define FVID2_EALLOC				((int) -6)
+#define FVID2_EALLOC                            ((int) -6)
 /** \brief FVID2 API call returned with error as out of range. Typically when
  *  API is called with some argument that is out of range for that API like
  *  array index etc. */
-#define FVID2_EOUT_OF_RANGE			((int) -7)
+#define FVID2_EOUT_OF_RANGE                     ((int) -7)
 /** \brief FVID2 API call returned with error as try again. Momentarily API is
  *  not able to service request because of queue full or any other temporary
  *  reason. */
-#define FVID2_EAGAIN				((int) -8)
+#define FVID2_EAGAIN                            ((int) -8)
 /** \brief FVID2 API call returned with unsupported command. Typically when
  *  command is not supported by control API. */
-#define FVID2_EUNSUPPORTED_CMD			((int) -9)
+#define FVID2_EUNSUPPORTED_CMD                  ((int) -9)
 /** \brief FVID2 API call returned with error as no more buffers available.
  *  Typically when no buffers are available. */
-#define FVID2_ENO_MORE_BUFFERS			((int) -10)
+#define FVID2_ENO_MORE_BUFFERS                  ((int) -10)
 /** \brief FVID2 API call returned with error as unsupported operation.
  *  Typically when the specific operation is not supported by that API such
  *  as IOCTL not supporting some specific functions. */
-#define FVID2_EUNSUPPORTED_OPS			((int) -11)
+#define FVID2_EUNSUPPORTED_OPS                  ((int) -11)
 /** \brief FVID2 API call returned with error as driver already in use. */
-#define FVID2_EDRIVER_INUSE			((int) -12)
+#define FVID2_EDRIVER_INUSE                     ((int) -12)
 /** \brief No Timeout. */
-#define FVID2_TIMEOUT_NONE			(0u)
+#define FVID2_TIMEOUT_NONE                      (0u)
 /** \brief Timeout wait forever. */
-#define FVID2_TIMEOUT_FOREVER			(~(0u))
+#define FVID2_TIMEOUT_FOREVER                   (~(0u))
 
 /**
  *  \brief this macro determines the maximum number of fvid2 frame pointers
  *  that can be passed per frame list.
  */
-#define FVID2_MAX_FVID_FRAME_PTR		(64u)
+#define FVID2_MAX_FVID_FRAME_PTR                (64u)
 
 /**
  *  \brief This macro determines the maximum number of planes/address used to
@@ -90,17 +90,17 @@
  *  Currently this is set to 3 to support the maximum pointers required for
  *  YUV planar format - Y, Cb and Cr.
  */
-#define FVID2_MAX_PLANES			(3u)
+#define FVID2_MAX_PLANES                        (3u)
 
 /**
  *  \brief Number of fields - top and bottom. Used for allocating address
  *  pointers for both the fields.
  */
-#define FVID2_MAX_FIELDS			(2u)
+#define FVID2_MAX_FIELDS                        (2u)
 
 /** \brief Number of IN/OUT frame list per process list - Used for array
   * allocation in process list structure. */
-#define FVID2_MAX_IN_OUT_PROCESS_LISTS		(4u)
+#define FVID2_MAX_IN_OUT_PROCESS_LISTS          (4u)
 
 /*
  *  == Array index to the buffer address for various formats ====
@@ -110,54 +110,54 @@
  */
 
 /** \brief Index for top field address in case of interlaced mode. */
-#define FVID2_FIELD_TOP_ADDR_IDX		(0u)
+#define FVID2_FIELD_TOP_ADDR_IDX                (0u)
 
 /** \brief Index for bottom field address in case of interlaced mode. */
-#define FVID2_FIELD_BOTTOM_ADDR_IDX		(1u)
+#define FVID2_FIELD_BOTTOM_ADDR_IDX             (1u)
 
 /** \brief Index for frame address in case of progressive mode. */
-#define FVID2_FRAME_ADDR_IDX			(0u)
+#define FVID2_FRAME_ADDR_IDX                    (0u)
 
 /** \brief Index for even field address in case of interlaced mode. */
-#define FVID2_FIELD_EVEN_ADDR_IDX		(FVID2_FIELD_TOP_ADDR_IDX)
+#define FVID2_FIELD_EVEN_ADDR_IDX               (FVID2_FIELD_TOP_ADDR_IDX)
 
 /** \brief Index for odd field address in case of interlaced mode. */
-#define FVID2_FIELD_ODD_ADDR_IDX		(FVID2_FIELD_BOTTOM_ADDR_IDX)
+#define FVID2_FIELD_ODD_ADDR_IDX                (FVID2_FIELD_BOTTOM_ADDR_IDX)
 
 /** \brief Index for frame address in case of progressive mode. */
-#define FVID2_FIELD_NONE_ADDR_IDX		(FVID2_FRAME_ADDR_IDX)
+#define FVID2_FIELD_NONE_ADDR_IDX               (FVID2_FRAME_ADDR_IDX)
 
 /** \brief Index for YUV444/YUV422 interleaved formats. */
-#define FVID2_YUV_INT_ADDR_IDX			(0u)
+#define FVID2_YUV_INT_ADDR_IDX                  (0u)
 
 /** \brief Y Index for YUV444/YUV422/YUV420 planar formats. */
-#define FVID2_YUV_PL_Y_ADDR_IDX			(0u)
+#define FVID2_YUV_PL_Y_ADDR_IDX                 (0u)
 
 /** \brief CB Index for YUV444/YUV422/YUV420 planar formats. */
-#define FVID2_YUV_PL_CB_ADDR_IDX		(1u)
+#define FVID2_YUV_PL_CB_ADDR_IDX                (1u)
 
 /** \brief CR Index for YUV444/YUV422/YUV420 planar formats. */
-#define FVID2_YUV_PL_CR_ADDR_IDX		(2u)
+#define FVID2_YUV_PL_CR_ADDR_IDX                (2u)
 
 /** \brief Y Index for YUV semi planar formats. */
-#define FVID2_YUV_SP_Y_ADDR_IDX			(0u)
+#define FVID2_YUV_SP_Y_ADDR_IDX                 (0u)
 
 /** \brief CB Index for semi planar formats. */
-#define FVID2_YUV_SP_CBCR_ADDR_IDX		(1u)
+#define FVID2_YUV_SP_CBCR_ADDR_IDX              (1u)
 
 /** \brief Index for RGB888/RGB565/ARGB32 formats. */
-#define FVID2_RGB_ADDR_IDX			(0u)
+#define FVID2_RGB_ADDR_IDX                      (0u)
 
 /** \brief Index for RAW formats. */
-#define FVID2_RAW_ADDR_IDX			(0u)
+#define FVID2_RAW_ADDR_IDX                      (0u)
 
 /*
  * =========== command codes for submit call =============
  */
 /** \brief Control command base address. */
-#define FVID2_CTRL_BASE			(0x00000000u)
+#define FVID2_CTRL_BASE                         (0x00000000u)
 /** \brief User command base address. */
-#define FVID2_USER_BASE			(0x10000000u)
+#define FVID2_USER_BASE                         (0x10000000u)
 
 /**
  *	\brief Command for fvid2_allocBuffer to request the video device driver
@@ -169,7 +169,7 @@
  *  \return fvid_sok on success, else failure
  *
  */
-#define FVID2_ALLOC_BUFFER			(FVID2_CTRL_BASE + 1)
+#define FVID2_ALLOC_BUFFER                     (FVID2_CTRL_BASE + 1)
 
 /** \brief Command for fvid2_freeBuffer to request the video device driver to
  * free memory of given video buffer.
@@ -180,7 +180,7 @@
  *  \return fvid_sok on success, else failure
  *
  */
-#define FVID2_FREE_BUFFER			(FVID2_CTRL_BASE + 2)
+#define FVID2_FREE_BUFFER                      (FVID2_CTRL_BASE + 2)
 
 /**
  *	\brief Command for fvid2_setFormat to request the video driver to
@@ -192,7 +192,7 @@
  *  \return fvid_sok on success, else failure
  *
  */
-#define FVID2_SET_FORMAT			(FVID2_CTRL_BASE + 3)
+#define FVID2_SET_FORMAT                      (FVID2_CTRL_BASE + 3)
 
 /**
  *	\brief Command for fvid2_getFormat to request the video driver to
@@ -204,7 +204,7 @@
  *  \return fvid_sok on success, else failure
  *
  */
-#define FVID2_GET_FORMAT			(FVID2_CTRL_BASE + 4)
+#define FVID2_GET_FORMAT                      (FVID2_CTRL_BASE + 4)
 
 /**
  *	\brief Command for FVID2_start to request the video driver to start the
@@ -216,7 +216,7 @@
  *  \return fvid_sok on success, else failure
  *
  */
-#define FVID2_START				(FVID2_CTRL_BASE + 5)
+#define FVID2_START                           (FVID2_CTRL_BASE + 5)
 
 /**
  *	\brief Command for FVID2_stop to request the video driver to stop the
@@ -228,7 +228,7 @@
  *  \return fvid_sok on success, else failure
  *
  */
-#define FVID2_STOP				(FVID2_CTRL_BASE + 6)
+#define FVID2_STOP                           (FVID2_CTRL_BASE + 6)
 
 /**
  *	\brief Data format.
@@ -352,11 +352,11 @@ enum fvid2_fid {
 };
 
 /** \brief Even Field */
-#define FVID2_FID_EVEN					(FVID2_FID_TOP)
+#define FVID2_FID_EVEN                             (FVID2_FID_TOP)
 /** \brief Odd Field */
-#define FVID2_FID_ODD					(FVID2_FID_BOTTOM)
+#define FVID2_FID_ODD                              (FVID2_FID_BOTTOM)
 /** \brief No Field */
-#define FVID2_FID_NONE					(FVID2_FID_FRAME)
+#define FVID2_FID_NONE                             (FVID2_FID_FRAME)
 
 /**
  *	\brief Bits per pixel.
@@ -422,35 +422,35 @@ struct fvid2_cbparams {
  *	\brief Structure for setting or getting the FVID2 buffer formats.
  */
 struct fvid2_format {
-	u32			channelnum;
+	u32                     channelnum;
 	/**< Channel Number to which this format belongs to.
 	     This is used in case of multiple buffers queuing/deqeuing using a
 	     single call. This is not applicable for all the drivers. When not
 	     used set it to zero. */
-	u32			width;
+	u32                     width;
 	/**< Width in pixels. */
-	u32			height;
+	u32                     height;
 	/**< Number of lines per frame. For interlaced mode, this should be set
 	     to the frame size and not the field size. */
-	u32			pitch[FVID2_MAX_PLANES];
+	u32                     pitch[FVID2_MAX_PLANES];
 	/**< Pitch in bytes for each of the sub-buffers. This represents the
 	     difference between two consecutive line address.
 	     This is irrespective of whether the video is interlaced or
 	     progressive and whether the fields are merged or separated for
 	     interlaced video. */
-	u32			fieldmerged[FVID2_MAX_PLANES];
+	u32                     fieldmerged[FVID2_MAX_PLANES];
 	/**< Whether both the fields have to be merged - line interleaved or
 	     not. Used only for interlaced format. The effective pitch is
 	     calculated based on this information along with pitch parameter.
 	     If fields are merged, effective pitch = pitch * 2 else effective
 	     pitch = pitch. */
-	u32			dataformat;
+	u32                     dataformat;
 	/**< Frame data Format. */
-	u32			scanformat;
+	u32                     scanformat;
 	/**< Scan Format. */
-	u32			bpp;
+	u32                     bpp;
 	/**< Number of bits per pixel. */
-	void			*reserved;
+	void                    *reserved;
 	/**< For future use. Not used currently. Set this to NULL. */
 };
 
@@ -463,13 +463,13 @@ struct fvid2_format {
  *	      and used by application
  */
 struct fvid2_sliceinfo {
-	u32			slicenum;
+	u32                      slicenum;
 	/**< Current slice Number in this frame,
 	     range is from 0 to (NoOfSlicesInFrame-1)  */
-	u32			numinlines;
+	u32                      numslcinlines;
 	/**< Number of lines available in the frame at the end of this slice.
 	*/
-	u32			numoutlines;
+	u32                      numslcoutlines;
 	/**< Number of lines generated in output buffer after processing
 	     current slice */
 } ;
@@ -477,7 +477,7 @@ struct fvid2_sliceinfo {
  *	\brief FVID2 frame buffer structure.
  */
 struct fvid2_frame {
-	void			*addr[FVID2_MAX_FIELDS][FVID2_MAX_PLANES];
+	void                     *addr[FVID2_MAX_FIELDS][FVID2_MAX_PLANES];
 	/**< FVID2 buffer pointers for supporting multiple addresses like
 	     y, u, v etc for a given frame. The interpretation of these
 	     pointers depend on the format configured.
@@ -506,11 +506,11 @@ struct fvid2_frame {
 	     [IN] for queue operation.
 	     [OUT] for dequeue operation. */
 
-	u32			fid;
+	u32                       fid;
 	/**< Indicates whether this frame belong to top or bottom field.
 	     [IN] for queue operation.
 	     [OUT] for dequeue operation. */
-	u32			channelnum;
+	u32                       channelnum;
 	/**< Channel number to which this FVID2 frame belongs to.
 	     This is used in case of multiple buffers queuing/deqeuing using a
 	     single call.
@@ -518,33 +518,33 @@ struct fvid2_frame {
 	     [IN] for queue operation.
 	     [OUT] for dequeue operation. */
 
-	u32			timestamp;
+	u32                       timestamp;
 	/**< Time Stamp for captured or displayed frame.
 	     [OUT] for dequeue operation. Not valid for queue operation. */
 
-	void			*appdata;
+	void                      *appdata;
 	/**< Additional application parameter per frame. This is not modified
 	     by driver. */
-	void			*perframecfg;
+	void                      *perframecfg;
 	/**< Per frame configuration parameters like scaling ratio, cropping,
 	     positioning etc...
 	     This could be set to NULL if not used.
 	     [IN] for queue operation. Dequeue returns the same pointer back to
 		 the application. */
 
-	void			*blankdata;
+	void                      *blankdata;
 	/**< Blanking data.
 	     This could be set to NULL if not used.
 	     [IN] for queue operation.
 	     [OUT] for dequeue operation. */
-	void			*drvdata;
+	void                      *drvdata;
 	/**< Used by driver. Application should not modify this. */
-	struct fvid2_sliceinfo	 *sliceinfo;
+	struct fvid2_sliceinfo    *sliceinfo;
 	/**< Used for Slice level processing information exchange between
 	     application and driver.
 	     This could be set to NULL if slice level processing is not used.
 	*/
-	void			*reserved;
+	void                      *reserved;
     /**< For future use. Not used currently. Set this to NULL. */
 } ;
 

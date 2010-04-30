@@ -35,13 +35,6 @@
 #include <linux/vmalloc.h>
 #include <linux/platform_device.h>
 
-#include <linux/vps_proxyserver.h>
-#include <linux/fvid2.h>
-#include <linux/vps.h>
-#include <linux/vps_displayctrl.h>
-#include <linux/dc.h>
-#include <linux/grpx.h>
-
 #include "core.h"
 
 #define VPS_DRIVER_NAME  "vpss"
@@ -79,15 +72,23 @@ static int vps_probe(struct platform_device *pdev)
 	r = vps_dc_init(pdev);
 	if (r) {
 		VPSERR("failed to int display controller.\n");
-		return r;
+		goto exit1;
 	}
 	r = vps_grpx_init(pdev);
 	if (r) {
 		VPSERR("failed to int graphics.\n");
-		return r;
+		goto exit2;
 
 	}
+
 	return 0;
+
+exit2:
+	vps_dc_deinit(pdev);
+exit1:
+	vps_fvid2_deinit(NULL);
+
+	return r;
 }
 
 static int vps_remove(struct platform_device *pdev)
@@ -95,7 +96,7 @@ static int vps_remove(struct platform_device *pdev)
 	int r;
 
 	vps_grpx_deinit(pdev);
-	r = vps_dc_exit(pdev);
+	r = vps_dc_deinit(pdev);
 	if (r) {
 		VPSERR("failed to remove display controller.\n");
 		return r;

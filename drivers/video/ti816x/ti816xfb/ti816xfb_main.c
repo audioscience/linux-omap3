@@ -557,7 +557,7 @@ static int ti816xfb_blank(int blank, struct fb_info *fbi)
 {
 	int r = 0;
 	struct ti816xfb_info *tfbi = FB2TFB(fbi);
-
+	struct vps_grpx_ctrl *gctrl = tfbi->gctrl;
 
 	ti816xfb_lock(tfbi);
 	switch (blank) {
@@ -565,7 +565,14 @@ static int ti816xfb_blank(int blank, struct fb_info *fbi)
 	case FB_BLANK_UNBLANK:
 		if (tfbi->gctrl->gstate.isstarted)
 			goto exit;
-		r = vps_fvid2_stop(tfbi->gctrl->handle, NULL);
+		gctrl->set_dcconfig(tfbi->gctrl, 1);
+		r = vps_fvid2_start(tfbi->gctrl->handle, NULL);
+		if (r == 0)
+			gctrl->start(gctrl);
+		else
+			gctrl->set_dcconfig(tfbi->gctrl, 0);
+
+
 		break;
 	case FB_BLANK_NORMAL:
 	case FB_BLANK_VSYNC_SUSPEND:
@@ -573,7 +580,11 @@ static int ti816xfb_blank(int blank, struct fb_info *fbi)
 	case FB_BLANK_POWERDOWN:
 		if (tfbi->gctrl->gstate.isstarted == 0)
 			goto exit;
-		r = vps_fvid2_start(tfbi->gctrl->handle, NULL);
+		r = vps_fvid2_stop(tfbi->gctrl->handle, NULL);
+		if (r == 0) {
+			gctrl->stop(gctrl);
+			gctrl->set_dcconfig(tfbi->gctrl, 0);
+		}
 		break;
 	default:
 		r = -EINVAL;
@@ -829,12 +840,14 @@ static int ti816xfb_release(struct fb_info *fbi, int user)
 	if (gctrl->handle) {
 		if (gctrl->gstate.isstarted) {
 			r = vps_fvid2_stop(gctrl->handle, NULL);
-			/*close the dc path*/
-			gctrl->set_dcconfig(tfbi->gctrl, 0);
+			if (r == 0) {
+				gctrl->stop(gctrl);
+				/*close the dc path*/
+				gctrl->set_dcconfig(tfbi->gctrl, 0);
+			}
 		}
 
 		if (r == 0) {
-			r = gctrl->stop(gctrl);
 			r = vps_fvid2_delete(gctrl->handle, NULL);
 			if (r == 0) {
 				gctrl->delete(gctrl);

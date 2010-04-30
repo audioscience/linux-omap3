@@ -36,7 +36,7 @@ void __exit vps_grpx_deinit(struct platform_device *pdev);
 
 int vps_dc_init(struct platform_device *pdev);
 
-int vps_dc_exit(struct platform_device *pdev);
+int vps_dc_deinit(struct platform_device *pdev);
 
 int vps_fvid2_init(void *args);
 void vps_fvid2_deinit(void *args);

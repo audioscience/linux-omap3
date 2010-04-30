@@ -230,9 +230,8 @@ struct vps_grpxrtparams {
 	/**< data format */
 	u32				pitch[FVID2_MAX_PLANES];
 	/**< memory pitch*/
-	struct vps_grpxregionparams	 *regparams;
-	/**< region attributes, it can be set to NULL only if it is used
-	     as Runtime paramters. Otherwise, a valid pointer is required */
+	struct vps_grpxregionparams	 regparams;
+	/**< region attributes*/
 	u32				rotation;
 	/**< rotation type, only valid if GRPX data is stored in the
 	     tiler memory*/
@@ -304,6 +303,13 @@ struct vps_grpxcreateparams {
 struct vps_grpxcreatestatus {
 	int			retval;
 	/**< Reture value of the create call.*/
+	u32                    dispWidth;
+	/**< Width of the display at the VENC in pixels to which the grpx driver
+	 path is connected. */
+	u32                    dispHeight;
+	/**< Height of the display at the VENC in linesto which the grpx driver
+	 path is connected. */
+
 	u32			minbufnum;
 	/**< Minimum number of buffers to start GRPX display */
 	u32			maxreq;

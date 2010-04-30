@@ -33,7 +33,7 @@
 #include <linux/vps.h>
 #include <linux/vps_displayctrl.h>
 #include <linux/dc.h>
-#include <linux/grpx.h>
+
 
 #include "core.h"
 
@@ -54,7 +54,7 @@
 #endif
 
 static struct vps_dispctrl *disp_ctrl;
-
+static void *dc_handle;
 /*store the current VENC setting*/
 static struct vps_dcvencinfo venc_info = {
 	{
@@ -732,9 +732,24 @@ int vps_dc_init(struct platform_device *pdev)
 	int status = EINVAL;
 	int r = 0;
 	int i;
+
 	DCDBG("DC INIT\n");
+	/*get dc handle*/
+	dc_handle = vps_fvid2_create(FVID2_VPS_DCTRL_DRV,
+				     VPS_DCTRL_INST_0,
+				     NULL,
+				     (void *)virt_to_phys(&status),
+				     NULL);
+
+	if (dc_handle == NULL) {
+		DCDBG("Create FVID2 DC handle status 0x%08x.\n", status);
+		r = -EINVAL;
+		goto exit;
+	}
 
 	disp_ctrl = kzalloc(sizeof(struct vps_dispctrl), GFP_KERNEL);
+
+	disp_ctrl->fvid2_handle = dc_handle;
 
 	disp_ctrl->dccfg = kzalloc(sizeof(struct vps_dcconfig), GFP_KERNEL);
 	BUG_ON(disp_ctrl->dccfg == NULL);
@@ -776,65 +791,48 @@ int vps_dc_init(struct platform_device *pdev)
 		}
 	}
 
-	disp_ctrl->fvid2_handle =
-		vps_fvid2_create(FVID2_VPS_DCTRL_DRV,
-				 VPS_DCTRL_INST_0,
-				 NULL,
-				 (void *)virt_to_phys(&status),
-				 NULL);
-
-	if (disp_ctrl->fvid2_handle == NULL) {
-		DCDBG("Create FVID2 DC handle status 0x%08x.\n", status);
-		r = -EINVAL;
-	} else
-		r = 0;
-
-   return r;
+exit:
+	return r;
 }
 
 
-int vps_dc_exit(struct platform_device *pdev)
+int vps_dc_deinit(struct platform_device *pdev)
 {
 	int r = 0;
 	int i;
-	DCDBG("DC EXIT\n");
+	DCDBG("DC DEINIT\n");
 
 	if (disp_ctrl) {
+		/*free memory*/
 		kfree(disp_ctrl->nodeinfo);
-		disp_ctrl->nodeinfo = NULL;
-		disp_ctrl->ninfo_phy = 0;
-
 		kfree(disp_ctrl->vinfo);
-		disp_ctrl->vinfo = NULL;
-		disp_ctrl->vinfo_phy = 0;;
-
 		kfree(disp_ctrl->dccfg);
-		disp_ctrl->dccfg = NULL;
-		disp_ctrl->dccfg_phy = 0;
-		/*This is not used currently*/
-		if (disp_ctrl->enabled_venc_ids != 0)
-			r = vps_fvid2_control(disp_ctrl->fvid2_handle,
-					      IOCTL_VPS_DCTRL_DISABLE_VENC,
-					      (void *)virt_to_phys
-						(&disp_ctrl->enabled_venc_ids),
-					      NULL);
-
-		if (disp_ctrl->fvid2_handle) {
-			r = vps_fvid2_delete(disp_ctrl->fvid2_handle, NULL);
-			if (r) {
-				DCERR("failed to delete DC fvid2 handle.\n");
-				return r;
-			}
-		}
-		disp_ctrl->fvid2_handle = NULL;
 
 		for (i = 0; i < VPS_DC_MAX_VENC; i++) {
 			kobject_del(&disp_ctrl->blenders[i].kobj);
 			kobject_put(&disp_ctrl->blenders[i].kobj);
 		}
+
+		/*This is not used currently*/
+		if (disp_ctrl->enabled_venc_ids != 0)
+			r = vps_fvid2_control(disp_ctrl->fvid2_handle,
+					      IOCTL_VPS_DCTRL_DISABLE_VENC,
+					      (void *)virt_to_phys
+					      (&disp_ctrl->enabled_venc_ids),
+					      NULL);
 		kfree(disp_ctrl);
 		disp_ctrl = NULL;
 	}
+	if (dc_handle) {
+		r = vps_fvid2_delete(dc_handle, NULL);
+		if (r) {
+			DCERR("failed to delete DC fvid2 handle.\n");
+			return r;
+		}
+		dc_handle = NULL;
+	}
+
+
 	return r;
 }
 

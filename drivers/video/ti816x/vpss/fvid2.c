@@ -87,7 +87,7 @@ static struct vps_fvid2_ctrl  *fvid2_ctrl[VPS_FVID2_NUM];
 #define VPS_FVID2_RESERVED_NOTIFY	4
 #define VPS_FVID2_M3_INIT_VALUE      (0xAAAAAAAA)
 #define VPS_FVID2_PS_LINEID          0
-#define CURRENT_VPS_FIRMWARE_VERSION        (0x01000111)
+#define CURRENT_VPS_FIRMWARE_VERSION        (0x01000112)
 
 static void vps_callback(u16 procid,
 		  u16 lineid,
@@ -495,7 +495,10 @@ static int get_firmware_version(int *version, u32 procid)
 				 1);
 
 		if (status < 0) {
-			FVID2ERR("Get version status %#x.\n", status);
+			FVID2ERR("Failed to send version command to M3 %#x.\n",
+				 status);
+			r = -EINVAL;
+			goto exit;
 		} else {
 			while (verparams->returnvalue ==
 					VPS_FVID2_M3_INIT_VALUE)
@@ -505,6 +508,7 @@ static int get_firmware_version(int *version, u32 procid)
 		r = verparams->returnvalue;
 	}
 	*version = verparams->version;
+exit:
 	/*release the memory*/
 	kfree(verparams);
 	kfree(cmdstruct);
@@ -528,14 +532,14 @@ int vps_fvid2_init(void *args)
 	if (get_firmware_version(&version, procid) == 0) {
 		if (version != CURRENT_VPS_FIRMWARE_VERSION) {
 			if (version < CURRENT_VPS_FIRMWARE_VERSION) {
-				FVID2ERR("firmware version is too old, \
-					please update firmware version.\n");
+				FVID2ERR("M3 firmware version is too old,"
+					"please update firmware version.\n");
 				return -EINVAL;
 			}
 
 			if (version > CURRENT_VPS_FIRMWARE_VERSION)
-				FVID2DBG("firmware version is newer, \
-					may not working properly.\n");
+				FVID2DBG("M3 firmware version is newer,"
+					"driver may not work properly.\n");
 		} else
 			FVID2DBG("get firmware version 0x%08x.\n", version);
 	}
@@ -605,38 +609,23 @@ void vps_fvid2_deinit(void *args)
 {
 	int i;
 	struct vps_fvid2_ctrl *fctrl;
-	FVID2DBG("Fvid2 deinit\n");
+	FVID2DBG("FVID DEINIT\n");
 
 	for (i = 0; i <  VPS_FVID2_NUM; i++) {
 		fctrl = fvid2_ctrl[i];
 
 		if (fctrl) {
-
+			/*free all resources*/
 			kfree(fctrl->fcrprms);
-			fctrl->fcrprms_phy = 0;
-
 			kfree(fctrl->fdltprms);
-			fctrl->fdltprms = 0;
-
 			kfree(fctrl->fctrlprms);
-			fctrl->fctrlprms_phy = 0;
-
 			kfree(fctrl->fqprms);
-			fctrl->fqprms_phy = 0;
-
 			kfree(fctrl->fdqprms);
-			fctrl->fdqprms_phy = 0;
-
 			kfree(fctrl->cbprms);
-			fctrl->cbprms_phy = 0;
-
 			kfree(fctrl->ecbprms);
-			fctrl->ecbprms_phy = 0;
-
 			kfree(fctrl->cmdprms);
-			fctrl->cmdprms_phy = 0;
-
 			kfree(fctrl);
+
 			fvid2_ctrl[i] = NULL;
 		}
 	}
