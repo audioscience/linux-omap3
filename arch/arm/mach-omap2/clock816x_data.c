@@ -48,6 +48,11 @@
  *   instances, starts from 1 while register definitions are maintained starting
  *   from 0 as per spec. This is followed to avoid confusion with omaps, where
  *   the numbering start from 1.
+ *
+ * - The IDLEST bit and register for many clocks (e.g., mmchs1_fck) do not match
+ *   with the default implementation as part of clkops_omap2_dflt_wait. Skipping
+ *   the check and using clkops_omap2_dflt ops for now, but need to add ti816x
+ *   specific idlest wait.
  */
 
 static struct clk secure_32k_ck = {
@@ -354,7 +359,7 @@ static struct clk i2c2_fck = {
 static struct clk mmchs1_fck = {
 	.name		= "mmchs1_fck",
 	.parent		= &sysclk10_ck,
-	.ops		= &clkops_omap2_dflt_wait,
+	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_SDIO_CLKCTRL,
 	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
