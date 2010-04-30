@@ -31,5 +31,15 @@
 extern unsigned int vpss_debug;
 #endif
 
+int __init vps_grpx_init(struct platform_device *pdev);
+void __exit vps_grpx_deinit(struct platform_device *pdev);
+
+int vps_dc_init(struct platform_device *pdev);
+
+int vps_dc_exit(struct platform_device *pdev);
+
+int vps_fvid2_init(void *args);
+void vps_fvid2_deinit(void *args);
+
 #endif
 

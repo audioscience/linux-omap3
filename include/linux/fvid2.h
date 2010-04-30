@@ -607,18 +607,6 @@ struct fvid2_processlist {
 
 
 /**
- *	FVID2_init
- *	\brief FVID2 init function.
- */
-int vps_fvid2_init(void *args);
-
-/**
- *	FVID2_deInit
- *	\brief FVID2 deinit function.
- */
-void vps_fvid2_deinit(void *args);
-
-/**
  *      FVID2_create
  *      \brief Opens the driver identified by the driver ID.
  *

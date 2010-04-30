@@ -26,6 +26,7 @@
 #include <linux/interrupt.h>
 #include <linux/err.h>
 #include <linux/sched.h>
+#include <linux/platform_device.h>
 #include <linux/vps_proxyserver.h>
 #include <linux/fvid2.h>
 #include <linux/vps.h>

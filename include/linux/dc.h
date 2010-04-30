@@ -95,10 +95,6 @@ static inline void dc_unlock(struct vps_dispctrl *dctrl)
     mutex_unlock(&dctrl->dcmutex);
 }
 
-int vps_dc_init(struct platform_device *pdev);
-
-int vps_dc_exit(struct platform_device *pdev);
-
 int vps_dc_get_node_id(int *id, char *name);
 int vps_dc_get_node_name(int id, char *name);
 

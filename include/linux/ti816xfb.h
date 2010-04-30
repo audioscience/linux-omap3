@@ -40,7 +40,7 @@
 #define TI816XFB_IOW(num, dtype)  _IOW('N', num, dtype)
 #define TI816XFB_IOR(num, dtype)  _IOR('N', num, dtype)
 #define TI816XFB_IOWR(num, dtype) _IOWR('N', num, dtype)
-#define TI816XFB_IO(num) 		 _IO('N', num)
+#define TI816XFB_IO(num)          _IO('N', num)
 
 #define TI816XFB_SET_PARAMS   TI816XFB_IOW(2, struct ti816xfb_region_params)
 #define TI816XFB_GET_PARAMS   TI816XFB_IOR(3, struct ti816xfb_region_params)
@@ -142,43 +142,43 @@ struct ti816xfb_mem_info {
 };
 
 struct ti816xfb_region_params {
-	__u16 				ridx;
-	__u16 				pos_x;
-	__u16 				pos_y;
-	__u16 				priority;
+	__u16               ridx;
+	__u16               pos_x;
+	__u16               pos_y;
+	__u16               priority;
 	/*enum ti816xfb_status*/
-	__u32		  		firstregion;
+	__u32               firstregion;
 	/*enum ti816xfb_status*/
-	__u32				lastregion;
+	__u32               lastregion;
 	/*enum ti816xfb_status*/
-	__u32		  		scalaren;
+	__u32               scalaren;
 	/*enum ti816xfb_status*/
-	__u32		  		stencilingen;
+	__u32               stencilingen;
 	/*enum ti816xfb_status*/
-	__u32				bben;
+	__u32               bben;
 	/*enum ti816xfb_status*/
-	__u32		  		transen;
+	__u32               transen;
 	/*enum ti816xfb_blending_type*/
-	__u32				blendtype;
+	__u32               blendtype;
 	/*enum ti816xfb_transparancy_type*/
-	__u32 				transtype;
-	__u32  				transcolor;
-	__u8  				bbalpha;
-	__u8   				blendalpha;
-	__u8				reserved[2];
+	__u32               transtype;
+	__u32               transcolor;
+	__u8                bbalpha;
+	__u8                blendalpha;
+	__u8                reserved[2];
 };
 
 
 struct ti816xfb_region_scparams {
-	__u16  				inwidth;
-	__u16  				inheight;
-	__u16  				outwidth;
-	__u16  				outheight;
+	__u16               inwidth;
+	__u16               inheight;
+	__u16               outwidth;
+	__u16               outheight;
 };
 
 struct ti816xfb_stenciling_params {
-	__u32  				pitch;
-	__u32  				phy_addr;
+	__u32               pitch;
+	__u32               phy_addr;
 };
 
 /**
@@ -187,8 +187,8 @@ struct ti816xfb_stenciling_params {
  *	 for each regions in the given frame
  */
 struct ti816xfb_regions_list {
-	__u32 				num_reg;
-	struct ti816xfb_region_params 	*regions;
+	__u32                           num_reg;
+	struct ti816xfb_region_params   *regions;
 };
 
 #ifdef __KERNEL__
@@ -208,26 +208,26 @@ struct ti816xfb_regions_list {
  */
 
 struct  ti816xfb_mem_region {
-	u32         paddr;
-	void __iomem			*vaddr;
-	unsigned long size;
-	bool alloc;		/*allocated by the driver*/
-	bool map;		/*kernel mapped by the driver*/
+	u32             paddr;
+	void __iomem    *vaddr;
+	unsigned long   size;
+	bool            alloc; /*allocated by the driver*/
+	bool            map; /*kernel mapped by the driver*/
 };
 
 
 /**
  *   ti816xfb_mem_desc
- * 		define the memory regions for all fb
+ *		define the memory regions for all fb
  */
 struct ti816xfb_mem_desc {
-	int		region_cnt;
-	struct ti816xfb_mem_region	mreg[TI816X_FB_NUM];
+	int                         region_cnt;
+	struct ti816xfb_mem_region  mreg[TI816X_FB_NUM];
 };
 
 struct ti816xfb_platform_data {
-	struct ti816xfb_mem_desc	mem_desc;
-	void				*ctrl_platform_data;
+	struct ti816xfb_mem_desc   mem_desc;
+	void                       *ctrl_platform_data;
 };
 
 #define FVID2_Q_TIMEOUT 0xFFFFFFFF

@@ -157,8 +157,6 @@ static inline void grpx_unlock(struct vps_grpx_ctrl *gctrl)
 {
 	mutex_unlock(&gctrl->gmutex);
 }
-int __init vps_grpx_init(struct platform_device *pdev);
-void __exit vps_grpx_deinit(struct platform_device *pdev);
 
 int vps_grpx_get_num_grpx(void);
 struct vps_grpx_ctrl *vps_grpx_get_ctrl(int num);
