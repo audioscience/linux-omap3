@@ -248,6 +248,16 @@ static struct clk sysclk5_ck = {
 	.recalc		= &omap2_clksel_recalc,
 };
 
+static struct clk pcie_ck = {
+	.name           = "pcie_ck",
+	.parent         = &sysclk5_ck,
+	.ops            = &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_DEFAULT_PCI_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "default_pcie_clkdm",
+	.recalc         = &followparent_recalc,
+};
+
 static struct clk sata_ick = {
 	.name           = "sata_ick",
 	.parent         = &sysclk5_ck,
@@ -647,6 +657,7 @@ static struct omap_clk ti816x_clks[] = {
 	CLK(NULL,		"uart3_fck",		&uart3_fck,		CK_TI816X),
 	CLK(NULL,		"usbotg_ick",		&usbotg_ick,		CK_TI816X),
 	CLK(NULL,		"sysclk5_ck",		&sysclk5_ck,		CK_TI816X),
+	CLK(NULL,		"pcie_ck",		&pcie_ck,		CK_TI816X),
 	CLK(NULL,		"sata_ick",		&sata_ick,		CK_TI816X),
 	CLK("omap2_mcspi.1",	"fck",			&mcspi1_fck,		CK_TI816X),
 	CLK(NULL,		"gpmc_fck",		&gpmc_fck,		CK_TI816X),
