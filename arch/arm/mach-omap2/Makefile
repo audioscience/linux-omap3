@@ -97,6 +97,12 @@ obj-$(CONFIG_OMAP_IOMMU)		:= iommu2.o omap-iommu.o
 i2c-omap-$(CONFIG_I2C_OMAP)		:= i2c.o
 obj-y					+= $(i2c-omap-m) $(i2c-omap-y)
 
+obj-$(CONFIG_PCI)                       += pcie-ti816x.o
+
+ifeq ($(CONFIG_PCI_DEBUG),y)
+CFLAGS_pcie-ti816x.o += -DDEBUG
+endif
+
 # Specific board support
 obj-$(CONFIG_MACH_OMAP_GENERIC)		+= board-generic.o
 obj-$(CONFIG_MACH_OMAP_H4)		+= board-h4.o
