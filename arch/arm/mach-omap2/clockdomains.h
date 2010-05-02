@@ -935,6 +935,7 @@ static struct clockdomain *clockdomains_omap[] = {
 #ifdef CONFIG_ARCH_TI816X
 	&alwon_l3_slow_816x_clkdm,
 	&default_pcie_816x_clkdm,
+	&default_usb_816x_clkdm,
 #endif
 
 	NULL,

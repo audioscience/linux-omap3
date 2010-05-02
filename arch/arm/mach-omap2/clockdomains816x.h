@@ -50,6 +50,15 @@ static struct clockdomain default_pcie_816x_clkdm = {
 	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X),
 };
 
+static struct clockdomain default_usb_816x_clkdm = {
+	.name		  = "default_usb_clkdm",
+	.pwrdm		  = { .name = NULL },
+	.clkstctrl_reg	  = TI816X_CM_DEFAULT_L3_SLOW_CLKSTCTRL, /* FIXME */
+	.clktrctrl_mask	  = TI816X_CLKTRCTRL_MASK,
+	.flags		  = CLKDM_CAN_HWSUP_SWSUP,
+	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X),
+};
+
 #endif
 
 #endif
