@@ -34,9 +34,9 @@ static ssize_t show_size(struct device *dev,
 			 char *buf)
 {
 	struct fb_info *fbi = dev_get_drvdata(dev);
-	struct ti816xfb_info *nfbi = FB2TFB(fbi);
+	struct ti816xfb_info *tfbi = FB2TFB(fbi);
 
-	return snprintf(buf, PAGE_SIZE, "%lu\n", nfbi->mreg.size);
+	return snprintf(buf, PAGE_SIZE, "%lu\n", tfbi->mreg.size);
 }
 
 
@@ -46,21 +46,21 @@ static ssize_t store_size(struct device *dev,
 			  size_t count)
 {
 	struct fb_info *fbi = dev_get_drvdata(dev);
-	struct ti816xfb_info *nfbi = FB2TFB(fbi);
+	struct ti816xfb_info *tfbi = FB2TFB(fbi);
 	unsigned long size;
 	int r;
 
 	size = PAGE_ALIGN(simple_strtoul(buf, NULL, 0));
-	ti816xfb_lock(nfbi);
+	ti816xfb_lock(tfbi);
 
 	/* FIX ME make sure that the FB is not actived,
 		or we can not change it*/
 
-	if (nfbi->gctrl->gstate.isstarted) {
+	if (tfbi->gctrl->gstate.isstarted) {
 		r = -EBUSY;
 		goto out;
 	}
-	if (size != nfbi->mreg.size) {
+	if (size != tfbi->mreg.size) {
 		r = ti816xfb_realloc_fbmem(fbi, size);
 		if (r) {
 			dev_err(dev, "realloc fbmem failed\n");
@@ -70,7 +70,7 @@ static ssize_t store_size(struct device *dev,
 
 	r = count;
 out:
-	ti816xfb_unlock(nfbi);
+	ti816xfb_unlock(tfbi);
 
 	return r;
 }
@@ -80,9 +80,9 @@ static ssize_t show_phys(struct device *dev,
 			 char *buf)
 {
 	struct fb_info *fbi = dev_get_drvdata(dev);
-	struct ti816xfb_info *nfbi = FB2TFB(fbi);
+	struct ti816xfb_info *tfbi = FB2TFB(fbi);
 
-	return snprintf(buf, PAGE_SIZE, "%0x\n", nfbi->mreg.paddr);
+	return snprintf(buf, PAGE_SIZE, "%0x\n", tfbi->mreg.paddr);
 }
 
 static ssize_t show_virt(struct device *dev,
@@ -90,9 +90,9 @@ static ssize_t show_virt(struct device *dev,
 			 char *buf)
 {
 	struct fb_info *fbi = dev_get_drvdata(dev);
-	struct ti816xfb_info *nfbi = FB2TFB(fbi);
+	struct ti816xfb_info *tfbi = FB2TFB(fbi);
 
-	return snprintf(buf, PAGE_SIZE, "%p\n", nfbi->mreg.vaddr);
+	return snprintf(buf, PAGE_SIZE, "%p\n", tfbi->mreg.vaddr);
 }
 
 static struct device_attribute ti816xfb_attrs[] = {
