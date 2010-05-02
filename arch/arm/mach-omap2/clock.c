@@ -31,6 +31,7 @@
 #include "clock.h"
 #include "prm.h"
 #include "prm-regbits-24xx.h"
+#include "prm-regbits-816x.h"
 #include "cm.h"
 #include "cm-regbits-24xx.h"
 #include "cm-regbits-34xx.h"
@@ -219,6 +220,56 @@ void omap2_dflt_clk_disable(struct clk *clk)
 	/* No OCP barrier needed here since it is a disable operation */
 }
 
+int omap2_pcie_clk_enable(struct clk *clk)
+{
+	omap2_dflt_clk_enable(clk);
+
+	/* De-assert local reset after module enable */
+	if (cpu_is_ti816x())
+		prm_clear_mod_reg_bits(TI816X_PCI_LRST_MASK,
+				TI816X_PRM_DEFAULT_MOD,
+				TI816X_RM_DEFAULT_RSTCTRL);
+
+	return 0;
+}
+
+void omap2_pcie_clk_disable(struct clk *clk)
+{
+	/* Assert local reset */
+	if (cpu_is_ti816x())
+		prm_set_mod_reg_bits(TI816X_PCI_LRST_MASK,
+				TI816X_PRM_DEFAULT_MOD,
+				TI816X_RM_DEFAULT_RSTCTRL);
+
+	omap2_dflt_clk_disable(clk);
+}
+
+int omap2_usb_clk_enable(struct clk *clk)
+{
+	omap2_dflt_clk_enable(clk);
+
+	/* De-assert local reset after module enable */
+	if (cpu_is_ti816x())
+		prm_clear_mod_reg_bits(TI816X_USB1_LRST_MASK
+				| TI816X_USB2_LRST_MASK,
+				TI816X_PRM_DEFAULT_MOD,
+				TI816X_RM_DEFAULT_RSTCTRL);
+
+	return 0;
+}
+
+void omap2_usb_clk_disable(struct clk *clk)
+{
+	/* Assert local reset */
+	if (cpu_is_ti816x())
+		prm_set_mod_reg_bits(TI816X_USB1_LRST_MASK
+				| TI816X_USB2_LRST_MASK,
+				TI816X_PRM_DEFAULT_MOD,
+				TI816X_RM_DEFAULT_RSTCTRL);
+
+	omap2_dflt_clk_disable(clk);
+}
+
 const struct clkops clkops_omap2_dflt_wait = {
 	.enable		= omap2_dflt_clk_enable,
 	.disable	= omap2_dflt_clk_disable,
@@ -229,6 +280,16 @@ const struct clkops clkops_omap2_dflt_wait = {
 const struct clkops clkops_omap2_dflt = {
 	.enable		= omap2_dflt_clk_enable,
 	.disable	= omap2_dflt_clk_disable,
+};
+
+const struct clkops clkops_omap2_pcie = {
+	.enable		= omap2_pcie_clk_enable,
+	.disable	= omap2_pcie_clk_disable,
+};
+
+const struct clkops clkops_omap2_usb = {
+	.enable		= omap2_usb_clk_enable,
+	.disable	= omap2_usb_clk_disable,
 };
 
 /**

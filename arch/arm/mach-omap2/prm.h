@@ -26,6 +26,8 @@
 		OMAP2_L4_IO_ADDRESS(OMAP4430_PRM_BASE + (module) + (reg))
 #define OMAP44XX_PRCM_MPU_REGADDR(module, reg)				\
 		OMAP2_L4_IO_ADDRESS(OMAP4430_PRCM_MPU_BASE + (module) + (reg))
+#define TI816X_PRM_REGADDR(module, reg)					\
+			TI816X_L4_SLOW_IO_ADDRESS(TI816X_PRCM_BASE + (module) + (reg))
 
 #include "prm44xx.h"
 
@@ -227,6 +229,11 @@
 #define OMAP4_PM_PWSTCTRL				0x0000
 #define OMAP4_PM_PWSTST					0x0004
 
+/* TI816X specific registers */
+#define TI816X_PM_DEFAULT_PWRSTCTRL			0x0000
+#define TI816X_PM_DEFAULT_PWRSTST			0x0004
+#define TI816X_RM_DEFAULT_RSTCTRL			0x0010
+#define TI816X_RM_DEFAULT_RSTST				0x0014
 
 #ifndef __ASSEMBLER__
 

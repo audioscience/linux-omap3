@@ -168,8 +168,10 @@ static struct clk mcspi1_ick = {
 static struct clk usbotg_ick = {
 	.name           = "usbotg_ick",
 	.parent         = &sysclk6_ck,
-	.ops            = &clkops_null,
-	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.ops            = &clkops_omap2_usb,
+	.enable_reg	= TI816X_CM_DEFAULT_USB_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "default_usb_clkdm",
 	.recalc         = &followparent_recalc,
 };
 
@@ -251,7 +253,7 @@ static struct clk sysclk5_ck = {
 static struct clk pcie_ck = {
 	.name           = "pcie_ck",
 	.parent         = &sysclk5_ck,
-	.ops            = &clkops_omap2_dflt,
+	.ops            = &clkops_omap2_pcie,
 	.enable_reg	= TI816X_CM_DEFAULT_PCI_CLKCTRL,
 	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
 	.clkdm_name	= "default_pcie_clkdm",
