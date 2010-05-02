@@ -39,7 +39,7 @@
 #include <plat/tc.h>
 
 /* some edma specific hacks which might change */
-#include <mach/edma.h>
+#include <asm/hardware/edma.h>
 
 /**
  * omap_request_dma - allocate DMA channel and paired parameter RAM
@@ -76,7 +76,10 @@ int omap_request_dma(int dev_id, const char *dev_name,
              void (*callback)(int lch, u16 ch_status, void *data),
              void *data, int *dma_ch_out)
 {
-	*dma_ch_out = edma_alloc_channel(dev_id, callback, data, EVENTQ_2);
+	typedef void (*EDMA_CALLBACK)(unsigned, u16, void*);
+	EDMA_CALLBACK edma_callback = (EDMA_CALLBACK)(callback);
+
+	*dma_ch_out = edma_alloc_channel(dev_id, edma_callback, data, EVENTQ_2);
 
 	if (*dma_ch_out < 0)
 		return (-1);
@@ -215,14 +218,14 @@ void omap_set_dma_dest_params(int lch, int dest_port, int dest_amode,
                   unsigned long dest_start,
                   int dst_ei, int dst_fi)
 {
-	if ((enum address_mode)dest_mode > FIFO) {
+	if ((enum address_mode)dest_amode > FIFO) {
 		printk("SDMA2EDMA: Line:%d : Param \'dest_amode\' our of range\n",
 				__LINE__);
 		return;
 	}
 
-	edma_set_dest((unsigned)lch, (enum dma_addr_t)dest_start,
-					(enum address_mode)dest_mode, W8BIT);
+	edma_set_dest((unsigned)lch, (dma_addr_t)dest_start,
+					(enum address_mode)dest_amode, W8BIT);
 
 	edma_set_dest_index((unsigned)(lch), (s16)dst_ei, (s16)dst_fi);
 }
@@ -249,14 +252,14 @@ void omap_set_dma_src_params(int lch, int src_port, int src_amode,
                   unsigned long src_start,
                   int src_ei, int src_fi)
 {
-	if ((enum address_mode)src_mode > FIFO) {
+	if ((enum address_mode)src_amode > FIFO) {
 		printk("SDMA2EDMA: Line:%d : Param \'src_amode\' our of range\n",
 				__LINE__);
 		return;
 	}
 
-	edma_set_src((unsigned)lch, (enum dma_addr_t)src_start,
-					(enum address_mode)src_mode, W8BIT);
+	edma_set_src((unsigned)lch, (dma_addr_t)src_start,
+					(enum address_mode)src_amode, W8BIT);
 
 	edma_set_src_index((unsigned)(lch), (s16)src_ei, (s16)src_fi);
 }
