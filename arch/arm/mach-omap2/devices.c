@@ -32,6 +32,7 @@
 #include <plat/asp.h>
 
 #include "mux.h"
+#include "pcie-ti816x.h"
 
 #define TI816X_RTC_BASE           0x480C0000
 
@@ -1051,6 +1052,81 @@ void __init ti816x_register_mcasp(int id, struct snd_platform_data *pdata)
 }
 #endif
 
+/*-------------------------------------------------------------------------*/
+
+#if defined(CONFIG_ARCH_TI816X) && defined(CONFIG_PCI)
+static struct ti816x_pcie_data ti816x_pcie_data = {
+	        .msi_irq_base	= TI816X_MSI_IRQ_BASE,
+		.msi_irq_num	= TI816X_MSI_NR_IRQS,
+};
+
+static struct resource ti816x_pcie_resources[] = {
+	{
+		/* Register space */
+		.name		= "regs",
+		.start		= TI816X_PCIE_REG_BASE,
+		.end		= TI816X_PCIE_REG_BASE + SZ_16M - 1,
+		.flags		= IORESOURCE_MEM,
+	},
+	{
+		/* Non-prefetch memory */
+		.name		= "nonprefetch",
+		.start		= TI816X_PCIE_MEM_BASE,
+		.end		= TI816X_PCIE_MEM_BASE + SZ_256M - 1,
+		.flags		= IORESOURCE_MEM,
+	},
+	{
+		/* IO window */
+		.name		= "io",
+		.start		= TI816X_PCIE_IO_BASE,
+		.end		= TI816X_PCIE_IO_BASE + SZ_2M + SZ_1M - 1,
+		.flags		= IORESOURCE_IO,
+	},
+	{
+		/* Inbound memory window */
+		.name		= "inbound0",
+		.start		= PHYS_OFFSET,
+		.end		= PHYS_OFFSET + SZ_256M - 1,
+		.flags		= IORESOURCE_MEM,
+	},
+	{
+		/* Legacy Interrupt */
+		.name		= "legacy_int",
+		.start		= TI816X_IRQ_PCIINT0,
+		.end		= TI816X_IRQ_PCIINT0,
+		.flags		= IORESOURCE_IRQ,
+	},
+	{
+		/* MSI Interrupt Line */
+		.name		= "msi_int",
+		.start		= TI816X_IRQ_PCIINT1,
+		.end		= TI816X_IRQ_PCIINT1,
+		.flags		= IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device ti816x_pcie_device = {
+	.name		= "ti816x_pcie",
+	.id		= 0,
+	.dev		= {
+		.platform_data = &ti816x_pcie_data,
+	},
+	.num_resources	= ARRAY_SIZE(ti816x_pcie_resources),
+	.resource	= ti816x_pcie_resources,
+};
+
+static inline void ti816x_init_pcie(void)
+{
+	if (cpu_is_ti816x()) {
+		u32 v = omap_ctrl_readl(TI816X_CONTROL_PCIE_CFG);
+		v = (v & ~TI816X_PCIE_DEVTYPE_MASK) | TI816X_PCIE_DEVTYPE_RC;
+		omap_ctrl_writel(v, TI816X_CONTROL_PCIE_CFG);
+		platform_device_register(&ti816x_pcie_device);
+	}
+}
+#else
+static inline void ti816x_init_pcie(void) {}
+#endif
 
 /*-------------------------------------------------------------------------*/
 
@@ -1194,6 +1270,7 @@ static int __init omap2_init_devices(void)
 	omap_init_mbox();
 	omap_init_mcspi();
 	omap_hdq_init();
+	ti816x_init_pcie();
 	omap_init_sti();
 	omap_init_sha1_md5();
 	omap_init_vout();

@@ -215,11 +215,10 @@
  * that should be added.
  */
 
-/*
- * TODO: Add TI816X specific data. Since this is totally different w.r.t.
- * OMAPx devices, it may be better to add those in separate file
- * (control-ti816x.h for example).
- */
+/* TI816X control register offsets */
+#define TI816X_CONTROL_PCIE_CFG		0x0640
+
+/* TODO: Add other ti816x registers... */
 
 /*
  * Control module register bit defines - these should eventually go into
@@ -252,7 +251,7 @@
 /* CONTROL_PBIAS_LITE bits */
 #define OMAP343X_PBIASLITESUPPLY_HIGH1	(1 << 15)
 #define OMAP343X_PBIASLITEVMODEERROR1	(1 << 11)
-#define OMAP343X_PBIASSPEEDCTRL1	(1 << 10)
+#define OMAP343X_PBIASSPEEDCTRL1        (1 << 10)
 #define OMAP343X_PBIASLITEPWRDNZ1	(1 << 9)
 #define OMAP343X_PBIASLITEVMODE1	(1 << 8)
 #define OMAP343X_PBIASLITESUPPLY_HIGH0	(1 << 7)
@@ -319,6 +318,11 @@
 #define AM35XX_VPFE_VBUSP_SW_RST	BIT(2)
 #define AM35XX_HECC_SW_RST		BIT(3)
 #define AM35XX_VPFE_PCLK_SW_RST		BIT(4)
+
+/* TI816X CONTROL_PCIE_CFG bits */
+#define TI816X_PCIE_DEVTYPE_SHIFT	0
+#define TI816X_PCIE_DEVTYPE_MASK	(0x3 << 0)
+#define TI816X_PCIE_DEVTYPE_RC		(0x2 << 0)
 
 /*
  * CONTROL OMAP STATUS register to identify OMAP3 features
