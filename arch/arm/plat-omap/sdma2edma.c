@@ -80,7 +80,10 @@ int omap_request_dma(int dev_id, const char *dev_name,
 	EDMA_CALLBACK edma_callback = (EDMA_CALLBACK)(callback);
 
 	*dma_ch_out = edma_alloc_channel(dev_id, edma_callback, data, EVENTQ_2);
+<<<<<<< HEAD:arch/arm/plat-omap/sdma2edma.c
 
+=======
+>>>>>>> ti816x: sdma2edma wrapper trailing whitespace cleanup:arch/arm/plat-omap/sdma2edma.c
 	if (*dma_ch_out < 0)
 		return (-1);
 	else
