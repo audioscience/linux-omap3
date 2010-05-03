@@ -770,11 +770,7 @@ static int ti816xfb_open(struct fb_info *fbi, int user)
 		r = -EINVAL;
 	} else {
 
-		/*get the format from fvid2 create function*/
-		if (r == 0)
-			r = vps_fvid2_getformat(gctrl->handle,
-				(struct fvid2_format *)gctrl->inputf_phy);
-
+		/*Set the format from fvid2 create function*/
 		if (r == 0)
 			r = vps_fvid2_setformat(gctrl->handle,
 					     (struct fvid2_format *)
