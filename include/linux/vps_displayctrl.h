@@ -586,15 +586,15 @@ enum vps_dccompdisplayorder {
 	VPS_DC_COMP_DISPLAY_VID_ORDER = 0,
 	/* Video layer display order.
 	From low to high: 00, 01, 10, and 11 */
+	VPS_DC_COMP_DISPLAY_G0_ORDER,
+	/* Graphic0 layer display order when g_reorder = 1.
+	 From low to high: 00, 01, 10, and 11 */
 	VPS_DC_COMP_DISPLAY_G1_ORDER,
 	/* Graphic1 layer display order when g_reorder = 1.
-	 From low to high: 00, 01, 10, and 11 */
+	From low to high: 00, 01, 10, and 11 */
 	VPS_DC_COMP_DISPLAY_G2_ORDER,
 	/* Graphic2 layer display order when g_reorder = 1.
 	From low to high: 00, 01, 10, and 11 */
-	VPS_DC_COMP_DISPLAY_G3_ORDER,
-	/* Graphic3 layer display order when g_reorder = 1.
-	From low to high: 00,	 01, 10, and 11 */
 	VPS_DC_COMP_DISPLAY_ORDER_MAX
 	/* Defined to find out maximum*/
 };
