@@ -83,6 +83,7 @@ struct vps_dispctrl {
 	u32 ninfo_phy;
 	int enabled_venc_ids;
 	void   *fvid2_handle;
+	bool  ishdmion;
 };
 
 static inline void dc_lock(struct vps_dispctrl *dctrl)

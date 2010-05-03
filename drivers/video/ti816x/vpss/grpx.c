@@ -233,7 +233,9 @@ static int grpx_pre_start(struct vps_grpx_ctrl *gctrl)
 	u32 pitch;
 
 	gctrl->get_resolution(gctrl, &w, &h, &fmt);
-	if ((gctrl->inputf->width > w) || (gctrl->inputf->height > h))
+	/*set the dimension*/
+	if ((gctrl->inputf->width == 0) || (gctrl->inputf->height == 0) ||
+		(gctrl->inputf->width > w) || (gctrl->inputf->height > h))
 		gctrl->set_input(gctrl, w, h, fmt);
 
 	/*check the setting and reset to resolution if necessary*/
@@ -586,7 +588,7 @@ static int vps_grpx_delete(struct vps_grpx_ctrl *gctrl)
 
 	GRPXDBG("delete GRPX\n");
 
-	/*set all value back to default*/
+	/*set all state value back to default*/
 	gctrl->gstate.clutSet = 0;
 	gctrl->gstate.regset = 0;
 	gctrl->gstate.scset = 0;
@@ -596,11 +598,13 @@ static int vps_grpx_delete(struct vps_grpx_ctrl *gctrl)
 	gctrl->grtlist->scparams = NULL;
 	gctrl->grtlist->clutptr = NULL;
 	gctrl->grtconfig->scparams = NULL;
+	gctrl->glist->clutptr = NULL;
 
 	gctrl->framelist->perlistcfg = NULL;
 	gctrl->frames->perframecfg = NULL;
 
 	gctrl->handle = NULL;
+
 	return r;
 }
 
@@ -613,6 +617,58 @@ static int vps_grpx_stop(struct vps_grpx_ctrl *gctrl)
 {
 	gctrl->gstate.isstarted = false;
 	return 0;
+}
+
+static int vps_grpx_enable(struct vps_grpx_ctrl *gctrl, bool en)
+{
+	int r = 0;
+
+	if (gctrl->handle == NULL)
+		return -EINVAL;
+
+	if (en) {
+
+		/*create the node and config it*/
+		r = gctrl->create_dcconfig(gctrl);
+		r = gctrl->set_dcconfig(gctrl, 1);
+		if (r == 0) {
+			grpx_pre_start(gctrl);
+			/*start everything over, set format,
+			  params, queue buffer*/
+			r = vps_fvid2_setformat(
+				gctrl->handle,
+				(struct fvid2_format *)gctrl->inputf_phy);
+
+			if (r == 0)
+				r = vps_fvid2_control(gctrl->handle,
+						  IOCTL_VPS_SET_GRPX_PARAMS,
+						  (struct vps_grpxparamlist *)
+							gctrl->glist_phy,
+						   NULL);
+
+			if (r == 0)
+				r = vps_fvid2_queue(gctrl->handle,
+						  (struct fvid2_framelist *)
+						     gctrl->frmls_phy,
+						  0);
+
+			if (r == 0)
+				r = vps_fvid2_start(gctrl->handle, NULL);
+			/*set flag or clear the path if any errors are present*/
+			if (r == 0)
+				gctrl->start(gctrl);
+			else
+				r = gctrl->set_dcconfig(gctrl, 0);
+		}
+	} else {
+		r = vps_fvid2_stop(gctrl->handle, NULL);
+		if (r == 0) {
+			gctrl->stop(gctrl);
+			r = gctrl->set_dcconfig(gctrl, 0);
+		}
+	}
+	return r;
+
 }
 
 static int vps_grpx_register_vsync_cb(struct vps_grpx_ctrl *gctrl,
@@ -637,7 +693,7 @@ static int vps_grpx_create_dcconfig(struct vps_grpx_ctrl *gctrl)
 	int i, r = 0;
 	struct vps_dcconfig *cfg = &gctrl->dccfg;
 	enum vps_dcmodeid  mid = VPS_DC_MODE_1080P_60;
-
+	/*FIXME should check the node is already enable or not*/
 	cfg->usecase = VPS_DC_USERSETTINGS;
 	cfg->numedges = gctrl->numends;
 	cfg->vencinfo.numvencs = gctrl->numends;
@@ -705,48 +761,7 @@ static ssize_t graphics_enabled_store(struct vps_grpx_ctrl *gctrl,
 	}
 
 	grpx_lock(gctrl);
-	if (enabled) {
-
-		/*enable the plan*/
-		r = gctrl->create_dcconfig(gctrl);
-		r = gctrl->set_dcconfig(gctrl, 1);
-		if (r == 0) {
-			grpx_pre_start(gctrl);
-			/*start everything over, set format,
-			  params, queue buffer*/
-			r = vps_fvid2_setformat(
-				gctrl->handle,
-				(struct fvid2_format *)gctrl->inputf_phy);
-
-			if (r == 0)
-				r = vps_fvid2_control(gctrl->handle,
-						  IOCTL_VPS_SET_GRPX_PARAMS,
-						  (struct vps_grpxparamlist *)
-							gctrl->glist_phy,
-						   NULL);
-
-			if (r == 0)
-				r = vps_fvid2_queue(gctrl->handle,
-						  (struct fvid2_framelist *)
-						     gctrl->frmls_phy,
-						  0);
-
-			if (r == 0)
-				r = vps_fvid2_start(gctrl->handle, NULL);
-			/*set flag or clear the path if any errors are present*/
-			if (r == 0)
-				gctrl->start(gctrl);
-			else
-				r = gctrl->set_dcconfig(gctrl, 0);
-		}
-	} else {
-		r = vps_fvid2_stop(gctrl->handle, NULL);
-		if (r == 0) {
-			gctrl->stop(gctrl);
-			r = gctrl->set_dcconfig(gctrl, 0);
-		}
-	}
-
+	r = vps_grpx_enable(gctrl, enabled);
 	grpx_unlock(gctrl);
 
 	if (r)
@@ -788,8 +803,7 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 
 	struct vps_dcmodeinfo minfo;
 	if (gctrl->gstate.isstarted) {
-		GRPXERR("please stop and close grpx%d, before continue.\n",
-			gctrl->grpx_num);
+		GRPXERR("please stop before continue.\n");
 		return -EINVAL;
 	}
 

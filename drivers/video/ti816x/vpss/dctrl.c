@@ -61,8 +61,8 @@ static struct vps_dcvencinfo venc_info = {
 		{VPS_DC_VENC_HDMI, 0, VPS_DC_MODE_1080P_60, 1920, \
 		1080, FVID2_SF_PROGRESSIVE, NULL},
 
-		{VPS_DC_VENC_HDCOMP, 0, VPS_DC_MODE_720P_60,	\
-		1280, 720, FVID2_SF_PROGRESSIVE, NULL},
+		{VPS_DC_VENC_HDCOMP, 0, VPS_DC_MODE_1080I_60,	\
+		1920, 1080, FVID2_SF_INTERLACED, NULL},
 
 		{VPS_DC_VENC_DVO2, 0, VPS_DC_MODE_1080P_60,    \
 		1920, 1080, FVID2_SF_PROGRESSIVE, NULL},
@@ -174,7 +174,8 @@ static inline void set_actnodes(u8 setflag, u8 id)
 	if (setflag)
 		binfo->actnodes++;
 	else
-		binfo->actnodes--;
+		if (binfo->actnodes != 0)
+			binfo->actnodes--;
 
 }
 int vps_dc_get_node_id(int *id, char *name)
@@ -243,6 +244,8 @@ int vps_dc_set_config(struct vps_dcconfig *usercfg, int setflag)
 	DCDBG("enter set config\n");
 	dc_lock(disp_ctrl);
 	memcpy(disp_ctrl->dccfg, usercfg, sizeof(struct vps_dcconfig));
+
+	/*FIXME should start/stop HDMI based on it is connected or not*/
 	if (setflag) {
 		r = vps_fvid2_control(disp_ctrl->fvid2_handle,
 				      IOCTL_VPS_DCTRL_SET_CONFIG,
@@ -658,6 +661,71 @@ static ssize_t blender_enabled_store(struct dc_blenderinfo *binfo,
 	DCDBG("TBD\n");
 	return size;
 }
+
+static ssize_t blender_clksrc_show(struct dc_blenderinfo *binfo, char *buf)
+{
+
+	if (binfo->idx == HDCOMP) {
+		if (binfo->dcctrl->hdcompclksrc == VPS_DC_HDCOMPCLKSRC_HDMI)
+			return snprintf(buf, PAGE_SIZE, "hdmi\n");
+		else
+			return snprintf(buf, PAGE_SIZE, "hdcomp\n");
+	} else if (binfo->idx == DVO2) {
+		if (binfo->dcctrl->dvo2clksrc == VPS_DC_DVO2CLKSRC_HDMI)
+			return snprintf(buf, PAGE_SIZE, "hdmi\n");
+		else
+			return snprintf(buf, PAGE_SIZE, "hdcomp\n");
+	} else
+		return 0;
+
+}
+
+static ssize_t blender_clksrc_store(struct dc_blenderinfo *binfo,
+				     const char *buf,
+				     size_t size)
+{
+	int r = 0;
+	char *input = (char *)buf;
+
+	if ((binfo->idx == HDMI) || (binfo->idx == SDVENC))
+		return size;
+	input  = strsep(&input, "\n");
+
+	dc_lock(binfo->dcctrl);
+	if (binfo->actnodes != 0) {
+		DCERR("disable nodes before continues.\n");
+		goto exit;
+	}
+
+	if (strcmp(input, "hdmi") == 0) {
+		if (binfo->idx == HDCOMP)
+			binfo->dcctrl->hdcompclksrc =
+				VPS_DC_HDCOMPCLKSRC_HDMI;
+		else
+			binfo->dcctrl->dvo2clksrc =
+				VPS_DC_DVO2CLKSRC_HDMI;
+
+	} else if (strcmp(input, "hdcomp") == 0) {
+		if (binfo->idx == HDCOMP)
+			binfo->dcctrl->hdcompclksrc =
+				VPS_DC_HDCOMPCLKSRC_HDCOMP;
+		else
+			binfo->dcctrl->dvo2clksrc =
+				VPS_DC_DVO2CLKSRC_HDCOMP;
+
+	} else {
+		DCERR("clock source(%s) not supported.\n", input);
+		r = -EINVAL;
+	}
+
+
+exit:
+	dc_unlock(binfo->dcctrl);
+	if (r)
+		return r;
+
+	return size;
+}
 struct blender_attribute {
 	struct attribute attr;
 	ssize_t (*show)(struct dc_blenderinfo *, char *);
@@ -675,11 +743,14 @@ static BLENDER_ATTR(timing, S_IRUGO | S_IWUSR,
 				blender_timings_show, blender_timings_store);
 static BLENDER_ATTR(enabled, S_IRUGO | S_IWUSR,
 				blender_enabled_show, blender_enabled_store);
+static BLENDER_ATTR(clksrc, S_IRUGO | S_IWUSR,
+				blender_clksrc_show, blender_clksrc_store);
 
 static struct attribute *blender_sysfs_attrs[] = {
 	&blender_attr_mode.attr,
 	&blender_attr_timing.attr,
 	&blender_attr_enabled.attr,
+	&blender_attr_clksrc.attr,
 	NULL
 };
 
@@ -747,6 +818,7 @@ int vps_dc_init(struct platform_device *pdev)
 		goto exit;
 	}
 
+	/*FIXME setup HDMI other devices*/
 	disp_ctrl = kzalloc(sizeof(struct vps_dispctrl), GFP_KERNEL);
 
 	disp_ctrl->fvid2_handle = dc_handle;
