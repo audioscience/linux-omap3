@@ -216,6 +216,10 @@
  */
 
 /* TI816X control register offsets */
+#define TI816X_CONTROL_MAC_ID0_LO	0x0630
+#define TI816X_CONTROL_MAC_ID0_HI	0x0634
+#define TI816X_CONTROL_MAC_ID1_LO	0x0638
+#define TI816X_CONTROL_MAC_ID1_HI	0x063c
 #define TI816X_CONTROL_PCIE_CFG		0x0640
 
 /* TODO: Add other ti816x registers... */

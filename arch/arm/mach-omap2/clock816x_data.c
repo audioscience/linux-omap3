@@ -268,6 +268,26 @@ static struct clk sata_ick = {
 	.recalc         = &followparent_recalc,
 };
 
+static struct clk emac1_ick = {
+	.name           = "emac1_ick",
+	.parent         = &sysclk5_ck,
+	.ops            = &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_ALWON_ETHERNET_0_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "alwon_ethernet_clkdm",
+	.recalc         = &followparent_recalc,
+};
+
+static struct clk emac2_ick = {
+	.name           = "emac2_ick",
+	.parent         = &sysclk5_ck,
+	.ops            = &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_ALWON_ETHERNET_1_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "alwon_ethernet_clkdm",
+	.recalc         = &followparent_recalc,
+};
+
 static struct clk ddr_pll_clk2_ck = {
 	.name		= "ddr_pll_clk2_ck",
 	.ops		= &clkops_null,
@@ -376,6 +396,36 @@ static struct clk mmchs1_fck = {
 	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &followparent_recalc,
+};
+
+static struct clk main_pll_clk5_ck = {
+	.name		= "main_pll_clk5_ck",
+	.ops		= &clkops_null,
+	.rate		= 125000000,
+	.flags		= RATE_IN_TI816X | DEFAULT_RATE,
+};
+
+static const struct clksel_rate div3_sysclk24_rates[] = {
+	{ .div = 1, .val = 0, .flags = RATE_IN_TI816X | DEFAULT_RATE },
+	{ .div = 2, .val = 1, .flags = RATE_IN_TI816X },
+	{ .div = 3, .val = 2, .flags = RATE_IN_TI816X },
+	{ .div = 0 },
+};
+
+static const struct clksel sysclk24_div[] = {
+	{ .parent = &main_pll_clk4_ck, .rates = div3_sysclk24_rates },
+	{ .parent = NULL },
+};
+
+static struct clk sysclk24_ck = {
+	.name		= "sysclk24_ck",
+	.parent		= &main_pll_clk5_ck,
+	.clksel		= sysclk24_div,
+	.init		= &omap2_init_clksel_parent,
+	.ops		= &clkops_null,
+	.clksel_reg	= TI816X_CM_DPLL_SYSCLK24_CLKSEL,
+	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
+	.recalc		= &omap2_clksel_recalc,
 };
 
 static struct clk audio_pll_clk1_ck = {
@@ -661,11 +711,15 @@ static struct omap_clk ti816x_clks[] = {
 	CLK(NULL,		"sysclk5_ck",		&sysclk5_ck,		CK_TI816X),
 	CLK(NULL,		"pcie_ck",		&pcie_ck,		CK_TI816X),
 	CLK(NULL,		"sata_ick",		&sata_ick,		CK_TI816X),
+	CLK("davinci_emac.0",	"emac1_ick",		&emac1_ick,		CK_TI816X),
+	CLK("davinci_emac.1",	"emac2_ick",		&emac2_ick,		CK_TI816X),
 	CLK("omap2_mcspi.1",	"fck",			&mcspi1_fck,		CK_TI816X),
 	CLK(NULL,		"gpmc_fck",		&gpmc_fck,		CK_TI816X),
 	CLK("i2c_omap.1",	"fck",			&i2c1_fck,		CK_TI816X),
 	CLK("i2c_omap.2",	"fck",			&i2c2_fck,		CK_TI816X),
 	CLK("mmci-omap-hs.0",	"fck",			&mmchs1_fck,		CK_TI816X),
+	CLK(NULL,		"main_pll_clk5_ck",	&main_pll_clk5_ck,	CK_TI816X),
+	CLK(NULL,		"sysclk24_ck",		&sysclk24_ck,		CK_TI816X),
 	CLK(NULL,		"audio_pll_clk1_ck",	&audio_pll_clk1_ck,	CK_TI816X),
 	CLK(NULL,		"audio_pll_a_ck",	&audio_pll_a_ck,	CK_TI816X),
 	CLK(NULL,		"sysclk18_ck",		&sysclk18_ck,		CK_TI816X),
