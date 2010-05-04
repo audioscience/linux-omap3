@@ -1111,6 +1111,13 @@ config DEVPORT
 	depends on ISA || PCI
 	default y
 
+config TI816X_PCIE_BOOTDRV
+        tristate "TI816X PCIe Endpoint Boot Driver"
+        depends on PCI
+        help
+	   This option builds driver required for booting TI816X PCIe Endpoint
+	   connected on PCIe fabric. Use 'M' to build as module.
+
 source "drivers/s390/char/Kconfig"
 
 endmenu
