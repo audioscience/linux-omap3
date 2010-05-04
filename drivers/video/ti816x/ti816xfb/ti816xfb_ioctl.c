@@ -425,8 +425,9 @@ static int ti816xfb_setup_mem(struct fb_info *fbi, struct ti816xfb_mem_info *mi)
 	rg = &tfbi->mreg;
 	ti816xfb_lock(tfbi);
 
-	/*FIX ME make sure that the Fb is not used */
-
+	/*make sure that the Fb is not used */
+	if (tfbi->gctrl->gstate.isstarted)
+		return -EBUSY;
 
 	if (rg->size != size || tfbi->mmode != mi->type) {
 		r = ti816xfb_realloc_fbmem(fbi, size);
