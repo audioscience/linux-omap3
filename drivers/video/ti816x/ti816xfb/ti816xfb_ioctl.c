@@ -262,34 +262,36 @@ static int ti816xfb_wait_for_vsync(struct fb_info *fbi)
 	struct vps_grpx_ctrl *gctrl = tfbi->gctrl;
 	int r = 0;
 	u32 cnt = 0;
-	u32 tout = HZ/5;
+	unsigned long tout = msecs_to_jiffies(500);
 
 	r = gctrl->register_vsync_cb(gctrl,
-				       ti816xfb_vsync_callback,
-				       (void *)fbi);
+				     ti816xfb_vsync_callback,
+				     (void *)fbi);
 
 	init_waitqueue_entry(&wqt, current);
 	cnt = tfbi->vsync_cnt;
-    #if 0
+
+	/* split between simulator and silicon*/
+	#ifndef CONFIG_TI8168_SIM
 	r = wait_event_interruptible_timeout(tfbi->vsync_wait,
-			(cnt != tfbi->vsync_cnt),
-			tout);
+					     (cnt != tfbi->vsync_cnt),
+					     tout);
 	gctrl->unregister_vsync_cb(gctrl);
 
-	if (r < 0)
-		return r;
 	if (r == 0)
-		return -ETIMEDOUT;
-    #else
+		r = -ETIMEDOUT;
+	else if (r > 0)
+		r = 0;
+
+	#else
 	r = wait_event_interruptible(tfbi->vsync_wait,
 				     (cnt != tfbi->vsync_cnt));
 	gctrl->unregister_vsync_cb(gctrl);
 
-	if (r != 0)
-		return r;
 	#endif
 
-	return 0;
+
+	return r;
 }
 static int ti816xfb_allocate_sten_mem(struct fb_info *fbi,
 				     u32 size,
