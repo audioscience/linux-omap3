@@ -255,7 +255,7 @@ static void *_ti816x_vram_alloc_dma(unsigned pages, unsigned long *paddr)
 	struct vram_region *rm;
 	void *vaddr;
 	vaddr = dma_alloc_writecombine(NULL, pages << PAGE_SHIFT,
-		(dma_addr_t *)paddr, GFP_KERNEL);
+		(dma_addr_t *)paddr, GFP_DMA);
 	if (vaddr == NULL)
 		return NULL;
 	rm = ti816x_vram_create_region(*paddr, vaddr, pages);

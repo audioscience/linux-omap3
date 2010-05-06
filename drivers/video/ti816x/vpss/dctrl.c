@@ -20,6 +20,7 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place - Suite 330, Boston, MA	02111-1307, USA.
  */
+#define VPSS_SUBMODULE_NAME   "DCTRL"
 
 #include <linux/module.h>
 #include <linux/device.h>
@@ -27,6 +28,7 @@
 #include <linux/err.h>
 #include <linux/sysfs.h>
 #include <linux/kobject.h>
+#include <linux/dma-mapping.h>
 #include <linux/platform_device.h>
 #include <linux/vps_proxyserver.h>
 #include <linux/fvid2.h>
@@ -34,27 +36,12 @@
 #include <linux/vps_displayctrl.h>
 #include <linux/dc.h>
 
-
 #include "core.h"
-
-#ifdef DEBUG
-#define DCDBG(format, ...) \
-	if (vpss_debug) \
-		printk(KERN_INFO"VPSS_DC: " \
-			format, ## __VA_ARGS__)
-
-#define DCERR(format, ...) \
-	if (vpss_debug)  \
-		printk(KERN_ERR"VPSS_DC: " \
-			format, ## __VA_ARGS__)
-
-#else
-#define DCDBG(format, ...)
-#define DCERR(format, ...)
-#endif
 
 static struct vps_dispctrl *disp_ctrl;
 static void *dc_handle;
+static struct vps_dmamem_info  dc_dma_info;
+
 /*store the current VENC setting*/
 static struct vps_dcvencinfo venc_info = {
 	{
@@ -220,7 +207,7 @@ int vps_dc_get_clksrc(enum vps_dcdvo2clksrc *dvo2,
 	if ((disp_ctrl == NULL) || (disp_ctrl->fvid2_handle == NULL))
 		return -EINVAL;
 
-	DCDBG("enter get clksrc\n");
+	VPSSDBG("enter get clksrc\n");
 	dc_lock(disp_ctrl);
 	*dvo2 = disp_ctrl->dvo2clksrc;
 	*hdcomp = disp_ctrl->hdcompclksrc;
@@ -236,12 +223,12 @@ int vps_dc_set_config(struct vps_dcconfig *usercfg, int setflag)
 		return -EINVAL;
 
 	if (usercfg->vencinfo.numvencs > VPS_DC_MAX_VENC) {
-		DCERR("num vens (%d) over max\n",
+		VPSSERR("num vens (%d) over max\n",
 			usercfg->vencinfo.numvencs);
 		return -EINVAL;
 	}
 
-	DCDBG("enter set config\n");
+	VPSSDBG("enter set config\n");
 	dc_lock(disp_ctrl);
 	memcpy(disp_ctrl->dccfg, usercfg, sizeof(struct vps_dcconfig));
 
@@ -252,7 +239,7 @@ int vps_dc_set_config(struct vps_dcconfig *usercfg, int setflag)
 				      (void *)disp_ctrl->dccfg_phy,
 				      NULL);
 		if (r)
-			DCDBG("faield to set the DC config.\n");
+			VPSSDBG("faield to set the DC config.\n");
 	} else {
 		r = vps_fvid2_control(disp_ctrl->fvid2_handle,
 				      IOCTL_VPS_DCTRL_CLEAR_CONFIG,
@@ -260,7 +247,7 @@ int vps_dc_set_config(struct vps_dcconfig *usercfg, int setflag)
 				      NULL);
 
 		if (r)
-			DCDBG("faield to clear the DC config.\n");
+			VPSSDBG("faield to clear the DC config.\n");
 
 	}
 
@@ -306,7 +293,7 @@ int vps_dc_set_config(struct vps_dcconfig *usercfg, int setflag)
 			}
 			break;
 		default:
-			DCDBG("wrong usercaes.\n");
+			VPSSDBG("wrong usercaes.\n");
 			break;
 		}
 	}
@@ -329,7 +316,7 @@ int vps_dc_venc_disable(int *vid, int numvenc)
 	if (numvenc > VPS_DC_MAX_VENC)
 		return -EINVAL;
 
-	DCDBG("enter venc disable\n");
+	VPSSDBG("enter venc disable\n");
 	dc_lock(disp_ctrl);
 	for (i = 0; i < numvenc; i++) {
 		for (j = 0; j < VPS_DC_MAX_VENC; j++) {
@@ -363,7 +350,7 @@ int vps_dc_venc_disable(int *vid, int numvenc)
 		if (r == 0)
 			disp_ctrl->enabled_venc_ids &= ~venc_ids;
 		else
-			DCERR("failed to disable the venc.\n");
+			VPSSERR("failed to disable the venc.\n");
 
 	}
 
@@ -399,7 +386,7 @@ int vps_dc_get_vencmode(int id,
 	if (i == VPS_DC_MAX_VENC)
 		return -EINVAL;
 
-	DCDBG("enter get vencmode\n");
+	VPSSDBG("enter get vencmode\n");
 	for (i = 0; i < VPS_DC_MAX_VENC; i++) {
 		if (vid == venc_info.modeinfo[i].vencid) {
 			*modeinfo = venc_info.modeinfo[i];
@@ -423,23 +410,23 @@ int vps_dc_set_vencmode(int *vid, int *mid,
 		return -EINVAL;
 
 	if (numvenc > VPS_DC_MAX_VENC) {
-		DCDBG("num %d vencs to set is bigger than supported.\n",
+		VPSSDBG("num %d vencs to set is bigger than supported.\n",
 			numvenc);
 		return -EINVAL;
 	}
 
-	DCDBG("enter set venc mode\n");
+	VPSSDBG("enter set venc mode\n");
 	dc_lock(disp_ctrl);
 	for (i = 0; i < numvenc; i++) {
 		/* bit maps of 4 venc is 0xF*/
 		if ((vid[i] & 0xF) == 0) {
-			DCERR(" venc id %d is nonexist.\n", vid[i]);
+			VPSSERR(" venc id %d is nonexist.\n", vid[i]);
 			r = -EINVAL;
 			goto exit;
 		}
 
 		if (mid[i] >= VPS_DC_MAX_MODE) {
-			DCERR(" mode %d is nonexist.\n", mid[i]);
+			VPSSERR(" mode %d is nonexist.\n", mid[i]);
 			r = -EINVAL;
 			goto exit;
 		}
@@ -447,7 +434,7 @@ int vps_dc_set_vencmode(int *vid, int *mid,
 		/*check whether the venc is already running, it yes, ask
 			app to disable it before update*/
 		if (disp_ctrl->enabled_venc_ids & vid[i]) {
-			DCERR("venc id %d is already running, \
+			VPSSERR("venc id %d is already running, \
 				disable it first before change.\n",
 				vid[i]);
 			r = -EINVAL;
@@ -478,7 +465,7 @@ int vps_dc_set_vencmode(int *vid, int *mid,
 			(void *)disp_ctrl->vinfo_phy,
 			NULL);
 	if (r) {
-		DCERR("failed to set venc mdoe.\n");
+		VPSSERR("failed to set venc mdoe.\n");
 		goto exit;
 	}
 
@@ -512,7 +499,7 @@ int vps_dc_get_outpfmt(int id, u32 *width,
 	if ((disp_ctrl == NULL) || (disp_ctrl->fvid2_handle == NULL))
 		return -EINVAL;
 
-	DCDBG("enter get output format\n");
+	VPSSDBG("enter get output format\n");
 
 	if (type == DC_VENC_ID)
 		r = get_format_from_vid(id, width, height, scformat);
@@ -534,7 +521,7 @@ int vps_dc_set_node(u8 nodeid, u8 inputid, u8 enable)
 	if ((disp_ctrl == NULL) || (disp_ctrl->fvid2_handle == NULL))
 		return -EINVAL;
 
-	DCDBG("enter set node\n");
+	VPSSDBG("enter set node\n");
 	dc_lock(disp_ctrl);
 	disp_ctrl->nodeinfo->nodeid = nodeid;
 	disp_ctrl->nodeinfo->inputid = inputid;
@@ -544,7 +531,7 @@ int vps_dc_set_node(u8 nodeid, u8 inputid, u8 enable)
 			      (void *)disp_ctrl->ninfo_phy,
 			      NULL);
 	if (r)
-		DCERR("failed to enable node.\n");
+		VPSSERR("failed to enable node.\n");
 
 	dc_unlock(disp_ctrl);
 	return r;
@@ -561,7 +548,7 @@ int vps_dc_get_vencid(char *vname, int *vid)
 	if ((disp_ctrl == NULL) || (disp_ctrl->fvid2_handle == NULL))
 		return -EINVAL;
 
-	DCDBG("enter get venc id\n");
+	VPSSDBG("enter get venc id\n");
 	for (i = 0; i < VPS_DC_MAX_VENC; i++) {
 		vnid = &v_nameid[i];
 		if (!strcmp(vname, vnid->name)) {
@@ -581,7 +568,7 @@ int vps_dc_get_modeid(char *mname, int *mid)
 	if ((disp_ctrl == NULL) || (disp_ctrl->fvid2_handle == NULL))
 		return -EINVAL;
 
-	DCDBG("enter get mode id\n");
+	VPSSDBG("enter get mode id\n");
 	for (i = 0; i < VPS_DC_MAX_MODE; i++) {
 		vinfo = &modeinfo[i];
 		if (!strcmp(mname, vinfo->name)) {
@@ -619,7 +606,7 @@ static ssize_t blender_mode_store(struct dc_blenderinfo *binfo,
 	char *input = (char *)buf;
 
 	if (binfo->actnodes) {
-		DCERR("disable the nodes before changing the mode.\n");
+		VPSSERR("disable the nodes before changing the mode.\n");
 		return -EINVAL;
 	}
 
@@ -627,6 +614,7 @@ static ssize_t blender_mode_store(struct dc_blenderinfo *binfo,
 	input  = strsep(&input, "\n");
 	r = vps_dc_get_modeid(input, &mid);
 	if (r) {
+		VPSSERR("failed to get the mode %s.\n", input);
 		dc_unlock(binfo->dcctrl);
 		return r;
 	}
@@ -658,7 +646,7 @@ static ssize_t blender_enabled_store(struct dc_blenderinfo *binfo,
 				     const char *buf,
 				     size_t size)
 {
-	DCDBG("TBD\n");
+	VPSSDBG("TBD\n");
 	return size;
 }
 
@@ -693,7 +681,7 @@ static ssize_t blender_clksrc_store(struct dc_blenderinfo *binfo,
 
 	dc_lock(binfo->dcctrl);
 	if (binfo->actnodes != 0) {
-		DCERR("disable nodes before continues.\n");
+		VPSSERR("disable nodes before continues.\n");
 		goto exit;
 	}
 
@@ -714,7 +702,7 @@ static ssize_t blender_clksrc_store(struct dc_blenderinfo *binfo,
 				VPS_DC_DVO2CLKSRC_HDCOMP;
 
 	} else {
-		DCERR("clock source(%s) not supported.\n", input);
+		VPSSERR("clock source(%s) not supported.\n", input);
 		r = -EINVAL;
 	}
 
@@ -797,14 +785,51 @@ static struct kobj_type blender_ktype = {
 	.default_attrs = blender_sysfs_attrs,
 };
 
+static inline int get_alloc_size(void)
+{
+	int size = 0;
+	size  = sizeof(struct vps_dcconfig);
+	size += sizeof(struct vps_dcvencinfo);
+	size += sizeof(struct vps_dcnodeinput);
+	/*FIXME add more here*/
+
+	return size;
+}
+
+static inline void alloc_param_addr(struct vps_dispctrl *dctrl,
+				    struct vps_dmamem_info *dminfo,
+				    u32 *buf_offset)
+{
+	int offset = *buf_offset;
+	disp_ctrl->dccfg = (struct vps_dcconfig *)
+				((u32)dminfo->vaddr + offset);
+	disp_ctrl->dccfg_phy = dminfo->paddr + offset;
+	offset += sizeof(struct vps_dcconfig);
+
+
+	disp_ctrl->vinfo = (struct vps_dcvencinfo *)
+				((u32)dminfo->vaddr + offset);
+	disp_ctrl->vinfo_phy = dminfo->paddr + offset;
+	offset += sizeof(struct vps_dcvencinfo);
+
+
+
+	disp_ctrl->nodeinfo = (struct vps_dcnodeinput *)
+				((u32)dminfo->vaddr + offset);
+	disp_ctrl->ninfo_phy = dminfo->paddr + offset;
+	offset += sizeof(struct vps_dcnodeinput);
+
+
+	*buf_offset = offset;
+}
 
 int vps_dc_init(struct platform_device *pdev)
 {
 	int status = EINVAL;
 	int r = 0;
 	int i;
-
-	DCDBG("DC INIT\n");
+	int size = 0, offset = 0;
+	VPSSDBG("dctrl init\n");
 	/*get dc handle*/
 	dc_handle = vps_fvid2_create(FVID2_VPS_DCTRL_DRV,
 				     VPS_DCTRL_INST_0,
@@ -813,31 +838,34 @@ int vps_dc_init(struct platform_device *pdev)
 				     NULL);
 
 	if (dc_handle == NULL) {
-		DCDBG("Create FVID2 DC handle status 0x%08x.\n", status);
+		VPSSDBG("Create FVID2 DC handle status 0x%08x.\n", status);
 		r = -EINVAL;
 		goto exit;
 	}
 
+	size = get_alloc_size();
+	dc_dma_info.vaddr = dma_alloc_coherent(&pdev->dev,
+						   size,
+						   &dc_dma_info.paddr,
+						   GFP_DMA);
+
+	if (dc_dma_info.vaddr == NULL) {
+		VPSSERR("alloc dctrl dma buffer failed\n");
+		dc_dma_info.paddr = 0u;
+		r = -ENOMEM;
+		goto exit;
+	}
+	dc_dma_info.size = PAGE_ALIGN(size);
+	memset(dc_dma_info.vaddr, 0, dc_dma_info.size);
+
 	/*FIXME setup HDMI other devices*/
 	disp_ctrl = kzalloc(sizeof(struct vps_dispctrl), GFP_KERNEL);
-
 	disp_ctrl->fvid2_handle = dc_handle;
-
-	disp_ctrl->dccfg = kzalloc(sizeof(struct vps_dcconfig), GFP_KERNEL);
-	BUG_ON(disp_ctrl->dccfg == NULL);
-	disp_ctrl->dccfg_phy = virt_to_phys(disp_ctrl->dccfg);
+	alloc_param_addr(disp_ctrl, &dc_dma_info, &offset);
 
 	disp_ctrl->dvo2clksrc = VPS_DC_DVO2CLKSRC_HDMI;
 	disp_ctrl->hdcompclksrc = VPS_DC_HDCOMPCLKSRC_HDCOMP;
 
-	disp_ctrl->vinfo = kzalloc(sizeof(struct vps_dcvencinfo), GFP_KERNEL);
-	BUG_ON(disp_ctrl->vinfo == NULL);
-	disp_ctrl->vinfo_phy = virt_to_phys(disp_ctrl->vinfo);
-
-	disp_ctrl->nodeinfo = kzalloc(sizeof(struct vps_dcnodeinput),
-		GFP_KERNEL);
-	BUG_ON(disp_ctrl->nodeinfo == NULL);
-	disp_ctrl->ninfo_phy = virt_to_phys(disp_ctrl->nodeinfo);
 
 	disp_ctrl->blenders[0].idx = HDMI;
 	disp_ctrl->blenders[1].idx = HDCOMP;
@@ -857,7 +885,7 @@ int vps_dc_init(struct platform_device *pdev)
 			&pdev->dev.kobj, v_nameid[i].name);
 
 		if (r) {
-			DCERR("failed to create blend \
+			VPSSERR("failed to create blend \
 				%d sysfs file.\n", i);
 			continue;
 		}
@@ -872,13 +900,18 @@ int vps_dc_deinit(struct platform_device *pdev)
 {
 	int r = 0;
 	int i;
-	DCDBG("DC DEINIT\n");
+	VPSSDBG("dctrl init\n");
 
+	/*free memory*/
+	if (dc_dma_info.vaddr) {
+		dma_free_coherent(&pdev->dev,
+				  dc_dma_info.size,
+				  dc_dma_info.vaddr,
+				  dc_dma_info.paddr);
+		memset(&dc_dma_info, 0, sizeof(struct vps_dmamem_info));
+	}
 	if (disp_ctrl) {
-		/*free memory*/
-		kfree(disp_ctrl->nodeinfo);
-		kfree(disp_ctrl->vinfo);
-		kfree(disp_ctrl->dccfg);
+
 
 		for (i = 0; i < VPS_DC_MAX_VENC; i++) {
 			kobject_del(&disp_ctrl->blenders[i].kobj);
@@ -898,7 +931,7 @@ int vps_dc_deinit(struct platform_device *pdev)
 	if (dc_handle) {
 		r = vps_fvid2_delete(dc_handle, NULL);
 		if (r) {
-			DCERR("failed to delete DC fvid2 handle.\n");
+			VPSSERR("failed to delete DC fvid2 handle.\n");
 			return r;
 		}
 		dc_handle = NULL;

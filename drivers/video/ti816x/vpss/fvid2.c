@@ -20,12 +20,14 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place - Suite 330, Boston, MA	02111-1307, USA.
  */
+#define VPSS_SUBMODULE_NAME "FVID2"
 
 #include <linux/module.h>
 #include <linux/device.h>
 #include <linux/interrupt.h>
 #include <linux/err.h>
 #include <linux/sched.h>
+#include <linux/dma-mapping.h>
 #include <linux/platform_device.h>
 #include <linux/vps_proxyserver.h>
 #include <linux/fvid2.h>
@@ -38,20 +40,6 @@
 
 #include "core.h"
 
-#ifdef DEBUG
-#define FVID2DBG(format, ...) \
-	if (vpss_debug) \
-		printk(KERN_INFO"VPSS_FVID2: " \
-			format, ## __VA_ARGS__)
-
-#define FVID2ERR(format, ...) \
-	if (vpss_debug) \
-		printk(KERN_ERR"VPSS_FVID2: " \
-			format, ## __VA_ARGS__)
-#else
-#define FVID2DBG(format, ...)
-#define FVID2ERR(format, ...)
-#endif
 
 /*3GRPX + 1 DISPCTRL*/
 #define VPS_FVID2_NUM	  4
@@ -83,6 +71,11 @@ struct vps_fvid2_ctrl {
 
 static struct vps_fvid2_ctrl  *fvid2_ctrl[VPS_FVID2_NUM];
 
+static struct vps_dmamem_info fvid2_dma_info;
+static struct vps_psrvgetstatusvercmdparams *vps_verparams;
+static u32    vps_verparams_phy;
+
+
 /*define the information used by the proxy running in M3*/
 #define VPS_FVID2_RESERVED_NOTIFY	4
 #define VPS_FVID2_M3_INIT_VALUE      (0xAAAAAAAA)
@@ -98,38 +91,38 @@ static void vps_callback(u16 procid,
 	struct vps_psrvcallback *appcb = (struct vps_psrvcallback *)payload;
 	struct vps_fvid2_ctrl *fctrl = (struct vps_fvid2_ctrl *)arg;
 
-	FVID2DBG("Recived No. %d event at line ID %d from processor %d\n",
+	VPSSDBG("Recived No. %d event at line ID %d from processor %d\n",
 		eventno, lineid, procid);
 	/*perform all kinds of sanity check*/
 
 	if (payload == 0) {
-		FVID2ERR("Payload is empty.\n");
+		VPSSERR("Payload is empty.\n");
 		return;
 	}
 
 	if (appcb->appcallback == NULL) {
-		FVID2ERR("no callback registered\n");
+		VPSSERR("no callback registered\n");
 		return;
 	}
 
 	if (arg == NULL) {
-		FVID2ERR("empty callback arguments.\n");
+		VPSSERR("empty callback arguments.\n");
 		return ;
 	}
 
 	if (eventno != fctrl->notifyno) {
-		FVID2ERR("received event id %d and expected id %d\n",
+		VPSSERR("received event id %d and expected id %d\n",
 			eventno, fctrl->notifyno);
 		return;
 	}
 
 	if (lineid != fctrl->lineid) {
-		FVID2ERR("received lineid %d and expected lineid %d\n",
+		VPSSERR("received lineid %d and expected lineid %d\n",
 			lineid, fctrl->lineid);
 	}
 
 	if (procid != fctrl->rmprocid) {
-		FVID2ERR("received from processor %d and  \
+		VPSSERR("received from processor %d and  \
 					expected from processor %d\n",
 			procid, fctrl->rmprocid);
 		return;
@@ -174,6 +167,7 @@ static int vps_check_fvid2_ctrl(void *handle)
 	struct vps_fvid2_ctrl *fctrl = NULL;
 	int status;
 	int j = 0;
+
 	fctrl = vps_get_fvid2_ctrl();
 	if (fctrl == NULL)
 		return NULL;
@@ -208,7 +202,7 @@ static int vps_check_fvid2_ctrl(void *handle)
 				  1);
 
 	if (status < 0) {
-		FVID2ERR("send create event failed with status 0x%0x\n",
+		VPSSERR("send create event failed with status 0x%0x\n",
 			  status);
 		fctrl->isused = false;
 		return NULL;
@@ -222,7 +216,7 @@ static int vps_check_fvid2_ctrl(void *handle)
 
 	fctrl->notifyno = fctrl->fcrprms->syslnkntyno;
 	fctrl->fvid2handle = (u32)fctrl->fcrprms->fvid2handle;
-	FVID2DBG("Fvid2 handle 0x%08x with notifyno %d at %d\n",
+	VPSSDBG("Fvid2 handle 0x%08x with notifyno %d at %d\n",
 		 (u32)fctrl->fvid2handle, fctrl->notifyno, j);
 
 	if (fctrl->fvid2handle == 0) {
@@ -238,7 +232,7 @@ static int vps_check_fvid2_ctrl(void *handle)
 				      (void *)fctrl);
 
 		if (status < 0) {
-			FVID2ERR("register event status 0x%08x\n", status);
+			VPSSERR("register event status 0x%08x\n", status);
 			fctrl->isused = false;
 			return NULL;
 		}
@@ -254,7 +248,7 @@ int vps_fvid2_delete(void *handle, void *deleteargs)
 	int status;
 	int j = 0;
 
-	FVID2DBG("enter delete.\n");
+	VPSSDBG("enter delete.\n");
 	if (vps_check_fvid2_ctrl(handle))
 		return -EINVAL;
 
@@ -275,7 +269,7 @@ int vps_fvid2_delete(void *handle, void *deleteargs)
 				  1);
 
 	if (status < 0) {
-		FVID2ERR("set delete event failed status 0x%08x\n", status);
+		VPSSERR("set delete event failed status 0x%08x\n", status);
 		return -EINVAL;
 	} else {
 
@@ -286,7 +280,7 @@ int vps_fvid2_delete(void *handle, void *deleteargs)
 			j++;
 		}
 
-		FVID2DBG("delete event return %d at %d\n",
+		VPSSDBG("delete event return %d at %d\n",
 			 fctrl->fdltprms->returnvalue, j);
 
 	}
@@ -299,7 +293,7 @@ int vps_fvid2_delete(void *handle, void *deleteargs)
 					(void *)fctrl);
 
 		if (status < 0)
-			FVID2ERR("unregister Event status 0x%08x\n", status);
+			VPSSERR("unregister Event status 0x%08x\n", status);
 	}
 
 	fctrl->isused = false;
@@ -321,7 +315,7 @@ int vps_fvid2_control(void *handle,
 	if (vps_check_fvid2_ctrl(handle))
 		return -EINVAL;
 
-	FVID2DBG("send control with cmd 0x%08x\n", cmd);
+	VPSSDBG("send control with cmd 0x%08x\n", cmd);
 	/*assembel the structure*/
 	fctrl->fctrlprms->command = VPS_FVID2_CONTROL;
 	fctrl->fctrlprms->fvid2handle = (void *)fctrl->fvid2handle;
@@ -341,7 +335,7 @@ int vps_fvid2_control(void *handle,
 				  1);
 
 	if (status < 0) {
-		FVID2ERR("send control with cmd 0x%08x status 0x%08x\n",
+		VPSSERR("send control with cmd 0x%08x status 0x%08x\n",
 			  cmd, status);
 	} else {
 		while (fctrl->fctrlprms->returnvalue ==
@@ -352,7 +346,7 @@ int vps_fvid2_control(void *handle,
 		}
 	}
 
-	FVID2DBG("control event return %d at %d.\n",
+	VPSSDBG("control event return %d at %d.\n",
 		fctrl->fctrlprms->returnvalue, j);
 
 	return fctrl->fctrlprms->returnvalue;
@@ -369,7 +363,7 @@ int vps_fvid2_queue(void *handle,
 	struct vps_fvid2_ctrl *fctrl = (struct vps_fvid2_ctrl *)handle;
 	int status;
 	if (vps_check_fvid2_ctrl(handle)) {
-		FVID2ERR("Q handle 0x%08x\n", (u32)handle);
+		VPSSERR("Q handle 0x%08x\n", (u32)handle);
 		return -EINVAL;
 	}
 	/*assemble the structure*/
@@ -390,7 +384,7 @@ int vps_fvid2_queue(void *handle,
 				  1);
 
 	if (status < 0) {
-		FVID2ERR("send Q event status 0x%08x\n", status);
+		VPSSERR("send Q event status 0x%08x\n", status);
 		return -EINVAL;
 	} else {
 		while (fctrl->fqprms->returnvalue ==
@@ -402,9 +396,9 @@ int vps_fvid2_queue(void *handle,
 	}
 
 	if (fctrl->fqprms->returnvalue == VPS_FVID2_M3_INIT_VALUE) {
-		FVID2DBG("queue event timeout.\n");
+		VPSSDBG("queue event timeout.\n");
 	} else {
-		FVID2DBG("queue event return %d at %d.\n",
+		VPSSDBG("queue event return %d at %d.\n",
 			fctrl->fqprms->returnvalue, j);
 	}
 	return fctrl->fqprms->returnvalue;
@@ -420,7 +414,7 @@ int vps_fvid2_dequeue(void *handle,
 	struct vps_fvid2_ctrl *fctrl = (struct vps_fvid2_ctrl *)handle;
 	int status;
 	if (vps_check_fvid2_ctrl(handle)) {
-		FVID2ERR("DQ handle NULL.\n");
+		VPSSERR("DQ handle NULL.\n");
 		return -EINVAL;
 	}
 
@@ -443,7 +437,7 @@ int vps_fvid2_dequeue(void *handle,
 				  fctrl->cmdprms_phy,
 				  1);
 	if (status < 0) {
-		FVID2ERR("send DQ event status 0x%08x\n", status);
+		VPSSERR("send DQ event status 0x%08x\n", status);
 		return -EINVAL;
 	} else {
 		while (fctrl->fdqprms->returnvalue ==
@@ -454,7 +448,7 @@ int vps_fvid2_dequeue(void *handle,
 		}
 	}
 
-	FVID2DBG("deqieie event return %d at %d\n",
+	VPSSDBG("deqieie event return %d at %d\n",
 		fctrl->fdqprms->returnvalue, j);
 
 	return fctrl->fdqprms->returnvalue;
@@ -462,12 +456,10 @@ int vps_fvid2_dequeue(void *handle,
 EXPORT_SYMBOL(vps_fvid2_dequeue);
 
 
-static int get_firmware_version(int *version, u32 procid)
+static int get_firmware_version(u32 procid)
 {
 	struct vps_psrvcommandstruct  *cmdstruct;
 	u32    cmdstruct_phy;
-	struct vps_psrvgetstatusvercmdparams *verparams;
-	u32 verparams_phy;
 	int status;
 	int r = -1;
 	/*get the M3 version number*/
@@ -477,16 +469,12 @@ static int get_firmware_version(int *version, u32 procid)
 	BUG_ON(cmdstruct == NULL);
 	cmdstruct_phy = virt_to_phys(cmdstruct);
 
-	verparams = kzalloc(sizeof(struct vps_psrvgetstatusvercmdparams),
-		GFP_KERNEL);
-	BUG_ON(verparams == NULL);
-	verparams_phy = virt_to_phys(verparams);
 	/*init the structure*/
 	cmdstruct->cmdtype = VPS_FVID2_CMDTYPE_SIMPLEX;
-	cmdstruct->simplexcmdarg = (void *)verparams_phy;
+	cmdstruct->simplexcmdarg = (void *)vps_verparams_phy;
 
-	verparams->command = VPS_FVID2_GET_FIRMWARE_VERSION;
-	verparams->returnvalue = VPS_FVID2_M3_INIT_VALUE;
+	vps_verparams->command = VPS_FVID2_GET_FIRMWARE_VERSION;
+	vps_verparams->returnvalue = VPS_FVID2_M3_INIT_VALUE;
 	while (r != 0) {
 		status = Notify_sendEvent(procid,
 				 VPS_FVID2_PS_LINEID,
@@ -495,138 +483,199 @@ static int get_firmware_version(int *version, u32 procid)
 				 1);
 
 		if (status < 0) {
-			FVID2ERR("Failed to send version command to M3 %#x.\n",
+			VPSSERR("Failed to send version command to M3 %#x.\n",
 				 status);
 			r = -EINVAL;
 			goto exit;
 		} else {
-			while (verparams->returnvalue ==
+			while (vps_verparams->returnvalue ==
 					VPS_FVID2_M3_INIT_VALUE)
 				schedule();
 		}
 
-		r = verparams->returnvalue;
+		r = vps_verparams->returnvalue;
 	}
-	*version = verparams->version;
 exit:
 	/*release the memory*/
-	kfree(verparams);
 	kfree(cmdstruct);
 	return r;
 }
-
-int vps_fvid2_init(void *args)
+static inline int get_alloc_size(void)
 {
-	int i;
+	int size = 0;
+
+	/*calculate the size of each FVID2 to allocate*/
+	size  = sizeof(struct vps_psrvfvid2createparams);
+	size += sizeof(struct vps_psrvfvid2deleteparams);
+	size += sizeof(struct vps_psrvfvid2controlparams);
+	size += sizeof(struct vps_psrvfvid2queueparams);
+	size += sizeof(struct vps_psrvfvid2dequeueparams);
+	size += sizeof(struct vps_psrvcallback);
+	size += sizeof(struct vps_psrverrorcallback);
+	size += sizeof(struct vps_psrvcommandstruct);
+	size += sizeof(struct vps_psrvfvid2processframesparams);
+	size += sizeof(struct vps_psrvfvid2getprocessedframesparams);
+	/*size of whole parameters*/
+	size *= VPS_FVID2_NUM;
+	/* verion params is for whole driver not based on the FVID2*/
+	size  += sizeof(struct vps_psrvgetstatusvercmdparams);
+
+	return size;
+}
+
+static inline void assign_param_addr(struct vps_fvid2_ctrl *fctrl,
+				     struct vps_dmamem_info *fdinfo,
+				     u32 *buf_offset)
+{
+	u32 offset = *buf_offset;
+
+	/*assign the virt and phy address*/
+	fctrl->fcrprms = (struct  vps_psrvfvid2createparams *)
+				((u32)fdinfo->vaddr + offset);
+	fctrl->fcrprms_phy = fdinfo->paddr + offset;
+	offset += sizeof(struct vps_psrvfvid2createparams);
+
+	fctrl->fdltprms = (struct vps_psrvfvid2deleteparams *)
+				((u32)fdinfo->vaddr + offset);
+	fctrl->fdltprms_phy = fdinfo->paddr + offset;
+	offset += sizeof(struct vps_psrvfvid2deleteparams);
+
+	fctrl->fctrlprms = (struct vps_psrvfvid2controlparams *)
+				((u32)fdinfo->vaddr + offset);
+	fctrl->fctrlprms_phy = fdinfo->paddr + offset;
+	offset += sizeof(struct vps_psrvfvid2controlparams);
+
+	fctrl->fqprms = (struct vps_psrvfvid2queueparams *)
+				((u32)fdinfo->vaddr + offset);
+	fctrl->fqprms_phy = fdinfo->paddr + offset;
+	offset += sizeof(struct vps_psrvfvid2queueparams);
+
+	fctrl->fdqprms = (struct vps_psrvfvid2dequeueparams *)
+				((u32)fdinfo->vaddr + offset);
+	fctrl->fdqprms_phy = fdinfo->paddr + offset;
+	offset += sizeof(struct vps_psrvfvid2dequeueparams);
+
+	fctrl->cbprms = (struct vps_psrvcallback *)
+				((u32)fdinfo->vaddr + offset);
+	fctrl->cbprms_phy = fdinfo->paddr + offset;
+	offset += sizeof(struct vps_psrvcallback);
+
+	fctrl->ecbprms = (struct vps_psrverrorcallback *)
+				((u32)fdinfo->vaddr + offset);
+	fctrl->ecbprms_phy = fdinfo->paddr + offset;
+	offset += sizeof(struct vps_psrverrorcallback);
+
+	fctrl->cmdprms = (struct vps_psrvcommandstruct *)
+				((u32)fdinfo->vaddr + offset);
+	fctrl->cmdprms_phy = fdinfo->paddr + offset;
+	offset += sizeof(struct vps_psrvcommandstruct);
+	/*return*/
+	*buf_offset = offset;
+}
+
+
+int vps_fvid2_init(struct platform_device *pdev)
+{
+	int i, r;
 	struct vps_fvid2_ctrl *fctrl;
 	u32  procid;
-	u32 version;
-	FVID2DBG("FVID2 INIT\n");
+	u32 size;
+	struct vps_dmamem_info *fdinfo = &fvid2_dma_info;
+	u32 offset = 0;
+
+	VPSSDBG("fvid2 init\n");
 
 	procid = MultiProc_getId("DSS");
 	if (MultiProc_INVALIDID == procid) {
-		FVID2ERR("failed to get the M3DSS processor ID.\n");
+		VPSSERR("failed to get the M3DSS processor ID.\n");
 		return -EINVAL;
 	}
+	size = get_alloc_size();
+	/*these buffer are shared between A8 and M3*/
+	fdinfo->vaddr = dma_alloc_coherent(&pdev->dev,
+					       size,
+					       &fdinfo->paddr,
+					       GFP_DMA);
+	if (fdinfo->vaddr == NULL) {
+		VPSSERR("alloc fvid2 dma buffer failed\n");
+		fdinfo->paddr = 0;
+		return -ENOMEM;
+	}
+	/*always on the page size*/
+	fdinfo->size = PAGE_ALIGN(size);
+	/*init buffer to 0*/
+	memset(fdinfo->vaddr, 0, fdinfo->size);
 
-	if (get_firmware_version(&version, procid) == 0) {
-		if (version != CURRENT_VPS_FIRMWARE_VERSION) {
-			if (version < CURRENT_VPS_FIRMWARE_VERSION) {
-				FVID2ERR("M3 firmware version is too old,"
-					"please update firmware version.\n");
-				return -EINVAL;
+	vps_verparams = (struct vps_psrvgetstatusvercmdparams *)
+			((u32)fdinfo->vaddr + offset);
+	vps_verparams_phy = fdinfo->paddr + offset;
+	offset = sizeof(struct vps_psrvgetstatusvercmdparams);
+
+	if (get_firmware_version(procid) == 0) {
+		if (vps_verparams->version != CURRENT_VPS_FIRMWARE_VERSION) {
+			if (vps_verparams->version <
+			     CURRENT_VPS_FIRMWARE_VERSION) {
+				VPSSERR("M3 firmware version 0x%x is old,"
+					"please update firmware version.\n",
+					vps_verparams->version);
+				r = -EINVAL;
+				goto exit;
 			}
 
-			if (version > CURRENT_VPS_FIRMWARE_VERSION)
-				FVID2DBG("M3 firmware version is newer,"
-					"driver may not work properly.\n");
+			if (vps_verparams->version >
+			    CURRENT_VPS_FIRMWARE_VERSION)
+				VPSSDBG("M3 firmware version 0x%x is newer,"
+					"driver may not work properly.\n",
+					vps_verparams->version);
 		} else
-			FVID2DBG("get firmware version 0x%08x.\n", version);
+			VPSSDBG("get firmware version 0x%08x.\n",
+				vps_verparams->version);
+	} else {
+		r = -EINVAL;
+		goto exit;
 	}
+
 
 	/*allocate the memory for various command structures*/
 	for (i = 0; i < VPS_FVID2_NUM; i++) {
+
 		fctrl = kzalloc(sizeof(struct vps_fvid2_ctrl), GFP_KERNEL);
+		BUG_ON(fctrl == NULL);
 		fvid2_ctrl[i] = fctrl;
 
-		fctrl->fcrprms =
-			kzalloc(sizeof(struct vps_psrvfvid2createparams),
-				GFP_KERNEL);
-		BUG_ON(fctrl->fcrprms == NULL);
-		fctrl->fcrprms_phy = virt_to_phys(fctrl->fcrprms);
-
-		fctrl->fdltprms =
-			kzalloc(sizeof(struct vps_psrvfvid2deleteparams),
-				GFP_KERNEL);
-		BUG_ON(fctrl->fdltprms == NULL);
-		fctrl->fdltprms_phy = virt_to_phys(fctrl->fdltprms);
-
-		fctrl->fctrlprms =
-			kzalloc(sizeof(struct vps_psrvfvid2controlparams),
-				GFP_KERNEL);
-		BUG_ON(fctrl->fctrlprms == NULL);
-		fctrl->fctrlprms_phy = virt_to_phys(fctrl->fctrlprms);
-
-		fctrl->fqprms =
-			kzalloc(sizeof(struct vps_psrvfvid2queueparams),
-				GFP_KERNEL);
-		BUG_ON(fctrl->fqprms == NULL);
-		fctrl->fqprms_phy = virt_to_phys(fctrl->fqprms);
-
-		fctrl->fdqprms =
-			kzalloc(sizeof(struct vps_psrvfvid2dequeueparams),
-				GFP_KERNEL);
-		BUG_ON(fctrl->fdqprms == NULL);
-		fctrl->fdqprms_phy = virt_to_phys(fctrl->fdqprms);
-
-		fctrl->cbprms =
-			kzalloc(sizeof(struct vps_psrvcallback),
-				GFP_KERNEL);
-		BUG_ON(fctrl->cbprms == NULL);
-		fctrl->cbprms_phy = virt_to_phys(fctrl->cbprms);
-
-		fctrl->ecbprms =
-			kzalloc(sizeof(struct vps_psrverrorcallback),
-				GFP_KERNEL);
-		BUG_ON(fctrl->ecbprms == NULL);
-		fctrl->ecbprms_phy = virt_to_phys(fctrl->ecbprms);
-
-		fctrl->cmdprms =
-			kzalloc(sizeof(struct vps_psrvcommandstruct),
-				GFP_KERNEL);
-		BUG_ON(fctrl->cmdprms == NULL);
-		fctrl->cmdprms_phy = virt_to_phys(fctrl->cmdprms);
+		assign_param_addr(fctrl, fdinfo, &offset);
 
 		fctrl->rmprocid = procid;
 		fctrl->lineid = VPS_FVID2_PS_LINEID;
-		fctrl->firm_ver = version;
+		fctrl->firm_ver = vps_verparams->version;
 
 	}
 	return 0;
+exit:
+	vps_fvid2_deinit(pdev);
+	return r;
 }
 
-void vps_fvid2_deinit(void *args)
+void vps_fvid2_deinit(struct platform_device *pdev)
 {
 	int i;
 	struct vps_fvid2_ctrl *fctrl;
-	FVID2DBG("FVID DEINIT\n");
-
+	struct vps_dmamem_info *fdinfo = &fvid2_dma_info;
+	VPSSDBG("fvid2 deinit\n");
+	/*free shared buffer*/
+	if (fdinfo->vaddr) {
+		dma_free_coherent(&pdev->dev,
+				  fdinfo->size,
+				  fdinfo->vaddr,
+				  fdinfo->paddr);
+		memset(fdinfo, 0, sizeof(struct vps_dmamem_info));
+		vps_verparams = NULL;
+		vps_verparams_phy = 0;
+	}
+	/*free ctrl handle*/
 	for (i = 0; i <  VPS_FVID2_NUM; i++) {
 		fctrl = fvid2_ctrl[i];
-
-		if (fctrl) {
-			/*free all resources*/
-			kfree(fctrl->fcrprms);
-			kfree(fctrl->fdltprms);
-			kfree(fctrl->fctrlprms);
-			kfree(fctrl->fqprms);
-			kfree(fctrl->fdqprms);
-			kfree(fctrl->cbprms);
-			kfree(fctrl->ecbprms);
-			kfree(fctrl->cmdprms);
-			kfree(fctrl);
-
-			fvid2_ctrl[i] = NULL;
-		}
+		kfree(fctrl);
+		fvid2_ctrl[i] = NULL;
 	}
 }

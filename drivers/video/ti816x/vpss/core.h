@@ -31,6 +31,31 @@
 extern unsigned int vpss_debug;
 #endif
 
+
+#ifdef DEBUG
+#define VPSSDBG(format, ...) \
+	if (vpss_debug) \
+		printk(KERN_INFO "VPSS_" VPSS_SUBMODULE_NAME ": " \
+			format, ## __VA_ARGS__)
+
+#define VPSSERR(format, ...) \
+	if (vpss_debug)  \
+		printk(KERN_ERR "VPSS_" VPSS_SUBMODULE_NAME ": " \
+			format, ## __VA_ARGS__)
+
+#else
+#define VPSSDBG(format, ...)
+#define VPSSERR(format, ...)
+#endif
+
+
+struct vps_dmamem_info {
+	dma_addr_t    paddr;
+	void          *vaddr;
+	u32	      size;
+};
+
+
 int __init vps_grpx_init(struct platform_device *pdev);
 void __exit vps_grpx_deinit(struct platform_device *pdev);
 
@@ -38,8 +63,8 @@ int vps_dc_init(struct platform_device *pdev);
 
 int vps_dc_deinit(struct platform_device *pdev);
 
-int vps_fvid2_init(void *args);
-void vps_fvid2_deinit(void *args);
+int vps_fvid2_init(struct platform_device *pdev);
+void vps_fvid2_deinit(struct platform_device *pdev);
 
 #endif
 

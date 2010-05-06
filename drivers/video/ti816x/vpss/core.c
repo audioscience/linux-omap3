@@ -24,6 +24,8 @@
  * 59 Temple Place - Suite 330, Boston, MA	02111-1307, USA.
  */
 
+#define VPSS_SUBMODULE_NAME  "CORE "
+
 #include <linux/module.h>
 #include <linux/device.h>
 #include <linux/interrupt.h>
@@ -46,37 +48,24 @@ unsigned int vpss_debug;
 module_param_named(debug, vpss_debug, bool, 0644);
 #endif
 
-#ifdef DEBUG
-#define VPSDBG(format, ...) \
-	if (vpss_debug) \
-		printk(KERN_INFO "VPSS_CORE: " format, ## __VA_ARGS__)
-#define VPSERR(format, ...) \
-	if (vpss_debug) \
-		printk(KERN_ERR"VPSS_CORE: " format, ## __VA_ARGS__)
-
-
-#else
-#define VPSDBG(format, ...)
-#define VPSERR(format, ...)
-#endif
 
 static int vps_probe(struct platform_device *pdev)
 {
 	int r;
-	r = vps_fvid2_init(NULL);
+	r = vps_fvid2_init(pdev);
 	if (r) {
-		VPSERR("Failed to init fvid2 interface,\n");
+		VPSSERR("Failed to init fvid2 interface,\n");
 		return r;
 	}
 
 	r = vps_dc_init(pdev);
 	if (r) {
-		VPSERR("failed to int display controller.\n");
+		VPSSERR("failed to int display controller.\n");
 		goto exit1;
 	}
 	r = vps_grpx_init(pdev);
 	if (r) {
-		VPSERR("failed to int graphics.\n");
+		VPSSERR("failed to int graphics.\n");
 		goto exit2;
 
 	}
@@ -98,22 +87,25 @@ static int vps_remove(struct platform_device *pdev)
 	vps_grpx_deinit(pdev);
 	r = vps_dc_deinit(pdev);
 	if (r) {
-		VPSERR("failed to remove display controller.\n");
+		VPSSERR("failed to remove display controller.\n");
 		return r;
 	}
 
-	vps_fvid2_deinit(NULL);
+	vps_fvid2_deinit(pdev);
 	return 0;
 }
 
 static void vps_device_release(struct device *dev)
 {
 }
+static u64 vps_core_dma_mask = ~(u32)0;
 static struct platform_device vps_device = {
 	.name = VPS_DRIVER_NAME,
 	.id = -1,
 	.dev = {
 		.release = vps_device_release,
+		.dma_mask		= &vps_core_dma_mask,
+		.coherent_dma_mask	= ~(u32)0,
 	},
 };
 
@@ -128,25 +120,27 @@ static struct platform_driver vps_driver = {
 
 static int __init vps_init(void)
 {
+	VPSSDBG("core init\n");
+
 	if (platform_driver_register(&vps_driver)) {
-		VPSERR("failed to register ti816x-vpss driver\n");
+		VPSSERR("failed to register ti816x-vpss driver\n");
 		return -ENODEV;
 	}
-#ifdef CONFIG_TI816X_VPSS_MODULE
+
 	if (platform_device_register(&vps_device)) {
-		VPSERR("failed to register ti816x_vps device\n");
+		VPSSERR("failed to register ti816x_vps device\n");
 		platform_driver_unregister(&vps_driver);
 		return -ENODEV;
 	}
-#endif
+
 	return 0;
 }
 
 static void __exit vps_cleanup(void)
 {
-#ifdef CONFIG_TI816X_VPSS_MODULE
+	VPSSDBG("core deinit\n");
+
 	platform_device_unregister(&vps_device);
-#endif
 	platform_driver_unregister(&vps_driver);
 }
 

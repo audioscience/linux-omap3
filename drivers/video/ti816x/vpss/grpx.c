@@ -20,11 +20,13 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 59 Temple Place - Suite 330, Boston, MA	02111-1307, USA.
  */
+#define VPSS_SUBMODULE_NAME "GRPX "
 
 #include <linux/module.h>
 #include <linux/device.h>
 #include <linux/interrupt.h>
 #include <linux/err.h>
+#include <linux/dma-mapping.h>
 #include <linux/platform_device.h>
 #include <plat/ti816x_ram.h>
 
@@ -38,27 +40,12 @@
 
 #include "core.h"
 
-#ifdef DEBUG
-#define GRPXDBG(format, ...) \
-	if (vpss_debug) \
-		printk(KERN_INFO"VPSS_GRPX: " \
-			format, ## __VA_ARGS__)
-
-#define GRPXERR(format, ...) \
-	if (vpss_debug) \
-		printk(KERN_ERR"VPSS_GRPX: " \
-			format, ## __VA_ARGS__)
-
-#else
-#define GRPXDBG(format, ...)
-#define GRPXERR(format, ...)
-#endif
-
 static int num_gctrl;
 static struct list_head gctrl_list;
 static struct vps_grpx_ctrl *grpx_ctrls[VPS_DISP_GRPX_MAX_INST];
 
 static struct platform_device *grpx_dev;
+static struct vps_dmamem_info  grpx_dma_info;
 
 struct vps_grpx_ctrl *get_grpx_ctrl_from_handle(void * handle)
 {
@@ -81,8 +68,8 @@ static void grpx_status_reset(struct vps_grpx_ctrl *gctrl)
 	gctrl->framelist->perlistcfg = NULL;
 	gctrl->grtlist->clutptr = NULL;
 	gctrl->grtlist->scparams = NULL;
-	gctrl->grtconfig->stenptr = NULL;
-	gctrl->grtconfig->scparams = NULL;
+	gctrl->grtparam->stenptr = NULL;
+	gctrl->grtparam->scparams = NULL;
 
 	gctrl->gstate.regset = 0;
 	gctrl->gstate.scset = 0;
@@ -99,7 +86,7 @@ static int vps_grpx_vsync_cb(void *handle, void *appdata, void * reserved)
 	if (gctrl == NULL)
 		return -EINVAL;
 
-	GRPXDBG("get CB handle 0x%08x appData 0x%08x\n",
+	VPSSDBG("get CB handle 0x%08x appData 0x%08x\n",
 		(u32)handle, (u32)appdata);
 	if (gctrl->gstate.isstarted) {
 
@@ -116,7 +103,7 @@ static int vps_grpx_apply_changes(struct vps_grpx_ctrl *gctrl)
 	struct vps_grpx_state  *gstate = &gctrl->gstate;
 	int r = 0;
 
-	GRPXDBG("apply changes into FVID2_FRAME.\n");
+	VPSSDBG("apply changes into FVID2_FRAME.\n");
 
 	if (gstate->isstarted) {
 		if (gstate->scset) {
@@ -133,12 +120,12 @@ static int vps_grpx_apply_changes(struct vps_grpx_ctrl *gctrl)
 
 		if ((gstate->regset) || (gstate->varset)) {
 			gctrl->frames->perframecfg =
-				(struct vps_grpxrtparams *)gctrl->grtc_phy;
+				(struct vps_grpxrtparams *)gctrl->grtp_phy;
 		}
 
 		if (gstate->stenset)
 			gctrl->frames->perframecfg =
-				(struct vps_grpxrtparams *)gctrl->grtc_phy;
+				(struct vps_grpxrtparams *)gctrl->grtp_phy;
 
 		/*r = vps_fvid2_queue(gctrl->handle,
 				(struct fvid2_framelist *)gctrl->frmls_phy,0);
@@ -265,7 +252,7 @@ static int vps_grpx_set_input(struct vps_grpx_ctrl *gctrl,
 {
 	u32 bpp, pitch;
 
-	GRPXDBG("set input %d x %d P:%d.\n", width, height, scfmt);
+	VPSSDBG("set input %d x %d P:%d.\n", width, height, scfmt);
 	gctrl->inputf->height = height;
 	gctrl->inputf->width = width;
 	gctrl->inputf->scanformat = FVID2_SF_PROGRESSIVE;
@@ -281,7 +268,7 @@ static int vps_grpx_set_input(struct vps_grpx_ctrl *gctrl,
 static int vps_grpx_get_resolution(struct vps_grpx_ctrl *gctrl,
 			 u32 *fwidth, u32 *fheight, u8 *scfmt)
 {
-	GRPXDBG("get resolution.\n");
+	VPSSDBG("get resolution.\n");
 
 
 	vps_dc_get_outpfmt(
@@ -317,19 +304,19 @@ static int vps_grpx_set_format(struct vps_grpx_ctrl *gctrl,
 	if (gctrl->gstate.isstarted == false) {
 		gctrl->gstate.varset = true;
 
-		GRPXDBG("set format bpp %d df %d, pitch %d.\n",
+		VPSSDBG("set format bpp %d df %d, pitch %d.\n",
 			bpp, df, pitch);
 
 	} else {
-		if (df != gctrl->grtconfig->format) {
-			gctrl->grtconfig->format = df;
+		if (df != gctrl->grtparam->format) {
+			gctrl->grtparam->format = df;
 			gctrl->gstate.varset = true;
-			GRPXDBG("set format df %d.\n", df);
+			VPSSDBG("set format df %d.\n", df);
 		}
-		if (pitch != gctrl->grtconfig->pitch[FVID2_RGB_ADDR_IDX]) {
-			gctrl->grtconfig->pitch[FVID2_RGB_ADDR_IDX] = pitch;
+		if (pitch != gctrl->grtparam->pitch[FVID2_RGB_ADDR_IDX]) {
+			gctrl->grtparam->pitch[FVID2_RGB_ADDR_IDX] = pitch;
 			gctrl->gstate.varset = true;
-			GRPXDBG("set format pitch %d.\n", pitch);
+			VPSSDBG("set format pitch %d.\n", pitch);
 		}
 	}
 
@@ -355,7 +342,7 @@ static int vps_grpx_check_regparams(struct vps_grpx_ctrl *gctrl,
 	/* does not support stencling until stenciling buffer is set*/
 	if (regp->stencilingenable == true)
 		if (gctrl->gstate.stenset == false) {
-			GRPXERR("grpx%d sten enable without valid pointer.\n",
+			VPSSERR("grpx%d sten enable without valid pointer.\n",
 				gctrl->grpx_num);
 			return -1;
 		}
@@ -367,7 +354,7 @@ static int vps_grpx_check_regparams(struct vps_grpx_ctrl *gctrl,
 	 */
 	if (regp->scenable) {
 		if (gctrl->gstate.scset == false) {
-			GRPXERR("grpx%d scaling enable without coeff.\n",
+			VPSSERR("grpx%d scaling enable without coeff.\n",
 				gctrl->grpx_num);
 			return -1;
 		}
@@ -405,7 +392,7 @@ static int vps_grpx_check_regparams(struct vps_grpx_ctrl *gctrl,
 	/*make sure the size is not out of the frame*/
 	if ((xend > fw) ||
 	   (yend > fh)) {
-		GRPXERR("grpx%d region(%dx%d) out of frame(%dx%d).\n",
+		VPSSERR("grpx%d region(%dx%d) out of frame(%dx%d).\n",
 			gctrl->grpx_num, xend, yend,
 			gctrl->framewidth, gctrl->frameheight);
 		return -1;
@@ -414,14 +401,14 @@ static int vps_grpx_check_regparams(struct vps_grpx_ctrl *gctrl,
 	 * region for single region case
 	 */
 	if (!((ridx == 0) && (regp->firstregion == true))) {
-		GRPXERR("grpx%d first region wrong.\n", gctrl->grpx_num);
+		VPSSERR("grpx%d first region wrong.\n", gctrl->grpx_num);
 		return -1;
 	}
 
 
 	if (!((ridx == (gctrl->glist->numregions - 1)) &&
 		(true == regp->lastregion))) {
-		GRPXERR("grpx%d last region wrong.\n", gctrl->grpx_num);
+		VPSSERR("grpx%d last region wrong.\n", gctrl->grpx_num);
 		return -1;
 	}
 	return 0;
@@ -432,16 +419,16 @@ static int vps_grpx_set_stenparams(struct vps_grpx_ctrl *gctrl,
 	int r = 0;
 
 	gctrl->gparams->stenptr = (void *)stenptr;
-	gctrl->grtconfig->stenptr = (void *)stenptr;
+	gctrl->grtparam->stenptr = (void *)stenptr;
 	gctrl->gparams->stenpitch = pitch;
-	gctrl->grtconfig->stenpitch = pitch;
+	gctrl->grtparam->stenpitch = pitch;
 	if (stenptr == 0)
 		gctrl->gstate.stenset = false;
 	else
 		gctrl->gstate.stenset = true;
 
 
-	GRPXDBG("set stenciling %#x\n", (u32)gctrl->gparams->stenptr);
+	VPSSDBG("set stenciling %#x\n", (u32)gctrl->gparams->stenptr);
 	r = vps_grpx_apply_changes(gctrl);
 	return r;
 }
@@ -458,7 +445,7 @@ static int vps_grpx_get_stenparams(struct vps_grpx_ctrl *gctrl,
 		*stenaddr = 0;
 		r = -1;
 	}
-	GRPXDBG("get stenciling %#x with stride 0x%x\n",
+	VPSSDBG("get stenciling %#x with stride 0x%x\n",
 		(u32)*stenaddr, (u32)*pitch);
 	return -1;
 }
@@ -473,7 +460,7 @@ static int vps_grpx_set_scparams(struct vps_grpx_ctrl *gctrl,
 		(sci->outheight > gctrl->inputf->height))
 		return -1;
 
-	GRPXDBG("set sc params %dx%d->%dx%d\n", sci->inwidth,
+	VPSSDBG("set sc params %dx%d->%dx%d\n", sci->inwidth,
 		sci->inheight, sci->outwidth, sci->outheight);
 	/*set the scaling information*/
 	memcpy(gctrl->gscparams, sci, sizeof(struct vps_grpxscparams));
@@ -486,7 +473,7 @@ static int vps_grpx_set_scparams(struct vps_grpx_ctrl *gctrl,
 static int vps_grpx_get_scparams(struct vps_grpx_ctrl *gctrl,
 			   struct vps_grpxscparams *sci)
 {
-	GRPXDBG("get sc params.\n");
+	VPSSDBG("get sc params.\n");
 	if (gctrl->gstate.scset == false)
 		return -1;
 
@@ -499,9 +486,9 @@ static int vps_grpx_get_scparams(struct vps_grpx_ctrl *gctrl,
 static int vps_grpx_get_regparams(struct vps_grpx_ctrl *gctrl,
 			    struct vps_grpxregionparams *gparams)
 {
-	GRPXDBG("get region params.\n");
+	VPSSDBG("get region params.\n");
 	if (gctrl->gstate.isstarted)
-		memcpy(gparams, &gctrl->grtconfig->regparams,
+		memcpy(gparams, &gctrl->grtparam->regparams,
 		       sizeof(struct vps_grpxregionparams));
 	else
 		memcpy(gparams, &gctrl->gparams->regparams,
@@ -516,8 +503,8 @@ static int vps_grpx_set_regparams(struct vps_grpx_ctrl *gctrl,
 {
 	int r = 0;
 
-	GRPXDBG("set region params.\n");
-	memcpy(&gctrl->grtconfig->regparams, gparams,
+	VPSSDBG("set region params.\n");
+	memcpy(&gctrl->grtparam->regparams, gparams,
 	       sizeof(struct vps_grpxregionparams));
 	memcpy(&gctrl->gparams->regparams, gparams,
 		sizeof(struct vps_grpxregionparams));
@@ -535,7 +522,7 @@ static int vps_grpx_set_regparams(struct vps_grpx_ctrl *gctrl,
 static int vps_grpx_set_clutptr(struct vps_grpx_ctrl  *gctrl, u32 pclut)
 {
 	int r = 0;
-	GRPXDBG("set clut %#x\n", pclut);
+	VPSSDBG("set clut %#x\n", pclut);
 
 	gctrl->glist->clutptr = (void *)pclut;
 	gctrl->grtlist->clutptr = (void *)pclut;
@@ -556,7 +543,7 @@ static int vps_grpx_set_buffer(struct vps_grpx_ctrl *gctrl,
 {
 	int r = 0;
 
-	GRPXDBG("add buffer %#x\n", buffer_addr);
+	VPSSDBG("add buffer %#x\n", buffer_addr);
 
 
 	gctrl->buffer_addr = buffer_addr;
@@ -571,7 +558,7 @@ static int vps_grpx_set_buffer(struct vps_grpx_ctrl *gctrl,
 
 static int vps_grpx_create(struct vps_grpx_ctrl *gctrl)
 {
-	GRPXDBG("create grpx\n");
+	VPSSDBG("create grpx\n");
 	gctrl->cbparams->cbfxn = vps_grpx_vsync_cb;
 	gctrl->cbparams->appdata = NULL;
 	gctrl->cbparams->errlist = NULL;
@@ -586,7 +573,7 @@ static int vps_grpx_delete(struct vps_grpx_ctrl *gctrl)
 {
 	int r = 0;
 
-	GRPXDBG("delete GRPX\n");
+	VPSSDBG("delete GRPX\n");
 
 	/*set all state value back to default*/
 	gctrl->gstate.clutSet = 0;
@@ -597,7 +584,7 @@ static int vps_grpx_delete(struct vps_grpx_ctrl *gctrl)
 
 	gctrl->grtlist->scparams = NULL;
 	gctrl->grtlist->clutptr = NULL;
-	gctrl->grtconfig->scparams = NULL;
+	gctrl->grtparam->scparams = NULL;
 	gctrl->glist->clutptr = NULL;
 
 	gctrl->framelist->perlistcfg = NULL;
@@ -709,7 +696,7 @@ static int vps_grpx_create_dcconfig(struct vps_grpx_ctrl *gctrl)
 			mid = cfg->vencinfo.modeinfo[i].modeid;
 		else
 			if (mid != cfg->vencinfo.modeinfo[i].modeid) {
-				GRPXERR("the tied venc should have  \
+				VPSSERR("the tied venc should have  \
 						the same timing.\n");
 				return -EINVAL;
 			}
@@ -750,13 +737,13 @@ static ssize_t graphics_enabled_store(struct vps_grpx_ctrl *gctrl,
 	bool enabled;
 	int r;
 	if (gctrl->handle == NULL) {
-		GRPXERR("please open fb node first.\n");
+		VPSSERR("please open fb node first.\n");
 		return -EINVAL;
 	}
 
 	enabled = simple_strtoul(buf, NULL, 10);
 	if (gctrl->gstate.isstarted == enabled) {
-		GRPXERR("Nothing to do.\n");
+		VPSSERR("Nothing to do.\n");
 		return size;
 	}
 
@@ -803,7 +790,7 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 
 	struct vps_dcmodeinfo minfo;
 	if (gctrl->gstate.isstarted) {
-		GRPXERR("please stop before continue.\n");
+		VPSSERR("please stop before continue.\n");
 		return -EINVAL;
 	}
 
@@ -843,7 +830,7 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 	}
 	gctrl->numends = total;
 	/*error check*/
-	GRPXDBG("numedge :%d\n", gctrl->numends);
+	VPSSDBG("numedge :%d\n", gctrl->numends);
 	for (i = 0; i < gctrl->numends; i++) {
 		r = vps_dc_get_vencmode(gctrl->enodes[i],
 				       &minfo,
@@ -853,7 +840,7 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 			mid = minfo.modeid;
 		else
 			if (mid != minfo.modeid) {
-				GRPXERR("the tied venc should have  \
+				VPSSERR("the tied venc should have  \
 						the same timing.\n");
 				r = -EINVAL;
 				goto exit;
@@ -861,10 +848,10 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 
 
 
-		GRPXDBG("s: %d e:%d\n",
+		VPSSDBG("s: %d e:%d\n",
 			gctrl->snode,
 			gctrl->enodes[i]);
-		GRPXDBG("vid:%d, mid:%d\n",
+		VPSSDBG("vid:%d, mid:%d\n",
 			minfo.vencid,
 			minfo.modeid);
 		tiedvenc |= minfo.vencid;
@@ -872,7 +859,7 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 	}
 	if (gctrl->numends == 1)
 		tiedvenc = 0;
-	GRPXDBG("tiedvecn :%d.\n", tiedvenc);
+	VPSSDBG("tiedvecn :%d.\n", tiedvenc);
 exit:
 	grpx_unlock(gctrl);
 	if (r)
@@ -957,7 +944,7 @@ static int vps_grpx_create_sysfs(struct vps_grpx_ctrl *gctrl)
 				 "graphics%d",
 				 gctrl->grpx_num);
 	if (r)
-		GRPXERR("failed to create grpx%d sysfs file.\n",
+		VPSSERR("failed to create grpx%d sysfs file.\n",
 			gctrl->grpx_num);
 	return r;
 
@@ -1004,9 +991,9 @@ void __init vps_fvid2_grpx_ctrl_init(struct vps_grpx_ctrl *gctrl)
 	gctrl->gparams->regparams.lastregion = true;
 	gctrl->gparams->regparams.disppriority = 1;
 
-	gctrl->grtconfig->regparams.firstregion = true;
-	gctrl->grtconfig->regparams.lastregion = true;
-	gctrl->grtconfig->regparams.disppriority = 1;
+	gctrl->grtparam->regparams.firstregion = true;
+	gctrl->grtparam->regparams.lastregion = true;
+	gctrl->grtparam->regparams.disppriority = 1;
 
 	/* init the FVID2 related structures*/
 	gctrl->framelist->numframes = 1;
@@ -1036,122 +1023,141 @@ void __init vps_fvid2_grpx_ctrl_init(struct vps_grpx_ctrl *gctrl)
 	gctrl->set_dcconfig = vps_grpx_set_dcconfig;
 
 }
-
- void __init vps_grpx_params_alloc(struct vps_grpx_ctrl *gctrl)
+static inline int get_alloc_size(void)
 {
-	gctrl->gcparam = kzalloc(sizeof(struct vps_grpxcreateparams),
-					GFP_KERNEL);
-	BUG_ON(gctrl->gcparam == NULL);
-	gctrl->gcp_phy = virt_to_phys(gctrl->gcparam);
+	int size = 0;
 
-	gctrl->gcstatus = kzalloc(sizeof(struct vps_grpxcreatestatus),
-					 GFP_KERNEL);
-	BUG_ON(gctrl->gcstatus == NULL);
-	gctrl->gcs_phy = virt_to_phys(gctrl->gcstatus);
+	size  = sizeof(struct vps_grpxcreateparams);
+	size += sizeof(struct vps_grpxcreatestatus);
+	size += sizeof(struct vps_grpxscparams);
+	size += sizeof(struct vps_grpxsccoeff);
+	size += sizeof(struct vps_grpxrtparams);
+	size += sizeof(struct vps_grpxrtparams);
+	size += sizeof(struct vps_grpxrtlist);
+	size += sizeof(struct vps_grpxparamlist);
+	size += sizeof(struct fvid2_cbparams);
+	size += sizeof(struct fvid2_framelist);
+	size += sizeof(struct fvid2_format);
+	size += sizeof(struct fvid2_frame);
 
-	gctrl->gscparams = kzalloc(sizeof(struct vps_grpxscparams),
-				   GFP_KERNEL);
-	BUG_ON(gctrl->gscparams == NULL);
-	gctrl->gscp_phy = virt_to_phys(gctrl->gscparams);
+	size *= VPS_DISP_GRPX_MAX_INST;
 
-	gctrl->gsccoeff = kzalloc(sizeof(struct vps_grpxsccoeff),
-				  GFP_KERNEL);
-	BUG_ON(gctrl->gsccoeff == NULL);
-	gctrl->gscoff_phy = virt_to_phys(gctrl->gsccoeff);
+	return size;
+}
+ void __init params_addr_alloc(struct vps_grpx_ctrl *gctrl,
+				   void *virt_addr,
+				   u32  phy_addr,
+				   u32  *buf_offset)
+{
+	u32 offset = *buf_offset;
 
-	gctrl->gparams = kzalloc(sizeof(struct vps_grpxrtparams),
-				 GFP_KERNEL);
-	BUG_ON(gctrl->gparams == NULL);
-	gctrl->gp_phy = virt_to_phys(gctrl->gparams);
+	gctrl->gcparam = (struct vps_grpxcreateparams *)
+				((u32)virt_addr + offset);
+	gctrl->gcp_phy = phy_addr + offset;
+	offset += sizeof(struct vps_grpxcreateparams);
 
-	gctrl->grtconfig = kzalloc(sizeof(struct vps_grpxrtparams),
-				   GFP_KERNEL);
-	BUG_ON(gctrl->grtconfig == NULL);
-	gctrl->grtc_phy = virt_to_phys(gctrl->grtconfig);
+	gctrl->gcstatus = (struct vps_grpxcreatestatus *)
+				((u32)virt_addr + offset);
+	gctrl->gcs_phy = phy_addr + offset;
+	offset += sizeof(struct vps_grpxcreatestatus);
 
-	gctrl->grtlist = kzalloc(sizeof(struct vps_grpxrtlist),
-				 GFP_KERNEL);
-	BUG_ON(gctrl->grtlist == NULL);
-	gctrl->grtlist_phy = virt_to_phys(gctrl->grtlist);
+	gctrl->gscparams = (struct vps_grpxscparams *)
+				((u32)virt_addr + offset);
+	gctrl->gscp_phy = phy_addr + offset;
+	offset += sizeof(struct vps_grpxscparams);
 
-	gctrl->glist = kzalloc(sizeof(struct vps_grpxparamlist),
-			       GFP_KERNEL);
-	BUG_ON(gctrl->glist == NULL);
-	gctrl->glist_phy = virt_to_phys(gctrl->glist);
+	gctrl->gsccoeff = (struct vps_grpxsccoeff *)
+				((u32)virt_addr + offset);
+	gctrl->gsccoff_phy = phy_addr + offset;
+	offset += sizeof(struct vps_grpxsccoeff);
 
-	/* allocate FVID2 structures*/
-	gctrl->cbparams = kzalloc(sizeof(struct fvid2_cbparams),
-				  GFP_KERNEL);
-	BUG_ON(gctrl->cbparams == NULL);
-	gctrl->cbp_phy = virt_to_phys(gctrl->cbparams);
+	gctrl->gparams = (struct vps_grpxrtparams *)
+				((u32)virt_addr + offset);
+	gctrl->gp_phy = phy_addr + offset;
+	offset += sizeof(struct vps_grpxrtparams);
 
-	gctrl->inputf = kzalloc(sizeof(struct fvid2_format),
-				GFP_KERNEL);
-	BUG_ON(gctrl->inputf == NULL);
-	gctrl->inputf_phy = virt_to_phys(gctrl->inputf);
+	gctrl->grtparam = (struct vps_grpxrtparams *)
+				((u32)virt_addr + offset);
+	gctrl->grtp_phy = phy_addr + offset;
+	offset += sizeof(struct vps_grpxrtparams);
 
-	gctrl->framelist = kzalloc(sizeof(struct fvid2_framelist),
-				   GFP_KERNEL);
-	BUG_ON(gctrl->framelist == NULL);
-	gctrl->frmls_phy = virt_to_phys(gctrl->framelist);
+	gctrl->grtlist = (struct vps_grpxrtlist *)
+				((u32)virt_addr + offset);
+	gctrl->grtlist_phy = phy_addr + offset;
+	offset += sizeof(struct vps_grpxrtlist);
 
-	gctrl->frames = kzalloc(sizeof(struct fvid2_frame),
-				GFP_KERNEL);
-	BUG_ON(gctrl->frames == NULL);
-	gctrl->frm_phy = virt_to_phys(gctrl->frames);
+	gctrl->glist = (struct vps_grpxparamlist *)
+				((u32)virt_addr + offset);
+	gctrl->glist_phy = phy_addr + offset;
 
+	offset += sizeof(struct vps_grpxparamlist);
 
+	gctrl->cbparams = (struct fvid2_cbparams *)
+				((u32)virt_addr + offset);
+	gctrl->cbp_phy = phy_addr + offset;
+	offset += sizeof(struct fvid2_cbparams);;
+
+	gctrl->inputf = (struct fvid2_format *)
+				((u32)virt_addr + offset);
+	gctrl->inputf_phy = phy_addr + offset;
+	offset += sizeof(struct fvid2_format);
+
+	gctrl->framelist = (struct fvid2_framelist *)
+				((u32)virt_addr + offset);
+	gctrl->frmls_phy = phy_addr + offset;
+	offset += sizeof(struct fvid2_framelist);
+
+	gctrl->frames = (struct fvid2_frame *)
+				((u32)virt_addr + offset);
+
+	gctrl->frm_phy = phy_addr + offset;
+	offset += sizeof(struct fvid2_frame);
+	/*return the offset*/
+	*buf_offset = offset;
 }
 
- void __exit vps_grpx_params_dealloc(struct vps_grpx_ctrl *gctrl)
-{
-	/*free all resources*/
-	kfree(gctrl->gcparam);
 
-	kfree(gctrl->gcstatus);
-
-	kfree(gctrl->gscparams);
-
-	kfree(gctrl->gsccoeff);
-
-	kfree(gctrl->gparams);
-
-	kfree(gctrl->grtconfig);
-
-	kfree(gctrl->grtlist);
-
-	kfree(gctrl->glist);
-
-	/* for fvid2 interface variables*/
-	kfree(gctrl->cbparams);
-
-	kfree(gctrl->inputf);
-
-	kfree(gctrl->framelist);
-
-	kfree(gctrl->frames);
-
-}
 
 int __init vps_grpx_init(struct platform_device *pdev)
 {
 	int i;
-
-	GRPXDBG("GRPX INIT\n");
+	struct vps_dmamem_info *gdinfo = &grpx_dma_info;
+	u32 size = 0;
+	u32 offset = 0;
+	VPSSDBG("grpx init\n");
 	INIT_LIST_HEAD(&gctrl_list);
 
 	num_gctrl = 0;
 	grpx_dev = pdev;
+	/*calcuate size to allocate*/
+	size = get_alloc_size();
+	gdinfo->vaddr = dma_alloc_coherent(&pdev->dev,
+					      size,
+					      &gdinfo->paddr,
+					      GFP_DMA);
+	if (gdinfo->vaddr == NULL) {
+		VPSSERR("alloc grpx dma buffer failed\n");
+		gdinfo->paddr = 0;
+		return -ENOMEM;
+	}
+
+	gdinfo->size = PAGE_ALIGN(size);
+	memset(gdinfo->vaddr, 0, gdinfo->size);
+
 	for (i = 0; i < VPS_DISP_GRPX_MAX_INST; i++) {
 		struct vps_grpx_ctrl *gctrl;
 		gctrl = kzalloc(sizeof(*gctrl), GFP_KERNEL);
 
 		if (gctrl == NULL) {
-			GRPXERR("failed to allocate grpx%d\n", i);
+			VPSSERR("failed to allocate grpx%d\n", i);
 			BUG_ON(gctrl == NULL);
 		}
-
-		vps_grpx_params_alloc(gctrl);
+		/*assign the dma buffer*/
+		params_addr_alloc(gctrl,
+				  gdinfo->vaddr,
+				  gdinfo->paddr,
+				  &offset);
+		/*init gctrl*/
 		vps_fvid2_grpx_ctrl_init(gctrl);
 		gctrl->grpx_num = i;
 		vps_grpx_add_ctrl(gctrl);
@@ -1176,19 +1182,29 @@ int __init vps_grpx_init(struct platform_device *pdev)
 		vps_grpx_create_sysfs(gctrl);
 
 	}
-	return 0;
 
+	return 0;
 }
 
 void __exit vps_grpx_deinit(struct platform_device *pdev)
 {
 	struct vps_grpx_ctrl *gctrl;
-	GRPXDBG("GRPX DEINIT\n");
+	struct vps_dmamem_info *gdinfo = &grpx_dma_info;
+
+	VPSSDBG("grpx deinit\n");
+
+	if (gdinfo->vaddr) {
+		dma_free_coherent(&pdev->dev,
+				  gdinfo->size,
+				  gdinfo->vaddr,
+				  gdinfo->paddr);
+		memset(gdinfo, 0, sizeof(struct vps_dmamem_info));
+	}
+
 	while (!list_empty(&gctrl_list)) {
 		gctrl = list_first_entry(&gctrl_list,
 					 struct vps_grpx_ctrl, list);
 		vps_grpx_remove_sysfs(gctrl);
-		vps_grpx_params_dealloc(gctrl);
 		list_del(&gctrl->list);
 		kfree(gctrl);
 	}

@@ -67,11 +67,12 @@ struct vps_grpx_ctrl{
 	/* scaling parameters*/
 	struct vps_grpxscparams         *gscparams;
 	u32                             gscp_phy;
+	/*scaling coeff*/
 	struct vps_grpxsccoeff          *gsccoeff;
-	u32                             gscoff_phy;
+	u32                             gsccoff_phy;
 	/*runtime change parameters*/
-	struct vps_grpxrtparams         *grtconfig;
-	u32                             grtc_phy;
+	struct vps_grpxrtparams         *grtparam;
+	u32                             grtp_phy;
 	/*default params*/
 	struct vps_grpxrtparams         *gparams;
 	u32                             gp_phy;

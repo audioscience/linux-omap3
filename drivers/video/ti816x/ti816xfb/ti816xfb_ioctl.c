@@ -311,7 +311,7 @@ static int ti816xfb_allocate_sten_mem(struct fb_info *fbi,
 	mlist->cpu_addr = dma_alloc_writecombine(tfbi->fbdev->dev,
 						 size,
 						 &mlist->phy_addr,
-						 GFP_KERNEL);
+						 GFP_DMA);
 
 	if (mlist->cpu_addr == NULL) {
 		kfree(mlist);
