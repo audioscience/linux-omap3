@@ -81,6 +81,12 @@
 #define VPS_VID_DEC_IOCTL_BASE           (FVID2_USER_BASE + 0x00060000u)
 
 /**
+ *  \brief IOCTL base address for the advanced debug capabilities.
+ *  Caution: To be used with care.
+ */
+#define VPS_ADV_IOCTL_BASE              (FVID2_USER_BASE + 0x00070000u)
+
+/**
  *  \brief VPS video buffer alignment. All application buffer address and
  *  line pitch should be aligned to this byte boundary.
  */
@@ -236,6 +242,40 @@
  */
 #define IOCTL_VPS_DELETE_ALL_LAYOUT     (VPS_COMMON_IOCTL_BASE + 0x000Au)
 
+/**
+ *  \brief Read the scalar hardware configuration.
+ *
+ *  This ioctl can be used to read the actual hardware registers of the
+ *  scalar.
+ *  This is for the advanced user for the hardware debug capability.
+ *  For the multiple channel mode of the driver data is returned from the
+ *  overlay memory instead of actual hardware registers.
+ *
+ *  \param cmdArgs       [OUT] Vps_ScRdWrAdvCfg *
+ *  \param cmdArgsStatus [OUT] NULL
+ *
+ *  \return FVID_SOK on success, else failure
+ *
+ */
+#define IOCTL_VPS_READ_ADV_SC_CFG       (VPS_ADV_IOCTL_BASE + 0x0000u)
+
+/**
+ *  \brief Write the scalar hardware configuration.
+ *
+ *  This ioctl can be used to write the actual hardware registers of the
+ *  scalar.
+ *  This is for the advanced user for the hardware debug capability.
+ *  For the multiple channel mode of the driver data is written to the
+ *  overlay memory instead of actual hardware registers.
+ *
+ *  \param cmdArgs       [IN]  const Vps_ScRdWrAdvCfg *
+ *  \param cmdArgsStatus [OUT] NULL
+ *
+ *  \return FVID_SOK on success, else failure
+ *
+ */
+#define IOCTL_VPS_WRITE_ADV_SC_CFG      (VPS_ADV_IOCTL_BASE + 0x0001u)
+
 /** \brief Floor a integer value. */
 #define VpsUtils_floor(val, align)  (((val) / (align)) * (align))
 
@@ -291,6 +331,18 @@ enum vps_memrotationtype {
 	VPS_MEM_ROTATION_MAX
 	/**< Should be the last value of this enumeration.
 	     Will be used by driver for validating the input parameters. */
+};
+
+
+/**
+ *  enum vps_fidpol
+ *  \brief Enumerations for Field ID polarity.
+ */
+enum vps_fidpol{
+	VPS_FIDPOL_NORMAL = 0,
+	/**< FID = 0, top field */
+	VPS_FIDPOL_INVERT
+	/**< FID = 0, bottom field */
 };
 
 /* ========================================================================== */
