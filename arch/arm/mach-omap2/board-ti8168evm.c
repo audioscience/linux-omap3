@@ -171,9 +171,11 @@ static struct i2c_board_info __initdata ti816x_i2c_boardinfo[] = {
 	{
 		I2C_BOARD_INFO("eeprom", 0x50),
 	},
-
 	{
 		I2C_BOARD_INFO("cpld", 0x23),
+	},
+	{
+		I2C_BOARD_INFO("tlv320aic3x", 0x18),
 	},
 };
 
