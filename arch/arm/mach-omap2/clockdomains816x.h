@@ -50,6 +50,33 @@ static struct clockdomain alwon_ethernet_clkdm = {
 	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X),
 };
 
+static struct clockdomain ivahd0_816x_clkdm = {
+	.name		  = "ivahd0_clkdm",
+	.pwrdm		  = { .name = NULL },
+	.clkstctrl_reg	  = TI816X_CM_IVAHD0_CLKSTCTRL,
+	.clktrctrl_mask	  = TI816X_CLKTRCTRL_MASK,
+	.flags		  = CLKDM_CAN_HWSUP_SWSUP,
+	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X),
+};
+
+static struct clockdomain ivahd1_816x_clkdm = {
+	.name		  = "ivahd1_clkdm",
+	.pwrdm		  = { .name = NULL },
+	.clkstctrl_reg	  = TI816X_CM_IVAHD1_CLKSTCTRL,
+	.clktrctrl_mask	  = TI816X_CLKTRCTRL_MASK,
+	.flags		  = CLKDM_CAN_HWSUP_SWSUP,
+	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X),
+};
+
+static struct clockdomain ivahd2_816x_clkdm = {
+	.name		  = "ivahd2_clkdm",
+	.pwrdm		  = { .name = NULL },
+	.clkstctrl_reg	  = TI816X_CM_IVAHD2_CLKSTCTRL,
+	.clktrctrl_mask	  = TI816X_CLKTRCTRL_MASK,
+	.flags		  = CLKDM_CAN_HWSUP_SWSUP,
+	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X),
+};
+
 static struct clockdomain default_pcie_816x_clkdm = {
 	.name		  = "default_pcie_clkdm",
 	.pwrdm		  = { .name = NULL },

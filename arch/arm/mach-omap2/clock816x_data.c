@@ -41,13 +41,18 @@
  * - Skipping PLL data and configuration for now. All the PLL (root) clocks are
  *   referred with their default rates.
  *
+ * - These default rates are approximate rounded values which will be different
+ *   from the actual output of parent clock from PLL (e.g, SYSCLK3 input is
+ *   taken as 600MHz, while the actual Main PLL clk3 output would be around
+ *   531.49 MHz). Of course, these rounded values are taken from the spec.
+ *
  * - Use 'null' operations for few SYSCLKs (such as 4, 5, 6 etc.), which do not
  *   have software control for enable/disable (control registers are RO).
  *
  * - Numbering for modules such as UART, I2C, Timer etc., which have multiple
  *   instances, starts from 1 while register definitions are maintained starting
  *   from 0 as per spec. This is followed to avoid confusion with omaps, where
- *   the numbering start from 1.
+ *   the numbering start from 1. Some exceptions include IVAHDs.
  *
  * - The IDLEST bit and register for many clocks (e.g., mmchs1_fck) do not match
  *   with the default implementation as part of clkops_omap2_dflt_wait. Skipping
@@ -81,6 +86,96 @@ static struct clk sys_clkin_ck = {
 	.ops		= &clkops_null,
 	.rate		= 27000000,
 	.flags		= RATE_IN_TI816X | DEFAULT_RATE,
+};
+
+static struct clk main_pll_clk3_ck = {
+	.name		= "main_pll_clk3_ck",
+	.ops		= &clkops_null,
+	.rate		= 600000000,
+	.flags		= RATE_IN_TI816X | DEFAULT_RATE,
+};
+
+static const struct clksel_rate div3_sysclk3_rates[] = {
+	{ .div = 1, .val = 0, .flags = RATE_IN_TI816X | DEFAULT_RATE },
+	{ .div = 2, .val = 1, .flags = RATE_IN_TI816X },
+	{ .div = 3, .val = 2, .flags = RATE_IN_TI816X },
+	{ .div = 0 },
+};
+
+static const struct clksel sysclk3_div[] = {
+	{ .parent = &main_pll_clk3_ck, .rates = div3_sysclk3_rates },
+	{ .parent = NULL },
+};
+
+static struct clk sysclk3_ck = {
+	.name		= "sysclk3_ck",
+	.parent		= &main_pll_clk3_ck,
+	.clksel		= sysclk3_div,
+	.init		= &omap2_init_clksel_parent,
+	.ops		= &clkops_null,
+	.clksel_reg	= TI816X_CM_DPLL_SYSCLK3_CLKSEL,
+	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
+	.recalc		= &omap2_clksel_recalc,
+};
+
+static struct clk ivahd0_ck = {
+	.name           = "ivahd0_ck",
+	.parent         = &sysclk3_ck,
+	.ops            = &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_IVAHD0_IVAHD_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "ivahd0_clkdm",
+	.recalc         = &followparent_recalc,
+};
+
+static struct clk ivahd0_sl2_ick = {
+	.name           = "ivahd0_sl2_ick",
+	.parent         = &sysclk3_ck,
+	.ops            = &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_IVAHD0_SL2_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "ivahd0_clkdm",
+	.recalc         = &followparent_recalc,
+};
+
+static struct clk ivahd1_ck = {
+	.name           = "ivahd1_ck",
+	.parent         = &sysclk3_ck,
+	.ops            = &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_IVAHD1_IVAHD_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "ivahd1_clkdm",
+	.recalc         = &followparent_recalc,
+};
+
+static struct clk ivahd1_sl2_ick = {
+	.name           = "ivahd1_sl2_ick",
+	.parent         = &sysclk3_ck,
+	.ops            = &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_IVAHD1_SL2_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "ivahd1_clkdm",
+	.recalc         = &followparent_recalc,
+};
+
+static struct clk ivahd2_ck = {
+	.name           = "ivahd2_ck",
+	.parent         = &sysclk3_ck,
+	.ops            = &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_IVAHD2_IVAHD_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "ivahd2_clkdm",
+	.recalc         = &followparent_recalc,
+};
+
+static struct clk ivahd2_sl2_ick = {
+	.name           = "ivahd2_sl2_ick",
+	.parent         = &sysclk3_ck,
+	.ops            = &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_IVAHD2_SL2_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "ivahd2_clkdm",
+	.recalc         = &followparent_recalc,
 };
 
 static struct clk main_pll_clk4_ck = {
@@ -690,6 +785,14 @@ static struct omap_clk ti816x_clks[] = {
 	CLK(NULL,		"sys_32k_ck",		&sys_32k_ck,		CK_TI816X),
 	CLK(NULL,		"tclkin_ck",		&tclkin_ck,		CK_TI816X),
 	CLK(NULL,		"sys_clkin_ck",		&sys_clkin_ck,		CK_TI816X),
+	CLK(NULL,		"main_pll_clk3_ck",	&main_pll_clk3_ck,	CK_TI816X),
+	CLK(NULL,		"sysclk3_ck",		&sysclk3_ck,		CK_TI816X),
+	CLK(NULL,		"ivahd0_ck",		&ivahd0_ck,		CK_TI816X),
+	CLK(NULL,		"ivahd0_sl2_ick",	&ivahd0_sl2_ick,	CK_TI816X),
+	CLK(NULL,		"ivahd1_ck",		&ivahd1_ck,		CK_TI816X),
+	CLK(NULL,		"ivahd1_sl2_ick",	&ivahd1_sl2_ick,	CK_TI816X),
+	CLK(NULL,		"ivahd2_ck",		&ivahd2_ck,		CK_TI816X),
+	CLK(NULL,		"ivahd2_sl2_ick",	&ivahd2_sl2_ick,	CK_TI816X),
 	CLK(NULL,		"main_pll_clk4_ck",	&main_pll_clk4_ck,	CK_TI816X),
 	CLK(NULL,		"sysclk4_ck",		&sysclk4_ck,		CK_TI816X),
 	CLK(NULL,		"sysclk6_ck",		&sysclk6_ck,		CK_TI816X),
