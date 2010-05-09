@@ -57,6 +57,7 @@
 #include "powerdomains24xx.h"
 #include "powerdomains34xx.h"
 #include "powerdomains44xx.h"
+#include "powerdomains816x.h"
 
 /* OMAP2/3-common powerdomains */
 
@@ -145,6 +146,13 @@ static struct powerdomain *powerdomains_omap[] __initdata = {
 	&l4per_44xx_pwrdm,
 	&always_on_core_44xx_pwrdm,
 	&cefuse_44xx_pwrdm,
+#endif
+
+#ifdef CONFIG_ARCH_TI816X
+	&default_816x_pwrdm,
+	&ivahd0_816x_pwrdm,
+	&ivahd1_816x_pwrdm,
+	&ivahd2_816x_pwrdm,
 #endif
 	NULL
 };

@@ -52,7 +52,7 @@ static struct clockdomain alwon_ethernet_clkdm = {
 
 static struct clockdomain ivahd0_816x_clkdm = {
 	.name		  = "ivahd0_clkdm",
-	.pwrdm		  = { .name = NULL },
+	.pwrdm		  = { .name = "ivahd0_pwrdm" },
 	.clkstctrl_reg	  = TI816X_CM_IVAHD0_CLKSTCTRL,
 	.clktrctrl_mask	  = TI816X_CLKTRCTRL_MASK,
 	.flags		  = CLKDM_CAN_HWSUP_SWSUP,
@@ -61,7 +61,7 @@ static struct clockdomain ivahd0_816x_clkdm = {
 
 static struct clockdomain ivahd1_816x_clkdm = {
 	.name		  = "ivahd1_clkdm",
-	.pwrdm		  = { .name = NULL },
+	.pwrdm		  = { .name = "ivahd1_pwrdm" },
 	.clkstctrl_reg	  = TI816X_CM_IVAHD1_CLKSTCTRL,
 	.clktrctrl_mask	  = TI816X_CLKTRCTRL_MASK,
 	.flags		  = CLKDM_CAN_HWSUP_SWSUP,
@@ -70,7 +70,7 @@ static struct clockdomain ivahd1_816x_clkdm = {
 
 static struct clockdomain ivahd2_816x_clkdm = {
 	.name		  = "ivahd2_clkdm",
-	.pwrdm		  = { .name = NULL },
+	.pwrdm		  = { .name = "ivahd2_pwrdm" },
 	.clkstctrl_reg	  = TI816X_CM_IVAHD2_CLKSTCTRL,
 	.clktrctrl_mask	  = TI816X_CLKTRCTRL_MASK,
 	.flags		  = CLKDM_CAN_HWSUP_SWSUP,
@@ -79,7 +79,7 @@ static struct clockdomain ivahd2_816x_clkdm = {
 
 static struct clockdomain default_pcie_816x_clkdm = {
 	.name		  = "default_pcie_clkdm",
-	.pwrdm		  = { .name = NULL },
+	.pwrdm		  = { .name = "default_pwrdm" },
 	.clkstctrl_reg	  = TI816X_CM_DEFAULT_PCI_CLKSTCTRL,
 	.clktrctrl_mask	  = TI816X_CLKTRCTRL_MASK,
 	.flags		  = CLKDM_CAN_HWSUP_SWSUP,
@@ -88,7 +88,7 @@ static struct clockdomain default_pcie_816x_clkdm = {
 
 static struct clockdomain default_usb_816x_clkdm = {
 	.name		  = "default_usb_clkdm",
-	.pwrdm		  = { .name = NULL },
+	.pwrdm		  = { .name = "default_pwrdm" },
 	.clkstctrl_reg	  = TI816X_CM_DEFAULT_L3_SLOW_CLKSTCTRL, /* FIXME */
 	.clktrctrl_mask	  = TI816X_CLKTRCTRL_MASK,
 	.flags		  = CLKDM_CAN_HWSUP_SWSUP,
