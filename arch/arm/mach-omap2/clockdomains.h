@@ -934,6 +934,7 @@ static struct clockdomain *clockdomains_omap[] = {
 
 #ifdef CONFIG_ARCH_TI816X
 	&alwon_l3_slow_816x_clkdm,
+	&alwon_ethernet_816x_clkdm,
 	&ivahd0_816x_clkdm,
 	&ivahd1_816x_clkdm,
 	&ivahd2_816x_clkdm,

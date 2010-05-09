@@ -41,7 +41,7 @@ static struct clockdomain alwon_l3_slow_816x_clkdm = {
 	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X),
 };
 
-static struct clockdomain alwon_ethernet_clkdm = {
+static struct clockdomain alwon_ethernet_816x_clkdm = {
 	.name		  = "alwon_ethernet_clkdm",
 	.pwrdm		  = { .name = NULL },
 	.clkstctrl_reg	  = TI816X_CM_ETHERNET_CLKSTCTRL,
