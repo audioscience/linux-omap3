@@ -207,6 +207,14 @@ static struct clk sysclk4_ck = {
 	.recalc		= &omap2_clksel_recalc,
 };
 
+static struct clk ducati_ucache_ick = {
+	.name		= "ducati_ucache_ick",
+	.parent		= &sysclk4_ck,
+	.ops		= &clkops_null,
+	.clkdm_name	= "default_ducati_clkdm",
+	.recalc		= &followparent_recalc,
+};
+
 static const struct clksel_rate div_4_1_rates[] = {
 	{ .div = 4, .val = 1, .flags = RATE_IN_TI816X | DEFAULT_RATE },
 	{ .div = 0 },
@@ -380,6 +388,16 @@ static struct clk emac2_ick = {
 	.enable_reg	= TI816X_CM_ALWON_ETHERNET_1_CLKCTRL,
 	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
 	.clkdm_name	= "alwon_ethernet_clkdm",
+	.recalc         = &followparent_recalc,
+};
+
+static struct clk ducati_ick = {
+	.name           = "ducati_ick",
+	.parent         = &sysclk5_ck,
+	.ops            = &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_DEFAULT_DUCATI_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "default_ducati_clkdm",
 	.recalc         = &followparent_recalc,
 };
 
@@ -795,6 +813,7 @@ static struct omap_clk ti816x_clks[] = {
 	CLK(NULL,		"ivahd2_sl2_ick",	&ivahd2_sl2_ick,	CK_TI816X),
 	CLK(NULL,		"main_pll_clk4_ck",	&main_pll_clk4_ck,	CK_TI816X),
 	CLK(NULL,		"sysclk4_ck",		&sysclk4_ck,		CK_TI816X),
+	CLK(NULL,		"ducati_ucache_ick",	&ducati_ucache_ick,	CK_TI816X),
 	CLK(NULL,		"sysclk6_ck",		&sysclk6_ck,		CK_TI816X),
 	CLK(NULL,		"uart1_ick",		&uart1_ick,		CK_TI816X),
 	CLK(NULL,		"uart2_ick",		&uart2_ick,		CK_TI816X),
@@ -816,6 +835,7 @@ static struct omap_clk ti816x_clks[] = {
 	CLK(NULL,		"sata_ick",		&sata_ick,		CK_TI816X),
 	CLK("davinci_emac.0",	"emac1_ick",		&emac1_ick,		CK_TI816X),
 	CLK("davinci_emac.1",	"emac2_ick",		&emac2_ick,		CK_TI816X),
+	CLK(NULL,		"ducati_ick",		&ducati_ick,		CK_TI816X),
 	CLK("omap2_mcspi.1",	"fck",			&mcspi1_fck,		CK_TI816X),
 	CLK(NULL,		"gpmc_fck",		&gpmc_fck,		CK_TI816X),
 	CLK("i2c_omap.1",	"fck",			&i2c1_fck,		CK_TI816X),

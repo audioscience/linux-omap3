@@ -77,6 +77,15 @@ static struct clockdomain ivahd2_816x_clkdm = {
 	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X),
 };
 
+static struct clockdomain default_ducati_816x_clkdm = {
+	.name		  = "default_ducati_clkdm",
+	.pwrdm		  = { .name = "default_pwrdm" },
+	.clkstctrl_reg	  = TI816X_CM_DEFAULT_DUCATI_CLKSTCTRL,
+	.clktrctrl_mask	  = TI816X_CLKTRCTRL_MASK,
+	.flags		  = CLKDM_CAN_HWSUP_SWSUP,
+	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X),
+};
+
 static struct clockdomain default_pcie_816x_clkdm = {
 	.name		  = "default_pcie_clkdm",
 	.pwrdm		  = { .name = "default_pwrdm" },
