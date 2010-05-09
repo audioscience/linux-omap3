@@ -225,7 +225,7 @@ void pwrdm_init(struct powerdomain **pwrdm_list)
 	if (cpu_is_omap24xx() || cpu_is_omap34xx()) {
 		pwrstctrl_reg_offs = OMAP2_PM_PWSTCTRL;
 		pwrstst_reg_offs = OMAP2_PM_PWSTST;
-	} else if (cpu_is_omap44xx()) {
+	} else if (cpu_is_omap44xx() | cpu_is_ti816x()) {
 		pwrstctrl_reg_offs = OMAP4_PM_PWSTCTRL;
 		pwrstst_reg_offs = OMAP4_PM_PWSTST;
 	} else {
