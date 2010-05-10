@@ -235,6 +235,8 @@ enum vps_dcmodeid {
 	/**< Mode Id for 720p at 60fps mode */
 	VPS_DC_MODE_1080I_60,
 	/**< Mode Id for 1080I at 60fps mode */
+	VPS_DC_MODE_1080P_30,
+	/**< Mode Id for 1080P at 30fps mode */
 	VPS_DC_MAX_MODE
 	/**< This should be the last mode id */
 };

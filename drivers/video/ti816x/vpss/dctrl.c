@@ -45,13 +45,13 @@ static struct vps_dmamem_info  dc_dma_info;
 /*store the current VENC setting*/
 static struct vps_dcvencinfo venc_info = {
 	{
-		{VPS_DC_VENC_HDMI, 0, VPS_DC_MODE_1080P_60, 1920, \
+		{VPS_DC_VENC_HDMI, 0, VPS_DC_MODE_1080P_30, 1920, \
 		1080, FVID2_SF_PROGRESSIVE, NULL},
 
 		{VPS_DC_VENC_HDCOMP, 0, VPS_DC_MODE_1080I_60,	\
 		1920, 1080, FVID2_SF_INTERLACED, NULL},
 
-		{VPS_DC_VENC_DVO2, 0, VPS_DC_MODE_1080P_60,    \
+		{VPS_DC_VENC_DVO2, 0, VPS_DC_MODE_1080P_30,    \
 		1920, 1080, FVID2_SF_PROGRESSIVE, NULL},
 
 		{VPS_DC_VENC_SD, 0, VPS_DC_MODE_NTSC,	  \
@@ -68,6 +68,7 @@ static struct venc_modeinfo modeinfo[VPS_DC_MAX_MODE] = {
 	{"1080p-60", 1920, 1080, 1, VPS_DC_MODE_1080P_60},
 	{"720p-60", 1280, 720, 1, VPS_DC_MODE_720P_60},
 	{"1080i-60", 1920, 1080, 0, VPS_DC_MODE_1080I_60},
+	{"1080p-30", 1920, 1080, 1, VPS_DC_MODE_1080P_30},
 };
 
 static struct venc_name_id v_nameid[VPS_DC_MAX_VENC] = {
