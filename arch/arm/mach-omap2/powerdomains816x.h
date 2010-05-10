@@ -24,6 +24,13 @@
 
 #if defined(CONFIG_ARCH_TI816X)
 
+static struct powerdomain active_816x_pwrdm = {
+	.name		  = "active_pwrdm",
+	.prcm_offs	  = TI816X_PRM_ACTIVE_MOD,
+	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X),
+	.pwrsts		  = PWRSTS_OFF_ON,
+};
+
 static struct powerdomain default_816x_pwrdm = {
 	.name		  = "default_pwrdm",
 	.prcm_offs	  = TI816X_PRM_DEFAULT_MOD,

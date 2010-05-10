@@ -149,6 +149,7 @@ static struct powerdomain *powerdomains_omap[] __initdata = {
 #endif
 
 #ifdef CONFIG_ARCH_TI816X
+	&active_816x_pwrdm,
 	&default_816x_pwrdm,
 	&ivahd0_816x_pwrdm,
 	&ivahd1_816x_pwrdm,
