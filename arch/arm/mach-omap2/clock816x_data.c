@@ -88,6 +88,51 @@ static struct clk sys_clkin_ck = {
 	.flags		= RATE_IN_TI816X | DEFAULT_RATE,
 };
 
+static struct clk main_pll_clk1_ck = {
+	.name		= "main_pll_clk1_ck",
+	.ops		= &clkops_null,
+	.rate		= 800000000,
+	.flags		= RATE_IN_TI816X | DEFAULT_RATE,
+};
+
+static const struct clksel_rate div8_sysclk1_rates[] = {
+	{ .div = 1, .val = 0, .flags = RATE_IN_TI816X | DEFAULT_RATE },
+	{ .div = 2, .val = 1, .flags = RATE_IN_TI816X },
+	{ .div = 3, .val = 2, .flags = RATE_IN_TI816X },
+	{ .div = 4, .val = 3, .flags = RATE_IN_TI816X },
+	{ .div = 5, .val = 4, .flags = RATE_IN_TI816X },
+	{ .div = 6, .val = 5, .flags = RATE_IN_TI816X },
+	{ .div = 7, .val = 6, .flags = RATE_IN_TI816X },
+	{ .div = 8, .val = 7, .flags = RATE_IN_TI816X },
+	{ .div = 0 },
+};
+
+static const struct clksel sysclk1_div[] = {
+	{ .parent = &main_pll_clk1_ck, .rates = div8_sysclk1_rates },
+	{ .parent = NULL },
+};
+
+static struct clk sysclk1_ck = {
+	.name		= "sysclk1_ck",
+	.parent		= &main_pll_clk1_ck,
+	.clksel		= sysclk1_div,
+	.init		= &omap2_init_clksel_parent,
+	.ops		= &clkops_null,
+	.clksel_reg	= TI816X_CM_DPLL_SYSCLK1_CLKSEL,
+	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
+	.recalc		= &omap2_clksel_recalc,
+};
+
+static struct clk gem_ick = {
+	.name           = "gem_ick",
+	.parent         = &sysclk1_ck,
+	.ops            = &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_ACTIVE_GEM_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "active_gem_clkdm",
+	.recalc         = &followparent_recalc,
+};
+
 static struct clk main_pll_clk3_ck = {
 	.name		= "main_pll_clk3_ck",
 	.ops		= &clkops_null,
@@ -234,6 +279,14 @@ static struct clk sysclk6_ck = {
 	.clksel_reg	= TI816X_CM_DPLL_SYSCLK6_CLKSEL,
 	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
 	.recalc		= &omap2_clksel_recalc,
+};
+
+static struct clk gem_vbusp_fck = {
+	.name           = "gem_vbusp_fck",
+	.parent         = &sysclk6_ck,
+	.ops		= &clkops_null,
+	.clkdm_name	= "active_gem_clkdm",
+	.recalc         = &followparent_recalc,
 };
 
 static struct clk uart1_ick = {
@@ -398,6 +451,14 @@ static struct clk ducati_ick = {
 	.enable_reg	= TI816X_CM_DEFAULT_DUCATI_CLKCTRL,
 	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
 	.clkdm_name	= "default_ducati_clkdm",
+	.recalc         = &followparent_recalc,
+};
+
+static struct clk gem_trc_fck = {
+	.name           = "gem_trc_fck",
+	.parent         = &sysclk5_ck,
+	.ops		= &clkops_null,
+	.clkdm_name	= "active_gem_clkdm",
 	.recalc         = &followparent_recalc,
 };
 
@@ -803,6 +864,9 @@ static struct omap_clk ti816x_clks[] = {
 	CLK(NULL,		"sys_32k_ck",		&sys_32k_ck,		CK_TI816X),
 	CLK(NULL,		"tclkin_ck",		&tclkin_ck,		CK_TI816X),
 	CLK(NULL,		"sys_clkin_ck",		&sys_clkin_ck,		CK_TI816X),
+	CLK(NULL,		"main_pll_clk1_ck",	&main_pll_clk1_ck,	CK_TI816X),
+	CLK(NULL,		"sysclk1_ck",		&sysclk1_ck,		CK_TI816X),
+	CLK(NULL,		"gem_ick",		&gem_ick,		CK_TI816X),
 	CLK(NULL,		"main_pll_clk3_ck",	&main_pll_clk3_ck,	CK_TI816X),
 	CLK(NULL,		"sysclk3_ck",		&sysclk3_ck,		CK_TI816X),
 	CLK(NULL,		"ivahd0_ck",		&ivahd0_ck,		CK_TI816X),
@@ -815,6 +879,7 @@ static struct omap_clk ti816x_clks[] = {
 	CLK(NULL,		"sysclk4_ck",		&sysclk4_ck,		CK_TI816X),
 	CLK(NULL,		"ducati_ucache_ick",	&ducati_ucache_ick,	CK_TI816X),
 	CLK(NULL,		"sysclk6_ck",		&sysclk6_ck,		CK_TI816X),
+	CLK(NULL,		"gem_vbusp_fck",	&gem_vbusp_fck,		CK_TI816X),
 	CLK(NULL,		"uart1_ick",		&uart1_ick,		CK_TI816X),
 	CLK(NULL,		"uart2_ick",		&uart2_ick,		CK_TI816X),
 	CLK(NULL,		"uart3_ick",		&uart3_ick,		CK_TI816X),
@@ -836,6 +901,7 @@ static struct omap_clk ti816x_clks[] = {
 	CLK("davinci_emac.0",	"emac1_ick",		&emac1_ick,		CK_TI816X),
 	CLK("davinci_emac.1",	"emac2_ick",		&emac2_ick,		CK_TI816X),
 	CLK(NULL,		"ducati_ick",		&ducati_ick,		CK_TI816X),
+	CLK(NULL,		"gem_trc_fck",		&gem_trc_fck,		CK_TI816X),
 	CLK("omap2_mcspi.1",	"fck",			&mcspi1_fck,		CK_TI816X),
 	CLK(NULL,		"gpmc_fck",		&gpmc_fck,		CK_TI816X),
 	CLK("i2c_omap.1",	"fck",			&i2c1_fck,		CK_TI816X),

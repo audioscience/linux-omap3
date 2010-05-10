@@ -50,6 +50,15 @@ static struct clockdomain alwon_ethernet_816x_clkdm = {
 	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X),
 };
 
+static struct clockdomain active_gem_816x_clkdm = {
+	.name		  = "active_gem_clkdm",
+	.pwrdm		  = { .name = "active_pwrdm" },
+	.clkstctrl_reg	  = TI816X_CM_ACTIVE_GEM_CLKSTCTRL,
+	.clktrctrl_mask	  = TI816X_CLKTRCTRL_MASK,
+	.flags		  = CLKDM_CAN_HWSUP_SWSUP,
+	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X),
+};
+
 static struct clockdomain ivahd0_816x_clkdm = {
 	.name		  = "ivahd0_clkdm",
 	.pwrdm		  = { .name = "ivahd0_pwrdm" },
