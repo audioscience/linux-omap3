@@ -77,7 +77,7 @@ static u32    vps_verparams_phy;
 
 
 /*define the information used by the proxy running in M3*/
-#define VPS_FVID2_RESERVED_NOTIFY	4
+#define VPS_FVID2_RESERVED_NOTIFY	0x05
 #define VPS_FVID2_M3_INIT_VALUE      (0xAAAAAAAA)
 #define VPS_FVID2_PS_LINEID          0
 #define CURRENT_VPS_FIRMWARE_VERSION        (0x01000112)
