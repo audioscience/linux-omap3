@@ -214,7 +214,7 @@ static void configure_channel(struct dma_channel *channel,
 	u8 buffer_is_aligned = (dma_addr & 0x3) ? 0 : 1;
 	u8 use_sdma = 1;
 	u16 csr = 0;
-	u16 mult, resd, frame = len;
+	u16 frame = len;
 	int data_type = OMAP_DMA_DATA_TYPE_S8;
 
 	DBG(4, "%p, pkt_sz %d, addr 0x%x, len %d, mode %d\n",
@@ -226,24 +226,24 @@ static void configure_channel(struct dma_channel *channel,
 	if (use_sdma) {
 		switch (dma_addr & 0x3) {
 		case 0:
-			data_type = OMAP_DMA_DATA_TYPE_S32;
-			mult = len / 4;
-			resd = len % 4;
-			break;
+			if ((len % 4) == 0) {
+				data_type = OMAP_DMA_DATA_TYPE_S32;
+				frame = len / 4;
+				break;
+			}
 		case 2:
-			data_type = OMAP_DMA_DATA_TYPE_S16;
-			mult = len / 2;
-			resd = len % 2;
-			break;
+			if ((len % 2) == 0) {
+				data_type = OMAP_DMA_DATA_TYPE_S16;
+				frame = len / 2;
+				break;
+			}
 		case 1:
 		case 3:
 		default:
 			data_type = OMAP_DMA_DATA_TYPE_S8;
-			mult = len;
-			resd = 0;
+			frame = len;
 			break;
 		}
-		frame = mult + resd;
 	}
 
 	if (musb_channel->sysdma_channel != -1 && use_sdma &&
