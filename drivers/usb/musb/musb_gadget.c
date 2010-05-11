@@ -307,23 +307,26 @@ static void txstate(struct musb *musb, struct musb_request *req)
 #ifdef CONFIG_USB_INVENTRA_DMA
 		{
 			size_t request_size;
-			size_t max_len = musb_ep->dma->max_len;
+
+			/* setup DMA, then program endpoint CSR */
+			request_size = min(request->length,
+						musb_ep->dma->max_len);
+			if (request_size < musb_ep->packet_sz)
+				musb_ep->dma->desired_mode = 0;
+			else
+				musb_ep->dma->desired_mode = 1;
 
 			/*
 			 * use sdma for unaligned buffers on OMAP3630 which
 			 * can work only in mode-0 so restrict the request_size.
 			 */
 			if (cpu_is_omap3630() &&
-					(request->dma + request->actual) & 0x3)
-				max_len = musb_ep->hw_ep->max_packet_sz_tx;
-
-			/* setup DMA, then program endpoint CSR */
-			request_size = min((request->length - request->actual),
-							max_len);
-			if (request_size < musb_ep->packet_sz)
+				(request->dma + request->actual) & 0x3) {
+				request_size =
+				min((size_t)musb_ep->hw_ep->max_packet_sz_tx,
+					(request->length - request->actual));
 				musb_ep->dma->desired_mode = 0;
-			else
-				musb_ep->dma->desired_mode = 1;
+			}
 
 			use_dma = use_dma && c->channel_program(
 					musb_ep->dma, musb_ep->packet_sz,

@@ -218,7 +218,7 @@ static void configure_channel(struct dma_channel *channel,
 	DBG(4, "%p, pkt_sz %d, addr 0x%x, len %d, mode %d\n",
 			channel, packet_sz, dma_addr, len, mode);
 
-	if (buffer_is_aligned && cpu_is_omap3630())
+	if (buffer_is_aligned && (packet_sz >= 512) && cpu_is_omap3630())
 		use_sdma = 0;
 
 	if (musb_channel->sysdma_channel != -1 && use_sdma &&
@@ -267,9 +267,9 @@ static void configure_channel(struct dma_channel *channel,
 					MUSB_FIFO_ADDRESS(musb_channel->epnum),
 					0, 0);
 
-		omap_set_dma_dest_data_pack(musb_channel->sysdma_channel, 1);
+		omap_set_dma_dest_data_pack(musb_channel->sysdma_channel, 0);
 		omap_set_dma_dest_burst_mode(musb_channel->sysdma_channel,
-					OMAP_DMA_DATA_BURST_16);
+					OMAP_DMA_DATA_BURST_DIS);
 
 		omap_start_dma(musb_channel->sysdma_channel);
 
