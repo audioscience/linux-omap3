@@ -722,7 +722,7 @@ static int ti816xfb_set_var(struct fb_info *fbi)
 
 static int ti816xfb_open(struct fb_info *fbi, int user)
 {
-	int r;
+	int r = 0;
 	struct ti816xfb_info		*tfbi = FB2TFB(fbi);
 	struct vps_grpx_ctrl		*gctrl = tfbi->gctrl;
 	u32				grpxinstid;
@@ -1554,7 +1554,7 @@ static void __exit ti816xfb_exit(void)
 
 module_param_named(vram, def_vram, charp, 0);
 module_param_named(mmode, fb_mmode, int, 0664);
-module_param_named(mode, def_mode, charp, 0);
+/*module_param_named(mode, def_mode, charp, 0);*/
 
 late_initcall(ti816xfb_init);
 module_exit(ti816xfb_exit);

@@ -59,7 +59,7 @@ struct vps_dmamem_info {
 int __init vps_grpx_init(struct platform_device *pdev);
 void __exit vps_grpx_deinit(struct platform_device *pdev);
 
-int vps_dc_init(struct platform_device *pdev);
+int vps_dc_init(struct platform_device *pdev, char *def_mode);
 
 int vps_dc_deinit(struct platform_device *pdev);
 

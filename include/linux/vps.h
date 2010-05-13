@@ -276,6 +276,67 @@
  */
 #define IOCTL_VPS_WRITE_ADV_SC_CFG      (VPS_ADV_IOCTL_BASE + 0x0001u)
 
+/**
+ *  \brief Read the High Quality De-Interlacer hardware configuration.
+ *
+ *  This ioctl can be used to read the actual hardware registers of the
+ *  High Quality De-interlacer.
+ *  This is for the advanced user for the hardware debug capability.
+ *
+ *  \param cmdArgs       [OUT] Vps_DeiHqRdWrAdvCfg *
+ *  \param cmdArgsStatus [OUT] NULL
+ *
+ *  \return FVID_SOK on success, else failure
+ *
+ */
+#define IOCTL_VPS_READ_ADV_DEIHQ_CFG       (VPS_ADV_IOCTL_BASE + 0x0010u)
+
+/**
+ *  \brief Write the High Quality De-Interlacer hardware configuration.
+ *
+ *  This ioctl can be used to write the actual hardware registers of the
+ *  High Quality De-interlacer.
+ *  This is for the advanced user for the hardware debug capability.
+ *
+ *  \param cmdArgs       [IN]  const Vps_DeiHqRdWrAdvCfg *
+ *  \param cmdArgsStatus [OUT] NULL
+ *
+ *  \return FVID_SOK on success, else failure
+ *
+ */
+#define IOCTL_VPS_WRITE_ADV_DEIHQ_CFG      (VPS_ADV_IOCTL_BASE + 0x0011u)
+
+/**
+ *  \brief Read the Medium Quality De-Interlacer hardware configuration.
+ *
+ *  This ioctl can be used to read the actual hardware registers of the
+ *  Medium Quality De-interlacer.
+ *  This is for the advanced user for the hardware debug capability.
+ *
+ *  \param cmdArgs       [OUT] Vps_DeiMqRdWrAdvCfg *
+ *  \param cmdArgsStatus [OUT] NULL
+ *
+ *  \return FVID_SOK on success, else failure
+ *
+ */
+#define IOCTL_VPS_READ_ADV_DEIMQ_CFG       (VPS_ADV_IOCTL_BASE + 0x0012u)
+
+/**
+ *  \brief Write the Medium Quality De-Interlacer hardware configuration.
+ *
+ *  This ioctl can be used to write the actual hardware registers of the
+ *  Medium Quality De-interlacer.
+ *  This is for the advanced user for the hardware debug capability.
+ *
+ *  \param cmdArgs       [IN]  const Vps_DeiMqRdWrAdvCfg *
+ *  \param cmdArgsStatus [OUT] NULL
+ *
+ *  \return FVID_SOK on success, else failure
+ *
+ */
+#define IOCTL_VPS_WRITE_ADV_DEIMQ_CFG      (VPS_ADV_IOCTL_BASE + 0x0013u)
+
+
 /** \brief Floor a integer value. */
 #define VpsUtils_floor(val, align)  (((val) / (align)) * (align))
 

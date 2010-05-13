@@ -48,6 +48,7 @@ unsigned int vpss_debug;
 module_param_named(debug, vpss_debug, bool, 0644);
 #endif
 
+static char *def_mode;
 
 static int vps_probe(struct platform_device *pdev)
 {
@@ -58,7 +59,7 @@ static int vps_probe(struct platform_device *pdev)
 		return r;
 	}
 
-	r = vps_dc_init(pdev);
+	r = vps_dc_init(pdev, def_mode);
 	if (r) {
 		VPSSERR("failed to int display controller.\n");
 		goto exit1;
@@ -75,7 +76,7 @@ static int vps_probe(struct platform_device *pdev)
 exit2:
 	vps_dc_deinit(pdev);
 exit1:
-	vps_fvid2_deinit(NULL);
+	vps_fvid2_deinit(pdev);
 
 	return r;
 }
@@ -144,7 +145,7 @@ static void __exit vps_cleanup(void)
 	platform_driver_unregister(&vps_driver);
 }
 
-
+module_param_named(mode, def_mode, charp, 0);
 
 subsys_initcall(vps_init);
 module_exit(vps_cleanup);

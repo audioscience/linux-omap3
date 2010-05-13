@@ -679,7 +679,6 @@ static int vps_grpx_create_dcconfig(struct vps_grpx_ctrl *gctrl)
 {
 	int i, r = 0;
 	struct vps_dcconfig *cfg = &gctrl->dccfg;
-	enum vps_dcmodeid  mid = VPS_DC_MODE_1080P_60;
 	/*FIXME should check the node is already enable or not*/
 	cfg->usecase = VPS_DC_USERSETTINGS;
 	cfg->numedges = gctrl->numends;
@@ -691,18 +690,11 @@ static int vps_grpx_create_dcconfig(struct vps_grpx_ctrl *gctrl)
 		r = vps_dc_get_vencmode(gctrl->enodes[i],
 				       &cfg->vencinfo.modeinfo[i],
 				       DC_BLEND_ID);
-
-		if (i == 0)
-			mid = cfg->vencinfo.modeinfo[i].modeid;
-		else
-			if (mid != cfg->vencinfo.modeinfo[i].modeid) {
-				VPSSERR("the tied venc should have  \
-						the same timing.\n");
-				return -EINVAL;
-			}
-
 		/* if connect more then one blend, then the venc associated
 		with blend need be tied and in the same format*/
+
+		/*should we checking timing here?*/
+
 		cfg->vencinfo.tiedvencs |= cfg->vencinfo.modeinfo[i].vencid;
 	}
 	/*clear the tie vence if only one blend is connect*/
@@ -784,8 +776,7 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 	int r = 0;
 	int total = 0;
 	int i;
-	u32 mid = VPS_DC_MODE_1080P_60;
-	u32 tiedvenc = 0;
+	u8 tiedvenc = 0;
 	char *input = (char *)buf, *this_opt;
 
 	struct vps_dcmodeinfo minfo;
@@ -836,18 +827,6 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 				       &minfo,
 				       DC_BLEND_ID);
 
-		if (i == 0)
-			mid = minfo.modeid;
-		else
-			if (mid != minfo.modeid) {
-				VPSSERR("the tied venc should have  \
-						the same timing.\n");
-				r = -EINVAL;
-				goto exit;
-			}
-
-
-
 		VPSSDBG("s: %d e:%d\n",
 			gctrl->snode,
 			gctrl->enodes[i]);
@@ -859,10 +838,16 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 	}
 	if (gctrl->numends == 1)
 		tiedvenc = 0;
+	else {
+		u8 tvencs;
+		vps_dc_get_tiedvenc(&tvencs);
+		if (tiedvenc & (~tvencs))
+			r = -EINVAL;
+	}
 	VPSSDBG("tiedvecn :%d.\n", tiedvenc);
 exit:
 	grpx_unlock(gctrl);
-	if (r)
+	if (r < 0)
 		return r;
 	return size;
 }
@@ -1120,7 +1105,7 @@ static inline int get_alloc_size(void)
 
 int __init vps_grpx_init(struct platform_device *pdev)
 {
-	int i;
+	int i, r;
 	struct vps_dmamem_info *gdinfo = &grpx_dma_info;
 	u32 size = 0;
 	u32 offset = 0;
@@ -1138,7 +1123,8 @@ int __init vps_grpx_init(struct platform_device *pdev)
 	if (gdinfo->vaddr == NULL) {
 		VPSSERR("alloc grpx dma buffer failed\n");
 		gdinfo->paddr = 0;
-		return -ENOMEM;
+		r = -ENOMEM;
+		goto cleanup;
 	}
 
 	gdinfo->size = PAGE_ALIGN(size);
@@ -1150,7 +1136,8 @@ int __init vps_grpx_init(struct platform_device *pdev)
 
 		if (gctrl == NULL) {
 			VPSSERR("failed to allocate grpx%d\n", i);
-			BUG_ON(gctrl == NULL);
+			r = -ENOMEM;
+			goto cleanup;
 		}
 		/*assign the dma buffer*/
 		params_addr_alloc(gctrl,
@@ -1184,6 +1171,9 @@ int __init vps_grpx_init(struct platform_device *pdev)
 	}
 
 	return 0;
+cleanup:
+	vps_grpx_deinit(pdev);
+	return r;
 }
 
 void __exit vps_grpx_deinit(struct platform_device *pdev)

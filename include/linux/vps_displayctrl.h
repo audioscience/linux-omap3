@@ -370,6 +370,15 @@ struct vps_dcmodeinfo {
 	/**< timing information.  if this is null this will be used to configure
 	     the timings instead of the standard modeid. currently this is not
 	     supported */
+	u32              isvencrunning;
+	/**< Flag to indicate whether VENC is running or not. This is
+	     read only parameter returned from the display controller to
+	     indicated whether given venc is running or not. */
+	u32              numinpath;
+	/**< This is read only parameter returned from the display
+	     controller to inform number of input paths connected to
+	     the this vencs. */
+
 };
 
 /**
