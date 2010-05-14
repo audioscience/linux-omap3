@@ -30,11 +30,15 @@
 #include <linux/mtd/partitions.h>
 #include <linux/mtd/physmap.h>
 #include <linux/phy.h>
+#include <linux/err.h>
+#include <linux/clk.h>
 
 #include <mach/hardware.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
+#include <asm/cacheflush.h>
+#include <asm/fiq.h>
 
 #include <plat/mcspi.h>
 #include <plat/irqs.h>
@@ -45,6 +49,7 @@
 #include <plat/timer-gp.h>
 #include <plat/asp.h>
 #include <plat/mmc.h>
+#include <plat/dmtimer.h>
 
 #include "clock.h"
 #include "clockdomains.h"
@@ -258,6 +263,141 @@ static struct snd_platform_data ti8168_evm_snd_data = {
 	.rxnumevt = 1,
 };
 
+/*
+ * dmtimer FIQ block: Use DMTIMER3 to generate FIQ every __us.
+ */
+#define ARM_FIQ_VEC	0xffff001c
+#define FIQ_HDLR_SIZE	(12*4)		/* FIXME */
+
+
+/**
+ * dmtimer_setup() - Setup specified timer in periodic mode with given rate
+ */
+static int dmtimer_setup(int dmtimer_id, struct omap_dm_timer *dmtimer, unsigned
+			int rate)
+{
+	u32 clk_rate, period;
+	int src = OMAP_TIMER_SRC_SYS_CLK;
+
+	WARN(IS_ERR_VALUE(omap_dm_timer_set_source(dmtimer, src)),
+			"dmtimer_setup: set_source() failed\n");
+
+	clk_rate = clk_get_rate(omap_dm_timer_get_fclk(dmtimer));
+
+	pr_info("OMAP clockevent source: DMTIMER%d at %u Hz\n",
+			dmtimer_id, clk_rate);
+
+	period = clk_rate / rate;
+
+	omap_dm_timer_set_int_enable(dmtimer, OMAP_TIMER_INT_OVERFLOW);
+	omap_dm_timer_set_load_start(dmtimer, 1, 0xffffffff - period);
+
+	return 0;
+}
+
+#define INTC_MIR_CLEAR0		0x0088
+#define INTC_CONTROL		0x0048
+#define INTC_ILR(irq)		(0x100 + (irq * 4))
+
+#define INTC_FIQ_RST_BIT	BIT(1)
+#define INTC_MAP_FIQ_BIT	BIT(0)
+
+/**
+ * intc_fiq_setup() - Hook up specified interrupt to FIQ
+ */
+static int intc_fiq_setup(int irq)
+{
+	void __iomem *base = TI816X_L4_SLOW_IO_ADDRESS(TI816X_ARM_INTC_BASE);
+	int offset = irq & (~(32 - 1));
+
+	__raw_writel(INTC_MAP_FIQ_BIT, base + INTC_ILR(irq));
+
+	irq &= (32 - 1);
+	__raw_writel((1 << irq), base + INTC_MIR_CLEAR0 + offset);
+
+	return 0;
+}
+
+/**
+ * dmtimer_fiq_hdlr() - FIQ handler installed @FIQ VECTOR
+ *
+ * Note1: Uses __attribute__ ((naked)) mainly to prevent clobber
+ * Note2: Ignores interrupt status, assumes dmtimer4 as source
+ * Note3: Forcing to use banked FIQ registers to avoid context save
+ */
+static void __naked dmtimer_fiq_hdlr(void)
+{
+#if 0
+	volatile register unsigned int *reg1 asm("r8");
+	volatile register unsigned int *reg2 asm("r11");
+
+	reg1 = TI816X_L4_SLOW_IO_ADDRESS(0x48042000) + (0x28 & 0xff);
+	reg2 = TI816X_L4_SLOW_IO_ADDRESS(TI816X_ARM_INTC_BASE) + INTC_CONTROL;
+#endif
+
+	/* FIXME: Assuming dmtimer4 in non-posted mode */
+
+	asm __volatile__ (
+		/*"ldr r9, [%[reg1]];\n\t"*/
+		"mov r12, #0xfa000000\n\t"
+		"orr r9, r12, #0x00040000\n\t"
+		"orr r9, r9, #0x00002000\n\t"
+		"orr r9, r9, #0x00000028\n\t"
+		"mov r10, #2;\n\t"
+		"str r10, [r9];\n\t"
+		/*:: [reg1] "r" (reg1)*/
+		);
+
+	asm __volatile__ (
+		/*"ldr r9, [%[reg2]];\n\t"*/
+		"orr r9, r12, #0x00200000\n\t"
+		"orr r9, r9, #0x00000048\n\t"
+		"mov r10, #2;\n\t"
+		"str r10, [r9];\n\t"
+		/*:: [reg2] "r" (reg2)*/
+		);
+
+	asm __volatile__ (
+		"subs pc, lr, #4\n\t"	/* FIXME */
+		);
+}
+
+/**
+ * axi2ocp_fiq_fixup() - Install and start 125us FIQ
+ */
+static int axi2ocp_fiq_fixup(void)
+{
+	struct omap_dm_timer *dmtimer_fiq;
+
+	dmtimer_fiq = omap_dm_timer_request_specific(4);
+	if (dmtimer_fiq == NULL) {
+		pr_err("axi2ocp_fiq_fixup: failed to get dmtimer\n");
+		return -1;
+	}
+
+	local_fiq_disable();
+
+	intc_fiq_setup(omap_dm_timer_get_irq(dmtimer_fiq));
+
+	/* FIXME: Put actual rate for 125us */
+	dmtimer_setup(4, dmtimer_fiq, 10000);
+
+	memcpy((void *)ARM_FIQ_VEC, (void *)dmtimer_fiq_hdlr, FIQ_HDLR_SIZE);
+	flush_icache_range(ARM_FIQ_VEC, ARM_FIQ_VEC + FIQ_HDLR_SIZE);
+
+	/*
+	 * FIXME: Use CONFIG_FIQ and then init_FIQ(), generic set_fiq_handler(),
+	 * set_fiq_regs(), enable_fiq() (take care of avoiding any side effects
+	 * though)
+	 */
+
+	local_fiq_enable();
+
+	pr_info("axi2ocp_fiq_fixup: FIQ for DMTIMER installed successfully\n");
+
+	return 0;
+}
+
 static void __init ti8168_evm_init(void)
 {
 	omap_board_config = generic_config;
@@ -280,6 +420,11 @@ static void __init ti8168_evm_init(void)
 	if (HAS_NOR)
 		platform_device_register(&ti816x_evm_norflash_device);
 	ti816x_register_mcasp(0, &ti8168_evm_snd_data);
+
+	/* FIXME: Move further up in initialization sequence */
+	pr_info("AXI2OCP: Entering fixup code...\n");
+	axi2ocp_fiq_fixup();
+	pr_info("AXI2OCP: done with fixup\n");
 }
 
 
@@ -299,7 +444,3 @@ MACHINE_START(TI8168_EVM, "ti8168evm")
 	.init_machine	= ti8168_evm_init,
 	.timer		= &omap_timer,
 MACHINE_END
-
-
-
-
