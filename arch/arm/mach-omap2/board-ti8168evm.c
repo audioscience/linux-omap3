@@ -125,24 +125,24 @@ static struct omap2_hsmmc_info mmc[] = {
 	{}	/* Terminator */
 };
 
-static struct omap2_mcspi_device_config m25p32_mcspi_config = {
+static struct omap2_mcspi_device_config w25x32_mcspi_config = {
     .turbo_mode = 0,
     .single_channel = 1,    /* 0: slave, 1: master */
 };
 
-static struct flash_platform_data m25p32_flash_data = {
-	.type			= "m25p32",
+static struct flash_platform_data w25x32_flash_data = {
+	.type			= "w25x32",
 };
 
 static struct spi_board_info ti8168_evm_spi_info[] __initconst = {
 	{
-		.modalias       = "m25p32",
+		.modalias       = "w25x32",
 		.max_speed_hz   = 10 * 1000 * 1000,
 		.bus_num        = 0,
 		.chip_select    = 0,
 		.mode           = SPI_MODE_0,
-		.controller_data = &m25p32_mcspi_config,
-		.platform_data = &m25p32_flash_data,
+		.controller_data = &w25x32_mcspi_config,
+		.platform_data = &w25x32_flash_data,
 		.irq		= TI816X_IRQ_SPI,
 	},
 };
