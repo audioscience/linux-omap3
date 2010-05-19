@@ -39,7 +39,6 @@ struct vps_grpx_state {
 	bool                            isfmtset;
 	bool                            isparamset;
 	bool                            isstarted;
-	bool                            isdcConfig;
 	bool                            clutSet;
 	bool                            scset;
 	bool                            stenset;
@@ -106,7 +105,6 @@ struct vps_grpx_ctrl{
 	u8                              scformat;
 
 	/*display controller settings*/
-	struct vps_dcconfig             dccfg;
 	int                             numends;
 	int                             snode;
 	int                             enodes[VPS_DC_MAX_VENC];
@@ -148,9 +146,6 @@ struct vps_grpx_ctrl{
 
 	int (*start)(struct vps_grpx_ctrl *gctrl);
 	int (*stop)(struct vps_grpx_ctrl *gctrl);
-
-	int (*create_dcconfig)(struct vps_grpx_ctrl *gctrl);
-	int (*set_dcconfig)(struct vps_grpx_ctrl *gctrl, u8 setflag);
 };
 
 static inline void grpx_lock(struct vps_grpx_ctrl *gctrl)

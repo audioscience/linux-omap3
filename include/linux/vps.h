@@ -523,7 +523,7 @@ struct vps_multiwinparams {
  *  \brief structure for getting the status information for create
  *  multiple window (mosaic/region based graphics) layout ioctl.
  */
-struct vps_createlayoutstatus {
+struct vps_layoutid {
 	u32                  layoutid;
 	/**< layout id as assigned by driver. this should be used as a reference
 	by the application to select the required layout.
@@ -539,7 +539,7 @@ struct vps_sliceparams {
 	u32              slicemodeenable;
 	/**< TRUE : Slice level processing is done for this channel
 	     FALSE: Frame level processing is done for this channel. */
-	u16            numlinesperslice;
+	u32            numlinesperslice;
 	/**< Number of lines in a slice. */
 } ;
 

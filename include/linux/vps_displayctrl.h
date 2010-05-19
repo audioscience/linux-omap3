@@ -1519,7 +1519,7 @@ struct vps_dccreateconfig {
 struct vps_dconchipencodercmd {
 	u32                 vencid;
 	/**< venc identifier - venc that would drive encoder of intreset */
-	u32                 encoder;
+	u32                 encoderid;
 	/**< encoder identifier - selects the encoder that would require
 	     perform the requested control */
 	u32                 cmd;

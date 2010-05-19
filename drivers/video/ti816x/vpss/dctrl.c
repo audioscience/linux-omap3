@@ -45,13 +45,13 @@ static struct vps_dmamem_info  dc_dma_info;
 /*store the current VENC setting*/
 static struct vps_dcvencinfo venc_info = {
 	{
-		{VPS_DC_VENC_HDMI, 0, VPS_DC_MODE_1080P_60, 1920, \
+		{VPS_DC_VENC_HDMI, 0, VPS_DC_MODE_1080P_30, 1920, \
 		1080, FVID2_SF_PROGRESSIVE, NULL, 0},
 
-		{VPS_DC_VENC_HDCOMP, 0, VPS_DC_MODE_1080I_60,	\
+		{VPS_DC_VENC_HDCOMP, 0, VPS_DC_MODE_1080P_30,	\
 		1920, 1080, FVID2_SF_INTERLACED, NULL, 0},
 
-		{VPS_DC_VENC_DVO2, 0, VPS_DC_MODE_1080P_60,    \
+		{VPS_DC_VENC_DVO2, 0, VPS_DC_MODE_1080P_30,    \
 		1920, 1080, FVID2_SF_PROGRESSIVE, NULL, 0},
 
 		{VPS_DC_VENC_SD, 0, VPS_DC_MODE_NTSC,	  \
@@ -107,6 +107,34 @@ static struct dcnode_info dcnode[] = {
 	{"sdvenc", VPS_DC_SDVENC_BLEND},			/*25*/
 };
 
+/*S***************************private funtions*******************/
+
+/*get the venc information from M3*/
+static int  dc_get_vencinfo(struct vps_dcvencinfo *vinfo)
+{
+	int r = 0;
+
+	if ((disp_ctrl == NULL) || (disp_ctrl->fvid2_handle == NULL))
+		return -EINVAL;
+
+	memcpy(disp_ctrl->vinfo, vinfo, sizeof(struct vps_dcvencinfo));
+	r = vps_fvid2_control(disp_ctrl->fvid2_handle,
+			      IOCTL_VPS_DCTRL_GET_VENC_MODE,
+			      (void *)disp_ctrl->vinfo_phy,
+			      NULL);
+
+	if (r)
+		VPSSERR("failed to get venc info.\n");
+	else
+		memcpy(vinfo,
+		       disp_ctrl->vinfo,
+		       sizeof(struct vps_dcvencinfo));
+
+	return r;
+
+}
+
+/*get the current format based on the mode id*/
 static int get_format_from_mid(int mid, u32 *width, u32 *height, u8 *scformat)
 {
 	int i;
@@ -122,24 +150,33 @@ static int get_format_from_mid(int mid, u32 *width, u32 *height, u8 *scformat)
 
 	return -EINVAL;
 }
-
+/*get the format based on the venc id*/
 static int get_format_from_vid(int vid, u32 *width, u32 *height, u8 *scformat)
 {
-	int i;
-	for (i = 0; i < VPS_DC_MAX_VENC; i++) {
-		if (vid == venc_info.modeinfo[i].vencid) {
-			*width = modeinfo[venc_info.modeinfo[i].modeid].width;
-			*height = modeinfo[venc_info.modeinfo[i].
-					modeid].height;
-			*scformat =
-				modeinfo[venc_info.modeinfo[i].
-					modeid].scformat;
-			return 0;
-		}
-	}
-	return -EINVAL;
+	int r = 0;
+	struct vps_dcvencinfo vinfo;
+
+	vinfo.numvencs = 1;
+	vinfo.modeinfo[0].vencid = vid;
+
+	r = dc_get_vencinfo(&vinfo);
+	if (r)
+		return -EINVAL;
+
+	if (vinfo.modeinfo[0].iscustommode) {
+		*width = vinfo.modeinfo[0].framewidth;
+		*height = vinfo.modeinfo[0].frameheight;
+		*scformat = vinfo.modeinfo[0].scanformat;
+	} else
+		r = get_format_from_mid(vinfo.modeinfo[0].modeid,
+					width,
+					height,
+					scformat);
+
+	return r;
 }
 
+/*get the format based on the blender id*/
 static int get_format_from_bid(int bid, u32 *width, u32 *height, u8 *scformat)
 {
 	int i;
@@ -147,7 +184,9 @@ static int get_format_from_bid(int bid, u32 *width, u32 *height, u8 *scformat)
 	for (i = 0; i < VPS_DC_MAX_VENC; i++) {
 		if (bid == v_nameid[i].blendid) {
 			r = get_format_from_vid(v_nameid[i].vid,
-					width, height, scformat);
+						width,
+						height,
+						scformat);
 			break;
 		}
 	}
@@ -155,6 +194,7 @@ static int get_format_from_bid(int bid, u32 *width, u32 *height, u8 *scformat)
 	return r;
 }
 
+/*get the index of the desired venc id in the database*/
 static int get_idx_from_vid(int vid, int *idx)
 {
 	int i;
@@ -167,25 +207,50 @@ static int get_idx_from_vid(int vid, int *idx)
 
 	return -EINVAL;
 }
-static inline void set_actnodes(u8 setflag, u8 id)
+
+/*get the venc id based on the name*/
+static int dc_get_vencid(char *vname, int *vid)
 {
-	struct dc_blenderinfo *binfo = &disp_ctrl->blenders[id];
 
-	if (setflag)
-		binfo->actnodes++;
-	else
-		if (binfo->actnodes != 0)
-			binfo->actnodes--;
+	int i;
+	struct venc_name_id *vnid;
 
+	if ((disp_ctrl == NULL) || (disp_ctrl->fvid2_handle == NULL))
+		return -EINVAL;
+
+	VPSSDBG("enter get venc id\n");
+	for (i = 0; i < VPS_DC_MAX_VENC; i++) {
+		vnid = &v_nameid[i];
+		if (!strcmp(vname, vnid->name)) {
+			*vid = vnid->vid;
+			return 0;
+		}
+	}
+	return -1;
 }
 
-int vps_dc_get_tiedvenc(u8 *tiedvenc)
+/*get the mode id based on the mode name*/
+static int dc_get_modeid(char *mname, int *mid)
 {
-	*tiedvenc = disp_ctrl->tiedvenc;
-	return 0;
+	int i;
+	struct venc_modeinfo *vinfo;
+
+	if ((disp_ctrl == NULL) || (disp_ctrl->fvid2_handle == NULL))
+		return -EINVAL;
+
+	VPSSDBG("enter get mode id\n");
+	for (i = 0; i < VPS_DC_MAX_MODE; i++) {
+		vinfo = &modeinfo[i];
+		if (!strcmp(mname, vinfo->name)) {
+			*mid = vinfo->mid;
+			return 0;
+		}
+	}
+	return -1;
 }
 
-int vps_dc_get_node_id(int *id, char *name)
+/*get the node id based on the name*/
+static int dc_get_nodeid(char *name, int *nid)
 {
 	int i;
 
@@ -198,14 +263,221 @@ int vps_dc_get_node_id(int *id, char *name)
 	for (i = 0; i < VPS_DC_MAX_NODE_NUM; i++) {
 		struct dcnode_info *ninfo = &dcnode[i];
 		if (strcmp(name, ninfo->name) == 0) {
-			*id =  ninfo->id;
+			*nid =  ninfo->id;
 			return 0;
 		}
 	}
 	return -EINVAL;
 }
-EXPORT_SYMBOL(vps_dc_get_node_id);
 
+/*disable the desired vencs*/
+static int dc_venc_disable(int vid)
+{
+	int i = 0;
+	int r = 0;
+	struct vps_dcvencinfo vinfo;
+	int venc_ids = vid;
+
+	if ((disp_ctrl == NULL) || (disp_ctrl->fvid2_handle == NULL))
+		return -EINVAL;
+
+	if (vid == 0)
+		return 0;
+
+	if (vid & (~VPS_DC_VENC_MASK)) {
+		VPSSERR("wrong venc id.\n");
+		return -EINVAL;
+	}
+
+
+	VPSSDBG("enter venc disable\n");
+
+	vinfo.numvencs = 0;
+	/*get the id of each venc to be disabled*/
+	while (venc_ids >> i) {
+		if ((venc_ids >> i++) & 1)
+			vinfo.modeinfo[vinfo.numvencs++].vencid =
+							1 << (i - 1);
+	}
+
+	r = dc_get_vencinfo(&vinfo);
+
+	if (r) {
+		VPSSERR("faild to get venc info.\n");
+		return r;
+	}
+
+	venc_ids = vid;
+	for (i = 0; i < vinfo.numvencs; i++) {
+		if (vinfo.modeinfo[i].isvencrunning == 0) {
+			VPSSERR("venc %d already stop\n",
+				vinfo.modeinfo[i].vencid);
+			venc_ids &= ~vinfo.modeinfo[i].vencid;
+		}
+	}
+
+
+	if (venc_ids) {
+		r = vps_fvid2_control(disp_ctrl->fvid2_handle,
+				      IOCTL_VPS_DCTRL_DISABLE_VENC,
+				      (void *)virt_to_phys(&venc_ids),
+				      NULL);
+
+		if (r == 0) {
+			disp_ctrl->enabled_venc_ids &= ~venc_ids;
+			if (disp_ctrl->tiedvenc) {
+				disp_ctrl->tiedvenc &= ~venc_ids;
+				venc_ids = 0;
+				i = 0;
+				/*calculate how vencs left in tied list*/
+				while (disp_ctrl->tiedvenc >> i) {
+					if ((disp_ctrl->tiedvenc >> i++) & 1)
+						venc_ids++;
+
+				}
+				/*if one venc left,set tiedvenc to zero*/
+				if (venc_ids == 1)
+					disp_ctrl->tiedvenc = 0;
+			}
+		} else
+			VPSSERR("failed to disable the venc.\n");
+
+	}
+
+	return r;
+}
+
+/*set the mode for desired vencs*/
+static int dc_set_vencmode(struct vps_dcvencinfo *vinfo)
+{
+	int i, r = 0;
+	int vencs = 0;
+	struct vps_dcvencinfo vi;
+
+	if ((disp_ctrl == NULL) || (disp_ctrl->fvid2_handle == NULL))
+		return -EINVAL;
+
+
+	/*get the current setting based on the app inputs*/
+	for (i = 0; i < vinfo->numvencs; i++)
+		vi.modeinfo[i].vencid = vinfo->modeinfo[i].vencid;
+
+	vi.numvencs = vinfo->numvencs;
+
+	r = dc_get_vencinfo(&vi);
+
+	if (r) {
+		VPSSERR("failed to get venc info.\n");
+		goto exit;
+	}
+
+	/*make sure current venc status is matching */
+	disp_ctrl->vinfo->numvencs = 0;
+	disp_ctrl->vinfo->tiedvencs = 0;
+	for (i = 0; i < vinfo->numvencs; i++) {
+		if (vi.modeinfo[i].isvencrunning) {
+			if (vi.modeinfo[i].modeid !=
+			    vinfo->modeinfo[i].modeid) {
+				r = -EINVAL;
+				VPSSERR("venc %d already running with \
+						different mode\n",
+						vi.modeinfo[i].vencid);
+				goto exit;
+			} else
+				VPSSDBG("venc %d already running\n",
+					vi.modeinfo[i].vencid);
+
+		} else {
+			memcpy(&disp_ctrl->vinfo->modeinfo \
+					[disp_ctrl->vinfo->numvencs++],
+			       &vinfo->modeinfo[i],
+			       sizeof(struct vps_dcmodeinfo));
+			vencs |= vinfo->modeinfo[i].vencid;
+		}
+	}
+	if (vinfo->tiedvencs) {
+		if ((vencs & vinfo->tiedvencs) != vinfo->tiedvencs) {
+			r = -EINVAL;
+			VPSSERR("can not tied venc\n");
+			goto exit;
+		} else
+			disp_ctrl->vinfo->tiedvencs = vinfo->tiedvencs;
+	}
+
+	if (disp_ctrl->vinfo->numvencs) {
+
+		/*set the VENC Mode*/
+		r = vps_fvid2_control(disp_ctrl->fvid2_handle,
+				IOCTL_VPS_DCTRL_SET_VENC_MODE,
+				(void *)disp_ctrl->vinfo_phy,
+				NULL);
+		if (r) {
+			VPSSERR("failed to set venc mdoe.\n");
+			goto exit;
+		}
+		disp_ctrl->enabled_venc_ids |= vencs;
+	}
+
+exit:
+	return r;
+
+}
+
+/*E******************************** private functions *********************/
+
+/*S*******************************  public functions  *********************/
+
+/*get the id(venc,blender,mode) based on the name*/
+int vps_dc_get_id(char *name, int *id, enum dc_idtype type)
+{
+
+	int r = -EINVAL;
+	switch (type) {
+	case DC_BLEND_ID:
+	case DC_NODE_ID:
+		r = dc_get_nodeid(name, id);
+		break;
+	case DC_VENC_ID:
+		r = dc_get_vencid(name, id);
+		break;
+	case DC_MODE_ID:
+		r = dc_get_modeid(name, id);
+		break;
+	}
+
+	return r;
+}
+
+/*get the tied venc information*/
+int vps_dc_get_tiedvenc(u8 *tiedvenc)
+{
+	*tiedvenc = disp_ctrl->tiedvenc;
+	return 0;
+}
+/*set the streaming on the blender, not used*/
+void vps_dc_set_actnodes(u8 setflag, u8 bid)
+{
+	struct dc_blenderinfo *binfo = &disp_ctrl->blenders[bid];
+
+	if (setflag)
+		binfo->actnodes++;
+	else
+		if (binfo->actnodes != 0)
+			binfo->actnodes--;
+
+}
+/*get the venc infor for the desired vencs*/
+int vps_dc_get_vencinfo(struct vps_dcvencinfo *vinfo)
+{
+	int r;
+	dc_lock(disp_ctrl);
+	r = dc_get_vencinfo(vinfo);
+	dc_unlock(disp_ctrl);
+
+	return r;
+}
+
+/*get the node name based on the id*/
 int vps_dc_get_node_name(int id, char *name)
 {
 	int i;
@@ -219,8 +491,8 @@ int vps_dc_get_node_name(int id, char *name)
 	return -EINVAL;
 
 }
-EXPORT_SYMBOL(vps_dc_get_node_name);
 
+/*get the clk source*/
 int vps_dc_get_clksrc(enum vps_dcdvo2clksrc *dvo2,
 			enum vps_dchdcompclksrc *hdcomp)
 {
@@ -234,11 +506,12 @@ int vps_dc_get_clksrc(enum vps_dcdvo2clksrc *dvo2,
 	dc_unlock(disp_ctrl);
 	return 0;
 }
-EXPORT_SYMBOL(vps_dc_get_clksrc);
 
+/*set dc config not used now*/
 int vps_dc_set_config(struct vps_dcconfig *usercfg, int setflag)
 {
 	int r = 0;
+
 	if ((disp_ctrl == NULL) || (disp_ctrl->fvid2_handle == NULL))
 		return -EINVAL;
 
@@ -253,13 +526,10 @@ int vps_dc_set_config(struct vps_dcconfig *usercfg, int setflag)
 	}
 	VPSSDBG("enter set config\n");
 	dc_lock(disp_ctrl);
+
 	memcpy(disp_ctrl->dccfg, usercfg, sizeof(struct vps_dcconfig));
 
-	/*set the tied venc*/
-	if (disp_ctrl->dccfg->vencinfo.tiedvencs)
-		disp_ctrl->dccfg->vencinfo.tiedvencs = disp_ctrl->tiedvenc;
 
-	/*FIXME should start/stop HDMI based on it is connected or not*/
 	if (setflag) {
 		r = vps_fvid2_control(disp_ctrl->fvid2_handle,
 				      IOCTL_VPS_DCTRL_SET_CONFIG,
@@ -278,244 +548,12 @@ int vps_dc_set_config(struct vps_dcconfig *usercfg, int setflag)
 
 	}
 
-	/*based on the end node id to determine whether
-	  there is a new edge connected/disconnected to the blend*/
-
-	if (r == 0) {
-		int i;
-		enum vps_dcusecase ucase = disp_ctrl->dccfg->usecase;
-		switch (ucase) {
-		case VPS_DC_TRIDISPLAY:
-			set_actnodes(setflag, HDMI);
-			set_actnodes(setflag, DVO2);
-			set_actnodes(setflag, SDVENC);
-			break;
-		case VPS_DC_DUALHDDISPLAY:
-			set_actnodes(setflag, HDMI);
-			set_actnodes(setflag, DVO2);
-			break;
-		case VPS_DC_DUALHDSDDISPLAY:
-			set_actnodes(setflag, HDMI);
-			set_actnodes(setflag, SDVENC);
-			break;
-		case VPS_DC_USERSETTINGS:
-			for (i = 0; i < disp_ctrl->dccfg->numedges; i++) {
-				struct vps_dcedgeinfo *einfo =
-					&disp_ctrl->dccfg->edgeinfo[i];
-				switch (einfo->endnode) {
-				case VPS_DC_HDMI_BLEND:
-					set_actnodes(setflag, HDMI);
-					break;
-				case VPS_DC_HDCOMP_BLEND:
-					set_actnodes(setflag, HDCOMP);
-					break;
-				case VPS_DC_DVO2_BLEND:
-					set_actnodes(setflag, DVO2);
-					break;
-				case VPS_DC_SDVENC_BLEND:
-					set_actnodes(setflag, SDVENC);
-					break;
-				}
-
-			}
-			break;
-		default:
-			VPSSDBG("wrong usercaes.\n");
-			break;
-		}
-	}
-
 	dc_unlock(disp_ctrl);
 
 	return r;
 }
-EXPORT_SYMBOL(vps_dc_set_config);
 
-int vps_dc_venc_disable(int *vid, int numvenc)
-{
-	int i, j, r = 0;
-	struct vps_dcvencinfo *vinfo = disp_ctrl->vinfo;
-	int venc_ids = 0;
-
-	if ((disp_ctrl == NULL) || (disp_ctrl->fvid2_handle == NULL))
-		return -EINVAL;
-
-	if (numvenc > VPS_DC_MAX_VENC)
-		return -EINVAL;
-
-	VPSSDBG("enter venc disable\n");
-	dc_lock(disp_ctrl);
-	for (i = 0; i < numvenc; i++) {
-		for (j = 0; j < VPS_DC_MAX_VENC; j++) {
-			if (vid[i] == vinfo->modeinfo[j].vencid) {
-				venc_ids = vid[i];
-				break;
-			}
-		}
-
-		/*FIX ME check what kind of edge is connected to this venc
-		if the edge is not disable, then need disable the edge first
-		before the venc*/
-
-
-		/* the venc is already disable, do not need do it again*/
-		if ((disp_ctrl->enabled_venc_ids & vid[i]) == 0)
-			venc_ids &= ~vid[i];
-
-		if (j == VPS_DC_MAX_VENC) {
-			dc_unlock(disp_ctrl);
-			return -EINVAL;
-		}
-	}
-	/*call FIVD2 to disable the assigend venc*/
-	if (venc_ids) {
-		r = vps_fvid2_control(disp_ctrl->fvid2_handle,
-				      IOCTL_VPS_DCTRL_DISABLE_VENC,
-				      (void *)virt_to_phys(&venc_ids),
-				      NULL);
-
-		if (r == 0)
-			disp_ctrl->enabled_venc_ids &= ~venc_ids;
-		else
-			VPSSERR("failed to disable the venc.\n");
-
-	}
-
-	dc_unlock(disp_ctrl);
-	return r;
-}
-
-
-
-int vps_dc_get_vencmode(int id,
-			struct vps_dcmodeinfo *modeinfo,
-			enum dc_idtype type)
-{
-	int i = 0;
-	int vid;
-
-	if ((disp_ctrl == NULL) || (disp_ctrl->fvid2_handle == NULL))
-		return -EINVAL;
-
-	if (type == DC_MODE_ID)
-		return -EINVAL;
-
-	if (type == DC_BLEND_ID) {
-		for (i = 0; i < VPS_DC_MAX_VENC; i++) {
-			if (id == v_nameid[i].blendid) {
-				vid = v_nameid[i].vid;
-				break;
-			}
-		}
-	} else
-		vid = id;
-
-	if (i == VPS_DC_MAX_VENC)
-		return -EINVAL;
-
-	VPSSDBG("enter get vencmode\n");
-	for (i = 0; i < VPS_DC_MAX_VENC; i++) {
-		if (vid == venc_info.modeinfo[i].vencid) {
-			*modeinfo = venc_info.modeinfo[i];
-			return 0;
-		}
-	}
-
-	return -EINVAL;
-}
-EXPORT_SYMBOL(vps_dc_get_vencmode);
-
-int vps_dc_set_vencmode(int *vid, int *mid,
-			void *modeinfo,
-			int numvenc,
-			int tiedvenc)
-{
-	int i, j, r = 0;
-	struct vps_dcvencinfo *vinfo = disp_ctrl->vinfo;
-
-	if ((disp_ctrl == NULL) || (disp_ctrl->fvid2_handle == NULL))
-		return -EINVAL;
-
-	if (numvenc > VPS_DC_MAX_VENC) {
-		VPSSDBG("num %d vencs to set is bigger than supported.\n",
-			numvenc);
-		return -EINVAL;
-	}
-
-	VPSSDBG("enter set venc mode\n");
-	dc_lock(disp_ctrl);
-	for (i = 0; i < numvenc; i++) {
-		/* bit maps of 4 venc is 0xF*/
-		if ((vid[i] & 0xF) == 0) {
-			VPSSERR(" venc id %d is nonexist.\n", vid[i]);
-			r = -EINVAL;
-			goto exit;
-		}
-
-		if (mid[i] >= VPS_DC_MAX_MODE) {
-			VPSSERR(" mode %d is nonexist.\n", mid[i]);
-			r = -EINVAL;
-			goto exit;
-		}
-
-		/*check whether the venc is already running, it yes, ask
-			app to disable it before update*/
-		if (disp_ctrl->enabled_venc_ids & vid[i]) {
-			VPSSERR("venc id %d is already running, \
-				disable it first before change.\n",
-				vid[i]);
-			r = -EINVAL;
-			goto exit;
-		}
-	}
-
-	vinfo->numvencs = numvenc;
-	vinfo->tiedvencs = tiedvenc & 0xF;
-	/*prepare the IOCTL parameters*/
-	for (i = 0; i < numvenc; i++) {
-		vinfo->modeinfo[i].vencid = vid[i];
-		vinfo->modeinfo[i].iscustommode = 0;
-		vinfo->modeinfo[i].modeid = mid[i];
-
-		get_format_from_mid(mid[i],
-				    &vinfo->modeinfo[i].framewidth,
-				    &vinfo->modeinfo[i].frameheight,
-				    (u8 *)&vinfo->modeinfo[i].scanformat);
-
-	}
-
-	/*do not enable the ennc */
-#if 0
-	/*set the VENC Mode*/
-	r = vps_fvid2_control(disp_ctrl->fvid2_handle,
-			IOCTL_VPS_DCTRL_SET_VENC_MODE,
-			(void *)disp_ctrl->vinfo_phy,
-			NULL);
-	if (r) {
-		VPSSERR("failed to set venc mdoe.\n");
-		goto exit;
-	}
-
-#endif
-	if (r == 0) {
-		for (i = 0; i < numvenc; i++) {
-			/*disp_ctrl->enabled_venc_ids |= vid[i];*/
-
-			for (j = 0; j < VPS_DC_MAX_VENC; j++)
-				if (vid[i] == venc_info.modeinfo[j].vencid)
-					memcpy(&venc_info.modeinfo[j],
-					       &vinfo->modeinfo[i],
-					       sizeof(struct vps_dcmodeinfo));
-
-		}
-	}
-exit:
-	dc_unlock(disp_ctrl);
-	return r;
-
-}
-EXPORT_SYMBOL(vps_dc_set_vencmode);
-
+/*get current venc output format*/
 int vps_dc_get_outpfmt(int id, u32 *width,
 		       u32 *height,
 		       u8 *scformat,
@@ -528,6 +566,7 @@ int vps_dc_get_outpfmt(int id, u32 *width,
 
 	VPSSDBG("enter get output format\n");
 
+	dc_lock(disp_ctrl);
 	if (type == DC_VENC_ID)
 		r = get_format_from_vid(id, width, height, scformat);
 	 else if (type == DC_BLEND_ID)
@@ -537,10 +576,11 @@ int vps_dc_get_outpfmt(int id, u32 *width,
 	 else
 		r = -EINVAL;
 
+	dc_unlock(disp_ctrl);
 	return r;
 }
-EXPORT_SYMBOL(vps_dc_get_outpfmt);
 
+/* set/clear the node path/edge */
 int vps_dc_set_node(u8 nodeid, u8 inputid, u8 enable)
 {
 
@@ -550,8 +590,28 @@ int vps_dc_set_node(u8 nodeid, u8 inputid, u8 enable)
 
 	VPSSDBG("enter set node\n");
 	dc_lock(disp_ctrl);
+
 	disp_ctrl->nodeinfo->nodeid = nodeid;
 	disp_ctrl->nodeinfo->inputid = inputid;
+
+	r = vps_fvid2_control(disp_ctrl->fvid2_handle,
+			      IOCTL_VPS_DCTRL_GET_NODE_INPUT_STATUS,
+			      (void *)disp_ctrl->ninfo_phy,
+			      NULL);
+
+	if (r) {
+		VPSSERR("failed to get node input status\n");
+		goto exit;
+	}
+	if (disp_ctrl->nodeinfo->isenable == enable) {
+		if (enable)
+			VPSSDBG("node already connected\n");
+		else
+			VPSSDBG("node already disconnected\n");
+
+		goto exit;
+	}
+	/*call ioctl to set/clear the node */
 	disp_ctrl->nodeinfo->isenable = enable;
 	r = vps_fvid2_control(disp_ctrl->fvid2_handle,
 			      IOCTL_VPS_DCTRL_NODE_INPUT,
@@ -560,53 +620,11 @@ int vps_dc_set_node(u8 nodeid, u8 inputid, u8 enable)
 	if (r)
 		VPSSERR("failed to enable node.\n");
 
+exit:
 	dc_unlock(disp_ctrl);
 	return r;
 }
-EXPORT_SYMBOL(vps_dc_set_node);
-
-
-int vps_dc_get_vencid(char *vname, int *vid)
-{
-
-	int i;
-	struct venc_name_id *vnid;
-
-	if ((disp_ctrl == NULL) || (disp_ctrl->fvid2_handle == NULL))
-		return -EINVAL;
-
-	VPSSDBG("enter get venc id\n");
-	for (i = 0; i < VPS_DC_MAX_VENC; i++) {
-		vnid = &v_nameid[i];
-		if (!strcmp(vname, vnid->name)) {
-			*vid = vnid->vid;
-			return 0;
-		}
-	}
-   return -1;
-}
-EXPORT_SYMBOL(vps_dc_get_vencid);
-
-int vps_dc_get_modeid(char *mname, int *mid)
-{
-	int i;
-	struct venc_modeinfo *vinfo;
-
-	if ((disp_ctrl == NULL) || (disp_ctrl->fvid2_handle == NULL))
-		return -EINVAL;
-
-	VPSSDBG("enter get mode id\n");
-	for (i = 0; i < VPS_DC_MAX_MODE; i++) {
-		vinfo = &modeinfo[i];
-		if (!strcmp(mname, vinfo->name)) {
-			*mid = vinfo->mid;
-			return 0;
-		}
-	}
-	return -1;
-}
-EXPORT_SYMBOL(vps_dc_get_modeid);
-
+/*E********************************* public functions *****************/
 
 /*sysfs function for blender starting from here*/
 static ssize_t blender_mode_show(struct dc_blenderinfo *binfo, char *buf)
@@ -631,24 +649,37 @@ static ssize_t blender_mode_store(struct dc_blenderinfo *binfo,
 	u32 idx = binfo->idx;
 	u32 mid;
 	char *input = (char *)buf;
-
-	if (binfo->actnodes) {
-		VPSSERR("disable the nodes before changing the mode.\n");
-		return -EINVAL;
-	}
+	struct vps_dcvencinfo vinfo;
 
 	dc_lock(binfo->dcctrl);
+
+	/*venc should be stop before changes*/
+	vinfo.numvencs = 1;
+	vinfo.modeinfo[0].vencid = venc_info.modeinfo[idx].vencid;
+	r = dc_get_vencinfo(&vinfo);
+	if (r) {
+		r = -EINVAL;
+		goto exit;
+	}
+	if (vinfo.modeinfo[0].isvencrunning) {
+		VPSSERR("stop venc before changing mode\n");
+		r = -EINVAL;
+		goto exit;
+	}
+
 	input  = strsep(&input, "\n");
-	r = vps_dc_get_modeid(input, &mid);
+	r = dc_get_modeid(input, &mid);
 	if (r) {
 		VPSSERR("failed to get the mode %s.\n", input);
-		dc_unlock(binfo->dcctrl);
-		return r;
+		r = -EINVAL;
+		goto exit;
 	}
 
 	venc_info.modeinfo[idx].modeid = mid;
+	r = size;
+exit:
 	dc_unlock(binfo->dcctrl);
-	return size;
+	return r;
 }
 
 static ssize_t blender_timings_show(struct dc_blenderinfo *binfo, char *buf)
@@ -666,15 +697,73 @@ static ssize_t blender_timings_store(struct dc_blenderinfo *binfo,
 
 static ssize_t blender_enabled_show(struct dc_blenderinfo *binfo, char *buf)
 {
-	return snprintf(buf, PAGE_SIZE, "TBD\n");
+	int r;
+	struct vps_dcvencinfo vinfo;
+
+	dc_get_vencid(binfo->name, &vinfo.modeinfo[0].vencid);
+
+	vinfo.numvencs = 1;
+
+	r = dc_get_vencinfo(&vinfo);
+
+	if (r) {
+		VPSSERR(" Failed to get venc infor\n");
+		r = -EINVAL;
+		goto exit;
+	}
+
+	r = snprintf(buf, PAGE_SIZE, "%d\n", vinfo.modeinfo[0].isvencrunning);
+
+exit:
+	return r;
 }
 
 static ssize_t blender_enabled_store(struct dc_blenderinfo *binfo,
 				     const char *buf,
 				     size_t size)
 {
-	VPSSDBG("TBD\n");
-	return size;
+	int enabled;
+	int vid;
+	int r = 0;
+	if ((disp_ctrl == NULL) || (disp_ctrl->fvid2_handle == NULL))
+		return -EINVAL;
+
+	enabled = simple_strtoul(buf, NULL, 10);
+
+	dc_lock(disp_ctrl);
+	/*get vid id*/
+	dc_get_vencid(binfo->name, &vid);
+
+	if (enabled == 0) {
+		r = dc_venc_disable(vid);
+		if (r) {
+			VPSSERR("failed to disable %s venc\n",
+				binfo->name);
+			r = -EINVAL;
+			goto exit;
+		}
+	} else {
+		int idx;
+		struct vps_dcvencinfo vinfo;
+		get_idx_from_vid(vid, &idx);
+		memcpy(&vinfo.modeinfo[0],
+		   &venc_info.modeinfo[idx],
+		   sizeof(struct vps_dcvencinfo));
+		vinfo.numvencs = 1;
+		vinfo.tiedvencs = 0;
+		r = dc_set_vencmode(&vinfo);
+		if (r) {
+			VPSSERR("failed to enable venc %s\n",
+				binfo->name);
+			r = -EINVAL;
+			goto exit;
+		}
+	}
+
+	r = size;
+exit:
+	dc_unlock(disp_ctrl);
+	return r;
 }
 
 static ssize_t blender_clksrc_show(struct dc_blenderinfo *binfo, char *buf)
@@ -701,14 +790,23 @@ static ssize_t blender_clksrc_store(struct dc_blenderinfo *binfo,
 {
 	int r = 0;
 	char *input = (char *)buf;
+	struct vps_dcvencinfo vinfo;
 
 	if ((binfo->idx == HDMI) || (binfo->idx == SDVENC))
 		return size;
 	input  = strsep(&input, "\n");
 
 	dc_lock(binfo->dcctrl);
-	if (binfo->actnodes != 0) {
-		VPSSERR("disable nodes before continues.\n");
+
+	vinfo.numvencs = 1;
+	vinfo.modeinfo[0].vencid = venc_info.modeinfo[binfo->idx].vencid;
+	r = dc_get_vencinfo(&vinfo);
+	if (r)
+		goto exit;
+
+	if (vinfo.modeinfo[0].isvencrunning) {
+		VPSSERR("stop venc before changing clk");
+		r = -EINVAL;
 		goto exit;
 	}
 
@@ -731,15 +829,13 @@ static ssize_t blender_clksrc_store(struct dc_blenderinfo *binfo,
 	} else {
 		VPSSERR("clock source(%s) not supported.\n", input);
 		r = -EINVAL;
+		goto exit;
 	}
 
-
+	r = size;
 exit:
 	dc_unlock(binfo->dcctrl);
-	if (r)
-		return r;
-
-	return size;
+	return r;
 }
 struct blender_attribute {
 	struct attribute attr;
@@ -815,76 +911,65 @@ static struct kobj_type blender_ktype = {
 
 
 /*sysfs for the display controller*/
-static ssize_t dctrl_tiedvenc_show(struct vps_dispctrl *dctrl, char *buf)
+static ssize_t dctrl_tiedvencs_show(struct vps_dispctrl *dctrl, char *buf)
 {
-
-	int i = 0;
-	u8 tiedvencs = dctrl->tiedvenc;
-	int l = 0;
-	int count = 0;
-	while (tiedvencs) {
-		if (tiedvencs & 1) {
-			if (count == 0)
-				l += snprintf(buf + 2 + l,
-					      PAGE_SIZE - l,
-					      ":%s",
-					      v_nameid[i].name);
-
-			else
-				l += snprintf(buf + 2 + l,
-					      PAGE_SIZE - l,
-					      ",%s",
-					      v_nameid[i].name);
-
-			count++;
-		}
-		tiedvencs >>= 1;
-		i++;
-	}
-	if (count) {
-		l += snprintf(buf, PAGE_SIZE - l, "%d", count);
-		l += snprintf(buf + l + 1, PAGE_SIZE - l, "\n");
-		l += snprintf(buf + l, PAGE_SIZE - l, "\n");
-	}
-	return l;
+	return snprintf(buf, PAGE_SIZE, "%d\n", disp_ctrl->tiedvenc);
 }
 
-static ssize_t dctrl_tiedvenc_store(struct vps_dispctrl *dctrl,
+static ssize_t dctrl_tiedvencs_store(struct vps_dispctrl *dctrl,
 				     const char *buf,
 				     size_t size)
 {
 	int r = 0;
-	int total = 0;
 	int vencs = 0;
-	int vid;
-	char *input = (char *)buf, *this_opt;
-
-	input = strsep(&input, "\n");
-	this_opt = strsep(&input, ":");
-	total = simple_strtoul(this_opt, &this_opt, 10);
-
-	while (!r && (this_opt = strsep(&input, ",")) != NULL) {
-		int idx = 0;
-		struct dc_blenderinfo *binfo;
-		if (vps_dc_get_vencid(this_opt, &vid)) {
-			r = -EINVAL;
-			goto exit;
-		}
-
-		get_idx_from_vid(vid, &idx);
-		binfo = &dctrl->blenders[idx];
-		if (binfo->actnodes) {
-			VPSSERR("please disalbe nodes first.\n");
-			r = -EINVAL;
-			goto exit;
-		}
-		vencs |= vid;
-		total++;
+	int i = 0;
+	struct vps_dcvencinfo vinfo;
+	dc_lock(disp_ctrl);
+	vencs = simple_strtoul(buf, NULL, 10);
+	if (vencs & ~VPS_DC_VENC_MASK) {
+		r = -EINVAL;
+		VPSSERR("vencs %d over limit\n", vencs);
+		goto exit;
 	}
-	if (total > 1)
-		dctrl->tiedvenc = vencs;
+
+	if ((vencs == 0) || (disp_ctrl->tiedvenc == vencs)) {
+		r = size;
+		goto exit;
+	}
+
+	vinfo.numvencs = 0;
+	vinfo.tiedvencs = vencs;
+
+	/*assemble the structure based on the venc id*/
+	while (vencs >> i) {
+		/*get id of each venc to be tied*/
+		if ((vencs >> i++) & 1) {
+			int idx;
+			int vid = 1 << (i - 1);
+			get_idx_from_vid(vid, &idx);
+			memcpy(&vinfo.modeinfo[vinfo.numvencs++],
+			       &venc_info.modeinfo[idx],
+			       sizeof(struct vps_dcmodeinfo));
+
+		}
+	}
+	if (vinfo.numvencs < 2) {
+		VPSSERR("at least 2 vencs to tied.\n");
+		r = -EINVAL;
+		goto exit;
+	}
+
+	/*set the tied venc mode*/
+	r = dc_set_vencmode(&vinfo);
+	if (r) {
+		VPSSERR("failed to set tied venc\n");
+		r = -EINVAL;
+		goto exit;
+	}
+	disp_ctrl->tiedvenc = vinfo.tiedvencs;
 	r = size;
 exit:
+	dc_unlock(disp_ctrl);
 	return r;
 }
 
@@ -898,11 +983,11 @@ struct dctrl_attribute {
 	struct dctrl_attribute dctrl_attr_##_name = \
 	__ATTR(_name, _mode, _show, _store)
 
-static DCTRL_ATTR(tiedvenc, S_IRUGO | S_IWUSR,
-		dctrl_tiedvenc_show, dctrl_tiedvenc_store);
+static DCTRL_ATTR(tiedvencs, S_IRUGO | S_IWUSR,
+		dctrl_tiedvencs_show, dctrl_tiedvencs_store);
 
 static struct attribute *dctrl_sysfs_attrs[] = {
-	&dctrl_attr_tiedvenc.attr,
+	&dctrl_attr_tiedvencs.attr,
 	NULL
 };
 
@@ -953,21 +1038,24 @@ static struct kobj_type dctrl_ktype = {
 /*end of sysfs function for display controller*/
 
 
-static int parse_def_modes(char *def_mode)
+static int parse_def_modes(char *mode)
 
 {
 	char *str, *options, *this_opt;
 	int r = 0;
-	if (def_mode == NULL)
+	struct vps_dcvencinfo *vinfo = &venc_info;
+	if (mode == NULL)
 		return 0;
 
-	str = kmalloc(strlen(def_mode) + 1, GFP_KERNEL);
-	strcpy(str, def_mode);
+	str = kmalloc(strlen(mode) + 1, GFP_KERNEL);
+	strcpy(str, mode);
 	options = str;
-	VPSSDBG("def_mode %s\n", def_mode);
+	VPSSDBG("mode %s\n", mode);
+
 	while (!r && (this_opt = strsep(&options, ",")) != NULL) {
 		char *p, *display_str, *mode_str;
 		int vid, mid;
+		int idx;
 		p = strchr(this_opt, ':');
 		if (!p) {
 			r = -EINVAL;
@@ -977,20 +1065,25 @@ static int parse_def_modes(char *def_mode)
 		*p = 0;
 		display_str = this_opt;
 		mode_str = p + 1;
-		if (vps_dc_get_vencid(display_str, &vid)) {
-			VPSSDBG("venc name(%s) not existing.\n", display_str);
+		if (dc_get_vencid(display_str, &vid)) {
+			VPSSDBG("venc name(%s) not existing.\n",
+				display_str);
 			continue;
 		}
-		if (vps_dc_get_modeid(mode_str, &mid)) {
-			VPSSDBG("venc mode(%s) is not supported.\n", mode_str);
+		if (dc_get_modeid(mode_str, &mid)) {
+			VPSSDBG("venc mode(%s) is not supported.\n",
+				mode_str);
 			continue;
 		}
-		r = vps_dc_set_vencmode(&vid,
-					&mid, NULL, 1, 0);
-		if (r) {
-			VPSSDBG("set vencmode failed\n");
-			continue;
-		}
+
+		get_idx_from_vid(vid, &idx);
+		vinfo->modeinfo[idx].vencid = vid;
+		vinfo->modeinfo[idx].modeid = mid;
+		vinfo->modeinfo[idx].iscustommode = 0;
+		get_format_from_mid(mid,
+				    &vinfo->modeinfo[idx].framewidth,
+				    &vinfo->modeinfo[idx].frameheight,
+				    (u8 *)&vinfo->modeinfo[idx].scanformat);
 
 	   if (options == NULL)
 			break;
@@ -1037,15 +1130,10 @@ static inline void alloc_param_addr(struct vps_dispctrl *dctrl,
 	disp_ctrl->ninfo_phy = dminfo->paddr + offset;
 	offset += sizeof(struct vps_dcnodeinput);
 
-	disp_ctrl->modeinfo = (struct vps_dcmodeinfo *)
-				((u32)dminfo->vaddr + offset);
-	disp_ctrl->minfo_phy = dminfo->paddr + offset;
-	offset += sizeof(struct vps_dcnodeinput);
-
 	*buf_offset = offset;
 }
 
-int vps_dc_init(struct platform_device *pdev, char *def_mode)
+int __init vps_dc_init(struct platform_device *pdev, char *mode, int tied_vencs)
 {
 	int status = EINVAL;
 	int r = 0;
@@ -1108,6 +1196,7 @@ int vps_dc_init(struct platform_device *pdev, char *def_mode)
 	if (r)
 		VPSSERR("failed to create dctrl sysfs file.\n");
 
+	/*create sysfs*/
 	for (i = 0; i < VPS_DC_MAX_VENC; i++) {
 		struct dc_blenderinfo *blend = &disp_ctrl->blenders[i];;
 
@@ -1125,14 +1214,23 @@ int vps_dc_init(struct platform_device *pdev, char *def_mode)
 			continue;
 		}
 	}
+
+	disp_ctrl->tiedvenc = tied_vencs;
+	venc_info.tiedvencs = disp_ctrl->tiedvenc;
+
+
 	/*parse the mode*/
-	r = parse_def_modes(def_mode);
+	r = parse_def_modes(mode);
 	if (r) {
 		VPSSERR("failed to parse mode.\n");
 		goto cleanup;
 	}
 
-	/*should we check the venc to get the venc status*/
+	r = dc_set_vencmode(&venc_info);
+	if (r) {
+		VPSSERR("Failed to set venc mode.\n");
+		goto cleanup;
+	}
 	return 0;
 cleanup:
 	vps_dc_deinit(pdev);
@@ -1140,11 +1238,20 @@ cleanup:
 }
 
 
-int vps_dc_deinit(struct platform_device *pdev)
+int __exit vps_dc_deinit(struct platform_device *pdev)
 {
 	int r = 0;
 	int i;
 	VPSSDBG("dctrl deinit\n");
+
+	/*disable vencs*/
+	if (disp_ctrl->enabled_venc_ids != 0) {
+		r = dc_venc_disable(VPS_DC_VENC_MASK);
+		if (r) {
+			VPSSERR("Failed to disable vencs.\n");
+			return r;
+		}
+	}
 
 	/*free memory*/
 	if (dc_dma_info.vaddr) {
@@ -1164,13 +1271,6 @@ int vps_dc_deinit(struct platform_device *pdev)
 			kobject_put(&disp_ctrl->blenders[i].kobj);
 		}
 
-		/*This is not used currently*/
-		if (disp_ctrl->enabled_venc_ids != 0)
-			r = vps_fvid2_control(disp_ctrl->fvid2_handle,
-					      IOCTL_VPS_DCTRL_DISABLE_VENC,
-					      (void *)virt_to_phys
-					      (&disp_ctrl->enabled_venc_ids),
-					      NULL);
 		kfree(disp_ctrl);
 		disp_ctrl = NULL;
 	}

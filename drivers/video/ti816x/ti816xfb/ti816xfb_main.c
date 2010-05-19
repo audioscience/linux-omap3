@@ -43,7 +43,6 @@
 
 /*the followign are defined to as the module or bootargs parameters */
 static char *def_vram;
-static char *def_mode;
 /*normal mode*/
 static int fb_mmode = 1;
 
@@ -565,12 +564,9 @@ static int ti816xfb_blank(int blank, struct fb_info *fbi)
 	case FB_BLANK_UNBLANK:
 		if (tfbi->gctrl->gstate.isstarted)
 			goto exit;
-		gctrl->set_dcconfig(tfbi->gctrl, 1);
 		r = vps_fvid2_start(tfbi->gctrl->handle, NULL);
 		if (r == 0)
 			gctrl->start(gctrl);
-		else
-			gctrl->set_dcconfig(tfbi->gctrl, 0);
 
 
 		break;
@@ -581,10 +577,8 @@ static int ti816xfb_blank(int blank, struct fb_info *fbi)
 		if (tfbi->gctrl->gstate.isstarted == 0)
 			goto exit;
 		r = vps_fvid2_stop(tfbi->gctrl->handle, NULL);
-		if (r == 0) {
+		if (r == 0)
 			gctrl->stop(gctrl);
-			gctrl->set_dcconfig(tfbi->gctrl, 0);
-		}
 		break;
 	default:
 		r = -EINVAL;
@@ -737,10 +731,6 @@ static int ti816xfb_open(struct fb_info *fbi, int user)
 	}
 	ti816xfb_lock(tfbi);
 
-	r = gctrl->create_dcconfig(gctrl);
-	if (r == 0)
-		r = gctrl->set_dcconfig(tfbi->gctrl, 1);
-
 	if (r == 0) {
 
 		r = gctrl->create(gctrl);
@@ -765,8 +755,6 @@ static int ti816xfb_open(struct fb_info *fbi, int user)
 	if (gctrl->handle == NULL) {
 		dev_err(tfbi->fbdev->dev,
 			"fvid2 create failed.\n");
-		/*clear the DC path if any errors */
-		gctrl->set_dcconfig(tfbi->gctrl, 0);
 		r = -EINVAL;
 	} else {
 
@@ -807,10 +795,6 @@ static int ti816xfb_open(struct fb_info *fbi, int user)
 				gctrl->handle = NULL;
 			}
 		}
-		if (r)
-			/*clear the DC path if any errors */
-			gctrl->set_dcconfig(tfbi->gctrl, 0);
-
 	}
 
 
@@ -836,18 +820,15 @@ static int ti816xfb_release(struct fb_info *fbi, int user)
 	if (gctrl->handle) {
 		if (gctrl->gstate.isstarted) {
 			r = vps_fvid2_stop(gctrl->handle, NULL);
-			if (r == 0) {
+			if (r == 0)
 				gctrl->stop(gctrl);
-				/*close the dc path*/
-				gctrl->set_dcconfig(tfbi->gctrl, 0);
-			}
 		}
 
 		if (r == 0) {
 			r = vps_fvid2_delete(gctrl->handle, NULL);
-			if (r == 0) {
+			if (r == 0)
 				gctrl->delete(gctrl);
-			} else
+			else
 				dev_err(tfbi->fbdev->dev,
 					  "failed to delete fvid2 handle.\n");
 
@@ -1398,6 +1379,7 @@ static int ti816xfb_create_framebuffers(struct ti816xfb_device *fbdev)
 
 }
 
+#if 0
 static int ti816xfb_parse_def_modes(struct ti816xfb_device *fbdev)
 
 {
@@ -1444,7 +1426,7 @@ static int ti816xfb_parse_def_modes(struct ti816xfb_device *fbdev)
 	return r;
 
 }
-
+#endif
 static int ti816xfb_probe(struct platform_device *dev)
 {
 	struct ti816xfb_device  *fbdev = NULL;
@@ -1492,15 +1474,6 @@ static int ti816xfb_probe(struct platform_device *dev)
 		dev_err(&dev->dev, "no grpxs\n");
 		r = -EINVAL;
 		goto cleanup;
-	}
-
-	/*Get the VENC settings if in bootargs*/
-	if (def_mode && strlen(def_mode) > 0) {
-		if (ti816xfb_parse_def_modes(fbdev)) {
-			dev_err(&dev->dev, "cannot parse default modes\n");
-			goto cleanup;
-		}
-
 	}
 
 	r = ti816xfb_create_framebuffers(fbdev);

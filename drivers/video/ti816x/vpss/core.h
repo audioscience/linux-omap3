@@ -34,14 +34,18 @@ extern unsigned int vpss_debug;
 
 #ifdef DEBUG
 #define VPSSDBG(format, ...) \
-	if (vpss_debug) \
-		printk(KERN_INFO "VPSS_" VPSS_SUBMODULE_NAME ": " \
-			format, ## __VA_ARGS__)
+	do { \
+		if (vpss_debug) \
+			printk(KERN_INFO "VPSS_" VPSS_SUBMODULE_NAME ": " \
+				format, ## __VA_ARGS__); \
+	} while (0)
 
 #define VPSSERR(format, ...) \
-	if (vpss_debug)  \
-		printk(KERN_ERR "VPSS_" VPSS_SUBMODULE_NAME ": " \
-			format, ## __VA_ARGS__)
+	do { \
+		if (vpss_debug)  \
+			printk(KERN_ERR "VPSS_" VPSS_SUBMODULE_NAME ": " \
+				format, ## __VA_ARGS__); \
+	} while (0)
 
 #else
 #define VPSSDBG(format, ...)
@@ -59,9 +63,11 @@ struct vps_dmamem_info {
 int __init vps_grpx_init(struct platform_device *pdev);
 void __exit vps_grpx_deinit(struct platform_device *pdev);
 
-int vps_dc_init(struct platform_device *pdev, char *def_mode);
+int __init vps_dc_init(struct platform_device *pdev,
+		       char *mode,
+		       int tied_vencs);
 
-int vps_dc_deinit(struct platform_device *pdev);
+int __exit vps_dc_deinit(struct platform_device *pdev);
 
 int vps_fvid2_init(struct platform_device *pdev);
 void vps_fvid2_deinit(struct platform_device *pdev);

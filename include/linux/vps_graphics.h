@@ -303,10 +303,10 @@ struct vps_grpxcreateparams {
 struct vps_grpxcreatestatus {
 	int			retval;
 	/**< Reture value of the create call.*/
-	u32                    dispWidth;
+	u32                    dispwidth;
 	/**< Width of the display at the VENC in pixels to which the grpx driver
 	 path is connected. */
-	u32                    dispHeight;
+	u32                    dispheight;
 	/**< Height of the display at the VENC in linesto which the grpx driver
 	 path is connected. */
 

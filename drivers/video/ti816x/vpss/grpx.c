@@ -42,7 +42,6 @@
 
 static int num_gctrl;
 static struct list_head gctrl_list;
-static struct vps_grpx_ctrl *grpx_ctrls[VPS_DISP_GRPX_MAX_INST];
 
 static struct platform_device *grpx_dev;
 static struct vps_dmamem_info  grpx_dma_info;
@@ -615,44 +614,37 @@ static int vps_grpx_enable(struct vps_grpx_ctrl *gctrl, bool en)
 
 	if (en) {
 
-		/*create the node and config it*/
-		r = gctrl->create_dcconfig(gctrl);
-		r = gctrl->set_dcconfig(gctrl, 1);
-		if (r == 0) {
-			grpx_pre_start(gctrl);
-			/*start everything over, set format,
-			  params, queue buffer*/
-			r = vps_fvid2_setformat(
-				gctrl->handle,
-				(struct fvid2_format *)gctrl->inputf_phy);
+		grpx_pre_start(gctrl);
+		/*start everything over, set format,
+		  params, queue buffer*/
+		r = vps_fvid2_setformat(
+			gctrl->handle,
+			(struct fvid2_format *)gctrl->inputf_phy);
 
-			if (r == 0)
-				r = vps_fvid2_control(gctrl->handle,
-						  IOCTL_VPS_SET_GRPX_PARAMS,
-						  (struct vps_grpxparamlist *)
-							gctrl->glist_phy,
-						   NULL);
+		if (r == 0)
+			r = vps_fvid2_control(gctrl->handle,
+					  IOCTL_VPS_SET_GRPX_PARAMS,
+					  (struct vps_grpxparamlist *)
+						gctrl->glist_phy,
+					   NULL);
 
-			if (r == 0)
-				r = vps_fvid2_queue(gctrl->handle,
-						  (struct fvid2_framelist *)
-						     gctrl->frmls_phy,
-						  0);
+		if (r == 0)
+			r = vps_fvid2_queue(gctrl->handle,
+					  (struct fvid2_framelist *)
+					     gctrl->frmls_phy,
+					  0);
 
-			if (r == 0)
-				r = vps_fvid2_start(gctrl->handle, NULL);
-			/*set flag or clear the path if any errors are present*/
-			if (r == 0)
-				gctrl->start(gctrl);
-			else
-				r = gctrl->set_dcconfig(gctrl, 0);
-		}
+		if (r == 0)
+			r = vps_fvid2_start(gctrl->handle, NULL);
+		/*set flag or clear the path if any errors are present*/
+		if (r == 0)
+			gctrl->start(gctrl);
+
 	} else {
 		r = vps_fvid2_stop(gctrl->handle, NULL);
-		if (r == 0) {
+		if (r == 0)
 			gctrl->stop(gctrl);
-			r = gctrl->set_dcconfig(gctrl, 0);
-		}
+
 	}
 	return r;
 
@@ -675,47 +667,8 @@ static int vps_grpx_unregister_vsync_cb(struct vps_grpx_ctrl *gctrl)
 	return 0;
 }
 
-static int vps_grpx_create_dcconfig(struct vps_grpx_ctrl *gctrl)
-{
-	int i, r = 0;
-	struct vps_dcconfig *cfg = &gctrl->dccfg;
-	/*FIXME should check the node is already enable or not*/
-	cfg->usecase = VPS_DC_USERSETTINGS;
-	cfg->numedges = gctrl->numends;
-	cfg->vencinfo.numvencs = gctrl->numends;
-	vps_dc_get_clksrc(&cfg->dvo2clksrc, &cfg->hdcompclksrc);
-	for (i = 0; i < gctrl->numends && (r == 0); i++)  {
-		cfg->edgeinfo[i].startnode = gctrl->snode;
-		cfg->edgeinfo[i].endnode = gctrl->enodes[i];
-		r = vps_dc_get_vencmode(gctrl->enodes[i],
-				       &cfg->vencinfo.modeinfo[i],
-				       DC_BLEND_ID);
-		/* if connect more then one blend, then the venc associated
-		with blend need be tied and in the same format*/
+/*S************************** sysfs related function************************/
 
-		/*should we checking timing here?*/
-
-		cfg->vencinfo.tiedvencs |= cfg->vencinfo.modeinfo[i].vencid;
-	}
-	/*clear the tie vence if only one blend is connect*/
-	if (gctrl->numends == 1)
-		cfg->vencinfo.tiedvencs = 0;
-
-	return r;
-}
-
-
-static int vps_grpx_set_dcconfig(struct vps_grpx_ctrl *gctrl, u8 setflag)
-{
-	int r = 0;
-	if (gctrl->gstate.isdcConfig != setflag) {
-		r = vps_dc_set_config(&gctrl->dccfg, setflag);
-		if (r == 0)
-			gctrl->gstate.isdcConfig = setflag;
-	}
-	return r;
-}
-/*GRPX sysfs related function*/
 /*show current grpx enabled status*/
 static ssize_t graphics_enabled_show(struct vps_grpx_ctrl *gctrl,
 				char *buf)
@@ -757,12 +710,13 @@ static ssize_t graphics_nodes_show(struct vps_grpx_ctrl *gctrl,
 	int l = 0;
 	char name[10];
 
+	l += snprintf(buf + l, PAGE_SIZE - l, "%d", gctrl->numends);
 	for (i = 0; i < gctrl->numends; i++)  {
-		if (i != 0)
-			l += snprintf(buf + l, PAGE_SIZE - l, ",");
-
 		r = vps_dc_get_node_name(gctrl->enodes[i], name);
-		l += snprintf(buf + l, PAGE_SIZE - l, "%d:%s", i, name);
+		if (i == 0)
+			l += snprintf(buf + l, PAGE_SIZE - l, ":%s", name);
+		else
+			l += snprintf(buf + l, PAGE_SIZE - l, ",%s", name);
 	}
 	l += snprintf(buf + l, PAGE_SIZE - l, "\n");
 
@@ -776,10 +730,12 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 	int r = 0;
 	int total = 0;
 	int i;
+	int idx = 0;
 	u8 tiedvenc = 0;
 	char *input = (char *)buf, *this_opt;
+	int enodes[VPS_DC_MAX_VENC];
+	struct vps_dcvencinfo vinfo;
 
-	struct vps_dcmodeinfo minfo;
 	if (gctrl->gstate.isstarted) {
 		VPSSERR("please stop before continue.\n");
 		return -EINVAL;
@@ -788,68 +744,108 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 	/*remove the "\n"*/
 	input = strsep(&input, "\n");
 	grpx_lock(gctrl);
-	while (!r && (this_opt = strsep(&input, ",")) != NULL) {
-		char *p, *endnode;
-		int idx, nid;
-		if (total == VPS_DC_MAX_VENC) {
-			r = -EINVAL;
-			goto exit;
-		}
-		p = strchr(this_opt, ':');
-		if (!p) {
-			r = -EINVAL;
-			goto exit;
-		}
-		*p = 0;
-		idx = simple_strtoul(this_opt, &this_opt, 10);
-		if (idx >= VPS_DC_MAX_VENC) {
-			r = -EINVAL;
-			goto exit;
-		}
-		endnode = p + 1;
-		if (vps_dc_get_node_id(&nid, endnode)) {
-			r = -EINVAL;
-			goto exit;
-		}
-		gctrl->enodes[idx] = nid;
 
-		total++;
-		if (input == NULL)
+	this_opt = strsep(&input, ":");
+	total = simple_strtoul(this_opt, &this_opt, 10);
+
+	if ((total == 0) || (total > VPS_DC_MAX_VENC)) {
+		VPSSERR("no node to set\n");
+		r = -EINVAL;
+		goto exit;
+	}
+
+	while (!r && (this_opt = strsep(&input, ",")) != NULL) {
+		int nid;
+		if (idx > total)
 			break;
 
+		if (vps_dc_get_id(this_opt, &nid, DC_NODE_ID)) {
+			VPSSERR("failed to parse node name\n");
+			r = -EINVAL;
+			goto exit;
 
-	}
-	gctrl->numends = total;
-	/*error check*/
-	VPSSDBG("numedge :%d\n", gctrl->numends);
-	for (i = 0; i < gctrl->numends; i++) {
-		r = vps_dc_get_vencmode(gctrl->enodes[i],
-				       &minfo,
-				       DC_BLEND_ID);
+		}
 
-		VPSSDBG("s: %d e:%d\n",
+		vps_dc_get_id(this_opt,
+			      &vinfo.modeinfo[idx].vencid,
+			      DC_VENC_ID);
+		enodes[idx] = nid;
+
+		VPSSDBG("s: %d e:%d vid:%d\n",
 			gctrl->snode,
-			gctrl->enodes[i]);
-		VPSSDBG("vid:%d, mid:%d\n",
-			minfo.vencid,
-			minfo.modeid);
-		tiedvenc |= minfo.vencid;
-
+			enodes[idx],
+			vinfo.modeinfo[idx].vencid);
+		idx++;
+		if (input == NULL)
+			break;
 	}
-	if (gctrl->numends == 1)
+
+
+	vinfo.numvencs = total;
+	for (i = 0; i < total; i++)
+		tiedvenc |= vinfo.modeinfo[i].vencid;
+
+
+	/*tied venc check*/
+	if (total == 1)
 		tiedvenc = 0;
 	else {
 		u8 tvencs;
 		vps_dc_get_tiedvenc(&tvencs);
-		if (tiedvenc & (~tvencs))
+		if (tiedvenc & (~tvencs)) {
+			VPSSERR("nodes not match tied vencs\n");
 			r = -EINVAL;
+			goto exit;
+		}
 	}
-	VPSSDBG("tiedvecn :%d.\n", tiedvenc);
+
+	/*make sure the VENCs are already running before continue*/
+	vinfo.numvencs = total;
+	r = vps_dc_get_vencinfo(&vinfo);
+	if (r)
+		goto exit;
+
+	for (i = 0; i < vinfo.numvencs; i++) {
+		if (vinfo.modeinfo[i].isvencrunning == 0) {
+			r = -EINVAL;
+			VPSSERR("venc %d not running.\n",
+				vinfo.modeinfo[i].vencid);
+			goto exit;
+		}
+	}
+
+	/*disable the exit nodes*/
+	for (i = 0; (i < gctrl->numends) && (r == 0); i++) {
+		r =  vps_dc_set_node(gctrl->enodes[i],
+				     gctrl->snode,
+				     0);
+	}
+	if (r) {
+		r = -EINVAL;
+		VPSSERR("failed to disable node\n");
+		goto exit;
+	}
+	/*enable the new nodes*/
+	for (i = 0; (i < total) && (r == 0); i++) {
+		r = vps_dc_set_node(enodes[i],
+				    gctrl->snode,
+				    1);
+	}
+	if (r) {
+		r = -EINVAL;
+		VPSSERR("failed to enable node\n");
+		goto exit;
+	}
+	/*update new nodes into local database*/
+	gctrl->numends = total;
+	for (i = 0; i < gctrl->numends; i++)
+		gctrl->enodes[i] = enodes[i];
+	VPSSDBG("numedge :%d\n", gctrl->numends);
+	r = size;
+
 exit:
 	grpx_unlock(gctrl);
-	if (r < 0)
-		return r;
-	return size;
+	return r;
 }
 
 
@@ -916,7 +912,8 @@ static struct kobj_type graphics_ktype = {
 	.default_attrs = graphics_sysfs_attrs,
 };
 
-/*end of GRPX sysfs*/
+/*E***********************sysfs functions *********************************/
+
 static int vps_grpx_create_sysfs(struct vps_grpx_ctrl *gctrl)
 {
 	int r;
@@ -1004,8 +1001,6 @@ void __init vps_fvid2_grpx_ctrl_init(struct vps_grpx_ctrl *gctrl)
 	gctrl->unregister_vsync_cb = vps_grpx_unregister_vsync_cb;
 	gctrl->start = vps_grpx_start;
 	gctrl->stop = vps_grpx_stop;
-	gctrl->create_dcconfig = vps_grpx_create_dcconfig;
-	gctrl->set_dcconfig = vps_grpx_set_dcconfig;
 
 }
 static inline int get_alloc_size(void)
@@ -1148,7 +1143,6 @@ int __init vps_grpx_init(struct platform_device *pdev)
 		vps_fvid2_grpx_ctrl_init(gctrl);
 		gctrl->grpx_num = i;
 		vps_grpx_add_ctrl(gctrl);
-		grpx_ctrls[i] = gctrl;
 		mutex_init(&gctrl->gmutex);
 		gctrl->numends = 1;
 		switch (i) {
@@ -1159,7 +1153,7 @@ int __init vps_grpx_init(struct platform_device *pdev)
 			break;
 		case 1:
 			gctrl->snode = VPS_DC_GRPX1_INPUT_PATH;
-			gctrl->enodes[0] = VPS_DC_DVO2_BLEND;
+			gctrl->enodes[0] = VPS_DC_HDCOMP_BLEND;
 			break;
 		case 2:
 			gctrl->snode = VPS_DC_GRPX2_INPUT_PATH;
@@ -1167,6 +1161,13 @@ int __init vps_grpx_init(struct platform_device *pdev)
 			break;
 		}
 		vps_grpx_create_sysfs(gctrl);
+		r = vps_dc_set_node(gctrl->enodes[0],
+				    gctrl->snode,
+				    1);
+		if (r) {
+			VPSSERR("failed to set nodes\n");
+			goto cleanup;
+		}
 
 	}
 
@@ -1182,6 +1183,14 @@ void __exit vps_grpx_deinit(struct platform_device *pdev)
 	struct vps_dmamem_info *gdinfo = &grpx_dma_info;
 
 	VPSSDBG("grpx deinit\n");
+
+	list_for_each_entry(gctrl, &gctrl_list, list) {
+		int i;
+		for (i = 0; i < gctrl->numends; i++)
+			vps_dc_set_node(gctrl->enodes[i],
+					gctrl->snode,
+					0);
+	}
 
 	if (gdinfo->vaddr) {
 		dma_free_coherent(&pdev->dev,

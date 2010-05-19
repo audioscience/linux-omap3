@@ -32,14 +32,16 @@
 #include <linux/vps.h>
 #include <linux/vps_displayctrl.h>
 #include <linux/vps_graphics.h>
-#include <linux/dc.h>
 #include <linux/grpx.h>
 
 #ifdef DEBUG
 extern unsigned int fb_debug;
 #define TFBDBG(format, ...) \
-	if (fb_debug) \
-		printk(KERN_INFO"TI816XFB  : " format, ## __VA_ARGS__)
+	do { \
+		if (fb_debug) \
+			printk(KERN_INFO"TI816XFB  : " format, \
+				## __VA_ARGS__); \
+	} while (0)
 #else
 #define TFBDBG(format, ...)
 #endif

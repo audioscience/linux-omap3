@@ -34,10 +34,13 @@
 
 #define MAX_INPUT_NODES_BLENDER   5
 
+#define VPS_DC_VENC_MASK 0xF
+
 enum dc_idtype {
 	DC_BLEND_ID = 0,
 	DC_VENC_ID,
-	DC_MODE_ID
+	DC_MODE_ID,
+	DC_NODE_ID
 };
 
 struct dcnode_info {
@@ -61,22 +64,14 @@ struct venc_name_id {
 	int  idx;
 };
 
-struct node_status {
-       int   id;
-       bool  owned; /*does this input node owed by this driver*/
-       bool  steaming;
-};
-
 struct dc_blenderinfo {
 	char *name;
 	u32   idx;
-	bool  owned; /*does blender owved by  this driver*/
 	bool  enabled;
 	struct kobject  kobj;
 	u32    actnodes;
 	struct vps_dctiminginfo  *tinfo;
 	struct vps_dispctrl *dcctrl;
-	struct node_status nstatus[MAX_INPUT_NODES_BLENDER];
 };
 
 struct vps_dispctrl {
@@ -92,8 +87,6 @@ struct vps_dispctrl {
 	u32 vinfo_phy;
 	struct vps_dcnodeinput *nodeinfo;
 	u32 ninfo_phy;
-	struct vps_dcmodeinfo  *modeinfo;
-	u32 minfo_phy;
 	int enabled_venc_ids;
 	void   *fvid2_handle;
 	bool  ishdmion;
@@ -109,25 +102,21 @@ static inline void dc_unlock(struct vps_dispctrl *dctrl)
     mutex_unlock(&dctrl->dcmutex);
 }
 
-int vps_dc_get_node_id(int *id, char *name);
+int vps_dc_get_id(char *name, int *id, enum dc_idtype type);
+
 int vps_dc_get_node_name(int id, char *name);
 
 int vps_dc_get_clksrc(enum vps_dcdvo2clksrc *dvo2,
 		      enum vps_dchdcompclksrc *hdcomp);
 
-int vps_dc_get_vencmode(int id, struct vps_dcmodeinfo *modeinfo,
-			enum dc_idtype type);
-int vps_dc_set_vencmode(int *vid, int *mid,
-    void *modeinfo, int numvenc, int tiedvenc);
 int vps_dc_set_config(struct vps_dcconfig *usercfg, int setflag);
 int vps_dc_get_outpfmt(int id, u32 *width, u32 *height,
 		      u8 *scformat, enum dc_idtype type);
 
 int vps_dc_set_node(u8 nodeid, u8 inputid, u8 enable);
 
-int vps_dc_get_vencid(char *vname, int *vid);
+int vps_dc_get_vencinfo(struct vps_dcvencinfo *vinfo);
 
-int vps_dc_get_modeid(char *mname, int *mid);
 int vps_dc_get_tiedvenc(u8 *tiedvenc);
 
 

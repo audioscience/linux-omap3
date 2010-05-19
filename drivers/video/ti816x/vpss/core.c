@@ -49,6 +49,7 @@ module_param_named(debug, vpss_debug, bool, 0644);
 #endif
 
 static char *def_mode;
+static int def_tiedvencs;
 
 static int vps_probe(struct platform_device *pdev)
 {
@@ -59,7 +60,7 @@ static int vps_probe(struct platform_device *pdev)
 		return r;
 	}
 
-	r = vps_dc_init(pdev, def_mode);
+	r = vps_dc_init(pdev, def_mode, def_tiedvencs);
 	if (r) {
 		VPSSERR("failed to int display controller.\n");
 		goto exit1;
@@ -146,6 +147,7 @@ static void __exit vps_cleanup(void)
 }
 
 module_param_named(mode, def_mode, charp, 0);
+module_param_named(tiedvencs, def_tiedvencs, int, 0664);
 
 subsys_initcall(vps_init);
 module_exit(vps_cleanup);
