@@ -1,5 +1,5 @@
 INCS =	-I$(IPCDIR)/ \
-	-I$(SYSLINKDIR)
+	-I$(SYSLINK_ROOT)
 
 EXTRA_CFLAGS += $(INCS)
 
