@@ -19,10 +19,17 @@ static struct omap_sdrc_params h8kds0un0mer4em_sdrc_params[] = {
 		.rate        = 200000000,
 		.actim_ctrla = 0x92e1c4c6,
 		.actim_ctrlb = 0x0002111c,
-		.rfr_ctrl    = 0x0004dc01,
+		.rfr_ctrl    = 0x0005e601,
 		.mr          = 0x00000032,
 	},
 	[1] = {
+		.rate        = 100000000,
+		.actim_ctrla = 0x49912283,
+		.actim_ctrlb = 0x0002110e,
+		.rfr_ctrl    = 0x0002da01,
+		.mr          = 0x00000032,
+    },
+	[2] = {
 		.rate        = 0
 	},
 };
