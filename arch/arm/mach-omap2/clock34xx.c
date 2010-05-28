@@ -65,6 +65,7 @@ struct clk *sdrc_ick_p, *arm_fck_p;
  */
 unsigned int vdd1_opp = 0;
 unsigned int vdd2_opp = 0;
+bool vdd_scale_down = false;
 
 /**
  * omap3430es2_clk_ssi_find_idlest - return CM_IDLEST info for SSI
@@ -429,6 +430,24 @@ static void __init omap2_clk_iva_init_to_idle(void)
 
 }
 
+static u16 get_opp(struct omap_opp *opp_freq_table,
+					unsigned long freq)
+{
+	struct omap_opp *prcm_config;
+
+	prcm_config = opp_freq_table;
+
+	if (prcm_config->rate <= freq)
+		return prcm_config->opp_id; /* Return the Highest OPP */
+	for (; prcm_config->rate; prcm_config--)
+		if (prcm_config->rate < freq)
+			return (prcm_config+1)->opp_id;
+		else if (prcm_config->rate == freq)
+			return prcm_config->opp_id;
+	/* Return the least OPP */
+	return (prcm_config+1)->opp_id;
+}
+
 /* REVISIT: Move this init stuff out into clock.c */
 
 /*
@@ -444,8 +463,10 @@ static void __init omap2_clk_iva_init_to_idle(void)
  */
 static int __init omap2_clk_arch_init(void)
 {
-	struct omap_opp *opp_table;
-	short valid=0, err=0, i;
+	short err=0;
+	u16	current_vdd1_opp;
+	struct clk *arm_fck;
+	unsigned long current_mpu_rate;
 
 	if (!mpurate)
 		return -EINVAL;
@@ -463,6 +484,10 @@ static int __init omap2_clk_arch_init(void)
 	if (WARN((!l3_opps), "OPP table not defined for L3\n"))
 		err = 1;
 
+	arm_fck = clk_get(NULL, "arm_fck");
+	if (WARN(IS_ERR(arm_fck), "Failed to get arm_fck.\n"))
+		err = 1;
+
 	if (err)
 		return -ENOENT;
 
@@ -475,24 +500,12 @@ static int __init omap2_clk_arch_init(void)
 		pr_err("This silicon doesn't support 720MHz\n");
 	}
 
-	/*
-	 * Select VDD1 OPP corresponding to mpurate
-	 */
-	opp_table = mpu_opps;
+	current_mpu_rate = clk_get_rate(arm_fck);
+	current_vdd1_opp = get_opp(mpu_opps + get_max_vdd1(), current_mpu_rate);
+	vdd1_opp = get_opp(mpu_opps + get_max_vdd1(), mpurate);
 
-	for (i = 1; opp_table[i].opp_id <= get_max_vdd1(); i++) {
-		if (opp_table[i].rate == mpurate) {
-			valid = 1;
-			break;
-		}
-	}
-
-	if (valid) {
-		vdd1_opp = opp_table[i].opp_id;
-	} else {
-		pr_err("Invalid MPU rate (%u)\n", mpurate);
-		return -EINVAL;
-	}
+	if (vdd1_opp < current_vdd1_opp)
+		vdd_scale_down = true;
 
 	/*
 	 * Match lowest OPP setting for VDD1 with lowest OPP for VDD2 as well.

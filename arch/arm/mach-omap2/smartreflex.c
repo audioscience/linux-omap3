@@ -48,6 +48,7 @@
  */
 extern unsigned int vdd1_opp;
 extern unsigned int vdd2_opp;
+extern bool vdd_scale_down;
 
 extern int __init omap2_clk_set_freq(void);
 
@@ -1082,6 +1083,10 @@ static int __init omap3_sr_init(void)
 	sr_set_clk_length(&sr1);
 	sr_set_clk_length(&sr2);
 
+	/* For OPP scale down, scale down frequency before voltage */
+	if (cpu_is_omap34xx() && vdd_scale_down)
+        omap2_clk_set_freq();
+
 	/* Call the VPConfig, VCConfig, set N Values. */
 	sr_set_nvalues(&sr1);
 	sr_configure_vp(SR1);
@@ -1089,10 +1094,8 @@ static int __init omap3_sr_init(void)
 	sr_set_nvalues(&sr2);
 	sr_configure_vp(SR2);
 
-	/*
-	 * With voltages matching target OPP, set corresponding frequency.
-	 */
-	if (cpu_is_omap34xx())
+	/* For OPP scale up, scale up the frequency after voltage */
+	if (cpu_is_omap34xx() && !vdd_scale_down)
 		omap2_clk_set_freq();
 
 	ret = sysfs_create_file(power_kobj, &sr_vdd1_autocomp.attr);
