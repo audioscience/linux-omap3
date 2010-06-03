@@ -753,7 +753,13 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 		r = -EINVAL;
 		goto exit;
 	}
-
+    /*check the remaining input string*/
+    if (input == NULL) {
+        r = -EINVAL;
+        VPSSERR("wrong node information\n");
+        goto exit;
+    }
+    /*parse each end note*/
 	while (!r && (this_opt = strsep(&input, ",")) != NULL) {
 		int nid;
 		if (idx > total)
@@ -779,8 +785,12 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 		if (input == NULL)
 			break;
 	}
-
-
+    /*the total is not match what parsed in the string*/
+    if (idx != total) {
+        r = -EINVAL;
+        VPSSERR("node number not match.\n");
+        goto exit;
+    }
 	vinfo.numvencs = total;
 	for (i = 0; i < total; i++)
 		tiedvenc |= vinfo.modeinfo[i].vencid;
