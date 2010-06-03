@@ -163,6 +163,11 @@ static int get_format_from_vid(int vid, u32 *width, u32 *height, u8 *scformat)
 	if (r)
 		return -EINVAL;
 
+	if (vinfo.modeinfo[0].isvencrunning == 0) {
+		VPSSERR("Please enable VENC first\n");
+		return -EINVAL;
+	}
+
 	if (vinfo.modeinfo[0].iscustommode) {
 		*width = vinfo.modeinfo[0].framewidth;
 		*height = vinfo.modeinfo[0].frameheight;
@@ -684,8 +689,57 @@ exit:
 
 static ssize_t blender_timings_show(struct dc_blenderinfo *binfo, char *buf)
 {
+	int r;
+	struct vps_dctiminginfo t;
+	struct vps_dcvencinfo vinfo;
 
-	return snprintf(buf, PAGE_SIZE , "blender timing\n");
+	dc_lock(binfo->dcctrl);
+
+	memset(&t, 0, sizeof(struct vps_dctiminginfo));
+	dc_get_vencid(binfo->name, &vinfo.modeinfo[0].vencid);
+
+	vinfo.numvencs = 1;
+
+	r = dc_get_vencinfo(&vinfo);
+
+	if (r) {
+		VPSSERR(" Failed to get venc infor\n");
+		r = -EINVAL;
+		goto exit;
+
+	}
+	if (vinfo.modeinfo[0].isvencrunning == 0) {
+		VPSSERR("please enable venc first\n");
+		r = -EINVAL;
+		goto exit;
+	}
+
+	t.mode = vinfo.modeinfo[0].modeid;
+	if (vinfo.modeinfo[0].iscustommode) {
+		t.width = vinfo.modeinfo[0].framewidth;
+		t.height = vinfo.modeinfo[0].frameheight;
+		t.scanformat = vinfo.modeinfo[0].scanformat;
+	} else {
+		get_format_from_mid(t.mode,
+				    &t.width,
+				    &t.height,
+				    (u8 *)&t.scanformat);
+	}
+
+
+	r = snprintf(buf,
+			PAGE_SIZE,
+			"%u,%u/%u/%u/%u,%u/%u/%u/%u/%u/%u/%u,%u/%u\n",
+			t.pixelclock,
+			t.width, t.hfrontporch, t.hbackporch, t.hsynclen,
+			t.height, t.vfrontporch[0], t.vfrontporch[1],
+			t.vbackporch[0], t.vbackporch[1],
+			t.vsynclen[0], t.vsynclen[1],
+			t.scanformat, t.mode);
+
+exit:
+	dc_unlock(binfo->dcctrl);
+	return r;
 
 }
 
@@ -700,6 +754,7 @@ static ssize_t blender_enabled_show(struct dc_blenderinfo *binfo, char *buf)
 	int r;
 	struct vps_dcvencinfo vinfo;
 
+	dc_lock(binfo->dcctrl);
 	dc_get_vencid(binfo->name, &vinfo.modeinfo[0].vencid);
 
 	vinfo.numvencs = 1;
@@ -715,6 +770,7 @@ static ssize_t blender_enabled_show(struct dc_blenderinfo *binfo, char *buf)
 	r = snprintf(buf, PAGE_SIZE, "%d\n", vinfo.modeinfo[0].isvencrunning);
 
 exit:
+	dc_unlock(binfo->dcctrl);
 	return r;
 }
 

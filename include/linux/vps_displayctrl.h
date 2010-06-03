@@ -143,13 +143,11 @@
   **/
 #define VPS_DC_MAX_VENC                 (4u)
 
-/** \brief on-chip encoder identifier - hdmi */
-#define VPS_DC_ENCODER_HDMI                     (0x1u)
 /** \brief on-chip encoder identifier - rf */
-#define VPS_DC_ENCODER_RF                       (0x2u)
+#define VPS_DC_ENCODER_RF                       (0x1u)
 
 /** \brief on-chip encoder identifier - max guard */
-#define VPS_DC_MAX_ENCODER                      (0x3u)
+#define VPS_DC_MAX_ENCODER                      (0x2u)
 
 /**
  *  enum vps_dcdvo2clksrc
@@ -1150,7 +1148,7 @@ struct vps_dccigpipconfig {
 struct vps_dccompconfig {
 	struct vps_dcrgbcolor     bckgrndcolor;
 	/**< Background Color in RGB format.his backround color is common for
-	     all the compositors/blenders(like HDMI, HDCOMP, DVO2, SD).
+	     all the compositors/blenders(like HDCOMP, DVO2, SD).
 	     This color will replace any pixel with RGB value of 000.*/
 };
 
@@ -1231,139 +1229,6 @@ struct vps_dccreateconfig {
  */
 #define VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE (VPS_DCTRL_IOCTL_ADV_MAX + 0x1u)
 
-/**
- *
- * \brief this control command is used to attach application supplied callback
- *        that would be called on detection / removal of sink.
- *
- * \param   cmdargs [in] pointer of type vps_dconchipencodercmd, which
- *                       initializes following members
- *                       .vencid   = paired venc,vps_dc_venc_hdmi in this case.
- *                       .encoder  = vps_dc_encoder_hdmi
- *                       .cmd      = this macro
- *                       .argument = function of type #fvid2_cbfxn
- *                       .additionalargs = arguments that should be given back
- *                                         when the function is called
- *
- * \return  vps_sok if successful, else suitable error code
- */
-#define IOCTL_VPS_DCTRL_HDMI_ATTACH_HPD_CB                                  \
-				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x01u)
-
-/**
- *
- * \brief this control command reterive the current hdmi configuration.
- *
- * \param   cmdargs [in] pointer of type vps_dconchipencodercmd, which
- *                       initializes following members
- *                       .vencid   = paired venc,vps_dc_venc_hdmi in this case.
- *                       .encoder  = vps_dc_encoder_hdmi
- *                       .cmd      = this macro
- *                       .argument = pointer to structure of type
- *                                     #vps_hdmiconfigparams
- *                       .additionalargs = null
- *
- * \return  vps_sok if successful, else suitable error code
- */
-#define IOCTL_VPS_DCTRL_HDMI_GET_CONFIG                                     \
-				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x02u)
-
-/**
- *
- * \brief this control command applies the supplied hdmi configuration.
- *	  provided the values supplied are valid and encoder is not
- *	  enabled.
- *
- * \param   cmdargs [in] pointer of type vps_dconchipencodercmd, which
- *                       initializes following members
- *                       .vencid   = paired venc,vps_dc_venc_hdmi in this case.
- *                       .encoder  = vps_dc_encoder_hdmi
- *                       .cmd      = this macro
- *                       .argument = pointer to structure of type
- *                                     #vps_hdmiedidreadparams
- *                       .additionalargs = null
- *
- * \return  vps_sok if successful, else suitable error code
- */
-#define IOCTL_VPS_DCTRL_HDMI_SET_CONFIG                                     \
-				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x03u)
-
-/**
- *
- * \brief this control command could be used to get the attached sink edid
- *        information. this command would be honored only if a sink is dected.
- *
- * \param   cmdargs [in] pointer of type vps_dconchipencodercmd, which
- *                       initializes following members
- *                       .vencid    = paired venc,vps_dc_venc_hdmi in this case.
- *                       .encoder   = vps_dc_encoder_hdmi
- *                       .cmd       = this macro
- *                       .argument  = pointer to structure of type
- *                                     #vps_hdmiedidreadparams
- *                       .additionalargs = null
- *
- * \return  vps_sok if successful, else suitable error code
- */
-#define IOCTL_VPS_DCTRL_HDMI_READ_EDID                                      \
-				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x04u)
-
-/**
- *
- * \brief This control command could be used to used start DISPLAY on HDMI port.
- *
- * \par Before display could be started, following conditions HAVE to be met.
- *      1. An sink is dected and HDMI port is configured to suit sinks needs.
- *      2. FVID2_start API has been called.
- *
- * \param   cmdArgs [IN] Pointer of type Vps_DcOnchipEncoderCmd, which
- *                       initializes following members
- *                       .vencId    = Paired VENC,VPS_DC_VENC_HDMI in this case.
- *                       .encoderId = VPS_DC_ENCODER_HDMI
- *                       .cmd       = This macro
- *                       .argument  = NULL
- *                       .additionalArgs = NULL
- *
- * \return  VPS_SOK if successful, else suitable error code
- */
-#define IOCTL_VPS_DCTRL_HDMI_START                                             \
-				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x05u)
-
-/**
- *
- * \brief This control command could be used to used stop DISPLAY on HDMI port.
- *
- *
- * \param   cmdArgs [IN] Pointer of type Vps_DcOnchipEncoderCmd, which
- *                       initializes following members
- *                       .vencId    = Paired VENC,VPS_DC_VENC_HDMI in this case.
- *                       .encoderId = VPS_DC_ENCODER_HDMI
- *                       .cmd       = This macro
- *                       .argument  = NULL
- *                       .additionalArgs = NULL
- *
- * \return  VPS_SOK if successful, else suitable error code
- */
-#define IOCTL_VPS_DCTRL_HDMI_STOP                                              \
-				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x06u)
-
-/**
- *
- * \brief This control command could be used to query the status of HDMI port.
- *        Returns TRUE if streaming on this port, FALSE otherwise.
- *
- * \param   cmdArgs [IN] Pointer of type Vps_DcOnchipEncoderCmd, which
- *                       initializes following members
- *                       .vencId    = Paired VENC,VPS_DC_VENC_HDMI in this case.
- *                       .encoderId = VPS_DC_ENCODER_HDMI
- *                       .cmd       = This macro
- *                       .argument  = Pointer to variable of type UInt32
- *                       .additionalArgs = NULL
- *
- * \return  VPS_SOK if successful, else suitable error code
- */
-#define IOCTL_VPS_DCTRL_HDMI_GET_STATUS                                        \
-				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x07u)
-
 
 /**
  * \brief This control command retrieves the current (basic) RF configuration.
@@ -1389,7 +1254,7 @@ struct vps_dccreateconfig {
  * \return  VPS_SOK if successful, else suitable error code
  */
 #define IOCTL_VPS_DCTRL_RF_GET_CONFIG                                        \
-				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x10u)
+				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x1u)
 
 /**
  * \brief This control command applies the supplied (basic) RF configuration.
@@ -1408,7 +1273,7 @@ struct vps_dccreateconfig {
  * \return  VPS_SOK if successful, else suitable error code
  */
 #define IOCTL_VPS_DCTRL_RF_SET_CONFIG                                        \
-				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x11u)
+				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x2u)
 
 /**
  * \brief This control command retrieves the current expert RF configuration.
@@ -1434,7 +1299,7 @@ struct vps_dccreateconfig {
  * \return  VPS_SOK if successful, else suitable error code
  */
 #define IOCTL_VPS_DCTRL_RF_GET_EXPERT_CONFIG                                 \
-				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x12u)
+				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x3u)
 
 /**
  * \brief This control command applies the supplied expert RF configuration.
@@ -1453,7 +1318,7 @@ struct vps_dccreateconfig {
  * \return  VPS_SOK if successful, else suitable error code
  */
 #define IOCTL_VPS_DCTRL_RF_SET_EXPERT_CONFIG                                 \
-				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x13u)
+				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x4u)
 
 /**
  *
@@ -1472,7 +1337,7 @@ struct vps_dccreateconfig {
  * \return  vps_sok if successful, else suitable error code
  */
 #define IOCTL_VPS_DCTRL_RF_START                                             \
-				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x14u)
+				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x5u)
 
 /**
  *
@@ -1491,7 +1356,7 @@ struct vps_dccreateconfig {
  * \return  vps_sok if successful, else suitable error code
  */
 #define IOCTL_VPS_DCTRL_RF_STOP                                              \
-				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x15u)
+				    (VPS_DCTRL_IOCTL_ONCHIP_ENC_BASE + 0x6u)
 /** \brief maximum number of on-chip encoders control/configure ioctl commands
  *
  *  marker used to denote the maximum number of on-chip ioctls supported
@@ -1533,7 +1398,7 @@ struct vps_dconchipencodercmd {
 				      u32 sinkState,
 				      void *appData);
 	/**< Application provided callback function - Used only when cmd is
-	 #IOCTL_VPS_DCTRL_HDMI_ATTACH_HPD_CB */
+	 HDMI */
 };
 
 
