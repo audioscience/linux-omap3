@@ -158,7 +158,6 @@ static void __init omap2_gp_clockevent_init(void)
 
 	omap2_gp_timer_irq.dev_id = (void *)gptimer;
 	setup_irq(omap_dm_timer_get_irq(gptimer), &omap2_gp_timer_irq);
-	omap_dm_timer_set_int_enable(gptimer, OMAP_TIMER_INT_OVERFLOW);
 
 	clockevent_gpt.mult = div_sc(tick_rate, NSEC_PER_SEC,
 				     clockevent_gpt.shift);
@@ -170,6 +169,8 @@ static void __init omap2_gp_clockevent_init(void)
 
 	clockevent_gpt.cpumask = cpumask_of(0);
 	clockevents_register_device(&clockevent_gpt);
+
+	omap_dm_timer_set_int_enable(gptimer, OMAP_TIMER_INT_OVERFLOW);
 }
 
 /* Clocksource code */
