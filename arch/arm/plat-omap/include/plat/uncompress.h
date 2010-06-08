@@ -156,8 +156,8 @@ static inline void __arch_decomp_setup(unsigned long arch_id)
 		DEBUG_LL_ZOOM(omap_zoom2);
 		DEBUG_LL_ZOOM(omap_zoom3);
 
-		/* TI8168 base boards using UART1 */
-		DEBUG_LL_TI816X(1, ti8168evm);
+		/* TI8168 base boards using UART3 */
+		DEBUG_LL_TI816X(3, ti8168evm);
 
 	} while (0);
 }
