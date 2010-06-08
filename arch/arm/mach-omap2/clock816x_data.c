@@ -704,6 +704,17 @@ static const struct clksel sysclk20_div[] = {
 	{ .parent = NULL },
 };
 
+static struct clk sysclk20_ck = {
+	.name		= "sysclk20_ck",
+	.parent		= &audio_pll_clk3_ck,
+	.init		= &omap2_init_clksel_parent,
+	.clksel		= sysclk20_div,
+	.ops		= &clkops_null,
+	.clksel_reg	= TI816X_CM_DPLL_SYSCLK20_CLKSEL,
+	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
+	.recalc		= &omap2_clksel_recalc,
+};
+
 static const struct clksel_rate div_sysclk21_rates[] = {
 	{ .div = 1, .val = 0, .flags = RATE_IN_TI816X | DEFAULT_RATE },
 	{ .div = 2, .val = 1, .flags = RATE_IN_TI816X },
@@ -716,6 +727,17 @@ static const struct clksel sysclk21_div[] = {
 	{ .parent = NULL },
 };
 
+static struct clk sysclk21_ck = {
+	.name		= "sysclk21_ck",
+	.parent		= &audio_pll_clk4_ck,
+	.init		= &omap2_init_clksel_parent,
+	.clksel		= sysclk21_div,
+	.ops		= &clkops_null,
+	.clksel_reg	= TI816X_CM_DPLL_SYSCLK20_CLKSEL,
+	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
+	.recalc		= &omap2_clksel_recalc,
+};
+
 static const struct clksel_rate div_sysclk22_rates[] = {
 	{ .div = 1, .val = 0, .flags = RATE_IN_TI816X | DEFAULT_RATE },
 	{ .div = 2, .val = 1, .flags = RATE_IN_TI816X },
@@ -726,28 +748,6 @@ static const struct clksel_rate div_sysclk22_rates[] = {
 static const struct clksel sysclk22_div[] = {
 	{ .parent = &audio_pll_clk5_ck, .rates = div_sysclk22_rates },
 	{ .parent = NULL },
-};
-
-static struct clk sysclk20_ck = {
-	.name		= "sysclk20_ck",
-	.parent		= &audio_pll_clk3_ck,
-	.init		= &omap2_init_clksel_parent,
-	.clksel		= sysclk20_div,
-	.ops		= &clkops_null,
-	.clksel_reg	= TI816X_CM_DPLL_SYSCLK20_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
-	.recalc		= &omap2_clksel_recalc,
-};
-
-static struct clk sysclk21_ck = {
-	.name		= "sysclk21_ck",
-	.parent		= &audio_pll_clk4_ck,
-	.init		= &omap2_init_clksel_parent,
-	.clksel		= sysclk21_div,
-	.ops		= &clkops_null,
-	.clksel_reg	= TI816X_CM_DPLL_SYSCLK20_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
-	.recalc		= &omap2_clksel_recalc,
 };
 
 static struct clk sysclk22_ck = {
@@ -890,6 +890,7 @@ static struct omap_clk ti816x_clks[] = {
 	CLK("i2c_omap.1",	"ick",			&i2c1_ick,		CK_TI816X),
 	CLK("i2c_omap.2",	"ick",			&i2c2_ick,		CK_TI816X),
 	CLK("mmci-omap-hs.0",	"ick",			&mmchs1_ick,		CK_TI816X),
+	CLK(NULL,		"ddr_pll_clk2_ck",	&ddr_pll_clk2_ck,	CK_TI816X),
 	CLK(NULL,		"sysclk10_ck",		&sysclk10_ck,		CK_TI816X),
 	CLK(NULL,		"uart1_fck",		&uart1_fck,		CK_TI816X),
 	CLK(NULL,		"uart2_fck",		&uart2_fck,		CK_TI816X),
@@ -915,6 +916,12 @@ static struct omap_clk ti816x_clks[] = {
 	CLK(NULL,		"gpt2_fck",		&gpt2_fck,		CK_TI816X),
 	CLK(NULL,		"gpt3_fck",		&gpt3_fck,		CK_TI816X),
 	CLK("mmci-omap-hs.0",	"mmchsdb_fck",		&mmchsdb1_fck,		CK_TI816X),
+	CLK(NULL,		"audio_pll_clk3_ck",	&audio_pll_clk3_ck,	CK_TI816X),
+	CLK(NULL,		"sysclk20_ck",		&sysclk20_ck,		CK_TI816X),
+	CLK(NULL,		"audio_pll_clk4_ck",	&audio_pll_clk4_ck,	CK_TI816X),
+	CLK(NULL,		"sysclk21_ck",		&sysclk21_ck,		CK_TI816X),
+	CLK(NULL,		"audio_pll_clk5_ck",	&audio_pll_clk5_ck,	CK_TI816X),
+	CLK(NULL,		"sysclk22_ck",		&sysclk22_ck,		CK_TI816X),
 	CLK("davinci-mcasp.0",	NULL,			&mcasp0_fck,		CK_TI816X),
 	CLK("davinci-mcasp.1",	NULL,			&mcasp1_fck,		CK_TI816X),
 	CLK("davinci-mcasp.2",	NULL,			&mcasp2_fck,		CK_TI816X),
