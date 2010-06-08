@@ -387,7 +387,12 @@ void __init omap2_init_common_hw(struct omap_sdrc_params *sdrc_cs0,
 		omap2_sdrc_init(sdrc_cs0, sdrc_cs1);
 		_omap2_init_reprogram_sdrc();
 	}
-	gpmc_init();
+
+	if (cpu_is_ti816x()) {
+		pr_warning("TI816X: Skipping GPMC Init for now...\n");
+	} else {
+		gpmc_init();
+	}
 }
 
 void __init omap2_reserve(void)

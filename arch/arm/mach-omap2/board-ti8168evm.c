@@ -65,6 +65,7 @@
 #define HAS_NOR 0
 #endif
 
+#if 0
 static struct mtd_partition ti816x_evm_norflash_partitions[] = {
 	/* bootloader (U-Boot, etc) in first 5 sectors */
 	{
@@ -157,6 +158,7 @@ static struct omap_musb_board_data musb_board_data = {
 	.mode			= MUSB_OTG,
 	.power			= 500,
 };
+#endif
 
 static void __init ti8168_evm_init_irq(void)
 {
@@ -168,6 +170,7 @@ static void __init ti8168_evm_init_irq(void)
 static struct omap_board_config_kernel generic_config[] = {
 };
 
+#if 0
 int __init ti_ahci_register(u8 num_inst);
 
 /* FIX ME: Check the address of I2C expander */
@@ -242,7 +245,6 @@ is used by TI 816x EVM. Registering a single isntance
 	return 0;
 }
 
-
 static u8 ti8168_iis_serializer_direction[] = {
 	RX_MODE,	TX_MODE,	INACTIVE_MODE,	INACTIVE_MODE,
 	INACTIVE_MODE,	INACTIVE_MODE,	INACTIVE_MODE,	INACTIVE_MODE,
@@ -262,6 +264,7 @@ static struct snd_platform_data ti8168_evm_snd_data = {
 	.txnumevt = 1,
 	.rxnumevt = 1,
 };
+#endif
 
 /*
  * dmtimer FIQ block: Use DMTIMER3 to generate FIQ every __us.
@@ -402,11 +405,13 @@ static void __init ti8168_evm_init(void)
 {
 	omap_board_config = generic_config;
 	omap_board_config_size = ARRAY_SIZE(generic_config);
-
+#if 0
 	spi_register_board_info(ti8168_evm_spi_info,
 				ARRAY_SIZE(ti8168_evm_spi_info));
+#endif
 
 	omap_serial_init();
+#if 0
 	omap2_hsmmc_init(mmc);
 
 	/* initialize usb */
@@ -425,6 +430,7 @@ static void __init ti8168_evm_init(void)
 	pr_info("AXI2OCP: Entering fixup code...\n");
 	axi2ocp_fiq_fixup();
 	pr_info("AXI2OCP: done with fixup\n");
+#endif
 }
 
 
