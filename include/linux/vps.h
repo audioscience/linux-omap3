@@ -40,6 +40,9 @@
 /** \brief Driver ID base for video decoder driver class. */
 #define VPS_VID_DEC_DRV_BASE            (0x00000400u)
 
+/** \brief Driver ID base for video  encoder driver class. */
+#define VPS_VID_ENC_DRV_BASE            (0x00000500u)
+
 /** \brief Driver ID base for the custom/user driver class. */
 #define VPS_USER_DRV_BASE               (0x00001000u)
 
@@ -79,6 +82,8 @@
 #define VPS_M2M_NSF_IOCTL_BASE           (FVID2_USER_BASE + 0x00050000u)
 /** \brief IOCTL base address for the video decoder driver IOCTLs. */
 #define VPS_VID_DEC_IOCTL_BASE           (FVID2_USER_BASE + 0x00060000u)
+/** \brief IOCTL base address for the video  encoder driver IOCTLs. */
+#define VPS_VID_ENC_IOCTL_BASE          (FVID2_USER_BASE + 0x00070000u)
 
 /**
  *  \brief IOCTL base address for the advanced debug capabilities.

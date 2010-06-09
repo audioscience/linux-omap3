@@ -35,6 +35,13 @@
 #define TI816XFB_CLUT_SIZE (TI816XFB_CLUT_ENTRY * TI816XFB_CLUT_UNIT)
 #define TI816XFB_CLUT_MASK 0xFF
 
+#define TI816XFB_COEFF_PHASE       0x8
+#define TI816XFB_COEFF_HOR_TAP     0x5
+#define TI816XFB_COEFF_VER_TAP     0x4
+#define TI816XFB_HOR_COEFF_SIZE   (TI816XFB_COEFF_HOR_TAP * \
+					TI816XFB_COEFF_PHASE)
+#define TI816XFB_VER_COEFF_SIZE   (TI816XFB_COEFF_VER_TAP * \
+					TI816XFB_COEFF_PHASE)
 
 /*customer ioctl definitions*/
 #define TI816XFB_IOW(num, dtype)  _IOW('N', num, dtype)
@@ -44,8 +51,8 @@
 
 #define TI816XFB_SET_PARAMS   TI816XFB_IOW(2, struct ti816xfb_region_params)
 #define TI816XFB_GET_PARAMS   TI816XFB_IOR(3, struct ti816xfb_region_params)
-#define TI816XFB_SET_COEFF    TI816XFB_IOW(4, struct ti816xfb_region_scparams)
-#define TI816XFB_GET_COEFF    TI816XFB_IOW(5, struct ti816xfb_region_scparams)
+#define TI816XFB_SET_SCINFO   TI816XFB_IOW(4, struct ti816xfb_scparams)
+#define TI816XFB_GET_SCINFO   TI816XFB_IOW(5, struct ti816xfb_scparams)
 #define TI816XFB_ALLOC_STENC  TI816XFB_IOW(6, int)
 #define TI816XFB_FREE_STENC   TI816XFB_IOR(7, int)
 #define TI816XFB_SETUP_MEM    TI816XFB_IOW(8, struct ti816xfb_mem_info)
@@ -53,7 +60,6 @@
 #define TI816XFB_SET_STENC TI816XFB_IOW(10, struct ti816xfb_stenciling_params)
 
 
-#define TI816XFB_FREE 0xFF
 #define TI816XFB_INVALID_OFFSET 0xFFFFFFFF
 
 #define TI816XFB_MAX_PRIORITY 0xF
@@ -168,12 +174,17 @@ struct ti816xfb_region_params {
 	__u8                reserved[2];
 };
 
+struct ti816xfb_coeff {
+	__u16     horcoeff[TI816XFB_COEFF_HOR_TAP][TI816XFB_COEFF_PHASE];
+	__u16     vercoeff[TI816XFB_COEFF_VER_TAP][TI816XFB_COEFF_PHASE];
+};
 
-struct ti816xfb_region_scparams {
-	__u16               inwidth;
-	__u16               inheight;
-	__u16               outwidth;
-	__u16               outheight;
+struct ti816xfb_scparams {
+	__u16                   inwidth;
+	__u16                   inheight;
+	__u16                   outwidth;
+	__u16                   outheight;
+	struct ti816xfb_coeff   *coeff;
 };
 
 struct ti816xfb_stenciling_params {

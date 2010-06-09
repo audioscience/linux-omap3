@@ -133,8 +133,10 @@ static int ti816xfb_set_region_params(struct fb_info *fbi,
 					    (struct fvid2_framelist *)
 						gctrl->frmls_phy,
 					    0);
-		fbi->var.xres = regp.regionwidth;
-		fbi->var.yres = regp.regionheight;
+		if (r == 0) {
+			fbi->var.xres = regp.regionwidth;
+			fbi->var.yres = regp.regionheight;
+		}
 	}
 
 	ti816xfb_unlock(tfbi);
@@ -196,7 +198,7 @@ static int ti816xfb_get_region_params(struct fb_info *fbi,
 }
 
 static int ti816xfb_set_scparams(struct fb_info *fbi,
-				struct ti816xfb_region_scparams *scp)
+				struct ti816xfb_scparams *scp)
 {
 	int r = 0;
 	struct ti816xfb_info *tfbi = FB2TFB(fbi);
@@ -212,6 +214,7 @@ static int ti816xfb_set_scparams(struct fb_info *fbi,
 	gscp.inheight = scp->inheight;
 	gscp.outwidth = scp->outwidth;
 	gscp.outheight = scp->outheight;
+	gscp.sccoeff = scp->coeff;
 	r = gctrl->set_scparams(gctrl, &gscp);
 	if (0 == r) {
 		if (gctrl->gstate.isstarted)
@@ -226,7 +229,7 @@ static int ti816xfb_set_scparams(struct fb_info *fbi,
 }
 
 static int ti816xfb_get_scparams(struct fb_info *fbi,
-				struct ti816xfb_region_scparams *scp)
+				struct ti816xfb_scparams *scp)
 {
 	int r = 0;
 	struct ti816xfb_info *tfbi = FB2TFB(fbi);
@@ -372,7 +375,7 @@ static int ti816xfb_free_sten_mem(struct fb_info *fbi, int offset)
 			gctrl->set_stenparams(gctrl, 0, stride);
 
 	}
-    ti816xfb_unlock(tfbi);
+	ti816xfb_unlock(tfbi);
 	return r;
 }
 
@@ -394,19 +397,25 @@ static int ti816xfb_set_sten(struct fb_info *fbi,
 		}
 	}
 
+	if (found == false) {
+		dev_err(tfbi->fbdev->dev,
+			"not found match addres\n");
+		return -EINVAL;
+	}
+
 	if (stparams->pitch & 0xF) {
 		dev_err(tfbi->fbdev->dev,
 			"stride should be 16 byte boundry.\n");
 		return -EINVAL;
 	}
 
-    ti816xfb_lock(tfbi);
+	ti816xfb_lock(tfbi);
 	r = gctrl->set_stenparams(gctrl, offset, stparams->pitch);
 	if ((r == 0) && (gctrl->gstate.isstarted))
 		vps_fvid2_queue(gctrl->handle,
 				(struct fvid2_framelist *)gctrl->frmls_phy,
 				0);
-    ti816xfb_unlock(tfbi);
+	ti816xfb_unlock(tfbi);
 	return r;
 
 }
@@ -469,7 +478,7 @@ int ti816xfb_ioctl(struct fb_info *fbi, unsigned int cmd,
 {
 	union {
 		struct ti816xfb_region_params regparams;
-		struct ti816xfb_region_scparams scparams;
+		struct ti816xfb_scparams scparams;
 		struct ti816xfb_mem_info   minfo;
 		struct ti816xfb_stenciling_params stparams;
 		int mirror;
@@ -512,27 +521,54 @@ int ti816xfb_ioctl(struct fb_info *fbi, unsigned int cmd,
 			r = -EFAULT;
 		break;
 
-	case TI816XFB_SET_COEFF:
-		TFBDBG("ioctl SET_COEFF\n");
+	case TI816XFB_SET_SCINFO:
+		TFBDBG("ioctl SET_SCINFO\n");
 		if (copy_from_user(&param.scparams, (void __user *)arg,
 				   sizeof(param.scparams))) {
 			r = -EFAULT;
 			break;
 		}
+		if (param.scparams.coeff) {
+			struct ti816xfb_coeff *coeff =
+				kzalloc(sizeof(struct ti816xfb_coeff),
+					GFP_KERNEL);
 
+			TFBDBG("loading app's coeff\n");
+			if (copy_from_user(coeff,
+					   (void __user *)param.scparams.coeff,
+					    sizeof(struct ti816xfb_coeff))) {
+				kfree(coeff);
+				r = -EFAULT;
+				break;
+			}
+			param.scparams.coeff = coeff;
+
+		}
 		r = ti816xfb_set_scparams(fbi, &param.scparams);
-
+		kfree(param.scparams.coeff);
 		break;
 
-	case  TI816XFB_GET_COEFF:
-		TFBDBG("ioctl GET_COEFF");
+	case  TI816XFB_GET_SCINFO:
+		TFBDBG("ioctl GET_SCINFO");
 		r = ti816xfb_get_scparams(fbi, &param.scparams);
 		if (r == 0) {
+			struct ti816xfb_scparams scp;
+			/*keep the coeff pointer in the strucutre and
+			  do not change it*/
+			if (copy_from_user(&scp,
+					(void __user *)arg,
+					sizeof(param.scparams))) {
+				r = -EFAULT;
+				break;
+			}
+			/*store the coeff back to app*/
+			param.scparams.coeff = scp.coeff;
+
 			if (copy_to_user((void __user *)arg, &param.scparams,
 					 sizeof(param.scparams)))
 				r = -EFAULT;
-
 		}
+
 
 		break;
 

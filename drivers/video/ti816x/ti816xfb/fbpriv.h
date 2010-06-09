@@ -39,7 +39,7 @@ extern unsigned int fb_debug;
 #define TFBDBG(format, ...) \
 	do { \
 		if (fb_debug) \
-			printk(KERN_INFO"TI816XFB  : " format, \
+			printk(KERN_INFO "TI816XFB  : " format, \
 				## __VA_ARGS__); \
 	} while (0)
 #else
@@ -53,7 +53,7 @@ extern unsigned int fb_debug;
 struct ti816xfb_alloc_list {
 	struct list_head    list;
 	dma_addr_t          phy_addr;
-	void                *cpu_addr;
+	void                *virt_addr;
 	u32                 size;
 };
 

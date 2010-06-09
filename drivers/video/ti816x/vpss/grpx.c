@@ -126,10 +126,6 @@ static int vps_grpx_apply_changes(struct vps_grpx_ctrl *gctrl)
 			gctrl->frames->perframecfg =
 				(struct vps_grpxrtparams *)gctrl->grtp_phy;
 
-		/*r = vps_fvid2_queue(gctrl->handle,
-				(struct fvid2_framelist *)gctrl->frmls_phy,0);
-				*/
-
 	} else {
 		if (gstate->scset)
 			gctrl->glist->scparams =
@@ -142,7 +138,7 @@ static int vps_grpx_apply_changes(struct vps_grpx_ctrl *gctrl)
 		gctrl->framelist->perlistcfg = NULL;
 		gctrl->frames->perframecfg = NULL;
 
-		}
+	}
 
 
 
@@ -339,12 +335,20 @@ static int vps_grpx_check_regparams(struct vps_grpx_ctrl *gctrl,
 	fh = gctrl->frameheight;
 
 	/* does not support stencling until stenciling buffer is set*/
-	if (regp->stencilingenable == true)
-		if (gctrl->gstate.stenset == false) {
-			VPSSERR("grpx%d sten enable without valid pointer.\n",
-				gctrl->grpx_num);
-			return -1;
+	if (regp->stencilingenable == true) {
+		if (gctrl->gstate.isstarted) {
+			if (gctrl->grtparam->stenptr == NULL)  {
+				VPSSERR("Set stenciling pointer first.\n");
+				return -1;
+			}
+		} else {
+			if (gctrl->gparams->stenptr == NULL)  {
+				VPSSERR("Set stenciling pointer first.\n");
+				return -1;
+			}
 		}
+
+	}
 	/**
 	 * due to the hardware scaler limitation, the scaler will output more lines
 	 * and pixes than what asked, this should be taken into
@@ -352,11 +356,13 @@ static int vps_grpx_check_regparams(struct vps_grpx_ctrl *gctrl,
 	 * overlap
 	 */
 	if (regp->scenable) {
-		if (gctrl->gstate.scset == false) {
-			VPSSERR("grpx%d scaling enable without coeff.\n",
-				gctrl->grpx_num);
+
+		if ((scparam->inheight == 0) || (scparam->inwidth == 0) ||
+		(scparam->outheight == 0) || (scparam->outwidth == 0)) {
+			VPSSERR("please config Scaler first.\n");
 			return -1;
 		}
+
 		/*get the current region scaled type*/
 		if (scparam->inheight > scparam->outheight)
 			vscaled = 2;
@@ -437,16 +443,11 @@ static int vps_grpx_get_stenparams(struct vps_grpx_ctrl *gctrl,
 			  u32 *pitch)
 {
 	int r = 0;
-	if (gctrl->gstate.stenset == true) {
-		*stenaddr = (u32)gctrl->gparams->stenptr;
-		*pitch = gctrl->gparams->stenpitch;
-	} else {
-		*stenaddr = 0;
-		r = -1;
-	}
+	*stenaddr = (u32)gctrl->gparams->stenptr;
+	*pitch = gctrl->gparams->stenpitch;
 	VPSSDBG("get stenciling %#x with stride 0x%x\n",
 		(u32)*stenaddr, (u32)*pitch);
-	return -1;
+	return r;
 }
 
 static int vps_grpx_set_scparams(struct vps_grpx_ctrl *gctrl,
@@ -455,14 +456,21 @@ static int vps_grpx_set_scparams(struct vps_grpx_ctrl *gctrl,
 	int r = 0;
 
 	/*need make sure that out_widht and out_height is inside the frame*/
-	if ((sci->outwidth > gctrl->inputf->width) ||
-		(sci->outheight > gctrl->inputf->height))
+	if ((sci->outwidth > gctrl->framewidth) ||
+		(sci->outheight > gctrl->frameheight))
 		return -1;
 
 	VPSSDBG("set sc params %dx%d->%dx%d\n", sci->inwidth,
 		sci->inheight, sci->outwidth, sci->outheight);
 	/*set the scaling information*/
 	memcpy(gctrl->gscparams, sci, sizeof(struct vps_grpxscparams));
+	/*load app's own coefficients if available*/
+	if (sci->sccoeff) {
+		memcpy(gctrl->gsccoeff,
+		       sci->sccoeff,
+		       sizeof(struct vps_grpxsccoeff));
+		gctrl->gscparams->sccoeff = (void *)gctrl->gsccoff_phy;
+	}
 	gctrl->gstate.scset = true;
 
 	r = vps_grpx_apply_changes(gctrl);
@@ -473,8 +481,6 @@ static int vps_grpx_get_scparams(struct vps_grpx_ctrl *gctrl,
 			   struct vps_grpxscparams *sci)
 {
 	VPSSDBG("get sc params.\n");
-	if (gctrl->gstate.scset == false)
-		return -1;
 
 	memcpy(sci, gctrl->gscparams, sizeof(struct vps_grpxscparams));
 	return 0;
@@ -563,8 +569,8 @@ static int vps_grpx_create(struct vps_grpx_ctrl *gctrl)
 	gctrl->cbparams->errlist = NULL;
 	gctrl->cbparams->errcbfnx = NULL;
 
-
 	grpx_pre_start(gctrl);
+
 	return 0;
 }
 
@@ -754,7 +760,7 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 		goto exit;
 	}
 	/*check the remaining input string*/
-	if (input == NULL) {
+	if ((input == NULL) || (!(strcmp(input, "\0")))) {
 		r = -EINVAL;
 		VPSSERR("wrong node information\n");
 		goto exit;
@@ -762,6 +768,7 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 	/*parse each end note*/
 	while (!r && (this_opt = strsep(&input, ",")) != NULL) {
 		int nid;
+
 		if (idx > total)
 			break;
 
