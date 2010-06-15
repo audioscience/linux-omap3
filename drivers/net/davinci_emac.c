@@ -459,6 +459,8 @@ struct emac_rxch {
 	u32 mis_queued_packets;
 };
 
+#define MAX_MODULE_IRQS 4
+
 /* emac_priv: EMAC private data structure
  *
  * EMAC adapter private data structure
@@ -505,6 +507,9 @@ struct emac_priv {
 	/*platform specific members*/
 	void (*int_enable) (void);
 	void (*int_disable) (void);
+	/*snapshot of IRQs */
+	u32 irqs_table[MAX_MODULE_IRQS];
+	u32 num_irqs;
 };
 
 /* clock frequency for EMAC */
@@ -1173,6 +1178,7 @@ static irqreturn_t emac_irq(int irq, void *dev_id)
 {
 	struct net_device *ndev = (struct net_device *)dev_id;
 	struct emac_priv *priv = netdev_priv(ndev);
+	int i;
 
 	++priv->isr_count;
 	if (likely(netif_running(priv->ndev))) {
@@ -1181,6 +1187,10 @@ static irqreturn_t emac_irq(int irq, void *dev_id)
 	} else {
 		/* we are closing down, so dont process anything */
 	}
+
+	for (i = 0; i < priv->num_irqs; i++)
+		disable_irq_nosync(priv->irqs_table[i]);
+
 	return IRQ_HANDLED;
 }
 
@@ -2323,8 +2333,12 @@ static int emac_poll(struct napi_struct *napi, int budget)
 					&emac_rxhost_errcodes[cause][0], ch);
 		}
 	} else if (num_rx_pkts < budget) {
+		int i;
+
 		napi_complete(napi);
 		emac_int_enable(priv);
+		for (i = 0; i < priv->num_irqs; i++)
+			enable_irq(priv->irqs_table[i]);
 	}
 
 	return num_rx_pkts;
@@ -2502,7 +2516,7 @@ static int emac_dev_open(struct net_device *ndev)
 	int phy_addr;
 	struct resource *res;
 	int q, m;
-	int i = 0;
+	int i = 0, irq_num = 0;
 	int k = 0;
 	struct emac_priv *priv = netdev_priv(ndev);
 
@@ -2539,15 +2553,17 @@ static int emac_dev_open(struct net_device *ndev)
 	}
 
 	/* Request IRQ */
-
+	priv->num_irqs = 0;
 	while ((res = platform_get_resource(priv->pdev, IORESOURCE_IRQ, k))) {
 		for (i = res->start; i <= res->end; i++) {
 			if (request_irq(i, emac_irq, IRQF_DISABLED,
 					ndev->name, ndev))
 				goto rollback;
+			priv->irqs_table[irq_num++] = i;
 		}
 		k++;
 	}
+	priv->num_irqs = irq_num;
 
 	/* Start/Enable EMAC hardware */
 	emac_hw_enable(priv);
