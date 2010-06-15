@@ -59,9 +59,13 @@
 #include <linux/io.h>
 #include <linux/uaccess.h>
 #include <linux/davinci_emac.h>
+#include <linux/workqueue.h>
+#include <linux/delay.h>
 
 #include <asm/irq.h>
 #include <asm/page.h>
+
+#undef EMAC_USE_POLLING
 
 static int debug_level;
 module_param(debug_level, int, 0);
@@ -487,6 +491,13 @@ struct emac_priv {
 	/*platform specific members*/
 	void (*int_enable) (void);
 	void (*int_disable) (void);
+
+	/* Work queue for polling */
+	struct delayed_work dwork;
+
+	/* snapshot of IRQ numbers */
+	u32 irqs_table[10];
+	u32 num_irqs;
 };
 
 /* clock frequency for EMAC */
@@ -982,6 +993,7 @@ static void emac_dev_mcast_set(struct net_device *ndev)
  */
 static void emac_int_disable(struct emac_priv *priv)
 {
+
 	if (priv->version == EMAC_VERSION_2) {
 		unsigned long flags;
 
@@ -1001,6 +1013,7 @@ static void emac_int_disable(struct emac_priv *priv)
 		/* Set DM644x control registers for interrupt control */
 		emac_ctrl_write(EMAC_CTRL_EWCTL, 0x0);
 	}
+
 }
 
 /**
@@ -1037,6 +1050,7 @@ static void emac_int_enable(struct emac_priv *priv)
 		/* Set DM644x control registers for interrupt control */
 		emac_ctrl_write(EMAC_CTRL_EWCTL, 0x1);
 	}
+
 }
 
 /**
@@ -1053,6 +1067,7 @@ static irqreturn_t emac_irq(int irq, void *dev_id)
 {
 	struct net_device *ndev = (struct net_device *)dev_id;
 	struct emac_priv *priv = netdev_priv(ndev);
+	int i;
 
 	++priv->isr_count;
 	if (likely(netif_running(priv->ndev))) {
@@ -1061,6 +1076,10 @@ static irqreturn_t emac_irq(int irq, void *dev_id)
 	} else {
 		/* we are closing down, so dont process anything */
 	}
+
+	for (i = 0; i < priv->num_irqs; i++)
+		disable_irq_nosync(priv->irqs_table[i]);
+
 	return IRQ_HANDLED;
 }
 
@@ -2149,6 +2168,7 @@ static int emac_poll(struct napi_struct *napi, int budget)
 	struct device *emac_dev = &ndev->dev;
 	u32 status = 0;
 	u32 num_pkts = 0;
+	int i;
 
 	/* Check interrupt vectors and call packet processing */
 	status = emac_read(EMAC_MACINVECTOR);
@@ -2178,6 +2198,11 @@ static int emac_poll(struct napi_struct *napi, int budget)
 	if (num_pkts < budget) {
 		napi_complete(napi);
 		emac_int_enable(priv);
+		#ifdef EMAC_USE_POLLING
+		schedule_delayed_work(&priv->dwork, msecs_to_jiffies(10));
+		#endif
+		for (i = 0; i < priv->num_irqs; i++)
+			enable_irq(priv->irqs_table[i]);
 	}
 
 	mask = EMAC_DM644X_MAC_IN_VECTOR_HOST_INT;
@@ -2370,6 +2395,19 @@ static int emac_devioctl(struct net_device *ndev, struct ifreq *ifrq, int cmd)
 	return -EOPNOTSUPP;
 }
 
+static void emac_poll_func(struct work_struct *workstruct)
+{
+	struct delayed_work *delay_work =
+			container_of(workstruct, struct delayed_work, work);
+	struct emac_priv *priv =
+			container_of(delay_work, struct emac_priv, dwork);
+
+	 if (likely(netif_running(priv->ndev))) {
+		emac_int_disable(priv);
+		napi_schedule(&priv->napi);
+	}
+}
+
 /**
  * emac_dev_open: EMAC device open
  * @ndev: The DaVinci EMAC network adapter
@@ -2387,7 +2425,7 @@ static int emac_dev_open(struct net_device *ndev)
 	int phy_addr;
 	struct resource *res;
 	int q, m;
-	int i = 0;
+	int i = 0, irq_num = 0;
 	int k = 0;
 	struct emac_priv *priv = netdev_priv(ndev);
 
@@ -2425,14 +2463,24 @@ static int emac_dev_open(struct net_device *ndev)
 
 	/* Request IRQ */
 
+	priv->num_irqs = 0;
+	#ifndef EMAC_USE_POLLING
 	while ((res = platform_get_resource(priv->pdev, IORESOURCE_IRQ, k))) {
 		for (i = res->start; i <= res->end; i++) {
 			if (request_irq(i, emac_irq, IRQF_DISABLED,
 					ndev->name, ndev))
 				goto rollback;
+			priv->irqs_table[irq_num++] = i;
 		}
 		k++;
 	}
+	priv->num_irqs = irq_num;
+
+	#else
+	INIT_DELAYED_WORK(&priv->dwork, emac_poll_func);
+	/* start polling after all init is complete - 2 sec to be safe */
+	schedule_delayed_work(&priv->dwork, 2000);
+	#endif
 
 	/* Start/Enable EMAC hardware */
 	emac_hw_enable(priv);
@@ -2638,7 +2686,8 @@ static int __devinit davinci_emac_probe(struct platform_device *pdev)
 	struct device *emac_dev;
 
 	/* obtain emac clock from kernel */
-	emac_clk = clk_get(&pdev->dev, NULL);
+	/*emac_clk = clk_get(&pdev->dev, NULL);*/
+	emac_clk = clk_get(NULL, "emac1_ick");
 	if (IS_ERR(emac_clk)) {
 		printk(KERN_ERR "DaVinci EMAC: Failed to get EMAC clock\n");
 		return -EBUSY;

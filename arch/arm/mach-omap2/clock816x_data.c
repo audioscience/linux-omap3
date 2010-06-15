@@ -899,7 +899,7 @@ static struct omap_clk ti816x_clks[] = {
 	CLK(NULL,		"sysclk5_ck",		&sysclk5_ck,		CK_TI816X),
 	CLK(NULL,		"pcie_ck",		&pcie_ck,		CK_TI816X),
 	CLK(NULL,		"sata_ick",		&sata_ick,		CK_TI816X),
-	CLK("davinci_emac.0",	"emac1_ick",		&emac1_ick,		CK_TI816X),
+	CLK(NULL,		"emac1_ick",		&emac1_ick,		CK_TI816X),
 	CLK("davinci_emac.1",	"emac2_ick",		&emac2_ick,		CK_TI816X),
 	CLK(NULL,		"ducati_ick",		&ducati_ick,		CK_TI816X),
 	CLK(NULL,		"gem_trc_fck",		&gem_trc_fck,		CK_TI816X),

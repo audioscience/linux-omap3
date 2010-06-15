@@ -1420,6 +1420,7 @@ static int __init omap2_init_devices(void)
 	omap_init_sha1_md5();
 	omap_init_vout();
 	ti816x_register_edma();
+	ti816x_ethernet_init();
 
 	return 0;
 }
