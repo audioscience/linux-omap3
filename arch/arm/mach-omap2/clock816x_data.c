@@ -419,7 +419,9 @@ static struct clk pcie_ck = {
 static struct clk sata_ick = {
 	.name           = "sata_ick",
 	.parent         = &sysclk5_ck,
-	.ops            = &clkops_null,
+	.ops            = &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_DEFAULT_SATA_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc         = &followparent_recalc,
 };

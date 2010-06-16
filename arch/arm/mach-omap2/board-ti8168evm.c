@@ -170,8 +170,8 @@ static void __init ti8168_evm_init_irq(void)
 static struct omap_board_config_kernel generic_config[] = {
 };
 
-#if 0
 int __init ti_ahci_register(u8 num_inst);
+#if 0
 
 /* FIX ME: Check the address of I2C expander */
 
@@ -416,9 +416,10 @@ static void __init ti8168_evm_init(void)
 
 	/* initialize usb */
 	usb_musb_init(&musb_board_data);
-
+#endif
 	/* register ahci interface for 2 SATA ports */
 	ti_ahci_register(2);
+#if 0
 	ti816x_evm_i2c_init();
 	i2c_add_driver(&ti816xevm_cpld_driver);
 

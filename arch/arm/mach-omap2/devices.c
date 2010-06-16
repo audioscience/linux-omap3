@@ -914,37 +914,45 @@ static inline void omap_init_vout(void) {}
                                 * from AHCI base)
                                 */
 
-#define PHY_MPY		8 /* bits3:0     4 Clock Sources at 100MHz */
-#define PHY_LB		0 /* bits5:4     2 */
-#define PHY_LOS		1 /* bit6        1 */
-#define PHY_RXINVPAIR	0 /* bit7        1 */
-#define PHY_RXTERM	0 /* bits9:8     2 */
-#define PHY_RXCDR	0 /* bits12:10   3 */
-#define PHY_RXEQ	1 /* bits16:13   4 */
-#define PHY_TXINVPAIR	0 /* bit17       1 */
-#define PHY_TXCM	0 /* bit18       1 */
-#define PHY_TXSWING	3 /* bits21:19   3 */
-#define PHY_TXDE	0 /* bits25:22   4 */
-#define PHY_OVERRIDE	0 /* bit30       1 */
-#define PHY_ENPLL	1 /* bit31       1 */
+#define PHY_ENPLL	1 /* bit0        1 */
+#define PHY_MPY		8 /* bits4:1     4 Clock Sources at 100MHz */
+#define PHY_LB		0 /* bits6:5     2 */
+#define PHY_CLKBYP	0 /* bits8:7     2 */
+#define PHY_RXINVPAIR	0 /* bit9        1 */
+#define PHY_LBK		0 /* bits11:10   2 */
+#define PHY_RXLOS	1 /* bit12	 1 */
+#define PHY_RXCDR	4 /* bits15:13   3 */
+#define PHY_RXEQ	1 /* bits19:16   4 */
+#define PHY_RxENOC	1 /* bit20       1 */
+#define PHY_TXINVPAIR	0 /* bit21	 1 */
+#define PHY_TXCM	0 /* bit22       1 */
+#define PHY_TXSWING	3 /* bits26:23   4 */
+#define PHY_TXDE	0 /* bits31:27   5 */
 u8	ti_num_ahci_inst = 1;
+struct clk *sata_clk;
 
 static int ahci_plat_init(struct device *dev)
 {
 	u32     	phy_val = 0;
 	void __iomem	*base;
 
-#if 0
-	/* Power up the PHY clock source */
-	if (cpu_is_davinci_da850())
-		__raw_writel(0, IO_ADDRESS(DA850_SATA_CLK_PWRDN));
-#endif
-	phy_val = PHY_MPY << 0 | PHY_LB << 4 | PHY_LOS << 6 |
-			PHY_RXINVPAIR << 7 | PHY_RXTERM << 8 |
-			PHY_RXCDR  << 10 | PHY_RXEQ << 13 |
-			PHY_RXINVPAIR << 17 | PHY_TXCM << 18 |
-			PHY_TXSWING << 19 | PHY_TXDE << 22 |
-			PHY_OVERRIDE << 30 | PHY_ENPLL  << 31;
+	sata_clk = clk_get(NULL, "sata_ick");
+	if (IS_ERR(sata_clk)) {
+		pr_err("ahci : Failed to get AHCI clock\n");
+		return -1;
+	}
+
+	if (clk_enable(sata_clk)) {
+		pr_err("ahci : Clock Enable Failed\n");
+		return -1;
+	}
+
+	phy_val = PHY_ENPLL << 0 | PHY_MPY << 1 | PHY_LB << 5 |
+			PHY_CLKBYP << 7 | PHY_RXINVPAIR << 9 |
+			PHY_LBK  << 10 | PHY_RXLOS << 12 |
+			PHY_RXCDR << 13 | PHY_RXEQ << 16 |
+			PHY_RxENOC << 20 | PHY_TXINVPAIR << 21 |
+			PHY_TXCM << 22 | PHY_TXSWING  << 23 | PHY_TXDE << 27;
 
 	base = ioremap(TI816X_SATA_BASE, 0x10ffff);
 	if (!base) {
@@ -968,11 +976,6 @@ static int ahci_plat_init(struct device *dev)
 
 static void ahci_plat_exit(struct device *dev)
 {
-#if 0
-	/* Power down the PHY clock source */
-	if (cpu_is_davinci_da850())
-		__raw_writel(1, IO_ADDRESS(DA850_SATA_CLK_PWRDN));
-#endif
 }
 
 static struct resource ahci_resources[] = {
