@@ -296,6 +296,7 @@ struct musb_hw_ep {
 	struct musb_ep		ep_in;			/* TX */
 	struct musb_ep		ep_out;			/* RX */
 #endif
+	u8                      dma_completed;
 };
 
 static inline struct usb_request *next_in_request(struct musb_hw_ep *hw_ep)
@@ -479,8 +480,10 @@ struct musb {
 	struct usb_gadget	g;			/* the gadget */
 	struct usb_gadget_driver *gadget_driver;	/* its driver */
 #endif
-	u8			can_dma_queue; /* dma queue logic enable */
+	u8                      rx_can_dma_queue; /* dma queue logic enable */
+	u8                      tx_can_dma_queue;
 	struct musb_hdrc_config	*config;
+	u8			id;
 
 #ifdef MUSB_CONFIG_PROC_FS
 	struct proc_dir_entry *proc_entry;
