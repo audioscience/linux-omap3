@@ -265,10 +265,12 @@ static void txstate(struct musb *musb, struct musb_request *req)
 	struct usb_request	*request;
 	u16			fifo_count = 0, csr;
 	int			use_dma = 0;
+	int			can_dma_queue = musb->tx_can_dma_queue;
 
 	musb_ep = req->ep;
 	/* we shouldn't get here while DMA is active ... but we do ... */
-	if (!musb->can_dma_queue && dma_channel_status(musb_ep->dma) == MUSB_DMA_STATUS_BUSY) {
+	if (!can_dma_queue &&
+		dma_channel_status(musb_ep->dma) == MUSB_DMA_STATUS_BUSY) {
 		DBG(4, "dma pending...\n");
 		return;
 	}
@@ -280,7 +282,7 @@ static void txstate(struct musb *musb, struct musb_request *req)
 	fifo_count = min(max_ep_writesize(musb, musb_ep),
 			(int)(request->length - request->actual));
 
-	if (!musb->can_dma_queue && (csr & MUSB_TXCSR_TXPKTRDY)) {
+	if (!can_dma_queue && (csr & MUSB_TXCSR_TXPKTRDY)) {
 		DBG(5, "%s old packet still ready , txcsr %03x\n",
 				musb_ep->end_point.name, csr);
 		return;
@@ -421,6 +423,8 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 	struct musb_ep		*musb_ep = &musb->endpoints[epnum].ep_in;
 	void __iomem		*epio = musb->endpoints[epnum].regs;
 	struct dma_channel	*dma;
+	int			can_dma_queue = musb->tx_can_dma_queue;
+	int			dma_completed = musb_ep->hw_ep->dma_completed;
 
 	musb_ep_select(mbase, epnum);
 	request = next_request(musb_ep);
@@ -449,7 +453,8 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 		DBG(20, "underrun on ep%d, req %p\n", epnum, request);
 	}
 
-	if (!musb->can_dma_queue && (dma_channel_status(dma) == MUSB_DMA_STATUS_BUSY)) {
+	if (!can_dma_queue &&
+		(dma_channel_status(dma) == MUSB_DMA_STATUS_BUSY)) {
 		/*
 		 * SHOULD NOT HAPPEN... has with CPPI though, after
 		 * changing SENDSTALL (and other cases); harmless?
@@ -466,7 +471,8 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 			csr |= MUSB_TXCSR_P_WZC_BITS;
 			csr &= ~(MUSB_TXCSR_DMAENAB | MUSB_TXCSR_P_UNDERRUN |
 				 MUSB_TXCSR_TXPKTRDY);
-			musb_writew(epio, MUSB_TXCSR, csr);
+			if (!dma_completed)
+				musb_writew(epio, MUSB_TXCSR, csr);
 			/* Ensure writebuffer is empty. */
 			csr = musb_readw(epio, MUSB_TXCSR);
 			request->actual += musb_ep->dma->actual_len;
@@ -523,7 +529,7 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 			}
 		}
 
-		if (!musb->can_dma_queue)
+		if (!can_dma_queue)
 			txstate(musb, to_musb_request(request));
 	}
 }
@@ -743,6 +749,7 @@ void musb_g_rx(struct musb *musb, u8 epnum)
 	struct musb_ep		*musb_ep = &musb->endpoints[epnum].ep_out;
 	void __iomem		*epio = musb->endpoints[epnum].regs;
 	struct dma_channel	*dma;
+	int			can_dma_queue = musb->rx_can_dma_queue;
 
 	musb_ep_select(mbase, epnum);
 
@@ -777,7 +784,8 @@ void musb_g_rx(struct musb *musb, u8 epnum)
 		DBG(4, "%s, incomprx\n", musb_ep->end_point.name);
 	}
 
-	if (!musb->can_dma_queue && (dma_channel_status(dma) == MUSB_DMA_STATUS_BUSY)) {
+	if (!can_dma_queue &&
+		(dma_channel_status(dma) == MUSB_DMA_STATUS_BUSY)) {
 		/* "should not happen"; likely RXPKTRDY pending for DMA */
 		DBG((csr & MUSB_RXCSR_DMAENAB) ? 4 : 1,
 			"%s busy, csr %04x\n",
@@ -787,7 +795,7 @@ void musb_g_rx(struct musb *musb, u8 epnum)
 
 	if (dma && (csr & MUSB_RXCSR_DMAENAB)) {
 		csr &= ~(MUSB_RXCSR_AUTOCLEAR);
-		if (!musb->can_dma_queue)
+		if (!can_dma_queue)
 			csr &= ~(MUSB_RXCSR_DMAENAB | MUSB_RXCSR_DMAMODE);
 		musb_writew(epio, MUSB_RXCSR,
 			MUSB_RXCSR_P_WZC_BITS | csr);
@@ -817,7 +825,7 @@ void musb_g_rx(struct musb *musb, u8 epnum)
 #endif
 		musb_g_giveback(musb_ep, request, 0);
 
-		if (musb->can_dma_queue)
+		if (can_dma_queue)
 			return;
 
 		request = next_request(musb_ep);
@@ -1105,6 +1113,7 @@ static int musb_gadget_queue(struct usb_ep *ep, struct usb_request *req,
 	struct musb		*musb;
 	int			status = 0;
 	unsigned long		lockflags;
+	int			can_dma_queue;
 
 	if (!ep || !req)
 		return -EINVAL;
@@ -1119,6 +1128,9 @@ static int musb_gadget_queue(struct usb_ep *ep, struct usb_request *req,
 
 	if (request->ep != musb_ep)
 		return -EINVAL;
+
+	can_dma_queue = musb_ep->is_in ? musb->rx_can_dma_queue :
+			musb->tx_can_dma_queue;
 
 	DBG(4, "<== to %s request=%p\n", ep->name, req);
 
@@ -1166,7 +1178,7 @@ static int musb_gadget_queue(struct usb_ep *ep, struct usb_request *req,
 	list_add_tail(&(request->request.list), &(musb_ep->req_list));
 
 	/* it this is the head of the queue, start i/o ... */
-	if (musb->can_dma_queue || (!musb_ep->busy
+	if (can_dma_queue || (!musb_ep->busy
 		&& &request->request.list == musb_ep->req_list.next))
 		musb_ep_restart(musb, request);
 
