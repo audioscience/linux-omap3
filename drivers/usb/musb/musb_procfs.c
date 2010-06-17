@@ -463,10 +463,13 @@ static int dump_header_stats(struct musb *musb, char *buffer)
 
 	*buffer = 0;
 	count = sprintf(buffer, "Status: %sHDRC, Mode=%s "
-				"(Power=%02x, DevCtl=%02x)\n",
+				"(Power=%02x, DevCtl=%02x), usb0-mode(%x), utmi-reg(%x)\n",
 			(musb->is_multipoint ? "M" : ""), MUSB_MODE(musb),
 			musb_readb(mbase, MUSB_POWER),
-			musb_readb(mbase, MUSB_DEVCTL));
+			musb_readb(mbase, MUSB_DEVCTL),
+			musb_readl(musb->ctrl_base, 0xe8),
+			musb_readl(musb->ctrl_base, 0xe0));
+
 	if (count <= 0)
 		return 0;
 	buffer += count;
@@ -637,6 +640,34 @@ static int musb_proc_write(struct file *file, const char __user *buffer,
 		return -EFAULT;
 
 	switch (cmd) {
+	case 'K':
+		if (mbase) {
+			musb_writel(musb->ctrl_base, 0xe8, 0x100);
+			printk("mode-reg (%x)\n", musb_readl(musb->ctrl_base, 0xe8));
+		}
+		break;
+	case 'k':
+		if (mbase) {
+			musb_writel(musb->ctrl_base, 0xe8, 0);
+			printk("mode-reg (%x)\n", musb_readl(musb->ctrl_base, 0xe8));
+		}
+		break;
+	case 'a':
+		if (mbase) {
+			musb_writel(musb->ctrl_base, 0xe8, 0x20);
+			printk("1. addr(%p) (%x)\n", musb->ctrl_base+0xe8,
+					musb_readl(musb->ctrl_base, 0xe8));
+			musb_writel(musb->ctrl_base, 0x400, 0x20);
+			printk("2. addr(%p) (%x)\n", musb->ctrl_base+0x400,
+					musb_readl(musb->ctrl_base, 0x400));
+			musb_writel(musb->ctrl_base, 0x40f, 0x20);
+			printk("3. addr(%p) (%x)\n", musb->ctrl_base+0x40f,
+					musb_readl(musb->ctrl_base, 0x40f));
+			musb_writel(musb->ctrl_base, 0xe0, 0x20);
+			printk("4. addr(%p) (%x)\n", musb->ctrl_base+0xe0,
+				musb_readl(musb->ctrl_base, 0xe0));
+		}
+		break;
 	case 'S':
 		if (mbase) {
 			reg = musb_readb(mbase, MUSB_POWER)

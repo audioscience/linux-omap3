@@ -950,7 +950,7 @@ static irqreturn_t ti816x_interrupt(int irq, void *hci)
 	u32 epintr, usbintr;
 
 	spin_lock_irqsave(&musb->lock, flags);
-	printk("%s\n", __func__);
+
 	/*
 	 * NOTE: AM3517 shadows the Mentor IRQs.  Don't manage them through
 	 * the Mentor registers (except for setup), use the TI ones and EOI.
