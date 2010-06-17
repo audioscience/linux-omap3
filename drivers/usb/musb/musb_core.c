@@ -629,7 +629,6 @@ static irqreturn_t musb_stage0_irq(struct musb *musb, u8 int_usb,
 
 	if (int_usb & MUSB_INTR_CONNECT) {
 		struct usb_hcd *hcd = musb_to_hcd(musb);
-		void __iomem *mbase = musb->mregs;
 
 		handled = IRQ_HANDLED;
 		musb->is_active = 1;
@@ -1839,9 +1838,9 @@ static void musb_free(struct musb *musb)
 #endif
 
 #ifdef CONFIG_USB_MUSB_HDRC_HCD
-	if (musb->gb_queue)
+/*	if (musb->gb_queue)
 		destroy_workqueue(musb->gb_queue);
-	free_queue(musb);
+	free_queue(musb); */
 	usb_put_hcd(musb_to_hcd(musb));
 #else
 	kfree(musb);
@@ -1857,7 +1856,7 @@ static void musb_free(struct musb *musb)
  *	not yet corrected for platform-specific offsets
  */
 static int __init
-musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
+musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl, u8 musb_id)
 {
 	int			status;
 	struct musb		*musb;
@@ -1912,6 +1911,7 @@ bad_config:
 	musb->board_set_power = plat->set_power;
 	musb->set_clock = plat->set_clock;
 	musb->min_power = plat->min_power;
+	musb->id	= musb_id;
 
 	/* Clock usage is chip-specific ... functional clock (DaVinci,
 	 * OMAP2430), or PHY ref (some TUSB6010 boards).  All this core
@@ -2067,12 +2067,13 @@ bad_config:
 	if (status == 0) {
 		u8 drvbuf[50];
 		if (cpu_is_ti816x()) {
-			sprintf(drvbuf, "driver/musb_hdrc.%d", 0);
+			sprintf(drvbuf, "driver/musb_hdrc.%d", musb->id);
 			musb_debug_create(drvbuf, musb);
 		} else
 			musb_debug_create("driver/musb_hdrc", musb);
 	}
 #ifdef CONFIG_USB_MUSB_HDRC_HCD
+#if 0
 	musb->gb_queue = create_singlethread_workqueue(dev_name(dev));
 	if (musb->gb_queue == NULL)
 		goto fail2;
@@ -2084,6 +2085,7 @@ bad_config:
 	init_queue(musb);
 	if (!musb->qhead)
 		goto fail3;
+#endif
 #endif
 	return 0;
 
@@ -2135,6 +2137,7 @@ static int __init musb_probe(struct platform_device *pdev)
 	int		status;
 	struct resource	*iomem;
 	void __iomem	*base;
+	u8	musb_id = pdev->id;
 
 	iomem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!iomem || irq == 0)
@@ -2150,7 +2153,8 @@ static int __init musb_probe(struct platform_device *pdev)
 	/* clobbered by use_dma=n */
 	orig_dma_mask = dev->dma_mask;
 #endif
-	status = musb_init_controller(dev, irq, base);
+
+	status = musb_init_controller(dev, irq, base, musb_id);
 	if (status < 0)
 		iounmap(base);
 
@@ -2395,9 +2399,9 @@ static const struct dev_pm_ops musb_dev_pm_ops = {
 #define	MUSB_DEV_PM_OPS	NULL
 #endif
 
-static struct platform_driver musb_driver = {
+static struct platform_driver musb_driver_0 = {
 	.driver = {
-		.name		= (char *)musb_driver_name,
+		.name		= (char *)"musb_hdrc.0",
 		.bus		= &platform_bus_type,
 		.owner		= THIS_MODULE,
 		.pm		= MUSB_DEV_PM_OPS,
@@ -2405,11 +2409,21 @@ static struct platform_driver musb_driver = {
 	.remove		= __exit_p(musb_remove),
 	.shutdown	= musb_shutdown,
 };
-
+static struct platform_driver musb_driver_1 = {
+	.driver = {
+		.name		= (char *)"musb_hdrc.1",
+		.bus		= &platform_bus_type,
+		.owner		= THIS_MODULE,
+		.pm		= MUSB_DEV_PM_OPS,
+	},
+	.remove		= __exit_p(musb_remove),
+	.shutdown	= musb_shutdown,
+};
 /*-------------------------------------------------------------------------*/
 
 static int __init musb_init(void)
 {
+	int retval;
 #ifdef CONFIG_USB_MUSB_HDRC_HCD
 	if (usb_disabled())
 		return 0;
@@ -2439,7 +2453,11 @@ static int __init musb_init(void)
 #endif
 		", debug=%d\n",
 		musb_driver_name, musb_debug);
-	return platform_driver_probe(&musb_driver, musb_probe);
+
+	retval = platform_driver_probe(&musb_driver_0, musb_probe);
+	if (retval == 0)
+		retval = platform_driver_probe(&musb_driver_1, musb_probe);
+	return retval;
 }
 
 /* make us init after usbcore and i2c (transceivers, regulators, etc)
@@ -2449,6 +2467,6 @@ fs_initcall(musb_init);
 
 static void __exit musb_cleanup(void)
 {
-	platform_driver_unregister(&musb_driver);
+	platform_driver_unregister(&musb_driver_0);
 }
 module_exit(musb_cleanup);
