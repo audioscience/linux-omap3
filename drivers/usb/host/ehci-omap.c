@@ -411,6 +411,31 @@ static void omap_usb_utmi_init(struct ehci_hcd_omap *omap, u8 tll_channel_mask)
 
 /*-------------------------------------------------------------------------*/
 
+void ehci_omap_phy_reset(struct ehci_hcd_omap *omap)
+{
+	if ((omap->port_mode[0] == EHCI_HCD_OMAP_MODE_PHY) &&
+			gpio_is_valid(omap->reset_gpio_port[0])) {
+		gpio_request(omap->reset_gpio_port[0], "HSUSB0 reset");
+		gpio_direction_output(omap->reset_gpio_port[0], 0);
+	}
+
+	if ((omap->port_mode[1] == EHCI_HCD_OMAP_MODE_PHY) &&
+			gpio_is_valid(omap->reset_gpio_port[1])) {
+		gpio_request(omap->reset_gpio_port[1], "HSUSB1 reset");
+		gpio_direction_output(omap->reset_gpio_port[1], 0);
+	}
+
+	/* Hold the PHY in RESET for enough time till DIR is high */
+	udelay(10);
+
+	if ((omap->port_mode[0] == EHCI_HCD_OMAP_MODE_PHY) &&
+			gpio_is_valid(omap->reset_gpio_port[0]))
+		gpio_set_value(omap->reset_gpio_port[0], 1);
+	if ((omap->port_mode[1] == EHCI_HCD_OMAP_MODE_PHY) &&
+			gpio_is_valid(omap->reset_gpio_port[1]))
+		gpio_set_value(omap->reset_gpio_port[1], 1);
+}
+
 /* omap_start_ehc
  *	- Start the TI USBHOST controller
  */
@@ -444,24 +469,6 @@ static int omap_start_ehc(struct ehci_hcd_omap *omap, struct usb_hcd *hcd)
 		goto err_host_48m_fck;
 	}
 	clk_enable(omap->usbhost1_48m_fck);
-
-	if (omap->phy_reset) {
-		/* Refer: ISSUE1 */
-		if (gpio_is_valid(omap->reset_gpio_port[0])) {
-			gpio_request(omap->reset_gpio_port[0],
-						"USB1 PHY reset");
-			gpio_direction_output(omap->reset_gpio_port[0], 0);
-		}
-
-		if (gpio_is_valid(omap->reset_gpio_port[1])) {
-			gpio_request(omap->reset_gpio_port[1],
-						"USB2 PHY reset");
-			gpio_direction_output(omap->reset_gpio_port[1], 0);
-		}
-
-		/* Hold the PHY in RESET for enough time till DIR is high */
-		udelay(10);
-	}
 
 	/* Configure TLL for 60Mhz clk for ULPI */
 	omap->usbtll_fck = clk_get(omap->dev, "usbtll_fck");
@@ -576,20 +583,6 @@ static int omap_start_ehc(struct ehci_hcd_omap *omap, struct usb_hcd *hcd)
 		omap_usb_utmi_init(omap, tll_ch_mask);
 	}
 
-	if (omap->phy_reset) {
-		/* Refer ISSUE1:
-		 * Hold the PHY in RESET for enough time till
-		 * PHY is settled and ready
-		 */
-		udelay(10);
-
-		if (gpio_is_valid(omap->reset_gpio_port[0]))
-			gpio_set_value(omap->reset_gpio_port[0], 1);
-
-		if (gpio_is_valid(omap->reset_gpio_port[1]))
-			gpio_set_value(omap->reset_gpio_port[1], 1);
-	}
-
 	return 0;
 
 err_sys_status:
@@ -603,14 +596,6 @@ err_tll_ick:
 err_tll_fck:
 	clk_disable(omap->usbhost1_48m_fck);
 	clk_put(omap->usbhost1_48m_fck);
-
-	if (omap->phy_reset) {
-		if (gpio_is_valid(omap->reset_gpio_port[0]))
-			gpio_free(omap->reset_gpio_port[0]);
-
-		if (gpio_is_valid(omap->reset_gpio_port[1]))
-			gpio_free(omap->reset_gpio_port[1]);
-	}
 
 err_host_48m_fck:
 	clk_disable(omap->usbhost2_120m_fck);
@@ -695,14 +680,6 @@ static void omap_stop_ehc(struct ehci_hcd_omap *omap, struct usb_hcd *hcd)
 		clk_disable(omap->usbtll_ick);
 		clk_put(omap->usbtll_ick);
 		omap->usbtll_ick = NULL;
-	}
-
-	if (omap->phy_reset) {
-		if (gpio_is_valid(omap->reset_gpio_port[0]))
-			gpio_free(omap->reset_gpio_port[0]);
-
-		if (gpio_is_valid(omap->reset_gpio_port[1]))
-			gpio_free(omap->reset_gpio_port[1]);
 	}
 
 	dev_dbg(omap->dev, "Clock to USB host has been disabled\n");
@@ -1033,6 +1010,10 @@ static int ehci_hcd_omap_probe(struct platform_device *pdev)
 	/* here we "know" root ports should always stay powered */
 	ehci_port_power(omap->ehci, 1);
 
+	/* reset the USB PHY */
+	if (omap->phy_reset)
+		ehci_omap_phy_reset(omap);
+
 	return 0;
 
 err_add_hcd:
@@ -1083,6 +1064,15 @@ static int ehci_hcd_omap_remove(struct platform_device *pdev)
 
 	usb_remove_hcd(hcd);
 	omap_stop_ehc(omap, hcd);
+
+	if (omap->phy_reset) {
+		if (gpio_is_valid(omap->reset_gpio_port[0]))
+			gpio_free(omap->reset_gpio_port[0]);
+
+		if (gpio_is_valid(omap->reset_gpio_port[1]))
+			gpio_free(omap->reset_gpio_port[1]);
+	}
+
 	iounmap(hcd->regs);
 	for (i = 0 ; i < OMAP3_HS_USB_PORTS ; i++) {
 		if (omap->regulator[i]) {
