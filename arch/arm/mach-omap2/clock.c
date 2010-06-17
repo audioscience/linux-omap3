@@ -35,6 +35,7 @@
 #include "cm.h"
 #include "cm-regbits-24xx.h"
 #include "cm-regbits-34xx.h"
+#include "cm-regbits-816x.h"
 
 u8 cpu_mask;
 
@@ -220,6 +221,24 @@ void omap2_dflt_clk_disable(struct clk *clk)
 	/* No OCP barrier needed here since it is a disable operation */
 }
 
+/**
+ * omap2_ti816x_clk_enable() - Enable a ti816x module clock
+ * @clk: Pointer to the clock to be enabled
+ *
+ * This function just wraps omap2_dflt_clk_enable with a check for module idle
+ * status. We loop till module goes to funcitonal state as the immediate access
+ * to module space will not work otherwise.
+ */
+int omap2_ti816x_clk_enable(struct clk *clk)
+{
+	omap2_dflt_clk_enable(clk);
+
+	omap2_cm_wait_idlest(clk->enable_reg, TI816X_IDLEST_MASK,
+			TI816X_IDLEST_VAL, clk->name);
+
+	return 0;
+}
+
 int omap2_pcie_clk_enable(struct clk *clk)
 {
 	omap2_dflt_clk_enable(clk);
@@ -279,6 +298,11 @@ const struct clkops clkops_omap2_dflt_wait = {
 
 const struct clkops clkops_omap2_dflt = {
 	.enable		= omap2_dflt_clk_enable,
+	.disable	= omap2_dflt_clk_disable,
+};
+
+const struct clkops clkops_omap2_ti816x = {
+	.enable		= omap2_ti816x_clk_enable,
 	.disable	= omap2_dflt_clk_disable,
 };
 

@@ -130,6 +130,7 @@ extern u8 cpu_mask;
 extern const struct clkops clkops_omap2_dflt_wait;
 extern const struct clkops clkops_dummy;
 extern const struct clkops clkops_omap2_dflt;
+extern const struct clkops clkops_omap2_ti816x;
 extern const struct clkops clkops_omap2_pcie;
 extern const struct clkops clkops_omap2_usb;
 
