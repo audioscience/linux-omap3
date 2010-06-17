@@ -38,7 +38,7 @@
 #include "musb_core.h"
 #include "cppi41_dma.h"
 
-struct musb *g_musb;
+struct musb *g_musb, *gmusb[2] = {NULL, NULL};
 
 #undef USB_TI816X_DEBUG
 
@@ -90,8 +90,9 @@ struct musb *g_musb;
 
 #define A_WAIT_BCON_TIMEOUT	1100		/* in ms */
 
-static irqreturn_t netra_interrupt(int irq, void *hci);
 static irqreturn_t cppi41dma_Interrupt(int irq, void *hci);
+void set_frame_threshold(u8 musb_id, u8 is_tx, u8 epnum, u8 value, u8 en_intr);
+void set_dma_threshold(u8 musb_id, u8 is_tx, u8 epnum, u8 value);
 
 struct usbotg_ss {
 	/* usbss access lock */
@@ -101,6 +102,7 @@ struct usbotg_ss {
 	int		init_done;
 };
 static struct usbotg_ss usbss;
+u8 cppi41_init_done;
 
 u32 usbss_read(u32 offs)
 {
@@ -306,7 +308,55 @@ void musb_writeb(void __iomem *addr, unsigned offset, u8 data)
 	__raw_writeb(data, addr + offset);
 }
 
+void set_frame_threshold(u8 musb_id, u8 is_tx, u8 epnum, u8 value, u8 en_intr)
+{
+	u32     base, reg_val, frame_intr, frame_base;
+	u32     offs = epnum/4*4;
+	u8      indx = (epnum % 4) * 8;
 
+	en_intr = 0;
+	if (is_tx)
+		base = (musb_id) ? USBSS_IRQ_FRAME_THRESHOLD_TX1 : USBSS_IRQ_FRAME_THRESHOLD_TX0;
+	else
+		base = (musb_id) ? USBSS_IRQ_FRAME_THRESHOLD_RX1 : USBSS_IRQ_FRAME_THRESHOLD_RX0;
+
+	reg_val = usbss_read(base + offs);
+	reg_val &= ~(0xFF << indx);
+	reg_val |= (value << indx);
+	usbss_write(base + offs, reg_val);
+
+	if (en_intr) {
+		frame_base = (musb_id) ? USBSS_IRQ_FRAME_ENABLE_1 :
+			USBSS_IRQ_FRAME_ENABLE_0;
+		frame_intr = (musb_id) ? usbss_read(USBSS_IRQ_FRAME_ENABLE_0) :
+			usbss_read(USBSS_IRQ_FRAME_ENABLE_1);
+		frame_intr |= is_tx ? (1 << epnum) : (1 << (16 + epnum));
+		usbss_write(frame_base, frame_intr);
+	}
+
+	dprintk("base=%x, offs=%x, indx=%d, reg_val = (%x)%x, frame_intr=%x\n",
+				base, offs, indx, reg_val,
+				usbss_read(base + offs), frame_intr);
+}
+
+void set_dma_threshold(u8 musb_id, u8 is_tx, u8 epnum, u8 value)
+{
+	u32     base, reg_val;
+	u32     offs = epnum/4*4;
+	u8      indx = (epnum % 4) * 8;
+
+	if (is_tx)
+		base = (musb_id) ? USBSS_IRQ_DMA_THRESHOLD_TX1 : USBSS_IRQ_DMA_THRESHOLD_TX0;
+	else
+		base = (musb_id) ? USBSS_IRQ_DMA_THRESHOLD_RX1 : USBSS_IRQ_DMA_THRESHOLD_RX0;
+
+	reg_val = usbss_read(base + offs);
+	reg_val &= ~(0xFF << indx);
+	reg_val |= (value << indx);
+	dprintk("base=%x, offs=%x, indx=%d, reg_val = (%x)%x\n",
+		base, offs, indx, reg_val, usbss_read(base + offs));
+	usbss_write(base + offs, reg_val);
+}
 
 #ifdef CONFIG_USB_TI_CPPI41_DMA
 /*
@@ -471,7 +521,10 @@ int __init cppi41_init(struct musb *musb)
 {
 	u16 numch, blknum = usb_cppi41_info.dma_block, order;
 	u32 offs = 0x2000;
-	u32 nIrq = 10;
+	u32 nIrq = TI816X_IRQ_USBSS;
+
+	if (cppi41_init_done)
+		return 0;
 
 	cppi41_dma_base = ioremap(TI816X_USB_CPPIDMA_BASE,
 					TI816X_USB_CPPIDMA_LEN);
@@ -521,10 +574,17 @@ int __init cppi41_init(struct musb *musb)
 
 #define USBSS_INTR_RX_STARV	0x00000001
 #define USBSS_INTR_PD_CMPL	0x00000004
+#define USBSS_INTR_TX_CMPL	0x00000500
+#define USBSS_INTR_RX_CMPL	0x00000A00
+#define USBSS_INTR_FLAGS	(USBSS_INTR_PD_CMPL | USBSS_INTR_TX_CMPL \
+					| USBSS_INTR_RX_CMPL)
+
 	/* enable all the interrupts */
 	usbss_write(USBSS_IRQ_EOI, 0);
-	usbss_write(USBSS_IRQ_ENABLE_SET, USBSS_INTR_PD_CMPL);
-	/*usbss_write(USBSS_IRQ_DMA_ENABLE_0, 0xFFFeFFFe);*/
+	usbss_write(USBSS_IRQ_ENABLE_SET, USBSS_INTR_FLAGS);
+	usbss_write(USBSS_IRQ_DMA_ENABLE_0, 0xFFFeFFFe);
+
+	cppi41_init_done = 1;
 
 	return 0;
 }
@@ -567,6 +627,22 @@ int cppi41_enable_sched_rx(void)
 	return 0;
 }
 #endif
+
+u32 get_q_status(struct musb *musb)
+{
+	void *q_mgr_base = cppi41_queue_mgr[0].q_mgr_rgn_base;
+	u32 intr_status, q_cmpl_status_0, q_cmpl_status_1;
+
+	intr_status = usbss_read(USBSS_IRQ_STATUS);
+
+	q_cmpl_status_0 = musb_readl(q_mgr_base, 0x98);
+	q_cmpl_status_1 = musb_readl(q_mgr_base, 0x9c);
+
+	printk("intr[%x],qs1[%x],qs2[%x]\n", intr_status, q_cmpl_status_0,
+			q_cmpl_status_1);
+	return 0;
+}
+
 
 /*
  * REVISIT (PM): we should be able to keep the PHY in low power mode most
@@ -782,7 +858,7 @@ void musb_platform_try_idle_x(struct musb *musb, unsigned long timeout)
 
 static irqreturn_t cppi41dma_Interrupt(int irq, void *hci)
 {
-	struct musb  *musb, *usb0_musb = hci;
+	struct musb  *musb = hci, *usb0_musb = hci;
 	u32 intr_status;
 	irqreturn_t ret = IRQ_NONE;
 	u32 q_cmpl_status_0 = 0, q_cmpl_status_1 = 0;
@@ -829,7 +905,7 @@ static irqreturn_t cppi41dma_Interrupt(int irq, void *hci)
 				q_cmpl_status_1, usb0_tx_intr, usb0_rx_intr);
 
 			/* get proper musb handle based usb0/usb1 ctrl-id */
-			usb0_musb = hci;
+			usb0_musb = gmusb[0];
 
 			DBG(4, "CPPI 4.1 IRQ: Tx %x, Rx %x\n", usb0_tx_intr,
 						usb0_rx_intr);
@@ -837,7 +913,7 @@ static irqreturn_t cppi41dma_Interrupt(int irq, void *hci)
 						usb0_tx_intr);
 			ret = IRQ_HANDLED;
 		}
-#if 0
+#if 1
 		/* USB1 tx/rx completion */
 		if (intr_status & 0xc00) {
 			u32 usb1_tx_intr, usb1_rx_intr, q_cmpl_status_2 = 0;
@@ -849,7 +925,7 @@ static irqreturn_t cppi41dma_Interrupt(int irq, void *hci)
 			usb1_rx_intr    = (q_cmpl_status_2 >> 13) & 0x7FFF;
 
 			/* get proper handle musb based usb0/usb1 ctrl-id */
-			usb1_musb = hci;
+			usb1_musb =  gmusb[1];
 
 			DBG(4, "CPPI 4.1 IRQ: Tx %x, Rx %x\n", usb1_tx_intr,
 				usb1_rx_intr);
@@ -874,7 +950,7 @@ static irqreturn_t ti816x_interrupt(int irq, void *hci)
 	u32 epintr, usbintr;
 
 	spin_lock_irqsave(&musb->lock, flags);
-
+	printk("%s\n", __func__);
 	/*
 	 * NOTE: AM3517 shadows the Mentor IRQs.  Don't manage them through
 	 * the Mentor registers (except for setup), use the TI ones and EOI.
@@ -1010,13 +1086,15 @@ int musb_platform_set_mode(struct musb *musb, u8 musb_mode)
 	/* TODO: implement this using CONF0 */
 	if (musb_mode == MUSB_HOST) {
 		musb_writel(reg_base, USB_MODE_REG, 0);
-		dprintk("%s: value of mode reg=%x\n\n", __func__,
+		printk("host: %s: value of mode reg=%x\n\n", __func__,
 					musb_readl(reg_base, USB_MODE_REG));
 	} else
 	if (musb_mode == MUSB_PERIPHERAL) {
 		/* TODO commmented writing 8 to USB_MODE_REG device
 			mode is not working */
-		/* musb_writel(reg_base, USB_MODE_REG, 8); */
+		musb_writel(reg_base, USB_MODE_REG, 0x100);
+		printk("device: %s: value of mode reg=%x\n\n", __func__,
+					musb_readl(reg_base, USB_MODE_REG));
 	}
 	return -EIO;
 }
@@ -1037,6 +1115,9 @@ int musb_platform_init(struct musb *musb)
 
 	/* usb subsystem init */
 	usbotg_ss_init(musb);
+
+	if (musb->id < 2)
+		gmusb[musb->id] = musb;
 
 	usb_nop_xceiv_register();
 
@@ -1073,6 +1154,12 @@ int musb_platform_init(struct musb *musb)
 	musb->board_set_vbus = ti816x_set_vbus;
 	ti816x_source_power(musb, 0, 1);
 
+	/* set musb controller to host mode */
+	if (is_host_enabled(musb))
+		musb_platform_set_mode(musb, MUSB_HOST);
+	else
+		musb_platform_set_mode(musb, MUSB_PERIPHERAL);
+
 	/* follow recommended reset procedure */
 	/* Reset the controller */
 	musb_writel(reg_base, USB_CTRL_REG, USB_SOFT_RESET_MASK);
@@ -1094,7 +1181,8 @@ int musb_platform_init(struct musb *musb)
 
 #ifdef CONFIG_USB_TI_CPPI41_DMA
 	cppi41_init(musb);
-	musb->can_dma_queue = 1;
+	musb->tx_can_dma_queue = 1;
+	musb->rx_can_dma_queue = 1;
 #endif
 
 	musb->a_wait_bcon = A_WAIT_BCON_TIMEOUT;
