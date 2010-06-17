@@ -153,12 +153,18 @@ static struct spi_board_info ti8168_evm_spi_info[] __initconst = {
 	},
 };
 
+#endif
 static struct omap_musb_board_data musb_board_data = {
 	.interface_type		= MUSB_INTERFACE_ULPI,
-	.mode			= MUSB_OTG,
+#ifdef CONFIG_USB_MUSB_OTG
+	.mode           = MUSB_OTG,
+#elif defined(CONFIG_USB_MUSB_HDRC_HCD)
+	.mode           = MUSB_HOST,
+#elif defined(CONFIG_USB_GADGET_MUSB_HDRC)
+	.mode           = MUSB_PERIPHERAL,
+#endif
 	.power			= 500,
 };
-#endif
 
 static void __init ti8168_evm_init_irq(void)
 {
@@ -413,10 +419,9 @@ static void __init ti8168_evm_init(void)
 	omap_serial_init();
 #if 0
 	omap2_hsmmc_init(mmc);
-
+#endif
 	/* initialize usb */
 	usb_musb_init(&musb_board_data);
-#endif
 	/* register ahci interface for 2 SATA ports */
 	ti_ahci_register(2);
 #if 0

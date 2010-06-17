@@ -35,7 +35,13 @@
 
 #ifdef CONFIG_USB_MUSB_SOC
 
+#undef MULTI_MUSB_INSTANCE
+
+#ifdef MULTI_MUSB_INSTANCE
+#define MAX_MUSB_CONTROLLERS	2
+#else
 #define MAX_MUSB_CONTROLLERS	1
+#endif
 
 static struct resource musb_resources[] = {
 	[0] = { /* start and end set dynamically */
@@ -46,6 +52,9 @@ static struct resource musb_resources[] = {
 		.flags	= IORESOURCE_IRQ,
 	},
 	[2] = {	/* DMA IRQ */
+		.flags	= IORESOURCE_MEM,
+	},
+	[3] = {	/* DMA IRQ */
 		.start	= INT_243X_HS_USB_DMA,
 		.flags	= IORESOURCE_IRQ,
 	},
@@ -80,15 +89,26 @@ static u64 musb_dmamask = DMA_BIT_MASK(32);
 
 static struct platform_device musb_devices[] = {
 	{
-		.name		= "musb_hdrc",
+		.name		= "musb_hdrc.0",
 		.id		= -1,
 		.dev = {
 			.dma_mask		= &musb_dmamask,
 			.coherent_dma_mask	= DMA_BIT_MASK(32),
 			.platform_data		= &musb_plat,
 		},
-		.num_resources	= ARRAY_SIZE(musb_resources),
-		.resource	= musb_resources,
+		.num_resources	= ARRAY_SIZE(musb_resources)/2,
+		.resource	= &musb_resources[0],
+	},
+	{
+		.name		= "musb_hdrc.1",
+		.id		= -1,
+		.dev = {
+			.dma_mask		= &musb_dmamask,
+			.coherent_dma_mask	= DMA_BIT_MASK(32),
+			.platform_data		= &musb_plat,
+		},
+		.num_resources	= ARRAY_SIZE(musb_resources)/2,
+		.resource	= &musb_resources[2],
 	},
 };
 
@@ -114,8 +134,13 @@ void __init usb_musb_init(struct omap_musb_board_data *board_data)
 		musb_resources[0].end = musb_resources[0].start + SZ_4K - 1;
 	} else if (cpu_is_ti816x()) {
 		musb_resources[0].start = TI816X_USB0_BASE;
-		musb_resources[1].start = TI816X_IRQ_USBSS;
+		musb_resources[1].start = TI816X_IRQ_USB0;
 		musb_resources[0].end = musb_resources[0].start + SZ_2K - 1;
+#ifdef MULTI_MUSB_INSTANCE
+		musb_resources[2].start = TI816X_USB1_BASE;
+		musb_resources[3].start = TI816X_IRQ_USB1;
+		musb_resources[2].end = musb_resources[2].start + SZ_2K - 1;
+#endif
 	}
 
 	/*
@@ -129,8 +154,7 @@ void __init usb_musb_init(struct omap_musb_board_data *board_data)
 	musb_plat.extvbus = board_data->extvbus;
 
 	for (i = 0; i < MAX_MUSB_CONTROLLERS; i++) {
-		if (MAX_MUSB_CONTROLLERS > 1)
-			musb_devices[i].id = i;
+		musb_devices[i].id = i;
 		if (platform_device_register(&musb_devices[i]) < 0)
 			printk(KERN_ERR "Unable to register HS-USB (MUSB) device\n");
 	}
