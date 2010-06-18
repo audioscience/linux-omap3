@@ -260,6 +260,51 @@ static struct clk ducati_ucache_ick = {
 	.recalc		= &followparent_recalc,
 };
 
+static struct clk tpcc_ick = {
+	.name           = "tpcc_ick",
+	.parent         = &sysclk4_ck,
+	.ops            = &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_ALWON_TPCC_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.recalc         = &followparent_recalc,
+};
+
+static struct clk tptc0_ick = {
+	.name           = "tptc0_ick",
+	.parent         = &sysclk4_ck,
+	.ops            = &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_ALWON_TPTC0_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.recalc         = &followparent_recalc,
+};
+
+static struct clk tptc1_ick = {
+	.name           = "tptc1_ick",
+	.parent         = &sysclk4_ck,
+	.ops            = &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_ALWON_TPTC1_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.recalc         = &followparent_recalc,
+};
+
+static struct clk tptc2_ick = {
+	.name           = "tptc2_ick",
+	.parent         = &sysclk4_ck,
+	.ops            = &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_ALWON_TPTC2_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.recalc         = &followparent_recalc,
+};
+
+static struct clk tptc3_ick = {
+	.name           = "tptc3_ick",
+	.parent         = &sysclk4_ck,
+	.ops            = &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_ALWON_TPTC3_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.recalc         = &followparent_recalc,
+};
+
 static const struct clksel_rate div_4_1_rates[] = {
 	{ .div = 4, .val = 1, .flags = RATE_IN_TI816X | DEFAULT_RATE },
 	{ .div = 0 },
@@ -880,6 +925,11 @@ static struct omap_clk ti816x_clks[] = {
 	CLK(NULL,		"main_pll_clk4_ck",	&main_pll_clk4_ck,	CK_TI816X),
 	CLK(NULL,		"sysclk4_ck",		&sysclk4_ck,		CK_TI816X),
 	CLK(NULL,		"ducati_ucache_ick",	&ducati_ucache_ick,	CK_TI816X),
+	CLK(NULL,		"tpcc_ick",		&tpcc_ick,		CK_TI816X),
+	CLK(NULL,		"tptc0_ick",		&tptc0_ick,		CK_TI816X),
+	CLK(NULL,		"tptc1_ick",		&tptc1_ick,		CK_TI816X),
+	CLK(NULL,		"tptc2_ick",		&tptc2_ick,		CK_TI816X),
+	CLK(NULL,		"tptc3_ick",		&tptc3_ick,		CK_TI816X),
 	CLK(NULL,		"sysclk6_ck",		&sysclk6_ck,		CK_TI816X),
 	CLK(NULL,		"gem_vbusp_fck",	&gem_vbusp_fck,		CK_TI816X),
 	CLK(NULL,		"uart1_ick",		&uart1_ick,		CK_TI816X),
