@@ -1610,5 +1610,5 @@ static int __init edma_init(void)
 {
 	return platform_driver_probe(&edma_driver, edma_probe);
 }
-arch_initcall(edma_init);
+subsys_initcall(edma_init);
 
