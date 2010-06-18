@@ -34,7 +34,7 @@
 
 /* IDLEST bit */
 #define TI816X_IDLEST_SHIFT					16
-#define TI816X_IDLEST_MASK					BITFIELD(TI816X_IDLEST_SHIFT, 2)
+#define TI816X_IDLEST_MASK					BITFIELD(16, 17)
 #define TI816X_IDLEST_VAL					3
 
 /* Used for clockdomain control */
