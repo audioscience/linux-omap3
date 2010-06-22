@@ -545,7 +545,7 @@ static int ti816xfb_apply_changes(struct fb_info *fbi, int init)
 			r = vps_fvid2_queue(
 				gctrl->handle,
 				(struct fvid2_framelist *)gctrl->frmls_phy,
-				FVID2_Q_TIMEOUT);
+				0);
 	}
 
 

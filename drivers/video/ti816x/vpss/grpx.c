@@ -336,16 +336,9 @@ static int vps_grpx_check_regparams(struct vps_grpx_ctrl *gctrl,
 
 	/* does not support stencling until stenciling buffer is set*/
 	if (regp->stencilingenable == true) {
-		if (gctrl->gstate.isstarted) {
-			if (gctrl->grtparam->stenptr == NULL)  {
-				VPSSERR("Set stenciling pointer first.\n");
-				return -1;
-			}
-		} else {
-			if (gctrl->gparams->stenptr == NULL)  {
-				VPSSERR("Set stenciling pointer first.\n");
-				return -1;
-			}
+		if (gctrl->gparams->stenptr == NULL)  {
+			VPSSERR("Set stenciling pointer first.\n");
+			return -1;
 		}
 
 	}
@@ -418,6 +411,7 @@ static int vps_grpx_check_regparams(struct vps_grpx_ctrl *gctrl,
 	}
 	return 0;
 }
+
 static int vps_grpx_set_stenparams(struct vps_grpx_ctrl *gctrl,
 			  u32 stenptr, u32 pitch)
 {
@@ -524,6 +518,7 @@ static int vps_grpx_set_regparams(struct vps_grpx_ctrl *gctrl,
 	return r;
 }
 
+/*set the clut pointer*/
 static int vps_grpx_set_clutptr(struct vps_grpx_ctrl  *gctrl, u32 pclut)
 {
 	int r = 0;

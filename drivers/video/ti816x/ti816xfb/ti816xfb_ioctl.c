@@ -25,6 +25,7 @@
 #include <linux/kernel.h>
 #include <linux/dma-mapping.h>
 #include <linux/ti816xfb.h>
+#include <plat/ti816x_ram.h>
 
 #include "fbpriv.h"
 
@@ -296,7 +297,7 @@ static int ti816xfb_wait_for_vsync(struct fb_info *fbi)
 
 	return r;
 }
-static int ti816xfb_allocate_sten_mem(struct fb_info *fbi,
+static int ti816xfb_allocate_mem(struct fb_info *fbi,
 				     u32 size,
 				     dma_addr_t *paddr)
 {
@@ -309,14 +310,12 @@ static int ti816xfb_allocate_sten_mem(struct fb_info *fbi,
 		return -ENOMEM;
 	}
 	ti816xfb_lock(tfbi);
-	/* allocate the buffer*/
+	/* allocate the buffer from the pool*/
 	mlist->size = PAGE_ALIGN(size);
-	mlist->cpu_addr = dma_alloc_writecombine(tfbi->fbdev->dev,
-						 size,
-						 &mlist->phy_addr,
-						 GFP_DMA);
-
-	if (mlist->cpu_addr == NULL) {
+	mlist->virt_addr = (void *)ti816x_vram_alloc(TI816XFB_MEMTYPE_SDRAM,
+					     (size_t)size,
+					     (unsigned long *)&mlist->phy_addr);
+	if (mlist->virt_addr == NULL) {
 		kfree(mlist);
 		*paddr = 0;
 		ti816xfb_unlock(tfbi);
@@ -333,7 +332,7 @@ static int ti816xfb_allocate_sten_mem(struct fb_info *fbi,
 
 }
 
-static int ti816xfb_free_sten_mem(struct fb_info *fbi, int offset)
+static int ti816xfb_free_mem(struct fb_info *fbi, int offset)
 {
 	struct ti816xfb_info *tfbi = FB2TFB(fbi);
 	struct vps_grpx_ctrl *gctrl = tfbi->gctrl;
@@ -343,10 +342,10 @@ static int ti816xfb_free_sten_mem(struct fb_info *fbi, int offset)
 	int r = -EINVAL;
 
 	/* check to make sure that the  sten buffer to
-	free is not the one being used*/
+	be freeed is not the one being used*/
 	ti816xfb_lock(tfbi);
 	r = gctrl->get_stenparams(gctrl, &stenaddr, &stride);
-	if ((r == 0) && (stenaddr != 0)) {
+	if ((r == 0) && (stenaddr != 0) && (gctrl->gstate.isstarted)) {
 		struct vps_grpxregionparams regp;
 
 		r = gctrl->get_regparams(gctrl, &regp);
@@ -355,26 +354,28 @@ static int ti816xfb_free_sten_mem(struct fb_info *fbi, int offset)
 				(regp.stencilingenable == 1))
 				return -EINVAL;
 	}
-	r = -EINVAL;
 	/* loop the list to find out the offset and free it*/
 	list_for_each_entry(mlist, &tfbi->alloc_list, list) {
 		if (mlist->phy_addr == offset) {
-			dma_free_writecombine(tfbi->fbdev->dev,
-					      mlist->size,
-					      mlist->cpu_addr,
-					      mlist->phy_addr);
-			kfree(mlist);
-			r = 0;
+			r = ti816x_vram_free(mlist->phy_addr,
+					 mlist->virt_addr,
+					 mlist->size);
+			if (r == 0)
+				kfree(mlist);
+			else
+				dev_err(tfbi->fbdev->dev,
+					"failed to free mem %x\n",
+					mlist->phy_addr);
 			break;
 		}
 	}
 
-	/* this is the last member in the list, remove the sten ptr to NULL */
-	if (!list_empty(&tfbi->alloc_list)) {
-		if (stenaddr != 0)
-			gctrl->set_stenparams(gctrl, 0, stride);
+	/* if the buffer to be free is the one used previous,
+	   set the sten ptr to NULL */
+	if ((r == 0) && (offset == stenaddr))
+		gctrl->set_stenparams(gctrl, 0, stride);
 
-	}
+
 	ti816xfb_unlock(tfbi);
 	return r;
 }
@@ -387,7 +388,7 @@ static int ti816xfb_set_sten(struct fb_info *fbi,
 	struct ti816xfb_alloc_list *mlist;
 	bool found = false;
 	int r = 0;
-	int offset = stparams->phy_addr;
+	int offset = stparams->paddr;
 
 	/* loop the list to find out the offset*/
 	list_for_each_entry(mlist, &tfbi->alloc_list, list) {
@@ -399,7 +400,7 @@ static int ti816xfb_set_sten(struct fb_info *fbi,
 
 	if (found == false) {
 		dev_err(tfbi->fbdev->dev,
-			"not found match addres\n");
+			"buffer not allocated by driver.\n");
 		return -EINVAL;
 	}
 
@@ -572,7 +573,7 @@ int ti816xfb_ioctl(struct fb_info *fbi, unsigned int cmd,
 
 		break;
 
-	case TI816XFB_ALLOC_STENC:
+	case TI816XFB_ALLOC:
 	{
 		dma_addr_t paddr;
 		TFBDBG("ioctl ALLOC_STEN\n");
@@ -582,7 +583,7 @@ int ti816xfb_ioctl(struct fb_info *fbi, unsigned int cmd,
 			break;
 		}
 
-		r = ti816xfb_allocate_sten_mem(fbi, param.size, &paddr);
+		r = ti816xfb_allocate_mem(fbi, param.size, &paddr);
 		if ((r == 0) && (paddr != 0)) {
 			if (put_user(paddr, (int __user *)arg))
 				r = -EFAULT;
@@ -590,17 +591,18 @@ int ti816xfb_ioctl(struct fb_info *fbi, unsigned int cmd,
 		break;
 	}
 
-	case TI816XFB_FREE_STENC:
+	case TI816XFB_FREE:
 		TFBDBG("ioctl FREE_STENC\n");
 		if (get_user(param.offset, (int __user *)arg)) {
 			r = -EFAULT;
 			break;
 		}
 
-		r = ti816xfb_free_sten_mem(fbi, param.offset);
+		r = ti816xfb_free_mem(fbi, param.offset);
 		break;
 
 	case TI816XFB_SETUP_MEM:
+		TFBDBG("ioctl SETUP_MEM\n");
 		if (copy_from_user(&param.minfo, (void __user *)arg,
 					sizeof(param.minfo)))
 			r = -EFAULT;

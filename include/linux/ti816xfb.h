@@ -53,8 +53,8 @@
 #define TI816XFB_GET_PARAMS   TI816XFB_IOR(3, struct ti816xfb_region_params)
 #define TI816XFB_SET_SCINFO   TI816XFB_IOW(4, struct ti816xfb_scparams)
 #define TI816XFB_GET_SCINFO   TI816XFB_IOW(5, struct ti816xfb_scparams)
-#define TI816XFB_ALLOC_STENC  TI816XFB_IOW(6, int)
-#define TI816XFB_FREE_STENC   TI816XFB_IOR(7, int)
+#define TI816XFB_ALLOC        TI816XFB_IOW(6, int)
+#define TI816XFB_FREE         TI816XFB_IOR(7, int)
 #define TI816XFB_SETUP_MEM    TI816XFB_IOW(8, struct ti816xfb_mem_info)
 #define TI816XFB_QUERY_MEM    TI816XFB_IOR(9, struct ti816xfb_mem_info)
 #define TI816XFB_SET_STENC TI816XFB_IOW(10, struct ti816xfb_stenciling_params)
@@ -189,7 +189,7 @@ struct ti816xfb_scparams {
 
 struct ti816xfb_stenciling_params {
 	__u32               pitch;
-	__u32               phy_addr;
+	__u32               paddr;
 };
 
 /**
@@ -241,7 +241,6 @@ struct ti816xfb_platform_data {
 	void                       *ctrl_platform_data;
 };
 
-#define FVID2_Q_TIMEOUT 0xFFFFFFFF
 
 struct ti816xfb_datamode {
 	enum fvid2_dataformat           dataformat;
