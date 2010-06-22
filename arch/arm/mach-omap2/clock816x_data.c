@@ -467,7 +467,7 @@ static struct clk sata_ick = {
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_DEFAULT_SATA_CLKCTRL,
 	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
-	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.clkdm_name	= "default_l3_med_clkdm",
 	.recalc         = &followparent_recalc,
 };
 
