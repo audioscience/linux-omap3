@@ -177,13 +177,21 @@ static struct omap_board_config_kernel generic_config[] = {
 };
 
 int __init ti_ahci_register(u8 num_inst);
-#if 0
+
+
+static struct at24_platform_data eeprom_info = {
+	.byte_len       = (256*1024) / 8,
+	.page_size      = 64,
+	.flags          = AT24_FLAG_ADDR16,
+};
+
 
 /* FIX ME: Check the address of I2C expander */
 
 static struct i2c_board_info __initdata ti816x_i2c_boardinfo[] = {
 	{
 		I2C_BOARD_INFO("eeprom", 0x50),
+		.platform_data	= &eeprom_info,
 	},
 	{
 		I2C_BOARD_INFO("cpld", 0x23),
@@ -191,6 +199,10 @@ static struct i2c_board_info __initdata ti816x_i2c_boardinfo[] = {
 	{
 		I2C_BOARD_INFO("tlv320aic3x", 0x18),
 	},
+	{
+		I2C_BOARD_INFO("IO Expander", 0x20),
+	},
+
 };
 
 /* FIX ME: Check on the Bit Value */
@@ -251,6 +263,7 @@ is used by TI 816x EVM. Registering a single isntance
 	return 0;
 }
 
+#if 0
 static u8 ti8168_iis_serializer_direction[] = {
 	RX_MODE,	TX_MODE,	INACTIVE_MODE,	INACTIVE_MODE,
 	INACTIVE_MODE,	INACTIVE_MODE,	INACTIVE_MODE,	INACTIVE_MODE,
@@ -424,10 +437,10 @@ static void __init ti8168_evm_init(void)
 	usb_musb_init(&musb_board_data);
 	/* register ahci interface for 2 SATA ports */
 	ti_ahci_register(2);
-#if 0
+
 	ti816x_evm_i2c_init();
 	i2c_add_driver(&ti816xevm_cpld_driver);
-
+#if 0
 	if (HAS_NOR)
 		platform_device_register(&ti816x_evm_norflash_device);
 	ti816x_register_mcasp(0, &ti8168_evm_snd_data);
