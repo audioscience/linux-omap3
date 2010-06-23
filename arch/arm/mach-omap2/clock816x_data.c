@@ -325,6 +325,26 @@ static struct clk sysclk6_ck = {
 	.recalc		= &omap2_clksel_recalc,
 };
 
+static struct clk mailbox_ick = {
+	.name           = "mailbox_ick",
+	.parent         = &sysclk6_ck,
+	.ops            = &clkops_omap2_ti816x,
+	.enable_reg	= TI816X_CM_ALWON_MAILBOX_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc         = &followparent_recalc,
+};
+
+static struct clk spinbox_ick = {
+	.name           = "spinbox_ick",
+	.parent         = &sysclk6_ck,
+	.ops            = &clkops_omap2_ti816x,
+	.enable_reg	= TI816X_CM_ALWON_SPINBOX_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc         = &followparent_recalc,
+};
+
 static struct clk gem_vbusp_fck = {
 	.name           = "gem_vbusp_fck",
 	.parent         = &sysclk6_ck,
@@ -930,6 +950,8 @@ static struct omap_clk ti816x_clks[] = {
 	CLK(NULL,		"tptc2_ick",		&tptc2_ick,		CK_TI816X),
 	CLK(NULL,		"tptc3_ick",		&tptc3_ick,		CK_TI816X),
 	CLK(NULL,		"sysclk6_ck",		&sysclk6_ck,		CK_TI816X),
+	CLK(NULL,		"mailbox_ick",		&mailbox_ick,		CK_TI816X),
+	CLK(NULL,		"spinbox_ick",		&spinbox_ick,		CK_TI816X),
 	CLK(NULL,		"gem_vbusp_fck",	&gem_vbusp_fck,		CK_TI816X),
 	CLK(NULL,		"uart1_ick",		&uart1_ick,		CK_TI816X),
 	CLK(NULL,		"uart2_ick",		&uart2_ick,		CK_TI816X),
