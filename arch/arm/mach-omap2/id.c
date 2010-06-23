@@ -293,6 +293,22 @@ void __init omap4_check_revision(void)
 	pr_err("Unknown OMAP4 CPU id\n");
 }
 
+void __init ti816x_check_revision(void)
+{
+	/*
+	 * XXX - Breaks multi-omap, but anyway we are not supporting at the
+	 * moment. Also hard coding revision and chip ID at the moment till
+	 * efuse are blown and values confirmed. We will read JTAG ID register
+	 * then.
+	 */
+
+	omap_revision = 0x81680000;
+	omap_chip.oc |= CHIP_IS_TI816X;
+	pr_info("OMAP chip is TI8168\n");
+
+	return;
+}
+
 #define OMAP3_SHOW_FEATURE(feat)		\
 	if (omap3_has_ ##feat())		\
 		printk(#feat" ");
@@ -386,6 +402,9 @@ void __init omap2_check_revision(void)
 		return;
 	} else if (cpu_is_omap44xx()) {
 		omap4_check_revision();
+		return;
+	} else if (cpu_is_ti816x()) {
+		ti816x_check_revision();
 		return;
 	} else {
 		pr_err("OMAP revision unknown, please fix!\n");

@@ -360,10 +360,7 @@ static struct omap_globals ti816x_globals = {
 
 void __init omap2_set_globals_ti816x(void)
 {
-	/*
-	 * TODO: Add -
-	 * omap2_set_globals_tap(&ti816x_globals);
-	 */
+	omap2_set_globals_tap(&ti816x_globals);
 	omap2_set_globals_control(&ti816x_globals);
 	omap2_set_globals_prcm(&ti816x_globals);
 	omap2_set_globals_uart(&ti816x_globals);
