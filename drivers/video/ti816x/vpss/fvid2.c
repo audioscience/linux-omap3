@@ -77,10 +77,10 @@ static u32    vps_verparams_phy;
 
 
 /*define the information used by the proxy running in M3*/
-#define VPS_FVID2_RESERVED_NOTIFY	0x05
+#define VPS_FVID2_RESERVED_NOTIFY	0x09
 #define VPS_FVID2_M3_INIT_VALUE      (0xAAAAAAAA)
 #define VPS_FVID2_PS_LINEID          0
-#define CURRENT_VPS_FIRMWARE_VERSION        (0x01000112)
+#define CURRENT_VPS_FIRMWARE_VERSION        (0x01000114)
 
 static void vps_callback(u16 procid,
 		  u16 lineid,
@@ -171,6 +171,10 @@ static int vps_check_fvid2_ctrl(void *handle)
 	fctrl = vps_get_fvid2_ctrl();
 	if (fctrl == NULL)
 		return NULL;
+	VPSSDBG("cmd vir %x phy %x", (u32)fctrl->cmdprms, fctrl->cmdprms_phy);
+
+	VPSSDBG("create vir %x phy %x", (u32)fctrl->fcrprms, fctrl->fcrprms_phy);
+
 	/*assembel the create parameter structure*/
 	fctrl->fcrprms->command = VPS_FVID2_CREATE;
 	fctrl->fcrprms->hosttaskinstance = VPS_FVID2_TASK_TYPE_1,
@@ -355,8 +359,8 @@ int vps_fvid2_control(void *handle,
 EXPORT_SYMBOL(vps_fvid2_control);
 
 int vps_fvid2_queue(void *handle,
-				  struct fvid2_framelist *framelist,
-				  u32 streamid)
+		    struct fvid2_framelist *framelist,
+		    u32 streamid)
 {
 
 	int j = 0;
@@ -456,19 +460,27 @@ int vps_fvid2_dequeue(void *handle,
 EXPORT_SYMBOL(vps_fvid2_dequeue);
 
 
-static int get_firmware_version(u32 procid)
+static int get_firmware_version(struct platform_device *pdev, u32 procid)
 {
 	struct vps_psrvcommandstruct  *cmdstruct;
 	u32    cmdstruct_phy;
 	int status;
 	int r = -1;
 	/*get the M3 version number*/
-	cmdstruct = kzalloc(sizeof(struct vps_psrvcommandstruct),
-			    GFP_KERNEL);
 
-	BUG_ON(cmdstruct == NULL);
-	cmdstruct_phy = virt_to_phys(cmdstruct);
+	cmdstruct = (struct vps_psrvcommandstruct *)
+			dma_alloc_coherent(&pdev->dev,
+			       PAGE_SIZE,
+			       &cmdstruct_phy,
+			       GFP_DMA);
 
+	if (cmdstruct == NULL) {
+		VPSSERR("failed to allocate version cmd struct\n");
+		return -EINVAL;
+	}
+
+	VPSSDBG("cmd virt %x, phy %x\n",(u32)cmdstruct, cmdstruct_phy);
+	VPSSDBG("verprm virt %x, phy %x\n",(u32)vps_verparams, vps_verparams_phy);
 	/*init the structure*/
 	cmdstruct->cmdtype = VPS_FVID2_CMDTYPE_SIMPLEX;
 	cmdstruct->simplexcmdarg = (void *)vps_verparams_phy;
@@ -497,7 +509,10 @@ static int get_firmware_version(u32 procid)
 	}
 exit:
 	/*release the memory*/
-	kfree(cmdstruct);
+	dma_free_coherent(&pdev->dev,
+			  PAGE_SIZE,
+			  (void *)cmdstruct,
+			  cmdstruct_phy);
 	return r;
 }
 static inline int get_alloc_size(void)
@@ -600,7 +615,12 @@ int vps_fvid2_init(struct platform_device *pdev)
 		VPSSERR("alloc fvid2 dma buffer failed\n");
 		fdinfo->paddr = 0;
 		return -ENOMEM;
-	}
+	} else
+		VPSSDBG("fd virt %x, phy %x\n",
+			(u32)fdinfo->vaddr,
+			fdinfo->paddr);
+
+
 	/*always on the page size*/
 	fdinfo->size = PAGE_ALIGN(size);
 	/*init buffer to 0*/
@@ -611,7 +631,7 @@ int vps_fvid2_init(struct platform_device *pdev)
 	vps_verparams_phy = fdinfo->paddr + offset;
 	offset = sizeof(struct vps_psrvgetstatusvercmdparams);
 
-	if (get_firmware_version(procid) == 0) {
+	if (get_firmware_version(pdev, procid) == 0) {
 		if (vps_verparams->version != CURRENT_VPS_FIRMWARE_VERSION) {
 			if (vps_verparams->version <
 			     CURRENT_VPS_FIRMWARE_VERSION) {
