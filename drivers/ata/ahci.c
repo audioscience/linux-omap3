@@ -372,7 +372,7 @@ void ahci_save_initial_config(struct device *dev,
 	/* record values to use during operation */
 	hpriv->cap = cap;
 	hpriv->cap2 = cap2;
-	hpriv->port_map = port_map;
+	hpriv->port_map = hpriv->saved_port_map = port_map;
 }
 EXPORT_SYMBOL_GPL(ahci_save_initial_config);
 
