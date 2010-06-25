@@ -35,7 +35,7 @@
 
 static struct clockdomain alwon_l3_slow_816x_clkdm = {
 	.name		  = "alwon_l3_slow_clkdm",
-	.pwrdm		  = { .name = NULL },
+	.pwrdm		  = { .name = "alwon_pwrdm" },
 	.clkstctrl_reg	  = TI816X_CM_ALWON_L3_SLOW_CLKSTCTRL,
 	.clktrctrl_mask	  = TI816X_CLKTRCTRL_MASK,
 	.flags		  = CLKDM_CAN_HWSUP_SWSUP,
@@ -44,7 +44,7 @@ static struct clockdomain alwon_l3_slow_816x_clkdm = {
 
 static struct clockdomain alwon_ethernet_816x_clkdm = {
 	.name		  = "alwon_ethernet_clkdm",
-	.pwrdm		  = { .name = NULL },
+	.pwrdm		  = { .name = "alwon_pwrdm" },
 	.clkstctrl_reg	  = TI816X_CM_ETHERNET_CLKSTCTRL,
 	.clktrctrl_mask	  = TI816X_CLKTRCTRL_MASK,
 	.flags		  = CLKDM_CAN_HWSUP_SWSUP,
@@ -53,7 +53,7 @@ static struct clockdomain alwon_ethernet_816x_clkdm = {
 
 static struct clockdomain mmu_816x_clkdm = {
 	.name		  = "mmu_clkdm",
-	.pwrdm		  = { .name = NULL },
+	.pwrdm		  = { .name = "alwon_pwrdm" },
 	.clkstctrl_reg	  = TI816X_CM_MMU_CLKSTCTRL,
 	.clktrctrl_mask	  = TI816X_CLKTRCTRL_MASK,
 	.flags		  = CLKDM_CAN_HWSUP_SWSUP,
@@ -62,7 +62,7 @@ static struct clockdomain mmu_816x_clkdm = {
 
 static struct clockdomain mmu_cfg_816x_clkdm = {
 	.name		  = "mmu_cfg_clkdm",
-	.pwrdm		  = { .name = NULL },
+	.pwrdm		  = { .name = "alwon_pwrdm" },
 	.clkstctrl_reg	  = TI816X_CM_MMUCFG_CLKSTCTRL,
 	.clktrctrl_mask	  = TI816X_CLKTRCTRL_MASK,
 	.flags		  = CLKDM_CAN_HWSUP_SWSUP,

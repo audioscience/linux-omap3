@@ -24,6 +24,12 @@
 
 #if defined(CONFIG_ARCH_TI816X)
 
+static struct powerdomain alwon_816x_pwrdm = {
+	.name		  = "alwon_pwrdm",
+	.prcm_offs	  = TI816X_PRM_ALWON_MOD,
+	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X),
+};
+
 static struct powerdomain active_816x_pwrdm = {
 	.name		  = "active_pwrdm",
 	.prcm_offs	  = TI816X_PRM_ACTIVE_MOD,
@@ -60,7 +66,6 @@ static struct powerdomain ivahd2_816x_pwrdm = {
 };
 
 /*
- * Note: Not putting PRM_ALWON  here (no s/w control).
  * TODO: Add remaining data and pds if any
  *
  */
