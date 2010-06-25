@@ -50,7 +50,8 @@
 #include <plat/asp.h>
 #include <plat/mmc.h>
 #include <plat/dmtimer.h>
-
+#include <plat/gpmc.h>
+#include <plat/nand.h>
 #include "clock.h"
 #include "clockdomains.h"
 #include "powerdomains.h"
@@ -64,6 +65,63 @@
 #else
 #define HAS_NOR 0
 #endif
+
+#define NAND_BLOCK_SIZE		SZ_128K
+
+static struct mtd_partition ti816x_nand_partitions[] = {
+	/* All the partition sizes are listed in terms of NAND block size */
+	{
+		.name		= "U-Boot",
+		.offset		= 0,	/* Offset = 0x0 */
+		.size		= 19 * NAND_BLOCK_SIZE,
+		.mask_flags	= MTD_WRITEABLE,	/* force read-only */
+	},
+	{
+		.name		= "U-Boot Env",
+		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x260000 */
+		.size		= 1 * NAND_BLOCK_SIZE,
+	},
+	{
+		.name		= "Kernel",
+		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x280000 */
+		.size		= 34 * NAND_BLOCK_SIZE,
+	},
+	{
+		.name		= "File System",
+		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x6C0000 */
+		.size		= 1601 * NAND_BLOCK_SIZE,
+	},
+	{
+		.name		= "Reserved",
+		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0xCEE0000 */
+		.size		= MTDPART_SIZ_FULL,
+	},
+
+};
+
+static struct omap_nand_platform_data ti816x_nand_data = {
+	.options	= NAND_BUSWIDTH_16,
+	.parts		= ti816x_nand_partitions,
+	.nr_parts	= ARRAY_SIZE(ti816x_nand_partitions),
+	.dma_channel	= -1,		/* disable DMA in OMAP NAND driver */
+	.nand_setup	= NULL,
+	.dev_ready	= NULL,
+};
+
+static struct resource ti816x_nand_resource = {
+	.flags		= IORESOURCE_MEM,
+};
+
+static struct platform_device ti816x_nand_device = {
+	.name		= "omap2-nand",
+	.id		= -1,
+	.dev		= {
+		.platform_data	= &ti816x_nand_data,
+	},
+	.num_resources	= 1,
+	.resource	= &ti816x_nand_resource,
+};
+
 
 #if 0
 static struct mtd_partition ti816x_evm_norflash_partitions[] = {
@@ -154,6 +212,7 @@ static struct spi_board_info ti8168_evm_spi_info[] __initconst = {
 };
 
 #endif
+
 static struct omap_musb_board_data musb_board_data = {
 	.interface_type		= MUSB_INTERFACE_ULPI,
 #ifdef CONFIG_USB_MUSB_OTG
@@ -420,6 +479,46 @@ static int axi2ocp_fiq_fixup(void)
 	return 0;
 }
 
+static void __init ti816x_nand_init(void)
+{
+	u8 cs = 0;
+	u8 nandcs = GPMC_CS_NUM + 1;
+
+	u32 gpmc_base_add = TI816X_GPMC_VIRT;
+
+	/* find out the chip-select on which NAND exists */
+	while (cs < GPMC_CS_NUM) {
+		u32 ret = 0;
+		ret = gpmc_cs_read_reg(cs, GPMC_CS_CONFIG1);
+
+		if ((ret & 0xC00) == 0x800) {
+			printk(KERN_INFO "Found NAND on CS%d\n", cs);
+			if (nandcs > GPMC_CS_NUM)
+				nandcs = cs;
+		}
+		cs++;
+	}
+
+	if (nandcs > GPMC_CS_NUM) {
+		printk(KERN_INFO "NAND: Unable to find configuration "
+				 "in GPMC\n ");
+		return;
+	}
+
+	if (nandcs < GPMC_CS_NUM) {
+		ti816x_nand_data.cs = nandcs;
+		ti816x_nand_data.gpmc_cs_baseaddr = (void *)
+			(gpmc_base_add + GPMC_CS0_BASE + nandcs * GPMC_CS_SIZE);
+		ti816x_nand_data.gpmc_baseaddr = (void *) (gpmc_base_add);
+
+		printk(KERN_INFO "Registering NAND on CS%d\n", nandcs);
+		if (platform_device_register(&ti816x_nand_device) < 0)
+			printk(KERN_ERR "Unable to register NAND device\n");
+	}
+}
+
+
+
 static void __init ti8168_evm_init(void)
 {
 	omap_board_config = generic_config;
@@ -440,6 +539,7 @@ static void __init ti8168_evm_init(void)
 
 	ti816x_evm_i2c_init();
 	i2c_add_driver(&ti816xevm_cpld_driver);
+	ti816x_nand_init();
 #if 0
 	if (HAS_NOR)
 		platform_device_register(&ti816x_evm_norflash_device);
