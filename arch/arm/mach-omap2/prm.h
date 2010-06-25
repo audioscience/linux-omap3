@@ -230,6 +230,7 @@
 #define OMAP4_PM_PWSTST					0x0004
 
 /* TI816X specific registers */
+#define TI816X_PRM_DEVICE_RSTCTRL			0x00A0
 #define TI816X_PM_DEFAULT_PWRSTCTRL			0x0000
 #define TI816X_PM_DEFAULT_PWRSTST			0x0004
 #define TI816X_RM_DEFAULT_RSTCTRL			0x0010
@@ -306,6 +307,8 @@ static inline u32 prm_clear_mod_reg_bits(u32 bits, s16 module, s16 idx)
 #define OMAP_RST_DPLL3_MASK				(1 << 2)
 #define OMAP_RST_GS_MASK				(1 << 1)
 
+/* TI816X specific bits for PRM_DEVICE module */
+#define TI816X_GLOBAL_RST_COLD				BIT(1)
 
 /*
  * Bits common to module-shared registers
