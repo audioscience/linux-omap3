@@ -28,8 +28,9 @@
 /*
  * TODO:
  * - Add other domains as required
- * - Fill up associated powerdomans
- * - Consider dependencies across domains
+ * - Fill up associated powerdomans (especially ALWON powerdomains are NULL at
+ *   the moment
+ * - Consider dependencies across domains (probably not applicable till now)
  */
 
 static struct clockdomain alwon_l3_slow_816x_clkdm = {
@@ -45,6 +46,24 @@ static struct clockdomain alwon_ethernet_816x_clkdm = {
 	.name		  = "alwon_ethernet_clkdm",
 	.pwrdm		  = { .name = NULL },
 	.clkstctrl_reg	  = TI816X_CM_ETHERNET_CLKSTCTRL,
+	.clktrctrl_mask	  = TI816X_CLKTRCTRL_MASK,
+	.flags		  = CLKDM_CAN_HWSUP_SWSUP,
+	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X),
+};
+
+static struct clockdomain mmu_816x_clkdm = {
+	.name		  = "mmu_clkdm",
+	.pwrdm		  = { .name = NULL },
+	.clkstctrl_reg	  = TI816X_CM_MMU_CLKSTCTRL,
+	.clktrctrl_mask	  = TI816X_CLKTRCTRL_MASK,
+	.flags		  = CLKDM_CAN_HWSUP_SWSUP,
+	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X),
+};
+
+static struct clockdomain mmu_cfg_816x_clkdm = {
+	.name		  = "mmu_cfg_clkdm",
+	.pwrdm		  = { .name = NULL },
+	.clkstctrl_reg	  = TI816X_CM_MMUCFG_CLKSTCTRL,
 	.clktrctrl_mask	  = TI816X_CLKTRCTRL_MASK,
 	.flags		  = CLKDM_CAN_HWSUP_SWSUP,
 	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X),

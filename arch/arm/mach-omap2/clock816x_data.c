@@ -251,6 +251,16 @@ static struct clk sysclk4_ck = {
 	.recalc		= &omap2_clksel_recalc,
 };
 
+static struct clk mmu_ick = {
+	.name           = "mmu_ick",
+	.parent         = &sysclk4_ck,
+	.ops            = &clkops_omap2_ti816x,
+	.enable_reg	= TI816X_CM_ALWON_MMUDATA_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "mmu_clkdm",
+	.recalc         = &followparent_recalc,
+};
+
 static struct clk ducati_ucache_ick = {
 	.name		= "ducati_ucache_ick",
 	.parent		= &sysclk4_ck,
@@ -323,6 +333,16 @@ static struct clk sysclk6_ck = {
 	.clksel_reg	= TI816X_CM_DPLL_SYSCLK6_CLKSEL,
 	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
 	.recalc		= &omap2_clksel_recalc,
+};
+
+static struct clk mmu_cfg_ick = {
+	.name           = "mmu_cfg_ick",
+	.parent         = &sysclk6_ck,
+	.ops            = &clkops_omap2_ti816x,
+	.enable_reg	= TI816X_CM_ALWON_MMUCFG_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "mmu_cfg_clkdm",
+	.recalc         = &followparent_recalc,
 };
 
 static struct clk mailbox_ick = {
@@ -411,6 +431,46 @@ static struct clk gpt2_ick = {
 
 static struct clk gpt3_ick = {
 	.name		= "gpt3_ick",
+	.parent		= &sysclk6_ck,
+	.ops		= &clkops_null,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
+
+static struct clk gpt4_ick = {
+	.name		= "gpt4_ick",
+	.parent		= &sysclk6_ck,
+	.ops		= &clkops_null,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
+
+static struct clk gpt5_ick = {
+	.name		= "gpt5_ick",
+	.parent		= &sysclk6_ck,
+	.ops		= &clkops_null,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
+
+static struct clk gpt6_ick = {
+	.name		= "gpt6_ick",
+	.parent		= &sysclk6_ck,
+	.ops		= &clkops_null,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
+
+static struct clk gpt7_ick = {
+	.name		= "gpt7_ick",
+	.parent		= &sysclk6_ck,
+	.ops		= &clkops_null,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
+
+static struct clk gpt8_ick = {
+	.name		= "gpt8_ick",
 	.parent		= &sysclk6_ck,
 	.ops		= &clkops_null,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
@@ -869,6 +929,76 @@ static struct clk gpt3_fck = {
 	.recalc		= &omap2_clksel_recalc,
 };
 
+static struct clk gpt4_fck = {
+	.name		= "gpt4_fck",
+	.parent		= &sysclk18_ck,
+	.clksel		= gpt2to8_mux_sel,
+	.init		= &omap2_init_clksel_parent,
+	.ops		= &clkops_omap2_ti816x,
+	.enable_reg	= TI816X_CM_ALWON_TIMER_3_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clksel_reg	= TI816X_CM_DPLL_TIMER3_CLKSEL,
+	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &omap2_clksel_recalc,
+};
+
+static struct clk gpt5_fck = {
+	.name		= "gpt5_fck",
+	.parent		= &sysclk18_ck,
+	.clksel		= gpt2to8_mux_sel,
+	.init		= &omap2_init_clksel_parent,
+	.ops		= &clkops_omap2_ti816x,
+	.enable_reg	= TI816X_CM_ALWON_TIMER_4_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clksel_reg	= TI816X_CM_DPLL_TIMER4_CLKSEL,
+	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &omap2_clksel_recalc,
+};
+
+static struct clk gpt6_fck = {
+	.name		= "gpt6_fck",
+	.parent		= &sysclk18_ck,
+	.clksel		= gpt2to8_mux_sel,
+	.init		= &omap2_init_clksel_parent,
+	.ops		= &clkops_omap2_ti816x,
+	.enable_reg	= TI816X_CM_ALWON_TIMER_5_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clksel_reg	= TI816X_CM_DPLL_TIMER5_CLKSEL,
+	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &omap2_clksel_recalc,
+};
+
+static struct clk gpt7_fck = {
+	.name		= "gpt7_fck",
+	.parent		= &sysclk18_ck,
+	.clksel		= gpt2to8_mux_sel,
+	.init		= &omap2_init_clksel_parent,
+	.ops		= &clkops_omap2_ti816x,
+	.enable_reg	= TI816X_CM_ALWON_TIMER_6_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clksel_reg	= TI816X_CM_DPLL_TIMER6_CLKSEL,
+	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &omap2_clksel_recalc,
+};
+
+static struct clk gpt8_fck = {
+	.name		= "gpt8_fck",
+	.parent		= &sysclk18_ck,
+	.clksel		= gpt2to8_mux_sel,
+	.init		= &omap2_init_clksel_parent,
+	.ops		= &clkops_omap2_ti816x,
+	.enable_reg	= TI816X_CM_ALWON_TIMER_7_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clksel_reg	= TI816X_CM_DPLL_TIMER7_CLKSEL,
+	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &omap2_clksel_recalc,
+};
+
 static struct clk mmchsdb1_fck = {
 	.name		= "mmchsdb1_fck",
 	.parent		= &sysclk18_ck,
@@ -943,6 +1073,7 @@ static struct omap_clk ti816x_clks[] = {
 	CLK(NULL,		"ivahd2_sl2_ick",	&ivahd2_sl2_ick,	CK_TI816X),
 	CLK(NULL,		"main_pll_clk4_ck",	&main_pll_clk4_ck,	CK_TI816X),
 	CLK(NULL,		"sysclk4_ck",		&sysclk4_ck,		CK_TI816X),
+	CLK(NULL,		"mmu_ick",		&mmu_ick,		CK_TI816X),
 	CLK(NULL,		"ducati_ucache_ick",	&ducati_ucache_ick,	CK_TI816X),
 	CLK(NULL,		"tpcc_ick",		&tpcc_ick,		CK_TI816X),
 	CLK(NULL,		"tptc0_ick",		&tptc0_ick,		CK_TI816X),
@@ -950,6 +1081,7 @@ static struct omap_clk ti816x_clks[] = {
 	CLK(NULL,		"tptc2_ick",		&tptc2_ick,		CK_TI816X),
 	CLK(NULL,		"tptc3_ick",		&tptc3_ick,		CK_TI816X),
 	CLK(NULL,		"sysclk6_ck",		&sysclk6_ck,		CK_TI816X),
+	CLK(NULL,		"mmu_cfg_ick",		&mmu_cfg_ick,		CK_TI816X),
 	CLK(NULL,		"mailbox_ick",		&mailbox_ick,		CK_TI816X),
 	CLK(NULL,		"spinbox_ick",		&spinbox_ick,		CK_TI816X),
 	CLK(NULL,		"gem_vbusp_fck",	&gem_vbusp_fck,		CK_TI816X),
@@ -959,6 +1091,11 @@ static struct omap_clk ti816x_clks[] = {
 	CLK("omap-mcspi.1",	"ick",			&mcspi1_ick,		CK_TI816X),
 	CLK(NULL,		"gpt2_ick",		&gpt2_ick,		CK_TI816X),
 	CLK(NULL,		"gpt3_ick",		&gpt3_ick,		CK_TI816X),
+	CLK(NULL,		"gpt4_ick",		&gpt4_ick,		CK_TI816X),
+	CLK(NULL,		"gpt5_ick",		&gpt5_ick,		CK_TI816X),
+	CLK(NULL,		"gpt6_ick",		&gpt6_ick,		CK_TI816X),
+	CLK(NULL,		"gpt7_ick",		&gpt7_ick,		CK_TI816X),
+	CLK(NULL,		"gpt8_ick",		&gpt8_ick,		CK_TI816X),
 	CLK(NULL,		"gpmc_ick",		&gpmc_ick,		CK_TI816X),
 	CLK("i2c_omap.1",	"ick",			&i2c1_ick,		CK_TI816X),
 	CLK("i2c_omap.2",	"ick",			&i2c2_ick,		CK_TI816X),
@@ -988,6 +1125,11 @@ static struct omap_clk ti816x_clks[] = {
 	CLK(NULL,		"sysclk18_ck",		&sysclk18_ck,		CK_TI816X),
 	CLK(NULL,		"gpt2_fck",		&gpt2_fck,		CK_TI816X),
 	CLK(NULL,		"gpt3_fck",		&gpt3_fck,		CK_TI816X),
+	CLK(NULL,		"gpt4_fck",		&gpt4_fck,		CK_TI816X),
+	CLK(NULL,		"gpt5_fck",		&gpt5_fck,		CK_TI816X),
+	CLK(NULL,		"gpt6_fck",		&gpt6_fck,		CK_TI816X),
+	CLK(NULL,		"gpt7_fck",		&gpt7_fck,		CK_TI816X),
+	CLK(NULL,		"gpt8_fck",		&gpt8_fck,		CK_TI816X),
 	CLK("mmci-omap-hs.0",	"mmchsdb_fck",		&mmchsdb1_fck,		CK_TI816X),
 	CLK(NULL,		"audio_pll_clk3_ck",	&audio_pll_clk3_ck,	CK_TI816X),
 	CLK(NULL,		"sysclk20_ck",		&sysclk20_ck,		CK_TI816X),
