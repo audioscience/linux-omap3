@@ -88,7 +88,7 @@ static void vps_callback(u16 procid,
 		  void *arg,
 		  u32 payload)
 {
-	struct vps_psrvcallback *appcb = (struct vps_psrvcallback *)payload;
+	struct vps_psrvcallback *appcb;
 	struct vps_fvid2_ctrl *fctrl = (struct vps_fvid2_ctrl *)arg;
 
 	VPSSDBG("Recived No. %d event at line ID %d from processor %d\n",
@@ -99,7 +99,11 @@ static void vps_callback(u16 procid,
 		VPSSERR("Payload is empty.\n");
 		return;
 	}
-
+	if (fctrl->cbprms_phy != payload) {
+		VPSSERR("payload not matched\n");
+		return;
+	}
+	appcb = fctrl->cbprms;
 	if (appcb->appcallback == NULL) {
 		VPSSERR("no callback registered\n");
 		return;
@@ -171,9 +175,6 @@ static int vps_check_fvid2_ctrl(void *handle)
 	fctrl = vps_get_fvid2_ctrl();
 	if (fctrl == NULL)
 		return NULL;
-	VPSSDBG("cmd vir %x phy %x", (u32)fctrl->cmdprms, fctrl->cmdprms_phy);
-
-	VPSSDBG("create vir %x phy %x", (u32)fctrl->fcrprms, fctrl->fcrprms_phy);
 
 	/*assembel the create parameter structure*/
 	fctrl->fcrprms->command = VPS_FVID2_CREATE;
@@ -479,8 +480,6 @@ static int get_firmware_version(struct platform_device *pdev, u32 procid)
 		return -EINVAL;
 	}
 
-	VPSSDBG("cmd virt %x, phy %x\n",(u32)cmdstruct, cmdstruct_phy);
-	VPSSDBG("verprm virt %x, phy %x\n",(u32)vps_verparams, vps_verparams_phy);
 	/*init the structure*/
 	cmdstruct->cmdtype = VPS_FVID2_CMDTYPE_SIMPLEX;
 	cmdstruct->simplexcmdarg = (void *)vps_verparams_phy;
@@ -615,11 +614,7 @@ int vps_fvid2_init(struct platform_device *pdev)
 		VPSSERR("alloc fvid2 dma buffer failed\n");
 		fdinfo->paddr = 0;
 		return -ENOMEM;
-	} else
-		VPSSDBG("fd virt %x, phy %x\n",
-			(u32)fdinfo->vaddr,
-			fdinfo->paddr);
-
+	}
 
 	/*always on the page size*/
 	fdinfo->size = PAGE_ALIGN(size);

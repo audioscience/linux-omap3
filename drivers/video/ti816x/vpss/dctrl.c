@@ -323,9 +323,10 @@ static int dc_venc_disable(int vid)
 
 
 	if (venc_ids) {
+		*disp_ctrl->dis_vencs = venc_ids;
 		r = vps_fvid2_control(disp_ctrl->fvid2_handle,
 				      IOCTL_VPS_DCTRL_DISABLE_VENC,
-				      (void *)virt_to_phys(&venc_ids),
+				      (void *)disp_ctrl->dis_vencsphy,
 				      NULL);
 
 		if (r == 0) {
@@ -1158,6 +1159,7 @@ static inline int get_alloc_size(void)
 	size += sizeof(struct vps_dcvencinfo);
 	size += sizeof(struct vps_dcnodeinput);
 	size += sizeof(struct vps_dcmodeinfo);
+	size += sizeof(u32);  /*this is for the disable venc command*/
 	/*FIXME add more here*/
 
 	return size;
@@ -1168,52 +1170,46 @@ static inline void alloc_param_addr(struct vps_dispctrl *dctrl,
 				    u32 *buf_offset)
 {
 	int offset = *buf_offset;
+
+	/*dc config */
 	disp_ctrl->dccfg = (struct vps_dcconfig *)
 				((u32)dminfo->vaddr + offset);
 	disp_ctrl->dccfg_phy = dminfo->paddr + offset;
 	offset += sizeof(struct vps_dcconfig);
 
-
+	/* venc info*/
 	disp_ctrl->vinfo = (struct vps_dcvencinfo *)
 				((u32)dminfo->vaddr + offset);
 	disp_ctrl->vinfo_phy = dminfo->paddr + offset;
 	offset += sizeof(struct vps_dcvencinfo);
 
-
-
+	/*node input*/
 	disp_ctrl->nodeinfo = (struct vps_dcnodeinput *)
 				((u32)dminfo->vaddr + offset);
 	disp_ctrl->ninfo_phy = dminfo->paddr + offset;
 	offset += sizeof(struct vps_dcnodeinput);
+
+	/*venc disable*/
+	disp_ctrl->dis_vencs = (u32 *)((u32)dminfo->vaddr + offset);
+	disp_ctrl->dis_vencsphy = dminfo->paddr + offset;
+	offset += sizeof(u32);
 
 	*buf_offset = offset;
 }
 
 int __init vps_dc_init(struct platform_device *pdev, char *mode, int tied_vencs)
 {
-	int status = EINVAL;
 	int r = 0;
 	int i;
 	int size = 0, offset = 0;
 	VPSSDBG("dctrl init\n");
-	/*get dc handle*/
-	dc_handle = vps_fvid2_create(FVID2_VPS_DCTRL_DRV,
-				     VPS_DCTRL_INST_0,
-				     NULL,
-				     (void *)virt_to_phys(&status),
-				     NULL);
 
-	if (dc_handle == NULL) {
-		VPSSDBG("Create FVID2 DC handle status 0x%08x.\n", status);
-		r = -EINVAL;
-		goto cleanup;
-	}
-
+	/*allocate non-cacheable memory*/
 	size = get_alloc_size();
 	dc_dma_info.vaddr = dma_alloc_coherent(&pdev->dev,
-						   size,
-						   &dc_dma_info.paddr,
-						   GFP_DMA);
+						size,
+						&dc_dma_info.paddr,
+						GFP_DMA);
 
 	if (dc_dma_info.vaddr == NULL) {
 		VPSSERR("alloc dctrl dma buffer failed\n");
@@ -1223,6 +1219,21 @@ int __init vps_dc_init(struct platform_device *pdev, char *mode, int tied_vencs)
 	}
 	dc_dma_info.size = PAGE_ALIGN(size);
 	memset(dc_dma_info.vaddr, 0, dc_dma_info.size);
+
+	/*get dc handle*/
+	dc_handle = vps_fvid2_create(FVID2_VPS_DCTRL_DRV,
+				     VPS_DCTRL_INST_0,
+				     NULL,
+				     (void *)dc_dma_info.paddr,
+				     NULL);
+
+	if (dc_handle == NULL) {
+		VPSSDBG("Create FVID2 DC handle status 0x%08x.\n",
+			*(u32 *)dc_dma_info.vaddr);
+		r = -EINVAL;
+		goto cleanup;
+	}
+
 
 	/*FIXME setup HDMI other devices*/
 	disp_ctrl = kzalloc(sizeof(struct vps_dispctrl), GFP_KERNEL);
