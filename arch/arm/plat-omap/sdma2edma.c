@@ -80,10 +80,6 @@ int omap_request_dma(int dev_id, const char *dev_name,
 	EDMA_CALLBACK edma_callback = (EDMA_CALLBACK)(callback);
 
 	*dma_ch_out = edma_alloc_channel(dev_id, edma_callback, data, EVENTQ_2);
-<<<<<<< HEAD:arch/arm/plat-omap/sdma2edma.c
-
-=======
->>>>>>> ti816x: sdma2edma wrapper trailing whitespace cleanup:arch/arm/plat-omap/sdma2edma.c
 	if (*dma_ch_out < 0)
 		return (-1);
 	else
@@ -267,3 +263,12 @@ void omap_set_dma_src_params(int lch, int src_port, int src_amode,
 	edma_set_src_index((unsigned)(lch), (s16)src_ei, (s16)src_fi);
 }
 
+void omap_set_dma_src_burst_mode(int lch, enum omap_dma_burst_mode burst_mode)
+{
+	printk("omap_set_dma_src_burst_mode: un-supported SDMA wrapper\n");
+}
+
+void omap_set_dma_dest_burst_mode(int lch, enum omap_dma_burst_mode burst_mode)
+{
+		printk("omap_set_dma_dest_burst_mode: un-supported SDMA wrapper\n");
+}
