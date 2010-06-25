@@ -23,6 +23,7 @@
 #include <linux/spi/flash.h>
 #include <linux/mtd/physmap.h>
 #include <linux/phy.h>
+#include <linux/mtd/nand.h>
 
 #include <mach/hardware.h>
 #include <asm/mach-types.h>
@@ -34,6 +35,8 @@
 #include <plat/board.h>
 #include <plat/common.h>
 #include <plat/usb.h>
+#include <plat/gpmc.h>
+#include <plat/nand.h>
 
 #include "mux.h"
 #include "board-flash.h"
@@ -76,17 +79,50 @@ static struct mtd_partition ti816x_evm_norflash_partitions[] = {
 	}
 };
 
-/* SPI fLash information */
-struct mtd_partition ti816x_spi_partitions[] = {
+#define NAND_BLOCK_SIZE		SZ_128K
+
+static struct mtd_partition ti816x_nand_partitions[] = {
 	/* All the partition sizes are listed in terms of NAND block size */
 	{
 		.name		= "U-Boot",
 		.offset		= 0,	/* Offset = 0x0 */
-		.size		= 64 * SZ_4K,
+		.size		= 19 * NAND_BLOCK_SIZE,
 		.mask_flags	= MTD_WRITEABLE,	/* force read-only */
 	},
 	{
 		.name		= "U-Boot Env",
+		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x260000 */
+		.size		= 1 * NAND_BLOCK_SIZE,
+	},
+	{
+		.name		= "Kernel",
+		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x280000 */
+		.size		= 34 * NAND_BLOCK_SIZE,
+	},
+	{
+		.name		= "File System",
+		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x6C0000 */
+		.size		= 1601 * NAND_BLOCK_SIZE,
+	},
+	{
+		.name		= "Reserved",
+		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0xCEE0000 */
+		.size		= MTDPART_SIZ_FULL,
+	},
+
+};
+
+/* SPI fLash information */
+struct mtd_partition ti816x_spi_partitions[] = {
+	/* All the partition sizes are listed in terms of NAND block size */
+	{
+		.name           = "U-Boot",
+		.offset         = 0,    /* Offset = 0x0 */
+		.size		= 64 * SZ_4K,
+		.mask_flags     = MTD_WRITEABLE,        /* force read-only */
+	},
+	{
+		.name           = "U-Boot Env",
 		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x40000 */
 		.size		= 2 * SZ_4K,
 	},
@@ -215,6 +251,8 @@ static int __init ti816x_evm_i2c_init(void)
 	return 0;
 }
 
+
+
 static void __init ti8168_evm_init_irq(void)
 {
 	omap2_init_common_hw(NULL, NULL);
@@ -237,11 +275,14 @@ static void __init ti8168_evm_init(void)
 	omap_serial_init();
 	ti816x_evm_i2c_init();
 	i2c_add_driver(&ti816xevm_cpld_driver);
+	board_nand_init(ti816x_nand_partitions,
+		ARRAY_SIZE(ti816x_nand_partitions), 0);
 	ti816x_spi_init();
-	ti_ahci_register(2);
 	usb_musb_init(&musb_board_data);
 	board_nor_init(ti816x_evm_norflash_partitions,
 		ARRAY_SIZE(ti816x_evm_norflash_partitions), 0);
+	/* register ahci interface for 2 SATA ports */
+	ti_ahci_register(2);
 }
 
 static void __init ti8168_evm_map_io(void)
