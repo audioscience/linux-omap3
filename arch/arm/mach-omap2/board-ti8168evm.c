@@ -507,6 +507,8 @@ static void __init ti816x_nand_init(void)
 
 	if (nandcs < GPMC_CS_NUM) {
 		ti816x_nand_data.cs = nandcs;
+		ti816x_nand_data.phys_base = TI816X_GPMC_BASE;
+		ti816x_nand_data.devsize = NAND_BUSWIDTH_16;
 		ti816x_nand_data.gpmc_cs_baseaddr = (void *)
 			(gpmc_base_add + GPMC_CS0_BASE + nandcs * GPMC_CS_SIZE);
 		ti816x_nand_data.gpmc_baseaddr = (void *) (gpmc_base_add);
