@@ -483,7 +483,6 @@ static void __init ti816x_nand_init(void)
 {
 	u8 cs = 0;
 	u8 nandcs = GPMC_CS_NUM + 1;
-
 	u32 gpmc_base_add = TI816X_GPMC_VIRT;
 
 	/* find out the chip-select on which NAND exists */
