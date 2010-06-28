@@ -57,6 +57,12 @@
  * - The IDLEST bit and register for many clocks (e.g., mmchs1_fck) do not match
  *   with the default implementation as part of clkops_omap2_dflt_wait so for
  *   now, we use ti816x clock ops for idlest wait.
+ *
+ * - Note that the above is not applicable for some modules such as Ducati, GEM
+ *   and IVAHD clocks as they do not actually get enabled even after clk_enable
+ *   as "wait for enable" throws errors. For such modules, we retain
+ *   clkops_omap2_dflt and rely on module owners to poll for enable status
+ *   before accessing respective module.
  */
 
 static struct clk secure_32k_ck = {
@@ -125,7 +131,7 @@ static struct clk sysclk1_ck = {
 static struct clk gem_ick = {
 	.name           = "gem_ick",
 	.parent         = &sysclk1_ck,
-	.ops            = &clkops_omap2_ti816x,
+	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ACTIVE_GEM_CLKCTRL,
 	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
 	.clkdm_name	= "active_gem_clkdm",
@@ -165,7 +171,7 @@ static struct clk sysclk3_ck = {
 static struct clk ivahd0_ck = {
 	.name           = "ivahd0_ck",
 	.parent         = &sysclk3_ck,
-	.ops            = &clkops_omap2_ti816x,
+	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_IVAHD0_IVAHD_CLKCTRL,
 	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
 	.clkdm_name	= "ivahd0_clkdm",
@@ -175,7 +181,7 @@ static struct clk ivahd0_ck = {
 static struct clk ivahd0_sl2_ick = {
 	.name           = "ivahd0_sl2_ick",
 	.parent         = &sysclk3_ck,
-	.ops            = &clkops_omap2_ti816x,
+	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_IVAHD0_SL2_CLKCTRL,
 	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
 	.clkdm_name	= "ivahd0_clkdm",
@@ -185,7 +191,7 @@ static struct clk ivahd0_sl2_ick = {
 static struct clk ivahd1_ck = {
 	.name           = "ivahd1_ck",
 	.parent         = &sysclk3_ck,
-	.ops            = &clkops_omap2_ti816x,
+	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_IVAHD1_IVAHD_CLKCTRL,
 	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
 	.clkdm_name	= "ivahd1_clkdm",
@@ -195,7 +201,7 @@ static struct clk ivahd1_ck = {
 static struct clk ivahd1_sl2_ick = {
 	.name           = "ivahd1_sl2_ick",
 	.parent         = &sysclk3_ck,
-	.ops            = &clkops_omap2_ti816x,
+	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_IVAHD1_SL2_CLKCTRL,
 	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
 	.clkdm_name	= "ivahd1_clkdm",
@@ -205,7 +211,7 @@ static struct clk ivahd1_sl2_ick = {
 static struct clk ivahd2_ck = {
 	.name           = "ivahd2_ck",
 	.parent         = &sysclk3_ck,
-	.ops            = &clkops_omap2_ti816x,
+	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_IVAHD2_IVAHD_CLKCTRL,
 	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
 	.clkdm_name	= "ivahd2_clkdm",
@@ -215,7 +221,7 @@ static struct clk ivahd2_ck = {
 static struct clk ivahd2_sl2_ick = {
 	.name           = "ivahd2_sl2_ick",
 	.parent         = &sysclk3_ck,
-	.ops            = &clkops_omap2_ti816x,
+	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_IVAHD2_SL2_CLKCTRL,
 	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
 	.clkdm_name	= "ivahd2_clkdm",
@@ -573,7 +579,7 @@ static struct clk emac2_ick = {
 static struct clk ducati_ick = {
 	.name           = "ducati_ick",
 	.parent         = &sysclk5_ck,
-	.ops            = &clkops_omap2_ti816x,
+	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_DEFAULT_DUCATI_CLKCTRL,
 	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
 	.clkdm_name	= "default_ducati_clkdm",
