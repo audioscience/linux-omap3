@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.34-rc2
-# Sat Jun 26 04:38:32 2010
+# Fri Jul  2 10:09:58 2010
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -349,9 +349,12 @@ CONFIG_CMDLINE=""
 #
 # At least one emulation must be selected
 #
-# CONFIG_FPE_NWFPE is not set
+CONFIG_FPE_NWFPE=y
+# CONFIG_FPE_NWFPE_XP is not set
 # CONFIG_FPE_FASTFPE is not set
-# CONFIG_VFP is not set
+CONFIG_VFP=y
+CONFIG_VFPv3=y
+CONFIG_NEON=y
 
 #
 # Userspace binary formats
