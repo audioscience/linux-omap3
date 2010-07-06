@@ -1,9 +1,9 @@
 /*
  * sdma2edma.c
  *
- * SDMA to EDMA3 Wrapper.
+ * SDMA to EDMA3 Wrapper. 
  *
- * NOTE: Since we are invoking EDMA API, comments for all APIs in this file
+ * NOTE: Since we are invoking EDMA API, comments for all APIs in this file 
  * are EDMA specific.
  *
  * Copyright (C) 2010-2011 Texas Instruments.
@@ -67,9 +67,9 @@
  * use DMA transfer completion callbacks for channels they did not allocate.
  * (The same applies to TCC codes used in transfer chaining.)
  *
- * TODO: -
+ * TODO: -	
  * . In the edma call, last param i.e TC hard coded to EVENTQ_2
- * . The callback's ch_status which should be used in McSPI driver
+ * . The callback's ch_status which should be used in McSPI driver 
  *   to stop/clean EDMA is currently ignored in some driver (eg. McSPI)
  */
 int omap_request_dma(int dev_id, const char *dev_name,
@@ -179,7 +179,7 @@ void omap_cleanup_dma(int lch)
  * . dma_trigger and channel number, this is ignored for EDMA
  * . Setting bcnt_rld same as bcnt
  * TODO
- * . what is src_or_dst_synch?
+ * . what is src_or_dst_synch? 
  */
 void omap_set_dma_transfer_params(int lch, int data_type, int elem_count,
                   int frame_count, int sync_mode,
@@ -191,7 +191,7 @@ void omap_set_dma_transfer_params(int lch, int data_type, int elem_count,
 		return;
 	}
 
-	edma_set_transfer_params(lch, (u16)data_type, (u16)elem_count,
+	edma_set_transfer_params(lch, (u16)data_type, (u16)elem_count, 
 			(u16)frame_count, (u16)elem_count, (enum sync_dimension)sync_mode);
 }
 
@@ -203,7 +203,7 @@ void omap_set_dma_transfer_params(int lch, int data_type, int elem_count,
  * @dest_start: physical address of destination (memory, controller FIFO, etc)
  * @dst_ei: byte offset between destination arrays in a frame
  * @dst_fi: byte offset between destination frames in a block
- *
+ * 
  * Note that the destination address is modified during the DMA transfer
  * according to edma_set_dest_index().
  *
@@ -223,7 +223,7 @@ void omap_set_dma_dest_params(int lch, int dest_port, int dest_amode,
 		return;
 	}
 
-	edma_set_dest((unsigned)lch, (dma_addr_t)dest_start,
+	edma_set_dest((unsigned)lch, (dma_addr_t)dest_start, 
 					(enum address_mode)dest_amode, W8BIT);
 
 	edma_set_dest_index((unsigned)(lch), (s16)dst_ei, (s16)dst_fi);
@@ -237,7 +237,7 @@ void omap_set_dma_dest_params(int lch, int dest_port, int dest_amode,
  * @src_start: physical address of destination (memory, controller FIFO, etc)
  * @src_ei: byte offset between destination arrays in a frame
  * @src_fi: byte offset between destination frames in a block
- *
+ * 
  * Note that the source address is modified during the DMA transfer
  * according to edma_set_src_index().
  *
@@ -257,7 +257,7 @@ void omap_set_dma_src_params(int lch, int src_port, int src_amode,
 		return;
 	}
 
-	edma_set_src((unsigned)lch, (dma_addr_t)src_start,
+	edma_set_src((unsigned)lch, (dma_addr_t)src_start, 
 					(enum address_mode)src_amode, W8BIT);
 
 	edma_set_src_index((unsigned)(lch), (s16)src_ei, (s16)src_fi);
@@ -270,5 +270,5 @@ void omap_set_dma_src_burst_mode(int lch, enum omap_dma_burst_mode burst_mode)
 
 void omap_set_dma_dest_burst_mode(int lch, enum omap_dma_burst_mode burst_mode)
 {
-		printk("omap_set_dma_dest_burst_mode: un-supported SDMA wrapper\n");
+	printk("omap_set_dma_dest_burst_mode: un-supported SDMA wrapper\n");
 }
