@@ -26,11 +26,13 @@
 #ifndef __DRIVERS_VIDEO_TI816X_VPSS_CORE_H__
 #define __DRIVERS_VIDEO_TI816X_VPSS_CORE_H__
 
+
 #ifdef CONFIG_TI816X_VPSS_DEBUG_SUPPORT
 #define DEBUG
 extern unsigned int vpss_debug;
 #endif
 
+#include <linux/platform_device.h>
 
 #ifdef DEBUG
 #define VPSSDBG(format, ...) \
@@ -52,25 +54,45 @@ extern unsigned int vpss_debug;
 #define VPSSERR(format, ...)
 #endif
 
-
-struct vps_dmamem_info {
-	dma_addr_t    paddr;
+/*defined the memory informaton shared between A8 and M3 for each submodule*/
+struct vps_payload_info {
+	u32           paddr;
 	void          *vaddr;
 	u32	      size;
 };
 
 
+/*grpx*/
 int __init vps_grpx_init(struct platform_device *pdev);
 void __exit vps_grpx_deinit(struct platform_device *pdev);
 
+/*display control*/
 int __init vps_dc_init(struct platform_device *pdev,
 		       char *mode,
 		       int tied_vencs);
 
 int __exit vps_dc_deinit(struct platform_device *pdev);
 
+/*fvid2*/
 int vps_fvid2_init(struct platform_device *pdev);
 void vps_fvid2_deinit(struct platform_device *pdev);
+
+
+/*shared buffer functions*/
+int __init vps_sbuf_init(void);
+int __exit vps_sbuf_deinit(void);
+void *vps_sbuf_alloc(size_t size, u32 *paddr);
+int vps_sbuf_free(u32 paddr, void *vaddr, size_t size);
+
+
+/*si9022a offchip evm*/
+#ifdef CONFIG_TI816X_VPSS_SII9022A
+int __init sii9022a_init(struct platform_device *pdev);
+int __exit sii9022a_deinit(struct platform_device *pdev);
+int sii9022a_setmode(u32 mode);
+int sii9022a_start(void);
+int sii9022a_stop(void);
+#endif
 
 #endif
 

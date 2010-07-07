@@ -24,4 +24,27 @@ config TI816X_VPSS_DEBUG_SUPPORT
 	help
 	  This enables debug messages.
 
+config TI816X_VPSS_SII9022A
+      bool  "offchip hdmi(sii9022a)"
+      default y
+      help
+         This enables VS board(sii9022a HDMI transmitter) on the DVO2 VENC.
+
+config TI816X_VPSS_SHARED_BUFFER_BASE
+	hex "share buffer base(hex)"
+	range 0xA0000000 0xBFC00000
+	default 0xBF000000
+	help
+	    The base of share buffer to reserved for IPC notify between
+	    A8 and M3. This  buffer is used by the vpss to transfer information
+	    between A8 and M3 by syslink notify. It is non-cacheable in both CPU.
+
+config TI816X_VPSS_SHARED_BUFFER_SIE
+	int "share buffer size(KB)"
+	range 512 2048
+	default 1024
+	help
+	    The amount of share buffer to reserved for IPC notify between
+	    A8 and M3. This  buffer is used by the vpss to transfer information
+	    between A8 and M3 by syslink notify. It is non-cacheable in both CPU.
 endif

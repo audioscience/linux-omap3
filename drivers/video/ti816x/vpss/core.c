@@ -54,31 +54,49 @@ static int def_tiedvencs;
 static int vps_probe(struct platform_device *pdev)
 {
 	int r;
+	r = vps_sbuf_init();
+	if (r) {
+		VPSSERR("failed to allocate share buffer\n");
+		return r;
+	}
 	r = vps_fvid2_init(pdev);
 	if (r) {
 		VPSSERR("Failed to init fvid2 interface,\n");
-		return r;
+		goto exit0;
+	}
+#ifdef CONFIG_TI816X_VPSS_SII9022A
+	r = sii9022a_init(pdev);
+	if (r) {
+		VPSSERR("failed to init sii9022a.\n");
+		goto exit1;
 	}
 
+#endif
 	r = vps_dc_init(pdev, def_mode, def_tiedvencs);
 	if (r) {
 		VPSSERR("failed to int display controller.\n");
-		goto exit1;
+		goto exit2;
 	}
 	r = vps_grpx_init(pdev);
 	if (r) {
 		VPSSERR("failed to int graphics.\n");
-		goto exit2;
+		goto exit3;
 
 	}
 
 	return 0;
 
-exit2:
+exit3:
 	vps_dc_deinit(pdev);
+
+exit2:
+#ifdef CONFIG_TI816X_VPSS_SII9022A
+	sii9022a_deinit(pdev);
+#endif
 exit1:
 	vps_fvid2_deinit(pdev);
-
+exit0:
+	vps_sbuf_deinit();
 	return r;
 }
 
@@ -92,8 +110,14 @@ static int vps_remove(struct platform_device *pdev)
 		VPSSERR("failed to remove display controller.\n");
 		return r;
 	}
-
+#ifdef CONFIG_TI816X_VPSS_SII9022A
+	sii9022a_deinit(pdev);
+	if (r)
+		VPSSERR("failed to remove sii9022a.\n");
+#endif
 	vps_fvid2_deinit(pdev);
+
+	vps_sbuf_deinit();
 	return 0;
 }
 

@@ -29,7 +29,7 @@
 #include <linux/sysfs.h>
 #include <linux/kobject.h>
 #include <linux/dma-mapping.h>
-#include <linux/platform_device.h>
+
 #include <linux/vps_proxyserver.h>
 #include <linux/fvid2.h>
 #include <linux/vps.h>
@@ -40,7 +40,7 @@
 
 static struct vps_dispctrl *disp_ctrl;
 static void *dc_handle;
-static struct vps_dmamem_info  dc_dma_info;
+static struct vps_payload_info  *dc_payload_info;
 
 /*store the current VENC setting*/
 static struct vps_dcvencinfo venc_info = {
@@ -321,8 +321,15 @@ static int dc_venc_disable(int vid)
 		}
 	}
 
-
-	if (venc_ids) {
+#ifdef CONFIG_TI816X_VPSS_SII9022A
+	/*disable the off-chip HDMI first if DVO2 venc is assigned*/
+	if (venc_ids & VPS_DC_VENC_DVO2) {
+		r = sii9022a_stop();
+		if (r)
+			VPSSERR("failed to stop sii9022a\n");
+	}
+#endif
+	if (venc_ids && !r) {
 		*disp_ctrl->dis_vencs = venc_ids;
 		r = vps_fvid2_control(disp_ctrl->fvid2_handle,
 				      IOCTL_VPS_DCTRL_DISABLE_VENC,
@@ -423,6 +430,27 @@ static int dc_set_vencmode(struct vps_dcvencinfo *vinfo)
 		}
 		disp_ctrl->enabled_venc_ids |= vencs;
 	}
+#ifdef CONFIG_TI816X_VPSS_SII9022A
+	/*config the sii9022a*/
+	if (!r) {
+		for (i = 0; i < vinfo->numvencs; i++) {
+			if (vinfo->modeinfo[i].vencid == VPS_DC_VENC_DVO2) {
+				struct vps_dcmodeinfo *minfo =
+							&vinfo->modeinfo[i];
+				r = sii9022a_setmode(minfo->modeid);
+				if (!r) {
+					r = sii9022a_start();
+					if (r)
+						VPSSERR(
+						   "start sii9022a failed\n");
+				} else
+					VPSSERR("set sii9022a mode failed\n");
+			}
+
+		}
+
+	}
+#endif
 
 exit:
 	return r;
@@ -1152,7 +1180,7 @@ static int parse_def_modes(char *mode)
 
 }
 
-static inline int get_alloc_size(void)
+static inline int get_payload_size(void)
 {
 	int size = 0;
 	size  = sizeof(struct vps_dcconfig);
@@ -1165,33 +1193,33 @@ static inline int get_alloc_size(void)
 	return size;
 }
 
-static inline void alloc_param_addr(struct vps_dispctrl *dctrl,
-				    struct vps_dmamem_info *dminfo,
-				    u32 *buf_offset)
+static inline void assign_payload_addr(struct vps_dispctrl *dctrl,
+				       struct vps_payload_info *dminfo,
+				       u32 *buf_offset)
 {
 	int offset = *buf_offset;
 
 	/*dc config */
-	disp_ctrl->dccfg = (struct vps_dcconfig *)
+	dctrl->dccfg = (struct vps_dcconfig *)
 				((u32)dminfo->vaddr + offset);
-	disp_ctrl->dccfg_phy = dminfo->paddr + offset;
+	dctrl->dccfg_phy = dminfo->paddr + offset;
 	offset += sizeof(struct vps_dcconfig);
 
 	/* venc info*/
-	disp_ctrl->vinfo = (struct vps_dcvencinfo *)
+	dctrl->vinfo = (struct vps_dcvencinfo *)
 				((u32)dminfo->vaddr + offset);
-	disp_ctrl->vinfo_phy = dminfo->paddr + offset;
+	dctrl->vinfo_phy = dminfo->paddr + offset;
 	offset += sizeof(struct vps_dcvencinfo);
 
 	/*node input*/
-	disp_ctrl->nodeinfo = (struct vps_dcnodeinput *)
+	dctrl->nodeinfo = (struct vps_dcnodeinput *)
 				((u32)dminfo->vaddr + offset);
-	disp_ctrl->ninfo_phy = dminfo->paddr + offset;
+	dctrl->ninfo_phy = dminfo->paddr + offset;
 	offset += sizeof(struct vps_dcnodeinput);
 
 	/*venc disable*/
-	disp_ctrl->dis_vencs = (u32 *)((u32)dminfo->vaddr + offset);
-	disp_ctrl->dis_vencsphy = dminfo->paddr + offset;
+	dctrl->dis_vencs = (u32 *)((u32)dminfo->vaddr + offset);
+	dctrl->dis_vencsphy = dminfo->paddr + offset;
 	offset += sizeof(u32);
 
 	*buf_offset = offset;
@@ -1204,32 +1232,36 @@ int __init vps_dc_init(struct platform_device *pdev, char *mode, int tied_vencs)
 	int size = 0, offset = 0;
 	VPSSDBG("dctrl init\n");
 
-	/*allocate non-cacheable memory*/
-	size = get_alloc_size();
-	dc_dma_info.vaddr = dma_alloc_coherent(&pdev->dev,
-						size,
-						&dc_dma_info.paddr,
-						GFP_DMA);
+	dc_payload_info = kzalloc(sizeof(struct vps_payload_info),
+				  GFP_KERNEL);
 
-	if (dc_dma_info.vaddr == NULL) {
+	if (!dc_payload_info) {
+		VPSSERR("allocated payload info failed.\n");
+		return -ENOMEM;
+	}
+
+	/*allocate non-cacheable memory*/
+	size = get_payload_size();
+	dc_payload_info->vaddr = vps_sbuf_alloc(size, &dc_payload_info->paddr);
+	if (dc_payload_info->vaddr == NULL) {
 		VPSSERR("alloc dctrl dma buffer failed\n");
-		dc_dma_info.paddr = 0u;
+		dc_payload_info->paddr = 0u;
 		r = -ENOMEM;
 		goto cleanup;
 	}
-	dc_dma_info.size = PAGE_ALIGN(size);
-	memset(dc_dma_info.vaddr, 0, dc_dma_info.size);
+	dc_payload_info->size = PAGE_ALIGN(size);
+	memset(dc_payload_info->vaddr, 0, dc_payload_info->size);
 
 	/*get dc handle*/
 	dc_handle = vps_fvid2_create(FVID2_VPS_DCTRL_DRV,
 				     VPS_DCTRL_INST_0,
 				     NULL,
-				     (void *)dc_dma_info.paddr,
+				     (void *)dc_payload_info->paddr,
 				     NULL);
 
 	if (dc_handle == NULL) {
 		VPSSDBG("Create FVID2 DC handle status 0x%08x.\n",
-			*(u32 *)dc_dma_info.vaddr);
+			*(u32 *)dc_payload_info->vaddr);
 		r = -EINVAL;
 		goto cleanup;
 	}
@@ -1243,7 +1275,7 @@ int __init vps_dc_init(struct platform_device *pdev, char *mode, int tied_vencs)
 	}
 
 	disp_ctrl->fvid2_handle = dc_handle;
-	alloc_param_addr(disp_ctrl, &dc_dma_info, &offset);
+	assign_payload_addr(disp_ctrl, dc_payload_info, &offset);
 
 	disp_ctrl->dvo2clksrc = VPS_DC_DVO2CLKSRC_HDMI;
 	disp_ctrl->hdcompclksrc = VPS_DC_HDCOMPCLKSRC_HDCOMP;
@@ -1311,24 +1343,16 @@ int __exit vps_dc_deinit(struct platform_device *pdev)
 	int i;
 	VPSSDBG("dctrl deinit\n");
 
-	/*disable vencs*/
-	if (disp_ctrl->enabled_venc_ids != 0) {
-		r = dc_venc_disable(VPS_DC_VENC_MASK);
-		if (r) {
-			VPSSERR("Failed to disable vencs.\n");
-			return r;
-		}
-	}
-
-	/*free memory*/
-	if (dc_dma_info.vaddr) {
-		dma_free_coherent(&pdev->dev,
-				  dc_dma_info.size,
-				  dc_dma_info.vaddr,
-				  dc_dma_info.paddr);
-		memset(&dc_dma_info, 0, sizeof(struct vps_dmamem_info));
-	}
 	if (disp_ctrl) {
+		/*disable vencs*/
+		if (disp_ctrl->enabled_venc_ids != 0) {
+			r = dc_venc_disable(VPS_DC_VENC_MASK);
+			if (r) {
+				VPSSERR("Failed to disable vencs.\n");
+				return r;
+			}
+		}
+
 
 		kobject_del(&disp_ctrl->kobj);
 		kobject_put(&disp_ctrl->kobj);
@@ -1341,6 +1365,18 @@ int __exit vps_dc_deinit(struct platform_device *pdev)
 		kfree(disp_ctrl);
 		disp_ctrl = NULL;
 	}
+
+	if (dc_payload_info) {
+
+		/*free memory*/
+		if (dc_payload_info->vaddr)
+			vps_sbuf_free(dc_payload_info->paddr,
+				      dc_payload_info->vaddr,
+				      dc_payload_info->size);
+
+		kfree(dc_payload_info);
+	}
+
 	if (dc_handle) {
 		r = vps_fvid2_delete(dc_handle, NULL);
 		if (r) {

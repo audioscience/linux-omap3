@@ -27,8 +27,6 @@
 #include <linux/interrupt.h>
 #include <linux/err.h>
 #include <linux/dma-mapping.h>
-#include <linux/platform_device.h>
-#include <plat/ti816x_ram.h>
 
 #include <linux/vps_proxyserver.h>
 #include <linux/fvid2.h>
@@ -44,7 +42,7 @@ static int num_gctrl;
 static struct list_head gctrl_list;
 
 static struct platform_device *grpx_dev;
-static struct vps_dmamem_info  grpx_dma_info;
+static struct vps_payload_info  *grpx_payload_info;
 
 struct vps_grpx_ctrl *get_grpx_ctrl_from_handle(void * handle)
 {
@@ -1036,73 +1034,72 @@ static inline int get_alloc_size(void)
 
 	return size;
 }
- void __init params_addr_alloc(struct vps_grpx_ctrl *gctrl,
-				   void *virt_addr,
-				   u32  phy_addr,
-				   u32  *buf_offset)
+ void __init assign_payload_addr(struct vps_grpx_ctrl *gctrl,
+				 struct vps_payload_info *pinfo,
+				 u32  *buf_offset)
 {
 	u32 offset = *buf_offset;
 
 	gctrl->gcparam = (struct vps_grpxcreateparams *)
-				((u32)virt_addr + offset);
-	gctrl->gcp_phy = phy_addr + offset;
+				((u32)pinfo->vaddr + offset);
+	gctrl->gcp_phy = pinfo->paddr + offset;
 	offset += sizeof(struct vps_grpxcreateparams);
 
 	gctrl->gcstatus = (struct vps_grpxcreatestatus *)
-				((u32)virt_addr + offset);
-	gctrl->gcs_phy = phy_addr + offset;
+				((u32)pinfo->vaddr + offset);
+	gctrl->gcs_phy = pinfo->paddr + offset;
 	offset += sizeof(struct vps_grpxcreatestatus);
 
 	gctrl->gscparams = (struct vps_grpxscparams *)
-				((u32)virt_addr + offset);
-	gctrl->gscp_phy = phy_addr + offset;
+				((u32)pinfo->vaddr + offset);
+	gctrl->gscp_phy = pinfo->paddr + offset;
 	offset += sizeof(struct vps_grpxscparams);
 
 	gctrl->gsccoeff = (struct vps_grpxsccoeff *)
-				((u32)virt_addr + offset);
-	gctrl->gsccoff_phy = phy_addr + offset;
+				((u32)pinfo->vaddr + offset);
+	gctrl->gsccoff_phy = pinfo->paddr + offset;
 	offset += sizeof(struct vps_grpxsccoeff);
 
 	gctrl->gparams = (struct vps_grpxrtparams *)
-				((u32)virt_addr + offset);
-	gctrl->gp_phy = phy_addr + offset;
+				((u32)pinfo->vaddr + offset);
+	gctrl->gp_phy = pinfo->paddr + offset;
 	offset += sizeof(struct vps_grpxrtparams);
 
 	gctrl->grtparam = (struct vps_grpxrtparams *)
-				((u32)virt_addr + offset);
-	gctrl->grtp_phy = phy_addr + offset;
+				((u32)pinfo->vaddr + offset);
+	gctrl->grtp_phy = pinfo->paddr + offset;
 	offset += sizeof(struct vps_grpxrtparams);
 
 	gctrl->grtlist = (struct vps_grpxrtlist *)
-				((u32)virt_addr + offset);
-	gctrl->grtlist_phy = phy_addr + offset;
+				((u32)pinfo->vaddr + offset);
+	gctrl->grtlist_phy = pinfo->paddr + offset;
 	offset += sizeof(struct vps_grpxrtlist);
 
 	gctrl->glist = (struct vps_grpxparamlist *)
-				((u32)virt_addr + offset);
-	gctrl->glist_phy = phy_addr + offset;
+				((u32)pinfo->vaddr + offset);
+	gctrl->glist_phy = pinfo->paddr + offset;
 
 	offset += sizeof(struct vps_grpxparamlist);
 
 	gctrl->cbparams = (struct fvid2_cbparams *)
-				((u32)virt_addr + offset);
-	gctrl->cbp_phy = phy_addr + offset;
+				((u32)pinfo->vaddr + offset);
+	gctrl->cbp_phy = pinfo->paddr + offset;
 	offset += sizeof(struct fvid2_cbparams);;
 
 	gctrl->inputf = (struct fvid2_format *)
-				((u32)virt_addr + offset);
-	gctrl->inputf_phy = phy_addr + offset;
+				((u32)pinfo->vaddr + offset);
+	gctrl->inputf_phy = pinfo->paddr + offset;
 	offset += sizeof(struct fvid2_format);
 
 	gctrl->framelist = (struct fvid2_framelist *)
-				((u32)virt_addr + offset);
-	gctrl->frmls_phy = phy_addr + offset;
+				((u32)pinfo->vaddr + offset);
+	gctrl->frmls_phy = pinfo->paddr + offset;
 	offset += sizeof(struct fvid2_framelist);
 
 	gctrl->frames = (struct fvid2_frame *)
-				((u32)virt_addr + offset);
+				((u32)pinfo->vaddr + offset);
 
-	gctrl->frm_phy = phy_addr + offset;
+	gctrl->frm_phy = pinfo->paddr + offset;
 	offset += sizeof(struct fvid2_frame);
 	/*return the offset*/
 	*buf_offset = offset;
@@ -1113,7 +1110,7 @@ static inline int get_alloc_size(void)
 int __init vps_grpx_init(struct platform_device *pdev)
 {
 	int i, r;
-	struct vps_dmamem_info *gdinfo = &grpx_dma_info;
+	struct vps_payload_info *pinfo;
 	u32 size = 0;
 	u32 offset = 0;
 	VPSSDBG("grpx init\n");
@@ -1121,21 +1118,29 @@ int __init vps_grpx_init(struct platform_device *pdev)
 
 	num_gctrl = 0;
 	grpx_dev = pdev;
+
+	/*allocate payload info*/
+	grpx_payload_info = kzalloc(sizeof(struct vps_payload_info),
+				GFP_KERNEL);
+
+	if (!grpx_payload_info) {
+		VPSSERR("allocate payload info failed\n");
+		return -ENOMEM;
+	}
+	pinfo = grpx_payload_info;
 	/*calcuate size to allocate*/
 	size = get_alloc_size();
-	gdinfo->vaddr = dma_alloc_coherent(&pdev->dev,
-					      size,
-					      &gdinfo->paddr,
-					      GFP_DMA);
-	if (gdinfo->vaddr == NULL) {
+	pinfo->vaddr = vps_sbuf_alloc(size, &pinfo->paddr);
+
+	if (pinfo->vaddr == NULL) {
 		VPSSERR("alloc grpx dma buffer failed\n");
-		gdinfo->paddr = 0;
+		pinfo->paddr = 0;
 		r = -ENOMEM;
 		goto cleanup;
 	}
 
-	gdinfo->size = PAGE_ALIGN(size);
-	memset(gdinfo->vaddr, 0, gdinfo->size);
+	pinfo->size = PAGE_ALIGN(size);
+	memset(pinfo->vaddr, 0, pinfo->size);
 
 	for (i = 0; i < VPS_DISP_GRPX_MAX_INST; i++) {
 		struct vps_grpx_ctrl *gctrl;
@@ -1147,10 +1152,9 @@ int __init vps_grpx_init(struct platform_device *pdev)
 			goto cleanup;
 		}
 		/*assign the dma buffer*/
-		params_addr_alloc(gctrl,
-				  gdinfo->vaddr,
-				  gdinfo->paddr,
-				  &offset);
+		assign_payload_addr(gctrl,
+				    pinfo,
+				    &offset);
 		/*init gctrl*/
 		vps_fvid2_grpx_ctrl_init(gctrl);
 		gctrl->grpx_num = i;
@@ -1192,7 +1196,6 @@ cleanup:
 void __exit vps_grpx_deinit(struct platform_device *pdev)
 {
 	struct vps_grpx_ctrl *gctrl;
-	struct vps_dmamem_info *gdinfo = &grpx_dma_info;
 
 	VPSSDBG("grpx deinit\n");
 
@@ -1204,14 +1207,15 @@ void __exit vps_grpx_deinit(struct platform_device *pdev)
 					0);
 	}
 
-	if (gdinfo->vaddr) {
-		dma_free_coherent(&pdev->dev,
-				  gdinfo->size,
-				  gdinfo->vaddr,
-				  gdinfo->paddr);
-		memset(gdinfo, 0, sizeof(struct vps_dmamem_info));
+	if (grpx_payload_info) {
+		if (grpx_payload_info->vaddr) {
+			vps_sbuf_free(grpx_payload_info->paddr,
+				      grpx_payload_info->vaddr,
+				      grpx_payload_info->size);
+		}
+		kfree(grpx_payload_info);
+		grpx_payload_info = NULL;
 	}
-
 	while (!list_empty(&gctrl_list)) {
 		gctrl = list_first_entry(&gctrl_list,
 					 struct vps_grpx_ctrl, list);

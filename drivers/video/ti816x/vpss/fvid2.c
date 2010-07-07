@@ -28,7 +28,6 @@
 #include <linux/err.h>
 #include <linux/sched.h>
 #include <linux/dma-mapping.h>
-#include <linux/platform_device.h>
 #include <linux/vps_proxyserver.h>
 #include <linux/fvid2.h>
 #include <linux/vps.h>
@@ -41,8 +40,8 @@
 #include "core.h"
 
 
-/*3GRPX + 1 DISPCTRL*/
-#define VPS_FVID2_NUM	  4
+/*3GRPX + 1 DISPCTRL + HDMI */
+#define VPS_FVID2_NUM	  (5 + 4)
 
 struct vps_fvid2_ctrl {
 	bool					isused;
@@ -70,8 +69,7 @@ struct vps_fvid2_ctrl {
 };
 
 static struct vps_fvid2_ctrl  *fvid2_ctrl[VPS_FVID2_NUM];
-
-static struct vps_dmamem_info fvid2_dma_info;
+static struct vps_payload_info *fvid2_payload_info;
 static struct vps_psrvgetstatusvercmdparams *vps_verparams;
 static u32    vps_verparams_phy;
 
@@ -468,13 +466,9 @@ static int get_firmware_version(struct platform_device *pdev, u32 procid)
 	int status;
 	int r = -1;
 	/*get the M3 version number*/
-
 	cmdstruct = (struct vps_psrvcommandstruct *)
-			dma_alloc_coherent(&pdev->dev,
-			       PAGE_SIZE,
-			       &cmdstruct_phy,
-			       GFP_DMA);
-
+			vps_sbuf_alloc(PAGE_SIZE,
+				       &cmdstruct_phy);
 	if (cmdstruct == NULL) {
 		VPSSERR("failed to allocate version cmd struct\n");
 		return -EINVAL;
@@ -508,13 +502,10 @@ static int get_firmware_version(struct platform_device *pdev, u32 procid)
 	}
 exit:
 	/*release the memory*/
-	dma_free_coherent(&pdev->dev,
-			  PAGE_SIZE,
-			  (void *)cmdstruct,
-			  cmdstruct_phy);
+	vps_sbuf_free(cmdstruct_phy, (void *)cmdstruct, PAGE_SIZE);
 	return r;
 }
-static inline int get_alloc_size(void)
+static inline int get_payload_size(void)
 {
 	int size = 0;
 
@@ -537,51 +528,51 @@ static inline int get_alloc_size(void)
 	return size;
 }
 
-static inline void assign_param_addr(struct vps_fvid2_ctrl *fctrl,
-				     struct vps_dmamem_info *fdinfo,
-				     u32 *buf_offset)
+static inline void assign_payload_addr(struct vps_fvid2_ctrl *fctrl,
+				       struct vps_payload_info *pinfo,
+				       u32 *buf_offset)
 {
 	u32 offset = *buf_offset;
 
 	/*assign the virt and phy address*/
 	fctrl->fcrprms = (struct  vps_psrvfvid2createparams *)
-				((u32)fdinfo->vaddr + offset);
-	fctrl->fcrprms_phy = fdinfo->paddr + offset;
+				((u32)pinfo->vaddr + offset);
+	fctrl->fcrprms_phy = pinfo->paddr + offset;
 	offset += sizeof(struct vps_psrvfvid2createparams);
 
 	fctrl->fdltprms = (struct vps_psrvfvid2deleteparams *)
-				((u32)fdinfo->vaddr + offset);
-	fctrl->fdltprms_phy = fdinfo->paddr + offset;
+				((u32)pinfo->vaddr + offset);
+	fctrl->fdltprms_phy = pinfo->paddr + offset;
 	offset += sizeof(struct vps_psrvfvid2deleteparams);
 
 	fctrl->fctrlprms = (struct vps_psrvfvid2controlparams *)
-				((u32)fdinfo->vaddr + offset);
-	fctrl->fctrlprms_phy = fdinfo->paddr + offset;
+				((u32)pinfo->vaddr + offset);
+	fctrl->fctrlprms_phy = pinfo->paddr + offset;
 	offset += sizeof(struct vps_psrvfvid2controlparams);
 
 	fctrl->fqprms = (struct vps_psrvfvid2queueparams *)
-				((u32)fdinfo->vaddr + offset);
-	fctrl->fqprms_phy = fdinfo->paddr + offset;
+				((u32)pinfo->vaddr + offset);
+	fctrl->fqprms_phy = pinfo->paddr + offset;
 	offset += sizeof(struct vps_psrvfvid2queueparams);
 
 	fctrl->fdqprms = (struct vps_psrvfvid2dequeueparams *)
-				((u32)fdinfo->vaddr + offset);
-	fctrl->fdqprms_phy = fdinfo->paddr + offset;
+				((u32)pinfo->vaddr + offset);
+	fctrl->fdqprms_phy = pinfo->paddr + offset;
 	offset += sizeof(struct vps_psrvfvid2dequeueparams);
 
 	fctrl->cbprms = (struct vps_psrvcallback *)
-				((u32)fdinfo->vaddr + offset);
-	fctrl->cbprms_phy = fdinfo->paddr + offset;
+				((u32)pinfo->vaddr + offset);
+	fctrl->cbprms_phy = pinfo->paddr + offset;
 	offset += sizeof(struct vps_psrvcallback);
 
 	fctrl->ecbprms = (struct vps_psrverrorcallback *)
-				((u32)fdinfo->vaddr + offset);
-	fctrl->ecbprms_phy = fdinfo->paddr + offset;
+				((u32)pinfo->vaddr + offset);
+	fctrl->ecbprms_phy = pinfo->paddr + offset;
 	offset += sizeof(struct vps_psrverrorcallback);
 
 	fctrl->cmdprms = (struct vps_psrvcommandstruct *)
-				((u32)fdinfo->vaddr + offset);
-	fctrl->cmdprms_phy = fdinfo->paddr + offset;
+				((u32)pinfo->vaddr + offset);
+	fctrl->cmdprms_phy = pinfo->paddr + offset;
 	offset += sizeof(struct vps_psrvcommandstruct);
 	/*return*/
 	*buf_offset = offset;
@@ -594,7 +585,7 @@ int vps_fvid2_init(struct platform_device *pdev)
 	struct vps_fvid2_ctrl *fctrl;
 	u32  procid;
 	u32 size;
-	struct vps_dmamem_info *fdinfo = &fvid2_dma_info;
+	struct vps_payload_info *pinfo;
 	u32 offset = 0;
 
 	VPSSDBG("fvid2 init\n");
@@ -604,26 +595,35 @@ int vps_fvid2_init(struct platform_device *pdev)
 		VPSSERR("failed to get the M3DSS processor ID.\n");
 		return -EINVAL;
 	}
-	size = get_alloc_size();
-	/*these buffer are shared between A8 and M3*/
-	fdinfo->vaddr = dma_alloc_coherent(&pdev->dev,
-					       size,
-					       &fdinfo->paddr,
-					       GFP_DMA);
-	if (fdinfo->vaddr == NULL) {
-		VPSSERR("alloc fvid2 dma buffer failed\n");
-		fdinfo->paddr = 0;
+
+	/*allocate payload info structure*/
+	fvid2_payload_info = kzalloc(sizeof(struct vps_payload_info),
+				     GFP_KERNEL);
+	if (!fvid2_payload_info) {
+		VPSSERR("failed to allocate payload info");
 		return -ENOMEM;
+	}
+	pinfo = fvid2_payload_info;
+
+	/*these buffer are shared between A8 and M3*/
+	size = get_payload_size();
+	pinfo->vaddr = vps_sbuf_alloc(size, &pinfo->paddr);
+	if (pinfo->vaddr == NULL) {
+		VPSSERR("alloc fvid2 dma buffer failed\n");
+		pinfo->paddr = 0;
+		r = -ENOMEM;
+		goto exit;
+
 	}
 
 	/*always on the page size*/
-	fdinfo->size = PAGE_ALIGN(size);
+	pinfo->size = PAGE_ALIGN(size);
 	/*init buffer to 0*/
-	memset(fdinfo->vaddr, 0, fdinfo->size);
+	memset(pinfo->vaddr, 0, pinfo->size);
 
 	vps_verparams = (struct vps_psrvgetstatusvercmdparams *)
-			((u32)fdinfo->vaddr + offset);
-	vps_verparams_phy = fdinfo->paddr + offset;
+			((u32)pinfo->vaddr + offset);
+	vps_verparams_phy = pinfo->paddr + offset;
 	offset = sizeof(struct vps_psrvgetstatusvercmdparams);
 
 	if (get_firmware_version(pdev, procid) == 0) {
@@ -658,7 +658,7 @@ int vps_fvid2_init(struct platform_device *pdev)
 		BUG_ON(fctrl == NULL);
 		fvid2_ctrl[i] = fctrl;
 
-		assign_param_addr(fctrl, fdinfo, &offset);
+		assign_payload_addr(fctrl, pinfo, &offset);
 
 		fctrl->rmprocid = procid;
 		fctrl->lineid = VPS_FVID2_PS_LINEID;
@@ -675,18 +675,21 @@ void vps_fvid2_deinit(struct platform_device *pdev)
 {
 	int i;
 	struct vps_fvid2_ctrl *fctrl;
-	struct vps_dmamem_info *fdinfo = &fvid2_dma_info;
+
 	VPSSDBG("fvid2 deinit\n");
 	/*free shared buffer*/
-	if (fdinfo->vaddr) {
-		dma_free_coherent(&pdev->dev,
-				  fdinfo->size,
-				  fdinfo->vaddr,
-				  fdinfo->paddr);
-		memset(fdinfo, 0, sizeof(struct vps_dmamem_info));
+	if (fvid2_payload_info->vaddr) {
+		vps_sbuf_free(fvid2_payload_info->paddr,
+			      fvid2_payload_info->vaddr,
+			      fvid2_payload_info->size);
 		vps_verparams = NULL;
 		vps_verparams_phy = 0;
 	}
+
+	/*free payload info*/
+	kfree(fvid2_payload_info);
+	fvid2_payload_info = NULL;
+
 	/*free ctrl handle*/
 	for (i = 0; i <  VPS_FVID2_NUM; i++) {
 		fctrl = fvid2_ctrl[i];
