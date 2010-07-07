@@ -78,7 +78,7 @@ static u32    vps_verparams_phy;
 #define VPS_FVID2_RESERVED_NOTIFY	0x09
 #define VPS_FVID2_M3_INIT_VALUE      (0xAAAAAAAA)
 #define VPS_FVID2_PS_LINEID          0
-#define CURRENT_VPS_FIRMWARE_VERSION        (0x01000114)
+#define CURRENT_VPS_FIRMWARE_VERSION        (0x01000118)
 
 static void vps_callback(u16 procid,
 		  u16 lineid,
