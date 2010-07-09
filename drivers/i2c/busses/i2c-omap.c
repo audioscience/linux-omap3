@@ -1049,7 +1049,7 @@ omap_i2c_probe(struct platform_device *pdev)
 	if ((r = omap_i2c_get_clocks(dev)) != 0)
 		goto err_iounmap;
 
-	if (cpu_is_omap44xx())
+	if (cpu_is_omap44xx() || cpu_is_ti816x())
 		dev->regs = (u8 *) omap4_reg_map;
 	else
 		dev->regs = (u8 *) reg_map;
