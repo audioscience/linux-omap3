@@ -65,9 +65,6 @@ static struct resource i2c_resources[][2] = {
 #if	defined(CONFIG_ARCH_OMAP4)
 	{ I2C_RESOURCE_BUILDER(OMAP4_I2C_BASE4, 0) },
 #endif
-#if 	defined(CONFIG_ARCH_TI816X)
-	{ I2C_RESOURCE_BUILDER(TI816x_I2C_BASE0, TI816X_IRQ_I2C0) },
-#endif
 };
 
 #define I2C_DEV_BUILDER(bus_id, res, data)		\
@@ -84,7 +81,7 @@ static struct resource i2c_resources[][2] = {
 static struct omap_i2c_bus_platform_data i2c_pdata[ARRAY_SIZE(i2c_resources)];
 static struct platform_device omap_i2c_devices[] = {
 	I2C_DEV_BUILDER(1, i2c_resources[0], &i2c_pdata[0]),
-#if	defined(CONFIG_ARCH_OMAP2PLUS)
+#if	defined(CONFIG_ARCH_OMAP2PLUS) || defined(CONFIG_ARCH_TI816X)
 	I2C_DEV_BUILDER(2, i2c_resources[1], &i2c_pdata[1]),
 #endif
 #if	defined(CONFIG_ARCH_OMAP3) || defined(CONFIG_ARCH_OMAP4)
@@ -92,9 +89,6 @@ static struct platform_device omap_i2c_devices[] = {
 #endif
 #if	defined(CONFIG_ARCH_OMAP4)
 	I2C_DEV_BUILDER(4, i2c_resources[3], &i2c_pdata[3]),
-#endif
-#if	defined(CONFIG_ARCH_TI816X)
-	I2C_DEV_BUILDER(1, i2c_resources[3], &i2c_rate[3]),
 #endif
 };
 
