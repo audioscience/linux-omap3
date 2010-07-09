@@ -88,8 +88,8 @@ static inline void flush(void)
 	_DEBUG_LL_ENTRY(mach, ZOOM_UART_BASE, ZOOM_PORT_SHIFT, ZOOM_UART)
 
 #define DEBUG_LL_TI816X(p, mach)					\
-	_DEBUG_LL_ENTRY(mach, TI816X_UART1_BASE, OMAP_PORT_SHIFT,	\
-		TI816X_UART##p##_BASE, OMAP_PORT_SHIFT, TI816XUART##p)
+	_DEBUG_LL_ENTRY(mach, TI816X_UART##p##_BASE, OMAP_PORT_SHIFT,	\
+		TI816XUART##p)
 
 static inline void __arch_decomp_setup(unsigned long arch_id)
 {
