@@ -155,6 +155,7 @@ static struct powerdomain *powerdomains_omap[] __initdata = {
 	&ivahd0_816x_pwrdm,
 	&ivahd1_816x_pwrdm,
 	&ivahd2_816x_pwrdm,
+	&sgx_816x_pwrdm,
 #endif
 	NULL
 };

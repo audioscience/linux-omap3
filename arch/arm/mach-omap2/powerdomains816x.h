@@ -65,6 +65,14 @@ static struct powerdomain ivahd2_816x_pwrdm = {
 	.pwrsts		  = PWRSTS_OFF_ON,
 };
 
+/* FIXME: PRM reg offsets look different compared to other modules */
+static struct powerdomain sgx_816x_pwrdm = {
+	.name		  = "sgx_pwrdm",
+	.prcm_offs	  = TI816X_PRM_SGX_MOD,
+	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X),
+	.pwrsts		  = PWRSTS_OFF_ON,
+};
+
 /*
  * TODO: Add remaining data and pds if any
  *

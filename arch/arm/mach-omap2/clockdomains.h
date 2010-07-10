@@ -941,6 +941,7 @@ static struct clockdomain *clockdomains_omap[] = {
 	&ivahd0_816x_clkdm,
 	&ivahd1_816x_clkdm,
 	&ivahd2_816x_clkdm,
+	&sgx_816x_clkdm,
 	&default_l3_med_816x_clkdm,
 	&default_ducati_816x_clkdm,
 	&default_pcie_816x_clkdm,

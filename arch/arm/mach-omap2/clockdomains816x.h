@@ -105,6 +105,15 @@ static struct clockdomain ivahd2_816x_clkdm = {
 	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X),
 };
 
+static struct clockdomain sgx_816x_clkdm = {
+	.name		  = "sgx_clkdm",
+	.pwrdm		  = { .name = "sgx_pwrdm" },
+	.clkstctrl_reg	  = TI816X_CM_SGX_CLKSTCTRL,
+	.clktrctrl_mask	  = TI816X_CLKTRCTRL_MASK,
+	.flags		  = CLKDM_CAN_HWSUP_SWSUP,
+	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X),
+};
+
 static struct clockdomain default_l3_med_816x_clkdm = {
 	.name		  = "default_l3_med_clkdm",
 	.pwrdm		  = { .name = "default_pwrdm" },

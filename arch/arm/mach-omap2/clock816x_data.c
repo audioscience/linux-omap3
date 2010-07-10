@@ -138,6 +138,51 @@ static struct clk gem_ick = {
 	.recalc         = &followparent_recalc,
 };
 
+static struct clk main_pll_clk2_ck = {
+	.name		= "main_pll_clk2_ck",
+	.ops		= &clkops_null,
+	.rate		= 1000000000,
+	.flags		= RATE_IN_TI816X,
+};
+
+static const struct clksel_rate div8_sysclk23_rates[] = {
+	{ .div = 1, .val = 0, .flags = RATE_IN_TI816X },
+	{ .div = 2, .val = 1, .flags = RATE_IN_TI816X },
+	{ .div = 3, .val = 2, .flags = RATE_IN_TI816X },
+	{ .div = 4, .val = 3, .flags = RATE_IN_TI816X },
+	{ .div = 5, .val = 4, .flags = RATE_IN_TI816X },
+	{ .div = 6, .val = 5, .flags = RATE_IN_TI816X },
+	{ .div = 7, .val = 6, .flags = RATE_IN_TI816X },
+	{ .div = 8, .val = 7, .flags = RATE_IN_TI816X },
+	{ .div = 0 },
+};
+
+static const struct clksel sysclk23_div[] = {
+	{ .parent = &main_pll_clk2_ck, .rates = div8_sysclk23_rates },
+	{ .parent = NULL },
+};
+
+static struct clk sysclk23_ck = {
+	.name		= "sysclk23_ck",
+	.parent		= &main_pll_clk2_ck,
+	.clksel		= sysclk23_div,
+	.init		= &omap2_init_clksel_parent,
+	.ops		= &clkops_null,
+	.clksel_reg	= TI816X_CM_DPLL_SYSCLK23_CLKSEL,
+	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
+	.recalc		= &omap2_clksel_recalc,
+};
+
+static struct clk sgx_ck = {
+	.name           = "sgx_ck",
+	.parent         = &sysclk23_ck,
+	.ops            = &clkops_omap2_dflt,
+	.enable_reg	= TI816X_CM_SGX_SGX_CLKCTRL,
+	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.clkdm_name	= "sgx_clkdm",
+	.recalc         = &followparent_recalc,
+};
+
 static struct clk main_pll_clk3_ck = {
 	.name		= "main_pll_clk3_ck",
 	.ops		= &clkops_null,
@@ -1069,6 +1114,9 @@ static struct omap_clk ti816x_clks[] = {
 	CLK(NULL,		"main_pll_clk1_ck",	&main_pll_clk1_ck,	CK_TI816X),
 	CLK(NULL,		"sysclk1_ck",		&sysclk1_ck,		CK_TI816X),
 	CLK(NULL,		"gem_ick",		&gem_ick,		CK_TI816X),
+	CLK(NULL,		"main_pll_clk2_ck",	&main_pll_clk2_ck,	CK_TI816X),
+	CLK(NULL,		"sysclk23_ck",		&sysclk23_ck,		CK_TI816X),
+	CLK(NULL,		"sgx_ck",		&sgx_ck,		CK_TI816X),
 	CLK(NULL,		"main_pll_clk3_ck",	&main_pll_clk3_ck,	CK_TI816X),
 	CLK(NULL,		"sysclk3_ck",		&sysclk3_ck,		CK_TI816X),
 	CLK(NULL,		"ivahd0_ck",		&ivahd0_ck,		CK_TI816X),
