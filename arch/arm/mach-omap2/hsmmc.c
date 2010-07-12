@@ -225,15 +225,10 @@ void __init omap2_hsmmc_init(struct omap2_hsmmc_info *controllers)
 				OMAP4_CONTROL_SDMMC1_DR1_SPEEDCTRL |
 				OMAP4_CONTROL_SDMMC1_DR2_SPEEDCTRL);
 		omap_ctrl_writel(reg, control_mmc1);
-	} else if (cpu_is_ti816x()) {
-		/*
-		 * TODO:Add TI816X specific definitions here.
-		 * Control.h yet to be populated
-		 */
 	} else if (cpu_is_omap2430()) {
 		control_pbias_offset = OMAP243X_CONTROL_PBIAS_LITE;
 		control_devconf1_offset = OMAP243X_CONTROL_DEVCONF1;
-	} else {
+	} else if (!cpu_is_ti816x()) {
 		control_pbias_offset = OMAP343X_CONTROL_PBIAS_LITE;
 		control_devconf1_offset = OMAP343X_CONTROL_DEVCONF1;
 	}
@@ -302,7 +297,7 @@ void __init omap2_hsmmc_init(struct omap2_hsmmc_info *controllers)
 		 */
 		mmc->slots[0].ocr_mask = c->ocr_mask;
 
-		if (cpu_is_omap3517() || cpu_is_omap3505())
+		if (cpu_is_omap3517() || cpu_is_omap3505() || cpu_is_ti816x())
 			mmc->slots[0].set_power = nop_mmc_set_power;
 		else
 			mmc->slots[0].features |= HSMMC_HAS_PBIAS;
@@ -322,12 +317,6 @@ void __init omap2_hsmmc_init(struct omap2_hsmmc_info *controllers)
 					mmc->slots[0].after_set_reg =
 						omap_hsmmc1_after_set_reg;
 				}
-			}
-
-			/* FIXME: Check if correct and rearrange */
-			if (cpu_is_ti816x()) {
-				mmc->slots[0].before_set_reg = NULL;
-				mmc->slots[0].after_set_reg = NULL;
 			}
 
 			/* Omap3630 HSMMC1 supports only 4-bit */
