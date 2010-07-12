@@ -124,7 +124,7 @@ static struct clk sysclk1_ck = {
 	.init		= &omap2_init_clksel_parent,
 	.ops		= &clkops_null,
 	.clksel_reg	= TI816X_CM_DPLL_SYSCLK1_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
+	.clksel_mask	= TI816X_CLKSEL_0_2_MASK,
 	.recalc		= &omap2_clksel_recalc,
 };
 
@@ -169,7 +169,7 @@ static struct clk sysclk23_ck = {
 	.init		= &omap2_init_clksel_parent,
 	.ops		= &clkops_null,
 	.clksel_reg	= TI816X_CM_DPLL_SYSCLK23_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
+	.clksel_mask	= TI816X_CLKSEL_0_2_MASK,
 	.recalc		= &omap2_clksel_recalc,
 };
 
@@ -209,7 +209,7 @@ static struct clk sysclk3_ck = {
 	.init		= &omap2_init_clksel_parent,
 	.ops		= &clkops_null,
 	.clksel_reg	= TI816X_CM_DPLL_SYSCLK3_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
+	.clksel_mask	= TI816X_CLKSEL_0_2_MASK,
 	.recalc		= &omap2_clksel_recalc,
 };
 
@@ -775,7 +775,7 @@ static struct clk sysclk24_ck = {
 	.init		= &omap2_init_clksel_parent,
 	.ops		= &clkops_null,
 	.clksel_reg	= TI816X_CM_DPLL_SYSCLK24_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
+	.clksel_mask	= TI816X_CLKSEL_0_2_MASK,
 	.recalc		= &omap2_clksel_recalc,
 };
 
@@ -888,7 +888,7 @@ static struct clk sysclk20_ck = {
 	.clksel		= sysclk20_div,
 	.ops		= &clkops_null,
 	.clksel_reg	= TI816X_CM_DPLL_SYSCLK20_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
+	.clksel_mask	= TI816X_CLKSEL_0_2_MASK,
 	.recalc		= &omap2_clksel_recalc,
 };
 
@@ -910,8 +910,8 @@ static struct clk sysclk21_ck = {
 	.init		= &omap2_init_clksel_parent,
 	.clksel		= sysclk21_div,
 	.ops		= &clkops_null,
-	.clksel_reg	= TI816X_CM_DPLL_SYSCLK20_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
+	.clksel_reg	= TI816X_CM_DPLL_SYSCLK21_CLKSEL,
+	.clksel_mask	= TI816X_CLKSEL_0_2_MASK,
 	.recalc		= &omap2_clksel_recalc,
 };
 
@@ -933,8 +933,8 @@ static struct clk sysclk22_ck = {
 	.init		= &omap2_init_clksel_parent,
 	.clksel		= sysclk22_div,
 	.ops		= &clkops_null,
-	.clksel_reg	= TI816X_CM_DPLL_SYSCLK20_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
+	.clksel_reg	= TI816X_CM_DPLL_SYSCLK22_CLKSEL,
+	.clksel_mask	= TI816X_CLKSEL_0_2_MASK,
 	.recalc		= &omap2_clksel_recalc,
 };
 
@@ -1067,7 +1067,7 @@ static struct clk mcasp0_fck = {
 	.enable_reg	= TI816X_CM_ALWON_MCASP0_CLKCTRL,
 	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
 	.clksel_reg	= TI816X_CM_DPLL_AUDIOCLK_MCASP0_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
+	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &omap2_clksel_recalc,
 };
@@ -1081,7 +1081,7 @@ static struct clk mcasp1_fck = {
 	.enable_reg	= TI816X_CM_ALWON_MCASP1_CLKCTRL,
 	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
 	.clksel_reg	= TI816X_CM_DPLL_AUDIOCLK_MCASP1_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
+	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &omap2_clksel_recalc,
 };
@@ -1095,7 +1095,7 @@ static struct clk mcasp2_fck = {
 	.enable_reg	= TI816X_CM_ALWON_MCASP2_CLKCTRL,
 	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
 	.clksel_reg	= TI816X_CM_DPLL_AUDIOCLK_MCASP2_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
+	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &omap2_clksel_recalc,
 };
