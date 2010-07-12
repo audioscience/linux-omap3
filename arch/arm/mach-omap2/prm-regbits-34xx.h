@@ -212,6 +212,8 @@
 /* PRM_SYSCONFIG specific bits */
 
 /* PRM_IRQSTATUS_MPU specific bits */
+#define OMAP3630_ABB_LDO_TRANXDONE_ST_SHIFT			26
+#define OMAP3630_ABB_LDO_TRANXDONE_ST			(1 << 26)
 #define OMAP3430ES2_SND_PERIPH_DPLL_ST_SHIFT		25
 #define OMAP3430ES2_SND_PERIPH_DPLL_ST			(1 << 25)
 #define OMAP3430_VC_TIMEOUTERR_ST			(1 << 24)
@@ -580,6 +582,22 @@
 /* PRM_VP2_VOLTAGE specific bits */
 
 /* PRM_VP2_STATUS specific bits */
+
+/* PRM_LDO_ABB_SETUP specific bits */
+#define OMAP3630_SR2_IN_TRANSITION			(1 << 6)
+#define OMAP3630_SR2_STATUS_SHIFT			3
+#define OMAP3630_SR2_STATUS_MASK			(3 << 3)
+#define OMAP3630_OPP_CHANGE				(1 << 2)
+#define OMAP3630_OPP_SEL_SHIFT				0
+#define OMAP3630_OPP_SEL_MASK				(3 << 0)
+
+/* PRM_LDO_ABB_CTRL specific bits */
+#define OMAP3630_SR2_WTCNT_VALUE_SHIFT			8
+#define OMAP3630_SR2_WTCNT_VALUE_MASK			(0xff << 8)
+#define OMAP3630_SLEEP_RBB_SEL				(1 << 3)
+#define OMAP3630_ACTIVE_FBB_SEL				(1 << 2)
+#define OMAP3630_ACTIVE_RBB_SEL				(1 << 1)
+#define OMAP3630_SR2EN					(1 << 0)
 
 /* RM_RSTST_NEON specific bits */
 

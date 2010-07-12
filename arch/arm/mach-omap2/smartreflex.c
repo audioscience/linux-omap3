@@ -42,6 +42,11 @@
 #define SWCALC_OPP6_DELTA_NNT	379
 #define SWCALC_OPP6_DELTA_PNT	227
 
+#define ABB_MAX_SETTLING_TIME	30
+
+#define ABB_FAST_OPP			1
+#define ABB_NOMINAL_OPP			2
+#define ABB_SLOW_OPP			3
 
 /*
  * VDD1 and VDD2 OPPs derived from the bootarg 'mpurate'
@@ -397,6 +402,126 @@ static void sr_set_nvalues(struct omap_sr *sr)
 		sr_set_efuse_nvalues(sr);
 }
 
+/**
+ * sr_voltagescale_adaptive_body_bias - controls ABB ldo during voltage scaling
+ * @target_volt: target voltage determines if ABB ldo is active or bypassed
+ *
+ * Adaptive Body-Bias is a technique in all OMAP silicon that uses the 45nm
+ * process.  ABB can boost voltage in high OPPs for silicon with weak
+ * characteristics (forward Body-Bias) as well as lower voltage in low OPPs
+ * for silicon with strong characteristics (Reverse Body-Bias).
+ *
+ * Only Foward Body-Bias for operating at high OPPs is implemented below, per
+ * recommendations from silicon team.
+ * Reverse Body-Bias for saving power in active cases and sleep cases is not
+ * yet implemented.
+ */
+static int sr_voltagescale_adaptive_body_bias(u32 target_opp_no)
+{
+	u32 sr2en_enabled;
+	int timeout;
+	int sr2_wtcnt_value;
+	struct clk *sys_ck;
+
+	sys_ck = clk_get(NULL, "sys_ck");
+	if (IS_ERR(sys_ck)) {
+		pr_warning("%s: Could not get the sys clk to calculate"
+            "SR2_WTCNT_VALUE \n", __func__);
+        return -ENOENT;
+    }
+
+	/* calculate SR2_WTCNT_VALUE settling time */
+	sr2_wtcnt_value = (ABB_MAX_SETTLING_TIME *
+		(clk_get_rate(sys_ck) / 1000000) / 8);
+
+	clk_put(sys_ck);
+
+	/* has SR2EN been enabled previously? */
+	sr2en_enabled = (prm_read_mod_reg(OMAP3430_GR_MOD,
+			OMAP3_PRM_LDO_ABB_CTRL_OFFSET) &
+			OMAP3630_SR2EN);
+
+	/* select fast, nominal or slow OPP for ABB ldo */
+	if (target_opp_no >= VDD1_OPP4) {
+		/* program for fast opp - enable FBB */
+		prm_rmw_mod_reg_bits(OMAP3630_OPP_SEL_MASK,
+				(ABB_FAST_OPP << OMAP3630_OPP_SEL_SHIFT),
+				OMAP3430_GR_MOD,
+				OMAP3_PRM_LDO_ABB_SETUP_OFFSET);
+
+		/* enable the ABB ldo if not done already */
+		if (!sr2en_enabled)
+			prm_set_mod_reg_bits(OMAP3630_SR2EN,
+					OMAP3430_GR_MOD,
+					OMAP3_PRM_LDO_ABB_CTRL_OFFSET);
+	} else if (sr2en_enabled) {
+		/* program for nominal opp - bypass ABB ldo */
+		prm_rmw_mod_reg_bits(OMAP3630_OPP_SEL_MASK,
+				(ABB_NOMINAL_OPP << OMAP3630_OPP_SEL_SHIFT),
+				OMAP3430_GR_MOD,
+				OMAP3_PRM_LDO_ABB_SETUP_OFFSET);
+	} else {
+		/* nothing to do here yet... might enable RBB here someday */
+		return 0;
+	}
+
+	/* set ACTIVE_FBB_SEL for all 45nm silicon */
+	prm_set_mod_reg_bits(OMAP3630_ACTIVE_FBB_SEL,
+			OMAP3430_GR_MOD,
+			OMAP3_PRM_LDO_ABB_CTRL_OFFSET);
+
+	/* program settling time of 30us for ABB ldo transition */
+	prm_rmw_mod_reg_bits(OMAP3630_SR2_WTCNT_VALUE_MASK,
+			(sr2_wtcnt_value << OMAP3630_SR2_WTCNT_VALUE_SHIFT),
+			OMAP3430_GR_MOD,
+			OMAP3_PRM_LDO_ABB_CTRL_OFFSET);
+
+	/* clear ABB ldo interrupt status */
+	prm_write_mod_reg(OMAP3630_ABB_LDO_TRANXDONE_ST,
+			OCP_MOD,
+			OMAP2_PRCM_IRQSTATUS_MPU_OFFSET);
+
+	/* enable ABB LDO OPP change */
+	prm_set_mod_reg_bits(OMAP3630_OPP_CHANGE,
+			OMAP3430_GR_MOD,
+			OMAP3_PRM_LDO_ABB_SETUP_OFFSET);
+
+	timeout = 0;
+
+	/* wait until OPP change completes */
+	while ((timeout < ABB_MAX_SETTLING_TIME ) &&
+			(!(prm_read_mod_reg(OCP_MOD,
+						OMAP2_PRCM_IRQSTATUS_MPU_OFFSET) &
+					OMAP3630_ABB_LDO_TRANXDONE_ST))) {
+		udelay(1);
+		timeout++;
+	}
+
+	if (timeout == ABB_MAX_SETTLING_TIME)
+		pr_debug("ABB: TRANXDONE timed out waiting for OPP change\n");
+
+	timeout = 0;
+
+	/* Clear all pending TRANXDONE interrupts/status */
+	while (timeout < ABB_MAX_SETTLING_TIME) {
+		prm_write_mod_reg(OMAP3630_ABB_LDO_TRANXDONE_ST,
+				OCP_MOD,
+				OMAP2_PRCM_IRQSTATUS_MPU_OFFSET);
+		if (!(prm_read_mod_reg(OCP_MOD,
+						OMAP2_PRCM_IRQSTATUS_MPU_OFFSET)
+					& OMAP3630_ABB_LDO_TRANXDONE_ST))
+			break;
+
+		udelay(1);
+		timeout++;
+	}
+	if (timeout == ABB_MAX_SETTLING_TIME)
+		pr_debug("ABB: TRANXDONE timed out trying to clear status\n");
+
+	return 0;
+}
+
+
 static void sr_configure_vp(int srid)
 {
 	u32 vpconfig;
@@ -462,6 +587,8 @@ static void sr_configure_vp(int srid)
 		prm_clear_mod_reg_bits(OMAP3430_FORCEUPDATE, OMAP3430_GR_MOD,
 				       OMAP3_PRM_VP1_CONFIG_OFFSET);
 
+		if(cpu_is_omap3630())
+			sr_voltagescale_adaptive_body_bias(target_opp_no);
 	} else if (srid == SR2) {
 		if (vdd2_opp == 0)
 			target_opp_no = get_vdd2_opp();
@@ -1030,6 +1157,9 @@ int sr_voltagescale_vcbypass(u32 target_opp, u32 current_opp,
 	 */
 	t2_smps_delay = ((t2_smps_steps * 125) / 40) + 2;
 	udelay(t2_smps_delay);
+
+	if (cpu_is_omap3630() && (vdd == VDD1_OPP))
+		sr_voltagescale_adaptive_body_bias(target_opp_no);
 
 	if (sr_status) {
 		if (vdd == VDD1_OPP)
