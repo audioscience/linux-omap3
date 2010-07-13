@@ -122,19 +122,17 @@ static struct platform_device ti816x_nand_device = {
 	.resource	= &ti816x_nand_resource,
 };
 
-
-#if 0
 static struct mtd_partition ti816x_evm_norflash_partitions[] = {
 	/* bootloader (U-Boot, etc) in first 5 sectors */
 	{
 		.name		= "bootloader",
 		.offset		= 0,
-		.size		= 5 * SZ_128K,
+		.size		= 2 * SZ_128K,
 		.mask_flags	= MTD_WRITEABLE, /* force read-only */
 	},
 	/* bootloader params in the next 1 sectors */
 	{
-		.name		= "params",
+		.name		= "env",
 		.offset		= MTDPART_OFS_APPEND,
 		.size		= SZ_128K,
 		.mask_flags	= 0,
@@ -143,12 +141,19 @@ static struct mtd_partition ti816x_evm_norflash_partitions[] = {
 	{
 		.name		= "kernel",
 		.offset		= MTDPART_OFS_APPEND,
-		.size		= SZ_2M,
+		.size		= 2 * SZ_2M,
 		.mask_flags	= 0
 	},
 	/* file system */
 	{
 		.name		= "filesystem",
+		.offset		= MTDPART_OFS_APPEND,
+		.size		= 25 * SZ_2M,
+		.mask_flags	= 0
+	},
+	/* reserved */
+	{
+		.name		= "reserved",
 		.offset		= MTDPART_OFS_APPEND,
 		.size		= MTDPART_SIZ_FULL,
 		.mask_flags	= 0
@@ -161,7 +166,7 @@ static struct physmap_flash_data ti816x_evm_norflash_data = {
 	.nr_parts	= ARRAY_SIZE(ti816x_evm_norflash_partitions),
 };
 
-#define TI816X_EVM_NOR_BASE			0x0000000
+#define TI816X_EVM_NOR_BASE		0x08000000	
 static struct resource ti816x_evm_norflash_resource = {
 	.start		= TI816X_EVM_NOR_BASE,
 	.end		= TI816X_EVM_NOR_BASE + SZ_64M - 1,
@@ -178,6 +183,7 @@ static struct platform_device ti816x_evm_norflash_device = {
 	.resource	= &ti816x_evm_norflash_resource,
 };
 
+#if 0
 static struct omap2_hsmmc_info mmc[] = {
 	{
 		.mmc		= 1,
@@ -479,6 +485,39 @@ static int axi2ocp_fiq_fixup(void)
 	return 0;
 }
 
+static void __init ti816x_nor_init(void)
+{
+	if (HAS_NOR) {
+		u8 cs = 0;
+		u8 norcs = GPMC_CS_NUM + 1;
+
+		/* find out the chip-select on which NAND exists */
+		while (cs < GPMC_CS_NUM) {
+			u32 ret = 0;
+			ret = gpmc_cs_read_reg(cs, GPMC_CS_CONFIG1);
+	
+			if ((ret & 0xC00) == 0x0) {
+				printk(KERN_INFO "Found NAND on CS%d\n", cs);
+				if (norcs > GPMC_CS_NUM)
+					norcs = cs;
+			}
+			cs++;
+		}
+
+		if (norcs > GPMC_CS_NUM) {
+			printk(KERN_INFO "NOR: Unable to find configuration in GPMC\n");
+			return;
+		}
+
+		if (norcs < GPMC_CS_NUM) {
+			printk(KERN_INFO "Registering NOR on CS%d\n", norcs);
+			if (platform_device_register(&ti816x_evm_norflash_device) < 0)
+				printk(KERN_ERR "Unable to register NOR device\n");
+		}
+	}
+}
+
+
 static void __init ti816x_nand_init(void)
 {
 	u8 cs = 0;
@@ -541,9 +580,8 @@ static void __init ti8168_evm_init(void)
 	ti816x_evm_i2c_init();
 	i2c_add_driver(&ti816xevm_cpld_driver);
 	ti816x_nand_init();
+	ti816x_nor_init();
 #if 0
-	if (HAS_NOR)
-		platform_device_register(&ti816x_evm_norflash_device);
 	ti816x_register_mcasp(0, &ti8168_evm_snd_data);
 
 	/* FIXME: Move further up in initialization sequence */
