@@ -267,6 +267,12 @@
 #define TI816X_GPMC_VIRT	(TI816X_GPMC_PHYS + TI816X_GPMC_IO_OFFSET)
 #define TI816X_GPMC_SIZE	SZ_1M
 
+/* HACK : Temporarily put Media Controller L2 mapping just after GPMC */
+#define TI816X_L2_MC_PHYS	0x55000000
+						/* 0x55000000 --> upto 1MB */
+#define TI816X_L2_MC_VIRT	(TI816X_GPMC_VIRT + TI816X_GPMC_SIZE)
+#define TI816X_L2_MC_SIZE	SZ_1M
+
 /*
  * ----------------------------------------------------------------------------
  * Omap specific register access

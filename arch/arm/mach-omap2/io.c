@@ -246,6 +246,12 @@ static struct map_desc ti816x_io_desc[] __initdata = {
 		.length		= TI816X_GPMC_SIZE,
 		.type		= MT_DEVICE
 	},
+	{
+		.virtual	= TI816X_L2_MC_VIRT,
+		.pfn		= __phys_to_pfn(TI816X_L2_MC_PHYS),
+		.length		= TI816X_L2_MC_SIZE,
+		.type		= MT_STRONGLY_ORDERED
+	},
 };
 #endif
 
