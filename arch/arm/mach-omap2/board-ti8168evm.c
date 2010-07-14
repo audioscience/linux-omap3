@@ -328,17 +328,16 @@ is used by TI 816x EVM. Registering a single isntance
 	return 0;
 }
 
-#if 0
 static u8 ti8168_iis_serializer_direction[] = {
-	RX_MODE,	TX_MODE,	INACTIVE_MODE,	INACTIVE_MODE,
+	TX_MODE,	RX_MODE,	INACTIVE_MODE,	INACTIVE_MODE,
 	INACTIVE_MODE,	INACTIVE_MODE,	INACTIVE_MODE,	INACTIVE_MODE,
 	INACTIVE_MODE,	INACTIVE_MODE,	INACTIVE_MODE,	INACTIVE_MODE,
 	INACTIVE_MODE,	INACTIVE_MODE,	INACTIVE_MODE,	INACTIVE_MODE,
 };
 
 static struct snd_platform_data ti8168_evm_snd_data = {
-	.tx_dma_offset = 0x2000,
-	.rx_dma_offset = 0x2000,
+	.tx_dma_offset = 0x46800000,
+	.rx_dma_offset = 0x46800000,
 	.op_mode = DAVINCI_MCASP_IIS_MODE,
 	.num_serializer = ARRAY_SIZE(ti8168_iis_serializer_direction),
 	.tdm_slots = 2,
@@ -348,7 +347,6 @@ static struct snd_platform_data ti8168_evm_snd_data = {
 	.txnumevt = 1,
 	.rxnumevt = 1,
 };
-#endif
 
 /*
  * dmtimer FIQ block: Use DMTIMER3 to generate FIQ every __us.
@@ -581,9 +579,8 @@ static void __init ti8168_evm_init(void)
 	i2c_add_driver(&ti816xevm_cpld_driver);
 	ti816x_nand_init();
 	ti816x_nor_init();
-#if 0
 	ti816x_register_mcasp(0, &ti8168_evm_snd_data);
-
+#if 0
 	/* FIXME: Move further up in initialization sequence */
 	pr_info("AXI2OCP: Entering fixup code...\n");
 	axi2ocp_fiq_fixup();

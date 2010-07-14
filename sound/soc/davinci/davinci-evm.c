@@ -69,9 +69,8 @@ static int evm_hw_params(struct snd_pcm_substream *substream,
 				machine_is_davinci_da850_evm())
 		sysclk = 24576000;
 
-	/* TODO: VB__Put the correct value of codec clk here */
 	else if (cpu_is_ti816x())
-		sysclk = 12288000;
+		sysclk = 24576000;
 
 	else
 		return -EINVAL;

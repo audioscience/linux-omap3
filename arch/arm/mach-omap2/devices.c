@@ -1026,14 +1026,14 @@ static struct resource ti816x_mcasp_resource[] = {
 	},
 	/* TX event */
 	{
-		.start = TI816X_ASP2_RX_INT,
-		.end = TI816X_ASP2_RX_INT,
+		.start = TI816X_DMA_MCASP2_AXEVT,
+		.end = TI816X_DMA_MCASP2_AXEVT,
 		.flags = IORESOURCE_DMA,
 	},
 	/* RX event */
 	{
-		.start = TI816X_ASP2_TX_INT,
-		.end = TI816X_ASP2_TX_INT,
+		.start = TI816X_DMA_MCASP2_AREVT,
+		.end = TI816X_DMA_MCASP2_AREVT,
 		.flags = IORESOURCE_DMA,
 	},
 };
