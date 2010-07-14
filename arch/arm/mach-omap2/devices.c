@@ -1141,7 +1141,6 @@ static inline void ti816x_init_pcie(void) {}
 static const s16 ti816x_dma_rsv_chans[][2] = {
 	/* (offset, number) */
 	{ 0,  4},	/* !@@@ TODO replace as appropriate - Sundaram*/
-	{13,  3},
 	{24,  4},
 	{30,  2},
 	{54,  3},
@@ -1151,7 +1150,6 @@ static const s16 ti816x_dma_rsv_chans[][2] = {
 static const s16 ti816x_dma_rsv_slots[][2] = {
 	/* (offset, number) */
 	{ 0,  4},	/* !@@@ TODO replace as appropriate - Sundaram*/
-	{13,  3},
 	{24,  4},
 	{30,  2},
 	{54,  3},
