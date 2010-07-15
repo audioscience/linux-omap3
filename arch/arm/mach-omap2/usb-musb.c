@@ -112,9 +112,22 @@ static struct platform_device musb_devices[] = {
 	},
 };
 
+struct clk *usbotg_clk;
+
 void __init usb_musb_init(struct omap_musb_board_data *board_data)
 {
 	int i;
+
+	usbotg_clk = clk_get(NULL, "usbotg_ick");
+	if (IS_ERR(usbotg_clk)) {
+		pr_err("usb : Failed to get usbotg clock\n");
+		return ;
+	}
+
+	if (clk_enable(usbotg_clk)) {
+		pr_err("usb : Clock Enable Failed\n");
+		return ;
+	}
 
 	if (cpu_is_omap243x()) {
 		musb_resources[0].start = OMAP243X_HS_BASE;
@@ -147,7 +160,7 @@ void __init usb_musb_init(struct omap_musb_board_data *board_data)
 	 * REVISIT: This line can be removed once all the platforms using
 	 * musb_core.c have been converted to use use clkdev.
 	 */
-	musb_plat.clock = "ick";
+	musb_plat.clock = "usbotg_ick";
 	musb_plat.board_data = board_data;
 	musb_plat.power = board_data->power >> 1;
 	musb_plat.mode = board_data->mode;
