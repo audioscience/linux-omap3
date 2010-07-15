@@ -265,6 +265,7 @@ static int davinci_pcm_open(struct snd_pcm_substream *substream)
 	pa = snd_soc_dai_get_dma_data(rtd->dai->cpu_dai, substream);
 	if (!pa)
 		return -ENODEV;
+	params = &pa[substream->stream];
 
 	snd_soc_set_runtime_hwparams(substream, &davinci_pcm_hardware);
 	/* ensure that buffer size is a multiple of period size */
