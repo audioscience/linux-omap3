@@ -2172,7 +2172,7 @@ static int __exit musb_remove(struct platform_device *pdev)
 	 *  - OTG mode: both roles are deactivated (or never-activated)
 	 */
 	musb_shutdown(pdev);
-	musb_debug_delete("driver/musb_hdrc", musb);
+	musb_debug_delete("driver/musb_hdrc.0.0", musb);
 #ifdef CONFIG_USB_MUSB_HDRC_HCD
 	if (musb->board_mode == MUSB_HOST)
 		usb_remove_hcd(musb_to_hcd(musb));
@@ -2409,6 +2409,7 @@ static struct platform_driver musb_driver_0 = {
 	.remove		= __exit_p(musb_remove),
 	.shutdown	= musb_shutdown,
 };
+/*
 static struct platform_driver musb_driver_1 = {
 	.driver = {
 		.name		= (char *)"musb_hdrc.1",
@@ -2419,6 +2420,7 @@ static struct platform_driver musb_driver_1 = {
 	.remove		= __exit_p(musb_remove),
 	.shutdown	= musb_shutdown,
 };
+*/
 /*-------------------------------------------------------------------------*/
 
 static int __init musb_init(void)
@@ -2455,8 +2457,10 @@ static int __init musb_init(void)
 		musb_driver_name, musb_debug);
 
 	retval = platform_driver_probe(&musb_driver_0, musb_probe);
+/*
 	if (retval == 0)
 		retval = platform_driver_probe(&musb_driver_1, musb_probe);
+*/
 	return retval;
 }
 
