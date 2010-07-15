@@ -181,6 +181,8 @@ void omap_ctrl_writel(u32 val, u16 offset)
 {
 	__raw_writel(val, OMAP_CTRL_REGADDR(offset));
 }
+EXPORT_SYMBOL(omap_ctrl_writel);
+EXPORT_SYMBOL(omap_ctrl_readl);
 
 #if defined(CONFIG_ARCH_OMAP3) && defined(CONFIG_PM)
 /*
