@@ -1690,7 +1690,7 @@ void usb_process_tx_queue(struct cppi41 *cppi, unsigned index)
 					!is_peripheral_active(cppi->musb)) {
 					num_bd = cppi41_send_bd_queue(tx_ch, iter_cnt);
 					if (num_bd > 1)
-						printk("tx: queue (%d) nbd queued\n", num_bd);
+						dprintk("tx: queue (%d) nbd queued\n", num_bd);
 				}
 				lock = 1;
 			}

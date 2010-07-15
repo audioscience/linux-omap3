@@ -530,7 +530,7 @@ int __init cppi41_init(struct musb *musb)
 	cppi41_dma_base = ioremap(TI816X_USB_CPPIDMA_BASE,
 					TI816X_USB_CPPIDMA_LEN);
 
-	printk(KERN_INFO "cppi41_dma_base = %p\n", cppi41_dma_base);
+	dprintk(KERN_INFO "cppi41_dma_base = %p\n", cppi41_dma_base);
 
 	/* init mappings */
 	cppi41_queue_mgr[0].q_mgr_rgn_base	= (void *)((u32)cppi41_dma_base
@@ -656,7 +656,7 @@ static inline void phy_on(void)
 {
 	u32 usbphycfg;
 
-	pr_info("phy_on..\n");
+	dprintk(KERN_INFO "phy_on..\n");
 	/*
 	 * Start the on-chip PHY and its PLL.
 	 */
@@ -665,8 +665,8 @@ static inline void phy_on(void)
 	usbphycfg &= ~(TI816X_USBPHY_REFCLK_OSC);
 	omap_ctrl_writel(usbphycfg, TI816X_USBCTRL_OFFS);
 
-	pr_info("usbphy_ctrl0=%x\n", omap_ctrl_readl(TI816X_USBPHY_CTRL0_OFFS));
-	pr_info("usbphy_ctrl1=%x\n", omap_ctrl_readl(TI816X_USBPHY_CTRL0_OFFS));
+	dprintk(KERN_INFO "usbphy_ctrl0=%x\n", omap_ctrl_readl(TI816X_USBPHY_CTRL0_OFFS));
+	dprintk(KERN_INFO "usbphy_ctrl1=%x\n", omap_ctrl_readl(TI816X_USBPHY_CTRL0_OFFS));
 }
 
 static inline void phy_off(void)
