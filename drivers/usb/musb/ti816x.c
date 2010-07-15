@@ -1086,15 +1086,15 @@ int musb_platform_set_mode(struct musb *musb, u8 musb_mode)
 	/* TODO: implement this using CONF0 */
 	if (musb_mode == MUSB_HOST) {
 		musb_writel(reg_base, USB_MODE_REG, 0);
-		musb_writel(musb->ctrl_base, USB_MODE_REG, 0x02);
-		printk("host: %s: value of mode reg=%x\n\n", __func__,
+		musb_writel(musb->ctrl_base, USB_PHY_UTMI_REG, 0x02);
+		dprintk("host: %s: value of mode reg=%x\n\n", __func__,
 					musb_readl(reg_base, USB_MODE_REG));
 	} else
 	if (musb_mode == MUSB_PERIPHERAL) {
 		/* TODO commmented writing 8 to USB_MODE_REG device
 			mode is not working */
 		musb_writel(reg_base, USB_MODE_REG, 0x100);
-		printk("device: %s: value of mode reg=%x\n\n", __func__,
+		dprintk("device: %s: value of mode reg=%x\n\n", __func__,
 					musb_readl(reg_base, USB_MODE_REG));
 	}
 	return -EIO;
