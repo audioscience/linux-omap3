@@ -27,6 +27,7 @@
 #include <linux/mm.h>
 #include <linux/list.h>
 #include <linux/vmalloc.h>
+#include <linux/slab.h>
 #include <linux/clk.h>
 #include <linux/io.h>
 #include <asm/setup.h>
@@ -147,9 +148,9 @@ int vps_sbuf_free(u32 paddr, void *vaddr, size_t size)
 	mutex_lock(&sbuf_mutex);
 	list_for_each_entry(sba, &sbinfo->alloc_list, list) {
 		start = sba->paddr;
-		end = sba->paddr + (sba->pages >> PAGE_SHIFT);
+		end = sba->paddr + (sba->pages << PAGE_SHIFT);
 
-		if (start >= paddr && (end < paddr + size)) {
+		if (start >= paddr && (end <= paddr + size)) {
 			sbuf_free_allocation(sba);
 			VPSSDBG("free mem paddr %08x vaddr %p size %d\n",
 				paddr, vaddr, size);

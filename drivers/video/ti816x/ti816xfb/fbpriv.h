@@ -39,7 +39,7 @@ extern unsigned int fb_debug;
 #define TFBDBG(format, ...) \
 	do { \
 		if (fb_debug) \
-			printk(KERN_INFO "TI816XFB  : " format, \
+			printk(KERN_DEBUG "TI816XFB  : " format, \
 				## __VA_ARGS__); \
 	} while (0)
 #else

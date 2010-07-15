@@ -32,6 +32,7 @@
 #include <linux/mm.h>
 #include <linux/dma-mapping.h>
 #include <linux/vmalloc.h>
+#include <linux/slab.h>
 #include <linux/platform_device.h>
 #include <linux/uaccess.h>
 #include <linux/ti816xfb.h>

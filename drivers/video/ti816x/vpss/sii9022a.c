@@ -30,6 +30,8 @@
 #include <linux/sysfs.h>
 #include <linux/kobject.h>
 #include <linux/dma-mapping.h>
+#include <linux/slab.h>
+
 #include <linux/fvid2.h>
 #include <linux/vps.h>
 #include <linux/vps_displayctrl.h>
@@ -101,7 +103,7 @@ int sii9022a_setmode(u32 mode)
 		VPSSERR("failed to set mode\n");
 		sii9022a_ctrl->modeprms->modeid = VPS_SII9022A_MAX_MODES;
 	} else
-		VPSSERR("set mode to %d\n", sii9022a_ctrl->modeprms->modeid);
+		VPSSDBG("set mode to %d\n", sii9022a_ctrl->modeprms->modeid);
 
 	return r;
 

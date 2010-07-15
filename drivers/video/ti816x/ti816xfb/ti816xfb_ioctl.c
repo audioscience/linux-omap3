@@ -24,6 +24,7 @@
 #include <linux/platform_device.h>
 #include <linux/kernel.h>
 #include <linux/dma-mapping.h>
+#include <linux/slab.h>
 #include <linux/ti816xfb.h>
 #include <plat/ti816x_ram.h>
 

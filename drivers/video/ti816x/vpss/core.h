@@ -38,7 +38,7 @@ extern unsigned int vpss_debug;
 #define VPSSDBG(format, ...) \
 	do { \
 		if (vpss_debug) \
-			printk(KERN_INFO "VPSS_" VPSS_SUBMODULE_NAME ": " \
+			printk(KERN_DEBUG "VPSS_" VPSS_SUBMODULE_NAME ": " \
 				format, ## __VA_ARGS__); \
 	} while (0)
 

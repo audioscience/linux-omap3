@@ -27,6 +27,7 @@
 #include <linux/interrupt.h>
 #include <linux/err.h>
 #include <linux/dma-mapping.h>
+#include <linux/slab.h>
 
 #include <linux/vps_proxyserver.h>
 #include <linux/fvid2.h>
