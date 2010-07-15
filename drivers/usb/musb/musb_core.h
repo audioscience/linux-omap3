@@ -519,7 +519,7 @@ struct musb_context_registers {
 
 #ifdef CONFIG_PM
 extern void musb_platform_save_context(struct musb *musb,
-		struct musb_context_registers *musb_context);
+                struct musb_context_registers *musb_context);
 extern void musb_platform_restore_context(struct musb *musb,
 		struct musb_context_registers *musb_context);
 #else

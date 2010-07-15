@@ -1243,14 +1243,14 @@ int musb_platform_exit(struct musb *musb)
 }
 
 #ifdef CONFIG_PM
-void musb_platform_save_context(struct musb_context_registers
-		*musb_context)
+void musb_platform_save_context(struct musb *musb,
+		 struct musb_context_registers *musb_context)
 {
 	/* Save CPPI41 DMA related registers */
 }
 
-void musb_platform_restore_context(struct musb_context_registers
-		*musb_context)
+void musb_platform_restore_context(struct musb *musb,
+		 struct musb_context_registers *musb_context)
 {
 	/* Restore CPPI41 DMA related registers */
 }
