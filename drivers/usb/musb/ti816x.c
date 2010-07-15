@@ -183,7 +183,7 @@ u16 musb_readw(const void __iomem *addr, unsigned offset)
 	u32 tmp;
 	u16 val;
 
-	if (addr == g_musb->mregs) {
+	if (!cpu_is_ti816x() && addr == g_musb->mregs) {
 		switch (offset) {
 		case MUSB_INTRTXE:
 			if (g_musb->read_mask & AM3517_READ_ISSUE_INTRTXE)
@@ -195,6 +195,7 @@ u16 musb_readw(const void __iomem *addr, unsigned offset)
 			break;
 		}
 	}
+
 	tmp = __raw_readl(addr + (offset & ~3));
 
 	switch (offset & 0x3) {
@@ -215,7 +216,7 @@ u16 musb_readw(const void __iomem *addr, unsigned offset)
 
 void musb_writew(void __iomem *addr, unsigned offset, u16 data)
 {
-	if (addr == g_musb->mregs) {
+	if (!cpu_is_ti816x() && addr == g_musb->mregs) {
 		switch (offset) {
 		case MUSB_INTRTXE:
 			g_musb->read_mask |= AM3517_READ_ISSUE_INTRTXE;
