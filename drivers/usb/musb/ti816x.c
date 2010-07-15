@@ -237,7 +237,7 @@ u8 musb_readb(const void __iomem *addr, unsigned offset)
 	u32 tmp;
 	u8 val;
 
-	if (addr == g_musb->mregs) {
+	if (!cpu_is_ti816x() && addr == g_musb->mregs) {
 
 		switch (offset) {
 		case MUSB_FADDR:
@@ -287,7 +287,7 @@ u8 musb_readb(const void __iomem *addr, unsigned offset)
 }
 void musb_writeb(void __iomem *addr, unsigned offset, u8 data)
 {
-	if (addr == g_musb->mregs) {
+	if (!cpu_is_ti816x() && addr == g_musb->mregs) {
 
 		switch (offset) {
 		case MUSB_FADDR:

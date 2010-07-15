@@ -872,7 +872,7 @@ void musb_start(struct musb *musb)
 						| MUSB_POWER_SOFTCONN
 						| MUSB_POWER_HSENAB
 						/* ENSUSPEND wedges tusb */
-						/* | MUSB_POWER_ENSUSPEND */
+						| MUSB_POWER_ENSUSPEND
 						);
 
 	musb->is_active = 0;
