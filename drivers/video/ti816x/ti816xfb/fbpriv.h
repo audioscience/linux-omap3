@@ -78,6 +78,7 @@ struct ti816xfb_info {
 	enum ti816xfb_mem_mode        mmode;
 	wait_queue_head_t             vsync_wait;
 	unsigned long                 vsync_cnt;
+	unsigned long                 open_cnt;
 };
 
 /**

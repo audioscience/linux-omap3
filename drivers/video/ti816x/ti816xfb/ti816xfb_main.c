@@ -492,7 +492,44 @@ static void set_fb_fix(struct fb_info *fbi)
 
 }
 
+static int ti816xfb_grpx_delete(struct fb_info *fbi)
+{
+	int r = 0;
+	struct ti816xfb_info  *tfbi = FB2TFB(fbi);
+	struct vps_grpx_ctrl *gctrl = tfbi->gctrl;
 
+	if (tfbi->open_cnt > 1) {
+		tfbi->open_cnt--;
+		TFBDBG("dummy close fb%d\n", tfbi->idx);
+		return 0;
+	} else if (tfbi->open_cnt == 0)
+		return 0;
+
+
+	TFBDBG("Closing fb%d\n", tfbi->idx);
+	if (gctrl->handle) {
+		if (gctrl->gstate.isstarted) {
+			r = vps_fvid2_stop(gctrl->handle, NULL);
+			if (r == 0)
+				gctrl->stop(gctrl);
+		}
+
+		if (r == 0) {
+			r = vps_fvid2_delete(gctrl->handle, NULL);
+			if (r == 0) {
+				gctrl->delete(gctrl);
+				tfbi->open_cnt--;
+			} else
+				dev_err(tfbi->fbdev->dev,
+					  "failed to delete fvid2 handle.\n");
+
+		} else
+			dev_err(tfbi->fbdev->dev,
+				"failed to stop.\n");
+
+	}
+	return r;
+}
 static int ti816xfb_apply_changes(struct fb_info *fbi, int init)
 {
 	struct fb_var_screeninfo	*var = &fbi->var;
@@ -722,7 +759,6 @@ static int ti816xfb_open(struct fb_info *fbi, int user)
 	struct vps_grpx_ctrl		*gctrl = tfbi->gctrl;
 	u32				grpxinstid;
 
-	TFBDBG("Opening fb%d\n", tfbi->idx);
 
 	if (tfbi->mreg.size == 0) {
 		dev_err(tfbi->fbdev->dev,
@@ -732,6 +768,14 @@ static int ti816xfb_open(struct fb_info *fbi, int user)
 	}
 	ti816xfb_lock(tfbi);
 
+	if (tfbi->open_cnt != 0) {
+		tfbi->open_cnt++;
+		ti816xfb_unlock(tfbi);
+		TFBDBG("Dummy open fb%d\n", tfbi->idx);
+		return 0;
+	}
+
+	TFBDBG("Opening fb%d\n", tfbi->idx);
 	if (r == 0) {
 
 		r = gctrl->create(gctrl);
@@ -784,9 +828,10 @@ static int ti816xfb_open(struct fb_info *fbi, int user)
 		if (r == 0)
 			r = vps_fvid2_start(gctrl->handle, NULL);
 
-		if (r == 0)
+		if (r == 0) {
 			gctrl->start(gctrl);
-		else {
+			tfbi->open_cnt++;
+		} else {
 			/*fail to start the grpx, delete it and start over*/
 			dev_err(tfbi->fbdev->dev,
 				"failed to star.\n");
@@ -797,7 +842,6 @@ static int ti816xfb_open(struct fb_info *fbi, int user)
 			}
 		}
 	}
-
 
 	ti816xfb_unlock(tfbi);
 	/*FIX ME we allocate the page and tiler memory from here.
@@ -811,33 +855,11 @@ static int ti816xfb_release(struct fb_info *fbi, int user)
 {
 	int r = 0;
 	struct ti816xfb_info  *tfbi = FB2TFB(fbi);
-	struct vps_grpx_ctrl *gctrl = tfbi->gctrl;
 
-
-	TFBDBG("Closing fb%d\n", tfbi->idx);
 	/*FIXME in the page and tiler memory mode, the memory deallocate will be
 	done in this function.*/
 	ti816xfb_lock(tfbi);
-	if (gctrl->handle) {
-		if (gctrl->gstate.isstarted) {
-			r = vps_fvid2_stop(gctrl->handle, NULL);
-			if (r == 0)
-				gctrl->stop(gctrl);
-		}
-
-		if (r == 0) {
-			r = vps_fvid2_delete(gctrl->handle, NULL);
-			if (r == 0)
-				gctrl->delete(gctrl);
-			else
-				dev_err(tfbi->fbdev->dev,
-					  "failed to delete fvid2 handle.\n");
-
-		} else
-			dev_err(tfbi->fbdev->dev,
-				"failed to stop.\n");
-
-	}
+	r = ti816xfb_grpx_delete(fbi);
 	ti816xfb_unlock(tfbi);
 	return r;
 }
@@ -1305,7 +1327,7 @@ static int ti816xfb_create_framebuffers(struct ti816xfb_device *fbdev)
 		/*initialize the vsync wait queue*/
 		init_waitqueue_head(&tfbi->vsync_wait);
 		tfbi->vsync_cnt = 0;
-
+		tfbi->open_cnt = 0;
 		fbdev->num_fbs++;
 		/*FIX ME anything to assign here????*/
 
@@ -1491,7 +1513,10 @@ cleanup:
 static int ti816xfb_remove(struct platform_device *dev)
 {
 	struct ti816xfb_device *fbdev = platform_get_drvdata(dev);
-
+	int i;
+	/*make sure all fb has been closed*/
+	for (i = 0; i < fbdev->num_fbs; i++)
+		ti816xfb_grpx_delete(fbdev->fbs[i]);
 	TFBDBG("remove sysfs for fbs.\n");
 	ti816xfb_remove_sysfs(fbdev);
 	ti816xfb_free_all(fbdev);
