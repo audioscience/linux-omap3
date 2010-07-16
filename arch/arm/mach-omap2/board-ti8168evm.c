@@ -555,10 +555,17 @@ static void __init ti816x_nand_init(void)
 	}
 }
 
-
+#ifdef CONFIG_OMAP_MUX
+static struct omap_board_mux board_mux[] __initdata = {
+	{ .reg_offset = OMAP_MUX_TERMINATOR },
+};
+#else
+#define board_mux	NULL
+#endif
 
 static void __init ti8168_evm_init(void)
 {
+	ti816x_mux_init(board_mux);
 	omap_board_config = generic_config;
 	omap_board_config_size = ARRAY_SIZE(generic_config);
 #if 0

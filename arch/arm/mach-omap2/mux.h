@@ -8,6 +8,7 @@
  */
 
 #include "mux34xx.h"
+#include "mux816x.h"
 
 #define OMAP_MUX_TERMINATOR	0xffff
 
@@ -102,7 +103,8 @@ struct omap_board_mux {
 	u16	value;
 };
 
-#if defined(CONFIG_OMAP_MUX) && defined(CONFIG_ARCH_OMAP3)
+#if defined(CONFIG_OMAP_MUX) &&	\
+	(defined(CONFIG_ARCH_OMAP3) || defined(CONFIG_ARCH_TI816X))
 
 /**
  * omap_mux_init_gpio - initialize a signal based on the GPIO number
@@ -176,6 +178,12 @@ void omap_mux_write_array(struct omap_board_mux *board_mux);
  * @flags:		OMAP package type used for the board
  */
 int omap3_mux_init(struct omap_board_mux *board_mux, int flags);
+
+/**
+ * ti816x_mux_init() - initialize mux system along with board specific set
+ * @board_mux:		Board specific mux table
+ */
+int ti816x_mux_init(struct omap_board_mux *board_mux);
 
 /**
  * omap_mux_init - private mux init function, do not call

@@ -370,7 +370,7 @@ int __init omap2_mux_init(void)
 
 /*----------------------------------------------------------------------------*/
 
-#ifdef CONFIG_ARCH_OMAP3
+#if defined(CONFIG_ARCH_OMAP3) || defined(CONFIG_ARCH_TI816X)
 static LIST_HEAD(muxmodes);
 static DEFINE_MUTEX(muxmode_mutex);
 
@@ -382,6 +382,10 @@ int __init omap_mux_init_gpio(int gpio, int val)
 {
 	struct omap_mux_entry *e;
 	int found = 0;
+
+	/* FIXME */
+	if (cpu_is_ti816x())
+		return 0;
 
 	if (!gpio)
 		return -EINVAL;
@@ -1039,5 +1043,5 @@ int __init omap_mux_init(u32 mux_pbase, u32 mux_size,
 	return 0;
 }
 
-#endif	/* CONFIG_ARCH_OMAP3 */
+#endif	/* CONFIG_ARCH_OMAP3 || CONFIG_ARCH_TI816X */
 

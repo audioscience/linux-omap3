@@ -68,7 +68,7 @@ config OMAP_RESET_CLOCKS
 
 config OMAP_MUX
 	bool "OMAP multiplexing support"
-	depends on ARCH_OMAP
+	depends on ARCH_OMAP || ARCH_TI816X
 	default y
 	help
 	  Pin multiplexing support for OMAP boards. If your bootloader
