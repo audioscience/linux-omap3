@@ -361,12 +361,13 @@ static int ti816xfb_free_mem(struct fb_info *fbi, int offset)
 			r = ti816x_vram_free(mlist->phy_addr,
 					 mlist->virt_addr,
 					 mlist->size);
-			if (r == 0)
+			if (r == 0) {
+				list_del(&mlist->list);
 				kfree(mlist);
-			else
+			} else
 				dev_err(tfbi->fbdev->dev,
-					"failed to free mem %x\n",
-					mlist->phy_addr);
+				       "failed to free mem %x\n",
+				       mlist->phy_addr);
 			break;
 		}
 	}

@@ -183,9 +183,9 @@ int ti816x_vram_free(unsigned long paddr, void *vaddr, size_t size)
 	list_for_each_entry(rm, &region_list, list) {
 		list_for_each_entry(alloc, &rm->alloc_list, list) {
 			start = alloc->paddr;
-			end = alloc->paddr + (alloc->pages >> PAGE_SHIFT);
+			end = alloc->paddr + (alloc->pages << PAGE_SHIFT);
 
-			if (start >= paddr && end < paddr + size)
+			if (start >= paddr && end <= (paddr + size))
 				goto found;
 		}
 	}
@@ -199,9 +199,9 @@ found:
 		dma_free_writecombine(NULL, size, vaddr, paddr);
 		ti816x_vram_free_allocation(alloc);
 		ti816x_vram_free_region(rm);
-	} else {
+	} else
 		ti816x_vram_free_allocation(alloc);
-	}
+
 
 	mutex_unlock(&region_mutex);
 	return 0;
@@ -235,7 +235,7 @@ static void *_ti816x_vram_alloc(int mtype, unsigned pages, unsigned long *paddr)
 
 		end = rm->paddr + (rm->pages << PAGE_SHIFT);
 found:
-		if (end - start < pages << PAGE_SHIFT)
+		if (end - start < (pages << PAGE_SHIFT))
 			continue;
 
 		DBG("FOUND %lx, end %lx\n", start, end);
