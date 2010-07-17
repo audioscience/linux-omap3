@@ -20,7 +20,7 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*#define DEBUG*/
+#define DEBUG
 
 #include <linux/vmalloc.h>
 #include <linux/kernel.h>
@@ -36,7 +36,7 @@
 #include <asm/setup.h>
 
 #ifdef DEBUG
-#define DBG(format, ...) printk(KERN_DEBUG "VRAM: " format, ## __VA_ARGS__)
+#define DBG(format, ...) printk(KERN_ERR "VRAM: " format, ## __VA_ARGS__)
 #else
 #define DBG(format, ...)
 #endif
@@ -251,31 +251,6 @@ found:
 	return NULL;
 }
 
-static void *_ti816x_vram_alloc_dma(unsigned pages, unsigned long *paddr)
-{
-	struct vram_region *rm;
-	void *vaddr;
-	vaddr = dma_alloc_writecombine(NULL, pages << PAGE_SHIFT,
-		(dma_addr_t *)paddr, GFP_DMA);
-	if (vaddr == NULL)
-		return NULL;
-	rm = ti816x_vram_create_region(*paddr, vaddr, pages);
-	if (rm == NULL) {
-		dma_free_writecombine(NULL, pages << PAGE_SHIFT, vaddr,
-			(dma_addr_t)*paddr);
-		return NULL;
-	}
-	rm->dma_alloced = 1;
-	if (ti816x_vram_create_allocation(rm, *paddr, pages) == NULL) {
-		dma_free_writecombine(NULL, pages << PAGE_SHIFT, vaddr,
-			(dma_addr_t)*paddr);
-		kfree(rm);
-		return NULL;
-	}
-	list_add(&rm->list, &region_list);
-	return vaddr;
-}
-
 void *ti816x_vram_alloc(int mtype, size_t size, unsigned long *paddr)
 {
 	void *vaddr;
@@ -293,11 +268,6 @@ void *ti816x_vram_alloc(int mtype, size_t size, unsigned long *paddr)
 
 	vaddr = _ti816x_vram_alloc(mtype, pages, paddr);
 
-	if ((NULL == vaddr) && (mtype == TI816XFB_MEMTYPE_SDRAM)) {
-		DBG("fallback to dma_alloc\n");
-
-		vaddr = _ti816x_vram_alloc_dma(pages, paddr);
-	}
 	mutex_unlock(&region_mutex);
 
 	return vaddr;
@@ -438,7 +408,6 @@ void __init ti816xfb_reserve_sdram(void)
 	bdata = NODE_DATA(0)->bdata;
 	sdram_start = bdata->node_min_pfn << PAGE_SHIFT;
 	sdram_size = (bdata->node_low_pfn << PAGE_SHIFT) - sdram_start;
-
 	if (paddr) {
 		if ((paddr & ~PAGE_MASK) || paddr < sdram_start ||
 				paddr + size > sdram_start + sdram_size) {
@@ -453,8 +422,8 @@ void __init ti816xfb_reserve_sdram(void)
 	} else {
 		if (size > sdram_size) {
 			printk(KERN_ERR "FB: Illegal SDRAM size %d for VRAM %d\n",
-			       size,
-			       (u32)sdram_size);
+			      size,
+			      (u32)sdram_size);
 			return;
 		}
 
