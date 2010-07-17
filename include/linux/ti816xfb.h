@@ -253,7 +253,7 @@ struct ti816xfb_datamode {
 };
 
 extern void ti816xfb_set_platform_data(struct ti816xfb_platform_data *data);
-extern void ti816xfb_reserve_sdram(void);
+extern void ti816xfb_reserve_sdram_lmb(void);
 
 
 #endif

@@ -31,7 +31,6 @@ extern int ti816x_vram_add_region(unsigned long paddr, size_t size);
 extern int ti816x_vram_free(unsigned long paddr, void *vaddr, size_t size);
 extern int ti816x_vram_alloc(int mtype, size_t size, unsigned long *paddr);
 extern void ti816x_set_sdram_vram(u32 size, u32 start);
-extern void ti816x_set_sram_vram(u32 size, u32 start);
 
 #endif
 

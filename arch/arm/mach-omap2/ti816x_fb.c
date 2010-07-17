@@ -77,15 +77,6 @@ arch_initcall(ti816x_init_fb);
 
 #else
 
-void ti816xfb_reserve_sdram(void) {}
-unsigned long ti816xfb_reserve_sram(unsigned long sram_pstart,
-				  unsigned long sram_vstart,
-				  unsigned long sram_size,
-				  unsigned long start_avail,
-				  unsigned long size_avail)
-{
-	return 0;
-}
-
+void ti816xfb_reserve_sdram_lmb(void) {}
 
 #endif

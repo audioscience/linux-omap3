@@ -37,6 +37,8 @@ extern struct sys_timer omap_timer;
 extern void omap1_reserve(void);
 extern void omap2_reserve(void);
 
+extern void ti816x_reserve(void);
+
 /*
  * IO bases for various OMAP processors
  * Except the tap base, rest all the io bases

@@ -166,7 +166,7 @@ static struct physmap_flash_data ti816x_evm_norflash_data = {
 	.nr_parts	= ARRAY_SIZE(ti816x_evm_norflash_partitions),
 };
 
-#define TI816X_EVM_NOR_BASE		0x08000000	
+#define TI816X_EVM_NOR_BASE		0x08000000
 static struct resource ti816x_evm_norflash_resource = {
 	.start		= TI816X_EVM_NOR_BASE,
 	.end		= TI816X_EVM_NOR_BASE + SZ_64M - 1,
@@ -493,7 +493,7 @@ static void __init ti816x_nor_init(void)
 		while (cs < GPMC_CS_NUM) {
 			u32 ret = 0;
 			ret = gpmc_cs_read_reg(cs, GPMC_CS_CONFIG1);
-	
+
 			if ((ret & 0xC00) == 0x0) {
 				printk(KERN_INFO "Found NAND on CS%d\n", cs);
 				if (norcs > GPMC_CS_NUM)
@@ -595,7 +595,6 @@ static void __init ti8168_evm_init(void)
 #endif
 }
 
-
 static void __init ti8168_evm_map_io(void)
 {
 	omap2_set_globals_ti816x();
@@ -608,7 +607,8 @@ MACHINE_START(TI8168_EVM, "ti8168evm")
 	.io_pg_offst	= ((0xfa000000) >> 18) & 0xfffc,
 	.boot_params	= 0x80000100,
 	.map_io		= ti8168_evm_map_io,
-	.init_irq	= ti8168_evm_init_irq,
+	.reserve         = ti816x_reserve,
+	.init_irq	 = ti8168_evm_init_irq,
 	.init_machine	= ti8168_evm_init,
 	.timer		= &omap_timer,
 MACHINE_END
