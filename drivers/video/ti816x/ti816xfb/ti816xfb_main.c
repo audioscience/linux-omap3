@@ -518,7 +518,7 @@ static int ti816xfb_grpx_delete(struct fb_info *fbi)
 			r = vps_fvid2_delete(gctrl->handle, NULL);
 			if (r == 0) {
 				gctrl->delete(gctrl);
-				tfbi->open_cnt--;
+				tfbi->open_cnt = 0;
 			} else
 				dev_err(tfbi->fbdev->dev,
 					  "failed to delete fvid2 handle.\n");
@@ -1515,8 +1515,13 @@ static int ti816xfb_remove(struct platform_device *dev)
 	struct ti816xfb_device *fbdev = platform_get_drvdata(dev);
 	int i;
 	/*make sure all fb has been closed*/
-	for (i = 0; i < fbdev->num_fbs; i++)
-		ti816xfb_grpx_delete(fbdev->fbs[i]);
+	for (i = 0; i < fbdev->num_fbs; i++) {
+		struct ti816xfb_info *tfbi = FB2TFB(fbdev->fbs[i]);
+		if (tfbi->open_cnt) {
+			tfbi->open_cnt = 1;
+			ti816xfb_grpx_delete(fbdev->fbs[i]);
+		}
+	}
 	TFBDBG("remove sysfs for fbs.\n");
 	ti816xfb_remove_sysfs(fbdev);
 	ti816xfb_free_all(fbdev);
