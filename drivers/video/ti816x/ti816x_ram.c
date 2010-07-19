@@ -20,7 +20,7 @@
  * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define DEBUG
+/*#define DEBUG*/
 
 #include <linux/vmalloc.h>
 #include <linux/kernel.h>
@@ -36,7 +36,7 @@
 #include <asm/setup.h>
 
 #ifdef DEBUG
-#define DBG(format, ...) printk(KERN_ERR "VRAM: " format, ## __VA_ARGS__)
+#define DBG(format, ...) printk(KERN_DEBUG"VRAM: " format, ## __VA_ARGS__)
 #else
 #define DBG(format, ...)
 #endif
@@ -65,7 +65,6 @@ struct vram_region {
 	unsigned long paddr;
 	void		*vaddr;
 	unsigned pages;
-	unsigned	dma_alloced:1;
 };
 
 static DEFINE_MUTEX(region_mutex);
@@ -93,13 +92,13 @@ static struct vram_region *ti816x_vram_create_region(unsigned long paddr,
 	return rm;
 }
 
-
+#if 0
 static void ti816x_vram_free_region(struct vram_region *vr)
 {
 	list_del(&vr->list);
 	kfree(vr);
 }
-
+#endif
 
 static struct vram_alloc *ti816x_vram_create_allocation(struct vram_region *vr,
 		unsigned long paddr, unsigned pages)
@@ -189,19 +188,12 @@ int ti816x_vram_free(unsigned long paddr, void *vaddr, size_t size)
 				goto found;
 		}
 	}
-
+	pr_err("FB: can not found the free memory in the list\n");
 	mutex_unlock(&region_mutex);
 	return -EINVAL;
 
 found:
-	if (rm->dma_alloced) {
-		DBG("freeing dma-alloced\n");
-		dma_free_writecombine(NULL, size, vaddr, paddr);
-		ti816x_vram_free_allocation(alloc);
-		ti816x_vram_free_region(rm);
-	} else
-		ti816x_vram_free_allocation(alloc);
-
+	ti816x_vram_free_allocation(alloc);
 
 	mutex_unlock(&region_mutex);
 	return 0;
@@ -240,14 +232,16 @@ found:
 
 		DBG("FOUND %lx, end %lx\n", start, end);
 
-		if (ti816x_vram_create_allocation(rm, start, pages) == NULL)
+		if (ti816x_vram_create_allocation(rm, start, pages) == NULL) {
+			pr_err("FB: failed to create allocation");
 			return NULL;
-
+		}
 		*paddr = start;
 
 		vaddr = rm->vaddr + (start - rm->paddr);
 		return vaddr;
 	}
+	pr_err("FB: no memory to allocate\n");
 	return NULL;
 }
 
