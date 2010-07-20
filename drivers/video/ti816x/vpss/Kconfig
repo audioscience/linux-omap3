@@ -32,12 +32,15 @@ config TI816X_VPSS_SII9022A
 
 config TI816X_VPSS_SHARED_BUFFER_BASE
 	hex "share buffer base(hex)"
-	range 0xA0000000 0xBFC00000
+	range 0x80000000 0xBFC00000
 	default 0xBF000000
 	help
-	    The base of share buffer to reserved for IPC notify between
-	    A8 and M3. This  buffer is used by the vpss to transfer information
-	    between A8 and M3 by syslink notify. It is non-cacheable in both CPU.
+	    The base of share buffer to be reserved for IPC notify between
+	    A8 and M3. This buffer is used by the vpss to transfer information
+	    between A8 and M3 via syslink notify.
+	    Before changing this address, app should carefully check Ducati AMMU
+	    configuration of Ducati to make sure that the address is in
+	    non-cacheable space.
 
 config TI816X_VPSS_SHARED_BUFFER_SIE
 	int "share buffer size(KB)"
@@ -45,6 +48,6 @@ config TI816X_VPSS_SHARED_BUFFER_SIE
 	default 1024
 	help
 	    The amount of share buffer to reserved for IPC notify between
-	    A8 and M3. This  buffer is used by the vpss to transfer information
+	    A8 and M3. This buffer is used by the vpss to transfer information
 	    between A8 and M3 by syslink notify. It is non-cacheable in both CPU.
 endif
