@@ -21,7 +21,7 @@
  */
 
 /*#define DEBUG*/
-
+#include <asm/setup.h>
 #include <linux/vmalloc.h>
 #include <linux/kernel.h>
 #include <linux/mm.h>
@@ -369,6 +369,7 @@ void __init ti816xfb_reserve_sdram_lmb(void)
 {
 	u32 paddr;
 	u32 size = 0;
+	int i;
 
 	/* cmdline arg overrides the board file definition */
 	if (ti816xfb_def_sdram_vram_size) {
@@ -419,11 +420,31 @@ void __init ti816xfb_reserve_sdram_lmb(void)
 			return;
 		}
 
-	} else
-		paddr = lmb_alloc_base(size, PAGE_SIZE, 0x8F000000);
+	} else {
+		/*loop the meminfo structuer to find our the mem information*/
+		for (i = 0; i < meminfo.nr_banks; i++) {
+			if (meminfo.bank[i].start == PHYS_OFFSET) {
+				if (size > meminfo.bank[i].size) {
+					pr_err("FB: Illegal SDRAM size %d "
+					      "for VRAM %ld\n",
+					      size, meminfo.bank[i].size);
+					return;
 
+				}
+				paddr = lmb_alloc_base(size,
+						      PAGE_SIZE,
+						      PHYS_OFFSET + \
+						      meminfo.bank[i].size);
+				break;
+			}
+		}
+		if (i == meminfo.nr_banks) {
+			pr_err("FB: failed to find SDRAM info.\n");
+			return;
+		}
+
+	}
 	ti816x_vram_add_region_postponed(paddr, size);
-
 	pr_info("FB: Reserving %u bytes SDRAM for VRAM\n", size);
 }
 
