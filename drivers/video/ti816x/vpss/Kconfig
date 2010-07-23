@@ -33,7 +33,7 @@ config TI816X_VPSS_SII9022A
 config TI816X_VPSS_SHARED_BUFFER_BASE
 	hex "share buffer base(hex)"
 	range 0x80000000 0xBFC00000
-	default 0xBF000000
+	default 0xB2C00000
 	help
 	    The base of share buffer to be reserved for IPC notify between
 	    A8 and M3. This buffer is used by the vpss to transfer information
