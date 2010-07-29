@@ -47,6 +47,12 @@ config ARCH_OMAP4
 	select ARM_ERRATA_720789
  	select PM_OPP if PM
 
+config ARCH_TI816X
+	bool "TI 816X"
+	depends on ARCH_OMAP2PLUS
+	default y
+	select CPU_V7
+
 comment "OMAP Core Type"
 	depends on ARCH_OMAP2
 
