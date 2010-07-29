@@ -1296,24 +1296,35 @@ static inline void ti816x_register_edma(void) {}
 #define TI816X_EMAC_CNTRL_OFFSET	(0x0)
 #define TI816X_EMAC_CNTRL_MOD_OFFSET	(0x900)
 #define TI816X_EMAC_CNTRL_RAM_OFFSET	(0x2000)
-#define TI816X_EMAC_MDIO_OFFSET		(0x800)
+#define TI816X_EMAC_MDIO_BASE		(TI816X_EMAC1_BASE + 0x800)
+#define TI816X_EMAC_MDIO_SIZE		(0xFF)
 #define TI816X_EMAC_CNTRL_RAM_SIZE	(0x2000)
 #define TI816X_EMAC1_HW_RAM_ADDR	(0x4A102000)
 #define TI816X_EMAC2_HW_RAM_ADDR	(0x4A122000)
 
-#define TI816X_EMAC_PHY_MASK		(0xF)
+#define TI816X_EMAC1_PHY_MASK		(0x2)
+#define TI816X_EMAC2_PHY_MASK		(0x4)
+#define TI816X_EMAC_PHY_ID		0x0282F013
 #define TI816X_EMAC_MDIO_FREQ		(1000000)
 
 static struct emac_platform_data ti816x_emac1_pdata = {
-	.phy_mask	=	TI816X_EMAC_PHY_MASK,
-	.mdio_max_freq	=	TI816X_EMAC_MDIO_FREQ,
+	.phy_mask	=	TI816X_EMAC1_PHY_MASK,
+	.phy_id		=	TI816X_EMAC_PHY_ID,
 	.rmii_en	=	0,
+	.mii_bus_id	=	{'1'},
 };
 
 static struct emac_platform_data ti816x_emac2_pdata = {
-	.phy_mask	=	TI816X_EMAC_PHY_MASK,
-	.mdio_max_freq	=	TI816X_EMAC_MDIO_FREQ,
+	.phy_mask	=	TI816X_EMAC2_PHY_MASK,
+	.phy_id		=	TI816X_EMAC_PHY_ID,
 	.rmii_en	=	0,
+	.mii_bus_id	=	{'1'},
+};
+
+struct emac_mdio_data mdio_data = {
+	.regs		=	TI816X_EMAC_MDIO_BASE,
+	.size		=	TI816X_EMAC_MDIO_SIZE,
+	.max_freq	=	TI816X_EMAC_MDIO_FREQ
 };
 
 static struct resource ti816x_emac1_resources[] = {
@@ -1385,6 +1396,35 @@ static struct platform_device ti816x_emac2_device = {
 	.resource	=	ti816x_emac2_resources,
 };
 
+
+void ti816x_emac_mux(void)
+{
+	omap_mux_init_signal("gmii1_rxclk", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_rxd0", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_rxd1", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_rxd2", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_rxd3", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_rxd4", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_rxd5", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_rxd6", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_rxd7", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_rxdv", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_gtxclk", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_txd0", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_txd1", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_txd2", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_txd3", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_txd4", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_txd5", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_txd6", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_txd7", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_txen", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_txclk", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_col", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_crs", OMAP_MUX_MODE1);
+	omap_mux_init_signal("gmii1_rxer", OMAP_MUX_MODE1);
+}
+
 void ti816x_ethernet_init(void)
 {
 	u32 mac_lo, mac_hi;
@@ -1401,7 +1441,7 @@ void ti816x_ethernet_init(void)
 	ti816x_emac1_pdata.ctrl_reg_offset = TI816X_EMAC_CNTRL_OFFSET;
 	ti816x_emac1_pdata.ctrl_mod_reg_offset = TI816X_EMAC_CNTRL_MOD_OFFSET;
 	ti816x_emac1_pdata.ctrl_ram_offset = TI816X_EMAC_CNTRL_RAM_OFFSET;
-	ti816x_emac1_pdata.mdio_reg_offset = TI816X_EMAC_MDIO_OFFSET;
+	ti816x_emac1_pdata.mdio_data = &mdio_data;
 	ti816x_emac1_pdata.ctrl_ram_size = TI816X_EMAC_CNTRL_RAM_SIZE;
 	ti816x_emac1_pdata.version = EMAC_VERSION_2;
 	ti816x_emac1_pdata.hw_ram_addr = TI816X_EMAC1_HW_RAM_ADDR;
@@ -1422,17 +1462,15 @@ void ti816x_ethernet_init(void)
 	ti816x_emac2_pdata.ctrl_reg_offset = TI816X_EMAC_CNTRL_OFFSET;
 	ti816x_emac2_pdata.ctrl_mod_reg_offset = TI816X_EMAC_CNTRL_MOD_OFFSET;
 	ti816x_emac2_pdata.ctrl_ram_offset = TI816X_EMAC_CNTRL_RAM_OFFSET;
-	ti816x_emac2_pdata.mdio_reg_offset = TI816X_EMAC_MDIO_OFFSET;
+	ti816x_emac2_pdata.mdio_data = &mdio_data;
 	ti816x_emac2_pdata.ctrl_ram_size = TI816X_EMAC_CNTRL_RAM_SIZE;
 	ti816x_emac2_pdata.version = EMAC_VERSION_2;
 	ti816x_emac2_pdata.hw_ram_addr = TI816X_EMAC2_HW_RAM_ADDR;
 	ti816x_emac2_pdata.interrupt_enable = NULL;
 	ti816x_emac2_pdata.interrupt_disable = NULL;
 	ti816x_emac2_device.dev.platform_data = &ti816x_emac2_pdata;
-#if 0
 	platform_device_register(&ti816x_emac2_device);
-	/* TODO: enable Pin Mux for EMAC instance 2 */
-#endif
+	ti816x_emac_mux();
 }
 #else
 static inline void ti816x_ethernet_init(void) {}

@@ -484,6 +484,7 @@ struct emac_priv {
 	u32 periodic_ticks;
 	u32 timer_active;
 	u32 phy_mask;
+	u32 phy_id;
 	/* mii_bus,phy members */
 	struct mii_bus *mii_bus;
 	struct phy_device *phydev;
@@ -543,6 +544,46 @@ static char *emac_rxhost_errcodes[16] = {
 
 #define emac_mdio_read(reg)	  ioread32(bus->priv + (reg))
 #define emac_mdio_write(reg, val) iowrite32(val, (bus->priv + (reg)))
+
+/**
+ * emac_get_phy_addr: Get the phy_addr from phy_mask
+ * @phy_mask: The phy mask of the phy device
+ *
+ * Returns the phy address of the phy device
+ *
+ */
+static int emac_get_phy_addr(u32 phy_mask)
+{
+	int i = -1;
+
+	for (i = 0; (i < PHY_MAX_ADDR) && phy_mask; i++)
+		if (phy_mask & (1 << i))
+			break;
+	return i;
+}
+
+/**
+ * emac_match_bus_id: Match function for devices on mdio_bus
+ * @dev: The device corresponding to the phy_device
+ * @data: EMAC private-data structure
+ *
+ * Returns 1 if a macthing mii bus is found to be registered else 0
+ *
+ */
+static int emac_match_bus_id(struct device *dev, void *data)
+{
+	struct emac_priv *priv = data;
+	struct emac_platform_data *pdata = priv->pdev->dev.platform_data;
+	struct phy_device *phy = to_phy_device(dev);
+	struct mii_bus *bus = phy->bus;
+
+	if (pdata->mii_bus_id[0] == bus->id[0]) {
+		dev_notice(dev, "DaVinci EMAC: mii bus found %x\n", bus->id[0]);
+		priv->mii_bus = bus;
+		return 1;
+	}
+	return 0;
+}
 
 /**
  * emac_dump_regs: Dump important EMAC registers to debug terminal
@@ -650,6 +691,65 @@ static void emac_dump_regs(struct emac_priv *priv)
 /*************************************************************************
  *  EMAC MDIO/Phy Functionality
  *************************************************************************/
+static int emac_mii_read(struct mii_bus *bus, int phy_id, int phy_reg);
+static int emac_mii_write(struct mii_bus *bus, int phy_id,
+			  int phy_reg, u16 phy_data);
+
+#define PHY_CONFIG_REG	22
+static void emac_set_phy_config(struct emac_priv *priv)
+{
+	struct emac_platform_data *pdata = priv->pdev->dev.platform_data;
+	struct phy_device *phydev = NULL;
+	int phy_addr = 0;
+	u16 tmp = 0;
+	u16 reg_val = 0;
+
+	if ((!priv->phy_mask) || (!priv->mii_bus))
+		return;
+
+	phy_addr = emac_get_phy_addr(priv->phy_mask);
+	if (phy_addr < 0)
+		return;
+
+	phydev = priv->mii_bus->phy_map[phy_addr];
+	if (!phydev)
+		return;
+
+	/* This check is required */
+	if (phydev->phy_id != pdata->phy_id)
+		return;
+
+	/* Following lines enable gigbit advertisement capability even in case
+	 * the advertisement is not enabled by default
+	 */
+	reg_val = emac_mii_read(priv->mii_bus, phy_addr, MII_BMCR);
+	reg_val |= (BMCR_SPEED100 | BMCR_ANENABLE | BMCR_FULLDPLX);
+	emac_mii_write(priv->mii_bus, phy_addr, MII_BMCR, reg_val);
+	tmp = emac_mii_read(priv->mii_bus, phy_addr, MII_BMCR);
+
+	tmp = emac_mii_read(priv->mii_bus, phy_addr, MII_BMSR);
+	if (tmp & 0x1) {
+		reg_val = emac_mii_read(priv->mii_bus, phy_addr, MII_CTRL1000);
+		reg_val |= BIT(9);
+		emac_mii_write(priv->mii_bus, phy_addr, MII_CTRL1000, reg_val);
+		tmp = emac_mii_read(priv->mii_bus, phy_addr, MII_CTRL1000);
+	}
+
+	reg_val = emac_mii_read(priv->mii_bus, phy_addr, MII_ADVERTISE);
+	reg_val |= (ADVERTISE_10HALF | ADVERTISE_10FULL | \
+		    ADVERTISE_100HALF | ADVERTISE_100FULL);
+	emac_mii_write(priv->mii_bus, phy_addr, MII_ADVERTISE, reg_val);
+	tmp = emac_mii_read(priv->mii_bus, phy_addr, MII_ADVERTISE);
+
+	/* Following lines enable TX_CLK-ing in case of 10/100 MBps operation */
+	reg_val = emac_mii_read(priv->mii_bus, phy_addr, PHY_CONFIG_REG);
+	reg_val |= BIT(5);
+	emac_mii_write(priv->mii_bus, phy_addr, PHY_CONFIG_REG, reg_val);
+	tmp = emac_mii_read(priv->mii_bus, phy_addr, PHY_CONFIG_REG);
+
+	return;
+}
+
 /**
  * emac_get_drvinfo: Get EMAC driver information
  * @ndev: The DaVinci EMAC network adapter
@@ -2259,11 +2359,12 @@ void emac_poll_controller(struct net_device *ndev)
 #endif
 
 /* PHY/MII bus related */
+DECLARE_WAIT_QUEUE_HEAD(mdio_wait);
 
 /* Wait until mdio is ready for next command */
 #define MDIO_WAIT_FOR_USER_ACCESS\
-		while ((emac_mdio_read((MDIO_USERACCESS(0))) &\
-			MDIO_USERACCESS_GO) != 0)
+	       while ((emac_mdio_read((MDIO_USERACCESS(0))) &\
+		       MDIO_USERACCESS_GO) != 0)
 
 static int emac_mii_read(struct mii_bus *bus, int phy_id, int phy_reg)
 {
@@ -2422,7 +2523,6 @@ static int emac_dev_open(struct net_device *ndev)
 {
 	struct device *emac_dev = &ndev->dev;
 	u32 rc, cnt, ch;
-	int phy_addr;
 	struct resource *res;
 	int q, m;
 	int i = 0, irq_num = 0;
@@ -2488,21 +2588,20 @@ static int emac_dev_open(struct net_device *ndev)
 	/* find the first phy */
 	priv->phydev = NULL;
 	if (priv->phy_mask) {
+		u32 phy_addr;
+
 		emac_mii_reset(priv->mii_bus);
-		for (phy_addr = 0; phy_addr < PHY_MAX_ADDR; phy_addr++) {
-			if (priv->mii_bus->phy_map[phy_addr]) {
-				priv->phydev = priv->mii_bus->phy_map[phy_addr];
-				break;
-			}
-		}
+		phy_addr = emac_get_phy_addr(priv->phy_mask);
+
+		priv->phydev = priv->mii_bus->phy_map[phy_addr];
 
 		if (!priv->phydev) {
 			printk(KERN_ERR "%s: no PHY found\n", ndev->name);
 			return -1;
 		}
 
-		priv->phydev = phy_connect(ndev, dev_name(&priv->phydev->dev),
-				&emac_adjust_link, 0, PHY_INTERFACE_MODE_MII);
+		phy_connect_direct(ndev, priv->phydev, &emac_adjust_link,
+			0, PHY_INTERFACE_MODE_MII);
 
 		if (IS_ERR(priv->phydev)) {
 			printk(KERN_ERR "%s: Could not attach to PHY\n",
@@ -2518,7 +2617,7 @@ static int emac_dev_open(struct net_device *ndev)
 			"(mii_bus:phy_addr=%s, id=%x)\n", ndev->name,
 			priv->phydev->drv->name, dev_name(&priv->phydev->dev),
 			priv->phydev->phy_id);
-	} else{
+	} else {
 		/* No PHY , fix the link, speed and duplex settings */
 		priv->link = 1;
 		priv->speed = SPEED_100;
@@ -2577,7 +2676,9 @@ static int emac_dev_stop(struct net_device *ndev)
 	emac_stop_rxch(priv, EMAC_DEF_RX_CH);
 	emac_cleanup_txch(priv, EMAC_DEF_TX_CH);
 	emac_cleanup_rxch(priv, EMAC_DEF_RX_CH);
+
 	emac_write(EMAC_SOFTRESET, 1);
+	emac_mii_reset(priv->mii_bus);
 
 	if (priv->phydev)
 		phy_disconnect(priv->phydev);
@@ -2792,38 +2893,77 @@ static int __devinit davinci_emac_probe(struct platform_device *pdev)
 		goto netdev_reg_err;
 	}
 
+	/* In order to allocate a mii_bus we must be sure that no previous
+	 * registration has happended for the same instance/bus id.
+	 */
+	bus_for_each_dev(&mdio_bus_type, NULL, priv, emac_match_bus_id);
 
-	/* MII/Phy intialisation, mdio bus registration */
-	emac_mii = mdiobus_alloc();
-	if (emac_mii == NULL) {
-		dev_err(emac_dev, "DaVinci EMAC: Error allocating mii_bus\n");
-		rc = -ENOMEM;
-		goto mdio_alloc_err;
+	/* If no previously registered bus found with matching id  go ahead
+	 * and register one now.
+	 */
+	if (!priv->mii_bus) {
+		struct emac_mdio_data *mdio_data = pdata->mdio_data;
+		/* MII/Phy intialisation, mdio bus registration */
+		emac_mii = mdiobus_alloc();
+		if (emac_mii == NULL) {
+			dev_err(emac_dev,
+				"DaVinci EMAC: Error allocating mii_bus\n");
+			rc = -ENOMEM;
+			goto mdio_alloc_err;
+		}
+
+		priv->mii_bus = emac_mii;
+		emac_mii->name  = "emac-mii",
+		emac_mii->read  = emac_mii_read,
+		emac_mii->write = emac_mii_write,
+		emac_mii->reset = emac_mii_reset,
+		emac_mii->irq   = mii_irqs,
+		emac_mii->phy_mask = ~(priv->phy_mask);
+		emac_mii->parent = &pdev->dev;
+		emac_mii->priv = ioremap(mdio_data->regs, mdio_data->size);
+		snprintf(priv->mii_bus->id,
+			MII_BUS_ID_SIZE, "%s", pdata->mii_bus_id);
+		mdio_max_freq = mdio_data->max_freq;
+		emac_mii->reset(emac_mii);
+
+		/* Register the MII bus */
+		rc = mdiobus_register(emac_mii);
+		if (rc)
+			goto mdiobus_quit;
+	} else {
+		/* Here, since we have selected the mii_bus, just scan the bus
+		 * for the required phy as given by the platform data phy_mask
+		 */
+		struct phy_device *phydev;
+		int phyaddr = emac_get_phy_addr(priv->phy_mask);
+
+		/* No phy case will be handled in the netdev open */
+		if (phyaddr < 0)
+			return 0;
+
+		phydev = mdiobus_scan(priv->mii_bus, phyaddr);
+
+		if (IS_ERR(phydev) || phydev == NULL) {
+			dev_notice(emac_dev, "DaVinci EMAC %s PHY not found", \
+			   ndev->name);
+			unregister_netdev(ndev);
+			free_netdev(ndev);
+			return -1;
+		}
+
+		/* book-keeping: update phy_mask of mii_bus with our phy_mask
+		 * which shall indicate that this phy is also probed
+		 */
+		priv->mii_bus->phy_mask &= ~(priv->phy_mask);
 	}
-
-	priv->mii_bus = emac_mii;
-	emac_mii->name  = "emac-mii",
-	emac_mii->read  = emac_mii_read,
-	emac_mii->write = emac_mii_write,
-	emac_mii->reset = emac_mii_reset,
-	emac_mii->irq   = mii_irqs,
-	emac_mii->phy_mask = ~(priv->phy_mask);
-	emac_mii->parent = &pdev->dev;
-	emac_mii->priv = priv->remap_addr + pdata->mdio_reg_offset;
-	snprintf(priv->mii_bus->id, MII_BUS_ID_SIZE, "%x", priv->pdev->id);
-	mdio_max_freq = pdata->mdio_max_freq;
-	emac_mii->reset(emac_mii);
-
-	/* Register the MII bus */
-	rc = mdiobus_register(emac_mii);
-	if (rc)
-		goto mdiobus_quit;
 
 	if (netif_msg_probe(priv)) {
 		dev_notice(emac_dev, "DaVinci EMAC Probe found device "\
 			   "(regs: %p, irq: %d)\n",
 			   (void *)priv->emac_base_phys, ndev->irq);
 	}
+
+	emac_set_phy_config(priv);
 	return 0;
 
 mdiobus_quit:
