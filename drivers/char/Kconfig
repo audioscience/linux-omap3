@@ -1134,6 +1134,12 @@ config DEVPORT
 	depends on ISA || PCI
 	default y
 
+config TI816X_HDMI
+        tristate "TI816X HDMI Driver"
+        help
+	   This option builds driver required for booting TI816X HDMI
+	   Use 'M' to build as module.
+
 source "drivers/s390/char/Kconfig"
 
 config RAMOOPS
