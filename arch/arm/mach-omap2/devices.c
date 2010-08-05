@@ -342,7 +342,7 @@ static inline void omap_init_sti(void) {}
 #define OMAP4_MCSPI3_BASE		0x480b8100
 #define OMAP4_MCSPI4_BASE		0x480ba100
 
-#define TI816X_MCSPI1_BASE		0x48031100
+#define TI816X_MCSPI1_BASE		0x48030100
 
 static struct omap2_mcspi_platform_config omap2_mcspi1_config = {
 	.num_cs		= 4,

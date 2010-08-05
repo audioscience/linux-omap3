@@ -113,7 +113,11 @@ struct omap2_mcspi_dma {
 /* use PIO for small transfers, avoiding DMA setup/teardown overhead and
  * cache operations; better heuristics consider wordsize and bitrate.
  */
+#if defined(CONFIG_ARCH_TI816X) /* TI816x works only in PIO */
+#define DMA_MIN_BYTES			(4 * 1024 * 1024)
+#else
 #define DMA_MIN_BYTES			8
+#endif
 
 
 struct omap2_mcspi {
@@ -998,24 +1002,6 @@ static int __init omap2_mcspi_reset(struct omap2_mcspi *mcspi)
 	return 0;
 }
 
-#if defined(CONFIG_ARCH_TI816X)
-
-static u8 __initdata spi1_rxdma_id [] = {
-	TI816X_DMA_SPI1_RX0,
-	TI816X_DMA_SPI1_RX1,
-	TI816X_DMA_SPI1_RX2,
-	TI816X_DMA_SPI1_RX3,
-};
-
-static u8 __initdata spi1_txdma_id [] = {
-	TI816X_DMA_SPI1_TX0,
-	TI816X_DMA_SPI1_TX1,
-	TI816X_DMA_SPI1_TX2,
-	TI816X_DMA_SPI1_TX3,
-};
-
-#else /* #if defined(CONFIG_ARCH_TI816X) */
-
 static u8 __initdata spi1_rxdma_id [] = {
 	OMAP24XX_DMA_SPI1_RX0,
 	OMAP24XX_DMA_SPI1_RX1,
@@ -1062,7 +1048,6 @@ static u8 __initdata spi4_txdma_id[] = {
 	OMAP34XX_DMA_SPI4_TX0,
 };
 #endif
-#endif
 
 static int __init omap2_mcspi_probe(struct platform_device *pdev)
 {
@@ -1079,13 +1064,11 @@ static int __init omap2_mcspi_probe(struct platform_device *pdev)
 		txdma_id = spi1_txdma_id;
 		num_chipselect = 4;
 		break;
-#if !defined(CONFIG_ARCH_TI816X)
 	case 2:
 		rxdma_id = spi2_rxdma_id;
 		txdma_id = spi2_txdma_id;
 		num_chipselect = 2;
 		break;
-#endif
 
 #if defined(CONFIG_ARCH_OMAP2430) || defined(CONFIG_ARCH_OMAP3) \
 	|| defined(CONFIG_ARCH_OMAP4)

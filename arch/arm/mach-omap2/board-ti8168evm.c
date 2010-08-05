@@ -66,30 +66,82 @@
 #define HAS_NOR 0
 #endif
 
-#define NAND_BLOCK_SIZE		SZ_128K
 
+/* SPI fLash information */
+struct mtd_partition ti816x_spi_partitions[] = {
+	/* All the partition sizes are listed in terms of NAND block size */
+	{
+		.name		= "U-Boot",
+		.offset		= 0,	/* Offset = 0x0 */
+		.size		= 64 * SZ_4K,
+		.mask_flags	= MTD_WRITEABLE,	/* force read-only */
+	},
+	{
+		.name		= "U-Boot Env",
+		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x40000 */
+		.size		= 2 * SZ_4K,
+	},
+	{
+		.name		= "Kernel",
+		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x42000 */
+		.size		= 640 * SZ_4K,
+	},
+	{
+		.name		= "File System",
+		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x2C2000 */
+		.size		= MTDPART_SIZ_FULL,		/* size = 1.24 MiB */
+	}
+};
+
+const struct flash_platform_data ti816x_spi_flash = {
+	.type		= "w25x32",
+	.name		= "spi_flash",
+	.parts		= ti816x_spi_partitions,
+	.nr_parts	= ARRAY_SIZE(ti816x_spi_partitions),
+};
+
+struct spi_board_info __initdata ti816x_spi_slave_info[] = {
+	{
+		.modalias	= "m25p80",
+		.platform_data	= &ti816x_spi_flash,
+		.irq		= -1,
+		.max_speed_hz	= 75000000,
+		.bus_num	= 1,
+		.chip_select	= 0,
+	},
+};
+
+void ti816x_spi_init(void)
+{
+	spi_register_board_info(ti816x_spi_slave_info,
+				ARRAY_SIZE(ti816x_spi_slave_info));
+}
+
+
+
+/* NAND flash information */
 static struct mtd_partition ti816x_nand_partitions[] = {
 	/* All the partition sizes are listed in terms of NAND block size */
 	{
 		.name		= "U-Boot",
 		.offset		= 0,	/* Offset = 0x0 */
-		.size		= 19 * NAND_BLOCK_SIZE,
+		.size		= 19 * SZ_128K,
 		.mask_flags	= MTD_WRITEABLE,	/* force read-only */
 	},
 	{
 		.name		= "U-Boot Env",
 		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x260000 */
-		.size		= 1 * NAND_BLOCK_SIZE,
+		.size		= 1 * SZ_128K,
 	},
 	{
 		.name		= "Kernel",
 		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x280000 */
-		.size		= 34 * NAND_BLOCK_SIZE,
+		.size		= 34 * SZ_128K,
 	},
 	{
 		.name		= "File System",
 		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x6C0000 */
-		.size		= 1601 * NAND_BLOCK_SIZE,
+		.size		= 1601 * SZ_128K,
 	},
 	{
 		.name		= "Reserved",
@@ -122,6 +174,8 @@ static struct platform_device ti816x_nand_device = {
 	.resource	= &ti816x_nand_resource,
 };
 
+
+/* NOR flash information */
 static struct mtd_partition ti816x_evm_norflash_partitions[] = {
 	/* bootloader (U-Boot, etc) in first 5 sectors */
 	{
@@ -194,29 +248,6 @@ static struct omap2_hsmmc_info mmc[] = {
 	},
 	{}	/* Terminator */
 };
-
-static struct omap2_mcspi_device_config w25x32_mcspi_config = {
-    .turbo_mode = 0,
-    .single_channel = 1,    /* 0: slave, 1: master */
-};
-
-static struct flash_platform_data w25x32_flash_data = {
-	.type			= "w25x32",
-};
-
-static struct spi_board_info ti8168_evm_spi_info[] __initconst = {
-	{
-		.modalias       = "w25x32",
-		.max_speed_hz   = 10 * 1000 * 1000,
-		.bus_num        = 0,
-		.chip_select    = 0,
-		.mode           = SPI_MODE_0,
-		.controller_data = &w25x32_mcspi_config,
-		.platform_data = &w25x32_flash_data,
-		.irq		= TI816X_IRQ_SPI,
-	},
-};
-
 #endif
 
 static struct omap_musb_board_data musb_board_data = {
@@ -568,11 +599,6 @@ static void __init ti8168_evm_init(void)
 	ti816x_mux_init(board_mux);
 	omap_board_config = generic_config;
 	omap_board_config_size = ARRAY_SIZE(generic_config);
-#if 0
-	spi_register_board_info(ti8168_evm_spi_info,
-				ARRAY_SIZE(ti8168_evm_spi_info));
-#endif
-
 	omap_serial_init();
 #if 0
 	omap2_hsmmc_init(mmc);
@@ -586,6 +612,7 @@ static void __init ti8168_evm_init(void)
 	i2c_add_driver(&ti816xevm_cpld_driver);
 	ti816x_nand_init();
 	ti816x_nor_init();
+	ti816x_spi_init();
 	ti816x_register_mcasp(0, &ti8168_evm_snd_data);
 #if 0
 	/* FIXME: Move further up in initialization sequence */

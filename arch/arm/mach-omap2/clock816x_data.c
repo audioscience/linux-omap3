@@ -1142,7 +1142,7 @@ static struct omap_clk ti816x_clks[] = {
 	CLK(NULL,		"uart1_ick",		&uart1_ick,		CK_TI816X),
 	CLK(NULL,		"uart2_ick",		&uart2_ick,		CK_TI816X),
 	CLK(NULL,		"uart3_ick",		&uart3_ick,		CK_TI816X),
-	CLK("omap-mcspi.1",	"ick",			&mcspi1_ick,		CK_TI816X),
+	CLK("omap2_mcspi.1",	"ick",			&mcspi1_ick,		CK_TI816X),
 	CLK(NULL,		"gpt2_ick",		&gpt2_ick,		CK_TI816X),
 	CLK(NULL,		"gpt3_ick",		&gpt3_ick,		CK_TI816X),
 	CLK(NULL,		"gpt4_ick",		&gpt4_ick,		CK_TI816X),
