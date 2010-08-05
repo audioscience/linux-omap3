@@ -104,7 +104,9 @@
 #define SOFTRESET		(1 << 1)
 #define RESETDONE		(1 << 0)
 #define CINS			(1 << 6)
+#define PSTATE_CINS_MASK	BIT(16)
 #define PSTATE_CINS_SHIFT	16
+#define PSTATE_WP_MASK		BIT(19)
 #define PSTATE_WP_SHIFT		19
 #define IE_CINS			0x00000040
 #define IE_CINS_SHIFT		6
@@ -204,8 +206,22 @@ static int omap_hsmmc_card_detect(struct device *dev, int slot)
 	if (mmc->version != MMC_CTRL_VERSION_2)
 		/* NOTE: assumes card detect signal is active-low */
 		return !gpio_get_value_cansleep(mmc->slots[0].switch_pin);
-	else
-		return OMAP_HSMMC_READ(host->base, PSTATE) >> PSTATE_CINS_SHIFT;
+	else {
+		u32 pstate = 0;
+		u32 enabled = 0;
+
+		enabled = host->mmc->enabled;
+		if (!enabled)
+			mmc_host_enable(host->mmc);
+
+		pstate = OMAP_HSMMC_READ(host->base, PSTATE);
+
+		if (!enabled)
+			mmc_host_disable(host->mmc);
+		pstate = pstate & PSTATE_CINS_MASK;
+		pstate = pstate >> PSTATE_CINS_SHIFT;
+		return pstate;
+	}
 }
 
 static int omap_hsmmc_get_wp(struct device *dev, int slot)
@@ -217,8 +233,12 @@ static int omap_hsmmc_get_wp(struct device *dev, int slot)
 	if (mmc->version != MMC_CTRL_VERSION_2)
 		/* NOTE: assumes write protect signal is active-high */
 		return gpio_get_value_cansleep(mmc->slots[0].gpio_wp);
-	else
-		return OMAP_HSMMC_READ(host->base, PSTATE) >> PSTATE_WP_SHIFT;
+	else {
+		u32 pstate = 0;
+		pstate = OMAP_HSMMC_READ(host->base, PSTATE);
+		pstate &= PSTATE_WP_MASK;
+		return pstate >> PSTATE_WP_SHIFT;
+	}
 }
 
 static int omap_hsmmc_get_cover_state(struct device *dev, int slot)
