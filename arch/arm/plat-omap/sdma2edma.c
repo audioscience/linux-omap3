@@ -76,14 +76,20 @@ int omap_request_dma(int dev_id, const char *dev_name,
              void (*callback)(int lch, u16 ch_status, void *data),
              void *data, int *dma_ch_out)
 {
+	struct edmacc_param p_ram;
 	typedef void (*EDMA_CALLBACK)(unsigned, u16, void*);
 	EDMA_CALLBACK edma_callback = (EDMA_CALLBACK)(callback);
 
 	*dma_ch_out = edma_alloc_channel(dev_id, edma_callback, data, EVENTQ_2);
 	if (*dma_ch_out < 0)
 		return (-1);
-	else
-		return 0;
+
+	/* enable interrupts */
+	edma_read_slot(*dma_ch_out, &p_ram);
+    p_ram.opt |= TCINTEN | EDMA_TCC(EDMA_CHAN_SLOT(*dma_ch_out));
+    edma_write_slot(*dma_ch_out, &p_ram);
+
+	return 0;
 }
 
 /**
@@ -185,14 +191,18 @@ void omap_set_dma_transfer_params(int lch, int data_type, int elem_count,
                   int frame_count, int sync_mode,
                   int dma_trigger, int src_or_dst_synch)
 {
+	int d_type[3] = {1, 2, 4};
 	if ((enum sync_dimension)sync_mode > ABSYNC) {
 		printk("SDMA2EDMA: Line:%d : Param \'sync_mode\' our of range\n",
 				__LINE__);
 		return;
 	}
 
+	/* translate data_type */
+	data_type = d_type[data_type];
+
 	edma_set_transfer_params(lch, (u16)data_type, (u16)elem_count, 
-			(u16)frame_count, (u16)elem_count, (enum sync_dimension)sync_mode);
+		(u16)frame_count, (u16)elem_count, (enum sync_dimension)sync_mode);
 }
 
 /**
@@ -224,8 +234,7 @@ void omap_set_dma_dest_params(int lch, int dest_port, int dest_amode,
 	}
 
 	edma_set_dest((unsigned)lch, (dma_addr_t)dest_start, 
-					(enum address_mode)dest_amode, W8BIT);
-
+					INCR, W8BIT);
 	edma_set_dest_index((unsigned)(lch), (s16)dst_ei, (s16)dst_fi);
 }
 
@@ -258,8 +267,7 @@ void omap_set_dma_src_params(int lch, int src_port, int src_amode,
 	}
 
 	edma_set_src((unsigned)lch, (dma_addr_t)src_start, 
-					(enum address_mode)src_amode, W8BIT);
-
+					INCR, W8BIT);
 	edma_set_src_index((unsigned)(lch), (s16)src_ei, (s16)src_fi);
 }
 
