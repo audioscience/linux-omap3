@@ -19,10 +19,7 @@
 
 #ifndef _CPPI41_DMA_H_
 #define _CPPI41_DMA_H_
-/*#include <plat/usb.h>*/
-#ifdef CONFIG_ARCH_TI816X
-#include "ti816x.h"
-#endif
+#include <plat/usb.h>
 
 /**
  * struct usb_cppi41_info - CPPI 4.1 USB implementation details

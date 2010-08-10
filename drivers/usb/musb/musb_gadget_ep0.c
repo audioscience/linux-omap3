@@ -472,8 +472,7 @@ static void ep0_rxstate(struct musb *musb)
 			req->status = -EOVERFLOW;
 			count = len;
 		}
-		if (count != 0)
-			musb_read_fifo(&musb->endpoints[0], count, buf);
+		musb_read_fifo(&musb->endpoints[0], count, buf);
 		req->actual += count;
 		csr = MUSB_CSR0_P_SVDRXPKTRDY;
 		if (count < 64 || req->actual == req->length) {
@@ -665,7 +664,7 @@ irqreturn_t musb_g_ep0_irq(struct musb *musb)
 			musb->ep0_state = MUSB_EP0_STAGE_STATUSIN;
 			break;
 		default:
-			ERR("SetupEnd came in a wrong ep0stage %s\n",
+			ERR("SetupEnd came in a wrong ep0stage %s",
 			    decode_ep0stage(musb->ep0_state));
 		}
 		csr = musb_readw(regs, MUSB_CSR0);
@@ -771,7 +770,7 @@ setup:
 				printk(KERN_NOTICE "%s: peripheral reset "
 						"irq lost!\n",
 						musb_driver_name);
-#ifdef CONFIG_MACH_OMAP3517EVM || defined(CONFIG_MACH_TI816X)
+#ifdef CONFIG_MACH_OMAP3517EVM
 				musb->read_mask &= ~AM3517_READ_ISSUE_POWER;
 #endif
 				power = musb_readb(mbase, MUSB_POWER);
@@ -791,18 +790,12 @@ setup:
 				handled = service_zero_data_request(
 						musb, &setup);
 
-				/*
-				 * We're expecting no data in any case, so
-				 * always set the DATAEND bit -- doing this
-				 * here helps avoid SetupEnd interrupt coming
-				 * in the idle stage when we're stalling...
-				 */
-				musb->ackpend |= MUSB_CSR0_P_DATAEND;
-
 				/* status stage might be immediate */
-				if (handled > 0)
+				if (handled > 0) {
+					musb->ackpend |= MUSB_CSR0_P_DATAEND;
 					musb->ep0_state =
 						MUSB_EP0_STAGE_STATUSIN;
+				}
 				break;
 
 			/* sequence #1 (IN to host), includes GET_STATUS

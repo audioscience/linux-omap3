@@ -27,6 +27,7 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/sched.h>
+#include <linux/slab.h>
 #include <linux/init.h>
 #include <linux/list.h>
 #include <linux/clk.h>
@@ -220,7 +221,7 @@ int __init musb_platform_init(struct musb *musb)
 
 	musb_platform_resume(musb);
 
-	l = musb_readl(musb->mregs, OTG_SYSCONFIG);
+	l = omap_readl(OTG_SYSCONFIG);
 	l &= ~ENABLEWAKEUP;	/* disable wakeup */
 	l &= ~NOSTDBY;		/* remove possible nostdby */
 	l |= SMARTSTDBY;	/* enable smart standby */
@@ -231,26 +232,24 @@ int __init musb_platform_init(struct musb *musb)
 	if (cpu_is_omap3630())
 		l |= FORCEIDLE;		/* enable force idle */
 	else
-		l |= FORCEIDLE;		/* enable smart idle */
+		l |= SMARTIDLE;		/* enable smart idle */
 	/*
 	 * MUSB AUTOIDLE don't work in 3430.
 	 * Workaround by Richard Woodruff/TI
 	 */
 	if (!cpu_is_omap3430())
 		l |= AUTOIDLE;		/* enable auto idle */
-	musb_writel(musb->mregs, OTG_SYSCONFIG, l);
+	omap_writel(l, OTG_SYSCONFIG);
 
-	l = musb_readl(musb->mregs, OTG_INTERFSEL);
+	l = omap_readl(OTG_INTERFSEL);
 	l |= ULPI_12PIN;
-	musb_writel(musb->mregs, OTG_INTERFSEL, l);
+	omap_writel(l, OTG_INTERFSEL);
 
 	pr_debug("HS USB OTG: revision 0x%x, sysconfig 0x%02x, "
 			"sysstatus 0x%x, intrfsel 0x%x, simenable  0x%x\n",
-			musb_readl(musb->mregs, OTG_REVISION),
-			musb_readl(musb->mregs, OTG_SYSCONFIG),
-			musb_readl(musb->mregs, OTG_SYSSTATUS),
-			musb_readl(musb->mregs, OTG_INTERFSEL),
-			musb_readl(musb->mregs, OTG_SIMENABLE));
+			omap_readl(OTG_REVISION), omap_readl(OTG_SYSCONFIG),
+			omap_readl(OTG_SYSSTATUS), omap_readl(OTG_INTERFSEL),
+			omap_readl(OTG_SIMENABLE));
 
 	omap_vbus_power(musb, musb->board_mode == MUSB_HOST, 1);
 
@@ -264,18 +263,18 @@ int __init musb_platform_init(struct musb *musb)
 }
 
 #ifdef CONFIG_PM
-void musb_platform_save_context(struct musb *musb,
-		struct musb_context_registers *musb_context)
+void musb_platform_save_context(struct musb_context_registers
+		*musb_context)
 {
-	musb_context->otg_sysconfig = musb_readl(musb->mregs, OTG_SYSCONFIG);
-	musb_context->otg_forcestandby = musb_readl(musb->mregs, OTG_FORCESTDBY);
+	musb_context->otg_sysconfig = omap_readl(OTG_SYSCONFIG);
+	musb_context->otg_forcestandby = omap_readl(OTG_FORCESTDBY);
 }
 
-void musb_platform_restore_context(struct musb *musb,
-		struct musb_context_registers *musb_context)
+void musb_platform_restore_context(struct musb_context_registers
+		*musb_context)
 {
-	musb_writel(musb->mregs, OTG_SYSCONFIG, musb_context->otg_sysconfig);
-	musb_writel(musb->mregs, OTG_FORCESTDBY, musb_context->otg_forcestandby);
+	omap_writel(musb_context->otg_sysconfig, OTG_SYSCONFIG);
+	omap_writel(musb_context->otg_forcestandby, OTG_FORCESTDBY);
 }
 #endif
 
@@ -287,13 +286,13 @@ int musb_platform_suspend(struct musb *musb)
 		return 0;
 
 	/* in any role */
-	l = musb_readl(musb->mregs, OTG_FORCESTDBY);
+	l = omap_readl(OTG_FORCESTDBY);
 	l |= ENABLEFORCE;	/* enable MSTANDBY */
-	musb_writel(musb->mregs, OTG_FORCESTDBY, l);
+	omap_writel(l, OTG_FORCESTDBY);
 
-	l = musb_readl(musb->mregs, OTG_SYSCONFIG);
+	l = omap_readl(OTG_SYSCONFIG);
 	l |= ENABLEWAKEUP;	/* enable wakeup */
-	musb_writel(musb->mregs, OTG_SYSCONFIG, l);
+	omap_writel(l, OTG_SYSCONFIG);
 
 	otg_set_suspend(musb->xceiv, 1);
 
@@ -319,13 +318,13 @@ static int musb_platform_resume(struct musb *musb)
 	else
 		clk_enable(musb->clock);
 
-	l = musb_readl(musb->mregs, OTG_SYSCONFIG);
+	l = omap_readl(OTG_SYSCONFIG);
 	l &= ~ENABLEWAKEUP;	/* disable wakeup */
-	musb_writel(musb->mregs, OTG_SYSCONFIG, l);
+	omap_writel(l, OTG_SYSCONFIG);
 
-	l = musb_readl(musb->mregs, OTG_FORCESTDBY);
+	l = omap_readl(OTG_FORCESTDBY);
 	l &= ~ENABLEFORCE;	/* disable MSTANDBY */
-	musb_writel(musb->mregs, OTG_FORCESTDBY, l);
+	omap_writel(l, OTG_FORCESTDBY);
 
 	return 0;
 }
@@ -337,6 +336,9 @@ int musb_platform_exit(struct musb *musb)
 	omap_vbus_power(musb, 0 /*off*/, 1);
 
 	musb_platform_suspend(musb);
+
+	clk_put(musb->clock);
+	musb->clock = NULL;
 
 	return 0;
 }

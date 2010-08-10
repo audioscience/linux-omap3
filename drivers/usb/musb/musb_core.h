@@ -51,15 +51,6 @@ struct musb;
 struct musb_hw_ep;
 struct musb_ep;
 
-/* Helper defines for struct musb->hwvers */
-#define MUSB_HWVERS_MAJOR(x)	((x >> 10) & 0x1f)
-#define MUSB_HWVERS_MINOR(x)	(x & 0x3ff)
-#define MUSB_HWVERS_RC		0x8000
-#define MUSB_HWVERS_1300	0x52C
-#define MUSB_HWVERS_1400	0x590
-#define MUSB_HWVERS_1800	0x720
-#define MUSB_HWVERS_1900	0x784
-#define MUSB_HWVERS_2000	0x800
 
 #include "musb_debug.h"
 #include "musb_dma.h"
@@ -296,7 +287,6 @@ struct musb_hw_ep {
 	struct musb_ep		ep_in;			/* TX */
 	struct musb_ep		ep_out;			/* RX */
 #endif
-	u8                      dma_completed;
 };
 
 static inline struct usb_request *next_in_request(struct musb_hw_ep *hw_ep)
@@ -336,6 +326,13 @@ struct musb {
 	struct clk		*clock;
 	irqreturn_t		(*isr)(int, void *);
 	struct work_struct	irq_work;
+#define MUSB_HWVERS_MAJOR(x)	((x >> 10) & 0x1f)
+#define MUSB_HWVERS_MINOR(x)	(x & 0x3ff)
+#define MUSB_HWVERS_RC		0x8000
+#define MUSB_HWVERS_1300	0x52C
+#define MUSB_HWVERS_1400	0x590
+#define MUSB_HWVERS_1800	0x720
+#define MUSB_HWVERS_2000	0x800
 	u16			hwvers;
 
 /* this hub status bit is reserved by USB 2.0 and not seen by usbcore */
@@ -375,7 +372,6 @@ struct musb {
 
 	struct device		*controller;
 	void __iomem		*ctrl_base;
-	void __iomem            *usbss_base;
 	void __iomem		*mregs;
 
 #ifdef CONFIG_USB_TUSB6010
@@ -384,7 +380,7 @@ struct musb {
 	void __iomem		*sync_va;
 #endif
 
-#if defined(CONFIG_MACH_OMAP3517EVM) || defined(CONFIG_ARCH_TI816X)
+#ifdef CONFIG_MACH_OMAP3517EVM
 /* Backup registers required for the workaround of AM3517 bytewise
  * read issue. FADDR, POWER, INTRTXE, INTRRXE and INTRUSBE register
  * read would actually clear the interrupt registers and would cause
@@ -447,13 +443,21 @@ struct musb {
 	unsigned		hb_iso_tx:1;	/* high bandwidth iso tx? */
 	unsigned		dyn_fifo:1;	/* dynamic FIFO supported? */
 
-	unsigned		bulk_split:1;
+#ifdef C_MP_TX
+	unsigned bulk_split:1;
 #define	can_bulk_split(musb,type) \
-	(((type) == USB_ENDPOINT_XFER_BULK) && (musb)->bulk_split)
+		(((type) == USB_ENDPOINT_XFER_BULK) && (musb)->bulk_split)
+#else
+#define	can_bulk_split(musb, type)	0
+#endif
 
-	unsigned		bulk_combine:1;
+#ifdef C_MP_RX
+	unsigned bulk_combine:1;
 #define	can_bulk_combine(musb,type) \
-	(((type) == USB_ENDPOINT_XFER_BULK) && (musb)->bulk_combine)
+		(((type) == USB_ENDPOINT_XFER_BULK) && (musb)->bulk_combine)
+#else
+#define	can_bulk_combine(musb, type)	0
+#endif
 
 #ifdef CONFIG_USB_GADGET_MUSB_HDRC
 	/* is_suspended means USB B_PERIPHERAL suspend */
@@ -480,10 +484,8 @@ struct musb {
 	struct usb_gadget	g;			/* the gadget */
 	struct usb_gadget_driver *gadget_driver;	/* its driver */
 #endif
-	u8                      rx_can_dma_queue; /* dma queue logic enable */
-	u8                      tx_can_dma_queue;
+
 	struct musb_hdrc_config	*config;
-	u8			id;
 
 #ifdef MUSB_CONFIG_PROC_FS
 	struct proc_dir_entry *proc_entry;
@@ -503,7 +505,7 @@ struct musb_csr_regs {
 
 struct musb_context_registers {
 
-#ifdef CONFIG_PM
+#if defined(CONFIG_ARCH_OMAP34XX)
 	u32 otg_sysconfig, otg_forcestandby;
 #endif
 	u8 power;
@@ -517,14 +519,14 @@ struct musb_context_registers {
 	struct musb_csr_regs index_regs[MUSB_C_NUM_EPS];
 };
 
-#ifdef CONFIG_PM
-extern void musb_platform_save_context(struct musb *musb,
-                struct musb_context_registers *musb_context);
-extern void musb_platform_restore_context(struct musb *musb,
-		struct musb_context_registers *musb_context);
+#if defined(CONFIG_ARCH_OMAP34XX) || defined(CONFIG_ARCH_OMAP2430)
+extern void musb_platform_save_context(struct musb_context_registers
+		*musb_context);
+extern void musb_platform_restore_context(struct musb_context_registers
+		*musb_context);
 #else
-#define musb_platform_save_context(m, x)	do {} while (0)
-#define musb_platform_restore_context(m, x)	do {} while (0)
+#define musb_platform_save_context(x)		do {} while (0)
+#define musb_platform_restore_context(x)	do {} while (0)
 #endif
 
 #endif
@@ -630,7 +632,7 @@ extern void musb_hnp_stop(struct musb *musb);
 extern int musb_platform_set_mode(struct musb *musb, u8 musb_mode);
 
 #if defined(CONFIG_USB_TUSB6010) || defined(CONFIG_BLACKFIN) || \
-	defined(CONFIG_ARCH_OMAP2430) || defined(CONFIG_ARCH_OMAP3)
+	defined(CONFIG_ARCH_OMAP2430) || defined(CONFIG_ARCH_OMAP34XX)
 extern void musb_platform_try_idle(struct musb *musb, unsigned long timeout);
 #else
 #define musb_platform_try_idle(x, y)		do {} while (0)
@@ -666,5 +668,5 @@ static inline void musb_debug_delete(char *name, struct musb *data)
 {
 }
 #endif
-#define	cpu_is_omap3517()	0
+
 #endif	/* __MUSB_CORE_H__ */

@@ -40,14 +40,18 @@
 #endif
 
 #ifdef CONFIG_MUSB_USE_SYSTEM_DMA_RX
-static int use_sdma = 1;
+static int is_sdma = 1;
 #else
-#define use_sdma          0
+#define is_sdma          0
 #endif
 
-int use_system_dma(void)
+int use_system_dma(u8 tx)
 {
-	return use_sdma;
+	int ret = 0;
+	if (is_sdma && (cpu_is_omap3630() || (cpu_is_omap3430() && !tx)))
+		ret = 1;
+
+	return ret;
 }
 
 #ifndef CONFIG_BLACKFIN
@@ -158,7 +162,7 @@ static inline void musb_write_hsdma_count(void __iomem *mbase,
 #define MUSB_HSDMA_CHANNELS		8
 
 #define MUSB_FIFO_ADDRESS(epnum)      \
-	((unsigned long) (OMAP34XX_HSUSB_OTG_BASE + MUSB_FIFO_OFFSET(epnum)))
+	((unsigned long) (OMAP_HSOTG_BASE + MUSB_FIFO_OFFSET(epnum)))
 
 struct musb_dma_controller;
 

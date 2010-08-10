@@ -28,7 +28,6 @@
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/dma-mapping.h>
-#include <linux/slab.h>
 
 #include "cppi41.h"
 
@@ -426,11 +425,6 @@ void cppi41_rx_ch_configure(struct cppi41_dma_ch_obj *rx_ch_obj,
 		DMA_CH_RX_DEFAULT_RQ_QMGR_MASK) |
 	       ((cfg->rx_queue.q_num << DMA_CH_RX_DEFAULT_RQ_QNUM_SHIFT) &
 		DMA_CH_RX_DEFAULT_RQ_QNUM_MASK);
-
-	/* update the max_rx_buf count, this feature available only*/
-	val &= ~(0x7 << DMA_CH_RX_MAX_BUF_CNT_SHIFT);
-	if (cfg->rx_max_buf_cnt)
-		val |= (cfg->rx_max_buf_cnt << DMA_CH_RX_MAX_BUF_CNT_SHIFT);
 
 	rx_ch_obj->global_cfg = val;
 	__raw_writel(val, base);

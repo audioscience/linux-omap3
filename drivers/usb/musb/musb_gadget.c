@@ -43,7 +43,6 @@
 #include <linux/moduleparam.h>
 #include <linux/stat.h>
 #include <linux/dma-mapping.h>
-#include <linux/slab.h>
 
 #include "musb_core.h"
 
@@ -265,12 +264,11 @@ static void txstate(struct musb *musb, struct musb_request *req)
 	struct usb_request	*request;
 	u16			fifo_count = 0, csr;
 	int			use_dma = 0;
-	int			can_dma_queue = musb->tx_can_dma_queue;
 
 	musb_ep = req->ep;
+
 	/* we shouldn't get here while DMA is active ... but we do ... */
-	if (!can_dma_queue &&
-		dma_channel_status(musb_ep->dma) == MUSB_DMA_STATUS_BUSY) {
+	if (dma_channel_status(musb_ep->dma) == MUSB_DMA_STATUS_BUSY) {
 		DBG(4, "dma pending...\n");
 		return;
 	}
@@ -282,7 +280,7 @@ static void txstate(struct musb *musb, struct musb_request *req)
 	fifo_count = min(max_ep_writesize(musb, musb_ep),
 			(int)(request->length - request->actual));
 
-	if (!can_dma_queue && (csr & MUSB_TXCSR_TXPKTRDY)) {
+	if (csr & MUSB_TXCSR_TXPKTRDY) {
 		DBG(5, "%s old packet still ready , txcsr %03x\n",
 				musb_ep->end_point.name, csr);
 		return;
@@ -311,17 +309,30 @@ static void txstate(struct musb *musb, struct musb_request *req)
 			size_t request_size;
 
 			/* setup DMA, then program endpoint CSR */
-			request_size = min_t(size_t, request->length,
+			request_size = min(request->length,
 						musb_ep->dma->max_len);
 			if (request_size < musb_ep->packet_sz)
 				musb_ep->dma->desired_mode = 0;
 			else
 				musb_ep->dma->desired_mode = 1;
 
+			/*
+			 * use sdma for unaligned buffers on OMAP3630 which
+			 * can work only in mode-0 so restrict the request_size.
+			 */
+			if (cpu_is_omap3630() &&
+				(request->dma + request->actual) & 0x3) {
+				request_size =
+				min((size_t)musb_ep->hw_ep->max_packet_sz_tx,
+					(request->length - request->actual));
+				musb_ep->dma->desired_mode = 0;
+			}
+
 			use_dma = use_dma && c->channel_program(
 					musb_ep->dma, musb_ep->packet_sz,
 					musb_ep->dma->desired_mode,
-					request->dma + request->actual, request_size);
+					(request->dma + request->actual),
+					request_size);
 			if (use_dma) {
 				if (musb_ep->dma->desired_mode == 0) {
 					/*
@@ -423,8 +434,6 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 	struct musb_ep		*musb_ep = &musb->endpoints[epnum].ep_in;
 	void __iomem		*epio = musb->endpoints[epnum].regs;
 	struct dma_channel	*dma;
-	int			can_dma_queue = musb->tx_can_dma_queue;
-	int			dma_completed = musb_ep->hw_ep->dma_completed;
 
 	musb_ep_select(mbase, epnum);
 	request = next_request(musb_ep);
@@ -453,8 +462,7 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 		DBG(20, "underrun on ep%d, req %p\n", epnum, request);
 	}
 
-	if (!can_dma_queue &&
-		(dma_channel_status(dma) == MUSB_DMA_STATUS_BUSY)) {
+	if (dma_channel_status(dma) == MUSB_DMA_STATUS_BUSY) {
 		/*
 		 * SHOULD NOT HAPPEN... has with CPPI though, after
 		 * changing SENDSTALL (and other cases); harmless?
@@ -467,15 +475,17 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 		u8	is_dma = 0;
 
 		if (dma && (csr & MUSB_TXCSR_DMAENAB)) {
-			is_dma = 1;
 			csr |= MUSB_TXCSR_P_WZC_BITS;
 			csr &= ~(MUSB_TXCSR_DMAENAB | MUSB_TXCSR_P_UNDERRUN |
 				 MUSB_TXCSR_TXPKTRDY);
-			if (!dma_completed)
-				musb_writew(epio, MUSB_TXCSR, csr);
+			musb_writew(epio, MUSB_TXCSR, csr);
 			/* Ensure writebuffer is empty. */
 			csr = musb_readw(epio, MUSB_TXCSR);
 			request->actual += musb_ep->dma->actual_len;
+
+			if (request->actual == request->length)
+				is_dma = 1;
+
 			DBG(4, "TXCSR%d %04x, DMA off, len %zu, req %p\n",
 				epnum, csr, musb_ep->dma->actual_len, request);
 		}
@@ -529,8 +539,7 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 			}
 		}
 
-		if (!can_dma_queue)
-			txstate(musb, to_musb_request(request));
+		txstate(musb, to_musb_request(request));
 	}
 }
 
@@ -688,8 +697,15 @@ static void rxstate(struct musb *musb, struct musb_request *req)
 							transfer_size);
 				}
 
-				if (use_dma)
+				if (use_dma) {
 					return;
+				} else {
+					/* Need to clear DMAENAB for the
+					 * backup PIO mode transfer to work
+					 */
+					csr &= ~MUSB_RXCSR_DMAENAB;
+					musb_writew(epio, MUSB_RXCSR, csr);
+				}
 			}
 #endif	/* Mentor's DMA */
 
@@ -749,13 +765,10 @@ void musb_g_rx(struct musb *musb, u8 epnum)
 	struct musb_ep		*musb_ep = &musb->endpoints[epnum].ep_out;
 	void __iomem		*epio = musb->endpoints[epnum].regs;
 	struct dma_channel	*dma;
-	int			can_dma_queue = musb->rx_can_dma_queue;
 
 	musb_ep_select(mbase, epnum);
 
 	request = next_request(musb_ep);
-	if (!request)
-		return;
 
 	csr = musb_readw(epio, MUSB_RXCSR);
 	dma = is_dma_capable() ? musb_ep->dma : NULL;
@@ -784,8 +797,7 @@ void musb_g_rx(struct musb *musb, u8 epnum)
 		DBG(4, "%s, incomprx\n", musb_ep->end_point.name);
 	}
 
-	if (!can_dma_queue &&
-		(dma_channel_status(dma) == MUSB_DMA_STATUS_BUSY)) {
+	if (dma_channel_status(dma) == MUSB_DMA_STATUS_BUSY) {
 		/* "should not happen"; likely RXPKTRDY pending for DMA */
 		DBG((csr & MUSB_RXCSR_DMAENAB) ? 4 : 1,
 			"%s busy, csr %04x\n",
@@ -794,9 +806,9 @@ void musb_g_rx(struct musb *musb, u8 epnum)
 	}
 
 	if (dma && (csr & MUSB_RXCSR_DMAENAB)) {
-		csr &= ~(MUSB_RXCSR_AUTOCLEAR);
-		if (!can_dma_queue)
-			csr &= ~(MUSB_RXCSR_DMAENAB | MUSB_RXCSR_DMAMODE);
+		csr &= ~(MUSB_RXCSR_AUTOCLEAR
+				| MUSB_RXCSR_DMAENAB
+				| MUSB_RXCSR_DMAMODE);
 		musb_writew(epio, MUSB_RXCSR,
 			MUSB_RXCSR_P_WZC_BITS | csr);
 
@@ -824,9 +836,6 @@ void musb_g_rx(struct musb *musb, u8 epnum)
 			return;
 #endif
 		musb_g_giveback(musb_ep, request, 0);
-
-		if (can_dma_queue)
-			return;
 
 		request = next_request(musb_ep);
 		if (!request)
@@ -907,14 +916,7 @@ static int musb_gadget_enable(struct usb_ep *ep,
 		/* REVISIT if can_bulk_split(), use by updating "tmp";
 		 * likewise high bandwidth periodic tx
 		 */
-		/* Set TXMAXP with the FIFO size of the endpoint
-		 * to disable double buffering mode. Currently, It seems that double
-		 * buffering has problem if musb RTL revision number < 2.0.
-		 */
-		if (musb->hwvers < MUSB_HWVERS_2000)
-			musb_writew(regs, MUSB_TXMAXP, hw_ep->max_packet_sz_tx);
-		else
-			musb_writew(regs, MUSB_TXMAXP, tmp);
+		musb_writew(regs, MUSB_TXMAXP, tmp);
 
 		csr = MUSB_TXCSR_MODE | MUSB_TXCSR_CLRDATATOG;
 		if (musb_readw(regs, MUSB_TXCSR)
@@ -944,13 +946,7 @@ static int musb_gadget_enable(struct usb_ep *ep,
 		/* REVISIT if can_bulk_combine() use by updating "tmp"
 		 * likewise high bandwidth periodic rx
 		 */
-		/* Set RXMAXP with the FIFO size of the endpoint
-		 * to disable double buffering mode.
-		 */
-		if (musb->hwvers < MUSB_HWVERS_2000)
-			musb_writew(regs, MUSB_RXMAXP, hw_ep->max_packet_sz_rx);
-		else
-			musb_writew(regs, MUSB_RXMAXP, tmp);
+		musb_writew(regs, MUSB_RXMAXP, tmp);
 
 		/* force shared fifo to OUT-only mode */
 		if (hw_ep->is_shared_fifo) {
@@ -1113,7 +1109,6 @@ static int musb_gadget_queue(struct usb_ep *ep, struct usb_request *req,
 	struct musb		*musb;
 	int			status = 0;
 	unsigned long		lockflags;
-	int			can_dma_queue;
 
 	if (!ep || !req)
 		return -EINVAL;
@@ -1128,9 +1123,6 @@ static int musb_gadget_queue(struct usb_ep *ep, struct usb_request *req,
 
 	if (request->ep != musb_ep)
 		return -EINVAL;
-
-	can_dma_queue = musb_ep->is_in ? musb->rx_can_dma_queue :
-			musb->tx_can_dma_queue;
 
 	DBG(4, "<== to %s request=%p\n", ep->name, req);
 
@@ -1178,8 +1170,7 @@ static int musb_gadget_queue(struct usb_ep *ep, struct usb_request *req,
 	list_add_tail(&(request->request.list), &(musb_ep->req_list));
 
 	/* it this is the head of the queue, start i/o ... */
-	if (can_dma_queue || (!musb_ep->busy
-		&& &request->request.list == musb_ep->req_list.next))
+	if (!musb_ep->busy && &request->request.list == musb_ep->req_list.next)
 		musb_ep_restart(musb, request);
 
 cleanup:
@@ -1727,7 +1718,8 @@ int usb_gadget_register_driver(struct usb_gadget_driver *driver)
 		return -EINVAL;
 
 	/* driver must be initialized to support peripheral mode */
-	if (!musb) {
+	if (!musb || !(musb->board_mode == MUSB_OTG
+				|| musb->board_mode != MUSB_OTG)) {
 		DBG(1, "%s, no dev??\n", __func__);
 		return -ENODEV;
 	}
@@ -1762,7 +1754,6 @@ int usb_gadget_register_driver(struct usb_gadget_driver *driver)
 		spin_lock_irqsave(&musb->lock, flags);
 
 		otg_set_peripheral(musb->xceiv, &musb->g);
-		musb->xceiv->state = OTG_STATE_B_IDLE;
 		musb->is_active = 1;
 
 		/* FIXME this ignores the softconnect flag.  Drivers are
@@ -2036,15 +2027,12 @@ __acquires(musb->lock)
 
 
 	/* what speed did we negotiate? */
-#ifdef CONFIG_MACH_OMAP3517EVM || defined(CONFIG_ARCH_TI816X)
+#ifdef CONFIG_MACH_OMAP3517EVM
 	musb->read_mask &= ~AM3517_READ_ISSUE_POWER;
 #endif
 	power = musb_readb(mbase, MUSB_POWER);
 	musb->g.speed = (power & MUSB_POWER_HSMODE)
 			? USB_SPEED_HIGH : USB_SPEED_FULL;
-	/* forced to high speed in device g_file_storage
-	 * HS bit not set even though bus is highspeed */
-	musb->g.speed = USB_SPEED_HIGH;
 
 	/* start in USB_STATE_DEFAULT */
 	musb->is_active = 1;
