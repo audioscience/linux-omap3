@@ -803,17 +803,6 @@ config ARCH_OMAP
 	help
 	  Support for TI's OMAP platform (OMAP1 and OMAP2).
 
-config ARCH_TI816X
-	bool "TI816X device support"
-	select GENERIC_GPIO
-	select ARCH_REQUIRE_GPIOLIB
-	select GENERIC_TIME
-	select GENERIC_CLOCKEVENTS
-	select COMMON_CLKDEV
-	select CPU_V7
-	help
-	  Support for TI's TI816X systems.
-
 endchoice
 
 #

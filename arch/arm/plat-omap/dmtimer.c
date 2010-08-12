@@ -41,21 +41,6 @@
 #include <plat/dmtimer.h>
 #include <mach/irqs.h>
 
-/* register offsets */
-#define _OMAP_TIMER_ID_OFFSET		0x00
-#define _OMAP_TIMER_OCP_CFG_OFFSET	0x10
-#define _OMAP_TIMER_SYS_STAT_OFFSET	0x14
-#ifdef CONFIG_ARCH_TI816X
-#define _OMAP_TIMER_STAT_OFFSET		0x28
-#define _OMAP_TIMER_INT_EN_OFFSET	0x2c
-#define _OMAP_TIMER_WAKEUP_EN_OFFSET	0x34
-#define _OMAP_TIMER_CTRL_OFFSET		0x38
-#else
-#define _OMAP_TIMER_STAT_OFFSET		0x18
-#define _OMAP_TIMER_INT_EN_OFFSET	0x1c
-#define _OMAP_TIMER_WAKEUP_EN_OFFSET	0x20
-#define _OMAP_TIMER_CTRL_OFFSET		0x24
-#endif
 #define		OMAP_TIMER_CTRL_GPOCFG		(1 << 14)
 #define		OMAP_TIMER_CTRL_CAPTMODE	(1 << 13)
 #define		OMAP_TIMER_CTRL_PT		(1 << 12)
@@ -69,17 +54,7 @@
 #define		OMAP_TIMER_CTRL_POSTED		(1 << 2)
 #define		OMAP_TIMER_CTRL_AR		(1 << 1) /* auto-reload enable */
 #define		OMAP_TIMER_CTRL_ST		(1 << 0) /* start timer */
-#ifdef CONFIG_ARCH_TI816X
-#define _OMAP_TIMER_COUNTER_OFFSET	0x3c
-#define _OMAP_TIMER_LOAD_OFFSET		0x40
-#define _OMAP_TIMER_TRIGGER_OFFSET	0x44
-#define _OMAP_TIMER_WRITE_PEND_OFFSET	0x48
-#else
-#define _OMAP_TIMER_COUNTER_OFFSET	0x28
-#define _OMAP_TIMER_LOAD_OFFSET		0x2c
-#define _OMAP_TIMER_TRIGGER_OFFSET	0x30
-#define _OMAP_TIMER_WRITE_PEND_OFFSET	0x34
-#endif
+
 #define		WP_NONE			0	/* no write pending bit */
 #define		WP_TCLR			(1 << 0)
 #define		WP_TCRR			(1 << 1)
@@ -91,90 +66,87 @@
 #define		WP_TCVR			(1 << 7)
 #define		WP_TOCR			(1 << 8)
 #define		WP_TOWR			(1 << 9)
-#ifdef CONFIG_ARCH_TI816X
-#define _OMAP_TIMER_MATCH_OFFSET	0x4c
-#define _OMAP_TIMER_CAPTURE_OFFSET	0x50
-#define _OMAP_TIMER_IF_CTRL_OFFSET	0x54
-#define _OMAP_TIMER_CAPTURE2_OFFSET	0x58
-#else
-#define _OMAP_TIMER_MATCH_OFFSET	0x38
-#define _OMAP_TIMER_CAPTURE_OFFSET	0x3c
-#define _OMAP_TIMER_IF_CTRL_OFFSET	0x40
-#define _OMAP_TIMER_CAPTURE2_OFFSET		0x44	/* TCAR2, 34xx only */
-#endif
-#define _OMAP_TIMER_TICK_POS_OFFSET		0x48	/* TPIR, 34xx only */
-#define _OMAP_TIMER_TICK_NEG_OFFSET		0x4c	/* TNIR, 34xx only */
-#define _OMAP_TIMER_TICK_COUNT_OFFSET		0x50	/* TCVR, 34xx only */
-#define _OMAP_TIMER_TICK_INT_MASK_SET_OFFSET	0x54	/* TOCR, 34xx only */
-#define _OMAP_TIMER_TICK_INT_MASK_COUNT_OFFSET	0x58	/* TOWR, 34xx only */
+
+enum {
+	OMAP_TIMER_ID_REG = 0,
+	OMAP_TIMER_OCP_CFG_REG,
+	OMAP_TIMER_SYS_STAT_REG,
+	OMAP_TIMER_STAT_REG,
+	OMAP_TIMER_INT_EN_REG,
+	OMAP_TIMER_WAKEUP_EN_REG,
+	OMAP_TIMER_CTRL_REG,
+	OMAP_TIMER_COUNTER_REG,
+	OMAP_TIMER_LOAD_REG,
+	OMAP_TIMER_TRIGGER_REG,
+	OMAP_TIMER_WRITE_PEND_REG,
+	OMAP_TIMER_MATCH_REG,
+	OMAP_TIMER_CAPTURE_REG,
+	OMAP_TIMER_IF_CTRL_REG,
+	OMAP_TIMER_CAPTURE2_REG,		/* TCAR2, 34xx only */
+	OMAP_TIMER_TICK_POS_REG,		/* TPIR, 34xx only */
+	OMAP_TIMER_TICK_NEG_REG,		/* TNIR, 34xx only */
+	OMAP_TIMER_TICK_COUNT_REG,		/* TCVR, 34xx only */
+	OMAP_TIMER_TICK_INT_MASK_SET_REG,	/* TOCR, 34xx only */
+	OMAP_TIMER_TICK_INT_MASK_COUNT_REG,	/* TOWR, 34xx only */
+	OMAP_TIMER_IRQ_EOI_REG,			/* ti816x only */
+	OMAP_TIMER_IRQSTATUS_RAW_REG,		/* ti816x only */
+	OMAP_TIMER_IRQSTATUS_REG,		/* ti816x only */
+	OMAP_TIMER_IRQSTATUS_SET_REG,		/* ti816x only */
+	OMAP_TIMER_IRQSTATUS_CLR_REG,		/* ti816x only */
+};
 
 /* register offsets with the write pending bit encoded */
 #define	WPSHIFT					16
 
-#define OMAP_TIMER_ID_REG			(_OMAP_TIMER_ID_OFFSET \
-							| (WP_NONE << WPSHIFT))
+const static u32 reg_map[] = {
+	[OMAP_TIMER_ID_REG]			= 0x00 | (WP_NONE << WPSHIFT),
+	[OMAP_TIMER_OCP_CFG_REG]		= 0x10 | (WP_NONE << WPSHIFT),
+	[OMAP_TIMER_SYS_STAT_REG]		= 0x14 | (WP_NONE << WPSHIFT),
+	[OMAP_TIMER_STAT_REG]			= 0x18 | (WP_NONE << WPSHIFT),
+	[OMAP_TIMER_INT_EN_REG]			= 0x1c | (WP_NONE << WPSHIFT),
+	[OMAP_TIMER_WAKEUP_EN_REG]		= 0x20 | (WP_NONE << WPSHIFT),
+	[OMAP_TIMER_CTRL_REG]			= 0x24 | (WP_TCLR << WPSHIFT),
+	[OMAP_TIMER_COUNTER_REG]		= 0x28 | (WP_TCRR << WPSHIFT),
+	[OMAP_TIMER_LOAD_REG]			= 0x2c | (WP_TLDR << WPSHIFT),
+	[OMAP_TIMER_TRIGGER_REG]		= 0x30 | (WP_TTGR << WPSHIFT),
+	[OMAP_TIMER_WRITE_PEND_REG]		= 0x34 | (WP_NONE << WPSHIFT),
+	[OMAP_TIMER_MATCH_REG]			= 0x38 | (WP_TMAR << WPSHIFT),
+	[OMAP_TIMER_CAPTURE_REG]		= 0x3c | (WP_NONE << WPSHIFT),
+	[OMAP_TIMER_IF_CTRL_REG]		= 0x40 | (WP_NONE << WPSHIFT),
+	[OMAP_TIMER_CAPTURE2_REG]		= 0x44 | (WP_NONE << WPSHIFT),
+	[OMAP_TIMER_TICK_POS_REG]		= 0x48 | (WP_TPIR << WPSHIFT),
+	[OMAP_TIMER_TICK_NEG_REG]		= 0x4c | (WP_TNIR << WPSHIFT),
+	[OMAP_TIMER_TICK_COUNT_REG]		= 0x50 | (WP_TCVR << WPSHIFT),
+	[OMAP_TIMER_TICK_INT_MASK_SET_REG]	= 0x54 | (WP_TOCR << WPSHIFT),
+	[OMAP_TIMER_TICK_INT_MASK_COUNT_REG]	= 0x58 | (WP_TOWR << WPSHIFT),
+};
 
-#define OMAP_TIMER_OCP_CFG_REG			(_OMAP_TIMER_OCP_CFG_OFFSET \
-							| (WP_NONE << WPSHIFT))
-
-#define OMAP_TIMER_SYS_STAT_REG			(_OMAP_TIMER_SYS_STAT_OFFSET \
-							| (WP_NONE << WPSHIFT))
-
-#define OMAP_TIMER_STAT_REG			(_OMAP_TIMER_STAT_OFFSET \
-							| (WP_NONE << WPSHIFT))
-
-#define OMAP_TIMER_INT_EN_REG			(_OMAP_TIMER_INT_EN_OFFSET \
-							| (WP_NONE << WPSHIFT))
-
-#define OMAP_TIMER_WAKEUP_EN_REG		(_OMAP_TIMER_WAKEUP_EN_OFFSET \
-							| (WP_NONE << WPSHIFT))
-
-#define OMAP_TIMER_CTRL_REG			(_OMAP_TIMER_CTRL_OFFSET \
-							| (WP_TCLR << WPSHIFT))
-
-#define OMAP_TIMER_COUNTER_REG			(_OMAP_TIMER_COUNTER_OFFSET \
-							| (WP_TCRR << WPSHIFT))
-
-#define OMAP_TIMER_LOAD_REG			(_OMAP_TIMER_LOAD_OFFSET \
-							| (WP_TLDR << WPSHIFT))
-
-#define OMAP_TIMER_TRIGGER_REG			(_OMAP_TIMER_TRIGGER_OFFSET \
-							| (WP_TTGR << WPSHIFT))
-
-#define OMAP_TIMER_WRITE_PEND_REG		(_OMAP_TIMER_WRITE_PEND_OFFSET \
-							| (WP_NONE << WPSHIFT))
-
-#define OMAP_TIMER_MATCH_REG			(_OMAP_TIMER_MATCH_OFFSET \
-							| (WP_TMAR << WPSHIFT))
-
-#define OMAP_TIMER_CAPTURE_REG			(_OMAP_TIMER_CAPTURE_OFFSET \
-							| (WP_NONE << WPSHIFT))
-
-#define OMAP_TIMER_IF_CTRL_REG			(_OMAP_TIMER_IF_CTRL_OFFSET \
-							| (WP_NONE << WPSHIFT))
-
-#define OMAP_TIMER_CAPTURE2_REG			(_OMAP_TIMER_CAPTURE2_OFFSET \
-							| (WP_NONE << WPSHIFT))
-
-#define OMAP_TIMER_TICK_POS_REG			(_OMAP_TIMER_TICK_POS_OFFSET \
-							| (WP_TPIR << WPSHIFT))
-
-#define OMAP_TIMER_TICK_NEG_REG			(_OMAP_TIMER_TICK_NEG_OFFSET \
-							| (WP_TNIR << WPSHIFT))
-
-#define OMAP_TIMER_TICK_COUNT_REG		(_OMAP_TIMER_TICK_COUNT_OFFSET \
-							| (WP_TCVR << WPSHIFT))
-
-#define OMAP_TIMER_TICK_INT_MASK_SET_REG				\
-		(_OMAP_TIMER_TICK_INT_MASK_SET_OFFSET | (WP_TOCR << WPSHIFT))
-
-#define OMAP_TIMER_TICK_INT_MASK_COUNT_REG				\
-		(_OMAP_TIMER_TICK_INT_MASK_COUNT_OFFSET | (WP_TOWR << WPSHIFT))
+/* Few register offsets in TI816X are different */
+const static u32 ti816x_reg_map[] = {
+	[OMAP_TIMER_ID_REG]			= 0x00 | (WP_NONE << WPSHIFT),
+	[OMAP_TIMER_OCP_CFG_REG]		= 0x10 | (WP_NONE << WPSHIFT),
+	[OMAP_TIMER_SYS_STAT_REG]		= 0x14 | (WP_NONE << WPSHIFT),
+	[OMAP_TIMER_STAT_REG]			= 0x28 | (WP_NONE << WPSHIFT),
+	[OMAP_TIMER_INT_EN_REG]			= 0x2c | (WP_NONE << WPSHIFT),
+	[OMAP_TIMER_WAKEUP_EN_REG]		= 0x34 | (WP_NONE << WPSHIFT),
+	[OMAP_TIMER_CTRL_REG]			= 0x38 | (WP_TCLR << WPSHIFT),
+	[OMAP_TIMER_COUNTER_REG]		= 0x3c | (WP_TCRR << WPSHIFT),
+	[OMAP_TIMER_LOAD_REG]			= 0x40 | (WP_TLDR << WPSHIFT),
+	[OMAP_TIMER_TRIGGER_REG]		= 0x44 | (WP_TTGR << WPSHIFT),
+	[OMAP_TIMER_WRITE_PEND_REG]		= 0x48 | (WP_NONE << WPSHIFT),
+	[OMAP_TIMER_MATCH_REG]			= 0x4c | (WP_TMAR << WPSHIFT),
+	[OMAP_TIMER_CAPTURE_REG]		= 0x50 | (WP_NONE << WPSHIFT),
+	[OMAP_TIMER_IF_CTRL_REG]		= 0x54 | (WP_NONE << WPSHIFT),
+	[OMAP_TIMER_CAPTURE2_REG]		= 0x58 | (WP_NONE << WPSHIFT),
+	[OMAP_TIMER_IRQ_EOI_REG]		= 0x20 | (WP_NONE << WPSHIFT),
+	[OMAP_TIMER_IRQSTATUS_RAW_REG]		= 0x24 | (WP_NONE << WPSHIFT),
+	[OMAP_TIMER_IRQSTATUS_CLR_REG]		= 0x30 | (WP_NONE << WPSHIFT),
+};
 
 struct omap_dm_timer {
 	unsigned long phys_base;
 	int irq;
-#if defined(CONFIG_ARCH_OMAP2PLUS) || defined(CONFIG_ARCH_TI816X)
+#ifdef CONFIG_ARCH_OMAP2PLUS
 	struct clk *iclk, *fclk;
 #endif
 	void __iomem *io_base;
@@ -329,6 +301,7 @@ static const int ti816x_dm_timer_count = ARRAY_SIZE(ti816x_dm_timers);
 static struct omap_dm_timer *dm_timers;
 static const char **dm_source_names;
 static struct clk **dm_source_clocks;
+u32 *dm_regs;
 
 static spinlock_t dm_timer_lock;
 
@@ -340,10 +313,11 @@ static spinlock_t dm_timer_lock;
 static inline u32 omap_dm_timer_read_reg(struct omap_dm_timer *timer, u32 reg)
 {
 	if (timer->posted)
-		while (readl(timer->io_base + (OMAP_TIMER_WRITE_PEND_REG & 0xff))
-				& (reg >> WPSHIFT))
+		while (readl(timer->io_base +
+				(dm_regs[OMAP_TIMER_WRITE_PEND_REG] & 0xff)) &
+				(dm_regs[reg] >> WPSHIFT))
 			cpu_relax();
-	return readl(timer->io_base + (reg & 0xff));
+	return readl(timer->io_base + (dm_regs[reg] & 0xff));
 }
 
 /*
@@ -356,10 +330,21 @@ static void omap_dm_timer_write_reg(struct omap_dm_timer *timer, u32 reg,
 						u32 value)
 {
 	if (timer->posted)
-		while (readl(timer->io_base + (OMAP_TIMER_WRITE_PEND_REG & 0xff))
-				& (reg >> WPSHIFT))
+		while (readl(timer->io_base +
+				(dm_regs[OMAP_TIMER_WRITE_PEND_REG] & 0xff)) &
+				(dm_regs[reg] >> WPSHIFT))
 			cpu_relax();
-	writel(value, timer->io_base + (reg & 0xff));
+	writel(value, timer->io_base + (dm_regs[reg] & 0xff));
+}
+
+static inline int is_reset_done(struct omap_dm_timer *timer)
+{
+	if (!cpu_is_ti816x())
+		return ((omap_dm_timer_read_reg(timer,
+					OMAP_TIMER_SYS_STAT_REG) & 1) == 1);
+	else
+		return ((omap_dm_timer_read_reg(timer,
+					OMAP_TIMER_OCP_CFG_REG) & 1) == 0);
 }
 
 static void omap_dm_timer_wait_for_reset(struct omap_dm_timer *timer)
@@ -368,12 +353,7 @@ static void omap_dm_timer_wait_for_reset(struct omap_dm_timer *timer)
 
 	c = 0;
 
-#ifndef CONFIG_ARCH_TI816X
-	while (!(omap_dm_timer_read_reg(timer, OMAP_TIMER_SYS_STAT_REG) & 1)) {
-#else
-	while (omap_dm_timer_read_reg(timer, OMAP_TIMER_OCP_CFG_REG) & 1) {
-#endif
-
+	while (!is_reset_done(timer)) {
 		c++;
 		if (c > 100000) {
 			printk(KERN_ERR "Timer failed to reset\n");
@@ -479,7 +459,7 @@ void omap_dm_timer_enable(struct omap_dm_timer *timer)
 	if (timer->enabled)
 		return;
 
-#if defined(CONFIG_ARCH_OMAP2PLUS) || defined(CONFIG_ARCH_TI816X)
+#ifdef CONFIG_ARCH_OMAP2PLUS
 	if (cpu_class_is_omap2()) {
 		clk_enable(timer->fclk);
 		clk_enable(timer->iclk);
@@ -495,7 +475,7 @@ void omap_dm_timer_disable(struct omap_dm_timer *timer)
 	if (!timer->enabled)
 		return;
 
-#if defined(CONFIG_ARCH_OMAP2PLUS) || defined(CONFIG_ARCH_TI816X)
+#ifdef CONFIG_ARCH_OMAP2PLUS
 	if (cpu_class_is_omap2()) {
 		clk_disable(timer->iclk);
 		clk_disable(timer->fclk);
@@ -587,7 +567,7 @@ void omap_dm_timer_stop(struct omap_dm_timer *timer)
 	if (l & OMAP_TIMER_CTRL_ST) {
 		l &= ~0x1;
 		omap_dm_timer_write_reg(timer, OMAP_TIMER_CTRL_REG, l);
-#if defined(CONFIG_ARCH_OMAP2PLUS) || defined(CONFIG_ARCH_TI816X)
+#ifdef CONFIG_ARCH_OMAP2PLUS
 		/* Readback to make sure write has completed */
 		omap_dm_timer_read_reg(timer, OMAP_TIMER_CTRL_REG);
 		 /*
@@ -797,6 +777,8 @@ int __init omap_dm_timer_init(void)
 
 	spin_lock_init(&dm_timer_lock);
 
+	dm_regs = (u32 *)reg_map;
+
 	if (cpu_class_is_omap1()) {
 		dm_timers = omap1_dm_timers;
 		dm_timer_count = omap1_dm_timer_count;
@@ -821,6 +803,9 @@ int __init omap_dm_timer_init(void)
 		dm_timer_count = ti816x_dm_timer_count;
 		dm_source_names = ti816x_dm_source_names;
 		dm_source_clocks = ti816x_dm_source_clocks;
+
+		/* Few registers/offsets are different */
+		dm_regs = (u32 *)ti816x_reg_map;
 	}
 
 	if (cpu_class_is_omap2())
@@ -837,7 +822,7 @@ int __init omap_dm_timer_init(void)
 		timer->io_base = ioremap(timer->phys_base, map_size);
 		BUG_ON(!timer->io_base);
 
-#if defined(CONFIG_ARCH_OMAP2PLUS) || defined(CONFIG_ARCH_TI816X)
+#ifdef CONFIG_ARCH_OMAP2PLUS
 		if (cpu_class_is_omap2()) {
 			char clk_name[16];
 			sprintf(clk_name, "gpt%d_ick", i + 1);

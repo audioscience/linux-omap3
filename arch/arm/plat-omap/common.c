@@ -357,6 +357,7 @@ void __init omap2_set_globals_443x(void)
 
 #if defined(CONFIG_ARCH_TI816X)
 static struct omap_globals ti816x_globals = {
+	.class	= TI816X_CLASS,
 	.tap	= TI816X_L4_SLOW_IO_ADDRESS(TI816X_SCM_BASE),
 	.ctrl	= TI816X_CTRL_BASE,
 	.prm	= TI816X_PRCM_BASE,

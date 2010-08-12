@@ -97,10 +97,22 @@ static inline int is_omap ##class (void)		\
 	return (GET_OMAP_CLASS == (id)) ? 1 : 0;	\
 }
 
+#define IS_TI_CLASS(class, id)				\
+static inline int is_ti ##class(void)			\
+{							\
+	return (GET_OMAP_CLASS == (id)) ? 1 : 0;	\
+}
+
 #define GET_OMAP_SUBCLASS	((omap_rev() >> 20) & 0x0fff)
 
 #define IS_OMAP_SUBCLASS(subclass, id)			\
 static inline int is_omap ##subclass (void)		\
+{							\
+	return (GET_OMAP_SUBCLASS == (id)) ? 1 : 0;	\
+}
+
+#define IS_TI_SUBCLASS(subclass, id)			\
+static inline int is_ti ##subclass(void)		\
 {							\
 	return (GET_OMAP_SUBCLASS == (id)) ? 1 : 0;	\
 }
@@ -112,11 +124,15 @@ IS_OMAP_CLASS(24xx, 0x24)
 IS_OMAP_CLASS(34xx, 0x34)
 IS_OMAP_CLASS(44xx, 0x44)
 
+IS_TI_CLASS(81xx, 0x81)
+
 IS_OMAP_SUBCLASS(242x, 0x242)
 IS_OMAP_SUBCLASS(243x, 0x243)
 IS_OMAP_SUBCLASS(343x, 0x343)
 IS_OMAP_SUBCLASS(363x, 0x363)
 IS_OMAP_SUBCLASS(443x, 0x443)
+
+IS_TI_SUBCLASS(816x, 0x816)
 
 #define cpu_is_omap7xx()		0
 #define cpu_is_omap15xx()		0
@@ -205,10 +221,6 @@ IS_OMAP_SUBCLASS(443x, 0x443)
 # if defined(CONFIG_ARCH_OMAP3430)
 #  undef  cpu_is_omap343x
 #  define cpu_is_omap343x()		1
-# endif
-# if defined(CONFIG_ARCH_TI816X)
-#  undef  cpu_is_ti816x
-#  define cpu_is_ti816x()		1
 # endif
 #endif
 
@@ -359,6 +371,11 @@ IS_OMAP_TYPE(3517, 0x3517)
 # define cpu_is_omap443x()		is_omap443x()
 # endif
 
+# if defined(CONFIG_ARCH_TI816X)
+# undef cpu_is_ti816x
+# define cpu_is_ti816x()		is_ti816x()
+# endif
+
 /* Macros to detect if we have OMAP1 or OMAP2 */
 #define cpu_class_is_omap1()	(cpu_is_omap7xx() || cpu_is_omap15xx() || \
 				cpu_is_omap16xx())
@@ -393,6 +410,9 @@ IS_OMAP_TYPE(3517, 0x3517)
 
 #define OMAP443X_CLASS		0x44300044
 #define OMAP4430_REV_ES1_0	0x44300044
+
+#define TI816X_CLASS		0x81600081
+#define TI8168_REV_ES1_0	0x81600081
 
 /*
  * omap_chip bits

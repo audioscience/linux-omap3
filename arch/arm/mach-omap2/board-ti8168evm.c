@@ -53,8 +53,6 @@
 #include <plat/gpmc.h>
 #include <plat/nand.h>
 #include "clock.h"
-#include "clockdomains.h"
-#include "powerdomains.h"
 #include "mux.h"
 #include "hsmmc.h"
 

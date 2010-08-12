@@ -295,18 +295,22 @@ void __init omap4_check_revision(void)
 
 void __init ti816x_check_revision(void)
 {
-	/*
-	 * XXX - Breaks multi-omap, but anyway we are not supporting at the
-	 * moment. Also hard coding revision and chip ID at the moment till
-	 * efuse are blown and values confirmed. We will read JTAG ID register
-	 * then.
-	 */
+	u32 idcode;
+	u16 partnum;
+	u8 rev;
 
-	omap_revision = 0x81680000;
-	omap_chip.oc |= CHIP_IS_TI816X;
-	pr_info("OMAP chip is TI8168\n");
+	idcode = read_tap_reg(TI816X_CONTROL_DEVICE_ID);
+	partnum = (idcode >> 12) & 0xffff;
+	rev = (idcode >> 28) & 0xff;
 
-	return;
+	if ((partnum == 0xb81e) && (rev == 0x0)) {
+		omap_revision = TI8168_REV_ES1_0;
+		omap_chip.oc |= CHIP_IS_TI816X;
+		pr_info("OMAP chip is TI8168\n");
+		return;
+	}
+
+	pr_err("Unknown TI816X CPU id\n");
 }
 
 #define OMAP3_SHOW_FEATURE(feat)		\

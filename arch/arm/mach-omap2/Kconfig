@@ -148,13 +148,6 @@ config MACH_SBC3530
 	select OMAP_PACKAGE_CUS
 	select OMAP_MUX
 
-comment "TI816X Board Type"
-	depends on ARCH_TI816X
-
-config MACH_TI8168_EVM
-	bool "TI8168 evaluation module"
-	depends on ARCH_TI816X
-
 config MACH_OMAP_3630SDP
 	bool "OMAP3630 SDP board"
 	depends on ARCH_OMAP3
@@ -163,6 +156,14 @@ config MACH_OMAP_3630SDP
 config MACH_OMAP_4430SDP
 	bool "OMAP 4430 SDP board"
 	depends on ARCH_OMAP4
+
+comment "TI816X Board Type"
+	depends on ARCH_TI816X
+
+config MACH_TI8168_EVM
+	bool "TI8168 Evaluation Module"
+	default y
+	depends on ARCH_TI816X
 
 config OMAP3_EMU
 	bool "OMAP3 debugging peripherals"
