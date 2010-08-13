@@ -115,7 +115,7 @@
 #define HDMI_VIDEO_STAND_1080P60		(2200 * 1125 * 60)
 #define HDMI_VIDEO_STAND_1080I60		(2200 * 1125 * 30)
 #define HDMI_VIDEO_STAND_1080P30		(2200 * 1125 * 30)
-#define HDMI_TEST				(1)
+//#define HDMI_TEST				(1)
 /* ========================================================================== */
 /*				Local Structure 			      */
 /* ========================================================================== */
@@ -2156,9 +2156,9 @@ int ti81xx_hdmi_lib_control(void *handle,
 		return (inst_context->hdmi_mode);
 	case TI81XXHDMI_TEST_HDMI:
 		printk("In HDMI TEST venc_base = %d\n", inst_context->venc_base_addr);
+#ifdef HDMI_TEST
 		switch ((enum ti81xxhdmi_mode)cmdArgs)
 		{
-#ifdef HDMI_TEST
 			case hdmi_1080P_30_mode:
 				configure_venc_1080p30((u32 *)inst_context->venc_base_addr, 0);
 				break;
@@ -2173,8 +2173,8 @@ int ti81xx_hdmi_lib_control(void *handle,
 				break;
 			default :
 				rtn_value = -EINVAL;
-#endif
 		}
+#endif
 		rtn_value =  ti81xx_hdmi_set_mode((enum ti81xxhdmi_mode)cmdArgs,
 			inst_context);
 		break;
