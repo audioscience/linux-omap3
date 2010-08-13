@@ -230,11 +230,15 @@ static int s35390a_freq_irq_enable(struct i2c_client *client, unsigned enabled)
 		return err;
 	}
 
-	buf[0] = s35390a->rtc->irq_freq;
-	/* This chip expects the bits of each byte to be in reverse order */
-	buf[0] = bitrev8(buf[0]);
+	if (enabled) {
+		buf[0] = s35390a->rtc->irq_freq;
 
-	return s35390a_set_reg(s35390a, S35390A_CMD_INT1_REG1, buf, sizeof(buf));
+		buf[0] = bitrev8(buf[0]);
+		err = s35390a_set_reg(s35390a, S35390A_CMD_INT1_REG1, buf,
+				sizeof(buf));
+	}
+
+	return err;
 }
 
 static int s35390a_rtc_freq_irq_enable(struct device *dev, int enabled)
@@ -419,20 +423,14 @@ static void s35390a_work(struct work_struct *work)
 		/* Notify RTC core on event */
 		rtc_update_irq(s35390a->rtc, 1, RTC_IRQF | RTC_AF);
 		s35390a_alarm_irq_enable(client, 0);
-		enable_irq(client->irq);
 	} else if (buf[0] & BIT(0)) {
 		/* Notify RTC core on event */
 		rtc_update_irq(s35390a->rtc, 1, RTC_PF | RTC_IRQF);
-		s35390a_freq_irq_enable(client, 0);
-		enable_irq(client->irq);
-		s35390a_freq_irq_enable(client, 1);
 	} else if (buf[0] & BIT(1)) {
 		/* Notify RTC core on event */
 		rtc_update_irq(s35390a->rtc, 1, RTC_UF | RTC_IRQF);
-		s35390a_update_irq_enable(client, 0);
-		enable_irq(client->irq);
-		s35390a_update_irq_enable(client, 1);
 	}
+	enable_irq(client->irq);
 out:
 	return;
 }
@@ -559,6 +557,7 @@ static int s35390a_probe(struct i2c_client *client,
 	}
 	s35390a->rtc->irq_freq = 0;
 	s35390a->rtc->max_user_freq = 16;
+
 	return 0;
 
 exit_intr:
