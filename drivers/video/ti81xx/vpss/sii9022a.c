@@ -32,10 +32,6 @@
 #include <linux/dma-mapping.h>
 #include <linux/slab.h>
 
-#include <linux/fvid2.h>
-#include <linux/vps.h>
-#include <linux/vps_displayctrl.h>
-
 #include "core.h"
 #include "vps_videoencoder.h"
 #include "vps_sii9022a.h"
@@ -72,16 +68,16 @@ int sii9022a_setmode(u32 mode)
 		return -EINVAL;
 
 	switch (mode) {
-	case VPS_DC_MODE_720P_60:
+	case FVID2_STD_720P_60:
 		sii9022a_ctrl->modeprms->modeid = VPS_SII9022A_MODE_720P_60;
 		break;
-	case VPS_DC_MODE_1080P_60:
+	case FVID2_STD_1080P_60:
 		sii9022a_ctrl->modeprms->modeid = VPS_SII9022A_MODE_1080P_60;
 		break;
-	case VPS_DC_MODE_1080P_30:
+	case FVID2_STD_1080P_30:
 		sii9022a_ctrl->modeprms->modeid = VPS_SII9022A_MODE_1080P_30;
 		break;
-	case VPS_DC_MODE_1080I_60:
+	case FVID2_STD_1080I_60:
 		sii9022a_ctrl->modeprms->modeid = VPS_SII9022A_MODE_1080I_60;
 		break;
 	default:
@@ -153,6 +149,7 @@ static int sii9022a_open(void)
 	sii9022a_ctrl->crprms->devicei2cAddr = 0x39;
 	sii9022a_ctrl->crprms->inpclk = 0;
 	sii9022a_ctrl->crprms->hdmihotplughpiointrline = 0;
+	sii9022a_ctrl->crprms->syncmode = VPS_VIDEO_ENCODER_EMBEDDED_SYNC;
 
 	sii9022a_ctrl->handle = vps_fvid2_create(
 				FVID2_VPS_VID_ENC_SII9022A_DRV,
@@ -266,34 +263,39 @@ static inline void assign_payload_addr(struct vps_sii9022a_ctrl *si_ctrl,
 				 struct vps_payload_info *pinfo,
 				 u32 *buf_offset)
 {
-	int offset = *buf_offset;
+
 	/*create parameters*/
 	si_ctrl->crprms = (struct vps_videoencodercreateparams *)
-				((u32)pinfo->vaddr + offset);
-	si_ctrl->crprms_phy = pinfo->paddr + offset;
-	offset += sizeof(struct vps_videoencodercreateparams);
+			setaddr(pinfo,
+				buf_offset,
+				&si_ctrl->crprms_phy,
+				sizeof(struct vps_videoencodercreateparams));
 	/*create status*/
 	si_ctrl->crstatus = (struct vps_videoencodercreatestatus *)
-				((u32)pinfo->vaddr + offset);
-	si_ctrl->crstatus_phy = pinfo->paddr + offset;
-	offset += sizeof(struct vps_videoencodercreatestatus);
+			setaddr(pinfo,
+				buf_offset,
+				&si_ctrl->crstatus_phy,
+				sizeof(struct vps_videoencodercreatestatus));
 
 	/*hdmi chip id*/
 	si_ctrl->chipid = (struct vps_hdmichipid *)
-			    ((u32)pinfo->vaddr + offset);
-	si_ctrl->chipid_phy = pinfo->paddr + offset;
+			setaddr(pinfo,
+				buf_offset,
+				&si_ctrl->chipid_phy,
+				sizeof(struct vps_hdmichipid));
 	/*hot pluge detection */
 	si_ctrl->hpdprms = (struct vps_sii9022ahpdprms *)
-				((u32)pinfo->vaddr + offset);
-	si_ctrl->hpdrpsm_phy = pinfo->paddr + offset;
-	offset += sizeof(struct vps_sii9022ahpdprms);
+			setaddr(pinfo,
+				buf_offset,
+				&si_ctrl->hpdrpsm_phy,
+				sizeof(struct vps_sii9022ahpdprms));
 	/*mode parameters */
 	si_ctrl->modeprms = (struct vps_sii9022amodeparams *)
-				((u32)pinfo->vaddr + offset);
-	si_ctrl->modeprms_phy = pinfo->paddr + offset;
-	offset += sizeof(struct vps_sii9022amodeparams);
+			setaddr(pinfo,
+				buf_offset,
+				&si_ctrl->modeprms_phy,
+				sizeof(struct vps_sii9022amodeparams));
 
-	*buf_offset = offset;
 
 }
 

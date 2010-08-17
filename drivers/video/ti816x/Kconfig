@@ -1,2 +1,0 @@
-source "drivers/video/ti816x/vpss/Kconfig"
-source "drivers/video/ti816x/ti816xfb/Kconfig"

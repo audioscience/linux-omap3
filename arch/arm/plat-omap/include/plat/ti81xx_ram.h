@@ -22,15 +22,18 @@
  * 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */
 
-#ifndef __TI816X_RAM_H__
-#define __TI816X_RAM_H__
+#ifndef __ARCH_ARM_TI81XX_RAM_H__
+#define __ARCH_ARM_TI81XX_RAM_H__
 
 #include <asm/types.h>
 
-extern int ti816x_vram_add_region(unsigned long paddr, size_t size);
-extern int ti816x_vram_free(unsigned long paddr, void *vaddr, size_t size);
-extern int ti816x_vram_alloc(int mtype, size_t size, unsigned long *paddr);
-extern void ti816x_set_sdram_vram(u32 size, u32 start);
+extern int ti81xx_vram_add_region(unsigned long paddr, size_t size);
+extern int ti81xx_vram_free(unsigned long paddr, void *vaddr, size_t size);
+extern int ti81xx_vram_alloc(int mtype, size_t size, unsigned long *paddr);
+extern void ti81xx_set_sdram_vram(u32 size, u32 start);
+extern void ti81xx_vram_get_info(unsigned long *vram,
+				 unsigned long *free_vram,
+				 unsigned long *largest_free_block);
 
 #endif
 

@@ -1,6 +1,6 @@
 /*
  *
- * external video encoders/HDMI transmitter header for TI 816X
+ * external video encoders/HDMI transmitter header for TI 81XX
  *
  * Copyright (C) 2009 TI
  * Author: Yihe Hu <yihehu@ti.com>
@@ -21,8 +21,8 @@
  * 59 Temple Place - Suite 330, Boston, MA	02111-1307, USA.
  */
 
-#ifndef __DRIVERS_VIDEO_TI816X_VPSS_VPS_VIDEOENCODER_H_
-#define __DRIVERS_VIDEO_TI816X_VPSS_VPS_VIDEOENCODER_H_
+#ifndef __DRIVERS_VIDEO_TI81XX_VPSS_VPS_VIDEOENCODER_H_
+#define __DRIVERS_VIDEO_TI81XX_VPSS_VPS_VIDEOENCODER_H_
 
 /**
   * \brief Get Chip ID
@@ -113,6 +113,8 @@ struct vps_videoencodercreateparams {
 	/**< input clock*/
 	u32  hdmihotplughpiointrline;
 	/**< HDMI hot plug GPIO interrupt line no */
+	u32  syncmode;
+	/**< HDMI sync mode */
 } ;
 
 

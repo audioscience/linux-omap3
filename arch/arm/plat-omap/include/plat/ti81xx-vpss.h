@@ -1,38 +1,35 @@
 /*
+ * arch/arm/plat-omap/include/plat/ti81xx-vpss.h
  *
- * Graphics internal header file for TI 816X VPSS
- *
- * Copyright (C) 2009 TI
+ * Copyright (C) 2010 Texas Instruments
  * Author: Yihe Hu <yihehu@ti.com>
  *
  * This program is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published by the
- * Free Software Foundation; either version 2 of the License, or (at your
- * option) any later version.
+ * under the terms of the GNU General Public License version 2 as published by
+ * the Free Software Foundation.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
  *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 59 Temple Place - Suite 330, Boston, MA	02111-1307, USA.
+ * You should have received a copy of the GNU General Public License along with
+ * this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __LINUX_GRPX_H__
-#define __LINUX_GRPX_H__
+#ifndef __ASM_ARCH_TI81XX_VPSS_H
+#define __ASM_ARCH_TI81XX_VPSS_H
 
-#ifdef __KERNEL__
+#include <linux/list.h>
+#include <linux/kobject.h>
+#include <linux/device.h>
 
-/* 2 extra lines output from scaler*/
-#define GRPX_SCALED_REGION_EXTRA_LINES      0x02
-/* 2 extra pixel output from scaler*/
-#define GRPX_SCALED_REGION_EXTRA_PIXES      0x02
-/* one line gap for the up scaled except first region*/
-#define GRPX_REGION_UP_SCALED_GAP           0x01
-/* two lines gap for the downscaled except first region*/
-#define GRPX_REGION_DOWN_SCALED_GAP         0x02
+#include <linux/vps_proxyserver.h>
+#include <linux/fvid2.h>
+#include <linux/vps.h>
+#include <linux/vps_displayctrl.h>
+#include <linux/vps_graphics.h>
+
 
 
 struct vps_grpx_state {
@@ -54,6 +51,8 @@ struct vps_grpx_ctrl{
 	u32                             grpx_num;
 	struct mutex                    gmutex;
 	struct list_head                list;
+	/*list of the all callback for vsync*/
+	struct list_head                cb_list;
 	/*fvid2 control handle*/
 	void                            *handle;
 	struct vps_grpx_state           gstate;
@@ -139,27 +138,17 @@ struct vps_grpx_ctrl{
 			 u32 *ptr, u32 *pitch);
 	int (*create)(struct vps_grpx_ctrl *gctrl);
 	int (*delete)(struct vps_grpx_ctrl *gctrl);
-
-	int (*register_vsync_cb)(struct vps_grpx_ctrl *gctrl,
-			       vsync_callback_t vcb, void *arg);
-	int (*unregister_vsync_cb)(struct vps_grpx_ctrl *gctrl);
-
+	int (*wait_for_vsync)(struct vps_grpx_ctrl *gctrl);
 	int (*start)(struct vps_grpx_ctrl *gctrl);
 	int (*stop)(struct vps_grpx_ctrl *gctrl);
 };
 
-static inline void grpx_lock(struct vps_grpx_ctrl *gctrl)
-{
-	mutex_lock(&gctrl->gmutex);
-}
-
-static inline void grpx_unlock(struct vps_grpx_ctrl *gctrl)
-{
-	mutex_unlock(&gctrl->gmutex);
-}
-
 int vps_grpx_get_num_grpx(void);
 struct vps_grpx_ctrl *vps_grpx_get_ctrl(int num);
 
-#endif
+int vps_grpx_register_isr(vsync_callback_t cb, void *arg, int idx);
+int vps_grpx_unregister_isr(vsync_callback_t cb, void *arg, int idx);
+
+
+
 #endif

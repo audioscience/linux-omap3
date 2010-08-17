@@ -1,5 +1,5 @@
 /*
- * linux/drivers/video/ti816x/ti816xfb/ti816xfb_sysfs.c
+ * linux/drivers/video/ti81xx/ti81xxfb/ti81xxfb_sysfs.c
  *
  * Copyright (C) 2009 Texas Instruments
  * Author: Yihe Hu <yihehu@ti.com>
@@ -25,7 +25,7 @@
 #include <linux/platform_device.h>
 #include <linux/kernel.h>
 #include <linux/dma-mapping.h>
-#include <linux/ti816xfb.h>
+#include <linux/ti81xxfb.h>
 
 #include "fbpriv.h"
 
@@ -34,7 +34,7 @@ static ssize_t show_size(struct device *dev,
 			 char *buf)
 {
 	struct fb_info *fbi = dev_get_drvdata(dev);
-	struct ti816xfb_info *tfbi = FB2TFB(fbi);
+	struct ti81xxfb_info *tfbi = FB2TFB(fbi);
 
 	return snprintf(buf, PAGE_SIZE, "%lu\n", tfbi->mreg.size);
 }
@@ -46,12 +46,12 @@ static ssize_t store_size(struct device *dev,
 			  size_t count)
 {
 	struct fb_info *fbi = dev_get_drvdata(dev);
-	struct ti816xfb_info *tfbi = FB2TFB(fbi);
+	struct ti81xxfb_info *tfbi = FB2TFB(fbi);
 	unsigned long size;
 	int r;
 
 	size = PAGE_ALIGN(simple_strtoul(buf, NULL, 0));
-	ti816xfb_lock(tfbi);
+	ti81xxfb_lock(tfbi);
 
 	/* FIX ME make sure that the FB is not actived,
 		or we can not change it*/
@@ -61,7 +61,7 @@ static ssize_t store_size(struct device *dev,
 		goto out;
 	}
 	if (size != tfbi->mreg.size) {
-		r = ti816xfb_realloc_fbmem(fbi, size);
+		r = ti81xxfb_realloc_fbmem(fbi, size);
 		if (r) {
 			dev_err(dev, "realloc fbmem failed\n");
 			goto out;
@@ -70,7 +70,7 @@ static ssize_t store_size(struct device *dev,
 
 	r = count;
 out:
-	ti816xfb_unlock(tfbi);
+	ti81xxfb_unlock(tfbi);
 
 	return r;
 }
@@ -80,7 +80,7 @@ static ssize_t show_phys(struct device *dev,
 			 char *buf)
 {
 	struct fb_info *fbi = dev_get_drvdata(dev);
-	struct ti816xfb_info *tfbi = FB2TFB(fbi);
+	struct ti81xxfb_info *tfbi = FB2TFB(fbi);
 
 	return snprintf(buf, PAGE_SIZE, "%0x\n", tfbi->mreg.paddr);
 }
@@ -90,27 +90,27 @@ static ssize_t show_virt(struct device *dev,
 			 char *buf)
 {
 	struct fb_info *fbi = dev_get_drvdata(dev);
-	struct ti816xfb_info *tfbi = FB2TFB(fbi);
+	struct ti81xxfb_info *tfbi = FB2TFB(fbi);
 
 	return snprintf(buf, PAGE_SIZE, "%p\n", tfbi->mreg.vaddr);
 }
 
-static struct device_attribute ti816xfb_attrs[] = {
+static struct device_attribute ti81xxfb_attrs[] = {
 	__ATTR(size, S_IRUGO | S_IWUSR, show_size, store_size),
 	__ATTR(phy_addr, S_IRUGO, show_phys, NULL),
 	__ATTR(virt_addr, S_IRUGO, show_virt, NULL),
 };
 
-int ti816xfb_create_sysfs(struct ti816xfb_device *fbdev)
+int ti81xxfb_create_sysfs(struct ti81xxfb_device *fbdev)
 {
 	int i;
 	int r;
 
 	for (i = 0; i < fbdev->num_fbs; i++) {
 		int t;
-		for (t = 0; t < ARRAY_SIZE(ti816xfb_attrs); t++) {
+		for (t = 0; t < ARRAY_SIZE(ti81xxfb_attrs); t++) {
 			r = device_create_file(fbdev->fbs[i]->dev,
-					&ti816xfb_attrs[t]);
+					&ti81xxfb_attrs[t]);
 
 			if (r) {
 				dev_err(fbdev->dev,
@@ -123,14 +123,14 @@ int ti816xfb_create_sysfs(struct ti816xfb_device *fbdev)
 	return 0;
 }
 
-void ti816xfb_remove_sysfs(struct ti816xfb_device *fbdev)
+void ti81xxfb_remove_sysfs(struct ti81xxfb_device *fbdev)
 {
 	int i, t;
 
 	for (i = 0; i < fbdev->num_fbs; i++) {
-		for (t = 0; t < ARRAY_SIZE(ti816xfb_attrs); t++)
+		for (t = 0; t < ARRAY_SIZE(ti81xxfb_attrs); t++)
 			device_remove_file(fbdev->fbs[i]->dev,
-					&ti816xfb_attrs[t]);
+					&ti81xxfb_attrs[t]);
 	}
 }
 

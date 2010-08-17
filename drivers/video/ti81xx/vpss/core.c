@@ -1,7 +1,7 @@
 /*
- * linux/drivers/video/ti816x/vpss/core.c
+ * linux/drivers/video/ti81xx/vpss/core.c
  *
- * VPSS Core driver for TI 816X
+ * VPSS Core driver for TI 81XX
  *
  * Copyright (C) 2009 TI
  * Author: Yihe Hu <yihehu@ti.com>
@@ -50,6 +50,7 @@ module_param_named(debug, vpss_debug, bool, 0644);
 
 static char *def_mode;
 static int def_tiedvencs;
+static char *def_clksrc;
 
 static int vps_probe(struct platform_device *pdev)
 {
@@ -64,35 +65,43 @@ static int vps_probe(struct platform_device *pdev)
 		VPSSERR("Failed to init fvid2 interface,\n");
 		goto exit0;
 	}
-#ifdef CONFIG_TI816X_VPSS_SII9022A
-	r = sii9022a_init(pdev);
+	r = vps_system_init(pdev);
 	if (r) {
-		VPSSERR("failed to init sii9022a.\n");
+		VPSSERR("failed to init system\n");
 		goto exit1;
 	}
 
+#ifdef CONFIG_TI81XX_VPSS_SII9022A
+	r = sii9022a_init(pdev);
+	if (r) {
+		VPSSERR("failed to init sii9022a.\n");
+		goto exit2;
+	}
+
 #endif
-	r = vps_dc_init(pdev, def_mode, def_tiedvencs);
+	r = vps_dc_init(pdev, def_mode, def_tiedvencs, def_clksrc);
 	if (r) {
 		VPSSERR("failed to int display controller.\n");
-		goto exit2;
+		goto exit3;
 	}
 	r = vps_grpx_init(pdev);
 	if (r) {
 		VPSSERR("failed to int graphics.\n");
-		goto exit3;
+		goto exit4;
 
 	}
 
 	return 0;
 
-exit3:
+exit4:
 	vps_dc_deinit(pdev);
 
-exit2:
-#ifdef CONFIG_TI816X_VPSS_SII9022A
+exit3:
+#ifdef CONFIG_TI81XX_VPSS_SII9022A
 	sii9022a_deinit(pdev);
+exit2:
 #endif
+	vps_system_deinit(pdev);
 exit1:
 	vps_fvid2_deinit(pdev);
 exit0:
@@ -110,30 +119,17 @@ static int vps_remove(struct platform_device *pdev)
 		VPSSERR("failed to remove display controller.\n");
 		return r;
 	}
-#ifdef CONFIG_TI816X_VPSS_SII9022A
+#ifdef CONFIG_TI81XX_VPSS_SII9022A
 	sii9022a_deinit(pdev);
 	if (r)
 		VPSSERR("failed to remove sii9022a.\n");
 #endif
+	vps_system_deinit(pdev);
 	vps_fvid2_deinit(pdev);
 
 	vps_sbuf_deinit();
 	return 0;
 }
-
-static void vps_device_release(struct device *dev)
-{
-}
-static u64 vps_core_dma_mask = ~(u32)0;
-static struct platform_device vps_device = {
-	.name = VPS_DRIVER_NAME,
-	.id = -1,
-	.dev = {
-		.release = vps_device_release,
-		.dma_mask		= &vps_core_dma_mask,
-		.coherent_dma_mask	= ~(u32)0,
-	},
-};
 
 static struct platform_driver vps_driver = {
 	.probe = vps_probe,
@@ -149,16 +145,9 @@ static int __init vps_init(void)
 	VPSSDBG("core init\n");
 
 	if (platform_driver_register(&vps_driver)) {
-		VPSSERR("failed to register ti816x-vpss driver\n");
+		VPSSERR("failed to register ti81xx-vpss driver\n");
 		return -ENODEV;
 	}
-
-	if (platform_device_register(&vps_device)) {
-		VPSSERR("failed to register ti816x_vps device\n");
-		platform_driver_unregister(&vps_driver);
-		return -ENODEV;
-	}
-
 	return 0;
 }
 
@@ -166,17 +155,16 @@ static void __exit vps_cleanup(void)
 {
 	VPSSDBG("core deinit\n");
 
-	platform_device_unregister(&vps_device);
 	platform_driver_unregister(&vps_driver);
 }
 
 module_param_named(mode, def_mode, charp, 0);
 module_param_named(tiedvencs, def_tiedvencs, int, 0664);
-
+module_param_named(clksrc, def_clksrc, charp, 0);
 subsys_initcall(vps_init);
 module_exit(vps_cleanup);
 
 
 MODULE_AUTHOR("Yihe Hu <yihehu@ti.com");
-MODULE_DESCRIPTION("TI816X Video Processing Subsystem");
+MODULE_DESCRIPTION("TI81XX Video Processing Subsystem");
 MODULE_LICENSE("GPL v2");

@@ -118,6 +118,13 @@
 /** \brief Index for frame address in case of progressive mode. */
 #define FVID2_FRAME_ADDR_IDX                    (0u)
 
+/** \brief Index for field mode address index. This is used in case of field
+ *  mode of operation as in field capture or in deinterlacing mode of
+ *  operation. In these cases both the even and odd field index is one and
+ *  the same. */
+#define FVID2_FIELD_MODE_ADDR_IDX       (0u)
+
+
 /** \brief Index for even field address in case of interlaced mode. */
 #define FVID2_FIELD_EVEN_ADDR_IDX               (FVID2_FIELD_TOP_ADDR_IDX)
 
@@ -334,6 +341,126 @@ enum fvid2_scanformat {
 	FVID2_SF_MAX
 	/**< Should be the last value of this enumeration.
 	  Will be used by driver for validating the input parameters. */
+};
+
+/**
+ *  \brief Video standards.
+ */
+enum  fvid2_standard {
+	FVID2_STD_NTSC = 0u,
+	/**< 720x480 30FPS interlaced NTSC standard. */
+	FVID2_STD_PAL,
+
+	/**< 720x576 30FPS interlaced PAL standard. */
+	FVID2_STD_480I,
+	/**< 720x480 30FPS interlaced SD standard. */
+	FVID2_STD_576I,
+	/**< 720x576 30FPS interlaced SD standard. */
+
+	FVID2_STD_CIF,
+	/**< Interlaced, 360x120 per field NTSC, 360x144 per field PAL. */
+	FVID2_STD_HALF_D1,
+	/**< Interlaced, 360x240 per field NTSC, 360x288 per field PAL. */
+	FVID2_STD_D1,
+	/**< Interlaced, 720x240 per field NTSC, 720x288 per field PAL. */
+
+	FVID2_STD_480P,
+	/**< 720x480 60FPS progressive ED standard. */
+	FVID2_STD_576P,
+	/**< 720x576 60FPS progressive ED standard. */
+
+	FVID2_STD_720P_60,
+	/**< 1280x720 60FPS progressive HD standard. */
+	FVID2_STD_720P_50,
+	/**< 1280x720 50FPS progressive HD standard. */
+
+	FVID2_STD_1080I_60,
+	/**< 1920x1080 30FPS interlaced HD standard. */
+	FVID2_STD_1080I_50,
+	/**< 1920x1080 50FPS interlaced HD standard. */
+
+	FVID2_STD_1080P_60,
+	/**< 1920x1080 60FPS progressive HD standard. */
+	FVID2_STD_1080P_50,
+	/**< 1920x1080 50FPS progressive HD standard. */
+
+	FVID2_STD_1080P_24,
+	/**< 1920x1080 24FPS progressive HD standard. */
+	FVID2_STD_1080P_30,
+	/**< 1920x1080 30FPS progressive HD standard. */
+
+	FVID2_STD_VGA_60,
+	/**< 640x480 60FPS VESA standard. */
+	FVID2_STD_VGA_72,
+	/**< 640x480 72FPS VESA standard. */
+	FVID2_STD_VGA_75,
+	/**< 640x480 75FPS VESA standard. */
+	FVID2_STD_VGA_85,
+	/**< 640x480 85FPS VESA standard. */
+
+	FVID2_STD_SVGA_60,
+	/**< 800x600 60FPS VESA standard. */
+	FVID2_STD_SVGA_72,
+	/**< 800x600 72FPS VESA standard. */
+	FVID2_STD_SVGA_75,
+	/**< 800x600 75FPS VESA standard. */
+	FVID2_STD_SVGA_85,
+	/**< 800x600 85FPS VESA standard. */
+
+	FVID2_STD_XGA_60,
+	/**< 1024x768 60FPS VESA standard. */
+	FVID2_STD_XGA_70,
+	/**< 1024x768 72FPS VESA standard. */
+	FVID2_STD_XGA_75,
+	/**< 1024x768 75FPS VESA standard. */
+	FVID2_STD_XGA_85,
+	/**< 1024x768 85FPS VESA standard. */
+
+	FVID2_STD_WXGA_60,
+	/**< 1280x768 60FPS VESA standard. */
+	FVID2_STD_WXGA_75,
+	/**< 1280x768 75FPS VESA standard. */
+	FVID2_STD_WXGA_85,
+	/**< 1280x768 85FPS VESA standard. */
+
+	FVID2_STD_SXGA_60,
+	/**< 1280x1024 60FPS VESA standard. */
+	FVID2_STD_SXGA_75,
+	/**< 1280x1024 75FPS VESA standard. */
+	FVID2_STD_SXGA_85,
+	/**< 1280x1024 85FPS VESA standard. */
+
+	FVID2_STD_SXGAP_60,
+	/**< 1400x1050 60FPS VESA standard. */
+	FVID2_STD_SXGAP_75,
+	/**< 1400x1050 75FPS VESA standard. */
+
+	FVID2_STD_UXGA_60,
+	/**< 1600x1200 60FPS VESA standard. */
+
+	FVID2_STD_MUX_2CH_D1,
+	/**< Interlaced, 2Ch D1, NTSC or PAL. */
+	FVID2_STD_MUX_4CH_D1,
+	/**< Interlaced, 4Ch D1, NTSC or PAL. */
+	FVID2_STD_MUX_4CH_CIF,
+	/**< Interlaced, 4Ch CIF, NTSC or PAL. */
+	FVID2_STD_MUX_4CH_HALF_D1,
+	/**< Interlaced, 4Ch Half-D1, NTSC or PAL. */
+	FVID2_STD_MUX_8CH_CIF,
+	/**< Interlaced, 8Ch CIF, NTSC or PAL. */
+	FVID2_STD_MUX_8CH_HALF_D1,
+	/**< Interlaced, 8Ch Half-D1, NTSC or PAL. */
+
+	FVID2_STD_AUTO_DETECT,
+	/**< Auto-detect standard. Used in capture mode. */
+	FVID2_STD_CUSTOM,
+	/**< Custom standard used when connecting to external LCD etc...
+	 The video timing is provided by the application.
+	 Used in display mode. */
+
+	FVID2_STD_MAX
+	/**< Should be the last value of this enumeration.
+	 Will be used by driver for validating the input parameters. */
 };
 
 /**
@@ -573,6 +700,10 @@ struct fvid2_framelist {
 	/**< Used by driver. Application should not modify this. */
 	void                       *reserved;
 	/**< For future use. Not used currently. Set this to NULL. */
+	void                       *appdata;
+	/**< Additional application parameter per frame. This is not modified by
+	     driver. */
+
 } ;
 
 /**

@@ -258,6 +258,14 @@ static struct omap_musb_board_data musb_board_data = {
 	.power			= 500,
 };
 
+static struct platform_device vpss_device = {
+	.name = "vpss",
+	.id = -1,
+	.dev = {
+		.platform_data = NULL,
+	},
+};
+
 static void __init ti8168_evm_init_irq(void)
 {
 	omap2_gp_clockevent_set_gptimer(2);
@@ -584,6 +592,16 @@ static void __init ti816x_nand_init(void)
 	}
 }
 
+static void __init ti816x_vpss_init(void)
+{
+	/*FIXME add platform data here*/
+
+	if (platform_device_register(&vpss_device))
+		printk(KERN_ERR "failed to register ti816x_vpss device\n");
+	else
+		printk(KERN_INFO "registered ti816x_vpss device \n");
+}
+
 #ifdef CONFIG_OMAP_MUX
 static struct omap_board_mux board_mux[] __initdata = {
 	{ .reg_offset = OMAP_MUX_TERMINATOR },
@@ -611,6 +629,7 @@ static void __init ti8168_evm_init(void)
 	ti816x_nor_init();
 	ti816x_spi_init();
 	ti816x_register_mcasp(0, &ti8168_evm_snd_data);
+	ti816x_vpss_init();
 
 #ifdef CONFIG_TI816X_ERRATA_AXI2OCP
 	/* FIXME: Move further up in initialization sequence */
@@ -632,7 +651,7 @@ MACHINE_START(TI8168_EVM, "ti8168evm")
 	.io_pg_offst	= ((0xfa000000) >> 18) & 0xfffc,
 	.boot_params	= 0x80000100,
 	.map_io		= ti8168_evm_map_io,
-	.reserve         = ti816x_reserve,
+	.reserve         = ti81xx_reserve,
 	.init_irq	 = ti8168_evm_init_irq,
 	.init_machine	= ti8168_evm_init,
 	.timer		= &omap_timer,

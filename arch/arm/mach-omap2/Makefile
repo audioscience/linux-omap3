@@ -76,7 +76,7 @@ obj-$(CONFIG_ARCH_OMAP3)		+= $(clock-common) clock3xxx.o \
 obj-$(CONFIG_ARCH_OMAP4)		+= $(clock-common) clock44xx_data.o \
 					   dpll3xxx.o
 obj-$(CONFIG_ARCH_TI816X)		+= $(clock-common) clock816x_data.o \
-								ti816x_fb.o
+								ti81xx_fb.o
 
 # OMAP2 clock rate set data (old "OPP" data)
 obj-$(CONFIG_ARCH_OMAP2420)		+= opp2420_data.o

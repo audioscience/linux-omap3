@@ -1,7 +1,7 @@
 /*
- * linux/drivers/video/ti816x/vpss/sbuf.c
+ * linux/drivers/video/ti81xx/vpss/sbuf.c
  *
- * VPSS shared buffer(A8 and M3) driver for TI 816X
+ * VPSS shared buffer(A8 and M3) driver for TI 81XX
  *
  * Copyright (C) 2009 TI
  * Author: Yihe Hu <yihehu@ti.com>
@@ -169,14 +169,20 @@ int __init vps_sbuf_init(void)
 	int r = 0;
 	int size;
 	VPSSDBG("sbuf init\n");
+	if (CONFIG_TI81XX_VPSS_SHARED_BUFFER_SIE == 0) {
+		VPSSERR("Shared buffer size can not be zero.\n");
+		r = -ENOMEM;
+		goto exit;
+	}
+
 	sbinfo = kzalloc(sizeof(struct sbuf_info), GFP_KERNEL);
 	if (sbinfo == NULL) {
 		VPSSERR("failed to allocate\n");
 		r = -ENOMEM;
 		goto exit;
 	}
-	size = CONFIG_TI816X_VPSS_SHARED_BUFFER_SIE * 1024;
-	sbinfo->base = ioremap_nocache(CONFIG_TI816X_VPSS_SHARED_BUFFER_BASE,
+	size = CONFIG_TI81XX_VPSS_SHARED_BUFFER_SIE * 1024;
+	sbinfo->base = ioremap_nocache(CONFIG_TI81XX_VPSS_SHARED_BUFFER_BASE,
 				       size);
 
 	if (sbinfo->base == NULL) {
@@ -186,7 +192,7 @@ int __init vps_sbuf_init(void)
 	}
 
 	sbinfo->vaddr = (void *)sbinfo->base;
-	sbinfo->paddr = CONFIG_TI816X_VPSS_SHARED_BUFFER_BASE;
+	sbinfo->paddr = CONFIG_TI81XX_VPSS_SHARED_BUFFER_BASE;
 	sbinfo->pages = PAGE_ALIGN(size) >> PAGE_SHIFT;
 	VPSSDBG("map %x to %p with size %x\n",
 		sbinfo->paddr,
@@ -211,7 +217,7 @@ int __exit vps_sbuf_deinit(void)
 					 next,
 					 &sbinfo->alloc_list,
 					 list)
-			sbuf_free_allocation(sba);
+		sbuf_free_allocation(sba);
 
 	}
 	if (sbinfo->base)

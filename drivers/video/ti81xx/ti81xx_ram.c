@@ -1,5 +1,5 @@
 /*
- * linux/arch/arm/plat-omap2/ti816x_vram.c
+ * linux/arch/arm/plat-omap2/ti81xx_vram.c
  *
  * Copyright (C) 2009 Texas Instruments Inc.
  * Author: Yihe Hu <yihehu@ti.com>
@@ -32,7 +32,7 @@
 #include <linux/lmb.h>
 #include <linux/debugfs.h>
 #include <linux/platform_device.h>
-#include <linux/ti816xfb.h>
+#include <linux/ti81xxfb.h>
 #include <asm/setup.h>
 
 #ifdef DEBUG
@@ -41,7 +41,7 @@
 #define DBG(format, ...)
 #endif
 
-#if defined(CONFIG_FB_TI816X) || defined(CONFIG_FB_TI816X_MODULE)
+#if defined(CONFIG_FB_TI81XX) || defined(CONFIG_FB_TI81XX_MODULE)
 
 /* postponed regions are used to temporarily store region information at boot
  * time when we cannot yet allocate the region list */
@@ -72,10 +72,10 @@ static LIST_HEAD(region_list);
 
 static inline int region_mem_type(unsigned long paddr)
 {
-	return TI816XFB_MEMTYPE_SDRAM;
+	return TI81XXFB_MEMTYPE_SDRAM;
 }
 
-static struct vram_region *ti816x_vram_create_region(unsigned long paddr,
+static struct vram_region *ti81xx_vram_create_region(unsigned long paddr,
 		void *vaddr, unsigned pages)
 {
 	struct vram_region *rm;
@@ -93,14 +93,14 @@ static struct vram_region *ti816x_vram_create_region(unsigned long paddr,
 }
 
 #if 0
-static void ti816x_vram_free_region(struct vram_region *vr)
+static void ti81xx_vram_free_region(struct vram_region *vr)
 {
 	list_del(&vr->list);
 	kfree(vr);
 }
 #endif
 
-static struct vram_alloc *ti816x_vram_create_allocation(struct vram_region *vr,
+static struct vram_alloc *ti81xx_vram_create_allocation(struct vram_region *vr,
 		unsigned long paddr, unsigned pages)
 {
 	struct vram_alloc *va;
@@ -124,13 +124,13 @@ static struct vram_alloc *ti816x_vram_create_allocation(struct vram_region *vr,
 	return new;
 }
 
-static void ti816x_vram_free_allocation(struct vram_alloc *va)
+static void ti81xx_vram_free_allocation(struct vram_alloc *va)
 {
 	list_del(&va->list);
 	kfree(va);
 }
 
-static __init int ti816x_vram_add_region_postponed(unsigned long paddr,
+static __init int ti81xx_vram_add_region_postponed(unsigned long paddr,
 								size_t size)
 {
 	if (postponed_cnt == MAX_POSTPONED_REGIONS)
@@ -141,7 +141,7 @@ static __init int ti816x_vram_add_region_postponed(unsigned long paddr,
 	return 0;
 }
 
-int ti816x_vram_add_region(unsigned long paddr, size_t size)
+int ti81xx_vram_add_region(unsigned long paddr, size_t size)
 {
 	struct vram_region *rm;
 	void *vaddr;
@@ -156,7 +156,7 @@ int ti816x_vram_add_region(unsigned long paddr, size_t size)
 	if (NULL == vaddr)
 		return -ENOMEM;
 
-	rm = ti816x_vram_create_region(paddr, vaddr, pages);
+	rm = ti81xx_vram_create_region(paddr, vaddr, pages);
 	if (rm == NULL) {
 		iounmap(vaddr);
 		return -ENOMEM;
@@ -166,7 +166,7 @@ int ti816x_vram_add_region(unsigned long paddr, size_t size)
 	return 0;
 }
 
-int ti816x_vram_free(unsigned long paddr, void *vaddr, size_t size)
+int ti81xx_vram_free(unsigned long paddr, void *vaddr, size_t size)
 {
 	struct vram_region *rm;
 	struct vram_alloc *alloc;
@@ -193,14 +193,14 @@ int ti816x_vram_free(unsigned long paddr, void *vaddr, size_t size)
 	return -EINVAL;
 
 found:
-	ti816x_vram_free_allocation(alloc);
+	ti81xx_vram_free_allocation(alloc);
 
 	mutex_unlock(&region_mutex);
 	return 0;
 }
-EXPORT_SYMBOL(ti816x_vram_free);
+EXPORT_SYMBOL(ti81xx_vram_free);
 
-static void *_ti816x_vram_alloc(int mtype, unsigned pages, unsigned long *paddr)
+static void *_ti81xx_vram_alloc(int mtype, unsigned pages, unsigned long *paddr)
 {
 	struct vram_region *rm;
 	struct vram_alloc *alloc;
@@ -232,7 +232,7 @@ found:
 
 		DBG("FOUND %lx, end %lx\n", start, end);
 
-		if (ti816x_vram_create_allocation(rm, start, pages) == NULL) {
+		if (ti81xx_vram_create_allocation(rm, start, pages) == NULL) {
 			pr_err("FB: failed to create allocation");
 			return NULL;
 		}
@@ -245,13 +245,13 @@ found:
 	return NULL;
 }
 
-void *ti816x_vram_alloc(int mtype, size_t size, unsigned long *paddr)
+void *ti81xx_vram_alloc(int mtype, size_t size, unsigned long *paddr)
 {
 	void *vaddr;
 	unsigned pages;
 
 
-	BUG_ON((mtype > TI816XFB_MEMTYPE_MAX) || (!size));
+	BUG_ON((mtype > TI81XXFB_MEMTYPE_MAX) || (!size));
 
 	DBG("alloc mem type %d size %d\n", mtype, size);
 
@@ -260,13 +260,51 @@ void *ti816x_vram_alloc(int mtype, size_t size, unsigned long *paddr)
 
 	mutex_lock(&region_mutex);
 
-	vaddr = _ti816x_vram_alloc(mtype, pages, paddr);
+	vaddr = _ti81xx_vram_alloc(mtype, pages, paddr);
 
 	mutex_unlock(&region_mutex);
 
 	return vaddr;
 }
-EXPORT_SYMBOL(ti816x_vram_alloc);
+EXPORT_SYMBOL(ti81xx_vram_alloc);
+
+void ti81xx_vram_get_info(unsigned long *vram,
+				 unsigned long *free_vram,
+				 unsigned long *largest_free_block)
+{
+	struct vram_region *rm;
+	struct vram_alloc *alloc;
+
+	*vram = 0;
+	*free_vram = 0;
+	*largest_free_block = 0;
+
+	mutex_lock(&region_mutex);
+
+	list_for_each_entry(rm, &region_list, list) {
+		unsigned free;
+		unsigned long pa;
+
+		pa = rm->paddr;
+		*vram += rm->pages << PAGE_SHIFT;
+
+		list_for_each_entry(alloc, &rm->alloc_list, list) {
+			free = alloc->paddr - pa;
+			*free_vram += free;
+			if (free > *largest_free_block)
+				*largest_free_block = free;
+			pa = alloc->paddr + (alloc->pages << PAGE_SHIFT);
+		}
+
+		free = rm->paddr + (rm->pages << PAGE_SHIFT) - pa;
+		*free_vram += free;
+		if (free > *largest_free_block)
+			*largest_free_block = free;
+	}
+
+	mutex_unlock(&region_mutex);
+}
+EXPORT_SYMBOL(ti81xx_vram_get_info);
 
 #if defined(CONFIG_DEBUG_FS)
 static int vram_debug_show(struct seq_file *s, void *unused)
@@ -308,7 +346,7 @@ static const struct file_operations vram_debug_fops = {
 	.release        = single_release,
 };
 
-static int __init ti816x_vram_create_debugfs(void)
+static int __init ti81xx_vram_create_debugfs(void)
 {
 	struct dentry *d;
 
@@ -321,70 +359,70 @@ static int __init ti816x_vram_create_debugfs(void)
 }
 #endif
 
-static __init int ti816x_vram_init(void)
+static __init int ti81xx_vram_init(void)
 {
 	int i;
 
 	for (i = 0; i < postponed_cnt; i++)
-		ti816x_vram_add_region(postponed_regions[i].paddr,
+		ti81xx_vram_add_region(postponed_regions[i].paddr,
 				postponed_regions[i].size);
 
 #ifdef CONFIG_DEBUG_FS
-	if (ti816x_vram_create_debugfs())
+	if (ti81xx_vram_create_debugfs())
 		printk(KERN_ERR "VRAM: Failed to create debugfs file\n");
 #endif
 
 	return 0;
 }
 
-arch_initcall(ti816x_vram_init);
+arch_initcall(ti81xx_vram_init);
 
 /* boottime vram alloc stuff */
 
 /* set from board file */
-static u32 ti816xfb_sdram_vram_start __initdata;
-static u32 ti816xfb_sdram_vram_size __initdata;
+static u32 ti81xxfb_sdram_vram_start __initdata;
+static u32 ti81xxfb_sdram_vram_size __initdata;
 
 /* set from kernel cmdline */
-static u32 ti816xfb_def_sdram_vram_size __initdata;
-static u32 ti816xfb_def_sdram_vram_start __initdata;
+static u32 ti81xxfb_def_sdram_vram_size __initdata;
+static u32 ti81xxfb_def_sdram_vram_start __initdata;
 
-static int __init ti816xfb_early_vram(char *p)
+static int __init ti81xxfb_early_vram(char *p)
 {
-	ti816xfb_def_sdram_vram_size = memparse(p, &p);
+	ti81xxfb_def_sdram_vram_size = memparse(p, &p);
 	if (*p == ',')
-		ti816xfb_def_sdram_vram_start = simple_strtoul(p + 1, &p, 16);
+		ti81xxfb_def_sdram_vram_start = simple_strtoul(p + 1, &p, 16);
 
 	printk(KERN_INFO "vram size = %d at %d\n",
-		ti816xfb_def_sdram_vram_size, ti816xfb_def_sdram_vram_start);
+		ti81xxfb_def_sdram_vram_size, ti81xxfb_def_sdram_vram_start);
 	return 0;
 }
-early_param("vram", ti816xfb_early_vram);
+early_param("vram", ti81xxfb_early_vram);
 
 /*
  * Called from map_io. We need to call to this early enough so that we
  * can reserve the fixed SDRAM regions before VM could get hold of them.
  */
-void __init ti816xfb_reserve_sdram_lmb(void)
+void __init ti81xxfb_reserve_sdram_lmb(void)
 {
 	u32 paddr;
 	u32 size = 0;
 	int i;
 
 	/* cmdline arg overrides the board file definition */
-	if (ti816xfb_def_sdram_vram_size) {
-		size = ti816xfb_def_sdram_vram_size;
-		paddr = ti816xfb_def_sdram_vram_start;
+	if (ti81xxfb_def_sdram_vram_size) {
+		size = ti81xxfb_def_sdram_vram_size;
+		paddr = ti81xxfb_def_sdram_vram_start;
 	}
 
 	if (!size) {
-		size = ti816xfb_sdram_vram_size;
-		paddr = ti816xfb_sdram_vram_start;
+		size = ti81xxfb_sdram_vram_size;
+		paddr = ti81xxfb_sdram_vram_start;
 	}
 
-#ifdef CONFIG_TI816X_VPSS_VRAM_SIZE
+#ifdef CONFIG_TI81XX_VPSS_VRAM_SIZE
 	if (!size) {
-		size = CONFIG_TI816X_VPSS_VRAM_SIZE * 1024 * 1024;
+		size = CONFIG_TI81XX_VPSS_VRAM_SIZE * 1024 * 1024;
 		paddr = 0;
 	}
 #endif
@@ -444,17 +482,17 @@ void __init ti816xfb_reserve_sdram_lmb(void)
 		}
 
 	}
-	ti816x_vram_add_region_postponed(paddr, size);
+	ti81xx_vram_add_region_postponed(paddr, size);
 	pr_info("FB: Reserving %u bytes SDRAM for VRAM\n", size);
 }
 
-void __init ti816x_set_sdram_vram(u32 size, u32 start)
+void __init ti81xx_set_sdram_vram(u32 size, u32 start)
 {
-	ti816xfb_sdram_vram_start = start;
-	ti816xfb_sdram_vram_size = size;
+	ti81xxfb_sdram_vram_start = start;
+	ti81xxfb_sdram_vram_size = size;
 
 	printk(KERN_INFO "board vram size = %d at %d\n",
-		ti816xfb_sdram_vram_size, ti816xfb_sdram_vram_start);
+		ti81xxfb_sdram_vram_size, ti81xxfb_sdram_vram_start);
 
 }
 

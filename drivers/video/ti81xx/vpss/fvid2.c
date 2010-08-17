@@ -1,7 +1,7 @@
 /*
- * linux/drivers/video/ti816x/vpss/fvid2.c
+ * linux/drivers/video/ti81xx/vpss/fvid2.c
  *
- * VPSS FVID2 driver for TI 816X
+ * VPSS FVID2 driver for TI 81XX
  *
  * Copyright (C) 2009 TI
  * Author: Yihe Hu <yihehu@ti.com>
@@ -29,9 +29,6 @@
 #include <linux/sched.h>
 #include <linux/dma-mapping.h>
 #include <linux/slab.h>
-#include <linux/vps_proxyserver.h>
-#include <linux/fvid2.h>
-#include <linux/vps.h>
 
 /* Syslink Module level headers */
 #include <ti/syslink/Std.h>
@@ -41,7 +38,7 @@
 #include "core.h"
 
 
-/*3GRPX + 1 DISPCTRL + HDMI */
+/*3GRPX + 1 DISPCTRL + HDMI + SYSTEM*/
 #define VPS_FVID2_NUM	  (5 + 4)
 
 struct vps_fvid2_ctrl {
@@ -79,7 +76,7 @@ static u32    vps_verparams_phy;
 #define VPS_FVID2_RESERVED_NOTIFY	0x09
 #define VPS_FVID2_M3_INIT_VALUE      (0xAAAAAAAA)
 #define VPS_FVID2_PS_LINEID          0
-#define CURRENT_VPS_FIRMWARE_VERSION        (0x01000118)
+#define CURRENT_VPS_FIRMWARE_VERSION        (0x01000121)
 
 static void vps_callback(u16 procid,
 		  u16 lineid,
@@ -90,8 +87,6 @@ static void vps_callback(u16 procid,
 	struct vps_psrvcallback *appcb;
 	struct vps_fvid2_ctrl *fctrl = (struct vps_fvid2_ctrl *)arg;
 
-	VPSSDBG("Recived No. %d event at line ID %d from processor %d\n",
-		eventno, lineid, procid);
 	/*perform all kinds of sanity check*/
 
 	if (payload == 0) {
@@ -215,6 +210,7 @@ static int vps_check_fvid2_ctrl(void *handle)
 	while ((fctrl->fcrprms->fvid2handle ==
 	    (void *)VPS_FVID2_M3_INIT_VALUE)) {
 		schedule();
+		/*FIXME use timeout*/
 		j++;
 	}
 
@@ -279,8 +275,8 @@ int vps_fvid2_delete(void *handle, void *deleteargs)
 
 		while ((fctrl->fdltprms->returnvalue ==
 			VPS_FVID2_M3_INIT_VALUE)) {
-
 			schedule();
+			/*FIXME use timeout*/
 			j++;
 		}
 
@@ -346,6 +342,7 @@ int vps_fvid2_control(void *handle,
 			VPS_FVID2_M3_INIT_VALUE) {
 
 			schedule();
+			/*FIXME use timeout*/
 			j++;
 		}
 	}
@@ -393,8 +390,8 @@ int vps_fvid2_queue(void *handle,
 	} else {
 		while (fctrl->fqprms->returnvalue ==
 			VPS_FVID2_M3_INIT_VALUE) {
-
 			schedule();
+			/*FIXME use timeout*/
 			j++;
 		}
 	}
@@ -446,8 +443,8 @@ int vps_fvid2_dequeue(void *handle,
 	} else {
 		while (fctrl->fdqprms->returnvalue ==
 			VPS_FVID2_M3_INIT_VALUE) {
-
 			schedule();
+			/*FIXME use timeout*/
 			j++;
 		}
 	}
@@ -533,50 +530,58 @@ static inline void assign_payload_addr(struct vps_fvid2_ctrl *fctrl,
 				       struct vps_payload_info *pinfo,
 				       u32 *buf_offset)
 {
-	u32 offset = *buf_offset;
 
 	/*assign the virt and phy address*/
+
 	fctrl->fcrprms = (struct  vps_psrvfvid2createparams *)
-				((u32)pinfo->vaddr + offset);
-	fctrl->fcrprms_phy = pinfo->paddr + offset;
-	offset += sizeof(struct vps_psrvfvid2createparams);
+			setaddr(pinfo,
+				buf_offset,
+				&fctrl->fcrprms_phy,
+				sizeof(struct vps_psrvfvid2createparams));
+
 
 	fctrl->fdltprms = (struct vps_psrvfvid2deleteparams *)
-				((u32)pinfo->vaddr + offset);
-	fctrl->fdltprms_phy = pinfo->paddr + offset;
-	offset += sizeof(struct vps_psrvfvid2deleteparams);
+			setaddr(pinfo,
+				buf_offset,
+				&fctrl->fdltprms_phy,
+				sizeof(struct vps_psrvfvid2deleteparams));
 
 	fctrl->fctrlprms = (struct vps_psrvfvid2controlparams *)
-				((u32)pinfo->vaddr + offset);
-	fctrl->fctrlprms_phy = pinfo->paddr + offset;
-	offset += sizeof(struct vps_psrvfvid2controlparams);
+			setaddr(pinfo,
+				buf_offset,
+				&fctrl->fctrlprms_phy,
+				sizeof(struct vps_psrvfvid2controlparams));
 
 	fctrl->fqprms = (struct vps_psrvfvid2queueparams *)
-				((u32)pinfo->vaddr + offset);
-	fctrl->fqprms_phy = pinfo->paddr + offset;
-	offset += sizeof(struct vps_psrvfvid2queueparams);
+			setaddr(pinfo,
+				buf_offset,
+				&fctrl->fqprms_phy,
+				sizeof(struct vps_psrvfvid2queueparams));
 
 	fctrl->fdqprms = (struct vps_psrvfvid2dequeueparams *)
-				((u32)pinfo->vaddr + offset);
-	fctrl->fdqprms_phy = pinfo->paddr + offset;
-	offset += sizeof(struct vps_psrvfvid2dequeueparams);
+			setaddr(pinfo,
+				buf_offset,
+				&fctrl->fdqprms_phy,
+				sizeof(struct vps_psrvfvid2dequeueparams));
 
 	fctrl->cbprms = (struct vps_psrvcallback *)
-				((u32)pinfo->vaddr + offset);
-	fctrl->cbprms_phy = pinfo->paddr + offset;
-	offset += sizeof(struct vps_psrvcallback);
+			setaddr(pinfo,
+				buf_offset,
+				&fctrl->cbprms_phy,
+				sizeof(struct vps_psrvcallback));
 
 	fctrl->ecbprms = (struct vps_psrverrorcallback *)
-				((u32)pinfo->vaddr + offset);
-	fctrl->ecbprms_phy = pinfo->paddr + offset;
-	offset += sizeof(struct vps_psrverrorcallback);
+			setaddr(pinfo,
+				buf_offset,
+				&fctrl->ecbprms_phy,
+				sizeof(struct vps_psrverrorcallback));
 
 	fctrl->cmdprms = (struct vps_psrvcommandstruct *)
-				((u32)pinfo->vaddr + offset);
-	fctrl->cmdprms_phy = pinfo->paddr + offset;
-	offset += sizeof(struct vps_psrvcommandstruct);
-	/*return*/
-	*buf_offset = offset;
+			setaddr(pinfo,
+				buf_offset,
+				&fctrl->cmdprms_phy,
+				sizeof(struct vps_psrvcommandstruct));
+
 }
 
 
@@ -591,7 +596,7 @@ int vps_fvid2_init(struct platform_device *pdev)
 
 	VPSSDBG("fvid2 init\n");
 
-	procid = MultiProc_getId("DSS");
+	procid = MultiProc_getId("VPSS-M3");
 	if (MultiProc_INVALIDID == procid) {
 		VPSSERR("failed to get the M3DSS processor ID.\n");
 		return -EINVAL;

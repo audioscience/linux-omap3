@@ -1,7 +1,7 @@
 /*
- * linux/drivers/video/ti816x/ti816xfb/ti816xfb_main.c
+ * linux/drivers/video/ti81xx/ti81xxfb/ti81xxfb_main.c
  *
- * Framebuffer driver for TI 816X
+ * Framebuffer driver for TI 81XX
  *
  * Copyright (C) 2009 Texas Instruments
  * Author: Yihe Hu(yihehu@ti.com)
@@ -35,12 +35,12 @@
 #include <linux/slab.h>
 #include <linux/platform_device.h>
 #include <linux/uaccess.h>
-#include <linux/ti816xfb.h>
-#include <plat/ti816x_ram.h>
+#include <linux/ti81xxfb.h>
+#include <plat/ti81xx_ram.h>
 
 #include "fbpriv.h"
 
-#define MODULE_NAME "ti816xfb"
+#define MODULE_NAME "ti81xxfb"
 
 /*the followign are defined to as the module or bootargs parameters */
 static char *def_vram;
@@ -53,20 +53,20 @@ module_param_named(debug, fb_debug, bool, 0644);
 #endif
 
 
-u32 ti816xfb_get_fb_paddr(struct ti816xfb_info *tfbi)
+u32 ti81xxfb_get_fb_paddr(struct ti81xxfb_info *tfbi)
 {
 	return tfbi->mreg.paddr;
 }
 
-void __iomem *ti816xfb_get_fb_vaddr(struct ti816xfb_info *tfbi)
+void __iomem *ti81xxfb_get_fb_vaddr(struct ti81xxfb_info *tfbi)
 {
 	return tfbi->mreg.vaddr;
 }
 
-static struct ti816xfb_datamode tfb_datamodes[] = {
+static struct ti81xxfb_datamode tfb_datamodes[] = {
 	{
 		.dataformat = FVID2_DF_RGB16_565,
-		.nonstd = 0, /*TI816XFB_RGB565,*/
+		.nonstd = 0, /*TI81XXFB_RGB565,*/
 		.red    = {.offset = 11, .length = 5, .msb_right = 0},
 		.green  = {.offset = 5,  .length = 6, .msb_right = 0},
 		.blue   = {.offset = 0,  .length = 5, .msb_right = 0},
@@ -74,7 +74,7 @@ static struct ti816xfb_datamode tfb_datamodes[] = {
 		.bpp    = 16,
 	}, {
 		.dataformat = FVID2_DF_ARGB16_1555,
-		.nonstd = 0,/*TI816XFB_ARGB1555,*/
+		.nonstd = 0,/*TI81XXFB_ARGB1555,*/
 		.red    = {.offset = 10, .length = 5, .msb_right = 0},
 		.green  = {.offset = 5,  .length = 5, .msb_right = 0},
 		.blue   = {.offset = 0,  .length = 5, .msb_right = 0},
@@ -83,7 +83,7 @@ static struct ti816xfb_datamode tfb_datamodes[] = {
 
 	}, {
 		.dataformat = FVID2_DF_ARGB16_4444,
-		.nonstd = 0,/*TI816XFB_ARGB4444,*/
+		.nonstd = 0,/*TI81XXFB_ARGB4444,*/
 		.red    = {.offset = 8,  .length = 4, .msb_right = 0},
 		.green  = {.offset = 4,  .length = 4, .msb_right = 0},
 		.blue   = {.offset = 0,  .length = 4, .msb_right = 0},
@@ -91,7 +91,7 @@ static struct ti816xfb_datamode tfb_datamodes[] = {
 		.bpp    = 16,
 	}, {
 		.dataformat = FVID2_DF_RGBA16_5551,
-		.nonstd = 0, /*TI816XFB_RGBA5551,*/
+		.nonstd = 0, /*TI81XXFB_RGBA5551,*/
 		.red    = {.offset = 11, .length = 5, .msb_right = 0},
 		.green  = {.offset = 6,  .length = 5, .msb_right = 0},
 		.blue   = {.offset = 1,  .length = 5, .msb_right = 0},
@@ -100,7 +100,7 @@ static struct ti816xfb_datamode tfb_datamodes[] = {
 
 	}, {
 		.dataformat = FVID2_DF_RGBA16_4444,
-		.nonstd = 0, /*TI816XFB_RGBA4444,*/
+		.nonstd = 0, /*TI81XXFB_RGBA4444,*/
 		.red    = {.offset = 12, .length = 4, .msb_right = 0},
 		.green  = {.offset = 8,  .length = 4, .msb_right = 0},
 		.blue   = {.offset = 4,  .length = 4, .msb_right = 0},
@@ -117,7 +117,7 @@ static struct ti816xfb_datamode tfb_datamodes[] = {
 		.bpp = 24,
 	}, {
 		.dataformat = FVID2_DF_RGB24_888,
-		.nonstd = 0, /*TI816XFB_RGB888,*/
+		.nonstd = 0, /*TI81XXFB_RGB888,*/
 		.red    = {.offset = 16, .length = 8, .msb_right = 0},
 		.green  = {.offset = 8,  .length = 8, .msb_right = 0},
 		.blue   = {.offset = 0,  .length = 8, .msb_right = 0},
@@ -125,7 +125,7 @@ static struct ti816xfb_datamode tfb_datamodes[] = {
 		.bpp = 24,
 	}, {
 		.dataformat = FVID2_DF_ARGB32_8888,
-		.nonstd = 0, /*TI816XFB_ARGB8888,*/
+		.nonstd = 0, /*TI81XXFB_ARGB8888,*/
 		.red    = {.offset = 16, .length = 8, .msb_right = 0},
 		.green  = {.offset = 8,  .length = 8, .msb_right = 0},
 		.blue   = {.offset = 0,  .length = 8, .msb_right = 0},
@@ -133,7 +133,7 @@ static struct ti816xfb_datamode tfb_datamodes[] = {
 		.bpp    = 32,
 	}, {
 		.dataformat = FVID2_DF_RGBA24_6666,
-		.nonstd = 0, /*TI816XFB_RGBA6666,*/
+		.nonstd = 0, /*TI81XXFB_RGBA6666,*/
 		.red    = {.offset = 18, .length = 6, .msb_right = 0},
 		.green  = {.offset = 12, .length = 6, .msb_right = 0},
 		.blue   = {.offset = 6,  .length = 6, .msb_right = 0},
@@ -141,7 +141,7 @@ static struct ti816xfb_datamode tfb_datamodes[] = {
 		.bpp    = 24,
 	}, {
 		.dataformat = FVID2_DF_RGBA32_8888,
-		.nonstd =  0, /*TI816XFB_RGBA8888,*/
+		.nonstd =  0, /*TI81XXFB_RGBA8888,*/
 		.red    = {.offset = 24, .length = 8, .msb_right = 0},
 		.green  = {.offset = 16, .length = 8, .msb_right = 0},
 		.blue   = {.offset = 8,  .length = 8, .msb_right = 0},
@@ -149,81 +149,81 @@ static struct ti816xfb_datamode tfb_datamodes[] = {
 		.bpp    = 32,
 	}, {
 		.dataformat = FVID2_DF_BITMAP8,
-		.nonstd = 0, /*TI816XFB_BMP8,*/
+		.nonstd = 0, /*TI81XXFB_BMP8,*/
 		.bpp    = 8,
 	}, {
 		.dataformat = FVID2_DF_BITMAP4_LOWER,
-		.nonstd = 0,/*TI816XFB_BMP4_L.*/
+		.nonstd = 0,/*TI81XXFB_BMP4_L.*/
 		.bpp = 4,
 	}, {
 		.dataformat = FVID2_DF_BITMAP4_UPPER,
-		.nonstd = TI816XFB_BMP4_U,
+		.nonstd = TI81XXFB_BMP4_U,
 		.bpp    = 4,
 	}, {
 		.dataformat = FVID2_DF_BITMAP2_OFFSET0,
-		.nonstd = 0, /*TI816XFB_BMP2_OFF0,*/
+		.nonstd = 0, /*TI81XXFB_BMP2_OFF0,*/
 		.bpp = 2,
 	}, {
 		.dataformat = FVID2_DF_BITMAP2_OFFSET1,
-		.nonstd = TI816XFB_BMP2_OFF1,
+		.nonstd = TI81XXFB_BMP2_OFF1,
 		.bpp = 2,
 	}, {
 		.dataformat = FVID2_DF_BITMAP2_OFFSET2,
-		.nonstd = TI816XFB_BMP2_OFF2,
+		.nonstd = TI81XXFB_BMP2_OFF2,
 		.bpp = 2,
 	}, {
 
 		.dataformat = FVID2_DF_BITMAP2_OFFSET3,
-		.nonstd = TI816XFB_BMP2_OFF3,
+		.nonstd = TI81XXFB_BMP2_OFF3,
 		.bpp = 2,
 	}, {
 		.dataformat = FVID2_DF_BITMAP1_OFFSET0,
-		.nonstd = 0, /*TI816XFB_BMP1_OFF0,*/
+		.nonstd = 0, /*TI81XXFB_BMP1_OFF0,*/
 		.bpp = 1,
 
 	}, {
 		.dataformat = FVID2_DF_BITMAP1_OFFSET1,
-		.nonstd = TI816XFB_BMP1_OFF1,
+		.nonstd = TI81XXFB_BMP1_OFF1,
 		.bpp = 1,
 
 	}, {
 		.dataformat = FVID2_DF_BITMAP1_OFFSET2,
-		.nonstd = TI816XFB_BMP1_OFF2,
+		.nonstd = TI81XXFB_BMP1_OFF2,
 		.bpp = 1,
 
 	}, {
 		.dataformat = FVID2_DF_BITMAP1_OFFSET3,
-		.nonstd = TI816XFB_BMP1_OFF3,
+		.nonstd = TI81XXFB_BMP1_OFF3,
 		.bpp = 1,
 
 	}, {
 		.dataformat = FVID2_DF_BITMAP1_OFFSET4,
-		.nonstd = TI816XFB_BMP1_OFF4,
+		.nonstd = TI81XXFB_BMP1_OFF4,
 		.bpp = 1,
 
 	}, {
 		.dataformat = FVID2_DF_BITMAP1_OFFSET5,
-		.nonstd = TI816XFB_BMP1_OFF5,
+		.nonstd = TI81XXFB_BMP1_OFF5,
 		.bpp = 1,
 
 	}, {
 		.dataformat = FVID2_DF_BITMAP1_OFFSET6,
-		.nonstd = TI816XFB_BMP1_OFF6,
+		.nonstd = TI81XXFB_BMP1_OFF6,
 		.bpp = 1,
 
 	}, {
 		.dataformat = FVID2_DF_BITMAP1_OFFSET6,
-		.nonstd = TI816XFB_BMP1_OFF6,
+		.nonstd = TI81XXFB_BMP1_OFF6,
 		.bpp = 1,
 	}, {
 		.dataformat = FVID2_DF_BITMAP1_OFFSET7,
-		.nonstd = TI816XFB_BMP1_OFF7,
+		.nonstd = TI81XXFB_BMP1_OFF7,
 		.bpp = 1,
 	},
 };
 
 static bool cmp_var_to_vpssmode(struct fb_var_screeninfo *var,
-		struct ti816xfb_datamode *dmode)
+		struct ti81xxfb_datamode *dmode)
 {
 	bool cmp_component(struct fb_bitfield *f1, struct fb_bitfield *f2)
 	{
@@ -246,7 +246,7 @@ static bool cmp_var_to_vpssmode(struct fb_var_screeninfo *var,
 }
 
 /*get the var from the predefine table*/
-static void get_tfb_datamode(struct ti816xfb_datamode *dmode,
+static void get_tfb_datamode(struct ti81xxfb_datamode *dmode,
 			struct fb_var_screeninfo *var)
 {
 	var->bits_per_pixel = dmode->bpp;
@@ -257,7 +257,7 @@ static void get_tfb_datamode(struct ti816xfb_datamode *dmode,
 	var->nonstd = dmode->nonstd;
 }
 
-/*get the ti816x vpss mode from fb var infor*/
+/*get the ti81xx vpss mode from fb var infor*/
 static enum fvid2_dataformat tfb_datamode_to_vpss_datamode(
 				struct fb_var_screeninfo *var)
 {
@@ -265,7 +265,7 @@ static enum fvid2_dataformat tfb_datamode_to_vpss_datamode(
 	enum fvid2_dataformat  df;
 	if (var->nonstd) {
 		for (i = 0; i < ARRAY_SIZE(tfb_datamodes); i++) {
-			struct ti816xfb_datamode *dmode = &tfb_datamodes[i];
+			struct ti81xxfb_datamode *dmode = &tfb_datamodes[i];
 			if (var->nonstd == dmode->nonstd) {
 				get_tfb_datamode(dmode, var);
 				return dmode->dataformat;
@@ -275,7 +275,7 @@ static enum fvid2_dataformat tfb_datamode_to_vpss_datamode(
 	}
 
 	for (i = 0; i < ARRAY_SIZE(tfb_datamodes); i++) {
-		struct ti816xfb_datamode *dmode = &tfb_datamodes[i];
+		struct ti81xxfb_datamode *dmode = &tfb_datamodes[i];
 		if (cmp_var_to_vpssmode(var, dmode)) {
 			get_tfb_datamode(dmode, var);
 			return dmode->dataformat;
@@ -313,7 +313,7 @@ static enum fvid2_dataformat tfb_datamode_to_vpss_datamode(
 	}
 
 	for (i = 0; i < ARRAY_SIZE(tfb_datamodes); i++) {
-		struct ti816xfb_datamode *dmode = &tfb_datamodes[i];
+		struct ti81xxfb_datamode *dmode = &tfb_datamodes[i];
 		if (df == dmode->dataformat) {
 			get_tfb_datamode(dmode, var);
 			return df;
@@ -322,13 +322,13 @@ static enum fvid2_dataformat tfb_datamode_to_vpss_datamode(
 	return -EINVAL;
 
 }
-/*get fb mode from ti816x data format*/
+/*get fb mode from ti81xx data format*/
 static int vpss_datamode_to_tfb_datamode(enum fvid2_dataformat df,
 					 struct fb_var_screeninfo *var)
 {
 	int i;
 	for (i = 0; i < ARRAY_SIZE(tfb_datamodes); i++) {
-		struct ti816xfb_datamode *dmode = &tfb_datamodes[i];
+		struct ti81xxfb_datamode *dmode = &tfb_datamodes[i];
 		if (df == dmode->dataformat) {
 			get_tfb_datamode(dmode, var);
 			return 0;
@@ -340,7 +340,7 @@ static int vpss_datamode_to_tfb_datamode(enum fvid2_dataformat df,
 static int check_fb_var(struct fb_info *fbi, struct fb_var_screeninfo *var)
 {
 	int				bpp;
-	struct ti816xfb_info		*tfbi = FB2TFB(fbi);
+	struct ti81xxfb_info		*tfbi = FB2TFB(fbi);
 	struct vps_grpxregionparams	regp;
 	struct vps_grpx_ctrl		*gctrl = tfbi->gctrl;
 	enum   fvid2_dataformat		df;
@@ -465,20 +465,20 @@ static void set_fb_fix(struct fb_info *fbi)
 {
 	struct fb_fix_screeninfo *fix = &fbi->fix;
 	struct fb_var_screeninfo *var = &fbi->var;
-	struct ti816xfb_info *tfbi = FB2TFB(fbi);
-	struct ti816xfb_mem_region *mreg = &tfbi->mreg;
+	struct ti81xxfb_info *tfbi = FB2TFB(fbi);
+	struct ti81xxfb_mem_region *mreg = &tfbi->mreg;
 	int bpp = var->bits_per_pixel;
 
 	TFBDBG("set_fb_fix\n");
 
 	/* init mem*/
-	fbi->screen_base = (char __iomem *) ti816xfb_get_fb_vaddr(tfbi);
+	fbi->screen_base = (char __iomem *) ti81xxfb_get_fb_vaddr(tfbi);
 	fix->line_length = (var->xres_virtual * bpp >> 3);
 	/*pitch should be in 16 byte boundary*/
 	if (fix->line_length & 0xF)
 		fix->line_length += 16 - (fix->line_length & 0xF);
 
-	fix->smem_start = ti816xfb_get_fb_paddr(tfbi);
+	fix->smem_start = ti81xxfb_get_fb_paddr(tfbi);
 	fix->smem_len = mreg->size;
 
 	fix->type = FB_TYPE_PACKED_PIXELS;
@@ -492,10 +492,10 @@ static void set_fb_fix(struct fb_info *fbi)
 
 }
 
-static int ti816xfb_grpx_delete(struct fb_info *fbi)
+static int ti81xxfb_grpx_delete(struct fb_info *fbi)
 {
 	int r = 0;
-	struct ti816xfb_info  *tfbi = FB2TFB(fbi);
+	struct ti81xxfb_info  *tfbi = FB2TFB(fbi);
 	struct vps_grpx_ctrl *gctrl = tfbi->gctrl;
 
 	if (tfbi->open_cnt > 1) {
@@ -508,18 +508,12 @@ static int ti816xfb_grpx_delete(struct fb_info *fbi)
 
 	TFBDBG("Closing fb%d\n", tfbi->idx);
 	if (gctrl->handle) {
-		if (gctrl->gstate.isstarted) {
-			r = vps_fvid2_stop(gctrl->handle, NULL);
-			if (r == 0)
-				gctrl->stop(gctrl);
-		}
-
+		r = gctrl->stop(gctrl);
 		if (r == 0) {
-			r = vps_fvid2_delete(gctrl->handle, NULL);
-			if (r == 0) {
-				gctrl->delete(gctrl);
+			r = gctrl->delete(gctrl);
+			if (!r)
 				tfbi->open_cnt = 0;
-			} else
+			else
 				dev_err(tfbi->fbdev->dev,
 					  "failed to delete fvid2 handle.\n");
 
@@ -530,10 +524,10 @@ static int ti816xfb_grpx_delete(struct fb_info *fbi)
 	}
 	return r;
 }
-static int ti816xfb_apply_changes(struct fb_info *fbi, int init)
+static int ti81xxfb_apply_changes(struct fb_info *fbi, int init)
 {
 	struct fb_var_screeninfo	*var = &fbi->var;
-	struct ti816xfb_info		*tfbi = FB2TFB(fbi);
+	struct ti81xxfb_info		*tfbi = FB2TFB(fbi);
 	struct vps_grpx_ctrl		*gctrl = tfbi->gctrl;
 	struct vps_grpxregionparams	regp;
 	enum   fvid2_dataformat		df;
@@ -564,7 +558,7 @@ static int ti816xfb_apply_changes(struct fb_info *fbi, int init)
 		offset = (var->xoffset * fbi->var.bits_per_pixel >> 3)
 				+ var->yoffset * fbi->fix.line_length;
 
-		buf_addr = ti816xfb_get_fb_paddr(tfbi) + offset;
+		buf_addr = ti81xxfb_get_fb_paddr(tfbi) + offset;
 
 		if ((regp.regionheight != var->yres) ||
 			(regp.regionwidth != var->xres)) {
@@ -590,13 +584,13 @@ static int ti816xfb_apply_changes(struct fb_info *fbi, int init)
 	return r;
 }
 
-static int ti816xfb_blank(int blank, struct fb_info *fbi)
+static int ti81xxfb_blank(int blank, struct fb_info *fbi)
 {
 	int r = 0;
-	struct ti816xfb_info *tfbi = FB2TFB(fbi);
+	struct ti81xxfb_info *tfbi = FB2TFB(fbi);
 	struct vps_grpx_ctrl *gctrl = tfbi->gctrl;
 
-	ti816xfb_lock(tfbi);
+	ti81xxfb_lock(tfbi);
 	switch (blank) {
 		/*FIX ME how to unblank the system*/
 	case FB_BLANK_UNBLANK:
@@ -612,26 +606,22 @@ static int ti816xfb_blank(int blank, struct fb_info *fbi)
 	case FB_BLANK_VSYNC_SUSPEND:
 	case FB_BLANK_HSYNC_SUSPEND:
 	case FB_BLANK_POWERDOWN:
-		if (tfbi->gctrl->gstate.isstarted == 0)
-			goto exit;
-		r = vps_fvid2_stop(tfbi->gctrl->handle, NULL);
-		if (r == 0)
-			gctrl->stop(gctrl);
+		r = gctrl->stop(gctrl);
 		break;
 	default:
 		r = -EINVAL;
 		break;
 	}
 exit:
-	ti816xfb_unlock(tfbi);
-	return 0;
+	ti81xxfb_unlock(tfbi);
+	return r;
 }
 
-static int ti816xfb_pan_display(struct fb_var_screeninfo *var,
+static int ti81xxfb_pan_display(struct fb_var_screeninfo *var,
 					  struct fb_info *fbi)
 {
 	int r = 0;
-	struct ti816xfb_info *tfbi = FB2TFB(fbi);
+	struct ti81xxfb_info *tfbi = FB2TFB(fbi);
 
 	TFBDBG("pan_display(%d)\n", tfbi->idx);
 
@@ -643,7 +633,7 @@ static int ti816xfb_pan_display(struct fb_var_screeninfo *var,
 	if (var->yoffset > (fbi->var.yres_virtual - fbi->var.yres))
 		return -EINVAL;
 
-	ti816xfb_lock(tfbi);
+	ti81xxfb_lock(tfbi);
 	if (var->xoffset != fbi->var.xoffset ||
 		var->yoffset != fbi->var.yoffset) {
 		struct fb_var_screeninfo new_var;
@@ -657,18 +647,18 @@ static int ti816xfb_pan_display(struct fb_var_screeninfo *var,
 		if (0 == r) {
 			fbi->var = new_var;
 			set_fb_fix(fbi);
-			r = ti816xfb_apply_changes(fbi, 0);
+			r = ti81xxfb_apply_changes(fbi, 0);
 		}
 	}
-	ti816xfb_unlock(tfbi);
+	ti81xxfb_unlock(tfbi);
 
 	return r;
 }
 
-static int ti816xfb_setcmap(struct fb_cmap *cmap, struct fb_info *fbi)
+static int ti81xxfb_setcmap(struct fb_cmap *cmap, struct fb_info *fbi)
 {
 	int				i, index, r = 0;
-	struct ti816xfb_info		*tfbi = FB2TFB(fbi);
+	struct ti81xxfb_info		*tfbi = FB2TFB(fbi);
 	struct vps_grpx_ctrl		*gctrl = tfbi->gctrl;
 	unsigned long			*palette = tfbi->vclut;
 	u16				*red, *green, *blue, *transp;
@@ -682,22 +672,22 @@ static int ti816xfb_setcmap(struct fb_cmap *cmap, struct fb_info *fbi)
 	transp	= cmap->transp;
 	index	= cmap->start;
 
-	if (cmap->len != TI816XFB_CLUT_ENTRY) {
+	if (cmap->len != TI81XXFB_CLUT_ENTRY) {
 		dev_err(tfbi->fbdev->dev, "can not set the CLUT\n");
 		return -EINVAL;
 	}
 
-	ti816xfb_lock(tfbi);
-	for (i = 0; i < TI816XFB_CLUT_ENTRY; i++) {
+	ti81xxfb_lock(tfbi);
+	for (i = 0; i < TI81XXFB_CLUT_ENTRY; i++) {
 		palette[i] =
-			(((*red++) & TI816XFB_CLUT_MASK) << 24) |
-			 (((*green++) & TI816XFB_CLUT_MASK) << 16) |
-			 (((*blue++) & TI816XFB_CLUT_MASK) << 8) |
-			 ((*transp++) & TI816XFB_CLUT_MASK);
+			(((*red++) & TI81XXFB_CLUT_MASK) << 24) |
+			 (((*green++) & TI81XXFB_CLUT_MASK) << 16) |
+			 (((*blue++) & TI81XXFB_CLUT_MASK) << 8) |
+			 ((*transp++) & TI81XXFB_CLUT_MASK);
 		index++;
 	}
 	/*only update if these is a new settings*/
-	if (memcmp(palette, tempclut, TI816XFB_CLUT_SIZE)) {
+	if (memcmp(palette, tempclut, TI81XXFB_CLUT_SIZE)) {
 		TFBDBG("clut not same ,set\n");
 		r = gctrl->set_clutptr(gctrl, (u32)tfbi->pclut);
 		if ((r == 0) && (gctrl->gstate.isstarted)) {
@@ -706,58 +696,57 @@ static int ti816xfb_setcmap(struct fb_cmap *cmap, struct fb_info *fbi)
 				(struct fvid2_framelist *)gctrl->frmls_phy,
 				0);
 		}
-		memcpy(tempclut, palette, TI816XFB_CLUT_SIZE);
+		memcpy(tempclut, palette, TI81XXFB_CLUT_SIZE);
 	}
 
-	ti816xfb_unlock(tfbi);
+	ti81xxfb_unlock(tfbi);
 	return r;
 }
 
 
-static int ti816xfb_check_var(struct fb_var_screeninfo *var,
+static int ti81xxfb_check_var(struct fb_var_screeninfo *var,
 					   struct fb_info *fbi)
 {
 	int r = 0;
-	struct ti816xfb_info *tfbi = FB2TFB(fbi);
+	struct ti81xxfb_info *tfbi = FB2TFB(fbi);
 
 	if (tfbi->mreg.size == 0)
 		return -EINVAL;
 
 	TFBDBG("check_var(%d)\n", FB2TFB(fbi)->idx);
 
-	ti816xfb_lock(tfbi);
+	ti81xxfb_lock(tfbi);
 	r = check_fb_var(fbi, var);
-	ti816xfb_unlock(tfbi);
+	ti81xxfb_unlock(tfbi);
 	return r;
 }
 
-static int ti816xfb_set_var(struct fb_info *fbi)
+static int ti81xxfb_set_var(struct fb_info *fbi)
 {
 	int r = 0;
-	struct ti816xfb_info *tfbi = FB2TFB(fbi);
+	struct ti81xxfb_info *tfbi = FB2TFB(fbi);
 
 	if (tfbi->mreg.size == 0)
 		return -EINVAL;
 
 	TFBDBG("set_var(%d)\n", tfbi->idx);
 
-	ti816xfb_lock(tfbi);
+	ti81xxfb_lock(tfbi);
 
 	set_fb_fix(fbi);
 
 	/*set the new fbi*/
-	r = ti816xfb_apply_changes(fbi, 0);
-	ti816xfb_unlock(tfbi);
+	r = ti81xxfb_apply_changes(fbi, 0);
+	ti81xxfb_unlock(tfbi);
 
 	return r;
 }
 
-static int ti816xfb_open(struct fb_info *fbi, int user)
+static int ti81xxfb_open(struct fb_info *fbi, int user)
 {
 	int r = 0;
-	struct ti816xfb_info		*tfbi = FB2TFB(fbi);
+	struct ti81xxfb_info		*tfbi = FB2TFB(fbi);
 	struct vps_grpx_ctrl		*gctrl = tfbi->gctrl;
-	u32				grpxinstid;
 
 
 	if (tfbi->mreg.size == 0) {
@@ -766,109 +755,65 @@ static int ti816xfb_open(struct fb_info *fbi, int user)
 		return -EINVAL;
 
 	}
-	ti816xfb_lock(tfbi);
+	ti81xxfb_lock(tfbi);
 
 	if (tfbi->open_cnt != 0) {
 		tfbi->open_cnt++;
-		ti816xfb_unlock(tfbi);
 		TFBDBG("Dummy open fb%d\n", tfbi->idx);
-		return 0;
+		goto exit;
 	}
 
 	TFBDBG("Opening fb%d\n", tfbi->idx);
-	if (r == 0) {
 
-		r = gctrl->create(gctrl);
+	r = gctrl->create(gctrl);
 
-		if (gctrl->grpx_num == 0)
-			grpxinstid = VPS_DISP_INST_GRPX0;
-		else if (gctrl->grpx_num == 1)
-			grpxinstid = VPS_DISP_INST_GRPX1;
-		else
-			grpxinstid = VPS_DISP_INST_GRPX2;
-
-		if (r == 0)
-			gctrl->handle = vps_fvid2_create(
-				FVID2_VPS_DISP_GRPX_DRV,
-				grpxinstid,
-				(void *)gctrl->gcp_phy,
-				(void *)gctrl->gcs_phy,
-				(struct fvid2_cbparams *)gctrl->cbp_phy);
-	}
-
-
-	if (gctrl->handle == NULL) {
+	if (r) {
 		dev_err(tfbi->fbdev->dev,
 			"fvid2 create failed.\n");
-		r = -EINVAL;
-	} else {
+		goto exit;
 
-		/*Set the format from fvid2 create function*/
-		if (r == 0)
-			r = vps_fvid2_setformat(gctrl->handle,
-					     (struct fvid2_format *)
-						gctrl->inputf_phy);
-		/*set the region params*/
-		if (r == 0)
-			r = vps_fvid2_control(gctrl->handle,
-					  IOCTL_VPS_SET_GRPX_PARAMS,
-					  (struct vps_grpxparamlist *)
-						gctrl->glist_phy,
-					   NULL);
-		/*queue buffer*/
-		if (r == 0) {
-			gctrl->set_buffer(gctrl,
-					  ti816xfb_get_fb_paddr(tfbi));
-			r = vps_fvid2_queue(gctrl->handle,
-					  (struct fvid2_framelist *)
-					     gctrl->frmls_phy,
-					  0);
-		}
-		/*start*/
-		if (r == 0)
-			r = vps_fvid2_start(gctrl->handle, NULL);
-
-		if (r == 0) {
-			gctrl->start(gctrl);
-			tfbi->open_cnt++;
-		} else {
-			/*fail to start the grpx, delete it and start over*/
-			dev_err(tfbi->fbdev->dev,
-				"failed to star.\n");
-
-			if (vps_fvid2_delete(gctrl->handle, NULL) == 0) {
-				gctrl->delete(gctrl);
-				gctrl->handle = NULL;
-			}
-		}
 	}
 
-	ti816xfb_unlock(tfbi);
+	gctrl->set_buffer(gctrl,
+			  ti81xxfb_get_fb_paddr(tfbi));
+	r = gctrl->start(gctrl);
+
+	if (r == 0)
+		tfbi->open_cnt++;
+	else {
+		/*fail to start the grpx, delete it and start over*/
+		dev_err(tfbi->fbdev->dev,
+			"failed to star.\n");
+		gctrl->delete(gctrl);
+	}
+
+exit:
+	ti81xxfb_unlock(tfbi);
 	/*FIX ME we allocate the page and tiler memory from here.
-	in the ti816x, DMM and make the isolated physical memory into
+	in the ti81xx, DMM and make the isolated physical memory into
 	continuous memory pace, so we do not need allocate the memory
 	at the boot time, we can allocate in the open time to save the memory*/
 
 	return r;
 }
-static int ti816xfb_release(struct fb_info *fbi, int user)
+static int ti81xxfb_release(struct fb_info *fbi, int user)
 {
 	int r = 0;
-	struct ti816xfb_info  *tfbi = FB2TFB(fbi);
+	struct ti81xxfb_info  *tfbi = FB2TFB(fbi);
 
 	/*FIXME in the page and tiler memory mode, the memory deallocate will be
 	done in this function.*/
-	ti816xfb_lock(tfbi);
-	r = ti816xfb_grpx_delete(fbi);
-	ti816xfb_unlock(tfbi);
+	ti81xxfb_lock(tfbi);
+	r = ti81xxfb_grpx_delete(fbi);
+	ti81xxfb_unlock(tfbi);
 	return r;
 }
 
-static int ti816xfb_mmap(struct fb_info *fbi, struct vm_area_struct *vma)
+static int ti81xxfb_mmap(struct fb_info *fbi, struct vm_area_struct *vma)
 {
-	struct ti816xfb_info		*tfbi = FB2TFB(fbi);
-	struct ti816xfb_device		*fbdev = tfbi->fbdev;
-	struct ti816xfb_alloc_list	*mem;
+	struct ti81xxfb_info		*tfbi = FB2TFB(fbi);
+	struct ti81xxfb_device		*fbdev = tfbi->fbdev;
+	struct ti81xxfb_alloc_list	*mem;
 	unsigned long			offset = vma->vm_pgoff << PAGE_SHIFT;
 	unsigned long			start;
 	u32				len;
@@ -883,7 +828,7 @@ static int ti816xfb_mmap(struct fb_info *fbi, struct vm_area_struct *vma)
 	if (offset < fbi->fix.smem_len) {
 		/* mapping framebuffer memory*/
 		len = fbi->fix.smem_len - offset;
-		start = ti816xfb_get_fb_paddr(tfbi);
+		start = ti81xxfb_get_fb_paddr(tfbi);
 		offset += start;
 		if (vma->vm_pgoff > (~0UL > PAGE_SHIFT))
 			return -EINVAL;
@@ -923,30 +868,30 @@ static int ti816xfb_mmap(struct fb_info *fbi, struct vm_area_struct *vma)
 }
 
 
-static struct fb_ops ti816xfb_ops = {
+static struct fb_ops ti81xxfb_ops = {
 	.owner = THIS_MODULE,
-	.fb_open = ti816xfb_open,
-	.fb_release = ti816xfb_release,
+	.fb_open = ti81xxfb_open,
+	.fb_release = ti81xxfb_release,
 	.fb_fillrect	= cfb_fillrect,
 	.fb_copyarea	= cfb_copyarea,
 	.fb_imageblit	= cfb_imageblit,
-	.fb_set_par = ti816xfb_set_var,
-	.fb_check_var = ti816xfb_check_var,
-	.fb_blank = ti816xfb_blank,
-	.fb_setcmap = ti816xfb_setcmap,
-	.fb_pan_display = ti816xfb_pan_display,
-	.fb_ioctl = ti816xfb_ioctl,
-	.fb_mmap = ti816xfb_mmap,
+	.fb_set_par = ti81xxfb_set_var,
+	.fb_check_var = ti81xxfb_check_var,
+	.fb_blank = ti81xxfb_blank,
+	.fb_setcmap = ti81xxfb_setcmap,
+	.fb_pan_display = ti81xxfb_pan_display,
+	.fb_ioctl = ti81xxfb_ioctl,
+	.fb_mmap = ti81xxfb_mmap,
 };
 
-static void ti816xfb_free_fbmem(struct fb_info *fbi)
+static void ti81xxfb_free_fbmem(struct fb_info *fbi)
 {
-	struct ti816xfb_info		*tfbi = FB2TFB(fbi);
-	struct ti816xfb_device		*fbdev = tfbi->fbdev;
-	struct ti816xfb_mem_region	*rg = &tfbi->mreg;
+	struct ti81xxfb_info		*tfbi = FB2TFB(fbi);
+	struct ti81xxfb_device		*fbdev = tfbi->fbdev;
+	struct ti81xxfb_mem_region	*rg = &tfbi->mreg;
 
 	if (rg->paddr) {
-		if (ti816x_vram_free(rg->paddr,
+		if (ti81xx_vram_free(rg->paddr,
 				 (void *)rg->vaddr,
 				 (size_t)rg->size))
 			dev_err(fbdev->dev, "VRAM FREE failed\n");
@@ -959,13 +904,13 @@ static void ti816xfb_free_fbmem(struct fb_info *fbi)
 
 }
 
-static int ti816xfb_free_allfbmem(struct ti816xfb_device *fbdev)
+static int ti81xxfb_free_allfbmem(struct ti81xxfb_device *fbdev)
 {
 	int i;
 
 	for (i = 0; i < fbdev->num_fbs; i++) {
 		struct fb_info *fbi = fbdev->fbs[i];
-		ti816xfb_free_fbmem(fbi);
+		ti81xxfb_free_fbmem(fbi);
 		memset(&fbi->fix, 0, sizeof(fbi->fix));
 		memset(&fbi->var, 0, sizeof(fbi->var));
 	}
@@ -974,11 +919,11 @@ static int ti816xfb_free_allfbmem(struct ti816xfb_device *fbdev)
 	return 0;
 }
 
-static int ti816xfb_alloc_fbmem(struct fb_info *fbi, unsigned long size)
+static int ti81xxfb_alloc_fbmem(struct fb_info *fbi, unsigned long size)
 {
-	struct ti816xfb_info	   *tfbi = FB2TFB(fbi);
-	struct ti816xfb_device     *fbdev = tfbi->fbdev;
-	struct ti816xfb_mem_region *rg = &tfbi->mreg;
+	struct ti81xxfb_info	   *tfbi = FB2TFB(fbi);
+	struct ti81xxfb_device     *fbdev = tfbi->fbdev;
+	struct ti81xxfb_mem_region *rg = &tfbi->mreg;
 	unsigned long		   paddr;
 	void			   *vaddr;
 
@@ -989,7 +934,7 @@ static int ti816xfb_alloc_fbmem(struct fb_info *fbi, unsigned long size)
 	TFBDBG("allocating %lu bytes for fb %d\n",
 		size, tfbi->idx);
 
-	vaddr = (void *)ti816x_vram_alloc(TI816XFB_MEMTYPE_SDRAM,
+	vaddr = (void *)ti81xx_vram_alloc(TI81XXFB_MEMTYPE_SDRAM,
 			(size_t)size, &paddr);
 
 	TFBDBG("allocated VRAM paddr %lx, vaddr %p\n", paddr, vaddr);
@@ -1008,22 +953,22 @@ static int ti816xfb_alloc_fbmem(struct fb_info *fbi, unsigned long size)
 	return 0;
 }
 
-static int ti816xfb_alloc_fbmem_display(struct fb_info *fbi, unsigned long size)
+static int ti81xxfb_alloc_fbmem_display(struct fb_info *fbi, unsigned long size)
 {
-	struct ti816xfb_info  *tfbi = FB2TFB(fbi);
+	struct ti81xxfb_info  *tfbi = FB2TFB(fbi);
 	struct vps_grpx_ctrl *gctrl = tfbi->gctrl;
 	if (!size) {
 
 		u32 width, height;
 		u8 scformat;
 		gctrl->get_resolution(gctrl, &width, &height, &scformat);
-		size = (width * height * TI816XFB_BPP >> 3) * 2;
+		size = (width * height * TI81XXFB_BPP >> 3) * 2;
 
 	}
-	return ti816xfb_alloc_fbmem(fbi, size);
+	return ti81xxfb_alloc_fbmem(fbi, size);
 }
 
-static int ti816xfb_parse_vram_param(const char *param, int max_entries,
+static int ti81xxfb_parse_vram_param(const char *param, int max_entries,
 		unsigned long *sizes)
 {
 	int		fbnum;
@@ -1069,14 +1014,14 @@ static int ti816xfb_parse_vram_param(const char *param, int max_entries,
 	return 0;
 }
 
-static int ti816xfb_allocate_fbs(struct ti816xfb_device *fbdev)
+static int ti81xxfb_allocate_fbs(struct ti81xxfb_device *fbdev)
 {
 	int i, r;
-	unsigned long vrams[TI816X_FB_NUM];
+	unsigned long vrams[TI81XX_FB_NUM];
 
 	memset(vrams, 0, sizeof(vrams));
 
-	if (def_vram && ti816xfb_parse_vram_param(def_vram, TI816X_FB_NUM,
+	if (def_vram && ti81xxfb_parse_vram_param(def_vram, TI81XX_FB_NUM,
 		 vrams)) {
 		dev_err(fbdev->dev,
 		"failed to parse vram parameters: %s\n", def_vram);
@@ -1085,7 +1030,7 @@ static int ti816xfb_allocate_fbs(struct ti816xfb_device *fbdev)
 	}
 
 	if (fbdev->dev->platform_data) {
-		struct ti816xfb_platform_data *npd;
+		struct ti81xxfb_platform_data *npd;
 		npd = fbdev->dev->platform_data;
 		for (i = 0; i < npd->mem_desc.region_cnt; ++i) {
 			if (!vrams[i])
@@ -1097,7 +1042,7 @@ static int ti816xfb_allocate_fbs(struct ti816xfb_device *fbdev)
 		/* allocate memory automatically only for fb0, or if
 		 * excplicitly defined with vram or plat data option */
 		if (i == 0 || vrams[i] != 0) {
-			r = ti816xfb_alloc_fbmem_display(fbdev->fbs[i],
+			r = ti81xxfb_alloc_fbmem_display(fbdev->fbs[i],
 					vrams[i]);
 
 			if (r)
@@ -1106,8 +1051,8 @@ static int ti816xfb_allocate_fbs(struct ti816xfb_device *fbdev)
 	}
 
 	for (i = 0; i < fbdev->num_fbs; i++) {
-		struct ti816xfb_info *tfbi = FB2TFB(fbdev->fbs[i]);
-		struct ti816xfb_mem_region *rg = &tfbi->mreg;
+		struct ti81xxfb_info *tfbi = FB2TFB(fbdev->fbs[i]);
+		struct ti81xxfb_mem_region *rg = &tfbi->mreg;
 
 		TFBDBG("region%d phys %08x virt %p size=%lu\n",
 				i,
@@ -1121,28 +1066,28 @@ static int ti816xfb_allocate_fbs(struct ti816xfb_device *fbdev)
 }
 
 
-int ti816xfb_realloc_fbmem(struct fb_info *fbi, unsigned long size)
+int ti81xxfb_realloc_fbmem(struct fb_info *fbi, unsigned long size)
 {
 
-	struct ti816xfb_info *tfbi = FB2TFB(fbi);
-	struct ti816xfb_device *fbdev = tfbi->fbdev;
-	struct ti816xfb_mem_region *rg = &tfbi->mreg;
+	struct ti81xxfb_info *tfbi = FB2TFB(fbi);
+	struct ti81xxfb_device *fbdev = tfbi->fbdev;
+	struct ti81xxfb_mem_region *rg = &tfbi->mreg;
 	unsigned long old_size = rg->size;
 	int r;
 
 	size = PAGE_ALIGN(size);
-	ti816xfb_free_fbmem(fbi);
+	ti81xxfb_free_fbmem(fbi);
 	if (size == 0) {
 		memset(&fbi->fix, 0, sizeof(fbi->fix));
 		memset(&fbi->var, 0, sizeof(fbi->var));
 		return 0;
 	}
 
-	r = ti816xfb_alloc_fbmem(fbi, size);
+	r = ti81xxfb_alloc_fbmem(fbi, size);
 
 	if (r) {
 		if (old_size)
-			ti816xfb_alloc_fbmem(fbi, old_size);
+			ti81xxfb_alloc_fbmem(fbi, old_size);
 
 		if (rg->size == 0) {
 			memset(&fbi->fix, 0, sizeof(fbi->fix));
@@ -1157,14 +1102,14 @@ int ti816xfb_realloc_fbmem(struct fb_info *fbi, unsigned long size)
 
 	if (old_size == 0) {
 		TFBDBG("initializing fb %d\n", tfbi->idx);
-		r = ti816xfb_fbinfo_init(fbdev, fbi);
+		r = ti81xxfb_fbinfo_init(fbdev, fbi);
 		if (r) {
-			TFBDBG("ti816xfb_fbinfo_init failed\n");
+			TFBDBG("ti81xxfb_fbinfo_init failed\n");
 			goto err;
 		}
-		r = ti816xfb_apply_changes(fbi, 1);
+		r = ti81xxfb_apply_changes(fbi, 1);
 		if (r) {
-			TFBDBG("ti816xfb_apply_changes failed\n");
+			TFBDBG("ti81xxfb_apply_changes failed\n");
 			goto err;
 		}
 	} else {
@@ -1179,14 +1124,14 @@ int ti816xfb_realloc_fbmem(struct fb_info *fbi, unsigned long size)
 
 	return 0;
 err:
-	ti816xfb_free_fbmem(fbi);
+	ti81xxfb_free_fbmem(fbi);
 	memset(&fbi->fix, 0, sizeof(fbi->fix));
 	memset(&fbi->var, 0, sizeof(fbi->var));
 	return r;
 }
 
 
-static void fbi_framebuffer_unreg(struct ti816xfb_device *fbdev)
+static void fbi_framebuffer_unreg(struct ti81xxfb_device *fbdev)
 {
 	int i;
 
@@ -1194,14 +1139,14 @@ static void fbi_framebuffer_unreg(struct ti816xfb_device *fbdev)
 		unregister_framebuffer(fbdev->fbs[i]);
 }
 
-static int ti816xfb_alloc_clut(struct ti816xfb_device *fbdev,
+static int ti81xxfb_alloc_clut(struct ti81xxfb_device *fbdev,
 			       struct fb_info *fbi)
 {
-	struct ti816xfb_info *tfbi = FB2TFB(fbi);
+	struct ti81xxfb_info *tfbi = FB2TFB(fbi);
 
 	/*allocate CLUT */
 	tfbi->vclut = dma_alloc_writecombine(fbdev->dev,
-			TI816XFB_CLUT_SIZE, &tfbi->pclut, GFP_KERNEL);
+			TI81XXFB_CLUT_SIZE, &tfbi->pclut, GFP_KERNEL);
 	if (NULL == tfbi->vclut) {
 		dev_err(fbdev->dev, "failed to alloca pallette memory.\n");
 		return -ENOMEM;
@@ -1209,19 +1154,19 @@ static int ti816xfb_alloc_clut(struct ti816xfb_device *fbdev,
 	return 0;
 }
 
-int ti816xfb_fbinfo_init(struct ti816xfb_device *fbdev,
+int ti81xxfb_fbinfo_init(struct ti81xxfb_device *fbdev,
 			struct fb_info *fbi)
 {
 	struct fb_var_screeninfo	*var = &fbi->var;
 	struct fb_fix_screeninfo	*fix = &fbi->fix;
-	struct ti816xfb_info		*tfbi = FB2TFB(fbi);
+	struct ti81xxfb_info		*tfbi = FB2TFB(fbi);
 	struct vps_grpx_ctrl		*gctrl = tfbi->gctrl;
 	u32				w, h;
 	u8				scfmt;
 
 	int r = 0;
 
-	fbi->fbops = &ti816xfb_ops;
+	fbi->fbops = &ti81xxfb_ops;
 	fbi->flags = FBINFO_FLAG_DEFAULT;
 	strncpy(fix->id, MODULE_NAME, sizeof(fix->id));
 	fbi->pseudo_palette = tfbi->pseudo_palette;
@@ -1250,34 +1195,34 @@ int ti816xfb_fbinfo_init(struct ti816xfb_device *fbdev,
 }
 
 
-static void free_clut_ram(struct ti816xfb_device *fbdev, struct fb_info *fbi)
+static void free_clut_ram(struct ti81xxfb_device *fbdev, struct fb_info *fbi)
 {
-	struct ti816xfb_info *tfbi = FB2TFB(fbi);
+	struct ti81xxfb_info *tfbi = FB2TFB(fbi);
 	if (tfbi->vclut)
-		dma_free_writecombine(fbdev->dev, TI816XFB_CLUT_SIZE,
+		dma_free_writecombine(fbdev->dev, TI81XXFB_CLUT_SIZE,
 				     tfbi->vclut, tfbi->pclut);
 	tfbi->vclut = NULL;
 	tfbi->pclut = 0;
 }
 
-static void ti816xfb_fbinfo_cleanup(struct ti816xfb_device *fbdev,
+static void ti81xxfb_fbinfo_cleanup(struct ti81xxfb_device *fbdev,
 				   struct fb_info *fbi)
 {
 	fb_dealloc_cmap(&fbi->cmap);
 }
 
 
-static void ti816xfb_fb_cleanup(struct ti816xfb_device *fbdev)
+static void ti81xxfb_fb_cleanup(struct ti81xxfb_device *fbdev)
 {
 	int i;
 	for (i = 0; i < fbdev->num_fbs; i++) {
-		ti816xfb_fbinfo_cleanup(fbdev, fbdev->fbs[i]);
+		ti81xxfb_fbinfo_cleanup(fbdev, fbdev->fbs[i]);
 		free_clut_ram(fbdev, fbdev->fbs[i]);
 		framebuffer_release(fbdev->fbs[i]);
 	}
 }
 
-static void ti816xfb_free_all(struct ti816xfb_device *fbdev)
+static void ti81xxfb_free_all(struct ti81xxfb_device *fbdev)
 {
 	TFBDBG("free all resources.\n");
 
@@ -1288,29 +1233,29 @@ static void ti816xfb_free_all(struct ti816xfb_device *fbdev)
 	fbi_framebuffer_unreg(fbdev);
 
 	/* free the frame buffer memory */
-	ti816xfb_free_allfbmem(fbdev);
+	ti81xxfb_free_allfbmem(fbdev);
 	/* free the fbi and release framebuffer*/
-	ti816xfb_fb_cleanup(fbdev);
+	ti81xxfb_fb_cleanup(fbdev);
 	dev_set_drvdata(fbdev->dev, NULL);
 	/* free the device*/
 	kfree(fbdev);
 
 }
 
-static int ti816xfb_create_framebuffers(struct ti816xfb_device *fbdev)
+static int ti81xxfb_create_framebuffers(struct ti81xxfb_device *fbdev)
 {
 	int i, r;
 
 	fbdev->num_fbs = 0;
-	TFBDBG("create %d fbs\n", CONFIG_FB_TI816X_NUM_FBS);
+	TFBDBG("create %d fbs\n", CONFIG_FB_TI81XX_NUM_FBS);
 
 	/* allocate fb_info */
-	for (i = 0; i < CONFIG_FB_TI816X_NUM_FBS; i++) {
+	for (i = 0; i < CONFIG_FB_TI81XX_NUM_FBS; i++) {
 
 		struct fb_info *fbi;
-		struct ti816xfb_info *tfbi;
+		struct ti81xxfb_info *tfbi;
 
-		fbi = framebuffer_alloc(sizeof(struct ti816xfb_info),
+		fbi = framebuffer_alloc(sizeof(struct ti81xxfb_info),
 			fbdev->dev);
 		if (NULL == fbi) {
 			dev_err(fbdev->dev,
@@ -1324,9 +1269,6 @@ static int ti816xfb_create_framebuffers(struct ti816xfb_device *fbdev)
 		INIT_LIST_HEAD(&tfbi->alloc_list);
 		mutex_init(&tfbi->rqueue_mutex);
 
-		/*initialize the vsync wait queue*/
-		init_waitqueue_head(&tfbi->vsync_wait);
-		tfbi->vsync_cnt = 0;
 		tfbi->open_cnt = 0;
 		fbdev->num_fbs++;
 		/*FIX ME anything to assign here????*/
@@ -1338,13 +1280,13 @@ static int ti816xfb_create_framebuffers(struct ti816xfb_device *fbdev)
 
 	/* assign grpx ctrl for the fbs*/
 	for (i = 0; i < min(fbdev->num_fbs, fbdev->num_grpx); i++) {
-		struct ti816xfb_info *tfbi = FB2TFB(fbdev->fbs[i]);
+		struct ti81xxfb_info *tfbi = FB2TFB(fbdev->fbs[i]);
 
 		tfbi->gctrl = fbdev->gctrl[i];
 	}
 
 	/* allocate frame buffer memory*/
-	r = ti816xfb_allocate_fbs(fbdev);
+	r = ti81xxfb_allocate_fbs(fbdev);
 	if (r) {
 		dev_err(fbdev->dev, "failed to allocate fb memory.\n");
 		return r;
@@ -1353,7 +1295,7 @@ static int ti816xfb_create_framebuffers(struct ti816xfb_device *fbdev)
 	TFBDBG("fb memory allocated.\n");
 
 	for (i = 0; i < fbdev->num_fbs; i++) {
-		r = ti816xfb_alloc_clut(fbdev, fbdev->fbs[i]);
+		r = ti81xxfb_alloc_clut(fbdev, fbdev->fbs[i]);
 		if (r) {
 			dev_err(fbdev->dev,
 				"failed to allocate clut memory.\n");
@@ -1365,7 +1307,7 @@ static int ti816xfb_create_framebuffers(struct ti816xfb_device *fbdev)
 
 	/*setup fbs*/
 	for (i = 0; i < fbdev->num_fbs; i++) {
-		r = ti816xfb_fbinfo_init(fbdev, fbdev->fbs[i]);
+		r = ti81xxfb_fbinfo_init(fbdev, fbdev->fbs[i]);
 		if (r != 0) {
 			dev_err(fbdev->dev, "fbinfo %d init failed.\n", i);
 			return r;
@@ -1385,14 +1327,14 @@ static int ti816xfb_create_framebuffers(struct ti816xfb_device *fbdev)
 	TFBDBG("framebuffers registered\n");
 
 	for (i = 0; i < fbdev->num_fbs; i++) {
-		r = ti816xfb_apply_changes(fbdev->fbs[i], 1);
+		r = ti81xxfb_apply_changes(fbdev->fbs[i], 1);
 		if (r) {
 			dev_err(fbdev->dev, "failed to change mode\n");
 			return r;
 		}
 	}
 
-	r = ti816xfb_create_sysfs(fbdev);
+	r = ti81xxfb_create_sysfs(fbdev);
 	if (r) {
 		dev_err(fbdev->dev, "failed to create sysfs entries\n");
 		return r;
@@ -1403,7 +1345,7 @@ static int ti816xfb_create_framebuffers(struct ti816xfb_device *fbdev)
 }
 
 #if 0
-static int ti816xfb_parse_def_modes(struct ti816xfb_device *fbdev)
+static int ti81xxfb_parse_def_modes(struct ti81xxfb_device *fbdev)
 
 {
 	char *str, *options, *this_opt;
@@ -1450,9 +1392,9 @@ static int ti816xfb_parse_def_modes(struct ti816xfb_device *fbdev)
 
 }
 #endif
-static int ti816xfb_probe(struct platform_device *dev)
+static int ti81xxfb_probe(struct platform_device *dev)
 {
-	struct ti816xfb_device  *fbdev = NULL;
+	struct ti81xxfb_device  *fbdev = NULL;
 	int r = 0;
 	int i = 0;
 	int t;
@@ -1469,7 +1411,7 @@ static int ti816xfb_probe(struct platform_device *dev)
 		goto cleanup;
 	}
 
-	fbdev = kzalloc(sizeof(struct ti816xfb_device), GFP_KERNEL);
+	fbdev = kzalloc(sizeof(struct ti81xxfb_device), GFP_KERNEL);
 	if (NULL == fbdev) {
 		dev_err(&dev->dev, "unable to allocate memory for device\n");
 		r = -ENOMEM;
@@ -1499,39 +1441,39 @@ static int ti816xfb_probe(struct platform_device *dev)
 		goto cleanup;
 	}
 
-	r = ti816xfb_create_framebuffers(fbdev);
+	r = ti81xxfb_create_framebuffers(fbdev);
 	if (0 != r)
 		goto cleanup;
 
 	return 0;
 
 cleanup:
-	ti816xfb_free_all(fbdev);
+	ti81xxfb_free_all(fbdev);
 	return r;
 }
 
-static int ti816xfb_remove(struct platform_device *dev)
+static int ti81xxfb_remove(struct platform_device *dev)
 {
-	struct ti816xfb_device *fbdev = platform_get_drvdata(dev);
+	struct ti81xxfb_device *fbdev = platform_get_drvdata(dev);
 	int i;
 	/*make sure all fb has been closed*/
 	for (i = 0; i < fbdev->num_fbs; i++) {
-		struct ti816xfb_info *tfbi = FB2TFB(fbdev->fbs[i]);
+		struct ti81xxfb_info *tfbi = FB2TFB(fbdev->fbs[i]);
 		if (tfbi->open_cnt) {
 			tfbi->open_cnt = 1;
-			ti816xfb_grpx_delete(fbdev->fbs[i]);
+			ti81xxfb_grpx_delete(fbdev->fbs[i]);
 		}
 	}
 	TFBDBG("remove sysfs for fbs.\n");
-	ti816xfb_remove_sysfs(fbdev);
-	ti816xfb_free_all(fbdev);
+	ti81xxfb_remove_sysfs(fbdev);
+	ti81xxfb_free_all(fbdev);
 	return 0;
 }
 
 
-static struct platform_driver ti816xfb_driver = {
-	.probe = ti816xfb_probe,
-	.remove = ti816xfb_remove,
+static struct platform_driver ti81xxfb_driver = {
+	.probe = ti81xxfb_probe,
+	.remove = ti81xxfb_remove,
 	.driver = {
 		.name = MODULE_NAME,
 		.owner = THIS_MODULE,
@@ -1539,30 +1481,30 @@ static struct platform_driver ti816xfb_driver = {
 };
 
 
-static int __init ti816xfb_init(void)
+static int __init ti81xxfb_init(void)
 {
 
-	TFBDBG("ti816xfb_init\n");
-	if (platform_driver_register(&ti816xfb_driver)) {
-		printk(KERN_ERR "failed to register ti816xfb driver\n");
+	TFBDBG("ti81xxfb_init\n");
+	if (platform_driver_register(&ti81xxfb_driver)) {
+		printk(KERN_ERR "failed to register ti81xxfb driver\n");
 		return -ENODEV;
 	}
 	return 0;
 }
 
 
-static void __exit ti816xfb_exit(void)
+static void __exit ti81xxfb_exit(void)
 {
-	platform_driver_unregister(&ti816xfb_driver);
+	platform_driver_unregister(&ti81xxfb_driver);
 }
 
 module_param_named(vram, def_vram, charp, 0);
 module_param_named(mmode, fb_mmode, int, 0664);
 /*module_param_named(mode, def_mode, charp, 0);*/
 
-late_initcall(ti816xfb_init);
-module_exit(ti816xfb_exit);
+late_initcall(ti81xxfb_init);
+module_exit(ti81xxfb_exit);
 
-MODULE_DESCRIPTION("TI TI816X framebuffer driver");
+MODULE_DESCRIPTION("TI TI81XX framebuffer driver");
 MODULE_AUTHOR("Yihe HU<yihehu@ti.com>");
 MODULE_LICENSE("GPL v2");

@@ -43,6 +43,9 @@
 /** \brief Driver ID base for video  encoder driver class. */
 #define VPS_VID_ENC_DRV_BASE            (0x00000500u)
 
+/** \brief Driver ID base for platform driver class. */
+#define VPS_VID_SYSTEM_DRV_BASE         (0x00000600u)
+
 /** \brief Driver ID base for the custom/user driver class. */
 #define VPS_USER_DRV_BASE               (0x00001000u)
 
@@ -64,6 +67,10 @@
 /** \brief DEI HQ/MQ M2M driver ID used at the time of FVID2 create. */
 #define FVID2_VPS_M2M_DEI_DRV           (VPS_M2M_DRV_BASE + 0x00000002u)
 
+/** \brief Blender based M2M driver ID used at the time of FVID2 create. */
+#define FVID2_VPS_M2M_BLEND_DRV         (VPS_BLEND_DRV_BASE + 0x00000000u)
+
+
 /*
  *  IOCTLs Base address.
  */
@@ -84,6 +91,8 @@
 #define VPS_VID_DEC_IOCTL_BASE           (FVID2_USER_BASE + 0x00060000u)
 /** \brief IOCTL base address for the video  encoder driver IOCTLs. */
 #define VPS_VID_ENC_IOCTL_BASE          (FVID2_USER_BASE + 0x00070000u)
+/** \brief IOCTL base address for the video  platform driver IOCTLs. */
+#define VPS_VID_SYSTEM_IOCTL_BASE       (FVID2_USER_BASE + 0x00080000u)
 
 /**
  *  \brief IOCTL base address for the advanced debug capabilities.

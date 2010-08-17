@@ -131,52 +131,29 @@
 
 /** \brief Bitmask for HDMI VENC */
 #define VPS_DC_VENC_HDMI                (0x1u)
+#ifdef CONFIG_ARCH_TI816X
 /** \brief Bitmask for HDCOMP VENC */
 #define VPS_DC_VENC_HDCOMP              (0x2u)
+#endif
 /** \brief Bitmask for DVO2 VENC */
 #define VPS_DC_VENC_DVO2                (0x4u)
 /** \brief Bitmask for SD VENC */
 #define VPS_DC_VENC_SD                  (0x8u)
 
+#ifdef CONFIG_ARCH_TI816X
 /** \brief Defines maximum number of venc info structure, which can be
   * passed in setconfig API
   **/
 #define VPS_DC_MAX_VENC                 (4u)
-
+#else
+#define VPS_DC_MAX_VENC                 (3u)
+#endif
 /** \brief on-chip encoder identifier - rf */
 #define VPS_DC_ENCODER_RF                       (0x1u)
 
 /** \brief on-chip encoder identifier - max guard */
 #define VPS_DC_MAX_ENCODER                      (0x2u)
 
-/**
- *  enum vps_dcdvo2clksrc
- *  \brief Enumerations for selecting DVO2 clock source.
- *  DVO2 clock can come from either HDMI or from HDCOMP VENC. Using this,
- *  application can select the clock source for DVO2 clock. Note that
- *  DVO2 clock source can be set only in the IOCTL IOCTL_VPS_DCTRL_SET_CONFIG.
- */
-enum vps_dcdvo2clksrc {
-	VPS_DC_DVO2CLKSRC_HDMI = 0,
-	/**< DVO 2 uses clk from HDMI */
-	VPS_DC_DVO2CLKSRC_HDCOMP
-	/**< DVO 2 uses clk from HD VENC */
-};
-/**
- *  enum vps_dchdcompclksrc
- *  \brief Enumerations for selecting HDCOMP clock source. As such,
- *  HDCOMP (HDVENCA) has an independent pixel clock, but it can use
- *  HDMI pixel clock as well. This enum is used for selecting HDCOMP
- *  pixel clock source. Note that
- *  HDCOMP clock source can be set only in the
- *  IOCTL IOCTL_VPS_DCTRL_SET_CONFIG.
- */
-enum vps_dchdcompclksrc {
-    VPS_DC_HDCOMPCLKSRC_HDMI = 0,
-    /**< DVO 2 uses clk from HDMI */
-    VPS_DC_HDCOMPCLKSRC_HDCOMP
-    /**< DVO 2 uses clk from HD VENC */
-};
 /**
  *  enum vps_dcusecase
  *  \brief Enum for selecting VPS configuration for the specific use
@@ -215,31 +192,6 @@ enum vps_dcusecase {
 	/**< This must be the last Enum */
 };
 
-
-/**
- * \brief enum vps_dcmodeid
- *  Enum defining ID of the standard Modes. Standard timinig parameters
- *  will be used if the standard mode id is used for configuring mode
- *  in the venc.
- */
-enum vps_dcmodeid {
-	VPS_DC_MODE_NTSC = 0,
-	/**< Mode Id for NTSC */
-	VPS_DC_MODE_PAL,
-	/**< Mode Id for PAL */
-	VPS_DC_MODE_1080P_60,
-	/**< Mode Id for 1080p at 60fps mode */
-	VPS_DC_MODE_720P_60,
-	/**< Mode Id for 720p at 60fps mode */
-	VPS_DC_MODE_1080I_60,
-	/**< Mode Id for 1080I at 60fps mode */
-	VPS_DC_MODE_1080P_30,
-	/**< Mode Id for 1080P at 30fps mode */
-	VPS_DC_MAX_MODE
-	/**< This should be the last mode id */
-};
-
-
 /* ========================================================================== */
 /*                         Structure Declarations                             */
 /* ========================================================================== */
@@ -247,19 +199,25 @@ enum vps_dcmodeid {
 /**
  * \brief dvo format
  */
-enum vpshal_dcdigitalfmt {
-	VPS_DC_D_OUTPUT_DVO = 0,
-	/**< Digital output with 30 bit output discrete sync */
-	VPS_DC_D_OUTPUT_HDMI,
-	/**< Digital output with 30 bit output discrete sync enable HDMI */
-	VPS_DC_D_OUTPUT_MAX
-	/**< Max number of output supported */
+enum vps_dcdigitalfmt {
+	VPS_DC_DVOFMT_SINGLECHAN = 0,
+	/**< Ouput data format is single channel with embedded sync */
+	VPS_DC_DVOFMT_DOUBLECHAN,
+	/**< Output data format is dual channel with embedded sync */
+	VPS_DC_DVOFMT_TRIPLECHAN_EMBSYNC,
+	/**< Output data format is tripple channel with embedded sync */
+	VPS_DC_DVOFMT_TRIPLECHAN_DISCSYNC,
+	/**< Ouptut data format is triple channel with discrete sync */
+	VPS_DC_DVOFMT_DOUBLECHAN_DISCSYNC,
+	/**< Output data format is dual channel with discrete sync */
+	VPS_DC_DVOFMT_MAX
+	/**< This should be the last Enum */
 };
 
 /**
  * \brief analog format
  */
-enum vpshal_dcanalogfmt {
+enum vps_dcanalogfmt {
 	VPS_DC_A_OUTPUT_COMPOSITE = 0,
 	/**< Analog output format composite */
 	VPS_DC_A_OUTPUT_SVIDEO,
@@ -279,9 +237,13 @@ struct vps_dcoutputinfo {
 	u32			vencnodenum;
 	/**< node number of the venc */
 	u32			dvofmt;
-	/**< digital output  */
+	/**< digital output. See #vps_dcgigitalfmt for the possible Values */
 	u32			afmt;
-	/**< analog output */
+	/**< Analog output. See #Vps_dcanalogfmt for the possible Values */
+	enum fvid2_dataformat  dataformat;
+	/**< Output Data format from Venc. Currently, valid values are
+	 FVID2_DF_RGB24_888, FVID2_DF_YUV444P, FVID2_DF_YUV422SP_UV */
+
 };
 
 /**
@@ -351,9 +313,9 @@ struct vps_dcmodeinfo {
 	     configured.
 	     Note: Custom timing parameters are still not supported in
 	     the display controller */
-	u32              modeid;
-	/**< Id of the mode. Currently display controller supports 1080p-60
-	     on the HDVENCs and NTSC/PAL on the SDVENC */
+	u32              standard;
+	/**< VENC video standard.
+	     For valid values see #FVID2_Standard. */
 	u32              framewidth;
 	/**< Width of the frame. Used only for the custom mode, which is
 	     not supported currently */
@@ -427,12 +389,6 @@ struct vps_dcconfig {
 	     and input in edge end module. */
 	u32                         numedges;
 	/**< Number edge in the edgeInfo array */
-	u32                         dvo2clksrc;
-	/**< Dvo2 uses pixel clock either from HDMI or from VENC_A. This
-	     configures clock source for DVO2. */
-	u32                         hdcompclksrc;
-	 /**< HDCOMP (HDVENCA) uses pixel clock either from HDMI or from
-	      independent clock. This configures clock source for HDCOMP. */
 	struct vps_dcvencinfo       vencinfo;
 	/**< Structure containing Venc Information like mode to be configured
 	     and which are tied. */
@@ -827,29 +783,24 @@ struct vps_dccomprtconfig {
  */
 #define IOCTL_VPS_DCTRL_DISABLE_VENC    (VPS_DCTRL_IOCTL_ADV_BASE + 0x7u)
 
-/** \brief Command for Selecting output clock source for the given venc.
- *
- *  This IOCTL is used to select output clock source for the given venc.
- *  All HD Vencs has two input clocks i.e. clk1x and clk2x. One of them
- *  can be selected as the output clock
- *
- * \param   cmdargs [in] pointer of type vps_dcoutputclksel
- *
- * \return  vps_sok if successful, else suitable error code
- */
-#define IOCTL_VPS_DCTRL_SEL_OUT_CLK     (VPS_DCTRL_IOCTL_ADV_BASE + 0x8u)
 
-/** \brief command for selecting clk1x input source
+/** \brief Command for Setting Venc Clock Source
  *
- *  there are two input clocks to hd vencs i.e. clk2x and clk1x. clk1x
- *  input can be either clk2x or half of the clk2x. this ioctl is
- *  used to select clk1x clock source.
+ * \param   cmdArgs [IN] Pointer of type vps_dcvencclksrc
  *
- * \param   cmdargs [in] pointer of type vps_dcvencclkdivsel
- *
- * \return  vps_sok if successful, else suitable error code
+ * \return  VPS_SOK if successful, else suitable error code
  */
-#define IOCTL_VPS_DCTRL_SEL_CLK1X_SRC   (VPS_DCTRL_IOCTL_ADV_BASE + 0x9u)
+#define IOCTL_VPS_DCTRL_SET_VENC_CLK_SRC (VPS_DCTRL_IOCTL_ADV_BASE + 0x8u)
+
+
+/** \brief Command for Getting Venc Clock Source
+ *
+ * \param   cmdArgs [IN/OUT] Pointer of type Vps_DcVencClkSrc
+ *
+ * \return  VPS_SOK if successful, else suitable error code
+ */
+#define IOCTL_VPS_DCTRL_GET_VENC_CLK_SRC (VPS_DCTRL_IOCTL_ADV_BASE + 0x9u)
+
 
 
 /** \brief maximum number of advanced ioctl commands
@@ -918,7 +869,7 @@ struct vps_dccomprtconfig {
 /* macros for the vps blenders */
 /** \brief macro for the hdmi blender */
 #define VPS_DC_HDMI_BLEND                   (22u)
-
+#ifdef CONFIG_ARCH_TI816X
 /** \brief macro for the hdcomp blender */
 #define VPS_DC_HDCOMP_BLEND                 (23u)
 
@@ -927,6 +878,14 @@ struct vps_dccomprtconfig {
 
 /** \brief macro for the sdvenc blender */
 #define VPS_DC_SDVENC_BLEND                 (25u)
+#else
+/** \brief macro for the dvo2 blender */
+#define VPS_DC_DVO2_BLEND                   (23u)
+
+/** \brief macro for the sdvenc blender */
+#define VPS_DC_SDVENC_BLEND                 (24u)
+
+#endif
 
 /** \brief Maximum number of characters in the string for specifying
  *  node name */
@@ -957,33 +916,23 @@ enum vps_dcnodetype {
 	/**< This must be last enum */
 };
 
-/**
- * \brief enum vps_dcvencclkdiv
- *  This enum is used to enable clock divisor for the venc.
- */
-enum vps_dcvencclkdiv {
-	VPS_DC_VENC_CLK_DIV_HDMI_CLK1X = 0,
-	/**< Selects the HD_VENC_D_DVO1 clk1x source clock. It can be
-	     either original one or original divided by 2 */
-	VPS_DC_VENC_CLK_DIV_HDCOMP_CLK1X,
-	/**< HD_VENC_A clk1x source clock. It can be
-	     either original one or original divided by 2 */
-	VPS_DC_VENC_CLK_DIV_DVO2_CLK1X
-	/**< Digital Video Output 2 output clock. It can be
-	     either original one or original divided by 2  */
-};
-
-/**
- * \brief enum vps_dcvencoutputclk
- *  Enum for selecting source clock for the venc. Output clock from VENC
- *  can be either clk1x or clk2x. */
-enum vps_dcvencoutputclk {
-	VPS_DC_VENC_CLK_DIV_DVO1,
-	/**< Digital Video Output 1 output clock. It could be either  */
-	VPS_DC_VENC_CLK_DIV_HDCOMP_VBI,
-	/**< VBI HD Clock Select */
-	VPS_DC_VENC_CLK_DIV_DVO2
-	/**< Digital Video Output 2 Clock 2x Select */
+enum vps_dcvencclksrcsel {
+	VPS_DC_CLKSRC_VENCD = 0,
+	/**< Clk1X input and output clock from VENC are same as VENCD Clock */
+	VPS_DC_CLKSRC_VENCD_DIV2,
+	/**< Clk1X input clock and venc output clock are
+	     sourced from VEND/2 clock */
+	VPS_DC_CLKSRC_VENCD_DIV2_DIFF,
+	/**< Clk1X input is sourced from VENCD/2 clock and VENC output clock
+	 is from VENCD DIV2 Clock */
+	VPS_DC_CLKSRC_VENCA,
+	/**< Clk1X input and output clock from VENC are same as VENCA Clock */
+	VPS_DC_CLKSRC_VENCA_DIV2,
+	/**< Clk1X input clock and venc output clock are
+	    sourced from VENA/2 clock */
+	VPS_DC_CLKSRC_VENCA_DIV2_DIFF
+	/**< Clk1X input is sourced from VENCA/2 clock and VENC output clock
+	 is from VENCA DIV2 Clock */
 };
 
 /* ======================================================================== */
@@ -1152,36 +1101,21 @@ struct vps_dccompconfig {
 	     This color will replace any pixel with RGB value of 000.*/
 };
 
-
 /**
- * struct vps_dcoutputclksel
- * \brief Structure for selecting output clock source for a given venc.
- *  Output clock for a venc can be either 1x clock or 2x clock.
- *  This structure is passed as an argument to the
- *  IOCTL IOCTL_VPS_DCTRL_SEL_OUT_CLK
+ * struct
+ * \brief Structure containing VENC clock source configuration
  */
-struct vps_dcoutputclksel {
-	u32                 venc;
-	/**< Venc for which output clock source to be selected. */
-	u32                 isclk2xselect;
-	/**< Whether to select clock 2x as an output clock for the given venc.
-	    Set TRUE if clk2x is output clock or FALSE if clk1x is the
-	    output clock. */
+struct vps_dcvencclksrc {
+	u32              venc;
+	/**< Venc Id. VPS_DC_VENC_HDMI, VPS_DC_VENC_DVO2 or
+	     VPS_DC_VENC_HDCOMP */
+	u32              clksrc;
+	/**< Clock source for the given venc. HDMI can be sourced only from
+	     VEND clock wheread other two vencs, HDCOMP and DVO2, can be
+	     sourced either from VENCD clock or VENCA clock.
+	     See #Vps_DcVencClkSrcSel for possible values */
 };
 
-/**
- * struct vps_dcvencclkdivsel
- * \brief Structure for selecting clock source for clk1x input. It can
- *  be either original clock i.e. clk2x, or original clock divided by 2.
- *  This structure is used as an argument to the
- *  IOCTL IOCTL_VPS_DCTRL_SEL_CLK1X_SRC
- */
-struct vps_dcvencclkdivsel {
-	u32                 venc;
-	/**< Venc for which clk1x clock source to be selected */
-	u32                 isdivide;
-	/**< Flag to indicate whether original clock is divided or not. */
-};
 
 /**
  * struct vps_dccreateconfig

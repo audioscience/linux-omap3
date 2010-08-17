@@ -1,6 +1,6 @@
 /*
  *
- * VPSS Core  driver for TI 816X
+ * VPSS Core  driver for TI 81XX
  *
  * Copyright (C) 2009 TI
  * Author: Yihe Hu <yihehu@ti.com>
@@ -23,16 +23,22 @@
  * 59 Temple Place - Suite 330, Boston, MA	02111-1307, USA.
  */
 
-#ifndef __DRIVERS_VIDEO_TI816X_VPSS_CORE_H__
-#define __DRIVERS_VIDEO_TI816X_VPSS_CORE_H__
+#ifndef __DRIVERS_VIDEO_TI81XX_VPSS_CORE_H__
+#define __DRIVERS_VIDEO_TI81XX_VPSS_CORE_H__
 
 
-#ifdef CONFIG_TI816X_VPSS_DEBUG_SUPPORT
+#ifdef CONFIG_TI81XX_VPSS_DEBUG_SUPPORT
 #define DEBUG
 extern unsigned int vpss_debug;
 #endif
 
 #include <linux/platform_device.h>
+#include <linux/vps_proxyserver.h>
+#include <linux/fvid2.h>
+#include <linux/vps.h>
+#include <linux/vps_displayctrl.h>
+#include <linux/vps_graphics.h>
+
 
 #ifdef DEBUG
 #define VPSSDBG(format, ...) \
@@ -61,6 +67,13 @@ struct vps_payload_info {
 	u32	      size;
 };
 
+struct vps_sname_info {
+	char *name;
+	u32 value;
+};
+
+
+
 
 /*grpx*/
 int __init vps_grpx_init(struct platform_device *pdev);
@@ -69,7 +82,8 @@ void __exit vps_grpx_deinit(struct platform_device *pdev);
 /*display control*/
 int __init vps_dc_init(struct platform_device *pdev,
 		       char *mode,
-		       int tied_vencs);
+		       int tied_vencs,
+		       char *clksrc);
 
 int __exit vps_dc_deinit(struct platform_device *pdev);
 
@@ -85,14 +99,29 @@ void *vps_sbuf_alloc(size_t size, u32 *paddr);
 int vps_sbuf_free(u32 paddr, void *vaddr, size_t size);
 
 
+int __init vps_system_init(struct platform_device *pdev);
+int __exit vps_system_deinit(struct platform_device *pdev);
+
+
 /*si9022a offchip evm*/
-#ifdef CONFIG_TI816X_VPSS_SII9022A
+#ifdef CONFIG_TI81XX_VPSS_SII9022A
 int __init sii9022a_init(struct platform_device *pdev);
 int __exit sii9022a_deinit(struct platform_device *pdev);
 int sii9022a_setmode(u32 mode);
 int sii9022a_start(void);
 int sii9022a_stop(void);
 #endif
+static inline void *setaddr(struct vps_payload_info *dminfo,
+		     u32 *buf_offset,
+		     u32 *phy,
+		     u32 size)
+{
+	void *ptr;
+	*phy = dminfo->paddr + *buf_offset;
+	ptr = (void *)((u32)dminfo->vaddr + *buf_offset);
+	*buf_offset += size;
+
+	return ptr;
+}
 
 #endif
-

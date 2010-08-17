@@ -1,36 +1,36 @@
-menuconfig TI816X_VPSS
-        tristate "TI816X Video Processing Subsystem (EXPERIMENTAL)"
+menuconfig TI81XX_VPSS
+        tristate "TI81XX Video Processing Subsystem (EXPERIMENTAL)"
         depends on ARCH_TI816X
         help
-          TI816X Video Processing Subsystem
+          TI81XX Video Processing Subsystem
 
-if TI816X_VPSS
+if TI81XX_VPSS
 
-config TI816X_VPSS_VRAM_SIZE
+config TI81XX_VPSS_VRAM_SIZE
 	int "VRAM size (MB)"
 	range 0 128
 	default 50
 	help
 	  The amount of SDRAM to reserve at boot time for video RAM use.
-	  This VRAM will be used by ti816xfb and other drivers that need
+	  This VRAM will be used by ti81xxfb and other drivers that need
 	  large continuous RAM area for video use.
 
 	  You can also set this with "vram=<bytes>" kernel argument, or
 	  in the board file.
 
-config TI816X_VPSS_DEBUG_SUPPORT
+config TI81XX_VPSS_DEBUG_SUPPORT
         bool "Debug support"
 	default y
 	help
 	  This enables debug messages.
 
-config TI816X_VPSS_SII9022A
+config TI81XX_VPSS_SII9022A
       bool  "offchip hdmi(sii9022a)"
       default y
       help
          This enables VS board(sii9022a HDMI transmitter) on the DVO2 VENC.
 
-config TI816X_VPSS_SHARED_BUFFER_BASE
+config TI81XX_VPSS_SHARED_BUFFER_BASE
 	hex "share buffer base(hex)"
 	range 0x80000000 0xBFC00000
 	default 0xB2C00000
@@ -42,7 +42,7 @@ config TI816X_VPSS_SHARED_BUFFER_BASE
 	    configuration of Ducati to make sure that the address is in
 	    non-cacheable space.
 
-config TI816X_VPSS_SHARED_BUFFER_SIE
+config TI81XX_VPSS_SHARED_BUFFER_SIE
 	int "share buffer size(KB)"
 	range 512 2048
 	default 1024

@@ -1,6 +1,6 @@
 /*
  *
- * SII9022A header file for TI 816X
+ * SII9022A header file for TI 81XX
  *
  * Copyright (C) 2009 TI
  * Author: Yihe Hu <yihehu@ti.com>
@@ -22,8 +22,8 @@
  */
 
 
-#ifndef __DRIVERS_VIDEO_TI816X_VPSS_VPS_SII_9022A_H_
-#define __DRIVERS_VIDEO_TI816X_VPSS_VPS_SII_9022A_H_
+#ifndef __DRIVERS_VIDEO_TI81XX_VPSS_VPS_SII_9022A_H_
+#define __DRIVERS_VIDEO_TI81XX_VPSS_VPS_SII_9022A_H_
 
 #include "vps_videoencoder.h"
 

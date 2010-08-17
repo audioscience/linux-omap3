@@ -1,6 +1,6 @@
 /*
  *
- * Framebuffer private header file for TI 816x
+ * Framebuffer private header file for TI 81xx
  *
  * Copyright (C) 2009 TI
  * Author: Yihe Hu <yihehu@ti.com>
@@ -22,35 +22,45 @@
  * 59 Temple Place - Suite 330, Boston, MA	02111-1307, USA.
  */
 
-#ifndef __DRIVERS_VIDEO_TI816X_TI816XFB_FBPRIV_H__
-#define __DRIVERS_VIDEO_TI816X_TI816XFB_FBPRIV_H__
+#ifndef __DRIVERS_VIDEO_TI81XX_TI81XXFB_FBPRIV_H__
+#define __DRIVERS_VIDEO_TI81XX_TI81XXFB_FBPRIV_H__
 
-#ifdef CONFIG_FB_TI816X_DEBUG_SUPPORT
+#ifdef CONFIG_FB_TI81XX_DEBUG_SUPPORT
 #define DEBUG
 #endif
 
-#include <linux/vps.h>
-#include <linux/vps_displayctrl.h>
-#include <linux/vps_graphics.h>
-#include <linux/grpx.h>
+#include "plat/ti81xx-vpss.h"
 
 #ifdef DEBUG
 extern unsigned int fb_debug;
 #define TFBDBG(format, ...) \
 	do { \
 		if (fb_debug) \
-			printk(KERN_DEBUG "TI816XFB  : " format, \
+			printk(KERN_DEBUG "TI81XXFB  : " format, \
 				## __VA_ARGS__); \
 	} while (0)
 #else
 #define TFBDBG(format, ...)
 #endif
 
-#define FB2TFB(fb_info) ((struct ti816xfb_info *)(fb_info->par))
+#define FB2TFB(fb_info) ((struct ti81xxfb_info *)(fb_info->par))
 
-#define TI816XFB_BPP	32
+#define TI81XXFB_BPP	32
+#define TI81XXFB_INVALID_OFFSET 0xFFFFFFFF
+#define TI81XXFB_MAX_PRIORITY 0xF
 
-struct ti816xfb_alloc_list {
+
+struct ti81xxfb_datamode {
+	enum fvid2_dataformat           dataformat;
+	u32                             bpp;
+	u32                             nonstd;
+	struct fb_bitfield              red;
+	struct fb_bitfield              green;
+	struct fb_bitfield              blue;
+	struct fb_bitfield              transp;
+};
+
+struct ti81xxfb_alloc_list {
 	struct list_head    list;
 	dma_addr_t          phy_addr;
 	void                *virt_addr;
@@ -59,55 +69,53 @@ struct ti816xfb_alloc_list {
 
 
 /**
- *	ti816xfb_info
- *	  Define one ti816xfb windows information
+ *	ti81xxfb_info
+ *	  Define one ti81xxfb windows information
  *
  */
-struct ti816xfb_info {
+struct ti81xxfb_info {
 	int                           idx;
 	int                           enable;
 	struct mutex                  rqueue_mutex;
-	struct ti816xfb_device        *fbdev;
+	struct ti81xxfb_device        *fbdev;
 	struct list_head              alloc_list;
-	struct ti816xfb_mem_region    mreg;
+	struct ti81xxfb_mem_region    mreg;
 	struct vps_grpx_ctrl          *gctrl;
 	dma_addr_t                    pclut;
 	void                          *vclut;
-	enum ti816xfb_data_format     pixfmt;
+	enum ti81xxfb_data_format     pixfmt;
 	u32                           pseudo_palette[16];
-	enum ti816xfb_mem_mode        mmode;
-	wait_queue_head_t             vsync_wait;
-	unsigned long                 vsync_cnt;
+	enum ti81xxfb_mem_mode        mmode;
 	unsigned long                 open_cnt;
 };
 
 /**
- * ti816xfb_device
- *	 Define the ti816x fb device structure
+ * ti81xxfb_device
+ *	 Define the ti81xx fb device structure
  *
  */
-struct ti816xfb_device {
+struct ti81xxfb_device {
 	struct device           *dev;
 	int                     num_fbs;
-	struct fb_info          *fbs[TI816X_FB_NUM];
+	struct fb_info          *fbs[TI81XX_FB_NUM];
 	int                     num_grpx;
-	struct vps_grpx_ctrl    *gctrl[TI816X_FB_NUM];
+	struct vps_grpx_ctrl    *gctrl[TI81XX_FB_NUM];
 };
 
-int ti816xfb_fbinfo_init(struct ti816xfb_device *fbdev, struct fb_info *fbi);
-int ti816xfb_realloc_fbmem(struct fb_info *fbi, unsigned long size);
-int ti816xfb_create_sysfs(struct ti816xfb_device *fbdev);
-void ti816xfb_remove_sysfs(struct ti816xfb_device *fbdev);
-int ti816xfb_create_dccfg(struct fb_info *fbi);
-int ti816xfb_ioctl(struct fb_info *fbi, unsigned int cmd, unsigned long arg);
+int ti81xxfb_fbinfo_init(struct ti81xxfb_device *fbdev, struct fb_info *fbi);
+int ti81xxfb_realloc_fbmem(struct fb_info *fbi, unsigned long size);
+int ti81xxfb_create_sysfs(struct ti81xxfb_device *fbdev);
+void ti81xxfb_remove_sysfs(struct ti81xxfb_device *fbdev);
+int ti81xxfb_create_dccfg(struct fb_info *fbi);
+int ti81xxfb_ioctl(struct fb_info *fbi, unsigned int cmd, unsigned long arg);
 
 
-static inline void ti816xfb_lock(struct ti816xfb_info *tfbi)
+static inline void ti81xxfb_lock(struct ti81xxfb_info *tfbi)
 {
 	mutex_lock(&tfbi->rqueue_mutex);
 }
 
-static inline void ti816xfb_unlock(struct ti816xfb_info *tfbi)
+static inline void ti81xxfb_unlock(struct ti81xxfb_info *tfbi)
 {
 	mutex_unlock(&tfbi->rqueue_mutex);
 }

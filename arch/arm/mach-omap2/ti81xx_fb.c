@@ -30,16 +30,16 @@
 #include <linux/platform_device.h>
 #include <linux/bootmem.h>
 #include <linux/io.h>
-#include <linux/ti816xfb.h>
+#include <linux/ti81xxfb.h>
 
 #include <mach/hardware.h>
 #include <asm/mach/map.h>
 
 
-#if defined(CONFIG_FB_TI816X) || defined(CONFIG_FB_TI816X_MODULE)
+#if defined(CONFIG_FB_TI81XX) || defined(CONFIG_FB_TI81XX_MODULE)
 
-static u64 ti816x_fb_dma_mask = ~(u32)0;
-static struct ti816xfb_platform_data ti816xfb_config;
+static u64 ti81xx_fb_dma_mask = ~(u32)0;
+static struct ti81xxfb_platform_data ti81xxfb_config;
 #if 0
 	{
 	.mem_desc =  {
@@ -51,32 +51,32 @@ static struct ti816xfb_platform_data ti816xfb_config;
 	.ctrl_platform_data = NULL,
 };
 #endif
-static struct platform_device ti816x_fb_device = {
-	.name		= "ti816xfb",
+static struct platform_device ti81xx_fb_device = {
+	.name		= "ti81xxfb",
 	.id		= -1,
 	.dev = {
-		.dma_mask		= &ti816x_fb_dma_mask,
+		.dma_mask		= &ti81xx_fb_dma_mask,
 		.coherent_dma_mask	= ~(u32)0,
-		.platform_data		= &ti816xfb_config,
+		.platform_data		= &ti81xxfb_config,
 	},
 	.num_resources = 0,
 };
 
-void ti816xfb_set_platform_data(struct ti816xfb_platform_data *data)
+void ti81xxfb_set_platform_data(struct ti81xxfb_platform_data *data)
 {
-	ti816xfb_config = *data;
+	ti81xxfb_config = *data;
 }
 
-static inline int ti816x_init_fb(void)
+static inline int ti81xx_init_fb(void)
 {
-	printk(KERN_INFO "Registered ti816x_fb_device\n");
-	return platform_device_register(&ti816x_fb_device);
+	printk(KERN_INFO "Registered ti81xx_fb device\n");
+	return platform_device_register(&ti81xx_fb_device);
 }
 
-arch_initcall(ti816x_init_fb);
+arch_initcall(ti81xx_init_fb);
 
 #else
 
-void ti816xfb_reserve_sdram_lmb(void) {}
+void ti81xxfb_reserve_sdram_lmb(void) {}
 
 #endif
