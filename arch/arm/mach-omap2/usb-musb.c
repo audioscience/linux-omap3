@@ -35,7 +35,7 @@
 
 #ifdef CONFIG_USB_MUSB_SOC
 
-#undef MULTI_MUSB_INSTANCE
+#define MULTI_MUSB_INSTANCE
 
 #ifdef MULTI_MUSB_INSTANCE
 #define MAX_MUSB_CONTROLLERS	2
@@ -89,8 +89,8 @@ static u64 musb_dmamask = DMA_BIT_MASK(32);
 
 static struct platform_device musb_devices[] = {
 	{
-		.name		= "musb_hdrc.0",
-		.id		= -1,
+		.name		= "musb_hdrc",
+		.id		= 0,
 		.dev = {
 			.dma_mask		= &musb_dmamask,
 			.coherent_dma_mask	= DMA_BIT_MASK(32),
@@ -100,8 +100,8 @@ static struct platform_device musb_devices[] = {
 		.resource	= &musb_resources[0],
 	},
 	{
-		.name		= "musb_hdrc.1",
-		.id		= -1,
+		.name		= "musb_hdrc",
+		.id		= 1,
 		.dev = {
 			.dma_mask		= &musb_dmamask,
 			.coherent_dma_mask	= DMA_BIT_MASK(32),
@@ -167,7 +167,6 @@ void __init usb_musb_init(struct omap_musb_board_data *board_data)
 	musb_plat.extvbus = board_data->extvbus;
 
 	for (i = 0; i < MAX_MUSB_CONTROLLERS; i++) {
-		musb_devices[i].id = i;
 		if (platform_device_register(&musb_devices[i]) < 0)
 			printk(KERN_ERR "Unable to register HS-USB (MUSB) device\n");
 	}

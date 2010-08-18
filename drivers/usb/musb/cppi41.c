@@ -28,6 +28,7 @@
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/dma-mapping.h>
+#include <linux/slab.h>
 
 #include "cppi41.h"
 
@@ -42,6 +43,7 @@
 static struct {
 	void *virt_addr;
 	dma_addr_t phys_addr;
+	u32	size;
 } linking_ram[CPPI41_NUM_QUEUE_MGR];
 
 static u32 *allocated_queues[CPPI41_NUM_QUEUE_MGR];
@@ -56,6 +58,8 @@ static struct {
 	dma_addr_t phys_addr;
 	struct cppi41_queue_obj queue_obj;
 	u8 mem_rgn;
+	u16 q_mgr;
+	u16 q_num;
 } dma_teardown[CPPI41_NUM_DMA_BLOCK];
 
 /******************** CPPI 4.1 Functions (External Interface) *****************/
@@ -78,6 +82,7 @@ int cppi41_queue_mgr_init(u8 q_mgr, dma_addr_t rgn0_base, u16 rgn0_size)
 		return -ENOMEM;
 	}
 	linking_ram[q_mgr].virt_addr = ptr;
+	linking_ram[q_mgr].size = rgn0_size * 4;
 
 	__raw_writel(linking_ram[q_mgr].phys_addr,
 			q_mgr_regs + QMGR_LINKING_RAM_RGN0_BASE_REG);
@@ -205,7 +210,8 @@ int cppi41_dma_block_init(u8 dma_num, u8 q_mgr, u8 num_order,
 		       "free descriptor queue.\n", __func__);
 		goto free_rgn;
 	}
-
+	dma_teardown[dma_num].q_num = q_num;
+	dma_teardown[dma_num].q_mgr = q_mgr;
 	/*
 	 * Push all teardown descriptors to the free teardown queue
 	 * for the CPPI 4.1 system.
@@ -603,13 +609,33 @@ EXPORT_SYMBOL(cppi41_free_teardown_queue);
 void cppi41_exit(void)
 {
 	int i;
+	static int init;
+
+	if (!init) {
+		init = 1;
+		return ;
+	}
+	/*
+	 * pop all the teardwon descriptor queued to tdQueue
+	 */
+	cppi41_free_teardown_queue(0);
+
+	/* Free the teardown completion queue */
+	if (cppi41_queue_free(dma_teardown[0].q_mgr, dma_teardown[0].q_num))
+		DBG(1, "ERROR: failed to free teardown completion queue\n");
+
 	for (i = 0; i < CPPI41_NUM_QUEUE_MGR; i++) {
-		if (linking_ram[i].virt_addr != NULL)
-			dma_free_coherent(NULL, 0x10000,
+		if (linking_ram[i].virt_addr != NULL) {
+			dma_free_coherent(NULL, linking_ram[i].size,
 				linking_ram[i].virt_addr,
 				linking_ram[i].phys_addr);
-		if (allocated_queues[i] != NULL)
+			linking_ram[i].virt_addr = 0;
+			linking_ram[i].phys_addr = 0;
+		}
+		if (allocated_queues[i] != NULL) {
 			kfree(allocated_queues[i]);
+			allocated_queues[i] = 0;
+		}
 	}
 	for (i = 0; i < CPPI41_NUM_DMA_BLOCK; i++)
 		if (dma_teardown[i].virt_addr != NULL) {
@@ -618,7 +644,10 @@ void cppi41_exit(void)
 			dma_free_coherent(NULL, dma_teardown[i].rgn_size,
 					dma_teardown[i].virt_addr,
 					dma_teardown[i].phys_addr);
+			dma_teardown[i].virt_addr = 0;
+			dma_teardown[i].phys_addr = 0;
 		}
+	init = 1;
 }
 EXPORT_SYMBOL(cppi41_exit);
 
@@ -719,12 +748,14 @@ int cppi41_queue_free(u8 q_mgr, u16 q_num)
 {
 	int index = q_num >> 5, bit = 1 << (q_num & 0x1f);
 
-	if (q_mgr >= cppi41_num_queue_mgr ||
-	    q_num >= cppi41_queue_mgr[q_mgr].num_queue ||
-	    !(allocated_queues[q_mgr][index] & bit))
-		return -EINVAL;
+	if (allocated_queues[q_mgr] != NULL) {
+		if (q_mgr >= cppi41_num_queue_mgr ||
+		    q_num >= cppi41_queue_mgr[q_mgr].num_queue ||
+		    !(allocated_queues[q_mgr][index] & bit))
+			return -EINVAL;
 
-	allocated_queues[q_mgr][index] &= ~bit;
+		allocated_queues[q_mgr][index] &= ~bit;
+	}
 	return 0;
 }
 EXPORT_SYMBOL(cppi41_queue_free);

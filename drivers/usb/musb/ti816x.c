@@ -1,5 +1,5 @@
 /*
- * Texas Instruments AM3517 "glue layer"
+ * Texas Instruments TI816X "glue layer"
  *
  * Copyright (c) 2008, MontaVista Software, Inc. <source@mvista.com>
  *
@@ -48,10 +48,7 @@ struct musb *g_musb, *gmusb[2] = {NULL, NULL};
 #define dprintk(x, ...)
 #endif
 
-/*
- * AM3517 specific definitions
- */
-
+#define MAX_MUSB_INSTANCE	2
 /* CPPI 4.1 queue manager registers */
 #define QMGR_PEND0_REG		0x4090
 #define QMGR_PEND1_REG		0x4094
@@ -90,7 +87,16 @@ struct musb *g_musb, *gmusb[2] = {NULL, NULL};
 
 #define A_WAIT_BCON_TIMEOUT	1100		/* in ms */
 
+#define USBSS_INTR_RX_STARV	0x00000001
+#define USBSS_INTR_PD_CMPL	0x00000004
+#define USBSS_INTR_TX_CMPL	0x00000500
+#define USBSS_INTR_RX_CMPL	0x00000A00
+#define USBSS_INTR_FLAGS	(USBSS_INTR_PD_CMPL | USBSS_INTR_TX_CMPL \
+					| USBSS_INTR_RX_CMPL)
+#ifdef CONFIG_USB_TI_CPPI41_DMA
 static irqreturn_t cppi41dma_Interrupt(int irq, void *hci);
+#endif
+
 void set_frame_threshold(u8 musb_id, u8 is_tx, u8 epnum, u8 value, u8 en_intr);
 void set_dma_threshold(u8 musb_id, u8 is_tx, u8 epnum, u8 value);
 
@@ -171,30 +177,17 @@ void set_threshold(u8 ctrl_id, u8 epn, u8 count, u8 is_tx)
 	val = usbss_read(reg_offset);
 	val |= count << ((epn % 4) * 8);
 
-	dprintk("threshold write (usb%d-%s): offset=0x%x, val=0x%x\n",
+	DBG(4, "threshold write (usb%d-%s): offset=0x%x, val=0x%x\n",
 		ctrl_id, is_tx ? "Tx" : "Rx", reg_offset, val);
 
 	usbss_write(reg_offset, val);
 }
 
-/* AM3517 specific read/write functions */
+/* ti8167 specific read/write functions */
 u16 musb_readw(const void __iomem *addr, unsigned offset)
 {
 	u32 tmp;
 	u16 val;
-
-	if (!cpu_is_ti816x() && addr == g_musb->mregs) {
-		switch (offset) {
-		case MUSB_INTRTXE:
-			if (g_musb->read_mask & AM3517_READ_ISSUE_INTRTXE)
-				return g_musb->intrtxe;
-		case MUSB_INTRRXE:
-			if (g_musb->read_mask & AM3517_READ_ISSUE_INTRRXE)
-				return g_musb->intrrxe;
-		default:
-			break;
-		}
-	}
 
 	tmp = __raw_readl(addr + (offset & ~3));
 
@@ -216,19 +209,6 @@ u16 musb_readw(const void __iomem *addr, unsigned offset)
 
 void musb_writew(void __iomem *addr, unsigned offset, u16 data)
 {
-	if (!cpu_is_ti816x() && addr == g_musb->mregs) {
-		switch (offset) {
-		case MUSB_INTRTXE:
-			g_musb->read_mask |= AM3517_READ_ISSUE_INTRTXE;
-			g_musb->intrtxe = data;
-			break;
-		case MUSB_INTRRXE:
-			g_musb->read_mask |= AM3517_READ_ISSUE_INTRRXE;
-			g_musb->intrrxe = data;
-		default:
-			break;
-		}
-	}
 	__raw_writew(data, addr + offset);
 }
 
@@ -236,35 +216,6 @@ u8 musb_readb(const void __iomem *addr, unsigned offset)
 {
 	u32 tmp;
 	u8 val;
-
-	if (!cpu_is_ti816x() && addr == g_musb->mregs) {
-
-		switch (offset) {
-		case MUSB_FADDR:
-			if (g_musb->read_mask & AM3517_READ_ISSUE_FADDR)
-				return g_musb->faddr;
-		case MUSB_POWER:
-			if (g_musb->read_mask & AM3517_READ_ISSUE_POWER) {
-				return g_musb->power;
-			} else {
-				tmp = __raw_readl(addr);
-				val = (tmp >> 8);
-				if (tmp & 0xffff0000) {
-					DBG(2, "Missing Tx interrupt\
-						event = 0x%x\n", (u16)\
-						((tmp & 0xffff0000) >> 16));
-				}
-				g_musb->power = val;
-				g_musb->read_mask |= AM3517_READ_ISSUE_POWER;
-				return val;
-			}
-		case MUSB_INTRUSBE:
-			if (g_musb->read_mask & AM3517_READ_ISSUE_INTRUSBE)
-				return g_musb->intrusbe;
-		default:
-			break;
-		}
-	}
 
 	tmp = __raw_readl(addr + (offset & ~3));
 
@@ -287,31 +238,12 @@ u8 musb_readb(const void __iomem *addr, unsigned offset)
 }
 void musb_writeb(void __iomem *addr, unsigned offset, u8 data)
 {
-	if (!cpu_is_ti816x() && addr == g_musb->mregs) {
-
-		switch (offset) {
-		case MUSB_FADDR:
-			g_musb->read_mask |= AM3517_READ_ISSUE_FADDR;
-			g_musb->faddr = data;
-			break;
-		case MUSB_POWER:
-			g_musb->read_mask |= AM3517_READ_ISSUE_POWER;
-			g_musb->power = data;
-			break;
-		case MUSB_INTRUSBE:
-			g_musb->read_mask |= AM3517_READ_ISSUE_INTRUSBE;
-			g_musb->intrusbe = data;
-		default:
-			break;
-		}
-	}
-
 	__raw_writeb(data, addr + offset);
 }
 
 void set_frame_threshold(u8 musb_id, u8 is_tx, u8 epnum, u8 value, u8 en_intr)
 {
-	u32     base, reg_val, frame_intr, frame_base;
+	u32     base, reg_val, frame_intr = 0, frame_base = 0;
 	u32     offs = epnum/4*4;
 	u8      indx = (epnum % 4) * 8;
 
@@ -333,11 +265,9 @@ void set_frame_threshold(u8 musb_id, u8 is_tx, u8 epnum, u8 value, u8 en_intr)
 			usbss_read(USBSS_IRQ_FRAME_ENABLE_1);
 		frame_intr |= is_tx ? (1 << epnum) : (1 << (16 + epnum));
 		usbss_write(frame_base, frame_intr);
+		DBG(4, "%s: framebase=%x, frame_intr=%x\n", is_tx ? "tx" : "rx",
+			frame_base, frame_intr);
 	}
-
-	dprintk("base=%x, offs=%x, indx=%d, reg_val = (%x)%x, frame_intr=%x\n",
-				base, offs, indx, reg_val,
-				usbss_read(base + offs), frame_intr);
 }
 
 void set_dma_threshold(u8 musb_id, u8 is_tx, u8 epnum, u8 value)
@@ -354,7 +284,7 @@ void set_dma_threshold(u8 musb_id, u8 is_tx, u8 epnum, u8 value)
 	reg_val = usbss_read(base + offs);
 	reg_val &= ~(0xFF << indx);
 	reg_val |= (value << indx);
-	dprintk("base=%x, offs=%x, indx=%d, reg_val = (%x)%x\n",
+	DBG(4, "base=%x, offs=%x, indx=%d, reg_val = (%x)%x\n",
 		base, offs, indx, reg_val, usbss_read(base + offs));
 	usbss_write(base + offs, reg_val);
 }
@@ -381,30 +311,37 @@ static const u16 rx_comp_q1[] = {141, 142, 143, 144, 145,
 				 146, 147, 148, 149, 150,
 				 151, 152, 153, 154, 155 };
 
-const struct usb_cppi41_info usb_cppi41_info = {
-	.dma_block	= 0,
-	.ep_dma_ch	= {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 },
-	.q_mgr		= 0,
-	.num_tx_comp_q	= 15,
-	.num_rx_comp_q	= 15,
-	.tx_comp_q	= tx_comp_q,
-	.rx_comp_q	= rx_comp_q
-};
-
-const struct usb_cppi41_info usb1_cppi41_info = {
-	.dma_block      = 0,
-	.ep_dma_ch      = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 },
-	.q_mgr          = 0,
-	.num_tx_comp_q  = 15,
-	.num_rx_comp_q  = 15,
-	.tx_comp_q      = tx_comp_q1,
-	.rx_comp_q      = rx_comp_q1
+struct usb_cppi41_info usb_cppi41_info[MAX_MUSB_INSTANCE] = {
+	{
+		.dma_block	= 0,
+		.ep_dma_ch	= {0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+					10, 11, 12, 13, 14 },
+		.q_mgr		= 0,
+		.num_tx_comp_q	= 15,
+		.num_rx_comp_q	= 15,
+		.tx_comp_q	= tx_comp_q,
+		.rx_comp_q	= rx_comp_q,
+		.bd_intr_ctrl	= 1,
+	},
+	{
+		.dma_block      = 0,
+		.ep_dma_ch      = { 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+					25, 26, 27, 28, 29 },
+		.q_mgr          = 0,
+		.num_tx_comp_q  = 15,
+		.num_rx_comp_q  = 15,
+		.tx_comp_q      = tx_comp_q1,
+		.rx_comp_q      = rx_comp_q1,
+		.bd_intr_ctrl	= 1,
+	},
 };
 
 /* Fair scheduling */
 u32 dma_sched_table[] = {
 	0x81018000, 0x83038202, 0x85058404, 0x87078606,
-	0x89098808, 0x8b0b8a0a, 0x8d0d8c0c, 0x00008e0e
+	0x89098808, 0x8b0b8a0a, 0x8d0d8c0c, 0x8f0f8e0e,
+	0x91119010, 0x93139212, 0x95159414, 0x97179616,
+	0x99199818, 0x9b1b9a1a, 0x9d1d9c1c, 0x00009e1e,
 };
 
 /* DMA block configuration */
@@ -483,13 +420,88 @@ static const struct cppi41_tx_ch tx_ch_info[] = {
 		.port_num	= 15,
 		.num_tx_queue	= 2,
 		.tx_queue	= { {0, 60} , {0, 61} }
+	},
+	[15] = {
+		.port_num	= 1,
+		.num_tx_queue	= 2,
+		.tx_queue	= { {0, 62} , {0, 63} }
+	},
+	[16] = {
+		.port_num	= 2,
+		.num_tx_queue	= 2,
+		.tx_queue	= { {0, 64} , {0, 65} }
+	},
+	[17] = {
+		.port_num	= 3,
+		.num_tx_queue	= 2,
+		.tx_queue	= { {0, 66} , {0, 67} }
+	},
+	[18] = {
+		.port_num	= 4,
+		.num_tx_queue	= 2,
+		.tx_queue	= { {0, 68} , {0, 69} }
+	},
+	[19] = {
+		.port_num	= 5,
+		.num_tx_queue	= 2,
+		.tx_queue	= { {0, 70} , {0, 71} }
+	},
+	[20] = {
+		.port_num	= 6,
+		.num_tx_queue	= 2,
+		.tx_queue	= { {0, 72} , {0, 73} }
+	},
+	[21] = {
+		.port_num	= 7,
+		.num_tx_queue	= 2,
+		.tx_queue	= { {0, 74} , {0, 75} }
+	},
+	[22] = {
+		.port_num	= 8,
+		.num_tx_queue	= 2,
+		.tx_queue	= { {0, 76} , {0, 77} }
+	},
+	[23] = {
+		.port_num	= 9,
+		.num_tx_queue	= 2,
+		.tx_queue	= { {0, 78} , {0, 79} }
+	},
+	[24] = {
+		.port_num	= 10,
+		.num_tx_queue	= 2,
+		.tx_queue	= { {0, 80} , {0, 81} }
+	},
+	[25] = {
+		.port_num	= 11,
+		.num_tx_queue	= 2,
+		.tx_queue	= { {0, 82} , {0, 83} }
+	},
+	[26] = {
+		.port_num	= 12,
+		.num_tx_queue	= 2,
+		.tx_queue	= { {0, 84} , {0, 85} }
+	},
+	[27] = {
+		.port_num	= 13,
+		.num_tx_queue	= 2,
+		.tx_queue	= { {0, 86} , {0, 87} }
+	},
+	[28] = {
+		.port_num	= 14,
+		.num_tx_queue	= 2,
+		.tx_queue	= { {0, 88} , {0, 89} }
+	},
+	[29] = {
+		.port_num	= 15,
+		.num_tx_queue	= 2,
+		.tx_queue	= { {0, 90} , {0, 91} }
 	}
 };
 
 struct cppi41_dma_block cppi41_dma_block[CPPI41_NUM_DMA_BLOCK] = {
 	[0] = {
-		.num_tx_ch	= 15,
-		.num_rx_ch	= 15,
+		.num_tx_ch	= 30,
+		.num_rx_ch	= 30,
 		.tx_ch_info	= tx_ch_info
 	}
 };
@@ -520,7 +532,8 @@ static void *cppi41_dma_base;
 
 int __init cppi41_init(struct musb *musb)
 {
-	u16 numch, blknum = usb_cppi41_info.dma_block, order;
+	struct usb_cppi41_info *cppi_info = &usb_cppi41_info[musb->id];
+	u16 numch, blknum = cppi_info->dma_block, order;
 	u32 offs = 0x2000;
 	u32 nIrq = TI816X_IRQ_USBSS;
 
@@ -530,7 +543,7 @@ int __init cppi41_init(struct musb *musb)
 	cppi41_dma_base = ioremap(TI816X_USB_CPPIDMA_BASE,
 					TI816X_USB_CPPIDMA_LEN);
 
-	dprintk(KERN_INFO "cppi41_dma_base = %p\n", cppi41_dma_base);
+	DBG(4, "cppi41_dma_base = %p\n", cppi41_dma_base);
 
 	/* init mappings */
 	cppi41_queue_mgr[0].q_mgr_rgn_base	= (void *)((u32)cppi41_dma_base
@@ -551,34 +564,32 @@ int __init cppi41_init(struct musb *musb)
 	cppi41_dma_block[0].sched_table_base	= (void *)((u32)cppi41_dma_base
 							 + (0x3800 - offs));
 
+	DBG(4, "dma-glb-base = %p\n", cppi41_dma_block[0].global_ctrl_base);
+	DBG(4, "q_mgr_rgn_base= %p\n", cppi41_queue_mgr[0].q_mgr_rgn_base);
+
 	/* Initialize for Linking RAM region 0 alone */
-	cppi41_queue_mgr_init(usb_cppi41_info.q_mgr, 0, 0x3fff);
+	cppi41_queue_mgr_init(cppi_info->q_mgr, 0, 0x3fff);
 
 	printk(KERN_INFO "cppi41_queue_mgr_init done\n");
-	numch =  USB_CPPI41_NUM_CH * 2;
+
+	numch =  USB_CPPI41_NUM_CH * 2 * 2;
 	order = get_count_order(numch);
 
 	/* TODO: check two teardown desc per channel (5 or 7 ?)*/
 	if (order < 5)
 		order = 5;
 
-	cppi41_dma_block_init(blknum, usb_cppi41_info.q_mgr, order,
+	cppi41_dma_block_init(blknum, cppi_info->q_mgr, order,
 			dma_sched_table, numch);
 
 #ifdef CONFIG_USB_TI_CPPI41_DMA
 	/* attach to the IRQ */
-	if (request_irq(nIrq, cppi41dma_Interrupt, 0, "musb_dma", musb))
+	if (request_irq(nIrq, cppi41dma_Interrupt, 0, "cppi41_dma", 0))
 		printk(KERN_INFO "request_irq %d failed!\n", nIrq);
 	else
 		printk(KERN_INFO "registerd cppi-dma Intr @ IRQ %d\n", nIrq);
 #endif
 
-#define USBSS_INTR_RX_STARV	0x00000001
-#define USBSS_INTR_PD_CMPL	0x00000004
-#define USBSS_INTR_TX_CMPL	0x00000500
-#define USBSS_INTR_RX_CMPL	0x00000A00
-#define USBSS_INTR_FLAGS	(USBSS_INTR_PD_CMPL | USBSS_INTR_TX_CMPL \
-					| USBSS_INTR_RX_CMPL)
 
 	/* enable all the interrupts */
 	usbss_write(USBSS_IRQ_EOI, 0);
@@ -589,61 +600,32 @@ int __init cppi41_init(struct musb *musb)
 
 	return 0;
 }
-#endif /* CONFIG_USB_TI_CPPI41_DMA */
 
-#ifdef CONFIG_USB_TI_CPPI41_DMA
+void cppi41_free(struct musb *musb)
+{
+	u32 nIrq = TI816X_IRQ_USBSS;
+
+	if (!cppi41_init_done)
+		return ;
+
+	free_irq(nIrq, 0);
+	iounmap(cppi41_dma_base);
+	cppi41_dma_base = 0;
+	cppi41_init_done = 0;
+}
+
 int cppi41_disable_sched_rx(void)
 {
-	u16 numch = 35, blknum = usb_cppi41_info.dma_block;
-
-	dma_sched_table[0] = 0x02810100;
-	dma_sched_table[1] = 0x04830382;
-	dma_sched_table[2] = 0x06850584;
-	dma_sched_table[3] = 0x08870786;
-	dma_sched_table[4] = 0x0a890988;
-	dma_sched_table[5] = 0x0c8b0b8a;
-	dma_sched_table[6] = 0x0e8d0d8c;
-	dma_sched_table[7] = 0x0000008e;
-
-	cppi41_dma_sched_tbl_init(blknum, usb_cppi41_info.q_mgr,
-		dma_sched_table, numch);
+	cppi41_dma_sched_tbl_init(0, 0, dma_sched_table, 30);
 	return 0;
 }
 
 int cppi41_enable_sched_rx(void)
 {
-	u16 numch = 32, blknum = usb_cppi41_info.dma_block;
-
-	dma_sched_table[0] = 0x81018000;
-	dma_sched_table[1] = 0x83038202;
-	dma_sched_table[2] = 0x85058404;
-	dma_sched_table[3] = 0x87078606;
-	dma_sched_table[4] = 0x89098808;
-	dma_sched_table[5] = 0x8b0b8a0a;
-	dma_sched_table[6] = 0x8d0d8c0c;
-	dma_sched_table[7] = 0x00008e0e;
-
-	cppi41_dma_sched_tbl_init(blknum, usb_cppi41_info.q_mgr,
-		dma_sched_table, numch);
+	cppi41_dma_sched_tbl_init(0, 0, dma_sched_table, 30);
 	return 0;
 }
-#endif
-
-u32 get_q_status(struct musb *musb)
-{
-	void *q_mgr_base = cppi41_queue_mgr[0].q_mgr_rgn_base;
-	u32 intr_status, q_cmpl_status_0, q_cmpl_status_1;
-
-	intr_status = usbss_read(USBSS_IRQ_STATUS);
-
-	q_cmpl_status_0 = musb_readl(q_mgr_base, 0x98);
-	q_cmpl_status_1 = musb_readl(q_mgr_base, 0x9c);
-
-	printk("intr[%x],qs1[%x],qs2[%x]\n", intr_status, q_cmpl_status_0,
-			q_cmpl_status_1);
-	return 0;
-}
-
+#endif /* CONFIG_USB_TI_CPPI41_DMA */
 
 /*
  * REVISIT (PM): we should be able to keep the PHY in low power mode most
@@ -656,7 +638,7 @@ static inline void phy_on(void)
 {
 	u32 usbphycfg;
 
-	dprintk(KERN_INFO "phy_on..\n");
+	DBG(4, "phy_on..\n");
 	/*
 	 * Start the on-chip PHY and its PLL.
 	 */
@@ -665,15 +647,15 @@ static inline void phy_on(void)
 	usbphycfg &= ~(TI816X_USBPHY_REFCLK_OSC);
 	omap_ctrl_writel(usbphycfg, TI816X_USBCTRL_OFFS);
 
-	dprintk(KERN_INFO "usbphy_ctrl0=%x\n", omap_ctrl_readl(TI816X_USBPHY_CTRL0_OFFS));
-	dprintk(KERN_INFO "usbphy_ctrl1=%x\n", omap_ctrl_readl(TI816X_USBPHY_CTRL0_OFFS));
+	DBG(4, "usbphy_ctrl0=%x\n", omap_ctrl_readl(TI816X_USBPHY_CTRL0_OFFS));
+	DBG(4, "usbphy_ctrl1=%x\n", omap_ctrl_readl(TI816X_USBPHY_CTRL0_OFFS));
 }
 
 static inline void phy_off(void)
 {
 	u32 usbphycfg;
 
-	pr_info("phy_off..\n");
+	DBG(4, "phy_off..\n");
 
 	usbphycfg = omap_ctrl_readl(TI816X_USBCTRL_OFFS);
 	usbphycfg &= ~(TI816X_USBPHY0_NORMAL_MODE | TI816X_USBPHY1_NORMAL_MODE
@@ -702,10 +684,10 @@ void musb_platform_enable(struct musb *musb)
 	coremask = (0x01ff << USB_INTR_USB_SHIFT);
 
 	coremask &= ~0x8; /* disable the SOF */
+	coremask |= 0x8;
 
 	musb_writel(reg_base, USB_EP_INTR_SET_REG, epmask);
 	musb_writel(reg_base, USB_CORE_INTR_SET_REG, coremask);
-
 	/* Force the DRVVBUS IRQ so we can start polling for ID change. */
 	if (is_otg_enabled(musb))
 		musb_writel(reg_base, USB_CORE_INTR_SET_REG,
@@ -725,8 +707,6 @@ void musb_platform_disable(struct musb *musb)
 	musb_writeb(musb->mregs, MUSB_DEVCTL, 0);
 	musb_writel(reg_base, USB_IRQ_EOI, 0);
 }
-
-/* REVISIT: it's not clear whether AM3517 can support full OTG.  */
 
 static int vbus_state = -1;
 
@@ -857,19 +837,20 @@ void musb_platform_try_idle_x(struct musb *musb, unsigned long timeout)
 	mod_timer(&otg_workaround, timeout);
 }
 
+#ifdef CONFIG_USB_TI_CPPI41_DMA
 static irqreturn_t cppi41dma_Interrupt(int irq, void *hci)
 {
-	struct musb  *musb = hci, *usb0_musb = hci;
+	struct musb  *musb = hci;
 	u32 intr_status;
 	irqreturn_t ret = IRQ_NONE;
-	u32 q_cmpl_status_0 = 0, q_cmpl_status_1 = 0;
+	u32 q_cmpl_status_0, q_cmpl_status_1, q_cmpl_status_2;
 	u32 usb0_tx_intr, usb0_rx_intr;
+	u32 usb1_tx_intr, usb1_rx_intr;
 	void *q_mgr_base = cppi41_queue_mgr[0].q_mgr_rgn_base;
 	unsigned long flags;
 
 	musb = hci;
 	spin_lock_irqsave(&musb->lock, flags);
-
 	/*
 	 * CPPI 4.1 interrupts share the same IRQ and the EOI register but
 	 * don't get reflected in the interrupt source/mask registers.
@@ -889,58 +870,43 @@ static irqreturn_t cppi41dma_Interrupt(int irq, void *hci)
 		else
 			printk(KERN_DEBUG "spurious usbss intr\n");
 
-		dprintk("amIsr: intr_status = %x\n", intr_status);
-		if (intr_status & (0xf04|USBSS_INTR_RX_STARV)) {
-			q_cmpl_status_0 = musb_readl(q_mgr_base, 0x98);
-			q_cmpl_status_1 = musb_readl(q_mgr_base, 0x9c);
-		}
+		q_cmpl_status_0 = musb_readl(q_mgr_base, 0x98);
+		q_cmpl_status_1 = musb_readl(q_mgr_base, 0x9c);
+		q_cmpl_status_2 = musb_readl(q_mgr_base, 0xa0);
 
 		/* USB0 tx/rx completion */
-		if (intr_status & (0xf04|USBSS_INTR_RX_STARV)) {
-			/* usb0 tx completion interrupt for ep1..15 */
-			usb0_tx_intr = (q_cmpl_status_0 >> 29) |
-					((q_cmpl_status_1 & 0xFFF) << 3);
-			usb0_rx_intr = (q_cmpl_status_1 >> 13);
+		/* usb0 tx completion interrupt for ep1..15 */
+		usb0_tx_intr = (q_cmpl_status_0 >> 29) |
+				((q_cmpl_status_1 & 0xFFF) << 3);
+		usb0_rx_intr = ((q_cmpl_status_1 & 0x07FFe000) >> 13);
 
-			dprintk("[%x][%x]tx=%x,rx=%x\n", q_cmpl_status_0,
-				q_cmpl_status_1, usb0_tx_intr, usb0_rx_intr);
+		usb1_tx_intr = (q_cmpl_status_1 >> 29) |
+				((q_cmpl_status_2 & 0xFFF) << 3);
+		usb1_rx_intr = ((q_cmpl_status_2 & 0x0fffe000) >> 13);
 
-			/* get proper musb handle based usb0/usb1 ctrl-id */
-			usb0_musb = gmusb[0];
+		/* get proper musb handle based usb0/usb1 ctrl-id */
 
-			DBG(4, "CPPI 4.1 IRQ: Tx %x, Rx %x\n", usb0_tx_intr,
-						usb0_rx_intr);
-			cppi41_completion(usb0_musb, usb0_rx_intr,
+		DBG(4, "CPPI 4.1 IRQ: Tx %x, Rx %x\n", usb0_tx_intr,
+					usb0_rx_intr);
+		if (usb0_tx_intr || usb0_rx_intr) {
+			cppi41_completion(gmusb[0], usb0_rx_intr,
 						usb0_tx_intr);
 			ret = IRQ_HANDLED;
 		}
-#if 1
-		/* USB1 tx/rx completion */
-		if (intr_status & 0xc00) {
-			u32 usb1_tx_intr, usb1_rx_intr, q_cmpl_status_2 = 0;
-			struct musb *usb1_musb;
 
-			q_cmpl_status_2 = musb_readl(q_mgr_base, 0xa0);
-			usb1_tx_intr	= (q_cmpl_status_1 >> 29) |
-					((q_cmpl_status_2 & 0xFFF) << 3);
-			usb1_rx_intr    = (q_cmpl_status_2 >> 13) & 0x7FFF;
-
-			/* get proper handle musb based usb0/usb1 ctrl-id */
-			usb1_musb =  gmusb[1];
-
-			DBG(4, "CPPI 4.1 IRQ: Tx %x, Rx %x\n", usb1_tx_intr,
-				usb1_rx_intr);
-			cppi41_completion(usb1_musb, usb1_rx_intr,
+		DBG(4, "CPPI 4.1 IRQ: Tx %x, Rx %x\n", usb1_tx_intr,
+			usb1_rx_intr);
+		if (usb1_rx_intr || usb1_tx_intr) {
+			cppi41_completion(gmusb[1], usb1_rx_intr,
 				usb1_tx_intr);
 			ret = IRQ_HANDLED;
 		}
-#endif
 		usbss_write(USBSS_IRQ_EOI, 0);
 	}
 	spin_unlock_irqrestore(&musb->lock, flags);
 	return ret;
 }
-
+#endif
 static irqreturn_t ti816x_interrupt(int irq, void *hci)
 {
 	struct musb  *musb = hci;
@@ -953,7 +919,7 @@ static irqreturn_t ti816x_interrupt(int irq, void *hci)
 	spin_lock_irqsave(&musb->lock, flags);
 
 	/*
-	 * NOTE: AM3517 shadows the Mentor IRQs.  Don't manage them through
+	 * NOTE: AM3517/ti816x shadows the Mentor IRQs.  Don't manage them through
 	 * the Mentor registers (except for setup), use the TI ones and EOI.
 	 */
 	/* Acknowledge and handle non-CPPI interrupts */
@@ -972,7 +938,7 @@ static irqreturn_t ti816x_interrupt(int irq, void *hci)
 	/* Get usb core interrupts */
 	usbintr = musb_readl(reg_base, USB_CORE_INTR_STATUS_REG);
 	if (!usbintr && !epintr) {
-		printk(KERN_DEBUG "c[%x]ep[%x]\n", usbintr, epintr);
+		DBG(4, "sprious interrupt\n");
 		goto eoi;
 	}
 
@@ -981,7 +947,6 @@ static irqreturn_t ti816x_interrupt(int irq, void *hci)
 		musb->int_usb =
 			(usbintr & USB_INTR_USB_MASK) >> USB_INTR_USB_SHIFT;
 	}
-
 	/*
 	 * DRVVBUS IRQs are the only proxy we have (a very poor one!) for
 	 * AM3517's missing ID change IRQ.  We need an ID change IRQ to
@@ -1088,14 +1053,14 @@ int musb_platform_set_mode(struct musb *musb, u8 musb_mode)
 	if (musb_mode == MUSB_HOST) {
 		musb_writel(reg_base, USB_MODE_REG, 0);
 		musb_writel(musb->ctrl_base, USB_PHY_UTMI_REG, 0x02);
-		dprintk("host: %s: value of mode reg=%x\n\n", __func__,
+		DBG(4, "host: %s: value of mode reg=%x\n\n", __func__,
 					musb_readl(reg_base, USB_MODE_REG));
 	} else
 	if (musb_mode == MUSB_PERIPHERAL) {
 		/* TODO commmented writing 8 to USB_MODE_REG device
 			mode is not working */
 		musb_writel(reg_base, USB_MODE_REG, 0x100);
-		dprintk("device: %s: value of mode reg=%x\n\n", __func__,
+		DBG(4, "device: %s: value of mode reg=%x\n\n", __func__,
 					musb_readl(reg_base, USB_MODE_REG));
 	}
 	return -EIO;
@@ -1106,14 +1071,7 @@ int musb_platform_init(struct musb *musb)
 	void __iomem *reg_base = musb->ctrl_base;
 	struct clk              *otg_fck;
 	u32 rev;
-
-	g_musb = musb;
-	g_musb->read_mask = 0;
-	g_musb->faddr = 0;
-	g_musb->power = 0;
-	g_musb->intrtxe = 0;
-	g_musb->intrrxe = 0;
-	g_musb->intrusbe = 0;
+	u8 mode;
 
 	/* usb subsystem init */
 	usbotg_ss_init(musb);
@@ -1121,13 +1079,13 @@ int musb_platform_init(struct musb *musb)
 	if (musb->id < 2)
 		gmusb[musb->id] = musb;
 
-	usb_nop_xceiv_register();
+	usb_nop_xceiv_register(musb->id);
 
-	musb->xceiv = otg_get_transceiver();
+	musb->xceiv = otg_get_transceiver(musb->id);
 	if (!musb->xceiv)
 		return -ENODEV;
 
-	/* mentor is at offset of 0x400 in am3517 */
+	/* mentor is at offset of 0x400 in am3517/ti816x */
 	musb->mregs += USB_MENTOR_CORE_OFFSET;
 
 	/* not required as clock is set in usb-musb.c file in arch */
@@ -1183,18 +1141,25 @@ int musb_platform_init(struct musb *musb)
 
 #ifdef CONFIG_USB_TI_CPPI41_DMA
 	cppi41_init(musb);
-	musb->tx_can_dma_queue = 1;
-	musb->rx_can_dma_queue = 1;
 #endif
 
 	musb->a_wait_bcon = A_WAIT_BCON_TIMEOUT;
 	musb->isr = ti816x_interrupt;
 
+#ifdef CONFIG_USB_MUSB_OTG
+	if (musb->id == 1)
+		mode = MUSB_HOST;
+	else
+		mode = MUSB_PERIPHERAL;
+#else
 	/* set musb controller to host mode */
 	if (is_host_enabled(musb))
-		musb_platform_set_mode(musb, MUSB_HOST);
+		mode = MUSB_HOST;
 	else
-		musb_platform_set_mode(musb, MUSB_PERIPHERAL);
+		mode = MUSB_PERIPHERAL;
+#endif
+
+	musb_platform_set_mode(musb, mode);
 
 	musb_writel(reg_base, USB_IRQ_EOI, 0);
 	usbss_write(USBSS_IRQ_EOI, 0);
@@ -1240,6 +1205,7 @@ int musb_platform_exit(struct musb *musb)
 
 #ifdef CONFIG_USB_TI_CPPI41_DMA
 	cppi41_exit();
+	cppi41_free(musb);
 #endif
 	return 0;
 }
@@ -1257,34 +1223,3 @@ void musb_platform_restore_context(struct musb *musb,
 	/* Restore CPPI41 DMA related registers */
 }
 #endif
-
-/* AM35x supports only 32bit read operation */
-void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
-{
-	void __iomem *fifo = hw_ep->fifo;
-	u32	val;
-	int	i;
-
-	/* Read for 32bit-aligned destination address */
-	if ((likely((0x03 & (unsigned long) dst) == 0)) && len >= 4) {
-		readsl(fifo, dst, len >> 2);
-		dst += (len & ~0x03);
-		len &= 0x03;
-	}
-	/* Now read the rest 1 to 3 bytes or complete length if
-	 * unaligned address.
-	 */
-	if (len > 4) {
-		for (i = 0; i < (len >> 2); i++) {
-			val = musb_readl(fifo, 0);
-			memcpy(dst, &val, 4);
-			dst += 4;
-		}
-		len %= 4;
-	}
-	if (len > 0) {
-		val = musb_readl(fifo, 0);
-		memcpy(dst, &val, len);
-	}
-}
-

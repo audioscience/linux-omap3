@@ -19,7 +19,12 @@
 
 #ifndef _CPPI41_DMA_H_
 #define _CPPI41_DMA_H_
+
+#ifdef CONFIG_ARCH_TI816X
+#include "ti816x.h"
+#else
 #include <plat/usb.h>
+#endif
 
 /**
  * struct usb_cppi41_info - CPPI 4.1 USB implementation details
@@ -39,9 +44,10 @@ struct usb_cppi41_info {
 	u8 num_rx_comp_q;
 	const u16 *tx_comp_q;
 	const u16 *rx_comp_q;
+	const u8 bd_intr_ctrl;
 };
 
-extern const struct usb_cppi41_info usb_cppi41_info;
+extern struct usb_cppi41_info usb_cppi41_info[];
 
 /**
  * cppi41_completion - Tx/Rx completion queue interrupt handling hook

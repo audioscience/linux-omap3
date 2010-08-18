@@ -112,6 +112,9 @@
 #include "davinci.h"
 #endif
 
+#ifdef CONFIG_ARCH_TI816X
+#include "ti816x.h"
+#endif
 
 #ifdef	CONFIG_PM
 struct musb *gb_musb;
@@ -225,7 +228,7 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 	DBG(4, "%cX ep%d fifo %p count %d buf %p\n",
 			'R', hw_ep->epnum, fifo, len, dst);
 
-	if (cpu_is_omap3517() || cpu_is_omap3505()) {
+	if (cpu_is_omap3517() || cpu_is_omap3505() || cpu_is_ti816x()) {
 		/* Bytewise or wordwise data read from FIFO is corrupted
 		 * if AM3517EVM is configured as gadget */
 		musb_fifo_read_unaligned(fifo, dst, len);
@@ -408,10 +411,6 @@ void musb_hnp_stop(struct musb *musb)
  * @param devctl
  * @param power
  */
-
-#define STAGE0_MASK (MUSB_INTR_RESUME | MUSB_INTR_SESSREQ \
-		| MUSB_INTR_VBUSERROR | MUSB_INTR_CONNECT \
-		| MUSB_INTR_RESET)
 
 static irqreturn_t musb_stage0_irq(struct musb *musb, u8 int_usb,
 				u8 devctl, u8 power)
@@ -912,7 +911,7 @@ void musb_start(struct musb *musb)
 						| MUSB_POWER_SOFTCONN
 						| MUSB_POWER_HSENAB
 						/* ENSUSPEND wedges tusb */
-						/* | MUSB_POWER_ENSUSPEND */
+						| MUSB_POWER_ENSUSPEND
 						);
 
 	musb->is_active = 0;
@@ -1019,7 +1018,7 @@ static void musb_shutdown(struct platform_device *pdev)
  */
 #if defined(CONFIG_USB_TUSB6010) || \
 	defined(CONFIG_ARCH_OMAP2430) || defined(CONFIG_ARCH_OMAP34XX) || \
-	defined(CONFIG_MACH_OMAP3517EVM)
+	defined(CONFIG_MACH_OMAP3517EVM) || defined(CONFIG_ARCH_TI816X)
 static ushort __initdata fifo_mode = 4;
 #else
 static ushort __initdata fifo_mode = 2;
@@ -1579,7 +1578,7 @@ irqreturn_t musb_interrupt(struct musb *musb)
 	/* the core can interrupt us for multiple reasons; docs have
 	 * a generic interrupt flowchart to follow
 	 */
-	if (musb->int_usb & STAGE0_MASK)
+	if (musb->int_usb)
 		retval |= musb_stage0_irq(musb, musb->int_usb,
 				devctl, power);
 
@@ -1930,7 +1929,8 @@ static void musb_free(struct musb *musb)
  *	not yet corrected for platform-specific offsets
  */
 static int __init
-musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
+musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl,
+			u8 musb_id)
 {
 	int			status;
 	struct musb		*musb;
@@ -1966,7 +1966,6 @@ bad_config:
 		dev_err(dev, "incompatible Kconfig role setting\n");
 		return -EINVAL;
 	}
-
 	/* allocate */
 	musb = allocate_instance(dev, plat->config, ctrl);
 	if (!musb)
@@ -1980,6 +1979,7 @@ bad_config:
 	musb->board_set_power = plat->set_power;
 	musb->set_clock = plat->set_clock;
 	musb->min_power = plat->min_power;
+	musb->id	= musb_id;
 
 	/* Clock usage is chip-specific ... functional clock (DaVinci,
 	 * OMAP2430), or PHY ref (some TUSB6010 boards).  All this core
@@ -2055,6 +2055,7 @@ bad_config:
 		status = -ENODEV;
 		goto fail2;
 	}
+
 	musb->nIrq = nIrq;
 /* FIXME this handles wakeup irqs wrong */
 	if (enable_irq_wake(nIrq) == 0) {
@@ -2139,9 +2140,14 @@ bad_config:
 #endif
 	if (status)
 		goto fail2;
-	if (status == 0)
-		musb_debug_create("driver/musb_hdrc", musb);
-
+	if (status == 0) {
+		u8 drvbuf[50];
+		if (cpu_is_ti816x()) {
+			sprintf(drvbuf, "driver/musb_hdrc.%d", musb->id);
+			musb_debug_create(drvbuf, musb);
+		} else
+			musb_debug_create("driver/musb_hdrc", musb);
+	}
 #ifdef CONFIG_USB_MUSB_HDRC_HCD
 	musb->gb_queue = create_singlethread_workqueue(dev_name(dev));
 	if (musb->gb_queue == NULL)
@@ -2197,8 +2203,10 @@ static int __init musb_probe(struct platform_device *pdev)
 {
 	struct device	*dev = &pdev->dev;
 	int		irq = platform_get_irq(pdev, 0);
+	int		status;
 	struct resource	*iomem;
 	void __iomem	*base;
+	u8	musb_id = pdev->id;
 
 	iomem = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!iomem || irq == 0)
@@ -2214,13 +2222,18 @@ static int __init musb_probe(struct platform_device *pdev)
 	/* clobbered by use_dma=n */
 	orig_dma_mask = dev->dma_mask;
 #endif
-	return musb_init_controller(dev, irq, base);
+	status = musb_init_controller(dev, irq, base, musb_id);
+	if (status < 0)
+		iounmap(base);
+
+	return status;
 }
 
 static int __devexit musb_remove(struct platform_device *pdev)
 {
 	struct musb	*musb = dev_to_musb(&pdev->dev);
 	void __iomem	*ctrl_base = musb->ctrl_base;
+	u8 drvbuf[50];
 
 	/* this gets called on rmmod.
 	 *  - Host mode: host may still be active
@@ -2228,7 +2241,11 @@ static int __devexit musb_remove(struct platform_device *pdev)
 	 *  - OTG mode: both roles are deactivated (or never-activated)
 	 */
 	musb_shutdown(pdev);
-	musb_debug_delete("driver/musb_hdrc", musb);
+	if (cpu_is_ti816x()) {
+		sprintf(drvbuf, "driver/musb_hdrc.%d", musb->id);
+		musb_debug_delete(drvbuf, musb);
+	} else
+		musb_debug_delete("driver/musb_hdrc", musb);
 #ifdef CONFIG_USB_MUSB_HDRC_HCD
 	if (musb->board_mode == MUSB_HOST)
 		usb_remove_hcd(musb_to_hcd(musb));
@@ -2482,7 +2499,7 @@ static const struct dev_pm_ops musb_dev_pm_ops = {
 
 static struct platform_driver musb_driver = {
 	.driver = {
-		.name		= (char *)musb_driver_name,
+		.name		= (char *)"musb_hdrc",
 		.bus		= &platform_bus_type,
 		.owner		= THIS_MODULE,
 		.pm		= MUSB_DEV_PM_OPS,
@@ -2495,6 +2512,8 @@ static struct platform_driver musb_driver = {
 
 static int __init musb_init(void)
 {
+	int	retval;
+
 #ifdef CONFIG_USB_MUSB_HDRC_HCD
 	if (usb_disabled())
 		return 0;
@@ -2524,7 +2543,10 @@ static int __init musb_init(void)
 #endif
 		", debug=%d\n",
 		musb_driver_name, musb_debug);
-	return platform_driver_probe(&musb_driver, musb_probe);
+
+	retval = platform_driver_probe(&musb_driver, musb_probe);
+
+	return retval;
 }
 
 /* make us init after usbcore and i2c (transceivers, regulators, etc)

@@ -198,7 +198,8 @@ enum musb_g_ep0_state {
  */
 
 #if defined(CONFIG_ARCH_DAVINCI) || defined(CONFIG_ARCH_OMAP2430) \
-		|| defined(CONFIG_ARCH_OMAP3430) || defined(CONFIG_BLACKFIN)
+	|| defined(CONFIG_ARCH_OMAP3430) || defined(CONFIG_BLACKFIN) \
+	|| defined(CONFIG_ARCH_TI816X)
 /* REVISIT indexed access seemed to
  * misbehave (on DaVinci) for at least peripheral IN ...
  */
@@ -490,6 +491,8 @@ struct musb {
 #ifdef MUSB_CONFIG_PROC_FS
 	struct proc_dir_entry *proc_entry;
 #endif
+	u8	id;					/* id for multiple
+							 * musb instances */
 };
 
 #ifdef CONFIG_PM
