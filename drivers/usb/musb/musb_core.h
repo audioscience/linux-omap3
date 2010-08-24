@@ -39,7 +39,6 @@
 #include <linux/list.h>
 #include <linux/interrupt.h>
 #include <linux/errno.h>
-#include <linux/timer.h>
 #include <linux/clk.h>
 #include <linux/device.h>
 #include <linux/usb/ch9.h>
@@ -187,15 +186,10 @@ enum musb_g_ep0_state {
 	MUSB_EP0_STAGE_ACKWAIT,		/* after zlp, before statusin */
 } __attribute__ ((packed));
 
-/*
- * OTG protocol constants.  See USB OTG 1.3 spec,
- * sections 5.5 "Device Timings" and 6.6.5 "Timers".
- */
+/* OTG protocol constants */
 #define OTG_TIME_A_WAIT_VRISE	100		/* msec (max) */
-#define OTG_TIME_A_WAIT_BCON	1100		/* min 1 second */
-#define OTG_TIME_A_AIDL_BDIS	200		/* min 200 msec */
-#define OTG_TIME_B_ASE0_BRST	100		/* min 3.125 ms */
-
+#define OTG_TIME_A_WAIT_BCON	0		/* 0=infinite; min 1000 msec */
+#define OTG_TIME_A_IDLE_BDIS	200		/* msec (min) */
 
 /*************************** REGISTER ACCESS ********************************/
 
@@ -313,6 +307,16 @@ static inline struct usb_request *next_out_request(struct musb_hw_ep *hw_ep)
 #endif
 }
 
+#ifdef CONFIG_USB_MUSB_HDRC_HCD
+/*
+ * struct queue - Queue data structure
+ */
+struct queue {
+	struct urb *urb;
+	struct queue *next;
+};
+#endif
+
 /*
  * struct musb - Driver instance data.
  */
@@ -353,7 +357,10 @@ struct musb {
 	struct list_head	in_bulk;	/* of musb_qh */
 	struct list_head	out_bulk;	/* of musb_qh */
 
-	struct timer_list	otg_timer;
+	struct workqueue_struct *gb_queue;
+	struct work_struct      gb_work;
+	spinlock_t		qlock;
+	struct queue		*qhead;
 #endif
 
 	/* called with IRQs blocked; ON/nonzero implies starting a session,
@@ -373,6 +380,29 @@ struct musb {
 	void __iomem		*sync_va;
 #endif
 
+#ifdef CONFIG_MACH_OMAP3517EVM
+/* Backup registers required for the workaround of AM3517 bytewise
+ * read issue. FADDR, POWER, INTRTXE, INTRRXE and INTRUSBE register
+ * read would actually clear the interrupt registers and would cause
+ * missing interrupt event.
+ * Only POWER register has a few read-only bits and other registers
+ * are programmed by software so any read to them would get the last
+ * written data dave in below registers.Even for POWER registers
+ * we need to read actual registers only at few places where we want
+ * to know the status of read-only bits.
+ */
+#define AM3517_READ_ISSUE_FADDR		BIT(0)
+#define AM3517_READ_ISSUE_POWER		BIT(1)
+#define AM3517_READ_ISSUE_INTRTXE	BIT(2)
+#define AM3517_READ_ISSUE_INTRRXE	BIT(3)
+#define AM3517_READ_ISSUE_INTRUSBE	BIT(4)
+	u8			read_mask;
+	u8			faddr;
+	u8			power;
+	u16			intrtxe;
+	u16			intrrxe;
+	u8			intrusbe;
+#endif
 	/* passed down from chip/board specific irq handlers */
 	u8			int_usb;
 	u16			int_rx;
@@ -411,6 +441,7 @@ struct musb {
 
 	unsigned		hb_iso_rx:1;	/* high bandwidth iso rx? */
 	unsigned		hb_iso_tx:1;	/* high bandwidth iso tx? */
+	unsigned		dyn_fifo:1;	/* dynamic FIFO supported? */
 
 #ifdef C_MP_TX
 	unsigned bulk_split:1;
@@ -460,6 +491,45 @@ struct musb {
 	struct proc_dir_entry *proc_entry;
 #endif
 };
+
+#ifdef CONFIG_PM
+struct musb_csr_regs {
+	/* FIFO registers */
+	u16 txmaxp, txcsr, rxmaxp, rxcsr;
+	u16 rxfifoadd, txfifoadd;
+	u8 txtype, txinterval, rxtype, rxinterval;
+	u8 rxfifosz, txfifosz;
+	u8 txfunaddr, txhubaddr, txhubport;
+	u8 rxfunaddr, rxhubaddr, rxhubport;
+};
+
+struct musb_context_registers {
+
+#if defined(CONFIG_ARCH_OMAP34XX)
+	u32 otg_sysconfig, otg_forcestandby;
+#endif
+	u8 power;
+	u16 intrtxe, intrrxe;
+	u8 intrusbe;
+	u16 frame;
+	u8 index, testmode;
+
+	u8 devctl, busctl, misc;
+
+	struct musb_csr_regs index_regs[MUSB_C_NUM_EPS];
+};
+
+#if defined(CONFIG_ARCH_OMAP34XX) || defined(CONFIG_ARCH_OMAP2430)
+extern void musb_platform_save_context(struct musb_context_registers
+		*musb_context);
+extern void musb_platform_restore_context(struct musb_context_registers
+		*musb_context);
+#else
+#define musb_platform_save_context(x)		do {} while (0)
+#define musb_platform_restore_context(x)	do {} while (0)
+#endif
+
+#endif
 
 static inline void musb_set_vbus(struct musb *musb, int is_on)
 {
@@ -576,5 +646,27 @@ extern int musb_platform_get_vbus_status(struct musb *musb);
 
 extern int __init musb_platform_init(struct musb *musb);
 extern int musb_platform_exit(struct musb *musb);
+#ifdef CONFIG_USB_MUSB_HDRC_HCD
+extern void musb_gb_work(struct work_struct *data);
+#endif
+
+/*-------------------------- ProcFS definitions ---------------------*/
+
+struct proc_dir_entry;
+
+#if defined(CONFIG_USB_MUSB_DEBUG) && defined(MUSB_CONFIG_PROC_FS)
+extern struct proc_dir_entry *musb_debug_create(char *name, struct musb *data);
+extern void musb_debug_delete(char *name, struct musb *data);
+
+#else
+static inline struct proc_dir_entry *
+musb_debug_create(char *name, struct musb *data)
+{
+	return NULL;
+}
+static inline void musb_debug_delete(char *name, struct musb *data)
+{
+}
+#endif
 
 #endif	/* __MUSB_CORE_H__ */

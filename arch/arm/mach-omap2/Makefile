@@ -37,8 +37,14 @@ obj-$(CONFIG_ARCH_OMAP2)		+= sdrc2xxx.o
 ifeq ($(CONFIG_PM),y)
 obj-$(CONFIG_ARCH_OMAP2)		+= pm24xx.o
 obj-$(CONFIG_ARCH_OMAP24XX)		+= sleep24xx.o
-obj-$(CONFIG_ARCH_OMAP3)		+= pm34xx.o sleep34xx.o cpuidle34xx.o
+obj-$(CONFIG_ARCH_OMAP3)        += pm34xx.o cpuidle34xx.o
+ifeq ($(CONFIG_MACH_OMAP3517EVM),y)
+obj-$(CONFIG_ARCH_OMAP3)        += sleep3517.o
+else
+obj-$(CONFIG_ARCH_OMAP3)		+= sleep34xx.o
+endif
 obj-$(CONFIG_PM_DEBUG)			+= pm-debug.o
+obj-$(CONFIG_OMAP_SMARTREFLEX)		+= smartreflex.o
 endif
 
 # PRCM
@@ -52,6 +58,10 @@ obj-$(CONFIG_ARCH_OMAP2420)		+= opp2420_data.o
 obj-$(CONFIG_ARCH_OMAP3)		+= clock34xx.o clock34xx_data.o
 obj-$(CONFIG_ARCH_OMAP2430)		+= opp2430_data.o
 obj-$(CONFIG_ARCH_OMAP4)		+= clock44xx.o clock44xx_data.o
+obj-$(CONFIG_ARCH_OMAP2)		+= clock24xx.o
+obj-$(CONFIG_ARCH_OMAP3)		+= clock34xx.o
+
+obj-$(CONFIG_OMAP_PM_SRF)		+=  resource34xx.o
 
 # EMU peripherals
 obj-$(CONFIG_OMAP3_EMU)		+= emu.o
@@ -67,6 +77,9 @@ obj-$(CONFIG_OMAP_IOMMU)		+= $(iommu-y)
 i2c-omap-$(CONFIG_I2C_OMAP)		:= i2c.o
 obj-y					+= $(i2c-omap-m) $(i2c-omap-y)
 
+# Debobs
+obj-$(CONFIG_OMAP3_DEBOBS)	+= debobs.o
+
 # Specific board support
 obj-$(CONFIG_MACH_OMAP_GENERIC)		+= board-generic.o
 obj-$(CONFIG_MACH_OMAP_H4)		+= board-h4.o
@@ -76,15 +89,19 @@ obj-$(CONFIG_MACH_OMAP_APOLLON)		+= board-apollon.o
 obj-$(CONFIG_MACH_OMAP3_BEAGLE)		+= board-omap3beagle.o \
 					   mmc-twl4030.o
 obj-$(CONFIG_MACH_OMAP_LDP)		+= board-ldp.o \
-					   mmc-twl4030.o
+					   mmc-twl4030.o \
+					   board-ldp-camera.o
 obj-$(CONFIG_MACH_OVERO)		+= board-overo.o \
 					   mmc-twl4030.o
 obj-$(CONFIG_MACH_OMAP3EVM)		+= board-omap3evm.o \
-					   mmc-twl4030.o
+					   mmc-twl4030.o \
+					   board-omap3evm-camera.o
+obj-$(CONFIG_PMIC_TWL4030)		+= twl4030-pmic.o
 obj-$(CONFIG_MACH_OMAP3_PANDORA)	+= board-omap3pandora.o \
 					   mmc-twl4030.o
 obj-$(CONFIG_MACH_OMAP_3430SDP)		+= board-3430sdp.o \
-					   mmc-twl4030.o
+					   mmc-twl4030.o \
+					   board-3430sdp-camera.o
 obj-$(CONFIG_MACH_NOKIA_N8X0)		+= board-n8x0.o
 obj-$(CONFIG_MACH_NOKIA_RX51)		+= board-rx51.o \
 					   board-rx51-sdram.o \
@@ -93,7 +110,8 @@ obj-$(CONFIG_MACH_NOKIA_RX51)		+= board-rx51.o \
 obj-$(CONFIG_MACH_OMAP_ZOOM2)		+= board-zoom2.o \
 					   board-zoom-peripherals.o \
 					   mmc-twl4030.o \
-					   board-zoom-debugboard.o
+					   board-zoom-debugboard.o \
+					   board-zoom2-camera.o
 obj-$(CONFIG_MACH_OMAP_ZOOM3)		+= board-zoom3.o \
 					   board-zoom-peripherals.o \
 					   mmc-twl4030.o \
@@ -109,7 +127,8 @@ obj-$(CONFIG_MACH_OMAP3_TOUCHBOOK)	+= board-omap3touchbook.o \
 					   mmc-twl4030.o
 obj-$(CONFIG_MACH_OMAP_4430SDP)		+= board-4430sdp.o
 
-obj-$(CONFIG_MACH_OMAP3517EVM)     += board-am3517evm.o
+obj-$(CONFIG_MACH_OMAP3517EVM)     	+= board-am3517evm.o \
+					   mmc-am3517evm.o
 
 # Platform specific device init code
 obj-y					+= usb-musb.o

@@ -316,10 +316,23 @@ static void txstate(struct musb *musb, struct musb_request *req)
 			else
 				musb_ep->dma->desired_mode = 1;
 
+			/*
+			 * use sdma for unaligned buffers on OMAP3630 which
+			 * can work only in mode-0 so restrict the request_size.
+			 */
+			if (cpu_is_omap3630() &&
+				(request->dma + request->actual) & 0x3) {
+				request_size =
+				min((size_t)musb_ep->hw_ep->max_packet_sz_tx,
+					(request->length - request->actual));
+				musb_ep->dma->desired_mode = 0;
+			}
+
 			use_dma = use_dma && c->channel_program(
 					musb_ep->dma, musb_ep->packet_sz,
 					musb_ep->dma->desired_mode,
-					request->dma + request->actual, request_size);
+					(request->dma + request->actual),
+					request_size);
 			if (use_dma) {
 				if (musb_ep->dma->desired_mode == 0) {
 					/*
@@ -347,7 +360,7 @@ static void txstate(struct musb *musb, struct musb_request *req)
 			}
 		}
 
-#elif defined(CONFIG_USB_TI_CPPI_DMA)
+#elif defined(CONFIG_USB_TI_CPPI_DMA) || defined(CONFIG_USB_TI_CPPI41_DMA)
 		/* program endpoint CSR first, then setup DMA */
 		csr &= ~(MUSB_TXCSR_P_UNDERRUN | MUSB_TXCSR_TXPKTRDY);
 		csr |= MUSB_TXCSR_DMAENAB | MUSB_TXCSR_DMAMODE |
@@ -462,7 +475,6 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 		u8	is_dma = 0;
 
 		if (dma && (csr & MUSB_TXCSR_DMAENAB)) {
-			is_dma = 1;
 			csr |= MUSB_TXCSR_P_WZC_BITS;
 			csr &= ~(MUSB_TXCSR_DMAENAB | MUSB_TXCSR_P_UNDERRUN |
 				 MUSB_TXCSR_TXPKTRDY);
@@ -470,6 +482,10 @@ void musb_g_tx(struct musb *musb, u8 epnum)
 			/* Ensure writebuffer is empty. */
 			csr = musb_readw(epio, MUSB_TXCSR);
 			request->actual += musb_ep->dma->actual_len;
+
+			if (request->actual == request->length)
+				is_dma = 1;
+
 			DBG(4, "TXCSR%d %04x, DMA off, len %zu, req %p\n",
 				epnum, csr, musb_ep->dma->actual_len, request);
 		}
@@ -585,7 +601,7 @@ static void rxstate(struct musb *musb, struct musb_request *req)
 		return;
 	}
 
-	if (is_cppi_enabled() && musb_ep->dma) {
+	if ((is_cppi_enabled() || is_cppi41_enabled()) && musb_ep->dma) {
 		struct dma_controller	*c = musb->dma_controller;
 		struct dma_channel	*channel = musb_ep->dma;
 
@@ -681,8 +697,15 @@ static void rxstate(struct musb *musb, struct musb_request *req)
 							transfer_size);
 				}
 
-				if (use_dma)
+				if (use_dma) {
 					return;
+				} else {
+					/* Need to clear DMAENAB for the
+					 * backup PIO mode transfer to work
+					 */
+					csr &= ~MUSB_RXCSR_DMAENAB;
+					musb_writew(epio, MUSB_RXCSR, csr);
+				}
 			}
 #endif	/* Mentor's DMA */
 
@@ -1962,11 +1985,9 @@ void musb_g_disconnect(struct musb *musb)
 		DBG(2, "Unhandled disconnect %s, setting a_idle\n",
 			otg_state_string(musb));
 		musb->xceiv->state = OTG_STATE_A_IDLE;
-		MUSB_HST_MODE(musb);
 		break;
 	case OTG_STATE_A_PERIPHERAL:
-		musb->xceiv->state = OTG_STATE_A_WAIT_BCON;
-		MUSB_HST_MODE(musb);
+		musb->xceiv->state = OTG_STATE_A_WAIT_VFALL;
 		break;
 	case OTG_STATE_B_WAIT_ACON:
 	case OTG_STATE_B_HOST:
@@ -2009,6 +2030,9 @@ __acquires(musb->lock)
 
 
 	/* what speed did we negotiate? */
+#ifdef CONFIG_MACH_OMAP3517EVM
+	musb->read_mask &= ~AM3517_READ_ISSUE_POWER;
+#endif
 	power = musb_readb(mbase, MUSB_POWER);
 	musb->g.speed = (power & MUSB_POWER_HSMODE)
 			? USB_SPEED_HIGH : USB_SPEED_FULL;

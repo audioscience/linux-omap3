@@ -78,6 +78,8 @@ struct tvp514x_std_info {
 };
 
 static struct tvp514x_reg tvp514x_reg_list_default[0x40];
+
+static int tvp514x_s_stream(struct v4l2_subdev *sd, int enable);
 /**
  * struct tvp514x_decoder - TVP5146/47 decoder object
  * @sd: Subdevice Slave handle
@@ -211,6 +213,13 @@ static const struct v4l2_fmtdesc tvp514x_fmt_list[] = {
 	 .flags = 0,
 	 .description = "8-bit UYVY 4:2:2 Format",
 	 .pixelformat = V4L2_PIX_FMT_UYVY,
+	},
+	{
+	 .index = 1,
+	 .type = V4L2_BUF_TYPE_VIDEO_CAPTURE,
+	 .flags = 0,
+	 .description = "8-bit YUYV 4:2:2 Format",
+	 .pixelformat = V4L2_PIX_FMT_YUYV,
 	},
 };
 
@@ -523,9 +532,17 @@ static int tvp514x_querystd(struct v4l2_subdev *sd, v4l2_std_id *std_id)
 	enum tvp514x_std current_std;
 	enum tvp514x_input input_sel;
 	u8 sync_lock_status, lock_mask;
+	int err;
 
 	if (std_id == NULL)
 		return -EINVAL;
+
+	err = tvp514x_write_reg(sd, REG_VIDEO_STD,
+			VIDEO_STD_AUTO_SWITCH_BIT);
+	if (err < 0)
+		return err;
+
+	msleep(LOCK_RETRY_DELAY);
 
 	/* get the current standard */
 	current_std = tvp514x_get_current_std(sd);
@@ -642,6 +659,13 @@ static int tvp514x_s_routing(struct v4l2_subdev *sd,
 			(output >= OUTPUT_INVALID))
 		/* Index out of bound */
 		return -EINVAL;
+
+	/*
+	 * For the sequence streamon -> streamoff and again s_input, most of
+	 * the time it fails to lock the signal, since streamoff puts TVP514x
+	 * into power off state which leads to failure in sub-sequent s_input.
+	 */
+	tvp514x_s_stream(sd, 1);
 
 	input_sel = input;
 	output_sel = output;

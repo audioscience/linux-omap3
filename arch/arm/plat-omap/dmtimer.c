@@ -551,8 +551,6 @@ void omap_dm_timer_stop(struct omap_dm_timer *timer)
 	if (l & OMAP_TIMER_CTRL_ST) {
 		l &= ~0x1;
 		omap_dm_timer_write_reg(timer, OMAP_TIMER_CTRL_REG, l);
-#if defined(CONFIG_ARCH_OMAP2) || defined(CONFIG_ARCH_OMAP3) || \
-			defined(CONFIG_ARCH_OMAP4)
 		/* Readback to make sure write has completed */
 		omap_dm_timer_read_reg(timer, OMAP_TIMER_CTRL_REG);
 		 /*
@@ -563,7 +561,6 @@ void omap_dm_timer_stop(struct omap_dm_timer *timer)
 		/* Ack possibly pending interrupt */
 		omap_dm_timer_write_reg(timer, OMAP_TIMER_STAT_REG,
 				OMAP_TIMER_INT_OVERFLOW);
-#endif
 	}
 }
 EXPORT_SYMBOL_GPL(omap_dm_timer_stop);

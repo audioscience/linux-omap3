@@ -40,6 +40,10 @@ struct clksel {
 	const struct clksel_rate *rates;
 };
 
+/* A new flag called flag has been added which indiciates what is the type
+  * of dpll (like j_type, no_dco_sel)
+  */
+
 struct dpll_data {
 	void __iomem		*mult_div1_reg;
 	u32			mult_mask;
@@ -62,6 +66,7 @@ struct dpll_data {
 	void __iomem		*idlest_reg;
 	u32			autoidle_mask;
 	u32			freqsel_mask;
+	u8			flags;
 	u32			idlest_mask;
 	u8			auto_recal_bit;
 	u8			recal_en_bit;
@@ -161,8 +166,9 @@ extern const struct clkops clkops_null;
 #define RATE_IN_242X		(1 << 1)
 #define RATE_IN_243X		(1 << 2)
 #define RATE_IN_343X		(1 << 3)	/* rates common to all 343X */
-#define RATE_IN_3430ES2		(1 << 4)	/* 3430ES2 rates only */
-#define RATE_IN_4430            (1 << 5)
+#define RATE_IN_3430ES2	(1 << 4)	/* 3430ES2 rates only */
+#define RATE_IN_36XX		(1 << 5)
+#define RATE_IN_4430		(1 << 6)
 
 #define RATE_IN_24XX		(RATE_IN_242X | RATE_IN_243X)
 

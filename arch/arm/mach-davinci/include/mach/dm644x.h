@@ -22,10 +22,10 @@
 #ifndef __ASM_ARCH_DM644X_H
 #define __ASM_ARCH_DM644X_H
 
+#include <linux/davinci_emac.h>
 #include <mach/hardware.h>
-#include <mach/emac.h>
 #include <mach/asp.h>
-#include <media/davinci/vpfe_capture.h>
+#include <media/ti-media/vpfe_capture.h>
 
 #define DM644X_EMAC_BASE		(0x01C80000)
 #define DM644X_EMAC_CNTRL_OFFSET	(0x0000)

@@ -152,31 +152,37 @@ u8 omap_ctrl_readb(u16 offset)
 {
 	return __raw_readb(OMAP_CTRL_REGADDR(offset));
 }
+EXPORT_SYMBOL(omap_ctrl_readb);
 
 u16 omap_ctrl_readw(u16 offset)
 {
 	return __raw_readw(OMAP_CTRL_REGADDR(offset));
 }
+EXPORT_SYMBOL(omap_ctrl_readw);
 
 u32 omap_ctrl_readl(u16 offset)
 {
 	return __raw_readl(OMAP_CTRL_REGADDR(offset));
 }
+EXPORT_SYMBOL(omap_ctrl_readl);
 
 void omap_ctrl_writeb(u8 val, u16 offset)
 {
 	__raw_writeb(val, OMAP_CTRL_REGADDR(offset));
 }
+EXPORT_SYMBOL(omap_ctrl_writeb);
 
 void omap_ctrl_writew(u16 val, u16 offset)
 {
 	__raw_writew(val, OMAP_CTRL_REGADDR(offset));
 }
+EXPORT_SYMBOL(omap_ctrl_writew);
 
 void omap_ctrl_writel(u32 val, u16 offset)
 {
 	__raw_writel(val, OMAP_CTRL_REGADDR(offset));
 }
+EXPORT_SYMBOL(omap_ctrl_writel);
 
 #if defined(CONFIG_ARCH_OMAP3) && defined(CONFIG_PM)
 /*
@@ -209,8 +215,7 @@ void omap3_save_scratchpad_contents(void)
 
 	/* Populate the Scratchpad contents */
 	scratchpad_contents.boot_config_ptr = 0x0;
-	if (omap_rev() != OMAP3430_REV_ES3_0 &&
-					omap_rev() != OMAP3430_REV_ES3_1)
+	if (!cpu_is_omap3630() && cpu_is_omap34xx() && omap_rev_le_3_0())
 		scratchpad_contents.public_restore_ptr =
 			virt_to_phys(get_restore_pointer());
 	else
@@ -271,7 +276,9 @@ void omap3_save_scratchpad_contents(void)
 	 * of AUTO_CNT = 1 prior to any transition to OFF mode.
 	 */
 	if ((omap_type() != OMAP2_DEVICE_TYPE_GP)
-			&& (omap_rev() >= OMAP3430_REV_ES3_0))
+		&& ((!cpu_is_omap3630() && cpu_is_omap34xx() && omap_rev_ge_3_0())
+			|| cpu_is_omap3505() || cpu_is_omap3517()
+			|| cpu_is_omap3630()))
 		sdrc_block_contents.power = (sdrc_read_reg(SDRC_POWER) &
 				~(SDRC_POWER_AUTOCOUNT_MASK|
 				SDRC_POWER_CLKCTRL_MASK)) |

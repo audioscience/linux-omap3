@@ -450,6 +450,61 @@ IS_OMAP_TYPE(3517, 0x3517)
 #define OMAP4430_REV_ES1_0	0x44300044
 
 /*
+ * Silicon revisions
+ */
+#define OMAP_ES_1_0		0x00
+#define OMAP_ES_2_0		0x10
+#define OMAP_ES_2_1		0x20
+#define OMAP_ES_3_0		0x30
+#define OMAP_ES_3_1		0x40
+
+#define OMAP_REV_MASK		0x0000ff00
+#define OMAP_REV_BITS		((omap_rev() & OMAP_REV_MASK) >> 8)
+
+#define OMAP_REV_IS(revid)					\
+static inline u8 omap_rev_is_ ##revid (void)			\
+{								\
+	return (OMAP_REV_BITS == OMAP_ES_ ##revid) ? 1 : 0;	\
+}
+
+#define OMAP_REV_LT(revid)					\
+static inline u8 omap_rev_lt_ ##revid (void)			\
+{								\
+	return (OMAP_REV_BITS < OMAP_ES_ ##revid) ? 1 : 0;	\
+}
+
+#define OMAP_REV_LE(revid)					\
+static inline u8 omap_rev_le_ ##revid (void)			\
+{								\
+	return (OMAP_REV_BITS <= OMAP_ES_ ##revid) ? 1 : 0;	\
+}
+
+#define OMAP_REV_GT(revid)					\
+static inline u8 omap_rev_gt_ ##revid (void)			\
+{								\
+	return (OMAP_REV_BITS > OMAP_ES_ ##revid) ? 1 : 0;	\
+}
+
+#define OMAP_REV_GE(revid)					\
+static inline u8 omap_rev_ge_ ##revid (void)			\
+{								\
+	return (OMAP_REV_BITS >= OMAP_ES_ ##revid) ? 1 : 0;	\
+}
+
+#define OMAP_REV_FUNCTIONS(revid)	\
+	OMAP_REV_IS(revid)		\
+	OMAP_REV_LT(revid)		\
+	OMAP_REV_LE(revid)		\
+	OMAP_REV_GT(revid)		\
+	OMAP_REV_GE(revid)
+
+OMAP_REV_FUNCTIONS(1_0)
+OMAP_REV_FUNCTIONS(2_0)
+OMAP_REV_FUNCTIONS(2_1)
+OMAP_REV_FUNCTIONS(3_0)
+OMAP_REV_FUNCTIONS(3_1)
+
+/*
  * omap_chip bits
  *
  * CHIP_IS_OMAP{2420,2430,3430} indicate that a particular structure is
@@ -501,6 +556,8 @@ extern u32 omap3_features;
 #define OMAP3_HAS_SGX			BIT(2)
 #define OMAP3_HAS_NEON			BIT(3)
 #define OMAP3_HAS_ISP			BIT(4)
+#define OMAP3_HAS_720M			BIT(5)
+#define OMAP3_HAS_192MHZ_CLK		BIT(6)
 
 #define OMAP3_HAS_FEATURE(feat,flag)			\
 static inline unsigned int omap3_has_ ##feat(void)	\
@@ -513,5 +570,7 @@ OMAP3_HAS_FEATURE(sgx, SGX)
 OMAP3_HAS_FEATURE(iva, IVA)
 OMAP3_HAS_FEATURE(neon, NEON)
 OMAP3_HAS_FEATURE(isp, ISP)
+OMAP3_HAS_FEATURE(720m, 720M)
+OMAP3_HAS_FEATURE(192mhz_clk, 192MHZ_CLK)
 
 #endif

@@ -284,9 +284,14 @@ static void dss_clk_enable_no_ctx(enum dss_clock clks)
 
 void dss_clk_enable(enum dss_clock clks)
 {
+	bool restore = false;
+
+	if (core.num_clks_enabled == 0)
+		restore = true;
+
 	dss_clk_enable_no_ctx(clks);
 
-	if (cpu_is_omap34xx() && dss_need_ctx_restore())
+	if (restore || (cpu_is_omap34xx() && dss_need_ctx_restore()))
 		restore_all_ctx();
 }
 
@@ -350,6 +355,50 @@ static void dss_clk_disable_all(void)
 	if (cpu_is_omap34xx())
 		clks |= DSS_CLK_96M;
 	dss_clk_disable(clks);
+}
+
+void dss_clk_enable_parent(enum dss_clock clks)
+{
+	struct clk *clk;
+
+	if (clks & DSS_CLK_54M) {
+		clk = clk_get_parent(core.dss_54m_fck);
+		clk_enable(clk);
+	}
+	if (clks & DSS_CLK_96M) {
+		clk = clk_get_parent(core.dss_96m_fck);
+		clk_enable(clk);
+	}
+	if (clks & DSS_CLK_FCK1) {
+		clk = clk_get_parent(core.dss1_fck);
+		clk_enable(clk);
+	}
+	if (clks & DSS_CLK_FCK2) {
+		clk = clk_get_parent(core.dss2_fck);
+		clk_enable(clk);
+	}
+}
+
+void dss_clk_disable_parent(enum dss_clock clks)
+{
+	struct clk *clk;
+
+	if (clks & DSS_CLK_54M) {
+		clk = clk_get_parent(core.dss_54m_fck);
+		clk_disable(clk);
+	}
+	if (clks & DSS_CLK_96M) {
+		clk = clk_get_parent(core.dss_96m_fck);
+		clk_disable(clk);
+	}
+	if (clks & DSS_CLK_FCK1) {
+		clk = clk_get_parent(core.dss1_fck);
+		clk_disable(clk);
+	}
+	if (clks & DSS_CLK_FCK2) {
+		clk = clk_get_parent(core.dss2_fck);
+		clk_disable(clk);
+	}
 }
 
 /* DEBUGFS */

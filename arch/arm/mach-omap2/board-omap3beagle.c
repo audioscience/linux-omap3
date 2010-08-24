@@ -43,14 +43,34 @@
 #include <plat/nand.h>
 #include <plat/usb.h>
 #include <plat/timer-gp.h>
+#include <plat/clock.h>
+#include <plat/omap-pm.h>
 
 #include "mux.h"
 #include "mmc-twl4030.h"
+#include "pm.h"
+#include "omap3-opp.h"
 
 #define GPMC_CS0_BASE  0x60
 #define GPMC_CS_SIZE   0x30
 
 #define NAND_BLOCK_SIZE		SZ_128K
+
+#ifdef CONFIG_PM
+static struct omap_opp * _omap35x_mpu_rate_table	= omap35x_mpu_rate_table;
+static struct omap_opp * _omap37x_mpu_rate_table	= omap37x_mpu_rate_table;
+static struct omap_opp * _omap35x_dsp_rate_table	= omap35x_dsp_rate_table;
+static struct omap_opp * _omap37x_dsp_rate_table	= omap37x_dsp_rate_table;
+static struct omap_opp * _omap35x_l3_rate_table		= omap35x_l3_rate_table;
+static struct omap_opp * _omap37x_l3_rate_table		= omap37x_l3_rate_table;
+#else	/* CONFIG_PM */
+static struct omap_opp * _omap35x_mpu_rate_table	= NULL;
+static struct omap_opp * _omap37x_mpu_rate_table	= NULL;
+static struct omap_opp * _omap35x_dsp_rate_table	= NULL;
+static struct omap_opp * _omap37x_dsp_rate_table	= NULL;
+static struct omap_opp * _omap35x_l3_rate_table		= NULL;
+static struct omap_opp * _omap37x_l3_rate_table		= NULL;
+#endif	/* CONFIG_PM */
 
 static struct mtd_partition omap3beagle_nand_partitions[] = {
 	/* All the partition sizes are listed in terms of NAND block size */
@@ -357,8 +377,21 @@ static void __init omap3_beagle_init_irq(void)
 {
 	omap_board_config = omap3_beagle_config;
 	omap_board_config_size = ARRAY_SIZE(omap3_beagle_config);
-	omap2_init_common_hw(mt46h32m32lf6_sdrc_params,
-			     mt46h32m32lf6_sdrc_params);
+
+	if (cpu_is_omap3630()) {
+		omap2_init_common_hw(mt46h32m32lf6_sdrc_params,
+						mt46h32m32lf6_sdrc_params,
+						_omap37x_mpu_rate_table,
+						_omap37x_dsp_rate_table,
+						_omap37x_l3_rate_table);
+	} else {
+		omap2_init_common_hw(mt46h32m32lf6_sdrc_params,
+						mt46h32m32lf6_sdrc_params,
+						_omap35x_mpu_rate_table,
+						_omap35x_dsp_rate_table,
+						_omap35x_l3_rate_table);
+	}
+
 	omap_init_irq();
 #ifdef CONFIG_OMAP_32K_TIMER
 	omap2_gp_clockevent_set_gptimer(12);

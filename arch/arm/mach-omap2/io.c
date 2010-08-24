@@ -301,7 +301,10 @@ static int __init _omap2_init_reprogram_sdrc(void)
 }
 
 void __init omap2_init_common_hw(struct omap_sdrc_params *sdrc_cs0,
-				 struct omap_sdrc_params *sdrc_cs1)
+				 struct omap_sdrc_params *sdrc_cs1,
+				 struct omap_opp *mpu_opps,
+				 struct omap_opp *dsp_opps,
+				 struct omap_opp *l3_opps)
 {
 	struct omap_hwmod **hwmods = NULL;
 
@@ -325,8 +328,10 @@ void __init omap2_init_common_hw(struct omap_sdrc_params *sdrc_cs0,
 #ifndef CONFIG_ARCH_OMAP4
 	omap_hwmod_late_init();
 	omap_pm_if_init();
-	omap2_sdrc_init(sdrc_cs0, sdrc_cs1);
-	_omap2_init_reprogram_sdrc();
+	if (!cpu_is_omap3505() && !cpu_is_omap3517()) {
+		omap2_sdrc_init(sdrc_cs0, sdrc_cs1);
+		_omap2_init_reprogram_sdrc();
+	}
 #endif
 	gpmc_init();
 }

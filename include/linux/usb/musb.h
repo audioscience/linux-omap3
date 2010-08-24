@@ -76,6 +76,9 @@ struct musb_hdrc_platform_data {
 	/* (HOST or OTG) msec/2 after VBUS on till power good */
 	u8		potpgt;
 
+	/* (HOST or OTG) program PHY for external Vbus */
+	unsigned	extvbus:1;
+
 	/* Power the device on or off */
 	int		(*set_power)(int state);
 
@@ -105,4 +108,11 @@ extern int tusb6010_platform_retime(unsigned is_refclk);
 
 #endif	/* OMAP2 */
 
+#ifdef CONFIG_USB_MUSB_SOC
+extern void musb_save_context(void);
+extern void musb_restore_context(void);
+#else
+#define musb_save_context()	do {} while (0)
+#define musb_restore_context()	do {} while (0)
+#endif
 #endif /* __LINUX_USB_MUSB_H */

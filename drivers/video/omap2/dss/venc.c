@@ -401,7 +401,28 @@ static const struct venc_config *venc_timings_to_config(
 }
 
 
+#ifdef CONFIG_OMAP2_DSS_USE_DSI_PLL
+static int venc_set_dsi_clk(bool is_tft, unsigned long pck_req)
+{
+	struct dsi_clock_info dsi_cinfo;
+	struct dispc_clock_info dispc_cinfo;
+	int r;
 
+	r = dsi_pll_calc_clock_div_pck(is_tft, pck_req, &dsi_cinfo,
+			&dispc_cinfo);
+	if (r)
+		return r;
+
+	r = dsi_pll_set_clock_div(&dsi_cinfo);
+	if (r)
+		return r;
+
+	dss_select_clk_source(0, 1);
+	r = dispc_set_clock_div(&dispc_cinfo);
+
+	return r;
+}
+#endif
 
 
 /* driver */
@@ -508,12 +529,32 @@ void venc_exit(void)
 	iounmap(venc.base);
 }
 
-static void venc_power_on(struct omap_dss_device *dssdev)
+static int venc_power_on(struct omap_dss_device *dssdev)
 {
 	u32 l;
+	int r = 0;
+#ifdef CONFIG_OMAP2_DSS_USE_DSI_PLL
+	struct omap_video_timings *t = &dssdev->panel.timings;
+	bool is_tft;
+#endif
 
 	venc_enable_clocks(1);
 
+#ifdef CONFIG_OMAP2_DSS_USE_DSI_PLL
+
+	dss_clk_enable(DSS_CLK_FCK2);
+	r = dsi_pll_init(dssdev, 1, 1);
+	if (r) {
+		DSSERR("failed in dsi_pll_init\n");
+		goto err;
+	}
+	is_tft = (dssdev->panel.config & OMAP_DSS_LCD_TFT) != 0;
+	r = venc_set_dsi_clk(is_tft, t->pixel_clock * 1000);
+	if (r) {
+		DSSERR("failed in venc_set_dsi_clk\n");
+		goto err1;
+	}
+#endif
 	venc_reset();
 	venc_write_config(venc_timings_to_config(&dssdev->panel.timings));
 
@@ -541,6 +582,16 @@ static void venc_power_on(struct omap_dss_device *dssdev)
 		dssdev->platform_enable(dssdev);
 
 	dispc_enable_digit_out(1);
+
+	return r;
+#ifdef CONFIG_OMAP2_DSS_USE_DSI_PLL
+err1:
+	dsi_pll_uninit();
+	dss_clk_disable(DSS_CLK_FCK2);
+err:
+	venc_enable_clocks(0);
+	return r;
+#endif
 }
 
 static void venc_power_off(struct omap_dss_device *dssdev)
@@ -555,6 +606,10 @@ static void venc_power_off(struct omap_dss_device *dssdev)
 
 	regulator_disable(venc.vdda_dac_reg);
 
+#ifdef CONFIG_OMAP2_DSS_USE_DSI_PLL
+	dsi_pll_uninit();
+	dss_clk_disable(DSS_CLK_FCK2);
+#endif
 	venc_enable_clocks(0);
 }
 
@@ -571,7 +626,9 @@ static int venc_enable_display(struct omap_dss_device *dssdev)
 		goto err;
 	}
 
-	venc_power_on(dssdev);
+	r = venc_power_on(dssdev);
+	if (r)
+		goto err;
 
 	venc.wss_data = 0;
 
@@ -639,7 +696,9 @@ static int venc_display_resume(struct omap_dss_device *dssdev)
 		goto err;
 	}
 
-	venc_power_on(dssdev);
+	r = venc_power_on(dssdev);
+	if (r)
+		goto err;
 
 	dssdev->state = OMAP_DSS_DISPLAY_ACTIVE;
 err:

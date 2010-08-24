@@ -55,7 +55,11 @@ obj-$(CONFIG_VIDEO_KS0127) += ks0127.o
 obj-$(CONFIG_VIDEO_THS7303) += ths7303.o
 obj-$(CONFIG_VIDEO_VINO) += indycam.o
 obj-$(CONFIG_VIDEO_TVP5150) += tvp5150.o
+ifeq ($(CONFIG_MACH_OMAP3EVM),y)
+obj-$(CONFIG_VIDEO_TVP514X) += tvp514x-int.o
+else
 obj-$(CONFIG_VIDEO_TVP514X) += tvp514x.o
+endif
 obj-$(CONFIG_VIDEO_MSP3400) += msp3400.o
 obj-$(CONFIG_VIDEO_CS5345) += cs5345.o
 obj-$(CONFIG_VIDEO_CS53L32A) += cs53l32a.o
@@ -121,6 +125,15 @@ obj-$(CONFIG_VIDEO_CX2341X) += cx2341x.o
 
 obj-$(CONFIG_VIDEO_CAFE_CCIC) += cafe_ccic.o
 
+obj-y				+= isp/
+obj-$(CONFIG_VIDEO_OMAP3)	+= omap34xxcam.o
+obj-$(CONFIG_VIDEO_MT9P012)     += mt9p012.o
+obj-$(CONFIG_VIDEO_DW9710)	+= dw9710.o
+obj-$(CONFIG_VIDEO_TPS61059)    += tps61059.o
+obj-$(CONFIG_VIDEO_OV3640)	+= ov3640.o
+obj-$(CONFIG_VIDEO_IMX046)      += imx046.o
+obj-$(CONFIG_VIDEO_LV8093)      += lv8093.o
+
 obj-$(CONFIG_USB_DABUSB)        += dabusb.o
 obj-$(CONFIG_USB_OV511)         += ov511.o
 obj-$(CONFIG_USB_SE401)         += se401.o
@@ -158,8 +171,6 @@ obj-$(CONFIG_VIDEO_MX3)			+= mx3_camera.o
 obj-$(CONFIG_VIDEO_PXA27x)		+= pxa_camera.o
 obj-$(CONFIG_VIDEO_SH_MOBILE_CEU)	+= sh_mobile_ceu_camera.o
 
-obj-$(CONFIG_ARCH_DAVINCI)		+= davinci/
-
 obj-$(CONFIG_VIDEO_AU0828) += au0828/
 
 obj-$(CONFIG_USB_VIDEO_CLASS)	+= uvc/
@@ -167,7 +178,7 @@ obj-$(CONFIG_VIDEO_SAA7164)     += saa7164/
 
 obj-$(CONFIG_VIDEO_IR_I2C)  += ir-kbd-i2c.o
 
-obj-$(CONFIG_ARCH_DAVINCI)	+= davinci/
+obj-$(CONFIG_TI_MEDIA)	+= ti-media/
 
 EXTRA_CFLAGS += -Idrivers/media/dvb/dvb-core
 EXTRA_CFLAGS += -Idrivers/media/dvb/frontends
