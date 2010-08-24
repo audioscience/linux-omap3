@@ -40,7 +40,7 @@
   do { preempt_enable(); __release(lock); (void)(lock); } while (0)
 
 #define __UNLOCK_BH(lock) \
-  do { preempt_enable_no_resched(); local_bh_enable(); \
+  do { __preempt_enable_no_resched(); local_bh_enable(); \
 	  __release(lock); (void)(lock); } while (0)
 
 #define __UNLOCK_IRQ(lock) \

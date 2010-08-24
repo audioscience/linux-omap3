@@ -69,7 +69,9 @@ static void __unhash_process(struct task_struct *p)
 
 		list_del_rcu(&p->tasks);
 		list_del_init(&p->sibling);
+		preempt_disable();
 		__get_cpu_var(process_counts)--;
+		preempt_enable();
 	}
 	list_del_rcu(&p->thread_group);
 }
@@ -131,7 +133,7 @@ static void __exit_signal(struct task_struct *tsk)
 	 * Do this under ->siglock, we can race with another thread
 	 * doing sigqueue_free() if we have SIGQUEUE_PREALLOC signals.
 	 */
-	flush_sigqueue(&tsk->pending);
+	flush_task_sigqueue(tsk);
 
 	tsk->signal = NULL;
 	tsk->sighand = NULL;
@@ -686,9 +688,11 @@ static void exit_mm(struct task_struct * tsk)
 	task_lock(tsk);
 	tsk->mm = NULL;
 	up_read(&mm->mmap_sem);
+	preempt_disable(); // FIXME
 	enter_lazy_tlb(mm, current);
 	/* We don't want this task to be frozen prematurely */
 	clear_freeze_flag(tsk);
+	preempt_enable();
 	task_unlock(tsk);
 	mm_update_next_owner(mm);
 	mmput(mm);
@@ -1493,6 +1497,9 @@ static int wait_consider_task(struct wait_opts *wo, int ptrace,
 				struct task_struct *p)
 {
 	int ret = eligible_child(wo, p);
+
+	BUG_ON(!atomic_read(&p->usage));
+
 	if (!ret)
 		return ret;
 

@@ -38,7 +38,7 @@ extern struct device_node *of_chosen;
 #define HAVE_ARCH_DEVTREE_FIXUPS
 
 extern struct device_node *allnodes;	/* temporary while merging */
-extern rwlock_t devtree_lock;	/* temporary while merging */
+extern raw_spinlock_t devtree_lock;	/* temporary while merging */
 
 /* For updating the device tree at runtime */
 extern void of_attach_node(struct device_node *);

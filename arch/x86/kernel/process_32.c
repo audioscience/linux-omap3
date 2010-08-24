@@ -101,7 +101,6 @@ void cpu_idle(void)
 		tick_nohz_stop_sched_tick(1);
 		while (!need_resched()) {
 
-			check_pgt_cache();
 			rmb();
 
 			if (cpu_is_offline(cpu))
@@ -113,10 +112,12 @@ void cpu_idle(void)
 			pm_idle();
 			start_critical_timings();
 		}
+		local_irq_disable();
 		tick_nohz_restart_sched_tick();
-		preempt_enable_no_resched();
-		schedule();
+		__preempt_enable_no_resched();
+		__schedule();
 		preempt_disable();
+		local_irq_enable();
 	}
 }
 
@@ -148,8 +149,10 @@ void __show_regs(struct pt_regs *regs, int all)
 		regs->ax, regs->bx, regs->cx, regs->dx);
 	printk(KERN_DEFAULT "ESI: %08lx EDI: %08lx EBP: %08lx ESP: %08lx\n",
 		regs->si, regs->di, regs->bp, sp);
-	printk(KERN_DEFAULT " DS: %04x ES: %04x FS: %04x GS: %04x SS: %04x\n",
-	       (u16)regs->ds, (u16)regs->es, (u16)regs->fs, gs, ss);
+	printk(KERN_DEFAULT
+	       " DS: %04x ES: %04x FS: %04x GS: %04x SS: %04x preempt:%08x\n",
+	       (u16)regs->ds, (u16)regs->es, (u16)regs->fs, gs, ss,
+	       preempt_count());
 
 	if (!all)
 		return;

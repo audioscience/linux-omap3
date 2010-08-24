@@ -309,6 +309,7 @@ static unsigned int default_startup(unsigned int irq)
 {
 	struct irq_desc *desc = irq_to_desc(irq);
 
+	desc->status &= ~IRQ_MASKED;
 	desc->chip->enable(irq);
 	return 0;
 }
@@ -543,6 +544,9 @@ handle_fasteoi_irq(unsigned int irq, struct irq_desc *desc)
 		goto out;
 	}
 
+	if ((desc->status & IRQ_ONESHOT) && desc->chip->mask)
+		desc->chip->mask(irq);
+
 	desc->status |= IRQ_INPROGRESS;
 	desc->status &= ~IRQ_PENDING;
 	raw_spin_unlock(&desc->lock);
@@ -580,7 +584,12 @@ handle_edge_irq(unsigned int irq, struct irq_desc *desc)
 {
 	raw_spin_lock(&desc->lock);
 
-	desc->status &= ~(IRQ_REPLAY | IRQ_WAITING);
+	/*
+	 * Edge irqs can be requested with IRQF_ONESHOT set. RT
+	 * (ab)uses this for enforced irq threading, but we do not
+	 * want to mask edge type interrupts. Clear the oneshot flag.
+	 */
+	desc->status &= ~(IRQ_REPLAY | IRQ_WAITING | IRQ_ONESHOT);
 
 	/*
 	 * If we're currently running this IRQ, or its disabled,

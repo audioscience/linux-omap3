@@ -34,8 +34,8 @@
  * because children are guaranteed to be discovered after parents, and
  * are inserted at the back of the list on discovery.
  *
- * Since device_pm_add() may be called with a device semaphore held,
- * we must never try to acquire a device semaphore while holding
+ * Since device_pm_add() may be called with a device mutex held,
+ * we must never try to acquire a device mutex while holding
  * dpm_list_mutex.
  */
 
@@ -476,7 +476,7 @@ static int device_resume(struct device *dev, pm_message_t state)
 	TRACE_DEVICE(dev);
 	TRACE_RESUME(0);
 
-	down(&dev->sem);
+	mutex_lock(&dev->mutex);
 
 	if (dev->bus) {
 		if (dev->bus->pm) {
@@ -509,7 +509,7 @@ static int device_resume(struct device *dev, pm_message_t state)
 		}
 	}
  End:
-	up(&dev->sem);
+	mutex_unlock(&dev->mutex);
 
 	TRACE_RESUME(error);
 	return error;
@@ -564,7 +564,7 @@ static void dpm_resume(pm_message_t state)
  */
 static void device_complete(struct device *dev, pm_message_t state)
 {
-	down(&dev->sem);
+	mutex_lock(&dev->mutex);
 
 	if (dev->class && dev->class->pm && dev->class->pm->complete) {
 		pm_dev_dbg(dev, state, "completing class ");
@@ -581,7 +581,7 @@ static void device_complete(struct device *dev, pm_message_t state)
 		dev->bus->pm->complete(dev);
 	}
 
-	up(&dev->sem);
+	mutex_unlock(&dev->mutex);
 }
 
 /**
@@ -740,7 +740,7 @@ static int device_suspend(struct device *dev, pm_message_t state)
 {
 	int error = 0;
 
-	down(&dev->sem);
+	mutex_lock(&dev->mutex);
 
 	if (dev->class) {
 		if (dev->class->pm) {
@@ -773,7 +773,7 @@ static int device_suspend(struct device *dev, pm_message_t state)
 		}
 	}
  End:
-	up(&dev->sem);
+	mutex_unlock(&dev->mutex);
 
 	return error;
 }
@@ -828,7 +828,7 @@ static int device_prepare(struct device *dev, pm_message_t state)
 {
 	int error = 0;
 
-	down(&dev->sem);
+	mutex_lock(&dev->mutex);
 
 	if (dev->bus && dev->bus->pm && dev->bus->pm->prepare) {
 		pm_dev_dbg(dev, state, "preparing ");
@@ -852,7 +852,7 @@ static int device_prepare(struct device *dev, pm_message_t state)
 		suspend_report_result(dev->class->pm->prepare, error);
 	}
  End:
-	up(&dev->sem);
+	mutex_unlock(&dev->mutex);
 
 	return error;
 }

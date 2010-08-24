@@ -24,7 +24,7 @@
 #include <linux/svga.h>
 #include <linux/init.h>
 #include <linux/pci.h>
-#include <linux/console.h> /* Why should fb driver call console functions? because acquire_console_sem() */
+#include <linux/console.h> /* Why should fb driver call console functions? because acquire_console_mutex() */
 #include <video/vga.h>
 
 #ifdef CONFIG_MTRR
@@ -818,12 +818,12 @@ static int vt8623_pci_suspend(struct pci_dev* dev, pm_message_t state)
 
 	dev_info(info->device, "suspend\n");
 
-	acquire_console_sem();
+	acquire_console_mutex();
 	mutex_lock(&(par->open_lock));
 
 	if ((state.event == PM_EVENT_FREEZE) || (par->ref_count == 0)) {
 		mutex_unlock(&(par->open_lock));
-		release_console_sem();
+		release_console_mutex();
 		return 0;
 	}
 
@@ -834,7 +834,7 @@ static int vt8623_pci_suspend(struct pci_dev* dev, pm_message_t state)
 	pci_set_power_state(dev, pci_choose_state(dev, state));
 
 	mutex_unlock(&(par->open_lock));
-	release_console_sem();
+	release_console_mutex();
 
 	return 0;
 }
@@ -849,7 +849,7 @@ static int vt8623_pci_resume(struct pci_dev* dev)
 
 	dev_info(info->device, "resume\n");
 
-	acquire_console_sem();
+	acquire_console_mutex();
 	mutex_lock(&(par->open_lock));
 
 	if (par->ref_count == 0)
@@ -868,7 +868,7 @@ static int vt8623_pci_resume(struct pci_dev* dev)
 
 fail:
 	mutex_unlock(&(par->open_lock));
-	release_console_sem();
+	release_console_mutex();
 
 	return 0;
 }

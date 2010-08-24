@@ -20,6 +20,7 @@
 #include <linux/slab.h>
 #include <linux/delay.h>
 #include <linux/kthread.h>
+#include <linux/interrupt.h>
 #include <linux/sched.h>	/* HZ */
 #include <linux/mutex.h>
 #include <linux/freezer.h>
@@ -57,11 +58,11 @@ static unsigned int get_time_pit(void)
 	unsigned long flags;
 	unsigned int count;
 
-	spin_lock_irqsave(&i8253_lock, flags);
+	raw_spin_lock_irqsave(&i8253_lock, flags);
 	outb_p(0x00, 0x43);
 	count = inb_p(0x40);
 	count |= inb_p(0x40) << 8;
-	spin_unlock_irqrestore(&i8253_lock, flags);
+	raw_spin_unlock_irqrestore(&i8253_lock, flags);
 
 	return count;
 }
@@ -87,12 +88,12 @@ static int gameport_measure_speed(struct gameport *gameport)
 	tx = 1 << 30;
 
 	for(i = 0; i < 50; i++) {
-		local_irq_save(flags);
+		local_irq_save_nort(flags);
 		GET_TIME(t1);
 		for (t = 0; t < 50; t++) gameport_read(gameport);
 		GET_TIME(t2);
 		GET_TIME(t3);
-		local_irq_restore(flags);
+		local_irq_restore_nort(flags);
 		udelay(i * 10);
 		if ((t = DELTA(t2,t1) - DELTA(t3,t2)) < tx) tx = t;
 	}
@@ -111,11 +112,11 @@ static int gameport_measure_speed(struct gameport *gameport)
 	tx = 1 << 30;
 
 	for(i = 0; i < 50; i++) {
-		local_irq_save(flags);
+		local_irq_save_nort(flags);
 		rdtscl(t1);
 		for (t = 0; t < 50; t++) gameport_read(gameport);
 		rdtscl(t2);
-		local_irq_restore(flags);
+		local_irq_restore_nort(flags);
 		udelay(i * 10);
 		if (t2 - t1 < tx) tx = t2 - t1;
 	}

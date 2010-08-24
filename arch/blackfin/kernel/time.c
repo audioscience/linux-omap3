@@ -129,7 +129,7 @@ irqreturn_t timer_interrupt(int irq, void *dummy)
 	/* last time the cmos clock got updated */
 	static long last_rtc_update;
 
-	write_seqlock(&xtime_lock);
+	write_raw_seqlock(&xtime_lock);
 	do_timer(1);
 
 	/*
@@ -149,7 +149,7 @@ irqreturn_t timer_interrupt(int irq, void *dummy)
 			/* Do it again in 60s. */
 			last_rtc_update = xtime.tv_sec - 600;
 	}
-	write_sequnlock(&xtime_lock);
+	write_raw_sequnlock(&xtime_lock);
 
 #ifdef CONFIG_IPIPE
 	update_root_process_times(get_irq_regs());

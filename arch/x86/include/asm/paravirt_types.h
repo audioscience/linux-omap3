@@ -306,6 +306,7 @@ struct pv_mmu_ops {
 
 #ifdef CONFIG_HIGHPTE
 	void *(*kmap_atomic_pte)(struct page *page, enum km_type type);
+	void *(*kmap_atomic_pte_direct)(struct page *page, enum km_type type);
 #endif
 
 	struct pv_lazy_ops lazy_mode;

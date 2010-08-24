@@ -124,10 +124,18 @@ config ARCH_MAY_HAVE_PC_FDC
 	def_bool y
 
 config RWSEM_GENERIC_SPINLOCK
-	def_bool !X86_XADD
+	bool
+	depends on !X86_XADD || PREEMPT_RT
+	default y
+
+config ASM_SEMAPHORES
+	bool
+	default y
 
 config RWSEM_XCHGADD_ALGORITHM
-	def_bool X86_XADD
+	bool
+	depends on X86_XADD && !RWSEM_GENERIC_SPINLOCK && !PREEMPT_RT
+	default y
 
 config ARCH_HAS_CPU_IDLE_WAIT
 	def_bool y
@@ -281,6 +289,7 @@ config X86_X2APIC
 config SPARSE_IRQ
 	bool "Support sparse irq numbering"
 	depends on PCI_MSI || HT_IRQ
+	depends on !PREEMPT_RT
 	---help---
 	  This enables support for sparse irqs. This is useful for distro
 	  kernels that want to define a high CONFIG_NR_CPUS value but still
@@ -712,7 +721,7 @@ config IOMMU_API
 
 config MAXSMP
 	bool "Configure Maximum number of SMP Processors and NUMA Nodes"
-	depends on X86_64 && SMP && DEBUG_KERNEL && EXPERIMENTAL
+	depends on 0 && X86_64 && SMP && DEBUG_KERNEL && EXPERIMENTAL
 	select CPUMASK_OFFSTACK
 	default n
 	---help---
@@ -1898,7 +1907,7 @@ config PCI_MMCONFIG
 
 config DMAR
 	bool "Support for DMA Remapping Devices (EXPERIMENTAL)"
-	depends on PCI_MSI && ACPI && EXPERIMENTAL
+	depends on PCI_MSI && ACPI && EXPERIMENTAL && !PREEMPT_RT
 	help
 	  DMA remapping (DMAR) devices support enables independent address
 	  translations for Direct Memory Access (DMA) from devices.
@@ -1941,6 +1950,7 @@ config DMAR_FLOPPY_WA
 config INTR_REMAP
 	bool "Support for Interrupt Remapping (EXPERIMENTAL)"
 	depends on X86_64 && X86_IO_APIC && PCI_MSI && ACPI && EXPERIMENTAL
+	depends on !PREEMPT_RT
 	---help---
 	  Supports Interrupt remapping for IO-APIC and MSI devices.
 	  To use x2apic mode in the CPU's which support x2APIC enhancements or
@@ -2071,7 +2081,7 @@ endmenu
 
 config HAVE_ATOMIC_IOMAP
 	def_bool y
-	depends on X86_32
+	depends on X86_32 && (!PREEMPT_RT || HIGHMEM)
 
 source "net/Kconfig"
 

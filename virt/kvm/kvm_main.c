@@ -137,7 +137,7 @@ static bool make_all_cpus_request(struct kvm *kvm, unsigned int req)
 	zalloc_cpumask_var(&cpus, GFP_ATOMIC);
 
 	spin_lock(&kvm->requests_lock);
-	me = smp_processor_id();
+	me = raw_smp_processor_id();
 	kvm_for_each_vcpu(i, vcpu, kvm) {
 		if (test_and_set_bit(req, &vcpu->requests))
 			continue;
@@ -145,12 +145,14 @@ static bool make_all_cpus_request(struct kvm *kvm, unsigned int req)
 		if (cpus != NULL && cpu != -1 && cpu != me)
 			cpumask_set_cpu(cpu, cpus);
 	}
+	preempt_disable_rt();
 	if (unlikely(cpus == NULL))
 		smp_call_function_many(cpu_online_mask, ack_flush, NULL, 1);
 	else if (!cpumask_empty(cpus))
 		smp_call_function_many(cpus, ack_flush, NULL, 1);
 	else
 		called = false;
+	preempt_enable_rt();
 	spin_unlock(&kvm->requests_lock);
 	free_cpumask_var(cpus);
 	return called;

@@ -350,6 +350,7 @@ ip6t_do_table(struct sk_buff *skb,
 	struct xt_table_info *private;
 	struct xt_match_param mtpar;
 	struct xt_target_param tgpar;
+	int cpu;
 
 	/* Initialization */
 	indev = in ? in->name : nulldevname;
@@ -368,9 +369,9 @@ ip6t_do_table(struct sk_buff *skb,
 
 	IP_NF_ASSERT(table->valid_hooks & (1 << hook));
 
-	xt_info_rdlock_bh();
+	cpu = xt_info_rdlock_bh();
 	private = table->private;
-	table_base = private->entries[smp_processor_id()];
+	table_base = private->entries[cpu];
 
 	e = get_entry(table_base, private->hook_entry[hook]);
 
@@ -459,7 +460,7 @@ ip6t_do_table(struct sk_buff *skb,
 #ifdef CONFIG_NETFILTER_DEBUG
 	tb_comefrom = NETFILTER_LINK_POISON;
 #endif
-	xt_info_rdunlock_bh();
+	xt_info_rdunlock_bh(cpu);
 
 #ifdef DEBUG_ALLOW_ALL
 	return NF_ACCEPT;
@@ -948,14 +949,16 @@ get_counters(const struct xt_table_info *t,
 	 * if new softirq were to run and call ipt_do_table
 	 */
 	local_bh_disable();
-	curcpu = smp_processor_id();
+	curcpu = raw_smp_processor_id();
 
 	i = 0;
+	xt_info_wrlock(curcpu);
 	IP6T_ENTRY_ITERATE(t->entries[curcpu],
 			   t->size,
 			   set_entry_to_counter,
 			   counters,
 			   &i);
+	xt_info_wrunlock(curcpu);
 
 	for_each_possible_cpu(cpu) {
 		if (cpu == curcpu)
@@ -977,12 +980,13 @@ static struct xt_counters *alloc_counters(struct xt_table *table)
 	unsigned int countersize;
 	struct xt_counters *counters;
 	struct xt_table_info *private = table->private;
+	int node = cpu_to_node(raw_smp_processor_id());
 
 	/* We need atomic snapshot of counters: rest doesn't change
 	   (other than comefrom, which userspace doesn't care
 	   about). */
 	countersize = sizeof(struct xt_counters) * private->number;
-	counters = vmalloc_node(countersize, numa_node_id());
+	counters = vmalloc_node(countersize, node);
 
 	if (counters == NULL)
 		return ERR_PTR(-ENOMEM);
@@ -1440,7 +1444,7 @@ do_add_counters(struct net *net, void __user *user, unsigned int len,
 
 	i = 0;
 	/* Choose the copy that is on our node */
-	curcpu = smp_processor_id();
+	curcpu = raw_smp_processor_id();
 	xt_info_wrlock(curcpu);
 	loc_cpu_entry = private->entries[curcpu];
 	IP6T_ENTRY_ITERATE(loc_cpu_entry,

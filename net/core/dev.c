@@ -2063,11 +2063,12 @@ gso:
 	   Either shot noqueue qdisc, it is even simpler 8)
 	 */
 	if (dev->flags & IFF_UP) {
-		int cpu = smp_processor_id(); /* ok because BHs are off */
+		/*
+		 * No need to check for recursion with threaded interrupts:
+		 */
+		if (!netif_tx_lock_recursion(txq)) {
 
-		if (txq->xmit_lock_owner != cpu) {
-
-			HARD_TX_LOCK(dev, txq, cpu);
+			HARD_TX_LOCK(dev, txq);
 
 			if (!netif_tx_queue_stopped(txq)) {
 				rc = dev_hard_start_xmit(skb, dev, txq);
@@ -2172,8 +2173,8 @@ int netif_rx_ni(struct sk_buff *skb)
 {
 	int err;
 
-	preempt_disable();
 	err = netif_rx(skb);
+	preempt_disable();
 	if (local_softirq_pending())
 		do_softirq();
 	preempt_enable();
@@ -2184,7 +2185,8 @@ EXPORT_SYMBOL(netif_rx_ni);
 
 static void net_tx_action(struct softirq_action *h)
 {
-	struct softnet_data *sd = &__get_cpu_var(softnet_data);
+	struct softnet_data *sd = &per_cpu(softnet_data,
+					   raw_smp_processor_id());
 
 	if (sd->completion_queue) {
 		struct sk_buff *clist;
@@ -2200,6 +2202,11 @@ static void net_tx_action(struct softirq_action *h)
 
 			WARN_ON(atomic_read(&skb->users));
 			__kfree_skb(skb);
+			/*
+			 * Safe to reschedule - the list is private
+			 * at this point.
+			 */
+			cond_resched_softirq_context();
 		}
 	}
 
@@ -2218,6 +2225,22 @@ static void net_tx_action(struct softirq_action *h)
 			head = head->next_sched;
 
 			root_lock = qdisc_lock(q);
+			/*
+			 * We are executing in softirq context here, and
+			 * if softirqs are preemptible, we must avoid
+			 * infinite reactivation of the softirq by
+			 * either the tx handler, or by netif_schedule().
+			 * (it would result in an infinitely looping
+			 *  softirq context)
+			 * So we take the spinlock unconditionally.
+			 */
+#ifdef CONFIG_PREEMPT_SOFTIRQS
+			spin_lock(root_lock);
+			smp_mb__before_clear_bit();
+			clear_bit(__QDISC_STATE_SCHED, &q->state);
+			qdisc_run(q);
+			spin_unlock(root_lock);
+#else
 			if (spin_trylock(root_lock)) {
 				smp_mb__before_clear_bit();
 				clear_bit(__QDISC_STATE_SCHED,
@@ -2234,6 +2257,7 @@ static void net_tx_action(struct softirq_action *h)
 						  &q->state);
 				}
 			}
+#endif
 		}
 	}
 }
@@ -2448,7 +2472,7 @@ int netif_receive_skb(struct sk_buff *skb)
 			skb->dev = master;
 	}
 
-	__get_cpu_var(netdev_rx_stat).total++;
+	per_cpu(netdev_rx_stat, raw_smp_processor_id()).total++;
 
 	skb_reset_network_header(skb);
 	skb_reset_transport_header(skb);
@@ -2834,9 +2858,10 @@ EXPORT_SYMBOL(napi_gro_frags);
 static int process_backlog(struct napi_struct *napi, int quota)
 {
 	int work = 0;
-	struct softnet_data *queue = &__get_cpu_var(softnet_data);
+	struct softnet_data *queue;
 	unsigned long start_time = jiffies;
 
+	queue = &per_cpu(softnet_data, raw_smp_processor_id());
 	napi->weight = weight_p;
 	do {
 		struct sk_buff *skb;
@@ -2868,7 +2893,7 @@ void __napi_schedule(struct napi_struct *n)
 
 	local_irq_save(flags);
 	list_add_tail(&n->poll_list, &__get_cpu_var(softnet_data).poll_list);
-	__raise_softirq_irqoff(NET_RX_SOFTIRQ);
+	raise_softirq_irqoff(NET_RX_SOFTIRQ);
 	local_irq_restore(flags);
 }
 EXPORT_SYMBOL(__napi_schedule);
@@ -3022,7 +3047,7 @@ out:
 
 softnet_break:
 	__get_cpu_var(netdev_rx_stat).time_squeeze++;
-	__raise_softirq_irqoff(NET_RX_SOFTIRQ);
+	raise_softirq_irqoff(NET_RX_SOFTIRQ);
 	goto out;
 }
 
@@ -4854,7 +4879,7 @@ static void __netdev_init_queue_locks_one(struct net_device *dev,
 {
 	spin_lock_init(&dev_queue->_xmit_lock);
 	netdev_set_xmit_lockdep_class(&dev_queue->_xmit_lock, dev->type);
-	dev_queue->xmit_lock_owner = -1;
+	dev_queue->xmit_lock_owner = (void *)-1;
 }
 
 static void netdev_init_queue_locks(struct net_device *dev)

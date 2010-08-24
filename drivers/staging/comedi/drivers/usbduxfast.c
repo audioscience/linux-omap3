@@ -200,7 +200,7 @@ struct usbduxfastsub_s {
  */
 static struct usbduxfastsub_s usbduxfastsub[NUMUSBDUXFAST];
 
-static DECLARE_MUTEX(start_stop_sem);
+static DEFINE_SEMAPHORE(start_stop_sem, 1);
 
 /*
  * bulk transfers to usbduxfast
@@ -1500,7 +1500,7 @@ static int usbduxfastsub_probe(struct usb_interface *uinterf,
 	       "connect to comedi.\n", index);
 #endif
 
-	init_MUTEX(&(usbduxfastsub[index].sem));
+	sema_init(&(usbduxfastsub[index].sem), 1);
 	/* save a pointer to the usb device */
 	usbduxfastsub[index].usbdev = udev;
 

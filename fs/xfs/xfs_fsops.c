@@ -177,14 +177,14 @@ xfs_growfs_data_private(
 		if (!new_perag)
 			return XFS_ERROR(ENOMEM);
 
-		down_write(&mp->m_peraglock);
+		anon_down_write(&mp->m_peraglock);
 		memcpy(new_perag, mp->m_perag, sizeof(xfs_perag_t) * oagcount);
 		old_perag = mp->m_perag;
 		mp->m_perag = new_perag;
 
 		mp->m_flags |= XFS_MOUNT_32BITINODES;
 		nagimax = xfs_initialize_perag(mp, nagcount);
-		up_write(&mp->m_peraglock);
+		anon_up_write(&mp->m_peraglock);
 
 		kmem_free(old_perag);
 	}

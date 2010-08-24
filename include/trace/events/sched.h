@@ -161,9 +161,12 @@ TRACE_EVENT(sched_switch,
 		__entry->prev_comm, __entry->prev_pid, __entry->prev_prio,
 		__entry->prev_state ?
 		  __print_flags(__entry->prev_state, "|",
-				{ 1, "S"} , { 2, "D" }, { 4, "T" }, { 8, "t" },
-				{ 16, "Z" }, { 32, "X" }, { 64, "x" },
-				{ 128, "W" }) : "R",
+			{ 1, TASK_STATE_1} , { 2, TASK_STATE_2 },
+			{ 4, TASK_STATE_4 }, { 8, TASK_STATE_8 },
+			{ 16, TASK_STATE_16 }, { 32, TASK_STATE_32 },
+			{ 64, TASK_STATE_64 }, { 128, TASK_STATE_128 },
+			{ 256, TASK_STATE_256 }, { 512, TASK_STATE_512 }
+			) : TASK_STATE_0,
 		__entry->next_comm, __entry->next_pid, __entry->next_prio)
 );
 
@@ -233,6 +236,37 @@ DEFINE_EVENT(sched_process_template, sched_process_free,
 DEFINE_EVENT(sched_process_template, sched_process_exit,
 	     TP_PROTO(struct task_struct *p),
 	     TP_ARGS(p));
+
+/*
+ * Tracepoint for priority boosting/deboosting of a task:
+ *
+ * (NOTE: the 'rq' argument is not used by generic trace events,
+ *        but used by the latency tracer plugin. )
+ */
+TRACE_EVENT(sched_task_setprio,
+
+	TP_PROTO(struct rq *rq, struct task_struct *p, int oldprio),
+
+	TP_ARGS(rq, p, oldprio),
+
+	TP_STRUCT__entry(
+		__array(	char,	comm,	TASK_COMM_LEN	)
+		__field(	pid_t,	pid			)
+		__field(	int,	prio			)
+		__field(	int,	oldprio			)
+	),
+
+	TP_fast_assign(
+		memcpy(__entry->comm, p->comm, TASK_COMM_LEN);
+		__entry->pid		= p->pid;
+		__entry->prio		= p->prio;
+		__entry->oldprio	= oldprio;
+	),
+
+	TP_printk("task %s:%d [%d] oldprio=%d",
+		  __entry->comm, __entry->pid, __entry->prio,
+		  __entry->oldprio)
+);
 
 /*
  * Tracepoint for a waiting task:

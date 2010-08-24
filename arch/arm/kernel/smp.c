@@ -452,17 +452,17 @@ void __cpuinit percpu_timer_setup(void)
 	local_timer_setup(evt);
 }
 
-static DEFINE_SPINLOCK(stop_lock);
+static DEFINE_RAW_SPINLOCK(stop_lock);
 
 /*
  * ipi_cpu_stop - handle IPI from smp_send_stop()
  */
 static void ipi_cpu_stop(unsigned int cpu)
 {
-	spin_lock(&stop_lock);
+	raw_spin_lock(&stop_lock);
 	printk(KERN_CRIT "CPU%u: stopping\n", cpu);
 	dump_stack();
-	spin_unlock(&stop_lock);
+	raw_spin_unlock(&stop_lock);
 
 	set_cpu_online(cpu, false);
 

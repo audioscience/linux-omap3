@@ -95,7 +95,7 @@ static irqreturn_t timer_interrupt(int dummy, void *dev_id)
 #endif
 
 	/* Protect counter clear so that do_gettimeoffset works */
-	write_seqlock(&xtime_lock);
+	write_raw_seqlock(&xtime_lock);
 
 	clear_clock_irq();
 
@@ -111,7 +111,7 @@ static irqreturn_t timer_interrupt(int dummy, void *dev_id)
 	  else
 	    last_rtc_update = xtime.tv_sec - 600; /* do it again in 60 s */
 	}
-	write_sequnlock(&xtime_lock);
+	write_raw_sequnlock(&xtime_lock);
 
 #ifndef CONFIG_SMP
 	update_process_times(user_mode(get_irq_regs()));

@@ -59,7 +59,7 @@ int __vgetcpu_mode __section_vgetcpu_mode;
 
 struct vsyscall_gtod_data __vsyscall_gtod_data __section_vsyscall_gtod_data =
 {
-	.lock = SEQLOCK_UNLOCKED,
+	.lock = __RAW_SEQLOCK_UNLOCKED(__vsyscall_gtod_data.lock),
 	.sysctl_enabled = 1,
 };
 
@@ -67,10 +67,10 @@ void update_vsyscall_tz(void)
 {
 	unsigned long flags;
 
-	write_seqlock_irqsave(&vsyscall_gtod_data.lock, flags);
+	write_raw_seqlock_irqsave(&vsyscall_gtod_data.lock, flags);
 	/* sys_tz has changed */
 	vsyscall_gtod_data.sys_tz = sys_tz;
-	write_sequnlock_irqrestore(&vsyscall_gtod_data.lock, flags);
+	write_raw_sequnlock_irqrestore(&vsyscall_gtod_data.lock, flags);
 }
 
 void update_vsyscall(struct timespec *wall_time, struct clocksource *clock,
@@ -78,18 +78,45 @@ void update_vsyscall(struct timespec *wall_time, struct clocksource *clock,
 {
 	unsigned long flags;
 
-	write_seqlock_irqsave(&vsyscall_gtod_data.lock, flags);
+	write_raw_seqlock_irqsave(&vsyscall_gtod_data.lock, flags);
+
+	if (likely(vsyscall_gtod_data.sysctl_enabled == 2)) {
+		struct timespec tmp = *(wall_time);
+		cycle_t (*vread)(void);
+		cycle_t now;
+
+		vread = vsyscall_gtod_data.clock.vread;
+		if (likely(vread))
+			now = vread();
+		else
+			now = clock->read(clock);
+
+		/* calculate interval: */
+		now = (now - clock->cycle_last) & clock->mask;
+		/* convert to nsecs: */
+		tmp.tv_nsec += ( now * clock->mult) >> clock->shift;
+
+		while (tmp.tv_nsec >= NSEC_PER_SEC) {
+			tmp.tv_sec += 1;
+			tmp.tv_nsec -= NSEC_PER_SEC;
+		}
+
+		vsyscall_gtod_data.wall_time_sec = tmp.tv_sec;
+		vsyscall_gtod_data.wall_time_nsec = tmp.tv_nsec;
+	} else {
+		vsyscall_gtod_data.wall_time_sec = wall_time->tv_sec;
+		vsyscall_gtod_data.wall_time_nsec = wall_time->tv_nsec;
+	}
+
 	/* copy vsyscall data */
 	vsyscall_gtod_data.clock.vread = clock->vread;
 	vsyscall_gtod_data.clock.cycle_last = clock->cycle_last;
 	vsyscall_gtod_data.clock.mask = clock->mask;
 	vsyscall_gtod_data.clock.mult = mult;
 	vsyscall_gtod_data.clock.shift = clock->shift;
-	vsyscall_gtod_data.wall_time_sec = wall_time->tv_sec;
-	vsyscall_gtod_data.wall_time_nsec = wall_time->tv_nsec;
 	vsyscall_gtod_data.wall_to_monotonic = wall_to_monotonic;
 	vsyscall_gtod_data.wall_time_coarse = __current_kernel_time();
-	write_sequnlock_irqrestore(&vsyscall_gtod_data.lock, flags);
+	write_raw_sequnlock_irqrestore(&vsyscall_gtod_data.lock, flags);
 }
 
 /* RED-PEN may want to readd seq locking, but then the variable should be
@@ -125,8 +152,28 @@ static __always_inline void do_vgettimeofday(struct timeval * tv)
 	unsigned seq;
 	unsigned long mult, shift, nsec;
 	cycle_t (*vread)(void);
+
+	if (likely(__vsyscall_gtod_data.sysctl_enabled == 2)) {
+		struct timeval tmp;
+
+		do {
+			barrier();
+			tv->tv_sec = __vsyscall_gtod_data.wall_time_sec;
+			tv->tv_usec = __vsyscall_gtod_data.wall_time_nsec;
+			barrier();
+			tmp.tv_sec = __vsyscall_gtod_data.wall_time_sec;
+			tmp.tv_usec = __vsyscall_gtod_data.wall_time_nsec;
+
+		} while (tmp.tv_usec != tv->tv_usec ||
+					tmp.tv_sec != tv->tv_sec);
+
+		tv->tv_usec /= NSEC_PER_MSEC;
+		tv->tv_usec *= USEC_PER_MSEC;
+		return;
+	}
+
 	do {
-		seq = read_seqbegin(&__vsyscall_gtod_data.lock);
+		seq = read_raw_seqbegin(&__vsyscall_gtod_data.lock);
 
 		vread = __vsyscall_gtod_data.clock.vread;
 		if (unlikely(!__vsyscall_gtod_data.sysctl_enabled || !vread)) {
@@ -135,6 +182,7 @@ static __always_inline void do_vgettimeofday(struct timeval * tv)
 		}
 
 		now = vread();
+
 		base = __vsyscall_gtod_data.clock.cycle_last;
 		mask = __vsyscall_gtod_data.clock.mask;
 		mult = __vsyscall_gtod_data.clock.mult;
@@ -142,7 +190,7 @@ static __always_inline void do_vgettimeofday(struct timeval * tv)
 
 		tv->tv_sec = __vsyscall_gtod_data.wall_time_sec;
 		nsec = __vsyscall_gtod_data.wall_time_nsec;
-	} while (read_seqretry(&__vsyscall_gtod_data.lock, seq));
+	} while (read_raw_seqretry(&__vsyscall_gtod_data.lock, seq));
 
 	/* calculate interval: */
 	cycle_delta = (now - base) & mask;

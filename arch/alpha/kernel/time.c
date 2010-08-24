@@ -106,7 +106,7 @@ irqreturn_t timer_interrupt(int irq, void *dev)
 	profile_tick(CPU_PROFILING);
 #endif
 
-	write_seqlock(&xtime_lock);
+	write_raw_seqlock(&xtime_lock);
 
 	/*
 	 * Calculate how many ticks have passed since the last update,
@@ -136,7 +136,7 @@ irqreturn_t timer_interrupt(int irq, void *dev)
 		state.last_rtc_update = xtime.tv_sec - (tmp ? 600 : 0);
 	}
 
-	write_sequnlock(&xtime_lock);
+	write_raw_sequnlock(&xtime_lock);
 
 #ifndef CONFIG_SMP
 	while (nticks--)

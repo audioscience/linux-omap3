@@ -127,9 +127,9 @@ struct pmem_info {
 	 * this flag */
 	unsigned allocated;
 	/* for debugging, creates a list of pmem file structs, the
-	 * data_list_sem should be taken before pmem_data->sem if both are
+	 * data_list_mutex should be taken before pmem_data->sem if both are
 	 * needed */
-	struct semaphore data_list_sem;
+	struct mutex data_list_mutex;
 	struct list_head data_list;
 	/* pmem_sem protects the bitmap array
 	 * a write lock should be held when modifying entries in bitmap
@@ -273,7 +273,7 @@ static int pmem_release(struct inode *inode, struct file *file)
 	int id = get_id(file), ret = 0;
 
 
-	down(&pmem[id].data_list_sem);
+	mutex_lock(&pmem[id].data_list_mutex);
 	/* if this file is a master, revoke all the memory in the connected
 	 *  files */
 	if (PMEM_FLAGS_MASTERMAP & data->flags) {
@@ -290,7 +290,7 @@ static int pmem_release(struct inode *inode, struct file *file)
 		}
 	}
 	list_del(&data->list);
-	up(&pmem[id].data_list_sem);
+	mutex_unlock(&pmem[id].data_list_mutex);
 
 
 	down_write(&data->sem);
@@ -358,9 +358,9 @@ static int pmem_open(struct inode *inode, struct file *file)
 	file->private_data = data;
 	INIT_LIST_HEAD(&data->list);
 
-	down(&pmem[id].data_list_sem);
+	mutex_lock(&pmem[id].data_list_mutex);
 	list_add(&data->list, &pmem[id].data_list);
-	up(&pmem[id].data_list_sem);
+	mutex_unlock(&pmem[id].data_list_mutex);
 	return ret;
 }
 
@@ -1178,7 +1178,7 @@ static ssize_t debug_read(struct file *file, char __user *buf, size_t count,
 	n = scnprintf(buffer, debug_bufmax,
 		      "pid #: mapped regions (offset, len) (offset,len)...\n");
 
-	down(&pmem[id].data_list_sem);
+	mutex_lock(&pmem[id].data_list_mutex);
 	list_for_each(elt, &pmem[id].data_list) {
 		data = list_entry(elt, struct pmem_data, list);
 		down_read(&data->sem);
@@ -1195,7 +1195,7 @@ static ssize_t debug_read(struct file *file, char __user *buf, size_t count,
 		n += scnprintf(buffer + n, debug_bufmax - n, "\n");
 		up_read(&data->sem);
 	}
-	up(&pmem[id].data_list_sem);
+	mutex_unlock(&pmem[id].data_list_mutex);
 
 	n++;
 	buffer[n] = 0;
@@ -1232,7 +1232,7 @@ int pmem_setup(struct android_pmem_platform_data *pdata,
 	pmem[id].ioctl = ioctl;
 	pmem[id].release = release;
 	init_rwsem(&pmem[id].bitmap_sem);
-	init_MUTEX(&pmem[id].data_list_sem);
+	mutex_init(&pmem[id].data_list_mutex);
 	INIT_LIST_HEAD(&pmem[id].data_list);
 	pmem[id].dev.name = pdata->name;
 	pmem[id].dev.minor = id;

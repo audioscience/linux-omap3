@@ -490,12 +490,12 @@ xenfb_make_preferred_console(void)
 	if (console_set_on_cmdline)
 		return;
 
-	acquire_console_sem();
+	acquire_console_mutex();
 	for (c = console_drivers; c; c = c->next) {
 		if (!strcmp(c->name, "tty") && c->index == 0)
 			break;
 	}
-	release_console_sem();
+	release_console_mutex();
 	if (c) {
 		unregister_console(c);
 		c->flags |= CON_CONSDEV;

@@ -47,11 +47,11 @@ notrace static noinline int do_realtime(struct timespec *ts)
 {
 	unsigned long seq, ns;
 	do {
-		seq = read_seqbegin(&gtod->lock);
+		seq = read_raw_seqbegin(&gtod->lock);
 		ts->tv_sec = gtod->wall_time_sec;
 		ts->tv_nsec = gtod->wall_time_nsec;
 		ns = vgetns();
-	} while (unlikely(read_seqretry(&gtod->lock, seq)));
+	} while (unlikely(read_raw_seqretry(&gtod->lock, seq)));
 	timespec_add_ns(ts, ns);
 	return 0;
 }
@@ -76,12 +76,12 @@ notrace static noinline int do_monotonic(struct timespec *ts)
 {
 	unsigned long seq, ns, secs;
 	do {
-		seq = read_seqbegin(&gtod->lock);
+		seq = read_raw_seqbegin(&gtod->lock);
 		secs = gtod->wall_time_sec;
 		ns = gtod->wall_time_nsec + vgetns();
 		secs += gtod->wall_to_monotonic.tv_sec;
 		ns += gtod->wall_to_monotonic.tv_nsec;
-	} while (unlikely(read_seqretry(&gtod->lock, seq)));
+	} while (unlikely(read_raw_seqretry(&gtod->lock, seq)));
 	vset_normalized_timespec(ts, secs, ns);
 	return 0;
 }
@@ -90,10 +90,10 @@ notrace static noinline int do_realtime_coarse(struct timespec *ts)
 {
 	unsigned long seq;
 	do {
-		seq = read_seqbegin(&gtod->lock);
+		seq = read_raw_seqbegin(&gtod->lock);
 		ts->tv_sec = gtod->wall_time_coarse.tv_sec;
 		ts->tv_nsec = gtod->wall_time_coarse.tv_nsec;
-	} while (unlikely(read_seqretry(&gtod->lock, seq)));
+	} while (unlikely(read_raw_seqretry(&gtod->lock, seq)));
 	return 0;
 }
 
@@ -101,12 +101,12 @@ notrace static noinline int do_monotonic_coarse(struct timespec *ts)
 {
 	unsigned long seq, ns, secs;
 	do {
-		seq = read_seqbegin(&gtod->lock);
+		seq = read_raw_seqbegin(&gtod->lock);
 		secs = gtod->wall_time_coarse.tv_sec;
 		ns = gtod->wall_time_coarse.tv_nsec;
 		secs += gtod->wall_to_monotonic.tv_sec;
 		ns += gtod->wall_to_monotonic.tv_nsec;
-	} while (unlikely(read_seqretry(&gtod->lock, seq)));
+	} while (unlikely(read_raw_seqretry(&gtod->lock, seq)));
 	vset_normalized_timespec(ts, secs, ns);
 	return 0;
 }

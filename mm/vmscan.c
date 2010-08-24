@@ -1196,7 +1196,7 @@ static unsigned long shrink_inactive_list(unsigned long max_scan,
 
 		nr_reclaimed += nr_freed;
 
-		local_irq_disable();
+		local_irq_disable_nort();
 		if (current_is_kswapd())
 			__count_vm_events(KSWAPD_STEAL, nr_freed);
 		__count_zone_vm_events(PGSTEAL, zone, nr_freed);

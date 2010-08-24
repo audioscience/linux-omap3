@@ -9,6 +9,23 @@
  * Released under the General Public License (GPL).
  */
 
+/*
+ * Must define these before including other files, inline functions need them
+ */
+#define LOCK_SECTION_NAME ".text.lock."KBUILD_BASENAME
+
+#define LOCK_SECTION_START(extra)		\
+	".subsection 1\n\t"			\
+	extra					\
+	".ifndef " LOCK_SECTION_NAME "\n\t"     \
+	LOCK_SECTION_NAME ":\n\t"		\
+	".endif\n"
+
+#define LOCK_SECTION_END			\
+	".previous\n\t"
+
+#define __lockfunc __attribute__((section(".spinlock.text")))
+
 #if defined(CONFIG_SMP)
 # include <asm/spinlock_types.h>
 #else
@@ -61,6 +78,8 @@ typedef struct raw_spinlock {
 
 #define DEFINE_RAW_SPINLOCK(x)	raw_spinlock_t x = __RAW_SPIN_LOCK_UNLOCKED(x)
 
+#ifndef CONFIG_PREEMPT_RT
+
 typedef struct spinlock {
 	union {
 		struct raw_spinlock rlock;
@@ -90,7 +109,10 @@ typedef struct spinlock {
 #define SPIN_LOCK_UNLOCKED	__SPIN_LOCK_UNLOCKED(old_style_spin_init)
 
 #define DEFINE_SPINLOCK(x)	spinlock_t x = __SPIN_LOCK_UNLOCKED(x)
+#define __DEFINE_SPINLOCK(x)	DEFINE_SPINLOCK(x)
 
 #include <linux/rwlock_types.h>
+
+#endif /* !PREEMPT_RT */
 
 #endif /* __LINUX_SPINLOCK_TYPES_H */

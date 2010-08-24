@@ -280,7 +280,8 @@ void __enable_irq(struct irq_desc *desc, unsigned int irq, bool resume)
 			goto err_out;
 		/* Prevent probing on this irq: */
 		desc->status = status | IRQ_NOPROBE;
-		check_irq_resend(desc, irq);
+		if (!desc->forced_threads_active)
+			check_irq_resend(desc, irq);
 		/* fall-through */
 	}
 	default:
@@ -464,7 +465,88 @@ static irqreturn_t irq_nested_primary_handler(int irq, void *dev_id)
 	return IRQ_NONE;
 }
 
-static int irq_wait_for_interrupt(struct irqaction *action)
+#ifdef CONFIG_PREEMPT_HARDIRQS
+/*
+ * If the caller does not request irq threading then the handler
+ * becomes the thread function and we use the above handler as the
+ * primary hardirq context handler.
+ */
+static void preempt_hardirq_setup(struct irqaction *new)
+{
+	if (new->thread_fn || (new->flags & (IRQF_NODELAY | IRQF_PERCPU)))
+		return;
+
+	new->flags |= IRQF_ONESHOT;
+	new->thread_fn = new->handler;
+	new->handler = irq_default_primary_handler;
+}
+
+#else
+static inline void preempt_hardirq_setup(struct irqaction *new) { }
+#endif
+
+/*
+ * forced threaded interrupts need to unmask the interrupt line
+ */
+static int preempt_hardirq_thread_done(struct irq_desc *desc,
+					struct irqaction *action)
+{
+	unsigned long masked;
+
+	if (!(desc->status & IRQ_ONESHOT))
+		return 0;
+again:
+	raw_spin_lock_irq(&desc->lock);
+	/*
+	 * Be careful. The hardirq handler might be running on the
+	 * other CPU.
+	 */
+	if (desc->status & IRQ_INPROGRESS) {
+		raw_spin_unlock_irq(&desc->lock);
+		cpu_relax();
+		goto again;
+	}
+
+	/*
+	 * Now check again, whether the thread should run. Otherwise
+	 * we would clear the forced_threads_active bit which was just
+	 * set.
+	 */
+	if (test_bit(IRQTF_RUNTHREAD, &action->thread_flags)) {
+		raw_spin_unlock_irq(&desc->lock);
+		return 1;
+	}
+
+	masked = desc->forced_threads_active;
+	desc->forced_threads_active &= ~action->thread_mask;
+
+	/*
+	 * Unmask the interrupt line when this is the last active
+	 * thread and the interrupt is not disabled.
+	 */
+	if (masked && !desc->forced_threads_active &&
+	    !(desc->status & IRQ_DISABLED)) {
+		if (desc->chip->unmask)
+			desc->chip->unmask(action->irq);
+		/*
+		 * Do we need to call check_irq_resend() here ?
+		 * No. check_irq_resend needs only to be checked when
+		 * we go from IRQ_DISABLED to IRQ_ENABLED state.
+		 */
+	}
+	raw_spin_unlock_irq(&desc->lock);
+	return 0;
+}
+
+static inline void
+preempt_hardirq_cleanup(struct irq_desc *desc, struct irqaction *action)
+{
+	clear_bit(IRQTF_RUNTHREAD, &action->thread_flags);
+	preempt_hardirq_thread_done(desc, action);
+}
+
+static int
+irq_wait_for_interrupt(struct irq_desc *desc, struct irqaction *action)
 {
 	while (!kthread_should_stop()) {
 		set_current_state(TASK_INTERRUPTIBLE);
@@ -484,10 +566,12 @@ static int irq_wait_for_interrupt(struct irqaction *action)
  * handler finished. unmask if the interrupt has not been disabled and
  * is marked MASKED.
  */
-static void irq_finalize_oneshot(unsigned int irq, struct irq_desc *desc)
+static void irq_finalize_oneshot(unsigned int irq, struct irq_desc *desc,
+				 struct irqaction *action)
 {
 again:
 	chip_bus_lock(irq, desc);
+#ifndef CONFIG_PREEMPT_RT
 	raw_spin_lock_irq(&desc->lock);
 
 	/*
@@ -511,6 +595,9 @@ again:
 		desc->chip->unmask(irq);
 	}
 	raw_spin_unlock_irq(&desc->lock);
+#else
+	preempt_hardirq_thread_done(desc, action);
+#endif
 	chip_bus_sync_unlock(irq, desc);
 }
 
@@ -555,12 +642,13 @@ static int irq_thread(void *data)
 	struct sched_param param = { .sched_priority = MAX_USER_RT_PRIO/2, };
 	struct irqaction *action = data;
 	struct irq_desc *desc = irq_to_desc(action->irq);
-	int wake, oneshot = desc->status & IRQ_ONESHOT;
+	int wake;
 
 	sched_setscheduler(current, SCHED_FIFO, &param);
+	current->extra_flags |= PFE_HARDIRQ;
 	current->irqaction = action;
 
-	while (!irq_wait_for_interrupt(action)) {
+	while (!irq_wait_for_interrupt(desc, action)) {
 
 		irq_thread_check_affinity(desc, action);
 
@@ -582,8 +670,8 @@ static int irq_thread(void *data)
 
 			action->thread_fn(action->irq, action->dev_id);
 
-			if (oneshot)
-				irq_finalize_oneshot(action->irq, desc);
+			if (desc->status & IRQ_ONESHOT)
+				irq_finalize_oneshot(action->irq, desc, action);
 		}
 
 		wake = atomic_dec_and_test(&desc->threads_active);
@@ -591,6 +679,8 @@ static int irq_thread(void *data)
 		if (wake && waitqueue_active(&desc->wait_for_threads))
 			wake_up(&desc->wait_for_threads);
 	}
+
+	preempt_hardirq_cleanup(desc, action);
 
 	/*
 	 * Clear irqaction. Otherwise exit_irq_thread() would make
@@ -630,7 +720,7 @@ __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
 {
 	struct irqaction *old, **old_ptr;
 	const char *old_name = NULL;
-	unsigned long flags;
+	unsigned long flags, thread_mask = 0;
 	int nested, shared = 0;
 	int ret;
 
@@ -656,9 +746,8 @@ __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
 		rand_initialize_irq(irq);
 	}
 
-	/* Oneshot interrupts are not allowed with shared */
-	if ((new->flags & IRQF_ONESHOT) && (new->flags & IRQF_SHARED))
-		return -EINVAL;
+	/* Preempt-RT setup for forced threading */
+	preempt_hardirq_setup(new);
 
 	/*
 	 * Check whether the interrupt nests into another interrupt
@@ -725,11 +814,19 @@ __setup_irq(unsigned int irq, struct irq_desc *desc, struct irqaction *new)
 
 		/* add new interrupt at end of irq queue */
 		do {
+			thread_mask |= old->thread_mask;
 			old_ptr = &old->next;
 			old = *old_ptr;
 		} while (old);
 		shared = 1;
 	}
+
+	/*
+	 * Setup the thread mask for this irqaction. No risk that ffz
+	 * will fail. If we have 32 resp. 64 devices sharing one irq
+	 * then .....
+	 */
+	new->thread_mask = 1 << ffz(thread_mask);
 
 	if (!shared) {
 		irq_chip_set_defaults(desc->chip);

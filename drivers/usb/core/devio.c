@@ -393,8 +393,9 @@ static void async_completed(struct urb *urb)
 	uid_t euid = 0;
 	u32 secid = 0;
 	int signr;
+	unsigned long flags;
 
-	spin_lock(&ps->lock);
+	spin_lock_irqsave(&ps->lock, flags);
 	list_move_tail(&as->asynclist, &ps->async_completed);
 	as->status = urb->status;
 	signr = as->signr;
@@ -414,7 +415,7 @@ static void async_completed(struct urb *urb)
 	if (as->status < 0 && as->bulk_addr && as->status != -ECONNRESET &&
 			as->status != -ENOENT)
 		cancel_bulk_urbs(ps, as->bulk_addr);
-	spin_unlock(&ps->lock);
+	spin_unlock_irqrestore(&ps->lock, flags);
 
 	if (signr)
 		kill_pid_info_as_uid(sinfo.si_signo, &sinfo, pid, uid,

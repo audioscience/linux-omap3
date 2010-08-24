@@ -53,7 +53,7 @@ MODULE_LICENSE("Dual BSD/GPL");
 
 static unsigned long epoch = 2000;
 
-static struct semaphore i8042tregs;
+static DEFINE_SEMAPHORE(i8042tregs, 1);
 
 static hp_sdc_irqhook hp_sdc_rtc_isr;
 
@@ -83,7 +83,7 @@ static void hp_sdc_rtc_isr (int irq, void *dev_id,
 
 static int hp_sdc_rtc_do_read_bbrtc (struct rtc_time *rtctm)
 {
-	struct semaphore tsem;
+	DEFINE_SEMAPHORE(tsem, 0);
 	hp_sdc_transaction t;
 	uint8_t tseq[91];
 	int i;
@@ -103,8 +103,7 @@ static int hp_sdc_rtc_do_read_bbrtc (struct rtc_time *rtctm)
 	t.endidx =		91;
 	t.seq =			tseq;
 	t.act.semaphore =	&tsem;
-	init_MUTEX_LOCKED(&tsem);
-	
+
 	if (hp_sdc_enqueue_transaction(&t)) return -1;
 	
 	down_interruptible(&tsem);  /* Put ourselves to sleep for results. */
@@ -683,8 +682,6 @@ static int __init hp_sdc_rtc_init(void)
 	if (!MACH_IS_HP300)
 		return -ENODEV;
 #endif
-
-	init_MUTEX(&i8042tregs);
 
 	if ((ret = hp_sdc_request_timer_irq(&hp_sdc_rtc_isr)))
 		return ret;

@@ -20,7 +20,7 @@
 
 #include <asm/irq_regs.h>
 
-static DEFINE_SPINLOCK(print_lock);
+static DEFINE_RAW_SPINLOCK(print_lock);
 
 static DEFINE_PER_CPU(unsigned long, softlockup_touch_ts); /* touch timestamp */
 static DEFINE_PER_CPU(unsigned long, softlockup_print_ts); /* print timestamp */
@@ -164,7 +164,7 @@ void softlockup_tick(void)
 
 	per_cpu(softlockup_print_ts, this_cpu) = touch_ts;
 
-	spin_lock(&print_lock);
+	raw_spin_lock(&print_lock);
 	printk(KERN_ERR "BUG: soft lockup - CPU#%d stuck for %lus! [%s:%d]\n",
 			this_cpu, now - touch_ts,
 			current->comm, task_pid_nr(current));
@@ -174,7 +174,7 @@ void softlockup_tick(void)
 		show_regs(regs);
 	else
 		dump_stack();
-	spin_unlock(&print_lock);
+	raw_spin_unlock(&print_lock);
 
 	if (softlockup_panic)
 		panic("softlockup: hung tasks");

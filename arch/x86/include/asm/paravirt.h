@@ -442,6 +442,14 @@ static inline void *kmap_atomic_pte(struct page *page, enum km_type type)
 	ret = PVOP_CALL2(unsigned long, pv_mmu_ops.kmap_atomic_pte, page, type);
 	return (void *)ret;
 }
+
+static inline void *kmap_atomic_pte_direct(struct page *page, enum km_type type)
+{
+	unsigned long ret;
+	ret = PVOP_CALL2(unsigned long, pv_mmu_ops.kmap_atomic_pte_direct,
+			 page, type);
+	return (void *)ret;
+}
 #endif
 
 static inline void pte_update(struct mm_struct *mm, unsigned long addr,

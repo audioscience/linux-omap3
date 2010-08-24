@@ -1553,7 +1553,7 @@ void stop_gfar(struct net_device *dev)
 
 
 	/* Lock it down */
-	local_irq_save(flags);
+	local_irq_save_nort(flags);
 	lock_tx_qs(priv);
 	lock_rx_qs(priv);
 
@@ -1561,7 +1561,7 @@ void stop_gfar(struct net_device *dev)
 
 	unlock_rx_qs(priv);
 	unlock_tx_qs(priv);
-	local_irq_restore(flags);
+	local_irq_restore_nort(flags);
 
 	/* Free the IRQs */
 	if (priv->device_flags & FSL_GIANFAR_DEV_HAS_MULTI_INTR) {
@@ -2021,7 +2021,6 @@ static int gfar_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	}
 
 	/* setup the TxBD length and buffer pointer for the first BD */
-	tx_queue->tx_skbuff[tx_queue->skb_curtx] = skb;
 	txbdp_start->bufPtr = dma_map_single(&priv->ofdev->dev, skb->data,
 			skb_headlen(skb), DMA_TO_DEVICE);
 
@@ -2052,6 +2051,10 @@ static int gfar_start_xmit(struct sk_buff *skb, struct net_device *dev)
 	eieio();
 
 	txbdp_start->lstatus = lstatus;
+
+	eieio(); /* force lstatus write before tx_skbuff */
+
+	tx_queue->tx_skbuff[tx_queue->skb_curtx] = skb;
 
 	/* Update the current skb pointer to the next entry we will use
 	 * (wrapping if necessary) */
@@ -2717,7 +2720,7 @@ static void adjust_link(struct net_device *dev)
 	struct phy_device *phydev = priv->phydev;
 	int new_state = 0;
 
-	local_irq_save(flags);
+	local_irq_save_nort(flags);
 	lock_tx_qs(priv);
 
 	if (phydev->link) {
@@ -2785,7 +2788,7 @@ static void adjust_link(struct net_device *dev)
 	if (new_state && netif_msg_link(priv))
 		phy_print_status(phydev);
 	unlock_tx_qs(priv);
-	local_irq_restore(flags);
+	local_irq_restore_nort(flags);
 }
 
 /* Update the hash table based on the current list of multicast

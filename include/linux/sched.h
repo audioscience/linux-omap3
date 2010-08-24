@@ -102,6 +102,23 @@ struct fs_struct;
 struct bts_context;
 struct perf_event_context;
 
+#ifdef CONFIG_PREEMPT
+extern int kernel_preemption;
+#else
+# define kernel_preemption 0
+#endif
+#ifdef CONFIG_PREEMPT_VOLUNTARY
+extern int voluntary_preemption;
+#else
+# define voluntary_preemption 0
+#endif
+
+#ifdef CONFIG_PREEMPT_SOFTIRQS
+extern int softirq_preemption;
+#else
+# define softirq_preemption 0
+#endif
+
 /*
  * List of flags we want to share for kernel threads,
  * if only because they are not used by them anyway.
@@ -170,9 +187,13 @@ print_cfs_rq(struct seq_file *m, int cpu, struct cfs_rq *cfs_rq)
 }
 #endif
 
+extern struct mutex kernel_sem;
+
 /*
  * Task state bitmask. NOTE! These bits are also
- * encoded in fs/proc/array.c: get_task_state().
+ * used in fs/proc/array.c: get_task_state() and
+ * in include/trace/events/sched.h in the
+ * sched_switch trace event.
  *
  * We have two separate sets of flags: task->state
  * is about runnability, while task->exit_state are
@@ -181,20 +202,59 @@ print_cfs_rq(struct seq_file *m, int cpu, struct cfs_rq *cfs_rq)
  * mistake.
  */
 #define TASK_RUNNING		0
-#define TASK_INTERRUPTIBLE	1
-#define TASK_UNINTERRUPTIBLE	2
-#define __TASK_STOPPED		4
-#define __TASK_TRACED		8
-/* in tsk->exit_state */
-#define EXIT_ZOMBIE		16
-#define EXIT_DEAD		32
-/* in tsk->state again */
-#define TASK_DEAD		64
-#define TASK_WAKEKILL		128
-#define TASK_WAKING		256
-#define TASK_STATE_MAX		512
+#define TASK_STATE_0		"R"
+#define DESCR_TASK_STATE_0	"running"
 
-#define TASK_STATE_TO_CHAR_STR "RSDTtZXxKW"
+#define TASK_RUNNING_MUTEX	1
+#define TASK_STATE_1		"M"
+#define DESCR_TASK_STATE_1	"running-mutex"
+
+#define TASK_INTERRUPTIBLE	2
+#define TASK_STATE_2		"S"
+#define DESCR_TASK_STATE_2	"sleeping"
+
+#define TASK_UNINTERRUPTIBLE	4
+#define TASK_STATE_4		"D"
+#define DESCR_TASK_STATE_4	"disk sleep"
+
+#define __TASK_STOPPED		8
+#define TASK_STATE_8		"T"
+#define DESCR_TASK_STATE_8	"stopped"
+
+#define __TASK_TRACED		16
+#define TASK_STATE_16		"t"
+#define DESCR_TASK_STATE_16	"tracing stop"
+
+/* in tsk->exit_state */
+#define EXIT_ZOMBIE		32
+#define TASK_STATE_32		"Z"
+#define DESCR_TASK_STATE_32	"zombie"
+
+#define EXIT_DEAD		64
+#define TASK_STATE_64		"X"
+#define DESCR_TASK_STATE_64	"dead"
+
+/* in tsk->state again */
+#define TASK_DEAD		128
+#define TASK_STATE_128		"x"
+#define DESCR_TASK_STATE_128	"dead"
+
+#define TASK_WAKEKILL		256
+#define TASK_STATE_256		"K"
+#define DESCR_TASK_STATE_256	"wakekill"
+
+#define TASK_WAKING		512
+#define TASK_STATE_512		"W"
+#define DESCR_TASK_STATE_512	"waking"
+
+#define TASK_STATE_MAX		1024
+
+#define TASK_STATE_TO_CHAR_STR \
+  TASK_STATE_0 TASK_STATE_1 TASK_STATE_2 TASK_STATE_4 TASK_STATE_8 \
+  TASK_STATE_16 TASK_STATE_32 TASK_STATE_64 TASK_STATE_128 TASK_STATE_256 \
+  TASK_STATE_512
+
+#define TASK_STATE_MAX		1024
 
 extern char ___assert_task_state[1 - 2*!!(
 		sizeof(TASK_STATE_TO_CHAR_STR)-1 != ilog2(TASK_STATE_MAX)+1)];
@@ -209,7 +269,8 @@ extern char ___assert_task_state[1 - 2*!!(
 #define TASK_ALL		(TASK_NORMAL | __TASK_STOPPED | __TASK_TRACED)
 
 /* get_task_state() */
-#define TASK_REPORT		(TASK_RUNNING | TASK_INTERRUPTIBLE | \
+#define TASK_REPORT		(TASK_RUNNING | TASK_RUNNING_MUTEX | \
+				 TASK_INTERRUPTIBLE | \
 				 TASK_UNINTERRUPTIBLE | __TASK_STOPPED | \
 				 __TASK_TRACED)
 
@@ -225,6 +286,12 @@ extern char ___assert_task_state[1 - 2*!!(
 	do { (tsk)->state = (state_value); } while (0)
 #define set_task_state(tsk, state_value)		\
 	set_mb((tsk)->state, (state_value))
+
+#ifdef CONFIG_X86_LOCAL_APIC
+extern void nmi_show_all_regs(void);
+#else
+# define nmi_show_all_regs() do { } while (0)
+#endif
 
 /*
  * set_current_state() includes a barrier so that the write of current->state
@@ -358,6 +425,11 @@ extern signed long schedule_timeout_killable(signed long timeout);
 extern signed long schedule_timeout_uninterruptible(signed long timeout);
 asmlinkage void schedule(void);
 extern int mutex_spin_on_owner(struct mutex *lock, struct thread_info *owner);
+/*
+ * This one can be called with interrupts disabled, only
+ * to be used by lowlevel arch code!
+ */
+asmlinkage void __sched __schedule(void);
 
 struct nsproxy;
 struct user_namespace;
@@ -561,7 +633,7 @@ struct task_cputime {
 struct thread_group_cputimer {
 	struct task_cputime cputime;
 	int running;
-	spinlock_t lock;
+	raw_spinlock_t lock;
 };
 
 /*
@@ -1087,7 +1159,8 @@ struct sched_domain;
 struct sched_class {
 	const struct sched_class *next;
 
-	void (*enqueue_task) (struct rq *rq, struct task_struct *p, int wakeup);
+	void (*enqueue_task) (struct rq *rq, struct task_struct *p, int wakeup,
+			      bool head);
 	void (*dequeue_task) (struct rq *rq, struct task_struct *p, int sleep);
 	void (*yield_task) (struct rq *rq);
 
@@ -1097,7 +1170,8 @@ struct sched_class {
 	void (*put_prev_task) (struct rq *rq, struct task_struct *p);
 
 #ifdef CONFIG_SMP
-	int  (*select_task_rq)(struct task_struct *p, int sd_flag, int flags);
+	int  (*select_task_rq)(struct rq *rq, struct task_struct *p,
+			       int sd_flag, int flags);
 
 	unsigned long (*load_balance) (struct rq *this_rq, int this_cpu,
 			struct rq *busiest, unsigned long max_load_move,
@@ -1237,14 +1311,13 @@ struct task_struct {
 	void *stack;
 	atomic_t usage;
 	unsigned int flags;	/* per process flags, defined below */
+	unsigned int extra_flags;
 	unsigned int ptrace;
 
 	int lock_depth;		/* BKL lock depth */
 
 #ifdef CONFIG_SMP
-#ifdef __ARCH_WANT_UNLOCKED_CTXSW
 	int oncpu;
-#endif
 #endif
 
 	int prio, static_prio, normal_prio;
@@ -1289,6 +1362,7 @@ struct task_struct {
 	struct plist_node pushable_tasks;
 
 	struct mm_struct *mm, *active_mm;
+	int pagefault_disabled;
 
 /* task state */
 	int exit_state;
@@ -1363,6 +1437,8 @@ struct task_struct {
 	struct task_cputime cputime_expires;
 	struct list_head cpu_timers[3];
 
+	struct task_struct* posix_timer_list;
+
 /* process credentials */
 	const struct cred *real_cred;	/* objective and real subjective task
 					 * credentials (COW) */
@@ -1398,6 +1474,7 @@ struct task_struct {
 /* signal handlers */
 	struct signal_struct *signal;
 	struct sighand_struct *sighand;
+	struct sigqueue *sigqueue_cache;
 
 	sigset_t blocked, real_blocked;
 	sigset_t saved_sigmask;	/* restored if set_restore_sigmask() was used */
@@ -1463,6 +1540,26 @@ struct task_struct {
 	unsigned int lockdep_recursion;
 	struct held_lock held_locks[MAX_LOCK_DEPTH];
 	gfp_t lockdep_reclaim_gfp;
+#endif
+
+/* realtime bits */
+
+#define MAX_PREEMPT_TRACE 25
+#define MAX_LOCK_STACK	MAX_PREEMPT_TRACE
+#ifdef CONFIG_DEBUG_PREEMPT
+	atomic_t lock_count;
+# ifdef CONFIG_PREEMPT_RT
+	struct rt_mutex *owned_lock[MAX_LOCK_STACK];
+# endif
+#endif
+#ifdef CONFIG_DETECT_SOFTLOCKUP
+	unsigned long	softlockup_count; /* Count to keep track how long the
+					   *  thread is in the kernel without
+					   *  sleeping.
+					   */
+#endif
+#ifdef CONFIG_DEBUG_RT_MUTEXES
+	void *last_kernel_lock;
 #endif
 
 /* journalling filesystem info */
@@ -1559,6 +1656,9 @@ struct task_struct {
 	unsigned long trace;
 	/* bitmask of trace recursion */
 	unsigned long trace_recursion;
+#ifdef CONFIG_WAKEUP_LATENCY_HIST
+	u64 preempt_timestamp_hist;
+#endif
 #endif /* CONFIG_TRACING */
 #ifdef CONFIG_CGROUP_MEM_RES_CTLR /* memcg uses this to do batch job */
 	struct memcg_batch_info {
@@ -1568,10 +1668,23 @@ struct task_struct {
 		unsigned long memsw_bytes; /* uncharged mem+swap usage */
 	} memcg_batch;
 #endif
+#ifdef CONFIG_PREEMPT_RT
+	/*
+	 * Temporary hack, until we find a solution to
+	 * handle printk in atomic operations.
+	 */
+	int in_printk;
+#endif
 };
 
 /* Future-safe accessor for struct task_struct's cpus_allowed. */
 #define tsk_cpus_allowed(tsk) (&(tsk)->cpus_allowed)
+
+#ifdef CONFIG_PREEMPT_RT
+# define set_printk_might_sleep(x) do { current->in_printk = x; } while(0)
+#else
+# define set_printk_might_sleep(x) do { } while(0)
+#endif
 
 /*
  * Priority of a process goes from 0..MAX_PRIO-1, valid RT
@@ -1741,6 +1854,15 @@ extern struct pid *cad_pid;
 extern void free_task(struct task_struct *tsk);
 #define get_task_struct(tsk) do { atomic_inc(&(tsk)->usage); } while(0)
 
+#ifdef CONFIG_PREEMPT_RT
+extern void __put_task_struct_cb(struct rcu_head *rhp);
+
+static inline void put_task_struct(struct task_struct *t)
+{
+	if (atomic_dec_and_test(&t->usage))
+		call_rcu(&t->rcu, __put_task_struct_cb);
+}
+#else
 extern void __put_task_struct(struct task_struct *t);
 
 static inline void put_task_struct(struct task_struct *t)
@@ -1748,6 +1870,7 @@ static inline void put_task_struct(struct task_struct *t)
 	if (atomic_dec_and_test(&t->usage))
 		__put_task_struct(t);
 }
+#endif
 
 extern void task_times(struct task_struct *p, cputime_t *ut, cputime_t *st);
 extern void thread_group_times(struct task_struct *p, cputime_t *ut, cputime_t *st);
@@ -1761,6 +1884,7 @@ extern void thread_group_times(struct task_struct *p, cputime_t *ut, cputime_t *
 #define PF_EXITING	0x00000004	/* getting shut down */
 #define PF_EXITPIDONE	0x00000008	/* pi exit done on shut down */
 #define PF_VCPU		0x00000010	/* I'm a virtual CPU */
+#define PF_KMAP		0x00000020	/* this context has a kmap */
 #define PF_FORKNOEXEC	0x00000040	/* forked but didn't exec */
 #define PF_MCE_PROCESS  0x00000080      /* process policy on mce errors */
 #define PF_SUPERPRIV	0x00000100	/* used super-user privileges */
@@ -1787,6 +1911,10 @@ extern void thread_group_times(struct task_struct *p, cputime_t *ut, cputime_t *
 #define PF_MUTEX_TESTER	0x20000000	/* Thread belongs to the rt mutex tester */
 #define PF_FREEZER_SKIP	0x40000000	/* Freezer should not count it as freezeable */
 #define PF_FREEZER_NOSIG 0x80000000	/* Freezer won't send signals to it */
+
+/* Flags in the extra_flags field */
+#define PFE_SOFTIRQ	0x00000001	/* softirq context */
+#define PFE_HARDIRQ	0x00000002	/* hardirq thread */
 
 /*
  * Only the _current_ task can read/write to tsk->flags, but other
@@ -1909,6 +2037,7 @@ extern void sched_clock_idle_sleep_event(void);
 extern void sched_clock_idle_wakeup_event(u64 delta_ns);
 
 #ifdef CONFIG_HOTPLUG_CPU
+extern void move_task_off_dead_cpu(int dead_cpu, struct task_struct *p);
 extern void idle_task_exit(void);
 #else
 static inline void idle_task_exit(void) {}
@@ -1967,9 +2096,14 @@ int sched_rt_handler(struct ctl_table *table, int write,
 
 extern unsigned int sysctl_sched_compat_yield;
 
+extern void task_setprio(struct task_struct *p, int prio);
+
 #ifdef CONFIG_RT_MUTEXES
 extern int rt_mutex_getprio(struct task_struct *p);
-extern void rt_mutex_setprio(struct task_struct *p, int prio);
+static inline void rt_mutex_setprio(struct task_struct *p, int prio)
+{
+	task_setprio(p, prio);
+}
 extern void rt_mutex_adjust_pi(struct task_struct *p);
 #else
 static inline int rt_mutex_getprio(struct task_struct *p)
@@ -1991,8 +2125,17 @@ extern int sched_setscheduler_nocheck(struct task_struct *, int,
 extern struct task_struct *idle_task(int cpu);
 extern struct task_struct *curr_task(int cpu);
 extern void set_curr_task(int cpu, struct task_struct *p);
+extern struct task_struct *rq_curr(struct rq *rq);
 
 void yield(void);
+void __yield(void);
+
+#ifdef CONFIG_SMP
+static inline int task_is_current(struct task_struct *task)
+{
+	return task->oncpu;
+}
+#endif
 
 /*
  * The default (Linux) execution domain.
@@ -2054,6 +2197,9 @@ extern void do_timer(unsigned long ticks);
 
 extern int wake_up_state(struct task_struct *tsk, unsigned int state);
 extern int wake_up_process(struct task_struct *tsk);
+extern int wake_up_process_mutex(struct task_struct * tsk);
+extern int wake_up_process_sync(struct task_struct * tsk);
+extern int wake_up_process_mutex_sync(struct task_struct * tsk);
 extern void wake_up_new_task(struct task_struct *tsk,
 				unsigned long clone_flags);
 #ifdef CONFIG_SMP
@@ -2144,10 +2290,18 @@ extern struct mm_struct * mm_alloc(void);
 
 /* mmdrop drops the mm and the page tables */
 extern void __mmdrop(struct mm_struct *);
+extern void __mmdrop_delayed(struct mm_struct *, int wake);
+
 static inline void mmdrop(struct mm_struct * mm)
 {
 	if (unlikely(atomic_dec_and_test(&mm->mm_count)))
 		__mmdrop(mm);
+}
+
+static inline void mmdrop_delayed(struct mm_struct * mm, int wake)
+{
+	if (atomic_dec_and_test(&mm->mm_count))
+		__mmdrop_delayed(mm, wake);
 }
 
 /* mmput gets rid of the mappings and all user-space */
@@ -2417,7 +2571,7 @@ extern int _cond_resched(void);
 
 extern int __cond_resched_lock(spinlock_t *lock);
 
-#ifdef CONFIG_PREEMPT
+#if defined(CONFIG_PREEMPT) && !defined(CONFIG_PREEMPT_RT)
 #define PREEMPT_LOCK_OFFSET	PREEMPT_OFFSET
 #else
 #define PREEMPT_LOCK_OFFSET	0
@@ -2430,10 +2584,20 @@ extern int __cond_resched_lock(spinlock_t *lock);
 
 extern int __cond_resched_softirq(void);
 
+
+#ifndef CONFIG_PREEMPT_RT
 #define cond_resched_softirq() ({				\
 	__might_sleep(__FILE__, __LINE__, SOFTIRQ_OFFSET);	\
 	__cond_resched_softirq();				\
 })
+#else
+#define cond_resched_softirq() ({				\
+	__might_sleep(__FILE__, __LINE__, 0);			\
+	__cond_resched_softirq();				\
+})
+#endif
+
+extern int cond_resched_softirq_context(void);
 
 /*
  * Does a critical section need to be broken due to another
@@ -2458,12 +2622,19 @@ void thread_group_cputimer(struct task_struct *tsk, struct task_cputime *times);
 static inline void thread_group_cputime_init(struct signal_struct *sig)
 {
 	sig->cputimer.cputime = INIT_CPUTIME;
-	spin_lock_init(&sig->cputimer.lock);
+	raw_spin_lock_init(&sig->cputimer.lock);
 	sig->cputimer.running = 0;
 }
 
 static inline void thread_group_cputime_free(struct signal_struct *sig)
 {
+}
+
+static inline int softirq_need_resched(void)
+{
+	if (softirq_preemption && (current->extra_flags & PFE_SOFTIRQ))
+		return need_resched();
+	return 0;
 }
 
 /*

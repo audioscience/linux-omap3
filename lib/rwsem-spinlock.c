@@ -17,24 +17,24 @@ struct rwsem_waiter {
 #define RWSEM_WAITING_FOR_WRITE	0x00000002
 };
 
-int rwsem_is_locked(struct rw_semaphore *sem)
+int anon_rwsem_is_locked(struct rw_anon_semaphore *sem)
 {
 	int ret = 1;
 	unsigned long flags;
 
-	if (spin_trylock_irqsave(&sem->wait_lock, flags)) {
+	if (raw_spin_trylock_irqsave(&sem->wait_lock, flags)) {
 		ret = (sem->activity != 0);
-		spin_unlock_irqrestore(&sem->wait_lock, flags);
+		raw_spin_unlock_irqrestore(&sem->wait_lock, flags);
 	}
 	return ret;
 }
-EXPORT_SYMBOL(rwsem_is_locked);
+EXPORT_SYMBOL(anon_rwsem_is_locked);
 
 /*
  * initialise the semaphore
  */
-void __init_rwsem(struct rw_semaphore *sem, const char *name,
-		  struct lock_class_key *key)
+void __init_anon_rwsem(struct rw_anon_semaphore *sem, const char *name,
+		       struct lock_class_key *key)
 {
 #ifdef CONFIG_DEBUG_LOCK_ALLOC
 	/*
@@ -44,10 +44,10 @@ void __init_rwsem(struct rw_semaphore *sem, const char *name,
 	lockdep_init_map(&sem->dep_map, name, key, 0);
 #endif
 	sem->activity = 0;
-	spin_lock_init(&sem->wait_lock);
+	raw_spin_lock_init(&sem->wait_lock);
 	INIT_LIST_HEAD(&sem->wait_list);
 }
-EXPORT_SYMBOL(__init_rwsem);
+EXPORT_SYMBOL(__init_anon_rwsem);
 
 /*
  * handle the lock release when processes blocked on it that can now run
@@ -58,8 +58,8 @@ EXPORT_SYMBOL(__init_rwsem);
  * - woken process blocks are discarded from the list after having task zeroed
  * - writers are only woken if wakewrite is non-zero
  */
-static inline struct rw_semaphore *
-__rwsem_do_wake(struct rw_semaphore *sem, int wakewrite)
+static inline struct rw_anon_semaphore *
+__rwsem_do_wake(struct rw_anon_semaphore *sem, int wakewrite)
 {
 	struct rwsem_waiter *waiter;
 	struct task_struct *tsk;
@@ -117,8 +117,8 @@ __rwsem_do_wake(struct rw_semaphore *sem, int wakewrite)
 /*
  * wake a single writer
  */
-static inline struct rw_semaphore *
-__rwsem_wake_one_writer(struct rw_semaphore *sem)
+static inline struct rw_anon_semaphore *
+__rwsem_wake_one_writer(struct rw_anon_semaphore *sem)
 {
 	struct rwsem_waiter *waiter;
 	struct task_struct *tsk;
@@ -139,17 +139,17 @@ __rwsem_wake_one_writer(struct rw_semaphore *sem)
 /*
  * get a read lock on the semaphore
  */
-void __sched __down_read(struct rw_semaphore *sem)
+void __sched __down_read(struct rw_anon_semaphore *sem)
 {
 	struct rwsem_waiter waiter;
 	struct task_struct *tsk;
 
-	spin_lock_irq(&sem->wait_lock);
+	raw_spin_lock_irq(&sem->wait_lock);
 
 	if (sem->activity >= 0 && list_empty(&sem->wait_list)) {
 		/* granted */
 		sem->activity++;
-		spin_unlock_irq(&sem->wait_lock);
+		raw_spin_unlock_irq(&sem->wait_lock);
 		goto out;
 	}
 
@@ -164,7 +164,7 @@ void __sched __down_read(struct rw_semaphore *sem)
 	list_add_tail(&waiter.list, &sem->wait_list);
 
 	/* we don't need to touch the semaphore struct anymore */
-	spin_unlock_irq(&sem->wait_lock);
+	raw_spin_unlock_irq(&sem->wait_lock);
 
 	/* wait to be given the lock */
 	for (;;) {
@@ -182,13 +182,13 @@ void __sched __down_read(struct rw_semaphore *sem)
 /*
  * trylock for reading -- returns 1 if successful, 0 if contention
  */
-int __down_read_trylock(struct rw_semaphore *sem)
+int __down_read_trylock(struct rw_anon_semaphore *sem)
 {
 	unsigned long flags;
 	int ret = 0;
 
 
-	spin_lock_irqsave(&sem->wait_lock, flags);
+	raw_spin_lock_irqsave(&sem->wait_lock, flags);
 
 	if (sem->activity >= 0 && list_empty(&sem->wait_list)) {
 		/* granted */
@@ -196,7 +196,7 @@ int __down_read_trylock(struct rw_semaphore *sem)
 		ret = 1;
 	}
 
-	spin_unlock_irqrestore(&sem->wait_lock, flags);
+	raw_spin_unlock_irqrestore(&sem->wait_lock, flags);
 
 	return ret;
 }
@@ -205,17 +205,17 @@ int __down_read_trylock(struct rw_semaphore *sem)
  * get a write lock on the semaphore
  * - we increment the waiting count anyway to indicate an exclusive lock
  */
-void __sched __down_write_nested(struct rw_semaphore *sem, int subclass)
+void __sched __down_write_nested(struct rw_anon_semaphore *sem, int subclass)
 {
 	struct rwsem_waiter waiter;
 	struct task_struct *tsk;
 
-	spin_lock_irq(&sem->wait_lock);
+	raw_spin_lock_irq(&sem->wait_lock);
 
 	if (sem->activity == 0 && list_empty(&sem->wait_list)) {
 		/* granted */
 		sem->activity = -1;
-		spin_unlock_irq(&sem->wait_lock);
+		raw_spin_unlock_irq(&sem->wait_lock);
 		goto out;
 	}
 
@@ -230,7 +230,7 @@ void __sched __down_write_nested(struct rw_semaphore *sem, int subclass)
 	list_add_tail(&waiter.list, &sem->wait_list);
 
 	/* we don't need to touch the semaphore struct anymore */
-	spin_unlock_irq(&sem->wait_lock);
+	raw_spin_unlock_irq(&sem->wait_lock);
 
 	/* wait to be given the lock */
 	for (;;) {
@@ -245,7 +245,7 @@ void __sched __down_write_nested(struct rw_semaphore *sem, int subclass)
 	;
 }
 
-void __sched __down_write(struct rw_semaphore *sem)
+void __sched __down_write(struct rw_anon_semaphore *sem)
 {
 	__down_write_nested(sem, 0);
 }
@@ -253,12 +253,12 @@ void __sched __down_write(struct rw_semaphore *sem)
 /*
  * trylock for writing -- returns 1 if successful, 0 if contention
  */
-int __down_write_trylock(struct rw_semaphore *sem)
+int __down_write_trylock(struct rw_anon_semaphore *sem)
 {
 	unsigned long flags;
 	int ret = 0;
 
-	spin_lock_irqsave(&sem->wait_lock, flags);
+	raw_spin_lock_irqsave(&sem->wait_lock, flags);
 
 	if (sem->activity == 0 && list_empty(&sem->wait_list)) {
 		/* granted */
@@ -266,7 +266,7 @@ int __down_write_trylock(struct rw_semaphore *sem)
 		ret = 1;
 	}
 
-	spin_unlock_irqrestore(&sem->wait_lock, flags);
+	raw_spin_unlock_irqrestore(&sem->wait_lock, flags);
 
 	return ret;
 }
@@ -274,48 +274,47 @@ int __down_write_trylock(struct rw_semaphore *sem)
 /*
  * release a read lock on the semaphore
  */
-void __up_read(struct rw_semaphore *sem)
+void __up_read(struct rw_anon_semaphore *sem)
 {
 	unsigned long flags;
 
-	spin_lock_irqsave(&sem->wait_lock, flags);
+	raw_spin_lock_irqsave(&sem->wait_lock, flags);
 
 	if (--sem->activity == 0 && !list_empty(&sem->wait_list))
 		sem = __rwsem_wake_one_writer(sem);
 
-	spin_unlock_irqrestore(&sem->wait_lock, flags);
+	raw_spin_unlock_irqrestore(&sem->wait_lock, flags);
 }
 
 /*
  * release a write lock on the semaphore
  */
-void __up_write(struct rw_semaphore *sem)
+void __up_write(struct rw_anon_semaphore *sem)
 {
 	unsigned long flags;
 
-	spin_lock_irqsave(&sem->wait_lock, flags);
+	raw_spin_lock_irqsave(&sem->wait_lock, flags);
 
 	sem->activity = 0;
 	if (!list_empty(&sem->wait_list))
 		sem = __rwsem_do_wake(sem, 1);
 
-	spin_unlock_irqrestore(&sem->wait_lock, flags);
+	raw_spin_unlock_irqrestore(&sem->wait_lock, flags);
 }
 
 /*
  * downgrade a write lock into a read lock
  * - just wake up any readers at the front of the queue
  */
-void __downgrade_write(struct rw_semaphore *sem)
+void __downgrade_write(struct rw_anon_semaphore *sem)
 {
 	unsigned long flags;
 
-	spin_lock_irqsave(&sem->wait_lock, flags);
+	raw_spin_lock_irqsave(&sem->wait_lock, flags);
 
 	sem->activity = 1;
 	if (!list_empty(&sem->wait_list))
 		sem = __rwsem_do_wake(sem, 0);
 
-	spin_unlock_irqrestore(&sem->wait_lock, flags);
+	raw_spin_unlock_irqrestore(&sem->wait_lock, flags);
 }
-

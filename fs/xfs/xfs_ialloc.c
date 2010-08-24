@@ -382,9 +382,9 @@ xfs_ialloc_ag_alloc(
 	newino = XFS_OFFBNO_TO_AGINO(args.mp, args.agbno, 0);
 	be32_add_cpu(&agi->agi_count, newlen);
 	be32_add_cpu(&agi->agi_freecount, newlen);
-	down_read(&args.mp->m_peraglock);
+	anon_down_read(&args.mp->m_peraglock);
 	args.mp->m_perag[agno].pagi_freecount += newlen;
-	up_read(&args.mp->m_peraglock);
+	anon_up_read(&args.mp->m_peraglock);
 	agi->agi_newino = cpu_to_be32(newino);
 
 	/*
@@ -486,7 +486,7 @@ xfs_ialloc_ag_select(
 	 */
 	agno = pagno;
 	flags = XFS_ALLOC_FLAG_TRYLOCK;
-	down_read(&mp->m_peraglock);
+	anon_down_read(&mp->m_peraglock);
 	for (;;) {
 		pag = &mp->m_perag[agno];
 		if (!pag->pagi_init) {
@@ -527,7 +527,7 @@ xfs_ialloc_ag_select(
 					agbp = NULL;
 					goto nextag;
 				}
-				up_read(&mp->m_peraglock);
+				anon_up_read(&mp->m_peraglock);
 				return agbp;
 			}
 		}
@@ -540,7 +540,7 @@ nextag:
 		 * down.
 		 */
 		if (XFS_FORCED_SHUTDOWN(mp)) {
-			up_read(&mp->m_peraglock);
+			anon_up_read(&mp->m_peraglock);
 			return NULL;
 		}
 		agno++;
@@ -548,7 +548,7 @@ nextag:
 			agno = 0;
 		if (agno == pagno) {
 			if (flags == 0) {
-				up_read(&mp->m_peraglock);
+				anon_up_read(&mp->m_peraglock);
 				return NULL;
 			}
 			flags = 0;
@@ -771,13 +771,13 @@ nextag:
 			*inop = NULLFSINO;
 			return noroom ? ENOSPC : 0;
 		}
-		down_read(&mp->m_peraglock);
+		anon_down_read(&mp->m_peraglock);
 		if (mp->m_perag[tagno].pagi_inodeok == 0) {
-			up_read(&mp->m_peraglock);
+			anon_up_read(&mp->m_peraglock);
 			goto nextag;
 		}
 		error = xfs_ialloc_read_agi(mp, tp, tagno, &agbp);
-		up_read(&mp->m_peraglock);
+		anon_up_read(&mp->m_peraglock);
 		if (error)
 			goto nextag;
 		agi = XFS_BUF_TO_AGI(agbp);
@@ -1006,9 +1006,9 @@ alloc_inode:
 		goto error0;
 	be32_add_cpu(&agi->agi_freecount, -1);
 	xfs_ialloc_log_agi(tp, agbp, XFS_AGI_FREECOUNT);
-	down_read(&mp->m_peraglock);
+	anon_down_read(&mp->m_peraglock);
 	mp->m_perag[tagno].pagi_freecount--;
-	up_read(&mp->m_peraglock);
+	anon_up_read(&mp->m_peraglock);
 
 	error = xfs_check_agi_freecount(cur, agi);
 	if (error)
@@ -1088,9 +1088,9 @@ xfs_difree(
 	/*
 	 * Get the allocation group header.
 	 */
-	down_read(&mp->m_peraglock);
+	anon_down_read(&mp->m_peraglock);
 	error = xfs_ialloc_read_agi(mp, tp, agno, &agbp);
-	up_read(&mp->m_peraglock);
+	anon_up_read(&mp->m_peraglock);
 	if (error) {
 		cmn_err(CE_WARN,
 			"xfs_difree: xfs_ialloc_read_agi() returned an error %d on %s.  Returning error.",
@@ -1157,9 +1157,9 @@ xfs_difree(
 		be32_add_cpu(&agi->agi_count, -ilen);
 		be32_add_cpu(&agi->agi_freecount, -(ilen - 1));
 		xfs_ialloc_log_agi(tp, agbp, XFS_AGI_COUNT | XFS_AGI_FREECOUNT);
-		down_read(&mp->m_peraglock);
+		anon_down_read(&mp->m_peraglock);
 		mp->m_perag[agno].pagi_freecount -= ilen - 1;
-		up_read(&mp->m_peraglock);
+		anon_up_read(&mp->m_peraglock);
 		xfs_trans_mod_sb(tp, XFS_TRANS_SB_ICOUNT, -ilen);
 		xfs_trans_mod_sb(tp, XFS_TRANS_SB_IFREE, -(ilen - 1));
 
@@ -1188,9 +1188,9 @@ xfs_difree(
 		 */
 		be32_add_cpu(&agi->agi_freecount, 1);
 		xfs_ialloc_log_agi(tp, agbp, XFS_AGI_FREECOUNT);
-		down_read(&mp->m_peraglock);
+		anon_down_read(&mp->m_peraglock);
 		mp->m_perag[agno].pagi_freecount++;
-		up_read(&mp->m_peraglock);
+		anon_up_read(&mp->m_peraglock);
 		xfs_trans_mod_sb(tp, XFS_TRANS_SB_IFREE, 1);
 	}
 
@@ -1312,9 +1312,9 @@ xfs_imap(
 		xfs_buf_t	*agbp;	/* agi buffer */
 		int		i;	/* temp state */
 
-		down_read(&mp->m_peraglock);
+		anon_down_read(&mp->m_peraglock);
 		error = xfs_ialloc_read_agi(mp, tp, agno, &agbp);
-		up_read(&mp->m_peraglock);
+		anon_up_read(&mp->m_peraglock);
 		if (error) {
 			xfs_fs_cmn_err(CE_ALERT, mp, "xfs_imap: "
 					"xfs_ialloc_read_agi() returned "

@@ -526,7 +526,7 @@ xfs_filestream_associate(
 
 	mp = pip->i_mount;
 	cache = mp->m_filestream;
-	down_read(&mp->m_peraglock);
+	anon_down_read(&mp->m_peraglock);
 
 	/*
 	 * We have a problem, Houston.
@@ -544,7 +544,7 @@ xfs_filestream_associate(
 	 * So, if we can't get the iolock without sleeping then just give up
 	 */
 	if (!xfs_ilock_nowait(pip, XFS_IOLOCK_EXCL)) {
-		up_read(&mp->m_peraglock);
+		anon_up_read(&mp->m_peraglock);
 		return 1;
 	}
 
@@ -601,7 +601,7 @@ exit_did_pick:
 
 exit:
 	xfs_iunlock(pip, XFS_IOLOCK_EXCL);
-	up_read(&mp->m_peraglock);
+	anon_up_read(&mp->m_peraglock);
 	return -err;
 }
 

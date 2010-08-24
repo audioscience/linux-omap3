@@ -188,7 +188,7 @@ static enum hrtimer_restart ntp_leap_second(struct hrtimer *timer)
 {
 	enum hrtimer_restart res = HRTIMER_NORESTART;
 
-	write_seqlock(&xtime_lock);
+	write_raw_seqlock(&xtime_lock);
 
 	switch (time_state) {
 	case TIME_OK:
@@ -218,7 +218,7 @@ static enum hrtimer_restart ntp_leap_second(struct hrtimer *timer)
 		break;
 	}
 
-	write_sequnlock(&xtime_lock);
+	write_raw_sequnlock(&xtime_lock);
 
 	return res;
 }
@@ -476,7 +476,7 @@ int do_adjtimex(struct timex *txc)
 
 	getnstimeofday(&ts);
 
-	write_seqlock_irq(&xtime_lock);
+	write_raw_seqlock_irq(&xtime_lock);
 
 	if (txc->modes & ADJ_ADJTIME) {
 		long save_adjust = time_adjust;
@@ -524,7 +524,7 @@ int do_adjtimex(struct timex *txc)
 	txc->errcnt	   = 0;
 	txc->stbcnt	   = 0;
 
-	write_sequnlock_irq(&xtime_lock);
+	write_raw_sequnlock_irq(&xtime_lock);
 
 	txc->time.tv_sec = ts.tv_sec;
 	txc->time.tv_usec = ts.tv_nsec;

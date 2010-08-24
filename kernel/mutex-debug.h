@@ -41,7 +41,6 @@ static inline void mutex_clear_owner(struct mutex *lock)
 	do {						\
 		struct mutex *l = container_of(lock, struct mutex, wait_lock); \
 							\
-		DEBUG_LOCKS_WARN_ON(in_interrupt());	\
 		local_irq_save(flags);			\
 		arch_spin_lock(&(lock)->rlock.raw_lock);\
 		DEBUG_LOCKS_WARN_ON(l->magic != l);	\

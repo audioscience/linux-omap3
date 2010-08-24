@@ -702,10 +702,10 @@ static void pcic_clear_clock_irq(void)
 
 static irqreturn_t pcic_timer_handler (int irq, void *h)
 {
-	write_seqlock(&xtime_lock);	/* Dummy, to show that we remember */
+	write_raw_seqlock(&xtime_lock); /* Dummy, to show that we remember */
 	pcic_clear_clock_irq();
 	do_timer(1);
-	write_sequnlock(&xtime_lock);
+	write_raw_sequnlock(&xtime_lock);
 #ifndef CONFIG_SMP
 	update_process_times(user_mode(get_irq_regs()));
 #endif

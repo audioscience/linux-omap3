@@ -101,7 +101,7 @@ again:
 		update_process_times(user_mode(get_irq_regs()));
 #endif
 
-		write_seqlock(&xtime_lock);
+		write_raw_seqlock(&xtime_lock);
 
 		do_timer(1); /* Linux handler in kernel/timer.c */
 
@@ -110,7 +110,7 @@ again:
 		next += CCOUNT_PER_JIFFY;
 		set_linux_timer(next);
 
-		write_sequnlock(&xtime_lock);
+		write_raw_sequnlock(&xtime_lock);
 	}
 
 	/* Allow platform to do something useful (Wdog). */

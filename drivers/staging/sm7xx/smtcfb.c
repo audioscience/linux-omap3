@@ -1151,9 +1151,9 @@ static int __maybe_unused smtcfb_suspend(struct pci_dev *pdev, pm_message_t msg)
 
 	/* when doing suspend, call fb apis and pci apis */
 	if (msg.event == PM_EVENT_SUSPEND) {
-		acquire_console_sem();
+		acquire_console_mutex();
 		fb_set_suspend(&sfb->fb, 1);
-		release_console_sem();
+		release_console_mutex();
 		retv = pci_save_state(pdev);
 		pci_disable_device(pdev);
 		retv = pci_choose_state(pdev, msg);
@@ -1212,9 +1212,9 @@ static int __maybe_unused smtcfb_resume(struct pci_dev *pdev)
 
 	smtcfb_setmode(sfb);
 
-	acquire_console_sem();
+	acquire_console_mutex();
 	fb_set_suspend(&sfb->fb, 0);
-	release_console_sem();
+	release_console_mutex();
 
 	return 0;
 }

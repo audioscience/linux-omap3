@@ -150,7 +150,7 @@ EXPORT_SYMBOL(local_flush_tlb_page);
  */
 #ifdef CONFIG_SMP
 
-static DEFINE_SPINLOCK(tlbivax_lock);
+static DEFINE_RAW_SPINLOCK(tlbivax_lock);
 
 static int mm_is_core_local(struct mm_struct *mm)
 {
@@ -232,10 +232,10 @@ void __flush_tlb_page(struct mm_struct *mm, unsigned long vmaddr,
 		if (mmu_has_feature(MMU_FTR_USE_TLBIVAX_BCAST)) {
 			int lock = mmu_has_feature(MMU_FTR_LOCK_BCAST_INVAL);
 			if (lock)
-				spin_lock(&tlbivax_lock);
+				raw_spin_lock(&tlbivax_lock);
 			_tlbivax_bcast(vmaddr, pid, tsize, ind);
 			if (lock)
-				spin_unlock(&tlbivax_lock);
+				raw_spin_unlock(&tlbivax_lock);
 			goto bail;
 		} else {
 			struct tlb_flush_param p = {
@@ -274,7 +274,9 @@ void flush_tlb_kernel_range(unsigned long start, unsigned long end)
 	_tlbil_pid(0);
 	preempt_enable();
 #else
+	preempt_disable();
 	_tlbil_pid(0);
+	preempt_enable();
 #endif
 }
 EXPORT_SYMBOL(flush_tlb_kernel_range);
@@ -298,7 +300,7 @@ void tlb_flush(struct mmu_gather *tlb)
 	flush_tlb_mm(tlb->mm);
 
 	/* Push out batch of freed page tables */
-	pte_free_finish();
+	pte_free_finish(tlb);
 }
 
 /*

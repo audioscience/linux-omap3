@@ -30,6 +30,7 @@
 #include <asm/tlbflush.h>
 #include <asm/tlb.h>
 #include <asm/bug.h>
+#include <asm/machdep.h>
 
 DEFINE_PER_CPU(struct ppc64_tlb_batch, ppc64_tlb_batch);
 
@@ -44,7 +45,7 @@ DEFINE_PER_CPU(struct ppc64_tlb_batch, ppc64_tlb_batch);
 void hpte_need_flush(struct mm_struct *mm, unsigned long addr,
 		     pte_t *ptep, unsigned long pte, int huge)
 {
-	struct ppc64_tlb_batch *batch = &__get_cpu_var(ppc64_tlb_batch);
+	struct ppc64_tlb_batch *batch = &get_cpu_var(ppc64_tlb_batch);
 	unsigned long vsid, vaddr;
 	unsigned int psize;
 	int ssize;
@@ -99,6 +100,7 @@ void hpte_need_flush(struct mm_struct *mm, unsigned long addr,
 	 */
 	if (!batch->active) {
 		flush_hash_page(vaddr, rpte, psize, ssize, 0);
+		put_cpu_var(ppc64_tlb_batch);
 		return;
 	}
 
@@ -125,8 +127,22 @@ void hpte_need_flush(struct mm_struct *mm, unsigned long addr,
 	batch->pte[i] = rpte;
 	batch->vaddr[i] = vaddr;
 	batch->index = ++i;
+
+#ifdef CONFIG_PREEMPT_RT
+	/*
+	 * Since flushing tlb needs expensive hypervisor call(s) on celleb,
+	 * always flush it on RT to reduce scheduling latency.
+	 */
+	if (machine_is(celleb)) {
+		__flush_tlb_pending(batch);
+		put_cpu_var(ppc64_tlb_batch);
+		return;
+	}
+#endif /* CONFIG_PREEMPT_RT */
+
 	if (i >= PPC64_TLB_BATCH_NR)
 		__flush_tlb_pending(batch);
+	put_cpu_var(ppc64_tlb_batch);
 }
 
 /*
@@ -155,7 +171,7 @@ void __flush_tlb_pending(struct ppc64_tlb_batch *batch)
 
 void tlb_flush(struct mmu_gather *tlb)
 {
-	struct ppc64_tlb_batch *tlbbatch = &__get_cpu_var(ppc64_tlb_batch);
+	struct ppc64_tlb_batch *tlbbatch = &get_cpu_var(ppc64_tlb_batch);
 
 	/* If there's a TLB batch pending, then we must flush it because the
 	 * pages are going to be freed and we really don't want to have a CPU
@@ -165,7 +181,8 @@ void tlb_flush(struct mmu_gather *tlb)
 		__flush_tlb_pending(tlbbatch);
 
 	/* Push out batch of freed page tables */
-	pte_free_finish();
+	put_cpu_var(ppc64_tlb_batch);
+	pte_free_finish(tlb);
 }
 
 /**

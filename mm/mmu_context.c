@@ -25,6 +25,7 @@ void use_mm(struct mm_struct *mm)
 	struct task_struct *tsk = current;
 
 	task_lock(tsk);
+	preempt_disable();
 	active_mm = tsk->active_mm;
 	if (active_mm != mm) {
 		atomic_inc(&mm->mm_count);
@@ -32,6 +33,7 @@ void use_mm(struct mm_struct *mm)
 	}
 	tsk->mm = mm;
 	switch_mm(active_mm, mm, tsk);
+	preempt_enable();
 	task_unlock(tsk);
 
 	if (active_mm != mm)

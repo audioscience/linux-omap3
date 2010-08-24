@@ -2270,7 +2270,7 @@ xfs_alloc_vextent(
 		 * These three force us into a single a.g.
 		 */
 		args->agno = XFS_FSB_TO_AGNO(mp, args->fsbno);
-		down_read(&mp->m_peraglock);
+		anon_down_read(&mp->m_peraglock);
 		args->pag = &mp->m_perag[args->agno];
 		args->minleft = 0;
 		error = xfs_alloc_fix_freelist(args, 0);
@@ -2280,14 +2280,14 @@ xfs_alloc_vextent(
 			goto error0;
 		}
 		if (!args->agbp) {
-			up_read(&mp->m_peraglock);
+			anon_up_read(&mp->m_peraglock);
 			trace_xfs_alloc_vextent_noagbp(args);
 			break;
 		}
 		args->agbno = XFS_FSB_TO_AGBNO(mp, args->fsbno);
 		if ((error = xfs_alloc_ag_vextent(args)))
 			goto error0;
-		up_read(&mp->m_peraglock);
+		anon_up_read(&mp->m_peraglock);
 		break;
 	case XFS_ALLOCTYPE_START_BNO:
 		/*
@@ -2339,7 +2339,7 @@ xfs_alloc_vextent(
 		 * Loop over allocation groups twice; first time with
 		 * trylock set, second time without.
 		 */
-		down_read(&mp->m_peraglock);
+		anon_down_read(&mp->m_peraglock);
 		for (;;) {
 			args->pag = &mp->m_perag[args->agno];
 			if (no_min) args->minleft = 0;
@@ -2401,7 +2401,7 @@ xfs_alloc_vextent(
 				}
 			}
 		}
-		up_read(&mp->m_peraglock);
+		anon_up_read(&mp->m_peraglock);
 		if (bump_rotor || (type == XFS_ALLOCTYPE_ANY_AG)) {
 			if (args->agno == sagno)
 				mp->m_agfrotor = (mp->m_agfrotor + 1) %
@@ -2429,7 +2429,7 @@ xfs_alloc_vextent(
 	}
 	return 0;
 error0:
-	up_read(&mp->m_peraglock);
+	anon_up_read(&mp->m_peraglock);
 	return error;
 }
 
@@ -2454,7 +2454,7 @@ xfs_free_extent(
 	args.agno = XFS_FSB_TO_AGNO(args.mp, bno);
 	ASSERT(args.agno < args.mp->m_sb.sb_agcount);
 	args.agbno = XFS_FSB_TO_AGBNO(args.mp, bno);
-	down_read(&args.mp->m_peraglock);
+	anon_down_read(&args.mp->m_peraglock);
 	args.pag = &args.mp->m_perag[args.agno];
 	if ((error = xfs_alloc_fix_freelist(&args, XFS_ALLOC_FLAG_FREEING)))
 		goto error0;
@@ -2465,7 +2465,7 @@ xfs_free_extent(
 #endif
 	error = xfs_free_ag_extent(tp, args.agbp, args.agno, args.agbno, len, 0);
 error0:
-	up_read(&args.mp->m_peraglock);
+	anon_up_read(&args.mp->m_peraglock);
 	return error;
 }
 

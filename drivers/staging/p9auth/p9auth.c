@@ -391,7 +391,7 @@ static int __init cap_init_module(void)
 	/* Initialize each device. */
 	for (i = 0; i < cap_nr_devs; i++) {
 		cap_devices[i].node_size = cap_node_size;
-		init_MUTEX(&cap_devices[i].sem);
+		sema_init(&cap_devices[i].sem, 1);
 		cap_setup_cdev(&cap_devices[i], i);
 	}
 

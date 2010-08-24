@@ -128,21 +128,23 @@ static inline void task_name(struct seq_file *m, struct task_struct *p)
 
 /*
  * The task state array is a strange "bitmap" of
- * reasons to sleep. Thus "running" is zero, and
- * you can test for combinations of others with
+ * reasons to sleep. Thus, the first element is zero,
+ * and you can test for combinations of others with
  * simple bit tests.
  */
+#define TASK_STATE_X(num) TASK_STATE_##num " (" DESCR_TASK_STATE_##num ")"
 static const char *task_state_array[] = {
-	"R (running)",		/*   0 */
-	"S (sleeping)",		/*   1 */
-	"D (disk sleep)",	/*   2 */
-	"T (stopped)",		/*   4 */
-	"t (tracing stop)",	/*   8 */
-	"Z (zombie)",		/*  16 */
-	"X (dead)",		/*  32 */
-	"x (dead)",		/*  64 */
-	"K (wakekill)",		/* 128 */
-	"W (waking)",		/* 256 */
+	TASK_STATE_X(0),
+	TASK_STATE_X(1),
+	TASK_STATE_X(2),
+	TASK_STATE_X(4),
+	TASK_STATE_X(8),
+	TASK_STATE_X(16),
+	TASK_STATE_X(32),
+	TASK_STATE_X(64),
+	TASK_STATE_X(128),
+	TASK_STATE_X(256),
+	TASK_STATE_X(512)
 };
 
 static inline const char *get_task_state(struct task_struct *tsk)
@@ -269,7 +271,9 @@ static inline void task_sig(struct seq_file *m, struct task_struct *p)
 		blocked = p->blocked;
 		collect_sigign_sigcatch(p, &ignored, &caught);
 		num_threads = atomic_read(&p->signal->count);
+		rcu_read_lock();
 		qsize = atomic_read(&__task_cred(p)->user->sigpending);
+		rcu_read_unlock();
 		qlim = p->signal->rlim[RLIMIT_SIGPENDING].rlim_cur;
 		unlock_task_sighand(p, &flags);
 	}
@@ -336,6 +340,18 @@ static void task_cpus_allowed(struct seq_file *m, struct task_struct *task)
 	seq_printf(m, "\n");
 }
 
+#define get_blocked_on(t)	(-1)
+
+static inline void show_blocked_on(struct seq_file *m, struct task_struct *p)
+{
+	pid_t pid = get_blocked_on(p);
+
+	if (pid < 0)
+		return;
+
+	seq_printf(m, "BlckOn: %d\n", pid);
+}
+
 int proc_pid_status(struct seq_file *m, struct pid_namespace *ns,
 			struct pid *pid, struct task_struct *task)
 {
@@ -356,6 +372,7 @@ int proc_pid_status(struct seq_file *m, struct pid_namespace *ns,
 	task_show_regs(m, task);
 #endif
 	task_context_switch_counts(m, task);
+	show_blocked_on(m, task);
 	return 0;
 }
 

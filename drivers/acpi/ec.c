@@ -577,7 +577,19 @@ static u32 acpi_ec_gpe_handler(void *data)
 	advance_transaction(ec, acpi_ec_read_status(ec));
 	if (ec_transaction_done(ec) &&
 	    (acpi_ec_read_status(ec) & ACPI_EC_FLAG_IBF) == 0) {
+#ifndef CONFIG_PREEMPT_RT
 		wake_up(&ec->wait);
+#else
+		// hack ...
+		if (waitqueue_active(&ec->wait)) {
+			struct task_struct *task;
+
+			task = list_entry(ec->wait.task_list.next,
+					  wait_queue_t, task_list)->private;
+			if (task)
+				wake_up_process(task);
+		}
+#endif
 		ec_check_sci(ec, acpi_ec_read_status(ec));
 	}
 	return ACPI_INTERRUPT_HANDLED;

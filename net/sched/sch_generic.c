@@ -12,6 +12,7 @@
  */
 
 #include <linux/bitops.h>
+#include <linux/kallsyms.h>
 #include <linux/module.h>
 #include <linux/types.h>
 #include <linux/kernel.h>
@@ -24,6 +25,7 @@
 #include <linux/init.h>
 #include <linux/rcupdate.h>
 #include <linux/list.h>
+#include <linux/delay.h>
 #include <net/pkt_sched.h>
 
 /* Main transmission queue. */
@@ -76,7 +78,7 @@ static inline int handle_dev_cpu_collision(struct sk_buff *skb,
 {
 	int ret;
 
-	if (unlikely(dev_queue->xmit_lock_owner == smp_processor_id())) {
+	if (unlikely(netif_tx_lock_recursion(dev_queue))) {
 		/*
 		 * Same CPU holding the lock. It may be a transient
 		 * configuration error, when hard_start_xmit() recurses. We
@@ -93,7 +95,9 @@ static inline int handle_dev_cpu_collision(struct sk_buff *skb,
 		 * Another cpu is holding lock, requeue & delay xmits for
 		 * some time.
 		 */
+		preempt_disable(); /* FIXME: we need an _rt version of this */
 		__get_cpu_var(netdev_rx_stat).cpu_collision++;
+		preempt_enable();
 		ret = dev_requeue_skb(skb, q);
 	}
 
@@ -118,7 +122,7 @@ int sch_direct_xmit(struct sk_buff *skb, struct Qdisc *q,
 	/* And release qdisc */
 	spin_unlock(root_lock);
 
-	HARD_TX_LOCK(dev, txq, smp_processor_id());
+	HARD_TX_LOCK(dev, txq);
 	if (!netif_tx_queue_stopped(txq) && !netif_tx_queue_frozen(txq))
 		ret = dev_hard_start_xmit(skb, dev, txq);
 
@@ -786,9 +790,12 @@ void dev_deactivate(struct net_device *dev)
 	/* Wait for outstanding qdisc-less dev_queue_xmit calls. */
 	synchronize_rcu();
 
-	/* Wait for outstanding qdisc_run calls. */
+	/*
+	 * Wait for outstanding qdisc_run calls.
+	 * TODO: shouldnt this be wakeup-based, instead of polling it?
+	 */
 	while (some_qdisc_is_busy(dev))
-		yield();
+		msleep(1);
 }
 
 static void dev_init_scheduler_queue(struct net_device *dev,

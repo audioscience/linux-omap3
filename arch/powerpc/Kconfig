@@ -81,13 +81,6 @@ config LOCKDEP_SUPPORT
 	bool
 	default y
 
-config RWSEM_GENERIC_SPINLOCK
-	bool
-
-config RWSEM_XCHGADD_ALGORITHM
-	bool
-	default y
-
 config GENERIC_LOCKBREAK
 	bool
 	default y
@@ -256,6 +249,14 @@ config HIGHMEM
 source kernel/time/Kconfig
 source kernel/Kconfig.hz
 source kernel/Kconfig.preempt
+
+config RWSEM_GENERIC_SPINLOCK
+	bool
+	default y
+
+config RWSEM_XCHGADD_ALGORITHM
+	bool
+
 source "fs/Kconfig.binfmt"
 
 config HUGETLB_PAGE_SIZE_VARIABLE
@@ -384,6 +385,7 @@ config IRQ_ALL_CPUS
 
 config SPARSE_IRQ
 	bool "Support sparse irq numbering"
+	depends on !PREEMPT_RT
 	default y
 	help
 	  This enables support for sparse irqs. This is useful for distro
