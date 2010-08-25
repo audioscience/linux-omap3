@@ -32,6 +32,7 @@
 #include <linux/delay.h>
 #include <linux/clk.h>
 #include <linux/irq.h>
+#include <linux/slab.h>
 #include <linux/msi.h>
 #include <linux/pci.h>
 
@@ -72,7 +73,7 @@ static int msi_irq;
 static DEFINE_SPINLOCK(ti816x_pci_io_lock);
 
 /*
- *  PCI Register Offsets
+ *  Application Register Offsets
  */
 #define PCISTATSET                      0x010
 #define CMD_STATUS			0x004
@@ -81,7 +82,7 @@ static DEFINE_SPINLOCK(ti816x_pci_io_lock);
 #define OB_SIZE				0x030
 #define MSI_IRQ				0x054
 #define OB_OFFSET_INDEX(n)              (0x200 + (8 * n))     /* 32 Registers */
-#define OB_OFFSET_HI(n)              	(0x204 + (8 * n))     /* 32 Registers */
+#define OB_OFFSET_HI(n)			(0x204 + (8 * n))     /* 32 Registers */
 #define IB_BAR0				0x300
 #define IB_START0_LO			0x304
 #define IB_START0_HI			0x308
@@ -91,6 +92,12 @@ static DEFINE_SPINLOCK(ti816x_pci_io_lock);
 #define MSI0_IRQ_STATUS			0x104
 #define MSI0_IRQ_ENABLE_SET		0x108
 #define MSI0_IRQ_ENABLE_CLR		0x10c
+#define IRQ_ENABLE_SET			0x188
+#define IRQ_ENABLE_CLR			0x18c
+
+/*
+ * PCIe COnfig Register Offsets (misc)
+ */
 #define DEBUG0				0x728
 
 /* Various regions in PCIESS address space */
@@ -112,7 +119,7 @@ static DEFINE_SPINLOCK(ti816x_pci_io_lock);
 #define CFG_PCIM_CSR_VAL         (PCI_COMMAND_SERR			\
 					| PCI_COMMAND_PARITY		\
 					| PCI_COMMAND_INVALIDATE	\
-					| PCI_COMMAND_MASTER           	\
+					| PCI_COMMAND_MASTER		\
 					| PCI_COMMAND_MEMORY		\
 					| PCI_COMMAND_INTX_DISABLE)
 
@@ -190,6 +197,9 @@ ti816x_pcie_fault(unsigned long addr, unsigned int fsr, struct pt_regs *regs)
 	}
 
 	regs->ARM_pc += 4;
+
+	pr_debug(DRIVER_NAME ": Handled PCIe abort\n");
+
 	return 0;
 }
 
@@ -200,13 +210,16 @@ static void set_outbound_trans(u32 start, u32 end)
 {
 	int i, tr_size;
 
+	pr_debug(DRIVER_NAME ": Setting outbound translation for %#x-%#x\n",
+			start, end);
+
 	/* Set outbound translation size per window division */
 	__raw_writel(CFG_PCIM_WIN_SZ_IDX & 0x7, reg_virt + OB_SIZE);
 
 	tr_size = (2 << (CFG_PCIM_WIN_SZ_IDX & 0x7)) * SZ_1M;
 
 	/* Using Direct 1:1 mapping of RC <-> PCI memory space */
-	for (i = 0; (i < CFG_PCIM_WIN_CNT) && (start > end); i++) {
+	for (i = 0; (i < CFG_PCIM_WIN_CNT) && (start < end); i++) {
 		start += (tr_size * i);
 		__raw_writel(start | 1, reg_virt + OB_OFFSET_INDEX(i));
 		__raw_writel(0,	reg_virt + OB_OFFSET_HI(i));
@@ -322,7 +335,7 @@ static void set_inbound_trans(void)
 		__raw_writel(1, reg_virt + SPACE0_LOCAL_CFG_OFFSET +
 				PCI_BASE_ADDRESS_1);
 
-		__raw_writel(ram_end - ram_base + 1, reg_virt +
+		__raw_writel(ram_end - ram_base, reg_virt +
 			SPACE0_LOCAL_CFG_OFFSET + PCI_BASE_ADDRESS_1);
 
 		clear_dbi_mode();
@@ -565,11 +578,14 @@ int ti816x_pcie_setup(int nr, struct pci_sys_data *sys)
 	res[0].name = "PCI Memory";
 	res[0].flags = IORESOURCE_MEM;
 
-	if (request_resource(&iomem_resource, &res[0])) {
-		pr_err(DRIVER_NAME ": Failed to reserve memory resource\n");
+#if 0
+	{
+		int ret;
+	if ((ret=insert_resource(&iomem_resource, &res[0]))) {
+		pr_err(DRIVER_NAME ": Failed to reserve memory resource, got %d\n", ret);
 		goto err_memres;
 	}
-
+#endif
 	/* Optional: io window */
 	plat_res = platform_get_resource_byname(pcie_pdev, IORESOURCE_IO, "io");
 	if (!plat_res) {
@@ -580,7 +596,7 @@ int ti816x_pcie_setup(int nr, struct pci_sys_data *sys)
 		res[1].name = "PCI I/O";
 		res[1].flags = IORESOURCE_IO;
 
-		if (request_resource(&ioport_resource, &res[1])) {
+		if (insert_resource(&ioport_resource, &res[1])) {
 			pr_err(DRIVER_NAME ": Failed to reserve io resource\n");
 			goto err_iores;
 		}
@@ -676,6 +692,13 @@ int ti816x_pcie_setup(int nr, struct pci_sys_data *sys)
 
 	legacy_irq = platform_get_irq_byname(pcie_pdev, "legacy_int");
 
+	if (legacy_irq >= 0) {
+		__raw_writel(0xf, reg_virt + IRQ_ENABLE_SET);
+	} else {
+		__raw_writel(0xf, reg_virt + IRQ_ENABLE_CLR);
+		pr_warning(DRIVER_NAME ": INTx disabled since no legacy IRQ\n");
+	}
+
 	msi_irq = platform_get_irq_byname(pcie_pdev, "msi_int");
 
 	if ((msi_irq >= 0) && msi_irq_num) {
@@ -733,8 +756,8 @@ err_memres:
  */
 static int check_device(struct pci_bus *bus, int dev)
 {
-	if ((__raw_readl(reg_virt + DEBUG0) & LTSSM_STATE_MASK)
-		!= LTSSM_STATE_L0)
+	if ((__raw_readl(reg_virt + SPACE0_LOCAL_CFG_OFFSET + DEBUG0) &
+				LTSSM_STATE_MASK) != LTSSM_STATE_L0)
 		return 0;
 
 	if (bus->number <= 1) {
@@ -776,9 +799,15 @@ static inline u32 setup_config_addr(u8 bus, u8 device, u8 function)
 	} else {
 		u32 regval = (bus << 16) | (device << 8) | function;
 
+		/*
+		 * !@@@ HACK
+		 * TYPE1 setting crashes remote cfg access POST-SI
+		 */
+#if 0
 		/* TYPE 1 */
 		if (bus != 1)
 			regval |= BIT(24);
+#endif
 
 		__raw_writel(regval, reg_virt + CFG_SETUP);
 
@@ -973,6 +1002,7 @@ struct pci_bus *ti816x_pcie_scan(int nr, struct pci_sys_data *sys)
  */
 static int __init ti816x_pcie_map_irq(struct pci_dev *dev, u8 slot, u8 pin)
 {
+	pr_debug(DRIVER_NAME "Returning Legacy irq = %d\n", legacy_irq);
 	return (legacy_irq >= 0) ? legacy_irq : -1;
 }
 
@@ -1037,3 +1067,4 @@ static int __init ti816x_pcie_rc_init(void)
 	return 0;
 }
 subsys_initcall(ti816x_pcie_rc_init);
+

@@ -1096,6 +1096,7 @@ static struct resource ti816x_pcie_resources[] = {
 		.end		= TI816X_IRQ_PCIINT0,
 		.flags		= IORESOURCE_IRQ,
 	},
+#ifdef CONFIG_PCI_MSI
 	{
 		/* MSI Interrupt Line */
 		.name		= "msi_int",
@@ -1103,6 +1104,7 @@ static struct resource ti816x_pcie_resources[] = {
 		.end		= TI816X_IRQ_PCIINT1,
 		.flags		= IORESOURCE_IRQ,
 	},
+#endif
 };
 
 static struct platform_device ti816x_pcie_device = {
@@ -1118,9 +1120,9 @@ static struct platform_device ti816x_pcie_device = {
 static inline void ti816x_init_pcie(void)
 {
 	if (cpu_is_ti816x()) {
-		u32 v = omap_ctrl_readl(TI816X_CONTROL_PCIE_CFG);
-		v = (v & ~TI816X_PCIE_DEVTYPE_MASK) | TI816X_PCIE_DEVTYPE_RC;
-		omap_ctrl_writel(v, TI816X_CONTROL_PCIE_CFG);
+		omap_ctrl_writel(TI816X_PCIE_PLLMUX_25X |
+				TI816X_PCIE_DEVTYPE_RC,
+				TI816X_CONTROL_PCIE_CFG);
 		platform_device_register(&ti816x_pcie_device);
 	}
 }
