@@ -48,6 +48,7 @@
 
 /* OMAP2/3-common wakeup dependencies */
 
+#if defined(CONFIG_ARCH_OMAP2) || defined(CONFIG_ARCH_OMAP3)
 /*
  * 2420/2430 PM_WKDEP_GFX: CORE, MPU, WKUP
  * 3430ES1 PM_WKDEP_GFX: adds IVA2, removes CORE
@@ -80,7 +81,7 @@ static struct clkdm_dep gfx_sgx_wkdeps[] = {
 	},
 	{ NULL },
 };
-
+#endif
 
 /* 24XX-specific possible dependencies */
 

@@ -377,6 +377,7 @@ static struct snd_platform_data ti8168_evm_snd_data = {
 	.rxnumevt = 1,
 };
 
+#ifdef CONFIG_TI816X_ERRATA_AXI2OCP
 /*
  * dmtimer FIQ block: Use DMTIMER3 to generate FIQ every __us.
  */
@@ -511,6 +512,7 @@ static int axi2ocp_fiq_fixup(void)
 
 	return 0;
 }
+#endif
 
 static void __init ti816x_nor_init(void)
 {
@@ -612,7 +614,8 @@ static void __init ti8168_evm_init(void)
 	ti816x_nor_init();
 	ti816x_spi_init();
 	ti816x_register_mcasp(0, &ti8168_evm_snd_data);
-#if 0
+
+#ifdef CONFIG_TI816X_ERRATA_AXI2OCP
 	/* FIXME: Move further up in initialization sequence */
 	pr_info("AXI2OCP: Entering fixup code...\n");
 	axi2ocp_fiq_fixup();

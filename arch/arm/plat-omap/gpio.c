@@ -2118,6 +2118,10 @@ void omap2_gpio_prepare_for_idle(int power_state)
 			l2 = __raw_readl(bank->base +
 						OMAP4_GPIO_RISINGDETECT);
 		}
+		else {
+			/* FIXME: Added just to avoid warning */
+			break;
+		}
 
 		bank->saved_fallingdetect = l1;
 		bank->saved_risingdetect = l2;

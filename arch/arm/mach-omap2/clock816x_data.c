@@ -786,13 +786,6 @@ static struct clk audio_pll_clk1_ck = {
 	.flags		= RATE_IN_TI816X,
 };
 
-static struct clk audio_pll_clk2_ck = {
-	.name		= "audio_pll_clk2_ck",
-	.ops		= &clkops_null,
-	.rate		= 160000000,
-	.flags		= RATE_IN_TI816X,
-};
-
 static struct clk audio_pll_clk3_ck = {
 	.name		= "audio_pll_clk3_ck",
 	.ops		= &clkops_null,
