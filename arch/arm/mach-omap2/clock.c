@@ -27,6 +27,7 @@
 #include <plat/clockdomain.h>
 #include <plat/cpu.h>
 #include <plat/prcm.h>
+#include <plat/common.h>
 
 #include "clock.h"
 #include "prm.h"
@@ -241,6 +242,9 @@ int omap2_ti816x_clk_enable(struct clk *clk)
 
 int omap2_pcie_clk_enable(struct clk *clk)
 {
+#define MAX_MODULE_ENABLE_WAIT		100000
+	int i = 0;
+
 	omap2_dflt_clk_enable(clk);
 
 	/* De-assert local reset after module enable */
@@ -248,6 +252,18 @@ int omap2_pcie_clk_enable(struct clk *clk)
 		prm_clear_mod_reg_bits(TI816X_PCI_LRST_MASK,
 				TI816X_PRM_DEFAULT_MOD,
 				TI816X_RM_DEFAULT_RSTCTRL);
+
+	omap_test_timeout(((__raw_readl(clk->enable_reg) & 0x30000) == 0),
+			MAX_MODULE_ENABLE_WAIT, i);
+
+	/* PCIe module remains in standby till LRST is de-asserted */
+	if (i < MAX_MODULE_ENABLE_WAIT)
+		pr_debug("cm: Module associated with clock %s ready after %d "
+			 "loops\n", clk->name, i);
+	else {
+		pr_err("cm: Module associated with clock %s didn't enable in "
+		       "%d tries\n", clk->name, MAX_MODULE_ENABLE_WAIT);
+	}
 
 	return 0;
 }
