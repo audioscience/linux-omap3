@@ -2496,6 +2496,7 @@ static int emac_devioctl(struct net_device *ndev, struct ifreq *ifrq, int cmd)
 	return -EOPNOTSUPP;
 }
 
+#ifdef EMAC_USE_POLLING
 static void emac_poll_func(struct work_struct *workstruct)
 {
 	struct delayed_work *delay_work =
@@ -2508,6 +2509,7 @@ static void emac_poll_func(struct work_struct *workstruct)
 		napi_schedule(&priv->napi);
 	}
 }
+#endif
 
 /**
  * emac_dev_open: EMAC device open
