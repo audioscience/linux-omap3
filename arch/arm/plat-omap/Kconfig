@@ -43,6 +43,7 @@ config ARCH_TI816X
 	bool "TI816X"
 	depends on ARCH_OMAP2PLUS
 	select CPU_V7
+	select ARCH_SUPPORTS_MSI
 
 endchoice
 
