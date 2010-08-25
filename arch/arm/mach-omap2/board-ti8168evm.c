@@ -109,7 +109,7 @@ struct spi_board_info __initdata ti816x_spi_slave_info[] = {
 	},
 };
 
-void ti816x_spi_init(void)
+static void __init ti816x_spi_init(void)
 {
 	spi_register_board_info(ti816x_spi_slave_info,
 				ARRAY_SIZE(ti816x_spi_slave_info));
