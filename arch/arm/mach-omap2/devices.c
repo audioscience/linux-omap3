@@ -504,7 +504,7 @@ static void omap_init_mcspi(void)
 	if (!cpu_is_ti816x())
 		omap2_mcspi2_init();
 
-	if (cpu_is_omap2430() || cpu_is_omap343x() || cpu_is_omap44xx() || 
+	if (cpu_is_omap2430() || cpu_is_omap343x() || cpu_is_omap44xx() ||
 		cpu_is_ti814x())
 		omap2_mcspi3_init();
 
