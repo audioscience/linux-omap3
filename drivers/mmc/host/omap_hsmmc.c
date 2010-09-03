@@ -76,7 +76,7 @@
 #define CLKD_SHIFT		6
 #define DTO_MASK		0x000F0000
 #define DTO_SHIFT		16
-#define INT_EN_MASK		0x307F0033
+#define INT_EN_MASK		0x307F0073
 #define BWR_ENABLE		(1 << 4)
 #define BRR_ENABLE		(1 << 5)
 #define INIT_STREAM		(1 << 1)
@@ -1283,22 +1283,27 @@ static void omap_hsmmc_config_dma_params(struct omap_hsmmc_host *host,
 				       struct scatterlist *sgl)
 {
 	int blksz, nblk, dma_ch;
+	int bindex = 0, cindex = 0;
 
 	dma_ch = host->dma_ch;
+	blksz = host->data->blksz;
+	nblk = sg_dma_len(sgl) / blksz;
+	if (cpu_is_ti816x()) {
+		bindex = 4;
+		cindex = blksz;
+	}
+
 	if (data->flags & MMC_DATA_WRITE) {
 		omap_set_dma_dest_params(dma_ch, 0, OMAP_DMA_AMODE_CONSTANT,
 			(host->mapbase + OMAP_HSMMC_DATA), 0, 0);
 		omap_set_dma_src_params(dma_ch, 0, OMAP_DMA_AMODE_POST_INC,
-			sg_dma_address(sgl), 0, 0);
+			sg_dma_address(sgl), bindex, cindex);
 	} else {
 		omap_set_dma_src_params(dma_ch, 0, OMAP_DMA_AMODE_CONSTANT,
 			(host->mapbase + OMAP_HSMMC_DATA), 0, 0);
 		omap_set_dma_dest_params(dma_ch, 0, OMAP_DMA_AMODE_POST_INC,
-			sg_dma_address(sgl), 0, 0);
+			sg_dma_address(sgl), bindex, cindex);
 	}
-
-	blksz = host->data->blksz;
-	nblk = sg_dma_len(sgl) / blksz;
 
 	omap_set_dma_transfer_params(dma_ch, OMAP_DMA_DATA_TYPE_S32,
 			blksz / 4, nblk, OMAP_DMA_SYNC_FRAME,
@@ -2144,6 +2149,10 @@ static int __init omap_hsmmc_probe(struct platform_device *pdev)
 	 * as we want. */
 	mmc->max_phys_segs = 1024;
 	mmc->max_hw_segs = 1024;
+	if (cpu_is_ti816x()) {
+		mmc->max_phys_segs = 1;
+		mmc->max_hw_segs = 1;
+	}
 
 	mmc->max_blk_size = 512;       /* Block Length at max can be 1024 */
 	mmc->max_blk_count = 0xFFFF;    /* No. of Blocks is 16 bits */

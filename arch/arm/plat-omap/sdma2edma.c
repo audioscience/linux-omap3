@@ -234,7 +234,7 @@ void omap_set_dma_dest_params(int lch, int dest_port, int dest_amode,
 	}
 
 	edma_set_dest((unsigned)lch, (dma_addr_t)dest_start, 
-					INCR, W8BIT);
+					!dest_amode, W32BIT);
 	edma_set_dest_index((unsigned)(lch), (s16)dst_ei, (s16)dst_fi);
 }
 
@@ -267,7 +267,7 @@ void omap_set_dma_src_params(int lch, int src_port, int src_amode,
 	}
 
 	edma_set_src((unsigned)lch, (dma_addr_t)src_start, 
-					INCR, W8BIT);
+					!src_amode, W32BIT);
 	edma_set_src_index((unsigned)(lch), (s16)src_ei, (s16)src_fi);
 }
 

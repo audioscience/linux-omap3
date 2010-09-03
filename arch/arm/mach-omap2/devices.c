@@ -770,6 +770,18 @@ static inline void omap2_mmc_mux(struct omap_mmc_platform_data *mmc_controller,
 		 * For MMC3 the pins need to be muxed in the board-*.c files
 		 */
 	}
+
+	if (cpu_is_ti816x()) {
+		omap_mux_init_signal("mmc_pow", OMAP_PULL_ENA );
+		omap_mux_init_signal("mmc_clk", OMAP_PIN_OUTPUT );
+		omap_mux_init_signal("mmc_cmd", OMAP_PULL_UP );
+		omap_mux_init_signal("mmc_dat0", OMAP_PULL_UP );
+		omap_mux_init_signal("mmc_dat1_sdirq", OMAP_PULL_UP );
+		omap_mux_init_signal("mmc_dat2_sdrw", OMAP_PULL_UP );
+		omap_mux_init_signal("mmc_dat3", OMAP_PULL_UP );
+		omap_mux_init_signal("mmc_sdcd", OMAP_PIN_OUTPUT );
+		omap_mux_init_signal("mmc_sdwp", OMAP_PIN_OUTPUT );
+	}
 }
 
 void __init omap2_init_mmc(struct omap_mmc_platform_data **mmc_data,
@@ -1143,7 +1155,7 @@ static inline void ti816x_init_pcie(void) {}
 static const s16 ti816x_dma_rsv_chans[][2] = {
 	/* (offset, number) */
 	{ 0,  4},	/* !@@@ TODO replace as appropriate - Sundaram*/
-	{24,  4},
+	//{24,  4},
 	{30,  2},
 	{54,  3},
 	{-1, -1}
@@ -1152,7 +1164,7 @@ static const s16 ti816x_dma_rsv_chans[][2] = {
 static const s16 ti816x_dma_rsv_slots[][2] = {
 	/* (offset, number) */
 	{ 0,  4},	/* !@@@ TODO replace as appropriate - Sundaram*/
-	{24,  4},
+//	{24,  4},
 	{30,  2},
 	{54,  3},
 	{128, 384},

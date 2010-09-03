@@ -235,18 +235,16 @@ static struct platform_device ti816x_evm_norflash_device = {
 	.resource	= &ti816x_evm_norflash_resource,
 };
 
-#if 0
 static struct omap2_hsmmc_info mmc[] = {
 	{
 		.mmc		= 1,
 		.wires		= 4,
 		.gpio_cd	= -EINVAL,/* Dedicated pins for CD and WP */
 		.gpio_wp	= -EINVAL,
-		.ocr_mask	= MMC_VDD_32_33 | MMC_VDD_33_34,
+		.ocr_mask	= MMC_VDD_33_34,
 	},
 	{}	/* Terminator */
 };
-#endif
 
 static struct omap_musb_board_data musb_board_data = {
 	.interface_type		= MUSB_INTERFACE_ULPI,
@@ -600,9 +598,8 @@ static void __init ti8168_evm_init(void)
 	omap_board_config = generic_config;
 	omap_board_config_size = ARRAY_SIZE(generic_config);
 	omap_serial_init();
-#if 0
+
 	omap2_hsmmc_init(mmc);
-#endif
 	/* initialize usb */
 	usb_musb_init(&musb_board_data);
 	/* register ahci interface for 2 SATA ports */
