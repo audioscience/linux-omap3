@@ -212,7 +212,8 @@ static inline void musb_h_tx_start(struct musb_hw_ep *ep)
 		txcsr |= MUSB_TXCSR_TXPKTRDY | MUSB_TXCSR_H_WZC_BITS;
 		musb_writew(ep->regs, MUSB_TXCSR, txcsr);
 	} else {
-		txcsr = MUSB_CSR0_H_SETUPPKT | MUSB_CSR0_TXPKTRDY;
+		txcsr = MUSB_CSR0_H_SETUPPKT | MUSB_CSR0_TXPKTRDY
+				| MUSB_CSR0_DISPING;
 		musb_writew(ep->regs, MUSB_CSR0, txcsr);
 	}
 

@@ -76,7 +76,7 @@
 #define CLKD_SHIFT		6
 #define DTO_MASK		0x000F0000
 #define DTO_SHIFT		16
-#define INT_EN_MASK		0x307F0073
+#define INT_EN_MASK		0x307F00f3
 #define BWR_ENABLE		(1 << 4)
 #define BRR_ENABLE		(1 << 5)
 #define INIT_STREAM		(1 << 1)
@@ -218,6 +218,7 @@ static int omap_hsmmc_card_detect(struct device *dev, int slot)
 
 		if (!enabled)
 			mmc_host_disable(host->mmc);
+printk("PSTATE %x\n", pstate);
 		pstate = pstate & PSTATE_CINS_MASK;
 		pstate = pstate >> PSTATE_CINS_SHIFT;
 		return pstate;
@@ -237,7 +238,7 @@ static int omap_hsmmc_get_wp(struct device *dev, int slot)
 		u32 pstate = 0;
 		pstate = OMAP_HSMMC_READ(host->base, PSTATE);
 		pstate &= PSTATE_WP_MASK;
-		return pstate >> PSTATE_WP_SHIFT;
+		return !(pstate >> PSTATE_WP_SHIFT);
 	}
 }
 
@@ -1037,7 +1038,7 @@ static irqreturn_t omap_hsmmc_irq(int irq, void *dev_id)
 {
 	struct omap_hsmmc_host *host = dev_id;
 	struct mmc_data *data;
-	int end_cmd = 0, end_trans = 0, status;
+	int end_cmd = 0, end_trans = 0, status, status1, status2;
 
 	spin_lock(&host->irq_lock);
 
@@ -1052,6 +1053,9 @@ static irqreturn_t omap_hsmmc_irq(int irq, void *dev_id)
 
 	data = host->data;
 	status = OMAP_HSMMC_READ(host->base, STAT);
+	status1 = OMAP_HSMMC_READ(host->base, IE);
+	status2 = OMAP_HSMMC_READ(host->base, ISE);
+printk("Status %x %x %x\n", status, status1, status2);
 	dev_dbg(mmc_dev(host->mmc), "IRQ Status is %x\n", status);
 
 	if (status & ERR) {
@@ -1104,8 +1108,10 @@ static irqreturn_t omap_hsmmc_irq(int irq, void *dev_id)
 	}
 
 	/* Schedule card detect here ONLY if irq for CD isn't registerted*/
-	if ((host->pdata->version == MMC_CTRL_VERSION_2) && (status & CINS))
+	if ((host->pdata->version == MMC_CTRL_VERSION_2) && ((status & CINS) || (status & 0x80))) {
+		printk ("Received CINS Interrupt\n\n");
 		omap_hsmmc_cd_handler(irq, dev_id);
+	}
 
 	OMAP_HSMMC_WRITE(host->base, STAT, status);
 	/* Flush posted write */
@@ -1563,7 +1569,7 @@ static void omap_hsmmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 
 	/* FIXME: set registers based only on changes to ios */
 
-	con = OMAP_HSMMC_READ(host->base, CON);
+	con = OMAP_HSMMC_READ(host->base, CON) | (3 << 9) | (3 << 8);
 	switch (mmc->ios.bus_width) {
 	case MMC_BUS_WIDTH_8:
 		OMAP_HSMMC_WRITE(host->base, CON, con | DW8);
