@@ -422,12 +422,15 @@ static int omap3_evm_enable_lcd(struct omap_dss_device *dssdev)
 	else
 		gpio_set_value(OMAP3EVM_LCD_PANEL_BKLIGHT_GPIO, 1);
 
+	omap_pm_set_min_bus_tput(&dssdev->dev, OCP_INITIATOR_AGENT, 400000);
+
 	lcd_enabled = 1;
 	return 0;
 }
 
 static void omap3_evm_disable_lcd(struct omap_dss_device *dssdev)
 {
+	omap_pm_set_min_bus_tput(&dssdev->dev, OCP_INITIATOR_AGENT, 0);
 	gpio_set_value(OMAP3EVM_LCD_PANEL_ENVDD, 1);
 
 	if (get_omap3_evm_rev() >= OMAP3EVM_BOARD_GEN_2)
@@ -449,11 +452,13 @@ static struct omap_dss_device omap3_evm_lcd_device = {
 
 static int omap3_evm_enable_tv(struct omap_dss_device *dssdev)
 {
+	omap_pm_set_min_bus_tput(&dssdev->dev, OCP_INITIATOR_AGENT, 400000);
 	return 0;
 }
 
 static void omap3_evm_disable_tv(struct omap_dss_device *dssdev)
 {
+	omap_pm_set_min_bus_tput(&dssdev->dev, OCP_INITIATOR_AGENT, 0);
 }
 
 static struct omap_dss_device omap3_evm_tv_device = {
@@ -488,12 +493,15 @@ static int omap3_evm_enable_dvi(struct omap_dss_device *dssdev)
 		omap_mux_set_gpio(OMAP_MUX_MODE3, 3);
 	}
 
+	omap_pm_set_min_bus_tput(&dssdev->dev, OCP_INITIATOR_AGENT, 400000);
+
 	dvi_enabled = 1;
 	return 0;
 }
 
 static void omap3_evm_disable_dvi(struct omap_dss_device *dssdev)
 {
+	omap_pm_set_min_bus_tput(&dssdev->dev, OCP_INITIATOR_AGENT, 0);
 	gpio_set_value(OMAP3EVM_DVI_PANEL_EN_GPIO, 0);
 
 	dvi_enabled = 0;
