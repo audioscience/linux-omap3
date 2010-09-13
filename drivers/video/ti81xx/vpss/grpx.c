@@ -712,12 +712,17 @@ static int vps_grpx_start(struct vps_grpx_ctrl *gctrl)
 			gctrl->handle,
 			(struct fvid2_format *)gctrl->inputf_phy);
 
-		if (r == 0)
+		if (r == 0) {
+			if (gctrl->gparams->regparams.scenable)
+				gctrl->glist->scparams =
+				    (struct vps_grpxscparams *)gctrl->gscp_phy;
+
 			r = vps_fvid2_control(gctrl->handle,
 					  IOCTL_VPS_SET_GRPX_PARAMS,
 					  (struct vps_grpxparamlist *)
 						gctrl->glist_phy,
 					   NULL);
+		}
 
 		if (r == 0)
 			r = vps_fvid2_queue(gctrl->handle,
@@ -1354,7 +1359,11 @@ int __init vps_grpx_init(struct platform_device *pdev)
 			break;
 		case 1:
 			gctrl->snode = VPS_DC_GRPX1_INPUT_PATH;
+#ifdef CONFIG_ARCH_TI816X
 			gctrl->enodes[0] = VPS_DC_HDCOMP_BLEND;
+#else
+			gctrl->enodes[0] = VPS_DC_DVO2_BLEND;
+#endif
 			break;
 		case 2:
 			gctrl->snode = VPS_DC_GRPX2_INPUT_PATH;

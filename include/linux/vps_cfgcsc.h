@@ -1,6 +1,6 @@
 /*
  *
- * CSC header file for TI 816X VPSS
+ * CSC header file for TI81XX VPSS
  *
  * Copyright (C) 2010 TI
  * Author: Yihe Hu <yihehu@ti.com>

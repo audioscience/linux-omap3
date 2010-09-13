@@ -590,17 +590,13 @@ static int ti81xxfb_blank(int blank, struct fb_info *fbi)
 	struct ti81xxfb_info *tfbi = FB2TFB(fbi);
 	struct vps_grpx_ctrl *gctrl = tfbi->gctrl;
 
+	TFBDBG("FB_BANK\n");
 	ti81xxfb_lock(tfbi);
+
 	switch (blank) {
 		/*FIX ME how to unblank the system*/
 	case FB_BLANK_UNBLANK:
-		if (tfbi->gctrl->gstate.isstarted)
-			goto exit;
-		r = vps_fvid2_start(tfbi->gctrl->handle, NULL);
-		if (r == 0)
-			gctrl->start(gctrl);
-
-
+		r = gctrl->start(gctrl);
 		break;
 	case FB_BLANK_NORMAL:
 	case FB_BLANK_VSYNC_SUSPEND:
@@ -612,7 +608,6 @@ static int ti81xxfb_blank(int blank, struct fb_info *fbi)
 		r = -EINVAL;
 		break;
 	}
-exit:
 	ti81xxfb_unlock(tfbi);
 	return r;
 }

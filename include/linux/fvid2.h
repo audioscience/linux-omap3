@@ -1,6 +1,6 @@
 /*
  *
- *  FVID2 inteface header file for TI 816X VPSS
+ *  FVID2 inteface header file for TI81XX VPSS
  *
  * Copyright (C) 2009 TI
  * Author: Yihe Hu <yihehu@ti.com>
