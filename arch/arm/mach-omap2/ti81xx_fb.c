@@ -36,7 +36,9 @@
 #include <asm/mach/map.h>
 
 
-#if defined(CONFIG_FB_TI81XX) || defined(CONFIG_FB_TI81XX_MODULE)
+#if (defined(CONFIG_FB_TI81XX) || defined(CONFIG_FB_TI81XX_MODULE) || \
+    defined(CONFIG_ARCH_TI81XX) || defined(CONFIG_ARCH_TI816X) || \
+    defined(CONFIG_ARCH_TI814X)) && defined(CONFIG_FB)
 
 static u64 ti81xx_fb_dma_mask = ~(u32)0;
 static struct ti81xxfb_platform_data ti81xxfb_config;

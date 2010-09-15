@@ -674,6 +674,9 @@ static int vps_grpx_delete(struct vps_grpx_ctrl *gctrl)
 {
 	int r = 0;
 
+	if ((gctrl == NULL) || (gctrl->handle == NULL))
+		return -EINVAL;
+
 	VPSSDBG("delete GRPX\n");
 	r = vps_fvid2_delete(gctrl->handle, NULL);
 	if (!r) {
@@ -701,6 +704,7 @@ static int vps_grpx_delete(struct vps_grpx_ctrl *gctrl)
 static int vps_grpx_start(struct vps_grpx_ctrl *gctrl)
 {
 	int r = 0;
+	VPSSDBG("grpx start\n");
 	if ((gctrl == NULL) || (gctrl->handle == NULL))
 		return -EINVAL;
 
@@ -743,6 +747,7 @@ static int vps_grpx_stop(struct vps_grpx_ctrl *gctrl)
 {
 	int r = 0;
 
+	VPSSDBG("grpx stop\n");
 	if ((gctrl == NULL) || (gctrl->handle == NULL))
 		return -EINVAL;
 

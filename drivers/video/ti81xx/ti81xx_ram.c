@@ -41,7 +41,9 @@
 #define DBG(format, ...)
 #endif
 
-#if defined(CONFIG_FB_TI81XX) || defined(CONFIG_FB_TI81XX_MODULE)
+#if (defined(CONFIG_FB_TI81XX) || defined(CONFIG_FB_TI81XX_MODULE) || \
+    defined(CONFIG_ARCH_TI81XX) || defined(CONFIG_ARCH_TI816X) || \
+    defined(CONFIG_ARCH_TI814X)) && defined(CONFIG_FB)
 
 /* postponed regions are used to temporarily store region information at boot
  * time when we cannot yet allocate the region list */
