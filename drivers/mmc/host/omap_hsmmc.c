@@ -1055,7 +1055,6 @@ static irqreturn_t omap_hsmmc_irq(int irq, void *dev_id)
 	status = OMAP_HSMMC_READ(host->base, STAT);
 	status1 = OMAP_HSMMC_READ(host->base, IE);
 	status2 = OMAP_HSMMC_READ(host->base, ISE);
-printk("Status %x %x %x\n", status, status1, status2);
 	dev_dbg(mmc_dev(host->mmc), "IRQ Status is %x\n", status);
 
 	if (status & ERR) {
