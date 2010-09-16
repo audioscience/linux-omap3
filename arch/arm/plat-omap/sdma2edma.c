@@ -91,6 +91,7 @@ int omap_request_dma(int dev_id, const char *dev_name,
 
 	return 0;
 }
+EXPORT_SYMBOL(omap_request_dma);
 
 /**
  * omap_free_dma - deallocate DMA channel
@@ -107,6 +108,7 @@ void omap_free_dma(int lch)
 {
 	edma_free_channel((unsigned)lch);
 }
+EXPORT_SYMBOL(omap_free_dma);
 
 /**
  * omap_start_dma - start dma on a channel
@@ -122,6 +124,7 @@ void omap_start_dma(int lch)
 {
 	edma_start((unsigned)lch);
 }
+EXPORT_SYMBOL(omap_start_dma);
 
 /**
  * omap_stop_dma - stops dma on the channel passed
@@ -136,6 +139,7 @@ void omap_stop_dma(int lch)
 {
 	edma_stop((unsigned)lch);
 }
+EXPORT_SYMBOL(omap_stop_dma);
 
 /**
  * omap_cleanup_dma - Bring back DMA to initial state
@@ -152,6 +156,7 @@ void omap_cleanup_dma(int lch)
 {
 	edma_clean_channel((unsigned)lch);
 }
+EXPORT_SYMBOL(omap_cleanup_dma);
 
 /**
  * omap_set_dma_transfer_params - configure DMA transfer parameters
@@ -204,6 +209,7 @@ void omap_set_dma_transfer_params(int lch, int data_type, int elem_count,
 	edma_set_transfer_params(lch, (u16)data_type, (u16)elem_count, 
 		(u16)frame_count, (u16)elem_count, (enum sync_dimension)sync_mode);
 }
+EXPORT_SYMBOL(omap_set_dma_transfer_params);
 
 /**
  * omap_set_dma_dest_params - Set initial DMA destination addr in param RAM slot
@@ -237,6 +243,7 @@ void omap_set_dma_dest_params(int lch, int dest_port, int dest_amode,
 					!dest_amode, W32BIT);
 	edma_set_dest_index((unsigned)(lch), (s16)dst_ei, (s16)dst_fi);
 }
+EXPORT_SYMBOL(omap_set_dma_dest_params);
 
 /**
  * omap_set_dma_src_params - Set initial DMA source addr in param RAM slot
@@ -270,13 +277,16 @@ void omap_set_dma_src_params(int lch, int src_port, int src_amode,
 					!src_amode, W32BIT);
 	edma_set_src_index((unsigned)(lch), (s16)src_ei, (s16)src_fi);
 }
+EXPORT_SYMBOL(omap_set_dma_src_params);
 
 void omap_set_dma_src_burst_mode(int lch, enum omap_dma_burst_mode burst_mode)
 {
 	printk("omap_set_dma_src_burst_mode: un-supported SDMA wrapper\n");
 }
+EXPORT_SYMBOL(omap_set_dma_src_burst_mode);
 
 void omap_set_dma_dest_burst_mode(int lch, enum omap_dma_burst_mode burst_mode)
 {
 	printk("omap_set_dma_dest_burst_mode: un-supported SDMA wrapper\n");
 }
+EXPORT_SYMBOL(omap_set_dma_dest_burst_mode);
