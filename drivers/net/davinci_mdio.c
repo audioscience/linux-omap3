@@ -161,7 +161,7 @@ static inline int wait_for_user_access(struct davinci_mdio_data *data)
 {
 	struct davinci_mdio_regs __iomem *regs = data->regs;
 	unsigned long timeout = jiffies + msecs_to_jiffies(MDIO_TIMEOUT);
-	u32 reg;
+	u32 reg, count = 0;
 
 	while (time_after(timeout, jiffies)) {
 		reg = __raw_readl(&regs->user[0].access);

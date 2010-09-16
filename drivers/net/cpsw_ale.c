@@ -61,27 +61,23 @@
 
 static inline int cpsw_ale_get_field(u32 *ale_entry, u32 start, u32 bits)
 {
-	int idx, len = ALE_ENTRY_BITS;
+	int idx;
 
-	WARN_ON(bits > 30 || bits + start > len);
 	idx    = start / 32;
 	start -= idx * 32;
 	idx    = 2 - idx; /* flip */
-	WARN_ON(start + bits > 32); /* straddles word boundaries */
 	return (ale_entry[idx] >> start) & BITMASK(bits);
 }
 
 static inline void cpsw_ale_set_field(u32 *ale_entry, u32 start, u32 bits,
 				      u32 value)
 {
-	int idx, len = ALE_ENTRY_BITS;
+	int idx;
 
-	WARN_ON(bits > 30 || bits + start > len);
 	value &= BITMASK(bits);
 	idx    = start / 32;
 	start -= idx * 32;
 	idx    = 2 - idx; /* flip */
-	WARN_ON(start + bits > 32); /* straddles word boundaries */
 	ale_entry[idx] &= ~(BITMASK(bits) << start);
 	ale_entry[idx] |=  (value << start);
 }
@@ -375,8 +371,9 @@ int cpsw_ale_add_mcast(struct cpsw_ale *ale, u8 *addr, int port_mask)
 	int idx, mask;
 
 	idx = cpsw_ale_match_addr(ale, addr);
-	if (idx >= 0)
+	if (idx >= 0) {
 		cpsw_ale_read(ale, idx, ale_entry);
+	}
 
 	cpsw_ale_set_entry_type(ale_entry, ALE_TYPE_ADDR);
 	cpsw_ale_set_addr(ale_entry, addr);
@@ -386,10 +383,12 @@ int cpsw_ale_add_mcast(struct cpsw_ale *ale, u8 *addr, int port_mask)
 	port_mask |= mask;
 	cpsw_ale_set_port_mask(ale_entry, port_mask);
 
-	if (idx < 0)
+	if (idx < 0) {
 		idx = cpsw_ale_match_free(ale);
-	if (idx < 0)
+	}
+	if (idx < 0) {
 		idx = cpsw_ale_find_ageable(ale);
+	}
 	if (idx < 0)
 		return -ENOMEM;
 
@@ -483,6 +482,10 @@ int cpsw_ale_control_set(struct cpsw_ale *ale, int port, int control,
 	tmp = (tmp & ~(mask << shift)) | (value << shift);
 	__raw_writel(tmp, ale->ale_regs + offset);
 
+	{
+		volatile u32 dly = 10000;
+		while (dly--);
+	}
 	return 0;
 }
 
