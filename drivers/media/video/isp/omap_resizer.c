@@ -1039,9 +1039,10 @@ static void rsz_vbq_release(struct videobuf_queue *q,
 	struct videobuf_dmabuf *dma = NULL;
 	struct vm_area_struct *vma;
 
+	spin_lock(&fh->vbq_lock);
 	dma = videobuf_to_dma(q->bufs[vb->i]);
 	vma = find_vma(current->mm, vb->baddr);
-	if ((vma) && (vma->vm_flags & VM_IO) && (vma->vm_pgoff)) {
+	if (((vma) && (vma->vm_flags & VM_IO) && (vma->vm_pgoff)) || is_vm_io) {
 		vfree(dma->sglist);
 		dma->sglist = NULL;
 		dma->sglen = 0;
@@ -1052,7 +1053,6 @@ static void rsz_vbq_release(struct videobuf_queue *q,
 	ispmmu_vunmap(fh->dev, fh->config->buf_address[vb->i]);
 	fh->config->buf_address[vb->i] = 0;
 
-	spin_lock(&fh->vbq_lock);
 	vb->state = VIDEOBUF_NEEDS_INIT;
 	spin_unlock(&fh->vbq_lock);
 
