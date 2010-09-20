@@ -23,7 +23,7 @@
 #define __ARCH_ARM_PLAT_PSP_VERSION_H
 
 #define TI_PSP_ENTRY		"ti-psp-version"
-#define TI_PSP_VERSION		"03.00.01.06"
+#define TI_PSP_VERSION		"2.6.33.7-rt29-RTLinux01"
 
 #if defined (CONFIG_MACH_OMAP3EVM)
 #define TI_PSP_PLATFORM		"OMAP3EVM"
