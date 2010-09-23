@@ -40,6 +40,7 @@
 #define OMAP2_I2C_BASE3		0x48060000
 #define OMAP4_I2C_BASE4		0x48350000
 #define TI816x_I2C_BASE0	0x48028000
+#define TI816x_I2C_BASE1	0x4802A000
 
 static const char name[] = "i2c_omap";
 
@@ -56,7 +57,9 @@ static const char name[] = "i2c_omap";
 
 static struct resource i2c_resources[][2] = {
 	{ I2C_RESOURCE_BUILDER(0, 0) },
-#if	defined(CONFIG_ARCH_OMAP2PLUS)
+#if    defined(CONFIG_ARCH_TI816X)
+       { I2C_RESOURCE_BUILDER(TI816x_I2C_BASE1, 0) },
+#elif  defined(CONFIG_ARCH_OMAP2PLUS)
 	{ I2C_RESOURCE_BUILDER(OMAP2_I2C_BASE2, 0) },
 #endif
 #if	defined(CONFIG_ARCH_OMAP3) || defined(CONFIG_ARCH_OMAP4)
@@ -107,7 +110,7 @@ static int __init omap_i2c_nr_ports(void)
 	else if (cpu_is_omap44xx())
 		ports = 4;
 	else if (cpu_is_ti816x())
-		ports = 1;
+		ports = 2;
 
 	return ports;
 }
@@ -165,9 +168,8 @@ static inline int omap2_i2c_add_bus(struct platform_device *pdev, int bus_id)
 			res[0].start = TI816x_I2C_BASE0;
 		else
 			res[0].start = OMAP2_I2C_BASE1;
-
-		res[0].end = res[0].start + OMAP_I2C_SIZE;
 	}
+	res[0].end = res[0].start + OMAP_I2C_SIZE;
 
 	res[1].start = irq[bus_id - 1];
 	omap2_i2c_mux_pins(bus_id);

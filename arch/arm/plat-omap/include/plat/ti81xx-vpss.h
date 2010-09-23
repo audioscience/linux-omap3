@@ -149,6 +149,4 @@ struct vps_grpx_ctrl *vps_grpx_get_ctrl(int num);
 int vps_grpx_register_isr(vsync_callback_t cb, void *arg, int idx);
 int vps_grpx_unregister_isr(vsync_callback_t cb, void *arg, int idx);
 
-
-
 #endif
