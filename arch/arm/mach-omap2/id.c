@@ -356,7 +356,8 @@ void __init ti81xx_check_revision(void)
 	partnum = (idcode >> 12) & 0xffff;
 	rev = (idcode >> 28) & 0xff;
 
-	if ((partnum == 0xb81e) && (rev == 0x0)) {
+	/* TODO: Add separate id for rev 1 */
+	if ((partnum == 0xb81e) && ((rev == 0x0) || (rev == 0x1))) {
 		omap_revision = TI8168_REV_ES1_0;
 		omap_chip.oc |= CHIP_IS_TI816X;
 		pr_info("OMAP chip is TI8168\n");
