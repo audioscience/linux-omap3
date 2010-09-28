@@ -933,13 +933,13 @@ static inline void omap_init_vout(void) {}
 #define PHY_RXINVPAIR	0 /* bit9        1 */
 #define PHY_LBK		0 /* bits11:10   2 */
 #define PHY_RXLOS	1 /* bit12	 1 */
-#define PHY_RXCDR	4 /* bits15:13   3 */
+#define PHY_RXCDR	5 /* bits15:13   3 */
 #define PHY_RXEQ	1 /* bits19:16   4 */
 #define PHY_RxENOC	1 /* bit20       1 */
 #define PHY_TXINVPAIR	0 /* bit21	 1 */
 #define PHY_TXCM	0 /* bit22       1 */
-#define PHY_TXSWING	3 /* bits26:23   4 */
-#define PHY_TXDE	0 /* bits31:27   5 */
+#define PHY_TXSWING	0xF /* bits26:23   4 */
+#define PHY_TXDE	0xB /* bits31:27   5 */
 u8	ti_num_ahci_inst = 1;
 struct clk *sata_clk;
 
@@ -965,7 +965,6 @@ static int ahci_plat_init(struct device *dev)
 			PHY_RXCDR << 13 | PHY_RXEQ << 16 |
 			PHY_RxENOC << 20 | PHY_TXINVPAIR << 21 |
 			PHY_TXCM << 22 | PHY_TXSWING  << 23 | PHY_TXDE << 27;
-
 	base = ioremap(TI816X_SATA_BASE, 0x10ffff);
 	if (!base) {
 		printk(KERN_WARNING
