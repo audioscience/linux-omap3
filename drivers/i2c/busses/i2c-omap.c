@@ -49,7 +49,7 @@
 #define OMAP_I2C_REV_ON_4430		0x40
 
 /* timeout waiting for the controller to respond */
-#define OMAP_I2C_TIMEOUT (msecs_to_jiffies(2000))
+#define OMAP_I2C_TIMEOUT (msecs_to_jiffies(1000))
 
 /* For OMAP3 I2C_IV has changed to I2C_WE (wakeup enable) */
 enum {
