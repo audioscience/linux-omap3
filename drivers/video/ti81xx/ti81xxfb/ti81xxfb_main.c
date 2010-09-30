@@ -124,6 +124,15 @@ static struct ti81xxfb_datamode tfb_datamodes[] = {
 		.transp = {.offset = 0,  .length = 0, .msb_right = 0},
 		.bpp = 24,
 	}, {
+		.dataformat = FVID2_DF_RGB24_888,
+		.nonstd = 0, /*TI81XXFB_RGB888,*/
+		.red    = {.offset = 0, .length = 8, .msb_right = 0},
+		.green  = {.offset = 8,  .length = 8, .msb_right = 0},
+		.blue   = {.offset = 16,  .length = 8, .msb_right = 0},
+		.transp = {.offset = 0,  .length = 0, .msb_right = 0},
+		.bpp = 24,
+
+	}, {
 		.dataformat = FVID2_DF_ARGB32_8888,
 		.nonstd = 0, /*TI81XXFB_ARGB8888,*/
 		.red    = {.offset = 16, .length = 8, .msb_right = 0},
@@ -294,7 +303,7 @@ static enum fvid2_dataformat tfb_datamode_to_vpss_datamode(
 		df = FVID2_DF_RGB24_888;
 		break;
 	case 16:
-		df = FVID2_DF_ARGB16_1555;
+		df = FVID2_DF_RGB16_565;
 		break;
 	case 8:
 		df = FVID2_DF_BITMAP8;
@@ -1494,7 +1503,7 @@ static void __exit ti81xxfb_exit(void)
 }
 
 module_param_named(vram, def_vram, charp, 0);
-module_param_named(mmode, fb_mmode, int, 0664);
+module_param_named(mmode, fb_mmode, int, 0);
 /*module_param_named(mode, def_mode, charp, 0);*/
 
 late_initcall(ti81xxfb_init);

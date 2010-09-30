@@ -70,14 +70,23 @@ static struct vps_fvid2_ctrl  *fvid2_ctrl[VPS_FVID2_NUM];
 static struct vps_payload_info *fvid2_payload_info;
 static struct vps_psrvgetstatusvercmdparams *vps_verparams;
 static u32    vps_verparams_phy;
-
+static unsigned long    vps_timeout = 0u;
 
 /*define the information used by the proxy running in M3*/
 #define VPS_FVID2_RESERVED_NOTIFY	0x09
 #define VPS_FVID2_M3_INIT_VALUE      (0xAAAAAAAA)
 #define VPS_FVID2_PS_LINEID          0
-#define CURRENT_VPS_FIRMWARE_VERSION        (0x01000121)
+#define CURRENT_VPS_FIRMWARE_VERSION        (0x01000122)
 
+static inline u32 time_diff(struct timeval stime, struct timeval etime)
+{
+	if (etime.tv_usec < stime.tv_usec)
+		return (etime.tv_sec - 1 - stime.tv_sec) * 1000 +
+			(1000000 - stime.tv_usec + etime.tv_usec) / 1000;
+	else
+		return (etime.tv_sec - stime.tv_sec) * 1000 +
+			(etime.tv_usec - stime.tv_usec) / 1000;
+}
 static void vps_callback(u16 procid,
 		  u16 lineid,
 		  u32 eventno,
@@ -164,7 +173,8 @@ static int vps_check_fvid2_ctrl(void *handle)
 
 	struct vps_fvid2_ctrl *fctrl = NULL;
 	int status;
-	int j = 0;
+	struct timeval stime, etime;
+	u32 td = 0;
 
 	fctrl = vps_get_fvid2_ctrl();
 	if (fctrl == NULL)
@@ -206,31 +216,42 @@ static int vps_check_fvid2_ctrl(void *handle)
 		fctrl->isused = false;
 		return NULL;
 	}
-
+	do_gettimeofday(&stime);
+	etime = stime;
 	while ((fctrl->fcrprms->fvid2handle ==
-	    (void *)VPS_FVID2_M3_INIT_VALUE)) {
+		    (void *)VPS_FVID2_M3_INIT_VALUE)) {
 		schedule();
-		/*FIXME use timeout*/
-		j++;
+		/*time out check*/
+		if (vps_timeout) {
+			do_gettimeofday(&etime);
+			td = time_diff(stime, etime);
+			if (vps_timeout < td) {
+				fctrl->isused = false;
+				VPSSERR("create timeout\n");
+				return NULL;
+			}
+		}
 	}
 
 	fctrl->notifyno = fctrl->fcrprms->syslnkntyno;
 	fctrl->fvid2handle = (u32)fctrl->fcrprms->fvid2handle;
-	VPSSDBG("Fvid2 handle 0x%08x with notifyno %d at %d\n",
-		 (u32)fctrl->fvid2handle, fctrl->notifyno, j);
+	VPSSDBG("Fvid2 handle 0x%08x with notifyno %d within %d ms\n",
+		(u32)fctrl->fvid2handle,
+		fctrl->notifyno,
+		td);
 
 	if (fctrl->fvid2handle == 0) {
 		fctrl->isused = false;
+		VPSSERR("create handle is NULL\n");
 		return NULL;
 	}
 	/*register the callback if successfully*/
 	if (cbparams != NULL) {
 		status = Notify_registerEvent(fctrl->rmprocid,
-				      fctrl->lineid,
-				      fctrl->notifyno,
-				      (Notify_FnNotifyCbck)vps_callback,
-				      (void *)fctrl);
-
+					fctrl->lineid,
+					fctrl->notifyno,
+					(Notify_FnNotifyCbck)vps_callback,
+					(void *)fctrl);
 		if (status < 0) {
 			VPSSERR("register event status 0x%08x\n", status);
 			fctrl->isused = false;
@@ -246,7 +267,8 @@ int vps_fvid2_delete(void *handle, void *deleteargs)
 
 	struct vps_fvid2_ctrl *fctrl = (struct vps_fvid2_ctrl *)handle;
 	int status;
-	int j = 0;
+	struct timeval stime, etime;
+	u32 td = 0;
 
 	VPSSDBG("enter delete.\n");
 	if (vps_check_fvid2_ctrl(handle))
@@ -272,16 +294,25 @@ int vps_fvid2_delete(void *handle, void *deleteargs)
 		VPSSERR("set delete event failed status 0x%08x\n", status);
 		return -EINVAL;
 	} else {
-
+		do_gettimeofday(&stime);
+		etime = stime;
 		while ((fctrl->fdltprms->returnvalue ==
 			VPS_FVID2_M3_INIT_VALUE)) {
 			schedule();
-			/*FIXME use timeout*/
-			j++;
+			/*time out check*/
+			if (vps_timeout) {
+				do_gettimeofday(&etime);
+				td = time_diff(stime, etime);
+				if (vps_timeout < td) {
+					VPSSERR("delete time out\n");
+					return -ETIMEDOUT;
+				}
+			}
 		}
 
-		VPSSDBG("delete event return %d at %d\n",
-			 fctrl->fdltprms->returnvalue, j);
+		VPSSDBG("delete event return %d within %d ms\n",
+			 fctrl->fdltprms->returnvalue,
+			 td);
 
 	}
 	if (fctrl->fcrprms->cbparams != NULL) {
@@ -308,10 +339,11 @@ int vps_fvid2_control(void *handle,
 		      void *cmdargs,
 		      void *cmdstatusargs)
 {
-
-	int j = 0;
 	struct vps_fvid2_ctrl *fctrl = (struct vps_fvid2_ctrl *)handle;
 	int status;
+	struct timeval etime, stime;
+	u32 td = 0;
+
 	if (vps_check_fvid2_ctrl(handle))
 		return -EINVAL;
 
@@ -326,29 +358,39 @@ int vps_fvid2_control(void *handle,
 
 	fctrl->cmdprms->cmdtype = VPS_FVID2_CMDTYPE_SIMPLEX;
 	fctrl->cmdprms->simplexcmdarg = (void *)fctrl->fctrlprms_phy;
-
 	/*send the event*/
 	status = Notify_sendEvent(fctrl->rmprocid,
 				  fctrl->lineid,
 				  fctrl->notifyno,
 				  fctrl->cmdprms_phy,
 				  1);
-
 	if (status < 0) {
 		VPSSERR("send control with cmd 0x%08x status 0x%08x\n",
 			  cmd, status);
+		return -EINVAL;
 	} else {
+		do_gettimeofday(&stime);
+		etime = stime;
 		while (fctrl->fctrlprms->returnvalue ==
 			VPS_FVID2_M3_INIT_VALUE) {
 
 			schedule();
-			/*FIXME use timeout*/
-			j++;
+			if (vps_timeout) {
+				do_gettimeofday(&etime);
+				td = time_diff(stime, etime);
+				if (vps_timeout < td) {
+					VPSSERR("contrl event 0x%x timeout\n",
+						cmd);
+					return -ETIMEDOUT;
+				}
+			}
 		}
 	}
 
-	VPSSDBG("control event return %d at %d.\n",
-		fctrl->fctrlprms->returnvalue, j);
+	VPSSDBG("control event 0x%x return %d within %d ms.\n",
+		cmd,
+		fctrl->fctrlprms->returnvalue,
+		td);
 
 	return fctrl->fctrlprms->returnvalue;
 
@@ -359,10 +401,11 @@ int vps_fvid2_queue(void *handle,
 		    struct fvid2_framelist *framelist,
 		    u32 streamid)
 {
-
-	int j = 0;
 	struct vps_fvid2_ctrl *fctrl = (struct vps_fvid2_ctrl *)handle;
 	int status;
+	struct timeval stime, etime;
+	u32 td = 0;
+
 	if (vps_check_fvid2_ctrl(handle)) {
 		VPSSERR("Q handle 0x%08x\n", (u32)handle);
 		return -EINVAL;
@@ -388,20 +431,28 @@ int vps_fvid2_queue(void *handle,
 		VPSSERR("send Q event status 0x%08x\n", status);
 		return -EINVAL;
 	} else {
+		do_gettimeofday(&stime);
+		etime = stime;
 		while (fctrl->fqprms->returnvalue ==
 			VPS_FVID2_M3_INIT_VALUE) {
 			schedule();
-			/*FIXME use timeout*/
-			j++;
+			/*time out check*/
+			if (vps_timeout) {
+				do_gettimeofday(&etime);
+				td = time_diff(stime, etime);
+				if (vps_timeout < td) {
+					VPSSERR("queue timeout\n");
+					return -ETIMEDOUT;
+				}
+			}
+
 		}
 	}
 
-	if (fctrl->fqprms->returnvalue == VPS_FVID2_M3_INIT_VALUE) {
-		VPSSDBG("queue event timeout.\n");
-	} else {
-		VPSSDBG("queue event return %d at %d.\n",
-			fctrl->fqprms->returnvalue, j);
-	}
+	VPSSDBG("queue event return %d within %d ms.\n",
+		fctrl->fqprms->returnvalue,
+		td);
+
 	return fctrl->fqprms->returnvalue;
 }
 EXPORT_SYMBOL(vps_fvid2_queue);
@@ -411,9 +462,11 @@ int vps_fvid2_dequeue(void *handle,
 		      u32 stream_id,
 		      u32 timeout)
 {
-	int j = 0;
 	struct vps_fvid2_ctrl *fctrl = (struct vps_fvid2_ctrl *)handle;
 	int status;
+	struct timeval etime, stime;
+	u32 td = 0;
+
 	if (vps_check_fvid2_ctrl(handle)) {
 		VPSSERR("DQ handle NULL.\n");
 		return -EINVAL;
@@ -441,16 +494,26 @@ int vps_fvid2_dequeue(void *handle,
 		VPSSERR("send DQ event status 0x%08x\n", status);
 		return -EINVAL;
 	} else {
+		do_gettimeofday(&stime);
+		etime = stime;
 		while (fctrl->fdqprms->returnvalue ==
 			VPS_FVID2_M3_INIT_VALUE) {
 			schedule();
-			/*FIXME use timeout*/
-			j++;
+			/*time out check*/
+			if (vps_timeout) {
+				do_gettimeofday(&etime);
+				td = time_diff(stime, etime);
+				if (vps_timeout < td) {
+					VPSSDBG("dequeue timeout\n");
+					return -ETIMEDOUT;
+				}
+			}
 		}
 	}
 
-	VPSSDBG("deqieie event return %d at %d\n",
-		fctrl->fdqprms->returnvalue, j);
+	VPSSDBG("dequeue event return %d within %d ms\n",
+		fctrl->fdqprms->returnvalue,
+		td);
 
 	return fctrl->fdqprms->returnvalue;
 }
@@ -463,6 +526,8 @@ static int get_firmware_version(struct platform_device *pdev, u32 procid)
 	u32    cmdstruct_phy;
 	int status;
 	int r = -1;
+	struct timeval stime, etime;
+	u32 td = 0;
 	/*get the M3 version number*/
 	cmdstruct = (struct vps_psrvcommandstruct *)
 			vps_sbuf_alloc(PAGE_SIZE,
@@ -478,26 +543,36 @@ static int get_firmware_version(struct platform_device *pdev, u32 procid)
 
 	vps_verparams->command = VPS_FVID2_GET_FIRMWARE_VERSION;
 	vps_verparams->returnvalue = VPS_FVID2_M3_INIT_VALUE;
-	while (r != 0) {
-		status = Notify_sendEvent(procid,
+	status = Notify_sendEvent(procid,
 				 VPS_FVID2_PS_LINEID,
 				 VPS_FVID2_RESERVED_NOTIFY,
 				 cmdstruct_phy,
 				 1);
 
-		if (status < 0) {
-			VPSSERR("Failed to send version command to M3 %#x.\n",
-				 status);
-			r = -EINVAL;
-			goto exit;
-		} else {
-			while (vps_verparams->returnvalue ==
-					VPS_FVID2_M3_INIT_VALUE)
-				schedule();
+	if (status < 0) {
+		VPSSERR("Failed to send version command to M3 %#x.\n",
+			 status);
+		r = -EINVAL;
+		goto exit;
+	} else {
+		do_gettimeofday(&stime);
+		etime = stime;
+		while (vps_verparams->returnvalue ==
+				VPS_FVID2_M3_INIT_VALUE) {
+			schedule();
+			if (vps_timeout) {
+				do_gettimeofday(&etime);
+				td = time_diff(stime, etime);
+				if (vps_timeout  < td) {
+					VPSSERR("get version timeout\n");
+					r = -ETIMEDOUT;
+					goto exit;
+				}
+			}
 		}
-
-		r = vps_verparams->returnvalue;
 	}
+
+	r = vps_verparams->returnvalue;
 exit:
 	/*release the memory*/
 	vps_sbuf_free(cmdstruct_phy, (void *)cmdstruct, PAGE_SIZE);
@@ -585,7 +660,7 @@ static inline void assign_payload_addr(struct vps_fvid2_ctrl *fctrl,
 }
 
 
-int vps_fvid2_init(struct platform_device *pdev)
+int vps_fvid2_init(struct platform_device *pdev, u32 timeout)
 {
 	int i, r;
 	struct vps_fvid2_ctrl *fctrl;
@@ -595,7 +670,7 @@ int vps_fvid2_init(struct platform_device *pdev)
 	u32 offset = 0;
 
 	VPSSDBG("fvid2 init\n");
-
+	vps_timeout = timeout;
 	procid = MultiProc_getId("VPSS-M3");
 	if (MultiProc_INVALIDID == procid) {
 		VPSSERR("failed to get the M3DSS processor ID.\n");
@@ -683,6 +758,7 @@ void vps_fvid2_deinit(struct platform_device *pdev)
 	struct vps_fvid2_ctrl *fctrl;
 
 	VPSSDBG("fvid2 deinit\n");
+	vps_timeout = 0;
 	/*free shared buffer*/
 	if (fvid2_payload_info->vaddr) {
 		vps_sbuf_free(fvid2_payload_info->paddr,

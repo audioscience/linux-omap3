@@ -125,7 +125,7 @@ static int vps_grpx_apply_changes(struct vps_grpx_ctrl *gctrl)
 	struct vps_grpx_state  *gstate = &gctrl->gstate;
 	int r = 0;
 
-	VPSSDBG("apply changes into FVID2_FRAME.\n");
+	VPSSDBG("(%d)- apply changes into FVID2_FRAME.\n", gctrl->grpx_num);
 
 	if (gstate->isstarted) {
 		if (gstate->scset) {
@@ -168,68 +168,6 @@ static int vps_grpx_apply_changes(struct vps_grpx_ctrl *gctrl)
 	return r;
 }
 
-static enum fvid2_bitsperpixel grpx_get_fbpp(u8 bpp)
-{
-	enum fvid2_bitsperpixel fbpp = FVID2_BPP_BITS16;
-
-	switch (bpp) {
-	case 1:
-		fbpp = FVID2_BPP_BITS1;
-		break;
-	case 2:
-		fbpp = FVID2_BPP_BITS2;
-		break;
-	case 4:
-		fbpp = FVID2_BPP_BITS4;
-		break;
-	case 8:
-		fbpp = FVID2_BPP_BITS8;
-		break;
-	case 16:
-		fbpp = FVID2_BPP_BITS16;
-		break;
-	case 24:
-		fbpp = FVID2_BPP_BITS24;
-		break;
-	case 32:
-		fbpp = FVID2_BPP_BITS32;
-	}
-	return fbpp;
-}
-
-static int grpx_getbpp(enum fvid2_bitsperpixel fbpp)
-{
-	int bpp;
-
-	switch (fbpp) {
-	case FVID2_BPP_BITS1:
-		bpp = 1;
-		break;
-	case FVID2_BPP_BITS2:
-		bpp = 2;
-		break;
-	case FVID2_BPP_BITS4:
-		bpp = 4;
-		break;
-	case FVID2_BPP_BITS8:
-		bpp = 8;
-		break;
-	case FVID2_BPP_BITS16:
-		bpp = 16;
-		break;
-	case FVID2_BPP_BITS24:
-		bpp = 24;
-		break;
-	case FVID2_BPP_BITS32:
-		bpp = 32;
-	default:
-		bpp = 32;
-	}
-
-	return bpp;
-
-}
-
 static int grpx_pre_start(struct vps_grpx_ctrl *gctrl)
 {
 	u32 w, h;
@@ -248,7 +186,7 @@ static int grpx_pre_start(struct vps_grpx_ctrl *gctrl)
 	    gctrl->gparams->regparams.regionposx > w) {
 		gctrl->gparams->regparams.regionwidth = w;
 		gctrl->gparams->regparams.regionposx = 0;
-		bpp = grpx_getbpp(gctrl->inputf->bpp);
+		bpp = vps_get_bitspp(gctrl->inputf->bpp);
 		pitch = (w * bpp >> 3);
 		/*pitch should 16 byte boundary*/
 		if (pitch & 0xF)
@@ -280,7 +218,8 @@ static int grpx_scparams_check(struct vps_grpx_ctrl *gctrl,
 
 	if ((scparam->inheight == 0) || (scparam->inwidth == 0) ||
 	(scparam->outheight == 0) || (scparam->outwidth == 0)) {
-		VPSSERR("please config Scaler first.\n");
+		VPSSERR("(%d)- please config Scaler first.\n",
+			gctrl->grpx_num);
 		return -1;
 	}
 
@@ -315,7 +254,7 @@ static int grpx_scparams_check(struct vps_grpx_ctrl *gctrl,
 	/*make sure the size is not out of the frame*/
 	if ((xend > fw) ||
 	   (yend > fh)) {
-		VPSSERR("grpx%d scaled region(%dx%d) out of frame(%dx%d).\n",
+		VPSSERR("(%d)- scaled region(%dx%d) out of frame(%dx%d).\n",
 			gctrl->grpx_num, xend, yend,
 			gctrl->framewidth, gctrl->frameheight);
 		return -1;
@@ -330,11 +269,12 @@ static int vps_grpx_set_input(struct vps_grpx_ctrl *gctrl,
 {
 	u32 bpp, pitch;
 
-	VPSSDBG("set input %d x %d P:%d.\n", width, height, scfmt);
+	VPSSDBG("(%d)- set input %d x %d P:%d.\n",
+		gctrl->grpx_num, width, height, scfmt);
 	gctrl->inputf->height = height;
 	gctrl->inputf->width = width;
 	gctrl->inputf->scanformat = FVID2_SF_PROGRESSIVE;
-	bpp = grpx_getbpp(gctrl->inputf->bpp);
+	bpp = vps_get_bitspp(gctrl->inputf->bpp);
 	pitch = (width * bpp >> 3);
 	/*pitch should 16 byte boundary*/
 	if (pitch & 0xF)
@@ -346,7 +286,7 @@ static int vps_grpx_set_input(struct vps_grpx_ctrl *gctrl,
 static int vps_grpx_get_resolution(struct vps_grpx_ctrl *gctrl,
 			 u32 *fwidth, u32 *fheight, u8 *scfmt)
 {
-	VPSSDBG("get resolution.\n");
+	VPSSDBG("(%d)- get resolution.\n", gctrl->grpx_num);
 
 
 	vps_dc_get_outpfmt(
@@ -369,7 +309,7 @@ static int vps_grpx_set_format(struct vps_grpx_ctrl *gctrl,
 	enum fvid2_bitsperpixel fbpp;
 
 
-	fbpp = grpx_get_fbpp(bpp);
+	fbpp = vps_get_fbpp(bpp);
 
 	gctrl->gparams->format = df;
 	gctrl->gparams->pitch[FVID2_RGB_ADDR_IDX] = pitch;
@@ -382,19 +322,21 @@ static int vps_grpx_set_format(struct vps_grpx_ctrl *gctrl,
 	if (gctrl->gstate.isstarted == false) {
 		gctrl->gstate.varset = true;
 
-		VPSSDBG("set format bpp %d df %d, pitch %d.\n",
-			bpp, df, pitch);
+		VPSSDBG("(%d)- set format bpp %d df %d, pitch %d.\n",
+			gctrl->grpx_num, bpp, df, pitch);
 
 	} else {
 		if (df != gctrl->grtparam->format) {
 			gctrl->grtparam->format = df;
 			gctrl->gstate.varset = true;
-			VPSSDBG("set format df %d.\n", df);
+			VPSSDBG("(%d)- set format df %d.\n",
+				gctrl->grpx_num, df);
 		}
 		if (pitch != gctrl->grtparam->pitch[FVID2_RGB_ADDR_IDX]) {
 			gctrl->grtparam->pitch[FVID2_RGB_ADDR_IDX] = pitch;
 			gctrl->gstate.varset = true;
-			VPSSDBG("set format pitch %d.\n", pitch);
+			VPSSDBG("(%d)- set format pitch %d.\n",
+				gctrl->grpx_num, pitch);
 		}
 	}
 
@@ -421,7 +363,8 @@ static int vps_grpx_check_regparams(struct vps_grpx_ctrl *gctrl,
 	/* does not support stencling until stenciling buffer is set*/
 	if (regp->stencilingenable == true) {
 		if (gctrl->gparams->stenptr == NULL)  {
-			VPSSERR("Set stenciling pointer first.\n");
+			VPSSERR("(%d)- Set stenciling pointer first.\n",
+				gctrl->grpx_num);
 			return -1;
 		}
 
@@ -436,7 +379,8 @@ static int vps_grpx_check_regparams(struct vps_grpx_ctrl *gctrl,
 
 		if ((scparam.inheight == 0) || (scparam.inwidth == 0) ||
 		(scparam.outheight == 0) || (scparam.outwidth == 0)) {
-			VPSSERR("please config Scaler first.\n");
+			VPSSERR("(%d)- please config Scaler first.\n",
+				gctrl->grpx_num);
 			return -1;
 		}
 
@@ -474,7 +418,7 @@ static int vps_grpx_check_regparams(struct vps_grpx_ctrl *gctrl,
 	/*make sure the size is not out of the frame*/
 	if ((xend > fw) ||
 	   (yend > fh)) {
-		VPSSERR("grpx%d region(%dx%d) out of frame(%dx%d).\n",
+		VPSSERR("(%d)- region(%dx%d) out of frame(%dx%d).\n",
 			gctrl->grpx_num, xend, yend,
 			gctrl->framewidth, gctrl->frameheight);
 		return -1;
@@ -483,14 +427,14 @@ static int vps_grpx_check_regparams(struct vps_grpx_ctrl *gctrl,
 	 * region for single region case
 	 */
 	if (!((ridx == 0) && (regp->firstregion == true))) {
-		VPSSERR("grpx%d first region wrong.\n", gctrl->grpx_num);
+		VPSSERR("(%d)- first region wrong.\n", gctrl->grpx_num);
 		return -1;
 	}
 
 
 	if (!((ridx == (gctrl->glist->numregions - 1)) &&
 		(true == regp->lastregion))) {
-		VPSSERR("grpx%d last region wrong.\n", gctrl->grpx_num);
+		VPSSERR("(%d)- last region wrong.\n", gctrl->grpx_num);
 		return -1;
 	}
 	return 0;
@@ -511,7 +455,8 @@ static int vps_grpx_set_stenparams(struct vps_grpx_ctrl *gctrl,
 		gctrl->gstate.stenset = true;
 
 
-	VPSSDBG("set stenciling %#x\n", (u32)gctrl->gparams->stenptr);
+	VPSSDBG("(%d)-) set stenciling %#x\n",
+		gctrl->grpx_num, (u32)gctrl->gparams->stenptr);
 	r = vps_grpx_apply_changes(gctrl);
 	return r;
 }
@@ -523,8 +468,8 @@ static int vps_grpx_get_stenparams(struct vps_grpx_ctrl *gctrl,
 	int r = 0;
 	*stenaddr = (u32)gctrl->gparams->stenptr;
 	*pitch = gctrl->gparams->stenpitch;
-	VPSSDBG("get stenciling %#x with stride 0x%x\n",
-		(u32)*stenaddr, (u32)*pitch);
+	VPSSDBG("(%d)- get stenciling %#x with stride 0x%x\n",
+		gctrl->grpx_num, (u32)*stenaddr, (u32)*pitch);
 	return r;
 }
 
@@ -537,7 +482,8 @@ static int vps_grpx_set_scparams(struct vps_grpx_ctrl *gctrl,
 	if (grpx_scparams_check(gctrl, sci))
 		return -1;
 
-	VPSSDBG("set sc params %dx%d->%dx%d\n", sci->inwidth,
+	VPSSDBG("(%d)- set sc params %dx%d->%dx%d\n",
+		gctrl->grpx_num, sci->inwidth,
 		sci->inheight, sci->outwidth, sci->outheight);
 	/*set the scaling information*/
 	memcpy(gctrl->gscparams, sci, sizeof(struct vps_grpxscparams));
@@ -557,7 +503,7 @@ static int vps_grpx_set_scparams(struct vps_grpx_ctrl *gctrl,
 static int vps_grpx_get_scparams(struct vps_grpx_ctrl *gctrl,
 			   struct vps_grpxscparams *sci)
 {
-	VPSSDBG("get sc params.\n");
+	VPSSDBG("(%d)- get sc params.\n", gctrl->grpx_num);
 
 	memcpy(sci, gctrl->gscparams, sizeof(struct vps_grpxscparams));
 	return 0;
@@ -568,7 +514,7 @@ static int vps_grpx_get_scparams(struct vps_grpx_ctrl *gctrl,
 static int vps_grpx_get_regparams(struct vps_grpx_ctrl *gctrl,
 			    struct vps_grpxregionparams *gparams)
 {
-	VPSSDBG("get region params.\n");
+	VPSSDBG("(%d)- get region params.\n", gctrl->grpx_num);
 	if (gctrl->gstate.isstarted)
 		memcpy(gparams, &gctrl->grtparam->regparams,
 		       sizeof(struct vps_grpxregionparams));
@@ -585,7 +531,7 @@ static int vps_grpx_set_regparams(struct vps_grpx_ctrl *gctrl,
 {
 	int r = 0;
 
-	VPSSDBG("set region params.\n");
+	VPSSDBG("(%d)- set region params.\n", gctrl->grpx_num);
 	memcpy(&gctrl->grtparam->regparams, gparams,
 	       sizeof(struct vps_grpxregionparams));
 	memcpy(&gctrl->gparams->regparams, gparams,
@@ -605,7 +551,7 @@ static int vps_grpx_set_regparams(struct vps_grpx_ctrl *gctrl,
 static int vps_grpx_set_clutptr(struct vps_grpx_ctrl  *gctrl, u32 pclut)
 {
 	int r = 0;
-	VPSSDBG("set clut %#x\n", pclut);
+	VPSSDBG("(%d)- set clut %#x\n", gctrl->grpx_num, pclut);
 
 	gctrl->glist->clutptr = (void *)pclut;
 	gctrl->grtlist->clutptr = (void *)pclut;
@@ -626,7 +572,7 @@ static int vps_grpx_set_buffer(struct vps_grpx_ctrl *gctrl,
 {
 	int r = 0;
 
-	VPSSDBG("add buffer %#x\n", buffer_addr);
+	VPSSDBG("(%d)- add buffer %#x\n", gctrl->grpx_num, buffer_addr);
 
 
 	gctrl->buffer_addr = buffer_addr;
@@ -644,7 +590,7 @@ static int vps_grpx_create(struct vps_grpx_ctrl *gctrl)
 	u32				grpxinstid;
 	int r = 0;
 
-	VPSSDBG("create grpx\n");
+	VPSSDBG("create grpx%d\n", gctrl->grpx_num);
 	gctrl->cbparams->cbfxn = vps_grpx_vsync_cb;
 	gctrl->cbparams->appdata = NULL;
 	gctrl->cbparams->errlist = NULL;
@@ -677,7 +623,7 @@ static int vps_grpx_delete(struct vps_grpx_ctrl *gctrl)
 	if ((gctrl == NULL) || (gctrl->handle == NULL))
 		return -EINVAL;
 
-	VPSSDBG("delete GRPX\n");
+	VPSSDBG("delete GRPX%d\n", gctrl->grpx_num);
 	r = vps_fvid2_delete(gctrl->handle, NULL);
 	if (!r) {
 
@@ -704,7 +650,7 @@ static int vps_grpx_delete(struct vps_grpx_ctrl *gctrl)
 static int vps_grpx_start(struct vps_grpx_ctrl *gctrl)
 {
 	int r = 0;
-	VPSSDBG("grpx start\n");
+	VPSSDBG("start grpx%d\n", gctrl->grpx_num);
 	if ((gctrl == NULL) || (gctrl->handle == NULL))
 		return -EINVAL;
 
@@ -747,7 +693,7 @@ static int vps_grpx_stop(struct vps_grpx_ctrl *gctrl)
 {
 	int r = 0;
 
-	VPSSDBG("grpx stop\n");
+	VPSSDBG("stop grpx%d\n", gctrl->grpx_num);
 	if ((gctrl == NULL) || (gctrl->handle == NULL))
 		return -EINVAL;
 
@@ -808,7 +754,7 @@ static ssize_t graphics_enabled_store(struct vps_grpx_ctrl *gctrl,
 	bool enabled;
 	int r;
 	if (gctrl->handle == NULL) {
-		VPSSERR("please open fb node first.\n");
+		VPSSERR("please open fb%d node first.\n", gctrl->grpx_num);
 		return -EINVAL;
 	}
 
@@ -864,7 +810,8 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 	struct vps_dcvencinfo vinfo;
 
 	if (gctrl->gstate.isstarted) {
-		VPSSERR("please stop before continue.\n");
+		VPSSERR("please stop grpx%d before continue.\n",
+			gctrl->grpx_num);
 		return -EINVAL;
 	}
 
@@ -876,14 +823,14 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 	total = simple_strtoul(this_opt, &this_opt, 10);
 
 	if ((total == 0) || (total > VPS_DC_MAX_VENC)) {
-		VPSSERR("no node to set\n");
+		VPSSERR("(%d)- no node to set\n", gctrl->grpx_num);
 		r = -EINVAL;
 		goto exit;
 	}
 	/*check the remaining input string*/
 	if ((input == NULL) || (!(strcmp(input, "\0")))) {
 		r = -EINVAL;
-		VPSSERR("wrong node information\n");
+		VPSSERR("(%d)- wrong node information\n", gctrl->grpx_num);
 		goto exit;
 	}
 	/*parse each end note*/
@@ -894,7 +841,8 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 			break;
 
 		if (vps_dc_get_id(this_opt, &nid, DC_NODE_ID)) {
-			VPSSERR("failed to parse node name\n");
+			VPSSERR("((%d)- failed to parse node name\n",
+				gctrl->grpx_num);
 			r = -EINVAL;
 			goto exit;
 
@@ -905,7 +853,8 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 			      DC_VENC_ID);
 		enodes[idx] = nid;
 
-		VPSSDBG("s: %d e:%d vid:%d\n",
+		VPSSDBG("(%d)- s: %d e:%d vid:%d\n",
+			gctrl->grpx_num,
 			gctrl->snode,
 			enodes[idx],
 			vinfo.modeinfo[idx].vencid);
@@ -916,7 +865,8 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 	/*the total is not match what parsed in the string*/
 	if (idx != total) {
 		r = -EINVAL;
-		VPSSERR("node number not match.\n");
+		VPSSERR("(%d)- node number not match.\n",
+			gctrl->grpx_num);
 		goto exit;
 	}
 	vinfo.numvencs = total;
@@ -931,7 +881,8 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 		u8 tvencs;
 		vps_dc_get_tiedvenc(&tvencs);
 		if (tiedvenc & (~tvencs)) {
-			VPSSERR("nodes not match tied vencs\n");
+			VPSSERR("(%d)- nodes not match tied vencs\n",
+				gctrl->grpx_num);
 			r = -EINVAL;
 			goto exit;
 		}
@@ -946,7 +897,8 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 	for (i = 0; i < vinfo.numvencs; i++) {
 		if (vinfo.modeinfo[i].isvencrunning == 0) {
 			r = -EINVAL;
-			VPSSERR("venc %d not running.\n",
+			VPSSERR("(%d)- venc %d not running.\n",
+				gctrl->grpx_num,
 				vinfo.modeinfo[i].vencid);
 			goto exit;
 		}
@@ -960,7 +912,8 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 	}
 	if (r) {
 		r = -EINVAL;
-		VPSSERR("failed to disable node\n");
+		VPSSERR("(%d)- failed to disable node\n",
+			gctrl->grpx_num);
 		goto exit;
 	}
 	/*enable the new nodes*/
@@ -971,14 +924,16 @@ static ssize_t graphics_nodes_store(struct vps_grpx_ctrl *gctrl,
 	}
 	if (r) {
 		r = -EINVAL;
-		VPSSERR("failed to enable node\n");
+		VPSSERR("(%d)- failed to enable node\n",
+			gctrl->grpx_num);
 		goto exit;
 	}
 	/*update new nodes into local database*/
 	gctrl->numends = total;
 	for (i = 0; i < gctrl->numends; i++)
 		gctrl->enodes[i] = enodes[i];
-	VPSSDBG("numedge :%d\n", gctrl->numends);
+	VPSSDBG("(%d)- numedge :%d\n",
+		gctrl->grpx_num, gctrl->numends);
 	r = size;
 
 exit:
@@ -1380,7 +1335,8 @@ int __init vps_grpx_init(struct platform_device *pdev)
 				    gctrl->snode,
 				    1);
 		if (r) {
-			VPSSERR("failed to set nodes\n");
+			VPSSERR("failed to set grpx%d nodes\n",
+				i);
 			goto cleanup;
 		}
 

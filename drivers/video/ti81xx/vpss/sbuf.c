@@ -115,7 +115,7 @@ found:
 
 	vaddr = sbinfo->vaddr + (start - sbinfo->paddr);
 
-	VPSSDBG("FOUND %x, end %x, map vir %p\n", start, end, vaddr);
+	VPSSDBG("FOUND 0x%x, end 0x%x, map vir 0x%p\n", start, end, vaddr);
 
 	return vaddr;
 
@@ -153,7 +153,7 @@ int vps_sbuf_free(u32 paddr, void *vaddr, size_t size)
 
 		if (start >= paddr && (end <= paddr + size)) {
 			sbuf_free_allocation(sba);
-			VPSSDBG("free mem paddr %08x vaddr %p size %d\n",
+			VPSSDBG("free mem paddr 0x%x vaddr 0x%p size %d\n",
 				paddr, vaddr, size);
 
 			break;
@@ -164,25 +164,49 @@ int vps_sbuf_free(u32 paddr, void *vaddr, size_t size)
 	return 0;
 }
 
-int __init vps_sbuf_init(void)
+int __init vps_sbuf_init(const char *sbaddr, const char *sbsize)
 {
 	int r = 0;
-	int size;
-	VPSSDBG("sbuf init\n");
-	if (CONFIG_TI81XX_VPSS_SHARED_BUFFER_SIE == 0) {
-		VPSSERR("Shared buffer size can not be zero.\n");
-		r = -ENOMEM;
-		goto exit;
-	}
+	uint size = 0;
+	uint addr = 0;
+	char *str = (char *)sbsize;
 
+	VPSSDBG("sbuf init\n");
+	/*parse commond arguments first*/
+	if (sbaddr)
+		addr = PAGE_ALIGN(simple_strtol(sbaddr, NULL, 16));
+
+	/*use the value from kconfig instead if not set in the command*/
+	if (!addr) {
+		addr = CONFIG_TI81XX_VPSS_SHARED_BUFFER_BASE;
+		if (!addr) {
+			VPSSERR("Shared buffer base is not set.\n");
+			r = -ENOMEM;
+			goto exit;
+
+		}
+	}
+	/*parse the commond argumetn for the payload size*/
+	if (sbsize)
+		size = memparse(str, &str);
+	/*use the value from kconfig instead if not set in the command*/
+	if (!size) {
+		if (CONFIG_TI81XX_VPSS_SHARED_BUFFER_SIE == 0) {
+			VPSSERR("Shared buffer size can not be zero.\n");
+			r = -ENOMEM;
+			goto exit;
+		}
+		size = CONFIG_TI81XX_VPSS_SHARED_BUFFER_SIE * 1024;
+	}
+	/*alloce structrue*/
 	sbinfo = kzalloc(sizeof(struct sbuf_info), GFP_KERNEL);
 	if (sbinfo == NULL) {
 		VPSSERR("failed to allocate\n");
 		r = -ENOMEM;
 		goto exit;
 	}
-	size = CONFIG_TI81XX_VPSS_SHARED_BUFFER_SIE * 1024;
-	sbinfo->base = ioremap_nocache(CONFIG_TI81XX_VPSS_SHARED_BUFFER_BASE,
+	/*IO remap to non-cacheable space*/
+	sbinfo->base = ioremap_nocache(addr,
 				       size);
 
 	if (sbinfo->base == NULL) {
@@ -190,11 +214,11 @@ int __init vps_sbuf_init(void)
 		r = -ENODEV;
 		goto exit;
 	}
-
+	/*store the information*/
 	sbinfo->vaddr = (void *)sbinfo->base;
-	sbinfo->paddr = CONFIG_TI81XX_VPSS_SHARED_BUFFER_BASE;
+	sbinfo->paddr = addr;
 	sbinfo->pages = PAGE_ALIGN(size) >> PAGE_SHIFT;
-	VPSSDBG("map %x to %p with size %x\n",
+	VPSSDBG("map 0x%x to 0x%p with size %d\n",
 		sbinfo->paddr,
 		sbinfo->base,
 		sbinfo->pages << PAGE_SHIFT);

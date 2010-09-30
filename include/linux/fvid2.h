@@ -582,23 +582,23 @@ struct fvid2_format {
 };
 
 /**
- *	\brief Slice information used in drivers supporting slice level
+ *	\brief Slice information used in drivers supporting subframe level
  *	     processing, for application and driver interaction
  *	[IN]  sliceNumber and NoOfLines available in the frame for queue
  *	      operation. Set by application and used by driver
- *	[OUT] NoOfLines output for current slice for Dequeue. Set by driver
+ *	[OUT] NoOfLines output for current subframe for Dequeue. Set by driver
  *	      and used by application
  */
-struct fvid2_sliceinfo {
-	u32                      slicenum;
-	/**< Current slice Number in this frame,
+struct fvid2_subframeinfo {
+	u32                      subframenum;
+	/**< Current subframe Number in this frame,
 	     range is from 0 to (NoOfSlicesInFrame-1)  */
-	u32                      numslcinlines;
+	u32                      numinlines;
 	/**< Number of lines available in the frame at the end of this slice.
 	*/
-	u32                      numslcoutlines;
+	u32                      numoutlines;
 	/**< Number of lines generated in output buffer after processing
-	     current slice */
+	     current subframe */
 } ;
 /**
  *	\brief FVID2 frame buffer structure.
@@ -666,10 +666,10 @@ struct fvid2_frame {
 	     [OUT] for dequeue operation. */
 	void                      *drvdata;
 	/**< Used by driver. Application should not modify this. */
-	struct fvid2_sliceinfo    *sliceinfo;
+	struct fvid2_subframeinfo    *subframeinfo;
 	/**< Used for Slice level processing information exchange between
 	     application and driver.
-	     This could be set to NULL if slice level processing is not used.
+	     This could be set to NULL if subframe level processing is not used.
 	*/
 	void                      *reserved;
     /**< For future use. Not used currently. Set this to NULL. */

@@ -45,22 +45,27 @@
 
 #ifdef DEBUG
 unsigned int vpss_debug;
-module_param_named(debug, vpss_debug, bool, 0644);
+module_param_named(debug, vpss_debug, bool, S_IRUGO);
+MODULE_PARM_DESC(vpss_debug, "debug on/off");
 #endif
-
+/*module parameters*/
 static char *def_mode;
-static int def_tiedvencs;
+static int  def_tiedvencs;
 static char *def_clksrc;
+static char *def_sbsize;
+static char *def_sbaddr;
+/*time out value is 2 seconds*/
+static u32  def_timeout = 2000;
 
 static int vps_probe(struct platform_device *pdev)
 {
 	int r;
-	r = vps_sbuf_init();
+	r = vps_sbuf_init(def_sbaddr, def_sbsize);
 	if (r) {
 		VPSSERR("failed to allocate share buffer\n");
 		return r;
 	}
-	r = vps_fvid2_init(pdev);
+	r = vps_fvid2_init(pdev, def_timeout);
 	if (r) {
 		VPSSERR("Failed to init fvid2 interface,\n");
 		goto exit0;
@@ -158,9 +163,26 @@ static void __exit vps_cleanup(void)
 	platform_driver_unregister(&vps_driver);
 }
 
-module_param_named(mode, def_mode, charp, 0);
-module_param_named(tiedvencs, def_tiedvencs, int, 0664);
-module_param_named(clksrc, def_clksrc, charp, 0);
+module_param_named(mode, def_mode, charp, S_IRUGO);
+MODULE_PARM_DESC(def_mode,
+	"Mode of VENCs to be set in the VPSS device");
+module_param_named(tiedvencs, def_tiedvencs, int, S_IRUGO);
+MODULE_PARM_DESC(def_tiedvencs,
+	"tied vencs to be set in the VPSS device");
+module_param_named(clksrc, def_clksrc, charp, S_IRUGO);
+MODULE_PARM_DESC(def_clksrc,
+	"VENC clock source to be set in the VPSS device");
+module_param_named(sbufaddr, def_sbaddr, charp, S_IRUGO);
+MODULE_PARM_DESC(def_pladdr,
+	"sharing buffer address to be set in the VPSS device");
+module_param_named(sbufsize, def_sbsize, charp, S_IRUGO);
+MODULE_PARM_DESC(def_plsize,
+	"sharing buffer size to be set in the VPSS device");
+module_param_named(timeout, def_timeout, uint, S_IRUGO);
+MODULE_PARM_DESC(def_timeout,
+	"timeout value to be set in the VPSS device \
+		for waiting the response from M3");
+
 subsys_initcall(vps_init);
 module_exit(vps_cleanup);
 

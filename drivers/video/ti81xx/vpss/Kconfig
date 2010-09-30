@@ -24,30 +24,24 @@ config TI81XX_VPSS_DEBUG_SUPPORT
 	help
 	  This enables debug messages.
 
-config TI81XX_VPSS_SII9022A
-      bool  "offchip hdmi(sii9022a)"
-      default y
-      help
-         This enables VS board(sii9022a HDMI transmitter) on the DVO2 VENC.
-
 config TI81XX_VPSS_SHARED_BUFFER_BASE
-	hex "share buffer base(hex)"
-	range 0x80000000 0xBFC00000
-	default 0xB2C00000
+	hex "sharing buffer base(hex)"
+	range 0x80000000 0xC0000000
+	default 0x8DE00000
 	help
-	    The base of share buffer to be reserved for IPC notify between
+	    The base of shareing buffer to be reserved for IPC notify between
 	    A8 and M3. This buffer is used by the vpss to transfer information
 	    between A8 and M3 via syslink notify.
 	    Before changing this address, app should carefully check Ducati AMMU
 	    configuration of Ducati to make sure that the address is in
-	    non-cacheable space.
+	    non-cacheable space from Ducati M3 side.
 
 config TI81XX_VPSS_SHARED_BUFFER_SIE
-	int "share buffer size(KB)"
+	int "sharing buffer size(KB)"
 	range 512 2048
 	default 1024
 	help
-	    The amount of share buffer to reserved for IPC notify between
+	    The amount of shareing buffer to be reserved for IPC notify between
 	    A8 and M3. This buffer is used by the vpss to transfer information
-	    between A8 and M3 by syslink notify. It is non-cacheable in both CPU.
+	    between A8 and M3 by syslink notify.
 endif

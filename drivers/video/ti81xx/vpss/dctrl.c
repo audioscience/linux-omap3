@@ -30,6 +30,7 @@
 #include <linux/kobject.h>
 #include <linux/dma-mapping.h>
 #include <linux/slab.h>
+#include <mach/board-ti816x.h>
 
 #include "core.h"
 #include "system.h"
@@ -114,7 +115,7 @@ static struct vps_sname_info dfmt_name[VPS_DC_DVOFMT_MAX] = {
 
 static struct vps_sname_info afmt_name[VPS_DC_A_OUTPUT_MAX] = {
 	{"composite", VPS_DC_A_OUTPUT_COMPOSITE},
-	{"svdieo", VPS_DC_A_OUTPUT_SVIDEO},
+	{"svideo", VPS_DC_A_OUTPUT_SVIDEO},
 	{"component", VPS_DC_A_OUTPUT_COMPONENT},
 };
 
@@ -1002,6 +1003,21 @@ static ssize_t blender_mode_store(struct dc_blender_info *binfo,
 		if (r)
 			goto exit;
 	}
+#ifdef CONFIG_ARCH_TI816X
+	if (binfo->idx == HDCOMP) {
+		if (mid == FVID2_STD_1080P_60)
+			r = pcf8575_ths7360_hd_enable(
+				TI816X_THS7360_SF_TRUE_HD_MODE);
+		else
+			r = pcf8575_ths7360_hd_enable(
+				TI816X_THS7360_SF_HD_MODE);
+		if (r) {
+			VPSSERR("failed to set THS filter\n");
+			goto exit;
+		}
+
+	}
+#endif
 	r = size;
 exit:
 	dc_unlock(binfo->dctrl);
@@ -1209,7 +1225,7 @@ static ssize_t blender_output_show(struct dc_blender_info *binfo, char *buf)
 			      dfmt_name[oinfo.dvofmt].name);
 	else
 		l += snprintf(buf + l,
-			      PAGE_SIZE - l, "%s,",
+			      PAGE_SIZE - l, "%s",
 			      afmt_name[oinfo.afmt].name);
 
 	for (i = 0 ; i < ARRAY_SIZE(datafmt_name); i++) {
@@ -1242,7 +1258,8 @@ static ssize_t blender_output_store(struct dc_blender_info *binfo,
 	/*venc should be off before changed output*/
 	if (dc_isvencrunning(oinfo.vencnodenum)) {
 		VPSSERR("please disable VENC before changing output\n");
-		return -EINVAL;
+		r = -EINVAL;
+		goto exit;
 	}
 
 	dc_get_output(&oinfo);
@@ -1642,7 +1659,7 @@ static struct kobj_type dctrl_ktype = {
 };
 
 /*end of sysfs function for display controller*/
-static int parse_def_clksrc(char *clksrc)
+static int parse_def_clksrc(const char *clksrc)
 {
 	int r = 0, i;
 	char *str, *options, *this_opt;
@@ -1704,7 +1721,7 @@ static int parse_def_clksrc(char *clksrc)
 	return r;
 }
 
-static int parse_def_modes(char *mode)
+static int parse_def_modes(const char *mode)
 
 {
 	char *str, *options, *this_opt;
@@ -1827,9 +1844,9 @@ static inline void assign_payload_addr(struct vps_dispctrl *dctrl,
 }
 
 int __init vps_dc_init(struct platform_device *pdev,
-			  char *mode,
+			  const char *mode,
 			  int tied_vencs,
-			  char *clksrc)
+			  const char *clksrc)
 {
 	int r = 0;
 	int i;
@@ -1966,7 +1983,7 @@ int __init vps_dc_init(struct platform_device *pdev,
 		case HDCOMP:
 			disp_ctrl->opinfo->vencnodenum = VPS_DC_VENC_HDCOMP;
 			disp_ctrl->opinfo->afmt = VPS_DC_A_OUTPUT_COMPONENT;
-			disp_ctrl->opinfo->dataformat = FVID2_DF_RGB24_888;
+			disp_ctrl->opinfo->dataformat = FVID2_DF_YUV422SP_UV;
 			break;
 #endif
 		case DVO2:
@@ -1977,6 +1994,8 @@ int __init vps_dc_init(struct platform_device *pdev,
 			break;
 		case SDVENC:
 			disp_ctrl->opinfo->vencnodenum = VPS_DC_VENC_SD;
+			disp_ctrl->opinfo->afmt = VPS_DC_A_OUTPUT_COMPOSITE;
+			disp_ctrl->opinfo->dataformat = FVID2_DF_YUV422SP_UV;
 			break;
 
 		}
@@ -1992,6 +2011,23 @@ int __init vps_dc_init(struct platform_device *pdev,
 		VPSSERR("Failed to set venc mode.\n");
 		goto cleanup;
 	}
+	/*set the the THS filter*/
+#ifdef CONFIG_ARCH_TI816X
+	r = pcf8575_ths7375_enable(TI816X_THSFILTER_ENABLE_MODULE);
+	if (venc_info.modeinfo[HDCOMP].standard == FVID2_STD_1080P_60)
+		r |= pcf8575_ths7360_hd_enable(
+			TI816X_THS7360_SF_TRUE_HD_MODE);
+	else
+		r |= pcf8575_ths7360_hd_enable(TI816X_THS7360_SF_HD_MODE);
+#endif
+
+	r |= pcf8575_ths7360_sd_enable(TI816X_THSFILTER_ENABLE_MODULE);
+
+	if (r < 0) {
+		VPSSERR("failed to setup THS filter.\n");
+		goto cleanup;
+	}
+
 	return 0;
 cleanup:
 	vps_dc_deinit(pdev);

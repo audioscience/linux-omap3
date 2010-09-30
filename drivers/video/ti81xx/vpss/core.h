@@ -81,19 +81,19 @@ void __exit vps_grpx_deinit(struct platform_device *pdev);
 
 /*display control*/
 int __init vps_dc_init(struct platform_device *pdev,
-		       char *mode,
+		       const char *mode,
 		       int tied_vencs,
-		       char *clksrc);
+		       const char *clksrc);
 
 int __exit vps_dc_deinit(struct platform_device *pdev);
 
 /*fvid2*/
-int vps_fvid2_init(struct platform_device *pdev);
+int vps_fvid2_init(struct platform_device *pdev, u32 timeout);
 void vps_fvid2_deinit(struct platform_device *pdev);
 
 
 /*shared buffer functions*/
-int __init vps_sbuf_init(void);
+int __init vps_sbuf_init(const char *sbaddr, const char *sbsize);
 int __exit vps_sbuf_deinit(void);
 void *vps_sbuf_alloc(size_t size, u32 *paddr);
 int vps_sbuf_free(u32 paddr, void *vaddr, size_t size);
@@ -123,5 +123,68 @@ static inline void *setaddr(struct vps_payload_info *dminfo,
 
 	return ptr;
 }
+
+static inline enum fvid2_bitsperpixel vps_get_fbpp(u8 bpp)
+{
+	enum fvid2_bitsperpixel fbpp = FVID2_BPP_BITS16;
+
+	switch (bpp) {
+	case 1:
+		fbpp = FVID2_BPP_BITS1;
+		break;
+	case 2:
+		fbpp = FVID2_BPP_BITS2;
+		break;
+	case 4:
+		fbpp = FVID2_BPP_BITS4;
+		break;
+	case 8:
+		fbpp = FVID2_BPP_BITS8;
+		break;
+	case 16:
+		fbpp = FVID2_BPP_BITS16;
+		break;
+	case 24:
+		fbpp = FVID2_BPP_BITS24;
+		break;
+	case 32:
+		fbpp = FVID2_BPP_BITS32;
+	}
+	return fbpp;
+}
+
+static inline int vps_get_bitspp(enum fvid2_bitsperpixel fbpp)
+{
+	int bpp;
+
+	switch (fbpp) {
+	case FVID2_BPP_BITS1:
+		bpp = 1;
+		break;
+	case FVID2_BPP_BITS2:
+		bpp = 2;
+		break;
+	case FVID2_BPP_BITS4:
+		bpp = 4;
+		break;
+	case FVID2_BPP_BITS8:
+		bpp = 8;
+		break;
+	case FVID2_BPP_BITS16:
+		bpp = 16;
+		break;
+	case FVID2_BPP_BITS24:
+		bpp = 24;
+		break;
+	case FVID2_BPP_BITS32:
+		bpp = 32;
+	default:
+		bpp = 32;
+	}
+
+	return bpp;
+
+}
+
 
 #endif

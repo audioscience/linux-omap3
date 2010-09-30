@@ -546,15 +546,15 @@ struct vps_layoutid {
 };
 
 /**
- *  struct Vps_SliceParams
- *  \brief Configuration for slice level processing at create time.
+ *  struct Vps_subframeparams
+ *  \brief Configuration for subframe level processing at create time.
  */
-struct vps_sliceparams {
-	u32              slicemodeenable;
+struct vps_subframeparams {
+	u32              subframemodeenable;
 	/**< TRUE : Slice level processing is done for this channel
 	     FALSE: Frame level processing is done for this channel. */
-	u32            numlinesperslice;
-	/**< Number of lines in a slice. */
+	u32            numlinespersubframe;
+	/**< Number of lines in a subframe. */
 } ;
 
 #endif
