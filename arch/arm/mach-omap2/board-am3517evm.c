@@ -924,6 +924,11 @@ static struct ehci_hcd_omap_platform_data ehci_pdata __initdata = {
 #ifdef CONFIG_OMAP_MUX
 static struct omap_board_mux board_mux[] __initdata = {
 	/* USB OTG DRVVBUS offset = 0x212 */
+	OMAP3_MUX(SYS_BOOT1, OMAP_MUX_MODE4 | OMAP_PIN_INPUT_PULLDOWN),
+	OMAP3_MUX(SDMMC2_DAT4, OMAP_MUX_MODE4 | OMAP_PIN_INPUT_PULLDOWN),
+	OMAP3_MUX(SDMMC2_DAT5, OMAP_MUX_MODE4 | OMAP_PIN_INPUT_PULLDOWN),
+	OMAP3_MUX(SDMMC2_DAT6, OMAP_MUX_MODE4 | OMAP_PIN_INPUT_PULLDOWN),
+	OMAP3_MUX(SDMMC2_DAT7, OMAP_MUX_MODE4 | OMAP_PIN_INPUT_PULLDOWN),
 	OMAP3_MUX(CHASSIS_DMAREQ3, OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLDOWN),
 	OMAP3_MUX(MCBSP_CLKS, OMAP_MUX_MODE4 | OMAP_PIN_INPUT_PULLUP),
 	OMAP3_MUX(GPMC_NCS4, OMAP_MUX_MODE4 | OMAP_PIN_INPUT_PULLDOWN),
@@ -945,15 +950,15 @@ static struct am3517_hsmmc_info mmc[] = {
 		.mmc            = 2,
 		.wires          = 4,
 		/*TODO: Need to change*/
-		.gpio_cd        = 128,
-		.gpio_wp        = 129,
+		.gpio_cd        = 175,
+		.gpio_wp        = 176,
 	},
 	{}      /* Terminator */
 };
 
 static void __init am3517_evm_init(void)
 {
-
+	int devconf1 = 0;
 	/* Init TCA6416 keypad */
 	tca6416_keypad_init_irq();
 
@@ -998,6 +1003,25 @@ static void __init am3517_evm_init(void)
 	am3517_evm_ethernet_init(&am3517_evm_emac_pdata);
 	am3517_evm_hecc_init(&am3517_evm_hecc_pdata);
 
+	/* Disable SoM Wlan */
+	gpio_request(3, "wlan_en");
+	gpio_direction_output(3, 0);
+	/* set direction of SN74AVCA406LZXYR from A to B so it doesn't drive the MMC bus */
+	gpio_request(139, "wlan_en_clk");
+	gpio_direction_output(139, 1);
+	/* */
+	gpio_request(138, "wlan_en_cmd");
+	gpio_direction_output(138, 1);
+	/**/
+	gpio_request(137, "wlan_en_data123");
+	gpio_direction_output(137, 1);
+	/* */
+	gpio_request(136, "wlan_en_data0");
+	gpio_direction_output(136, 1);
+
+	devconf1 = omap_ctrl_readl(OMAP343X_CONTROL_DEVCONF1);
+	devconf1 |= 0x40;
+	omap_ctrl_writel(devconf1, OMAP343X_CONTROL_DEVCONF1);
 	/* MMC init function */
 	am3517_mmc_init(mmc);
 
