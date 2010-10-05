@@ -1074,30 +1074,30 @@ static struct ti816x_pcie_data ti816x_pcie_data = {
 static struct resource ti816x_pcie_resources[] = {
 	{
 		/* Register space */
-		.name		= "regs",
+		.name		= "pcie-regs",
 		.start		= TI816X_PCIE_REG_BASE,
-		.end		= TI816X_PCIE_REG_BASE + SZ_16M - 1,
+		.end		= TI816X_PCIE_REG_BASE + SZ_16K - 1,
 		.flags		= IORESOURCE_MEM,
 	},
 	{
 		/* Non-prefetch memory */
-		.name		= "nonprefetch",
+		.name		= "pcie-nonprefetch",
 		.start		= TI816X_PCIE_MEM_BASE,
 		.end		= TI816X_PCIE_MEM_BASE + SZ_256M - 1,
 		.flags		= IORESOURCE_MEM,
 	},
 	{
 		/* IO window */
-		.name		= "io",
+		.name		= "pcie-io",
 		.start		= TI816X_PCIE_IO_BASE,
 		.end		= TI816X_PCIE_IO_BASE + SZ_2M + SZ_1M - 1,
 		.flags		= IORESOURCE_IO,
 	},
 	{
 		/* Inbound memory window */
-		.name		= "inbound0",
+		.name		= "pcie-inbound0",
 		.start		= PHYS_OFFSET,
-		.end		= PHYS_OFFSET + SZ_256M - 1,
+		.end		= PHYS_OFFSET + SZ_2G - 1,
 		.flags		= IORESOURCE_MEM,
 	},
 	{
