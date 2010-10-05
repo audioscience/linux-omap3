@@ -157,11 +157,26 @@ static int get_and_clear_err(void)
  * @fsr: CP15 fault status register value
  * @regs: Pointer to register structure on abort
  *
- * Handles precise abort caused due to PCIe operation. Checks PCIe error status
- * to confirm if the abort was caused due to non-posted completion status
- * received by PCIESS. Ignores and returns unhandled otherwise.
+ * Handles precise abort caused due to PCIe operation.
  *
- * Also clears PCIe error status on detecting errors.
+ * Note that we are relying on virtual address filtering to determine if the
+ * target of the precise aborts was a PCIe module access (i.e., config, I/O,
+ * register) and only handle such aborts. We could check PCIe error status to
+ * confirm if the abort was caused due to non-posted completion status received
+ * by PCIESS, but this may not always be true and aborts from some downstream
+ * devices, such as PCI-PCI bridges etc may not result into error status bit
+ * getting set.
+ *
+ * Ignores and returns abort as unhandled otherwise.
+ *
+ * Also note that, using error status check (as was done in earlier
+ * implementation) would also handle failed memory accesses (non-posted), but
+ * address filerting based handling will cause aborts for memory accesses as the
+ * addresses will be outside the PCIESS module space. This seems OK, as any
+ * memory access after enumeration is sole responsibility of the driver and the
+ * system integrator (e.g., access failures due to hotplug, suspend etc). If
+ * using error check based handling, we also need to clear PCIe error status on
+ * detecting errors.
  *
  * Note: Due to specific h/w implementation, we can't be sure of what kind of
  * error occurred (UR Completion, CA etc) and all we get is raw error IRQ status
@@ -177,7 +192,13 @@ ti816x_pcie_fault(unsigned long addr, unsigned int fsr, struct pt_regs *regs)
 			"fsr = 0x%03x PC = 0x%08lx LR = 0x%08lx",
 			addr, fsr, regs->ARM_pc, regs->ARM_lr);
 
+#if 0
 	if (!get_and_clear_err())
+		return -1;
+#endif
+
+	/* Note: Only handle PCIESS module space access */
+	if ((addr < reg_virt) || (addr >= (reg_virt + SZ_16K)))
 		return -1;
 
 	/*
@@ -543,7 +564,7 @@ int ti816x_pcie_setup(int nr, struct pci_sys_data *sys)
 	pr_info(DRIVER_NAME ": Setting up Host Controller...\n");
 
 	plat_res = platform_get_resource_byname(pcie_pdev,
-						IORESOURCE_MEM, "regs");
+						IORESOURCE_MEM, "pcie-regs");
 	if (!plat_res) {
 		pr_err(DRIVER_NAME ": Failed to get 'regs' memory resource\n");
 		return -1;
@@ -567,7 +588,7 @@ int ti816x_pcie_setup(int nr, struct pci_sys_data *sys)
 	 */
 
 	plat_res = platform_get_resource_byname(pcie_pdev,
-						IORESOURCE_MEM, "nonprefetch");
+						IORESOURCE_MEM, "pcie-nonprefetch");
 	if (!plat_res) {
 		pr_err(DRIVER_NAME ": no resource for non-prefetch memory\n");
 		goto err_memres;
@@ -587,7 +608,7 @@ int ti816x_pcie_setup(int nr, struct pci_sys_data *sys)
 	}
 #endif
 	/* Optional: io window */
-	plat_res = platform_get_resource_byname(pcie_pdev, IORESOURCE_IO, "io");
+	plat_res = platform_get_resource_byname(pcie_pdev, IORESOURCE_IO, "pcie-io");
 	if (!plat_res) {
 		pr_warning(DRIVER_NAME ": no resource for PCI I/O\n");
 	} else {
@@ -607,7 +628,7 @@ int ti816x_pcie_setup(int nr, struct pci_sys_data *sys)
 	 * application register space in h/w.
 	 */
 	plat_res = platform_get_resource_byname(pcie_pdev,
-						IORESOURCE_MEM, "inbound0");
+						IORESOURCE_MEM, "pcie-inbound0");
 	if (!plat_res) {
 		pr_warning(DRIVER_NAME ": no resource for inbound PCI\n");
 	} else {
@@ -619,8 +640,8 @@ int ti816x_pcie_setup(int nr, struct pci_sys_data *sys)
 	sys->resource[1] = &res[1];
 	sys->resource[2] = NULL;
 
-	reg_virt = (u32)ioremap_nocache(reg_phys,
-			(plat_res->end - plat_res->start));
+	/* 16KB region is sufficiant for reg(4KB) + configs(8KB) + IO(4KB) */
+	reg_virt = (u32)ioremap_nocache(reg_phys, SZ_16K);
 
 	if (!reg_virt) {
 		pr_err(DRIVER_NAME ": PCIESS register memory remap failed\n");
@@ -684,11 +705,16 @@ int ti816x_pcie_setup(int nr, struct pci_sys_data *sys)
 	 * each config write and restore 32-bit IO decode configuration.
 	 */
 
-	/* Setup as PCI master, also clear any pending  status bits */
+	/*
+	 * Setup as PCI master, also clear any pending  status bits.
+	 * FIXME: Nolonger needed as post-scan fixup handles this (see below).
+	 */
+#if 0
 	__raw_writel((__raw_readl(reg_virt + SPACE0_LOCAL_CFG_OFFSET
 					+ PCI_COMMAND)
 			| CFG_PCIM_CSR_VAL),
 			reg_virt + SPACE0_LOCAL_CFG_OFFSET + PCI_COMMAND);
+#endif
 
 	legacy_irq = platform_get_irq_byname(pcie_pdev, "legacy_int");
 
@@ -800,14 +826,12 @@ static inline u32 setup_config_addr(u8 bus, u8 device, u8 function)
 		u32 regval = (bus << 16) | (device << 8) | function;
 
 		/*
-		 * !@@@ HACK
-		 * TYPE1 setting crashes remote cfg access POST-SI
+		 * Since Bus#1 will be a virtual bus, we need to have TYPE0
+		 * access only.
 		 */
-#if 0
 		/* TYPE 1 */
 		if (bus != 1)
 			regval |= BIT(24);
-#endif
 
 		__raw_writel(regval, reg_virt + CFG_SETUP);
 
@@ -986,6 +1010,9 @@ struct pci_bus *ti816x_pcie_scan(int nr, struct pci_sys_data *sys)
 
 		/* Post enumeration fixups */
 		set_inbound_trans();
+
+		/* Bridges are not getting enabled by default! */
+		pci_assign_unassigned_resources();
 	}
 
 	return bus;
