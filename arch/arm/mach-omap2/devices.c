@@ -1449,7 +1449,7 @@ void ti816x_ethernet_init(void)
 	ti816x_emac1_pdata.mac_addr[2] = (mac_hi & 0xFF0000) >> 16;
 	ti816x_emac1_pdata.mac_addr[3] = (mac_hi & 0xFF000000) >> 24;
 	ti816x_emac1_pdata.mac_addr[4] = mac_lo & 0xFF;
-	ti816x_emac1_pdata.mac_addr[5] = (mac_lo & 0xFF) >> 8;
+	ti816x_emac1_pdata.mac_addr[5] = (mac_lo & 0xFF00) >> 8;
 
 	ti816x_emac1_pdata.ctrl_reg_offset = TI816X_EMAC_CNTRL_OFFSET;
 	ti816x_emac1_pdata.ctrl_mod_reg_offset = TI816X_EMAC_CNTRL_MOD_OFFSET;
@@ -1470,7 +1470,7 @@ void ti816x_ethernet_init(void)
 	ti816x_emac2_pdata.mac_addr[2] = (mac_hi & 0xFF0000) >> 16;
 	ti816x_emac2_pdata.mac_addr[3] = (mac_hi & 0xFF000000) >> 24;
 	ti816x_emac2_pdata.mac_addr[4] = mac_lo & 0xFF;
-	ti816x_emac2_pdata.mac_addr[5] = (mac_lo & 0xFF) >> 8;
+	ti816x_emac2_pdata.mac_addr[5] = (mac_lo & 0xFF00) >> 8;
 
 	ti816x_emac2_pdata.ctrl_reg_offset = TI816X_EMAC_CNTRL_OFFSET;
 	ti816x_emac2_pdata.ctrl_mod_reg_offset = TI816X_EMAC_CNTRL_MOD_OFFSET;
