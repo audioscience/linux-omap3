@@ -20,9 +20,16 @@
 #include <linux/init.h>
 #include <linux/usb.h>
 #include <linux/irq.h>
+#include <linux/clk.h>
 #include <linux/platform_device.h>
 
 #include "musb_core.h"
+#include "tusb6010.h"
+
+struct tusb6010_musb_glue {
+	struct clk	*clk;
+	struct device	*dev;
+};
 
 static void tusb_source_power(struct musb *musb, int is_on);
 
@@ -348,7 +355,7 @@ static void tusb_set_clock_source(struct musb *musb, unsigned mode)
  * USB link is not suspended ... and tells us the relevant wakeup
  * events.  SW_EN for voltage is handled separately.
  */
-void tusb_allow_idle(struct musb *musb, u32 wakeup_enables)
+static void tusb_allow_idle(struct musb *musb, u32 wakeup_enables)
 {
 	void __iomem	*tbase = musb->ctrl_base;
 	u32		reg;
@@ -385,7 +392,7 @@ void tusb_allow_idle(struct musb *musb, u32 wakeup_enables)
 /*
  * Updates cable VBUS status. Caller must take care of locking.
  */
-int musb_platform_get_vbus_status(struct musb *musb)
+int tusb6010_musb_get_vbus_status(struct musb *musb)
 {
 	void __iomem	*tbase = musb->ctrl_base;
 	u32		otg_stat, prcm_mngmt;
@@ -475,7 +482,7 @@ done:
  * we don't want to treat that full speed J as a wakeup event.
  * ... peripherals must draw only suspend current after 10 msec.
  */
-void musb_platform_try_idle(struct musb *musb, unsigned long timeout)
+static void tusb6010_musb_try_idle(struct musb *musb, unsigned long timeout)
 {
 	unsigned long		default_timeout = jiffies + msecs_to_jiffies(3);
 	static unsigned long	last_timer;
@@ -599,7 +606,7 @@ static void tusb_source_power(struct musb *musb, int is_on)
  * and peripheral modes in non-OTG configurations by reconfiguring hardware
  * and then setting musb->board_mode. For now, only support OTG mode.
  */
-int musb_platform_set_mode(struct musb *musb, u8 musb_mode)
+static int tusb6010_musb_set_mode(struct musb *musb, u8 musb_mode)
 {
 	void __iomem	*tbase = musb->ctrl_base;
 	u32		otg_stat, phy_otg_ctrl, phy_otg_ena, dev_conf;
@@ -911,7 +918,7 @@ static irqreturn_t tusb_interrupt(int irq, void *__hci)
 	musb_writel(tbase, TUSB_INT_SRC_CLEAR,
 		int_src & ~TUSB_INT_MASK_RESERVED_BITS);
 
-	musb_platform_try_idle(musb, idle_timeout);
+	tusb6010_musb_try_idle(musb, idle_timeout);
 
 	musb_writel(tbase, TUSB_INT_MASK, int_mask);
 	spin_unlock_irqrestore(&musb->lock, flags);
@@ -926,7 +933,7 @@ static int dma_off;
  * REVISIT:
  * - Check what is unnecessary in MGC_HdrcStart()
  */
-void musb_platform_enable(struct musb *musb)
+static void tusb6010_musb_enable(struct musb *musb)
 {
 	void __iomem	*tbase = musb->ctrl_base;
 
@@ -970,7 +977,7 @@ void musb_platform_enable(struct musb *musb)
 /*
  * Disables TUSB6010. Caller must take care of locking.
  */
-void musb_platform_disable(struct musb *musb)
+static void tusb6010_musb_disable(struct musb *musb)
 {
 	void __iomem	*tbase = musb->ctrl_base;
 
@@ -1091,7 +1098,7 @@ err:
 	return -ENODEV;
 }
 
-int __init musb_platform_init(struct musb *musb, void *board_data)
+static int tusb6010_musb_init(struct musb *musb, void *board_data)
 {
 	struct platform_device	*pdev;
 	struct resource		*mem;
@@ -1159,7 +1166,7 @@ done:
 	return ret;
 }
 
-int musb_platform_exit(struct musb *musb)
+static int tusb6010_musb_exit(struct musb *musb)
 {
 	del_timer_sync(&musb_idle_timer);
 	the_musb = NULL;
@@ -1173,3 +1180,112 @@ int musb_platform_exit(struct musb *musb)
 	usb_nop_xceiv_unregister();
 	return 0;
 }
+
+static struct musb_platform_ops tusb6010_musb_ops = {
+	.init		= tusb6010_musb_init,
+	.exit		= tusb6010_musb_exit,
+	.try_idle	= tusb6010_musb_try_idle,
+	.set_mode	= tusb6010_musb_set_mode,
+};
+
+static int __init tusb6010_musb_probe(struct platform_device *pdev)
+{
+	struct tusb6010_musb_glue	*tusb;
+	int				ret;
+	struct platform_device		*musb;
+	struct musb_hdrc_platform_data	*pdata = pdev->dev.platform_data;
+
+	tusb = kzalloc(sizeof(*tusb), GFP_KERNEL);
+	if (!tusb) {
+		dev_err(&pdev->dev, "unable to allocate memory\n");
+		return -ENOMEM;
+	}
+
+	tusb->clk = clk_get(&pdev->dev, "ick");
+	if (IS_ERR(tusb->clk)) {
+		dev_err(&pdev->dev, "failed to get clock\n");
+		ret = PTR_ERR(tusb->clk);
+		goto err0;
+	}
+
+	musb = platform_device_alloc("musb-hdrc", -1);
+	if (!musb) {
+		dev_err(&pdev->dev, "failed to allocate musb device\n");
+		ret = -ENOMEM;
+		goto err1;
+	}
+
+	pdata->ops = &tusb6010_musb_ops;
+
+	ret = platform_device_add_data(musb, pdata, sizeof(*pdata));
+	if (ret) {
+		dev_err(&pdev->dev, "failed to add platform_data\n");
+		goto err2;
+	}
+
+	ret = clk_enable(tusb->clk);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to enable clock\n");
+		goto err2;
+	}
+
+	platform_set_drvdata(pdev, tusb);
+	tusb->dev = &pdev->dev;
+
+	ret = platform_device_add(musb);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to register musb device\n");
+		goto err3;
+	}
+
+	return 0;
+
+err3:
+	clk_disable(tusb->clk);
+
+err2:
+	platform_device_put(musb);
+
+err1:
+	clk_put(tusb->clk);
+
+err0:
+	kfree(tusb);
+
+	return ret;
+}
+
+static int __exit tusb6010_musb_remove(struct platform_device *pdev)
+{
+	struct tusb6010_musb_glue	*tusb = platform_get_drvdata(pdev);
+
+	clk_disable(tusb->clk);
+	clk_put(tusb->clk);
+	kfree(tusb);
+
+	return 0;
+}
+
+static struct platform_driver tusb6010_musb_driver = {
+	.remove		= __exit_p(tusb6010_musb_remove),
+	.driver		= {
+		.name	= "musb-tusb6010",
+	},
+};
+
+MODULE_AUTHOR("Felipe Balbi <balbi@ti.com>");
+MODULE_DESCRIPTION("TUSB6010 MUSB Glue Layer");
+MODULE_LICENSE("GPL v2");
+
+static int __init tusb6010_glue_init(void)
+{
+	return platform_driver_probe(&tusb6010_musb_driver,
+			tusb6010_musb_probe);
+}
+module_init(tusb6010_glue_init);
+
+static void __exit tusb6010_glue_exit(void)
+{
+	platform_driver_unregister(&tusb6010_musb_driver);
+}
+module_exit(tusb6010_glue_exit);
