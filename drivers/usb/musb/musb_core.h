@@ -351,12 +351,42 @@ static inline struct usb_request *next_out_request(struct musb_hw_ep *hw_ep)
 #endif
 }
 
+struct musb_csr_regs {
+	/* FIFO registers */
+	u16 txmaxp, txcsr, rxmaxp, rxcsr;
+	u16 rxfifoadd, txfifoadd;
+	u8 txtype, txinterval, rxtype, rxinterval;
+	u8 rxfifosz, txfifosz;
+	u8 txfunaddr, txhubaddr, txhubport;
+	u8 rxfunaddr, rxhubaddr, rxhubport;
+};
+
+struct musb_context_registers {
+
+#if defined(CONFIG_ARCH_OMAP2430) || defined(CONFIG_ARCH_OMAP3) || \
+    defined(CONFIG_ARCH_OMAP4)
+	u32 otg_sysconfig, otg_forcestandby;
+#endif
+	u8 power;
+	u16 intrtxe, intrrxe;
+	u8 intrusbe;
+	u16 frame;
+	u8 index, testmode;
+
+	u8 devctl, busctl, misc;
+
+	struct musb_csr_regs index_regs[MUSB_C_NUM_EPS];
+};
+
+
 /*
  * struct musb - Driver instance data.
  */
 struct musb {
 	/* platform glue operations */
 	struct musb_platform_ops *ops;
+
+	struct musb_context_registers context;
 
 	/* device lock */
 	spinlock_t		lock;
@@ -488,52 +518,6 @@ struct musb {
 	struct proc_dir_entry *proc_entry;
 #endif
 };
-
-#ifdef CONFIG_PM
-struct musb_csr_regs {
-	/* FIFO registers */
-	u16 txmaxp, txcsr, rxmaxp, rxcsr;
-	u16 rxfifoadd, txfifoadd;
-	u8 txtype, txinterval, rxtype, rxinterval;
-	u8 rxfifosz, txfifosz;
-	u8 txfunaddr, txhubaddr, txhubport;
-	u8 rxfunaddr, rxhubaddr, rxhubport;
-};
-
-struct musb_context_registers {
-
-#if defined(CONFIG_ARCH_OMAP2430) || defined(CONFIG_ARCH_OMAP3) || \
-    defined(CONFIG_ARCH_OMAP4)
-	u32 otg_sysconfig, otg_forcestandby;
-#endif
-	u8 power;
-	u16 intrtxe, intrrxe;
-	u8 intrusbe;
-	u16 frame;
-	u8 index, testmode;
-
-	u8 devctl, busctl, misc;
-
-	struct musb_csr_regs index_regs[MUSB_C_NUM_EPS];
-};
-
-#if defined(CONFIG_ARCH_OMAP2430) || defined(CONFIG_ARCH_OMAP3) || \
-    defined(CONFIG_ARCH_OMAP4) || defined(CONFIG_BLACKFIN)
-extern void musb_platform_save_context(struct musb *musb,
-		struct musb_context_registers *musb_context);
-extern void musb_platform_restore_context(struct musb *musb,
-		struct musb_context_registers *musb_context);
-#else
-#define musb_platform_save_context(m, x)	do {} while (0)
-#define musb_platform_restore_context(m, x)	do {} while (0)
-#endif
-
-#endif
-
-static inline void musb_set_vbus(struct musb *musb, int is_on)
-{
-	musb->board_set_vbus(musb, is_on);
-}
 
 #ifdef CONFIG_USB_GADGET_MUSB_HDRC
 static inline struct musb *gadget_to_musb(struct usb_gadget *g)
@@ -674,6 +658,28 @@ static inline int musb_platform_exit(struct musb *musb)
 		return 0;
 
 	return musb->ops->exit(musb);
+}
+
+static inline int musb_platform_suspend(struct musb *musb)
+{
+	if (!musb->ops->suspend)
+		return 0;
+
+	return musb->ops->suspend(musb);
+}
+
+static inline int musb_platform_resume(struct musb *musb)
+{
+	if (!musb->ops->resume)
+		return 0;
+
+	return musb->ops->resume(musb);
+}
+
+static inline void musb_set_vbus(struct musb *musb, int is_on)
+{
+	if (musb->ops->set_vbus)
+		musb->ops->set_vbus(musb, is_on);
 }
 
 #endif	/* __MUSB_CORE_H__ */
