@@ -32,37 +32,25 @@ config USB_MUSB_HDRC
 	  To compile this driver as a module, choose M here; the
 	  module will be called "musb_hdrc".
 
-config USB_MUSB_SOC
-	boolean
-	depends on USB_MUSB_HDRC
-	default y if ARCH_DAVINCI
-	default y if ARCH_OMAP2430
-	default y if ARCH_OMAP3
-	default y if ARCH_OMAP4
-	default y if (BF54x && !BF544)
-	default y if (BF52x && !BF522 && !BF523)
+config USB_MUSB_OMAP2PLUS
+	tristate "OMAP2PLUS MUSB Glue Layer"
+	depends on USB_MUSB_HDRC && ARCH_OMAP
 
-comment "DaVinci 35x and 644x USB support"
+config USB_MUSB_DAVINCI
+	tristate "DaVinci MUSB Glue Layer"
 	depends on USB_MUSB_HDRC && ARCH_DAVINCI_DMx
 
-comment "DA8xx/OMAP-L1x USB support"
+config USB_MUSB_DA8XX
+	tristate "DaVinci DA8XX MUSB Glue Layer"
 	depends on USB_MUSB_HDRC && ARCH_DAVINCI_DA8XX
 
-comment "OMAP 243x high speed USB support"
-	depends on USB_MUSB_HDRC && ARCH_OMAP2430
-
-comment "OMAP 343x high speed USB support"
-	depends on USB_MUSB_HDRC && ARCH_OMAP3
-
-comment "OMAP 44xx high speed USB support"
-	depends on USB_MUSB_HDRC && ARCH_OMAP4
-
-comment "Blackfin high speed USB Support"
+config USB_MUSB_BLACKFIN
+	tristate "Blackfin MUSB Glue Layer"
 	depends on USB_MUSB_HDRC && ((BF54x && !BF544) || (BF52x && !BF522 && !BF523))
 
 config USB_MUSB_AM35X
-	bool
-	depends on USB_MUSB_HDRC && !ARCH_OMAP2430 && !ARCH_OMAP4
+	tristate "AM35x MUSB Glue Layer"
+	depends on USB_MUSB_HDRC
 	select NOP_USB_XCEIV
 	default MACH_OMAP3517EVM
 	help
@@ -72,8 +60,8 @@ config USB_MUSB_AM35X
 	  AM35x platforms.
 
 config USB_TUSB6010
-	boolean "TUSB 6010 support"
-	depends on USB_MUSB_HDRC && !USB_MUSB_SOC
+	tristate "TUSB6010 MUSB Glue Layer"
+	depends on USB_MUSB_HDRC && ARCH_OMAP
 	select NOP_USB_XCEIV
 	default y
 	help
