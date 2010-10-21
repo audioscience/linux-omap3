@@ -253,6 +253,34 @@ enum musb_g_ep0_state {
 
 /******************************** TYPES *************************************/
 
+/**
+ * struct musb_platform_ops - Operations passed to musb_core by HW glue layer
+ * @init:	turns on clocks, sets up platform-specific registers, etc
+ * @exit:	undoes @init
+ * @suspend:	platform-specific suspend, e.g. context save
+ * @resume:	platform-specific resume, e.g. context restore
+ * @set_mode:	forcefully changes operating mode
+ * @try_ilde:	tries to idle the IP
+ * @vbus_status: returns vbus status if possible
+ * @set_vbus:	forces vbus status
+ */
+struct musb_platform_ops {
+	int	(*init)(struct musb *musb, void *board_data);
+	int	(*exit)(struct musb *musb);
+
+	int	(*suspend)(struct musb *musb);
+	int	(*resume)(struct musb *musb);
+
+	void	(*enable)(struct musb *musb);
+	void	(*disable)(struct musb *musb);
+
+	int	(*set_mode)(struct musb *musb, u8 mode);
+	void	(*try_idle)(struct musb *musb, unsigned long timeout);
+
+	int	(*vbus_status)(struct musb *musb);
+	int	(*set_vbus)(struct musb *musb, int on);
+};
+
 /*
  * struct musb_hw_ep - endpoint hardware (bidirectional)
  *
@@ -327,6 +355,9 @@ static inline struct usb_request *next_out_request(struct musb_hw_ep *hw_ep)
  * struct musb - Driver instance data.
  */
 struct musb {
+	/* platform glue operations */
+	struct musb_platform_ops *ops;
+
 	/* device lock */
 	spinlock_t		lock;
 	struct clk		*clock;
@@ -592,29 +623,57 @@ extern void musb_load_testpacket(struct musb *);
 
 extern irqreturn_t musb_interrupt(struct musb *);
 
-extern void musb_platform_enable(struct musb *musb);
-extern void musb_platform_disable(struct musb *musb);
+static inline void musb_platform_enable(struct musb *musb)
+{
+	if (musb->ops->enable)
+		musb->ops->enable(musb);
+}
+
+static inline void musb_platform_disable(struct musb *musb)
+{
+	if (musb->ops->disable)
+		musb->ops->disable(musb);
+}
 
 extern void musb_hnp_stop(struct musb *musb);
 
-extern int musb_platform_set_mode(struct musb *musb, u8 musb_mode);
+static inline int musb_platform_set_mode(struct musb *musb, u8 musb_mode)
+{
+	if (!musb->ops->set_mode)
+		return 0;
 
-#if defined(CONFIG_USB_TUSB6010) || defined(CONFIG_BLACKFIN) || \
-	defined(CONFIG_ARCH_DAVINCI_DA8XX) || \
-	defined(CONFIG_ARCH_OMAP2430) || defined(CONFIG_ARCH_OMAP3) || \
-	defined(CONFIG_ARCH_OMAP4)
-extern void musb_platform_try_idle(struct musb *musb, unsigned long timeout);
-#else
-#define musb_platform_try_idle(x, y)		do {} while (0)
-#endif
+	return musb->ops->set_mode(musb, musb_mode);
+}
 
-#if defined(CONFIG_USB_TUSB6010) || defined(CONFIG_BLACKFIN)
-extern int musb_platform_get_vbus_status(struct musb *musb);
-#else
-#define musb_platform_get_vbus_status(x)	0
-#endif
+static inline void musb_platform_try_idle(struct musb *musb,
+		unsigned long timeout)
+{
+	if (musb->ops->try_idle)
+		musb->ops->try_idle(musb, timeout);
+}
 
-extern int __init musb_platform_init(struct musb *musb, void *board_data);
-extern int musb_platform_exit(struct musb *musb);
+static inline int musb_platform_get_vbus_status(struct musb *musb)
+{
+	if (!musb->ops->vbus_status)
+		return 0;
+
+	return musb->ops->vbus_status(musb);
+}
+
+static inline int musb_platform_init(struct musb *musb, void *board_data)
+{
+	if (!musb->ops->init)
+		return -ENODEV;
+
+	return musb->ops->init(musb, board_data);
+}
+
+static inline int musb_platform_exit(struct musb *musb)
+{
+	if (!musb->ops->exit)
+		return 0;
+
+	return musb->ops->exit(musb);
+}
 
 #endif	/* __MUSB_CORE_H__ */
