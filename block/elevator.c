@@ -877,7 +877,6 @@ int elv_register_queue(struct request_queue *q)
 			}
 		}
 		kobject_uevent(&e->kobj, KOBJ_ADD);
-		e->registered = 1;
 	}
 	return error;
 }
@@ -887,7 +886,6 @@ static void __elv_unregister_queue(struct elevator_queue *e)
 {
 	kobject_uevent(&e->kobj, KOBJ_REMOVE);
 	kobject_del(&e->kobj);
-	e->registered = 0;
 }
 
 void elv_unregister_queue(struct request_queue *q)
@@ -983,13 +981,11 @@ static int elevator_switch(struct request_queue *q, struct elevator_type *new_e)
 
 	spin_unlock_irq(q->queue_lock);
 
-	if (old_elevator->registered) {
-		__elv_unregister_queue(old_elevator);
+	__elv_unregister_queue(old_elevator);
 
-		err = elv_register_queue(q);
-		if (err)
-			goto fail_register;
-	}
+	err = elv_register_queue(q);
+	if (err)
+		goto fail_register;
 
 	/*
 	 * finally exit old elevator and turn off BYPASS.
