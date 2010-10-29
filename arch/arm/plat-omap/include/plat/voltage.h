@@ -134,7 +134,7 @@ void omap_change_voltscale_method(struct voltagedomain *voltdm,
 int omap_voltage_late_init(void);
 int omap_voltage_add_request(struct voltagedomain *voltdm, struct device *dev,
 		unsigned long *volt);
-
+int omap_voltage_add_dev(struct voltagedomain *voltdm, struct device *dev);
 #else
 static inline int omap_voltage_register_pmic(struct voltagedomain *voltdm,
 		struct omap_volt_pmic_info *pmic_info) {}
@@ -146,6 +146,11 @@ static inline int omap_voltage_late_init(void)
 }
 static inline int omap_voltage_add_request(struct voltagedomain *voltdm,
 		struct device *dev, unsigned long *volt)
+{
+	return -EINVAL;
+}
+static inline int omap_voltage_add_dev(struct voltagedomain *voltdm,
+		struct device *dev)
 {
 	return -EINVAL;
 }
