@@ -346,6 +346,8 @@ void __init omap2_init_common_hw(struct omap_sdrc_params *sdrc_cs0,
 		omap3xxx_hwmod_init();
 	else if (cpu_is_omap44xx())
 		omap44xx_hwmod_init();
+	else if (cpu_is_ti816x())
+		ti816x_hwmod_init();
 
 	omap_pm_if_early_init();
 
@@ -367,8 +369,7 @@ void __init omap2_init_common_hw(struct omap_sdrc_params *sdrc_cs0,
 #ifndef CONFIG_PM_RUNTIME
 	skip_setup_idle = 1;
 #endif
-	if (!cpu_is_ti816x())
-		omap_hwmod_late_init(skip_setup_idle);
+	omap_hwmod_late_init(skip_setup_idle);
 
 	if (cpu_is_omap24xx() || cpu_is_omap34xx()) {
 		omap2_sdrc_init(sdrc_cs0, sdrc_cs1);

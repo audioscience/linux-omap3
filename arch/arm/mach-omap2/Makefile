@@ -17,7 +17,7 @@ clock-common				= clock.o clock_common_data.o \
 obj-$(CONFIG_ARCH_OMAP2) += $(omap-2-3-common) $(prcm-common) $(hwmod-common)
 obj-$(CONFIG_ARCH_OMAP3) += $(omap-2-3-common) $(prcm-common) $(hwmod-common)
 obj-$(CONFIG_ARCH_OMAP4) += $(prcm-common) prm44xx.o $(hwmod-common)
-obj-$(CONFIG_ARCH_TI816X) += $(omap-2-3-common) $(prcm-common)
+obj-$(CONFIG_ARCH_TI81XX) += $(omap-2-3-common) $(hwmod-common) $(prcm-common)
 
 obj-$(CONFIG_OMAP_MCBSP) += mcbsp.o
 
@@ -72,6 +72,7 @@ obj-$(CONFIG_PM_OPP)		+= opp.o
 obj-$(CONFIG_ARCH_OMAP2)		+= cm.o
 obj-$(CONFIG_ARCH_OMAP3)		+= cm.o
 obj-$(CONFIG_ARCH_OMAP4)		+= cm4xxx.o
+obj-$(CONFIG_ARCH_TI81XX)		+= cm81xx.o
 
 # Clock framework
 obj-$(CONFIG_ARCH_OMAP2)		+= $(clock-common) clock2xxx.o \
@@ -98,6 +99,7 @@ obj-$(CONFIG_ARCH_OMAP2420)		+= omap_hwmod_2420_data.o
 obj-$(CONFIG_ARCH_OMAP2430)		+= omap_hwmod_2430_data.o
 obj-$(CONFIG_ARCH_OMAP3)		+= omap_hwmod_3xxx_data.o
 obj-$(CONFIG_ARCH_OMAP4)		+= omap_hwmod_44xx_data.o
+obj-$(CONFIG_ARCH_TI816X)		+= omap_hwmod_816x_data.o
 
 # EMU peripherals
 obj-$(CONFIG_OMAP3_EMU)			+= emu.o
