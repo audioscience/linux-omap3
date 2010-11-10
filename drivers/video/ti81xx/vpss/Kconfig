@@ -27,7 +27,7 @@ config TI81XX_VPSS_DEBUG_SUPPORT
 config TI81XX_VPSS_SHARED_BUFFER_BASE
 	hex "sharing buffer base(hex)"
 	range 0x80000000 0xC0000000
-	default 0x8DE00000
+	default 0xB2C00000
 	help
 	    The base of shareing buffer to be reserved for IPC notify between
 	    A8 and M3. This buffer is used by the vpss to transfer information
