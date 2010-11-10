@@ -26,8 +26,11 @@
 			OMAP2_L4_IO_ADDRESS(OMAP4430_CM1_BASE + (module) + (reg))
 #define OMAP44XX_CM2_REGADDR(module, reg)				\
 			OMAP2_L4_IO_ADDRESS(OMAP4430_CM2_BASE + (module) + (reg))
+#define TI816X_CM_REGADDR(module, reg)					\
+			TI816X_L4_SLOW_IO_ADDRESS(TI816X_PRCM_BASE + (module) + (reg))
 
 #include "cm44xx.h"
+#include "cm816x.h"
 
 /*
  * Architecture-specific global CM registers
