@@ -425,6 +425,9 @@ static inline void omap2_mcspi4_init(void)
 
 static void omap_init_mcspi(void)
 {
+	if (cpu_is_ti816x())
+		return;
+
 	if (cpu_is_omap44xx())
 		omap4_mcspi_fixup();
 
@@ -639,7 +642,7 @@ static void __init omap_hsmmc_reset(void)
 {
 	u32 i, nr_controllers;
 
-	if (cpu_is_omap242x())
+	if (cpu_is_omap242x() || cpu_is_ti816x())
 		return;
 
 	nr_controllers = cpu_is_omap44xx() ? OMAP44XX_NR_MMC :
