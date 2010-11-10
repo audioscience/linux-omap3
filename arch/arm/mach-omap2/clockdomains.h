@@ -832,6 +832,7 @@ static struct clockdomain dpll5_clkdm = {
 #endif   /* CONFIG_ARCH_OMAP3 */
 
 #include "clockdomains44xx.h"
+#include "clockdomains816x.h"
 
 /*
  * Clockdomain hwsup dependencies (OMAP3 only)
@@ -929,6 +930,23 @@ static struct clockdomain *clockdomains_omap[] = {
 	&l4_wkup_44xx_clkdm,
 	&emu_sys_44xx_clkdm,
 	&l3_dma_44xx_clkdm,
+#endif
+
+#ifdef CONFIG_ARCH_TI816X
+	&alwon_mpu_816x_clkdm,
+	&alwon_l3_slow_816x_clkdm,
+	&alwon_ethernet_816x_clkdm,
+	&mmu_816x_clkdm,
+	&mmu_cfg_816x_clkdm,
+	&active_gem_816x_clkdm,
+	&ivahd0_816x_clkdm,
+	&ivahd1_816x_clkdm,
+	&ivahd2_816x_clkdm,
+	&sgx_816x_clkdm,
+	&default_l3_med_816x_clkdm,
+	&default_ducati_816x_clkdm,
+	&default_pcie_816x_clkdm,
+	&default_usb_816x_clkdm,
 #endif
 
 	NULL,
