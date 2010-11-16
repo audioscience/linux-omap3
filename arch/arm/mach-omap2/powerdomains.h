@@ -57,7 +57,7 @@
 #include "powerdomains24xx.h"
 #include "powerdomains34xx.h"
 #include "powerdomains44xx.h"
-#include "powerdomains816x.h"
+#include "powerdomains81xx.h"
 
 /* OMAP2/3-common powerdomains */
 

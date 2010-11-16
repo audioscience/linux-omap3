@@ -832,7 +832,7 @@ static struct clockdomain dpll5_clkdm = {
 #endif   /* CONFIG_ARCH_OMAP3 */
 
 #include "clockdomains44xx.h"
-#include "clockdomains816x.h"
+#include "clockdomains81xx.h"
 
 /*
  * Clockdomain hwsup dependencies (OMAP3 only)

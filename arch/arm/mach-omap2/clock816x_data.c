@@ -23,9 +23,9 @@
 
 #include "control.h"
 #include "clock.h"
-#include "clock816x.h"
+#include "clock81xx.h"
 #include "cm.h"
-#include "cm-regbits-816x.h"
+#include "cm-regbits-81xx.h"
 #include "prm.h"
 
 /*
@@ -114,7 +114,7 @@ static struct clk sysclk1_ck = {
 	.init		= &omap2_init_clksel_parent,
 	.ops		= &clkops_null,
 	.clksel_reg	= TI816X_CM_DPLL_SYSCLK1_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_2_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_2_MASK,
 	.recalc		= &omap2_clksel_recalc,
 };
 
@@ -123,7 +123,7 @@ static struct clk gem_ick = {
 	.parent         = &sysclk1_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ACTIVE_GEM_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "active_gem_clkdm",
 	.recalc         = &followparent_recalc,
 };
@@ -147,7 +147,7 @@ static struct clk sysclk2_ck = {
 	.init		= &omap2_init_clksel_parent,
 	.ops		= &clkops_null,
 	.clksel_reg	= TI816X_CM_DPLL_SYSCLK2_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_2_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_2_MASK,
 	.recalc		= &omap2_clksel_recalc,
 };
 
@@ -156,7 +156,7 @@ static struct clk mpu_ck = {
 	.parent         = &sysclk2_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_MPU_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "alwon_mpu_clkdm",
 	.recalc         = &followparent_recalc,
 };
@@ -173,7 +173,7 @@ static struct clk sysclk23_ck = {
 	.init		= &omap2_init_clksel_parent,
 	.ops		= &clkops_null,
 	.clksel_reg	= TI816X_CM_DPLL_SYSCLK23_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_2_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_2_MASK,
 	.recalc		= &omap2_clksel_recalc,
 };
 
@@ -182,7 +182,7 @@ static struct clk sgx_ck = {
 	.parent         = &sysclk23_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_SGX_SGX_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "sgx_clkdm",
 	.recalc         = &followparent_recalc,
 };
@@ -213,7 +213,7 @@ static struct clk sysclk3_ck = {
 	.init		= &omap2_init_clksel_parent,
 	.ops		= &clkops_null,
 	.clksel_reg	= TI816X_CM_DPLL_SYSCLK3_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_2_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_2_MASK,
 	.recalc		= &omap2_clksel_recalc,
 };
 
@@ -222,7 +222,7 @@ static struct clk ivahd0_ck = {
 	.parent         = &sysclk3_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_IVAHD0_IVAHD_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "ivahd0_clkdm",
 	.recalc         = &followparent_recalc,
 };
@@ -232,7 +232,7 @@ static struct clk ivahd0_sl2_ick = {
 	.parent         = &sysclk3_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_IVAHD0_SL2_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "ivahd0_clkdm",
 	.recalc         = &followparent_recalc,
 };
@@ -242,7 +242,7 @@ static struct clk ivahd1_ck = {
 	.parent         = &sysclk3_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_IVAHD1_IVAHD_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "ivahd1_clkdm",
 	.recalc         = &followparent_recalc,
 };
@@ -252,7 +252,7 @@ static struct clk ivahd1_sl2_ick = {
 	.parent         = &sysclk3_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_IVAHD1_SL2_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "ivahd1_clkdm",
 	.recalc         = &followparent_recalc,
 };
@@ -262,7 +262,7 @@ static struct clk ivahd2_ck = {
 	.parent         = &sysclk3_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_IVAHD2_IVAHD_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "ivahd2_clkdm",
 	.recalc         = &followparent_recalc,
 };
@@ -272,7 +272,7 @@ static struct clk ivahd2_sl2_ick = {
 	.parent         = &sysclk3_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_IVAHD2_SL2_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "ivahd2_clkdm",
 	.recalc         = &followparent_recalc,
 };
@@ -302,7 +302,7 @@ static struct clk sysclk4_ck = {
 	.init		= &omap2_init_clksel_parent,
 	.ops		= &clkops_null,
 	.clksel_reg	= TI816X_CM_DPLL_SYSCLK4_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_0_MASK,
 	.recalc		= &omap2_clksel_recalc,
 };
 
@@ -311,7 +311,7 @@ static struct clk mmu_ick = {
 	.parent         = &sysclk4_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_MMUDATA_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "mmu_clkdm",
 	.recalc         = &followparent_recalc,
 };
@@ -329,7 +329,7 @@ static struct clk tpcc_ick = {
 	.parent         = &sysclk4_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_TPCC_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.recalc         = &followparent_recalc,
 };
 
@@ -338,7 +338,7 @@ static struct clk tptc0_ick = {
 	.parent         = &sysclk4_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_TPTC0_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.recalc         = &followparent_recalc,
 };
 
@@ -347,7 +347,7 @@ static struct clk tptc1_ick = {
 	.parent         = &sysclk4_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_TPTC1_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.recalc         = &followparent_recalc,
 };
 
@@ -356,7 +356,7 @@ static struct clk tptc2_ick = {
 	.parent         = &sysclk4_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_TPTC2_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.recalc         = &followparent_recalc,
 };
 
@@ -365,7 +365,7 @@ static struct clk tptc3_ick = {
 	.parent         = &sysclk4_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_TPTC3_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.recalc         = &followparent_recalc,
 };
 
@@ -386,7 +386,7 @@ static struct clk sysclk6_ck = {
 	.init		= &omap2_init_clksel_parent,
 	.ops		= &clkops_null,
 	.clksel_reg	= TI816X_CM_DPLL_SYSCLK6_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_0_MASK,
 	.recalc		= &omap2_clksel_recalc,
 };
 
@@ -395,7 +395,7 @@ static struct clk mmu_cfg_ick = {
 	.parent         = &sysclk6_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_MMUCFG_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "mmu_cfg_clkdm",
 	.recalc         = &followparent_recalc,
 };
@@ -405,7 +405,7 @@ static struct clk mailbox_ick = {
 	.parent         = &sysclk6_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_MAILBOX_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc         = &followparent_recalc,
 };
@@ -415,7 +415,7 @@ static struct clk spinbox_ick = {
 	.parent         = &sysclk6_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_SPINBOX_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc         = &followparent_recalc,
 };
@@ -465,7 +465,7 @@ static struct clk usbotg_ick = {
 	.parent         = &sysclk6_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_DEFAULT_USB_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "default_usb_clkdm",
 	.recalc         = &followparent_recalc,
 };
@@ -577,7 +577,7 @@ static struct clk sysclk5_ck = {
 	.init		= &omap2_init_clksel_parent,
 	.ops		= &clkops_null,
 	.clksel_reg	= TI816X_CM_DPLL_SYSCLK5_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_0_MASK,
 	.recalc		= &omap2_clksel_recalc,
 };
 
@@ -586,7 +586,7 @@ static struct clk pcie_ck = {
 	.parent         = &sysclk5_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_DEFAULT_PCI_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "default_pcie_clkdm",
 	.recalc         = &followparent_recalc,
 };
@@ -596,7 +596,7 @@ static struct clk sata_ick = {
 	.parent         = &sysclk5_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_DEFAULT_SATA_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "default_l3_med_clkdm",
 	.recalc         = &followparent_recalc,
 };
@@ -606,7 +606,7 @@ static struct clk emac1_ick = {
 	.parent         = &sysclk5_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_ETHERNET_0_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "alwon_ethernet_clkdm",
 	.recalc         = &followparent_recalc,
 };
@@ -616,7 +616,7 @@ static struct clk emac2_ick = {
 	.parent         = &sysclk5_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_ETHERNET_1_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "alwon_ethernet_clkdm",
 	.recalc         = &followparent_recalc,
 };
@@ -626,7 +626,7 @@ static struct clk ducati_ick = {
 	.parent         = &sysclk5_ck,
 	.ops            = &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_DEFAULT_DUCATI_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "default_ducati_clkdm",
 	.recalc         = &followparent_recalc,
 };
@@ -665,7 +665,7 @@ static struct clk sysclk10_ck = {
 	.init		= &omap2_init_clksel_parent,
 	.ops		= &clkops_null,
 	.clksel_reg	= TI816X_CM_DPLL_SYSCLK10_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_2_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_2_MASK,
 	.recalc		= &omap2_clksel_recalc,
 };
 
@@ -674,7 +674,7 @@ static struct clk uart1_fck = {
 	.parent		= &sysclk10_ck,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_UART_0_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &followparent_recalc,
 };
@@ -684,7 +684,7 @@ static struct clk uart2_fck = {
 	.parent		= &sysclk10_ck,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_UART_1_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &followparent_recalc,
 };
@@ -694,7 +694,7 @@ static struct clk uart3_fck = {
 	.parent		= &sysclk10_ck,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_UART_2_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &followparent_recalc,
 };
@@ -704,7 +704,7 @@ static struct clk mcspi1_fck = {
 	.parent		= &sysclk10_ck,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_SPI_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &followparent_recalc,
 };
@@ -714,7 +714,7 @@ static struct clk gpmc_fck = {
 	.parent		= &sysclk10_ck,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_GPMC_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &followparent_recalc,
 };
@@ -724,7 +724,7 @@ static struct clk i2c1_fck = {
 	.parent		= &sysclk10_ck,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_I2C_0_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &followparent_recalc,
 };
@@ -734,7 +734,7 @@ static struct clk i2c2_fck = {
 	.parent		= &sysclk10_ck,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_I2C_1_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &followparent_recalc,
 };
@@ -744,7 +744,7 @@ static struct clk mmchs1_fck = {
 	.parent		= &sysclk10_ck,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_SDIO_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &followparent_recalc,
 };
@@ -775,7 +775,7 @@ static struct clk sysclk24_ck = {
 	.init		= &omap2_init_clksel_parent,
 	.ops		= &clkops_null,
 	.clksel_reg	= TI816X_CM_DPLL_SYSCLK24_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_2_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_2_MASK,
 	.recalc		= &omap2_clksel_recalc,
 };
 
@@ -826,7 +826,7 @@ static struct clk audio_pll_a_ck = {
 	.clksel		= audio_pll_a_div,
 	.ops		= &clkops_null,
 	.clksel_reg	= TI816X_CM_DPLL_APA_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_2_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_2_MASK,
 	.recalc		= &omap2_clksel_recalc,
 };
 
@@ -858,7 +858,7 @@ static struct clk sysclk18_ck = {
 	.clksel		= sysclk18_mux_sel,
 	.ops		= &clkops_null,
 	.clksel_reg	= TI816X_CM_DPLL_SYSCLK18_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_0_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_0_MASK,
 	.recalc		= &omap2_clksel_recalc,
 };
 
@@ -881,7 +881,7 @@ static struct clk sysclk20_ck = {
 	.clksel		= sysclk20_div,
 	.ops		= &clkops_null,
 	.clksel_reg	= TI816X_CM_DPLL_SYSCLK20_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_2_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_2_MASK,
 	.recalc		= &omap2_clksel_recalc,
 };
 
@@ -904,7 +904,7 @@ static struct clk sysclk21_ck = {
 	.clksel		= sysclk21_div,
 	.ops		= &clkops_null,
 	.clksel_reg	= TI816X_CM_DPLL_SYSCLK21_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_2_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_2_MASK,
 	.recalc		= &omap2_clksel_recalc,
 };
 
@@ -927,7 +927,7 @@ static struct clk sysclk22_ck = {
 	.clksel		= sysclk22_div,
 	.ops		= &clkops_null,
 	.clksel_reg	= TI816X_CM_DPLL_SYSCLK22_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_2_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_2_MASK,
 	.recalc		= &omap2_clksel_recalc,
 };
 
@@ -952,9 +952,9 @@ static struct clk gpt1_fck = {
 	.clksel		= gpt_mux_sel,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_TIMER_1_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clksel_reg	= TI816X_CM_DPLL_TIMER1_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_1_MASK,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &omap2_clksel_recalc,
 };
@@ -966,9 +966,9 @@ static struct clk gpt2_fck = {
 	.init		= &omap2_init_clksel_parent,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_TIMER_2_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clksel_reg	= TI816X_CM_DPLL_TIMER2_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_1_MASK,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &omap2_clksel_recalc,
 };
@@ -980,9 +980,9 @@ static struct clk gpt3_fck = {
 	.init		= &omap2_init_clksel_parent,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_TIMER_3_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clksel_reg	= TI816X_CM_DPLL_TIMER3_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_1_MASK,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &omap2_clksel_recalc,
 };
@@ -994,9 +994,9 @@ static struct clk gpt4_fck = {
 	.init		= &omap2_init_clksel_parent,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_TIMER_4_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clksel_reg	= TI816X_CM_DPLL_TIMER4_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_1_MASK,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &omap2_clksel_recalc,
 };
@@ -1008,9 +1008,9 @@ static struct clk gpt5_fck = {
 	.init		= &omap2_init_clksel_parent,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_TIMER_5_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clksel_reg	= TI816X_CM_DPLL_TIMER5_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_1_MASK,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &omap2_clksel_recalc,
 };
@@ -1022,9 +1022,9 @@ static struct clk gpt6_fck = {
 	.init		= &omap2_init_clksel_parent,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_TIMER_6_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clksel_reg	= TI816X_CM_DPLL_TIMER6_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_1_MASK,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &omap2_clksel_recalc,
 };
@@ -1036,9 +1036,9 @@ static struct clk gpt7_fck = {
 	.init		= &omap2_init_clksel_parent,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_TIMER_7_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clksel_reg	= TI816X_CM_DPLL_TIMER7_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_1_MASK,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &omap2_clksel_recalc,
 };
@@ -1058,9 +1058,9 @@ static struct clk mcasp0_fck = {
 	.clksel		= mcasp0to2_mux_sel,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_MCASP0_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clksel_reg	= TI816X_CM_DPLL_AUDIOCLK_MCASP0_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_1_MASK,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &omap2_clksel_recalc,
 };
@@ -1072,9 +1072,9 @@ static struct clk mcasp1_fck = {
 	.clksel		= mcasp0to2_mux_sel,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_MCASP1_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clksel_reg	= TI816X_CM_DPLL_AUDIOCLK_MCASP1_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_1_MASK,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &omap2_clksel_recalc,
 };
@@ -1086,9 +1086,9 @@ static struct clk mcasp2_fck = {
 	.clksel		= mcasp0to2_mux_sel,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI816X_CM_ALWON_MCASP2_CLKCTRL,
-	.enable_bit	= TI816X_MODULEMODE_SWCTRL,
+	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
 	.clksel_reg	= TI816X_CM_DPLL_AUDIOCLK_MCASP2_CLKSEL,
-	.clksel_mask	= TI816X_CLKSEL_0_1_MASK,
+	.clksel_mask	= TI81XX_CLKSEL_0_1_MASK,
 	.clkdm_name	= "alwon_l3_slow_clkdm",
 	.recalc		= &omap2_clksel_recalc,
 };
