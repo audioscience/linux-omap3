@@ -40,7 +40,8 @@ struct omap_clk {
 #define CK_3517		(1 << 11)
 #define CK_36XX		(1 << 12)	/* OMAP36xx/37xx-specific clocks */
 #define CK_443X		(1 << 13)
-#define CK_TI816X	(1 << 14)
+#define CK_TI814X	(1 << 14)
+#define CK_TI816X	(1 << 15)
 
 #define CK_AM35XX	(CK_3505 | CK_3517)	/* all Sitara AM35xx */
 
