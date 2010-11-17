@@ -107,11 +107,10 @@ config USB_SUSPEND
 	  If you are unsure about this, say N here.
 
 config USB_OTG
-	bool
+	bool "USB On The Go"
 	depends on USB && EXPERIMENTAL
 	depends on USB_SUSPEND
 	default n
-
 
 config USB_OTG_WHITELIST
 	bool "Rely on OTG Targeted Peripherals List"
