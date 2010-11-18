@@ -14,9 +14,6 @@
 
 #define DAVINCI_USB_OTG_BASE	0x01c64000
 
-#define DA8XX_USB0_BASE 	0x01e00000
-#define DA8XX_USB1_BASE 	0x01e25000
-
 #if defined(CONFIG_USB_MUSB_HDRC) || defined(CONFIG_USB_MUSB_HDRC_MODULE)
 static struct musb_hdrc_eps_bits musb_eps[] = {
 	{ "ep1_tx", 8, },
