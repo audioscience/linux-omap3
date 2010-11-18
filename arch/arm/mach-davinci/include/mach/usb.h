@@ -11,6 +11,9 @@
 #ifndef __ASM_ARCH_USB_H
 #define __ASM_ARCH_USB_H
 
+#define DA8XX_USB0_BASE		0x01e00000
+#define DA8XX_USB1_BASE		0x01e25000
+
 /* DA8xx CFGCHIP2 (USB 2.0 PHY Control) register bits */
 #define CFGCHIP2_PHYCLKGD	(1 << 17)
 #define CFGCHIP2_VBUSSENSE	(1 << 16)
@@ -33,6 +36,66 @@
 #define CFGCHIP2_REFFREQ_12MHZ	(1 << 0)
 #define CFGCHIP2_REFFREQ_24MHZ	(2 << 0)
 #define CFGCHIP2_REFFREQ_48MHZ	(3 << 0)
+
+/* DA8xx CPPI4.1 DMA registers */
+#define USB_REVISION_REG        0x00
+#define USB_CTRL_REG            0x04
+#define USB_STAT_REG            0x08
+#define USB_EMULATION_REG       0x08
+#define USB_MODE_REG            0x10    /* Transparent, CDC, [Generic] RNDIS */
+#define USB_AUTOREQ_REG         0x14
+#define USB_SRP_FIX_TIME_REG    0x18
+#define USB_TEARDOWN_REG        0x1c
+#define USB_INTR_SRC_REG        0x20
+#define USB_INTR_SRC_SET_REG    0x24
+#define USB_INTR_SRC_CLEAR_REG  0x28
+#define USB_INTR_MASK_REG       0x2c
+#define USB_INTR_MASK_SET_REG   0x30
+#define USB_INTR_MASK_CLEAR_REG 0x34
+#define USB_INTR_SRC_MASKED_REG 0x38
+#define USB_END_OF_INTR_REG     0x3c
+#define USB_GENERIC_RNDIS_EP_SIZE_REG(n) (0x50 + (((n) - 1) << 2))
+
+#define USB_TX_MODE_REG         USB_MODE_REG
+#define USB_RX_MODE_REG         USB_MODE_REG
+/* Control register bits */
+#define USB_SOFT_RESET_MASK     1
+
+/* Mode register bits */
+#define USB_RX_MODE_SHIFT(n)    (16 + (((n) - 1) << 2))
+#define USB_RX_MODE_MASK(n)     (3 << USB_RX_MODE_SHIFT(n))
+#define USB_TX_MODE_SHIFT(n)    ((((n) - 1) << 2))
+#define USB_TX_MODE_MASK(n)     (3 << USB_TX_MODE_SHIFT(n))
+#define USB_TRANSPARENT_MODE    0
+#define USB_RNDIS_MODE          1
+#define USB_CDC_MODE            2
+#define USB_GENERIC_RNDIS_MODE  3
+
+/* AutoReq register bits */
+#define USB_RX_AUTOREQ_SHIFT(n) (((n) - 1) << 1)
+#define USB_RX_AUTOREQ_MASK(n)  (3 << USB_RX_AUTOREQ_SHIFT(n))
+#define USB_NO_AUTOREQ          0
+#define USB_AUTOREQ_ALL_BUT_EOP 1
+#define USB_AUTOREQ_ALWAYS      3
+
+/* Teardown register bits */
+#define USB_TX_TDOWN_SHIFT(n)   (16 + (n))
+#define USB_TX_TDOWN_MASK(n)    (1 << USB_TX_TDOWN_SHIFT(n))
+#define USB_RX_TDOWN_SHIFT(n)   (n)
+#define USB_RX_TDOWN_MASK(n)    (1 << USB_RX_TDOWN_SHIFT(n))
+
+/* USB interrupt register bits */
+#define USB_INTR_USB_SHIFT      16
+#define USB_INTR_USB_MASK       (0x1ff << USB_INTR_USB_SHIFT) /* 8 Mentor */
+				/* interrupts and DRVVBUS interrupt */
+#define USB_INTR_DRVVBUS        0x100
+#define USB_INTR_RX_SHIFT       8
+#define USB_INTR_TX_SHIFT       0
+
+#define USB_MENTOR_CORE_OFFSET  0x400
+
+#define USB_CPPI41_NUM_CH 4
+#define USB_CPPI41_QMGR_REG0_ALLOC_SIZE         0x3fff
 
 struct	da8xx_ohci_root_hub;
 

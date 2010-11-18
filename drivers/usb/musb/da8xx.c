@@ -34,6 +34,8 @@
 #include <mach/usb.h>
 
 #include "musb_core.h"
+#include "cppi41.h"
+#include "cppi41_dma.h"
 
 /*
  * DA8XX specific definitions
@@ -77,6 +79,125 @@
 #define DA8XX_MENTOR_CORE_OFFSET 0x400
 
 #define CFGCHIP2	IO_ADDRESS(DA8XX_SYSCFG0_BASE + DA8XX_CFGCHIP2_REG)
+
+#ifdef CONFIG_USB_TI_CPPI41_DMA
+
+/*
+ * CPPI 4.1 resources used for USB OTG controller module:
+ *
+ * USB   DMA  DMA  QMgr  Tx     Src
+ *       Tx   Rx         QNum   Port
+ * ---------------------------------
+ * EP0   0    0    0     16,17  1
+ * ---------------------------------
+ * EP1   1    1    0     18,19  2
+ * ---------------------------------
+ * EP2   2    2    0     20,21  3
+ * ---------------------------------
+ * EP3   3    3    0     22,23  4
+ * ---------------------------------
+ */
+
+static const u16 tx_comp_q[] = { 24, 25 };
+static const u16 rx_comp_q[] = { 26, 27 };
+
+const struct usb_cppi41_info usb_cppi41_info = {
+	.dma_block	= 0,
+	.ep_dma_ch	= { 0, 1, 2, 3 },
+	.q_mgr		= 0,
+	.num_tx_comp_q	= 2,
+	.num_rx_comp_q	= 2,
+	.tx_comp_q	= tx_comp_q,
+	.rx_comp_q	= rx_comp_q
+};
+
+/* DMA block configuration */
+static const struct cppi41_tx_ch tx_ch_info[] = {
+	[0] = {
+		.port_num       = 1,
+		.num_tx_queue   = 2,
+		.tx_queue       = { { 0, 16 }, { 0, 17 } }
+	},
+	[1] = {
+		.port_num       = 2,
+		.num_tx_queue   = 2,
+		.tx_queue       = { { 0, 18 }, { 0, 19 } }
+	},
+	[2] = {
+		.port_num       = 3,
+		.num_tx_queue   = 2,
+		.tx_queue       = { { 0, 20 }, { 0, 21 } }
+	},
+	[3] = {
+		.port_num       = 4,
+		.num_tx_queue   = 2,
+		.tx_queue       = { { 0, 22 }, { 0, 23 } }
+	}
+};
+
+#define DA8XX_USB0_CFG_BASE IO_ADDRESS(DA8XX_USB0_BASE)
+struct cppi41_dma_block cppi41_dma_block[CPPI41_NUM_DMA_BLOCK] = {
+	[0] = {
+		.global_ctrl_base  = DA8XX_USB0_CFG_BASE + 0x1000,
+		.ch_ctrl_stat_base = DA8XX_USB0_CFG_BASE + 0x1800,
+		.sched_ctrl_base  = DA8XX_USB0_CFG_BASE + 0x2000,
+		.sched_table_base = DA8XX_USB0_CFG_BASE + 0x2800,
+		.num_tx_ch        = 4,
+		.num_rx_ch        = 4,
+		.tx_ch_info       = tx_ch_info
+	}
+};
+EXPORT_SYMBOL(cppi41_dma_block);
+
+/* Queues 0 to 27 are pre-assigned, others are spare */
+static const u32 assigned_queues[] = { 0x0fffffff, 0 };
+
+
+/* Queue manager information */
+struct cppi41_queue_mgr cppi41_queue_mgr[CPPI41_NUM_QUEUE_MGR] = {
+	[0] = {
+		.q_mgr_rgn_base    = DA8XX_USB0_CFG_BASE + 0x4000,
+		.desc_mem_rgn_base = DA8XX_USB0_CFG_BASE + 0x5000,
+		.q_mgmt_rgn_base   = DA8XX_USB0_CFG_BASE + 0x6000,
+		.q_stat_rgn_base   = DA8XX_USB0_CFG_BASE + 0x6800,
+
+		.num_queue       = 64,
+		.queue_types     = CPPI41_FREE_DESC_BUF_QUEUE |
+					CPPI41_UNASSIGNED_QUEUE,
+		.base_fdbq_num    = 0,
+		.assigned       = assigned_queues
+	}
+};
+EXPORT_SYMBOL(cppi41_queue_mgr);
+
+/* Fair scheduling */
+u32 dma_sched_table[] = {
+	0x81018000, 0x83038202,
+};
+
+int cppi41_init(void)
+{
+	u16 order;
+	u8 q_mgr, dma_num = 0, numch;
+
+	for (q_mgr = 0; q_mgr < CPPI41_NUM_QUEUE_MGR; ++q_mgr) {
+		/* Initialize Queue Manager 0, alloc for region 0 */
+		cppi41_queue_mgr_init(q_mgr, 0,
+				USB_CPPI41_QMGR_REG0_ALLOC_SIZE);
+
+		numch =  USB_CPPI41_NUM_CH * 2;
+		order = get_count_order(numch);
+
+		if (order < 5)
+			order = 5;
+
+		cppi41_dma_block_init(dma_num, q_mgr, order,
+			dma_sched_table, numch);
+	}
+	return 0;
+}
+EXPORT_SYMBOL(cppi41_init);
+#endif /* CONFIG_USB_TI_CPPI41_DMA */
 
 /*
  * REVISIT (PM): we should be able to keep the PHY in low power mode most
@@ -288,10 +409,31 @@ static irqreturn_t da8xx_interrupt(int irq, void *hci)
 	void __iomem		*reg_base = musb->ctrl_base;
 	unsigned long		flags;
 	irqreturn_t		ret = IRQ_NONE;
-	u32			status;
+	u32			status, pend0;
 
 	spin_lock_irqsave(&musb->lock, flags);
 
+#ifdef CONFIG_USB_TI_CPPI41_DMA
+	if (is_cppi41_enabled()) {
+		/*
+		 * Check for the interrupts from Tx/Rx completion queues; they
+		 * are level-triggered and will stay asserted until the queues
+		 * are emptied.  We're using the queue pending register 0 as a
+		 * substitute for the interrupt status register and reading it
+		 * directly for speed.
+		 */
+		pend0 = musb_readl(reg_base, 0x4000 +
+				   QMGR_QUEUE_PENDING_REG(0));
+		if (pend0 & (0xf << 24)) {		/* queues 24 to 27 */
+			u32 tx = (pend0 >> 24) & 0x3;
+			u32 rx = (pend0 >> 26) & 0x3;
+
+			DBG(4, "CPPI 4.1 IRQ: Tx %x, Rx %x\n", tx, rx);
+			cppi41_completion(musb, rx, tx);
+			ret = IRQ_HANDLED;
+		}
+	}
+#endif
 	/*
 	 * NOTE: DA8XX shadows the Mentor IRQs.  Don't manage them through
 	 * the Mentor registers (except for setup), use the TI ones and EOI.
@@ -441,6 +583,10 @@ int __init musb_platform_init(struct musb *musb, void *board_data)
 
 	msleep(5);
 
+#ifdef CONFIG_USB_TI_CPPI41_DMA
+	cppi41_init();
+#endif
+
 	/* NOTE: IRQs are in mixed mode, not bypass to pure MUSB */
 	pr_debug("DA8xx OTG revision %08x, PHY %03x, control %02x\n",
 		 rev, __raw_readl(CFGCHIP2),
@@ -462,6 +608,10 @@ int musb_platform_exit(struct musb *musb)
 
 	otg_put_transceiver(musb->xceiv);
 	usb_nop_xceiv_unregister();
+
+#ifdef CONFIG_USB_TI_CPPI41_DMA
+	cppi41_exit();
+#endif
 
 	clk_disable(musb->clock);
 
