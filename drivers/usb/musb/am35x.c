@@ -31,7 +31,6 @@
 #include <linux/io.h>
 #include <linux/platform_device.h>
 
-#include <plat/control.h>
 #include <plat/usb.h>
 
 #include "musb_core.h"
