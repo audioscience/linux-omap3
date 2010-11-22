@@ -104,6 +104,7 @@ static void omap2430_musb_do_idle(unsigned long _musb)
 	spin_unlock_irqrestore(&musb->lock, flags);
 }
 
+#define MUSB_TIMEOUT_A_WAIT_BCON	1100
 
 static void omap2430_musb_try_idle(struct musb *musb, unsigned long timeout)
 {
@@ -306,6 +307,7 @@ static int omap2430_musb_init(struct musb *musb, void *board_data)
 			musb_readl(musb->mregs, OTG_INTERFSEL),
 			musb_readl(musb->mregs, OTG_SIMENABLE));
 
+	musb->a_wait_bcon = MUSB_TIMEOUT_A_WAIT_BCON;
 	setup_timer(&musb_idle_timer, omap2430_musb_do_idle,
 			(unsigned long) musb);
 
