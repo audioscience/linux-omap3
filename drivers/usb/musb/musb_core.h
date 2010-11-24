@@ -257,6 +257,8 @@ enum musb_g_ep0_state {
  * @try_ilde:	tries to idle the IP
  * @vbus_status: returns vbus status if possible
  * @set_vbus:	forces vbus status
+ * @dma_create: returns dma controller pointer
+ * @dma_destroy: void
  */
 struct musb_platform_ops {
 	int	(*init)(struct musb *musb, void *board_data);
@@ -273,6 +275,11 @@ struct musb_platform_ops {
 
 	int	(*vbus_status)(struct musb *musb);
 	int	(*set_vbus)(struct musb *musb, int on);
+
+	struct dma_controller*
+		(*dma_create)(struct musb *musb, void __iomem *regs);
+
+	void	(*dma_destroy)(struct dma_controller *c);
 };
 
 /*
@@ -673,6 +680,22 @@ static inline void musb_set_vbus(struct musb *musb, int is_on)
 {
 	if (musb->ops->set_vbus)
 		musb->ops->set_vbus(musb, is_on);
+}
+
+static inline struct dma_controller *__init
+dma_controller_create(struct musb *musb, void __iomem *regs)
+{
+	if (!musb->ops->dma_create)
+		return 0;
+
+	return musb->ops->dma_create(musb, regs);
+}
+
+static inline void dma_controller_destroy(struct musb *musb,
+				struct dma_controller *c)
+{
+	if (musb->ops->dma_destroy)
+		musb->ops->dma_destroy(c);
 }
 
 /*-------------------------- ProcFS definitions ---------------------*/

@@ -732,6 +732,10 @@ static struct musb_platform_ops am35x_musb_ops = {
 	.disable	= am35x_musb_disable,
 	.try_idle	= am35x_musb_try_idle,
 	.set_mode	= am35x_musb_set_mode,
+#ifndef CONFIG_MUSB_PIO_ONLY
+	.dma_create	= cppi41_dma_controller_create,
+	.dma_destroy	= cppi41_dma_controller_destroy,
+#endif
 };
 
 static int __init am35x_musb_probe(struct platform_device *pdev)

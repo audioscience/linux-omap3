@@ -22,22 +22,21 @@ endif
 ifneq ($(CONFIG_MUSB_PIO_ONLY),y)
 
   ifeq ($(CONFIG_USB_INVENTRA_DMA),y)
-    musb_hdrc-y			+= musbhsdma.o
-
-  else
-    ifeq ($(CONFIG_USB_TI_CPPI_DMA),y)
-      musb_hdrc-y		+= cppi_dma.o
-
-    else
-      ifeq ($(CONFIG_USB_TUSB_OMAP_DMA),y)
-	musb_hdrc-y		+= tusb6010_omap.o
-      else
-	ifeq ($(CONFIG_USB_TI_CPPI41_DMA),y)
-	  musb_hdrc-y		+= cppi41_dma.o cppi41.o
-	endif
-      endif
-    endif
+    musb_hdrc-y		+= musbhsdma.o
   endif
+
+  ifeq ($(CONFIG_USB_TI_CPPI_DMA),y)
+    musb_hdrc-y		+= cppi_dma.o
+  endif
+
+  ifeq ($(CONFIG_USB_TUSB_OMAP_DMA),y)
+    musb_hdrc-y		+= tusb6010_omap.o
+  endif
+
+  ifeq ($(CONFIG_USB_TI_CPPI41_DMA),y)
+    musb_hdrc-y		+= cppi41_dma.o cppi41.o
+  endif
+
 endif
 
 obj-$(CONFIG_USB_MUSB_DAVINCI)	+= davinci.o

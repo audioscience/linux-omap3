@@ -164,3 +164,8 @@ struct musb_dma_controller {
 	u8				used_channels;
 	u8				irq;
 };
+
+struct dma_controller *__init
+inventra_dma_controller_create(struct musb *musb, void __iomem *base);
+
+void inventra_dma_controller_destroy(struct dma_controller *c);
