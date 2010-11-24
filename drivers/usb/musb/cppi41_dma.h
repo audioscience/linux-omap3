@@ -56,4 +56,8 @@ extern const struct usb_cppi41_info usb_cppi41_info;
  */
 void cppi41_completion(struct musb *musb, u32 rx, u32 tx);
 
+struct dma_controller * __init cppi41_dma_controller_create(struct musb  *musb,
+						     void __iomem *mregs);
+void cppi41_dma_controller_destroy(struct dma_controller *controller);
+
 #endif	/* _CPPI41_DMA_H_ */

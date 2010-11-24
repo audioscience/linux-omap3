@@ -36,6 +36,7 @@
 
 #include "musb_core.h"
 #include "omap2430.h"
+#include "musbhsdma.h"
 
 struct omap_musb_glue {
 	struct clk	*clk;
@@ -332,6 +333,10 @@ static struct musb_platform_ops omap2430_musb_ops = {
 	.try_idle	= omap2430_musb_try_idle,
 	.set_vbus	= omap2430_musb_set_vbus,
 	.set_mode	= omap2430_musb_set_mode,
+#ifndef CONFIG_MUSB_PIO_ONLY
+	.dma_create	= inventra_dma_controller_create,
+	.dma_destroy	= inventra_dma_controller_destroy,
+#endif
 };
 
 static int __init omap2430_musb_probe(struct platform_device *pdev)

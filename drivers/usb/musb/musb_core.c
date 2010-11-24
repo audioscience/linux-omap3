@@ -1919,7 +1919,7 @@ static void musb_free(struct musb *musb)
 		struct dma_controller	*c = musb->dma_controller;
 
 		(void) c->stop(c);
-		dma_controller_destroy(c);
+		dma_controller_destroy(musb, c);
 	}
 
 #ifdef CONFIG_USB_MUSB_HDRC_HCD

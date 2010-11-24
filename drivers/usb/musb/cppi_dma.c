@@ -1303,7 +1303,7 @@ irqreturn_t cppi_interrupt(int irq, void *dev_id)
 
 /* Instantiate a software object representing a DMA controller. */
 struct dma_controller *__init
-dma_controller_create(struct musb *musb, void __iomem *mregs)
+cppi_dma_controller_create(struct musb *musb, void __iomem *mregs)
 {
 	struct cppi		*controller;
 	struct device		*dev = musb->controller;
@@ -1342,7 +1342,7 @@ dma_controller_create(struct musb *musb, void __iomem *mregs)
 	if (irq > 0) {
 		if (request_irq(irq, cppi_interrupt, 0, "cppi-dma", musb)) {
 			dev_err(dev, "request_irq %d failed!\n", irq);
-			dma_controller_destroy(&controller->controller);
+			cppi_dma_controller_destroy(&controller->controller);
 			return NULL;
 		}
 		controller->irq = irq;
@@ -1354,7 +1354,7 @@ dma_controller_create(struct musb *musb, void __iomem *mregs)
 /*
  *  Destroy a previously-instantiated DMA controller.
  */
-void dma_controller_destroy(struct dma_controller *c)
+void cppi_dma_controller_destroy(struct dma_controller *c)
 {
 	struct cppi	*cppi;
 
