@@ -1142,9 +1142,10 @@ static int cppi41_channel_abort(struct dma_channel *channel)
 }
 
 /**
- * dma_controller_create - instantiate an object representing DMA controller.
+ * cppi41_dma_controller_create - instantiate an object representing
+ * DMA controller.
  */
-struct dma_controller * __init dma_controller_create(struct musb  *musb,
+struct dma_controller * __init cppi41_dma_controller_create(struct musb  *musb,
 						     void __iomem *mregs)
 {
 	struct cppi41 *cppi;
@@ -1166,10 +1167,11 @@ struct dma_controller * __init dma_controller_create(struct musb  *musb,
 }
 
 /**
- * dma_controller_destroy - destroy a previously instantiated DMA controller
+ * cppi41_dma_controller_destroy - destroy a previously instantiated
+ * DMA controller
  * @controller: the controller
  */
-void dma_controller_destroy(struct dma_controller *controller)
+void cppi41_dma_controller_destroy(struct dma_controller *controller)
 {
 	struct cppi41 *cppi;
 
