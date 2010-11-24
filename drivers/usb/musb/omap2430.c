@@ -316,6 +316,7 @@ static int omap2430_musb_init(struct musb *musb, void *board_data)
 	setup_timer(&musb_idle_timer, omap2430_musb_do_idle,
 			(unsigned long) musb);
 
+	musb->inventra = 1;
 	otg_put_transceiver(musb->xceiv);
 	return 0;
 }

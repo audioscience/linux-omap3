@@ -414,7 +414,7 @@ static irqreturn_t da8xx_interrupt(int irq, void *hci)
 	spin_lock_irqsave(&musb->lock, flags);
 
 #ifdef CONFIG_USB_TI_CPPI41_DMA
-	if (is_cppi41_enabled()) {
+	if (musb->cppi41) {
 		/*
 		 * Check for the interrupts from Tx/Rx completion queues; they
 		 * are level-triggered and will stay asserted until the queues
