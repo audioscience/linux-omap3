@@ -172,12 +172,13 @@ static inline void musb_h_tx_start(struct musb_hw_ep *ep)
 
 static inline void musb_h_tx_dma_start(struct musb_hw_ep *ep)
 {
+	struct musb	*musb = ep->musb;
 	u16	txcsr;
 
 	/* NOTE: no locks here; caller should lock and select EP */
 	txcsr = musb_readw(ep->regs, MUSB_TXCSR);
 	txcsr |= MUSB_TXCSR_DMAENAB | MUSB_TXCSR_H_WZC_BITS;
-	if (is_cppi_enabled() || is_cppi41_enabled())
+	if (musb->cppi30 || musb->cppi41)
 		txcsr |= MUSB_TXCSR_DMAMODE;
 	musb_writew(ep->regs, MUSB_TXCSR, txcsr);
 }
@@ -291,8 +292,8 @@ start:
 
 		if (!hw_ep->tx_channel)
 			musb_h_tx_start(hw_ep);
-		else if (is_cppi_enabled() ||
-				tusb_dma_omap() || is_cppi41_enabled())
+		else if (musb->cppi30 ||
+				musb->tusbdma || musb->cppi41)
 			musb_h_tx_dma_start(hw_ep);
 	}
 }
@@ -619,40 +620,41 @@ static bool musb_tx_dma_program(struct dma_controller *dma,
 {
 	struct dma_channel	*channel = hw_ep->tx_channel;
 	void __iomem		*epio = hw_ep->regs;
+	struct musb		*musb = hw_ep->musb;
 	u16			pkt_size = qh->maxpacket;
 	u16			csr;
 	u8			mode;
 
-#ifdef	CONFIG_USB_INVENTRA_DMA
-	if (length > channel->max_len)
-		length = channel->max_len;
+	if (musb->inventra) {
+		if (length > channel->max_len)
+			length = channel->max_len;
 
-	csr = musb_readw(epio, MUSB_TXCSR);
-	if (length > pkt_size) {
-		mode = 1;
-		csr |= MUSB_TXCSR_DMAMODE | MUSB_TXCSR_DMAENAB;
-		/* autoset shouldn't be set in high bandwidth */
-		if (qh->hb_mult == 1)
-			csr |= MUSB_TXCSR_AUTOSET;
+		csr = musb_readw(epio, MUSB_TXCSR);
+		if (length > pkt_size) {
+			mode = 1;
+			csr |= MUSB_TXCSR_DMAMODE | MUSB_TXCSR_DMAENAB;
+			/* autoset shouldn't be set in high bandwidth */
+			if (qh->hb_mult == 1)
+				csr |= MUSB_TXCSR_AUTOSET;
+		} else {
+			mode = 0;
+			csr &= ~(MUSB_TXCSR_AUTOSET | MUSB_TXCSR_DMAMODE);
+			csr |= MUSB_TXCSR_DMAENAB; /* against programmer's guide */
+		}
+		channel->desired_mode = mode;
+		musb_writew(epio, MUSB_TXCSR, csr);
 	} else {
-		mode = 0;
-		csr &= ~(MUSB_TXCSR_AUTOSET | MUSB_TXCSR_DMAMODE);
-		csr |= MUSB_TXCSR_DMAENAB; /* against programmer's guide */
+		if (!musb->cppi30 && !musb->tusbdma && !musb->cppi41)
+			return false;
+
+		channel->actual_len = 0;
+
+		/*
+		 * TX uses "RNDIS" mode automatically but needs help
+		 * to identify the zero-length-final-packet case.
+		 */
+		mode = (urb->transfer_flags & URB_ZERO_PACKET) ? 1 : 0;
 	}
-	channel->desired_mode = mode;
-	musb_writew(epio, MUSB_TXCSR, csr);
-#else
-	if (!is_cppi_enabled() && !tusb_dma_omap() && !is_cppi41_enabled())
-		return false;
-
-	channel->actual_len = 0;
-
-	/*
-	 * TX uses "RNDIS" mode automatically but needs help
-	 * to identify the zero-length-final-packet case.
-	 */
-	mode = (urb->transfer_flags & URB_ZERO_PACKET) ? 1 : 0;
-#endif
 
 	qh->segsize = length;
 
@@ -834,7 +836,7 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 			csr = musb_readw(hw_ep->regs, MUSB_RXCSR);
 
 			if (csr & (MUSB_RXCSR_RXPKTRDY
-				| (is_cppi_enabled() || is_cppi41_enabled())
+				| (musb->cppi30 || musb->cppi41)
 					? 0 : MUSB_RXCSR_DMAENAB
 					| MUSB_RXCSR_H_REQPKT))
 				ERR("broken !rx_reinit, ep%d csr %04x\n",
@@ -846,8 +848,8 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 
 		/* kick things off */
 
-		if ((is_cppi_enabled() || is_cppi41_enabled() ||
-				tusb_dma_omap()) && dma_channel) {
+		if ((musb->cppi30 || musb->cppi41 ||
+				musb->tusbdma) && dma_channel) {
 			/* candidate for DMA */
 			if (dma_channel) {
 				dma_channel->actual_len = 0L;
@@ -1087,9 +1089,6 @@ done:
 	return retval;
 }
 
-
-#ifdef CONFIG_USB_INVENTRA_DMA
-
 /* Host side TX (OUT) using Mentor DMA works as follows:
 	submit_urb ->
 		- if queue was empty, Program Endpoint
@@ -1101,8 +1100,6 @@ done:
 		- TxPktRdy has to be set in mode 0 or for
 			short packets in mode 1.
 */
-
-#endif
 
 /* Service a Tx-Available or dma completion irq for the endpoint */
 void musb_host_tx(struct musb *musb, u8 epnum)
@@ -1316,8 +1313,8 @@ void musb_host_tx(struct musb *musb, u8 epnum)
 	} else if ((usb_pipeisoc(pipe) || transfer_pending) && dma) {
 		if (musb_tx_dma_program(musb->dma_controller, hw_ep, qh, urb,
 				offset, length)) {
-			if (is_cppi_enabled() || tusb_dma_omap() ||
-					is_cppi41_enabled())
+			if (musb->cppi30 || musb->tusbdma ||
+					musb->cppi41)
 				musb_h_tx_dma_start(hw_ep);
 			return;
 		}
@@ -1344,9 +1341,6 @@ void musb_host_tx(struct musb *musb, u8 epnum)
 	musb_writew(epio, MUSB_TXCSR,
 			MUSB_TXCSR_H_WZC_BITS | MUSB_TXCSR_TXPKTRDY);
 }
-
-
-#ifdef CONFIG_USB_INVENTRA_DMA
 
 /* Host side RX (IN) using Mentor DMA works as follows:
 	submit_urb ->
@@ -1382,8 +1376,6 @@ void musb_host_tx(struct musb *musb, u8 epnum)
  *	thus be a great candidate for using mode 1 ... for all but the
  *	last packet of one URB's transfer.
  */
-
-#endif
 
 /* Schedule next QH from musb->in_bulk and move the current qh to
  * the end; avoids starvation for other endpoints.
@@ -1552,8 +1544,7 @@ void musb_host_rx(struct musb *musb, u8 epnum)
 
 	/* FIXME this is _way_ too much in-line logic for Mentor DMA */
 
-#ifndef CONFIG_USB_INVENTRA_DMA
-	if (rx_csr & MUSB_RXCSR_H_REQPKT)  {
+	if (!musb->inventra && (rx_csr & MUSB_RXCSR_H_REQPKT))  {
 		/* REVISIT this happened for a while on some short reads...
 		 * the cleanup still needs investigation... looks bad...
 		 * and also duplicates dma cleanup code above ... plus,
@@ -1574,7 +1565,7 @@ void musb_host_rx(struct musb *musb, u8 epnum)
 		musb_writew(epio, MUSB_RXCSR,
 				MUSB_RXCSR_H_WZC_BITS | rx_csr);
 	}
-#endif
+
 	if (dma && (rx_csr & MUSB_RXCSR_DMAENAB)) {
 		xfer_len = dma->actual_len;
 
@@ -1583,7 +1574,7 @@ void musb_host_rx(struct musb *musb, u8 epnum)
 			| MUSB_RXCSR_AUTOCLEAR
 			| MUSB_RXCSR_RXPKTRDY);
 
-		if (is_cppi_enabled() || is_cppi41_enabled())
+		if (musb->cppi30 || musb->cppi41)
 			val |= MUSB_RXCSR_DMAENAB;
 
 		musb_writew(hw_ep->regs, MUSB_RXCSR, val);
@@ -1602,7 +1593,7 @@ void musb_host_rx(struct musb *musb, u8 epnum)
 
 			if (++qh->iso_idx >= urb->number_of_packets)
 				done = true;
-			else if (is_cppi_enabled() || is_cppi41_enabled()) {
+			else if (musb->cppi30 || musb->cppi41) {
 				struct dma_controller	*c;
 				void *buf;
 				u32 length, ret;

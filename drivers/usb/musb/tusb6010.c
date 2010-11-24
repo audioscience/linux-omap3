@@ -885,14 +885,16 @@ static irqreturn_t tusb_interrupt(int irq, void *__hci)
 
 		DBG(3, "DMA IRQ %08x\n", dma_src);
 		real_dma_src = ~real_dma_src & dma_src;
-		if (tusb_dma_omap() && real_dma_src) {
+		if (musb->tusbdma && real_dma_src) {
 			int	tx_source = (real_dma_src & 0xffff);
 			int	i;
 
 			for (i = 1; i <= 15; i++) {
 				if (tx_source & (1 << i)) {
 					DBG(3, "completing ep%i %s\n", i, "tx");
+#ifdef CONFIG_USB_TUSB_OMAP_DMA
 					musb_dma_completion(musb, i, 1);
+#endif
 				}
 			}
 		}
@@ -1155,6 +1157,9 @@ static int tusb6010_musb_init(struct musb *musb, void *board_data)
 
 	setup_timer(&musb_idle_timer, musb_do_idle, (unsigned long) musb);
 
+#ifdef CONFIG_USB_TI_CPPI41_DMA
+	musb->tusbdma = 1;
+#endif
 done:
 	if (ret < 0) {
 		if (sync)

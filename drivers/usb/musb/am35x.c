@@ -449,7 +449,7 @@ static irqreturn_t am35x_interrupt(int irq, void *hci)
 	 * CPPI 4.1 interrupts share the same IRQ and the EOI register but
 	 * don't get reflected in the interrupt source/mask registers.
 	 */
-	if (is_cppi41_enabled()) {
+	if (musb->cppi41) {
 		/*
 		 * Check for the interrupts from Tx/Rx completion queues; they
 		 * are level-triggered and will stay asserted until the queues
@@ -466,7 +466,9 @@ static irqreturn_t am35x_interrupt(int irq, void *hci)
 			rx = (pend2 >> 1) & 0x3;
 
 			DBG(4, "CPPI 4.1 IRQ: Tx %x, Rx %x\n", tx, rx);
+#ifdef CONFIG_USB_TI_CPPI41_DMA
 			cppi41_completion(musb, rx, tx);
+#endif
 			ret = IRQ_HANDLED;
 		}
 	}
@@ -646,6 +648,7 @@ static int am35x_musb_init(struct musb *musb, void *board_data)
 
 #ifdef CONFIG_USB_TI_CPPI41_DMA
 	cppi41_init(musb);
+	musb->cppi41 = 1;
 #endif
 
 	musb->isr = am35x_interrupt;

@@ -1672,15 +1672,13 @@ void musb_dma_completion(struct musb *musb, u8 epnum, u8 transmit)
 	/* called with controller lock already held */
 
 	if (!epnum) {
-#ifndef CONFIG_USB_TUSB_OMAP_DMA
-		if (!is_cppi_enabled() && !is_cppi41_enabled()) {
+		if (!musb->tusbdma && !musb->cppi30 && !musb->cppi41) {
 			/* endpoint 0 */
 			if (devctl & MUSB_DEVCTL_HM)
 				musb_h_ep0_irq(musb);
 			else
 				musb_g_ep0_irq(musb);
 		}
-#endif
 	} else {
 		/* endpoints 1..15 */
 		if (transmit) {
@@ -2507,16 +2505,18 @@ static int __init musb_init(void)
 	pr_info("%s: version " MUSB_VERSION ", "
 #ifdef CONFIG_MUSB_PIO_ONLY
 		"pio"
-#elif defined(CONFIG_USB_TI_CPPI_DMA)
+#endif
+#if defined(CONFIG_USB_TI_CPPI_DMA)
 		"cppi-dma"
-#elif defined(CONFIG_USB_TI_CPPI41_DMA)
+#endif
+#if defined(CONFIG_USB_TI_CPPI41_DMA)
 		"cppi4.1-dma"
-#elif defined(CONFIG_USB_INVENTRA_DMA)
+#endif
+#if defined(CONFIG_USB_INVENTRA_DMA)
 		"musb-dma"
-#elif defined(CONFIG_USB_TUSB_OMAP_DMA)
+#endif
+#if defined(CONFIG_USB_TUSB_OMAP_DMA)
 		"tusb-omap-dma"
-#else
-		"?dma?"
 #endif
 		", "
 #ifdef CONFIG_USB_MUSB_OTG
