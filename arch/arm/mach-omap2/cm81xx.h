@@ -237,4 +237,12 @@
 #define TI816X_CM_ALWON_SR_7_CLKCTRL		TI81XX_CM_REGADDR(TI81XX_CM_ALWON_MOD, 0x0224)
 #define TI816X_CM_ALWON_CUST_EFUSE_CLKCTRL	TI81XX_CM_REGADDR(TI81XX_CM_ALWON_MOD, 0x0228)
 
+/* 
+ * TI814X PLL Control is located separately from CM but for now we are keeping
+ * its register here. (Note: Only required registers added currently.)
+ *
+ * TODO: Move to appropriate location (new file?).
+ */
+#define TI814X_PLL_DMTIMER_CLKSRC           	TI814X_PLL_REGADDR(0x02E0)
+
 #endif

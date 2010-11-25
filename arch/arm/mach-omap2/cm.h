@@ -28,6 +28,8 @@
 			OMAP2_L4_IO_ADDRESS(OMAP4430_CM2_BASE + (module) + (reg))
 #define TI81XX_CM_REGADDR(module, reg)					\
 			TI81XX_L4_SLOW_IO_ADDRESS(TI81XX_PRCM_BASE + (module) + (reg))
+#define TI814X_PLL_REGADDR(reg)					\
+			TI81XX_L4_SLOW_IO_ADDRESS(TI814X_PLL_BASE + (reg))
 
 #include "cm44xx.h"
 #include "cm81xx.h"
