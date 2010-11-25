@@ -280,6 +280,8 @@ struct musb_platform_ops {
 		(*dma_create)(struct musb *musb, void __iomem *regs);
 
 	void	(*dma_destroy)(struct dma_controller *c);
+	void (*read_fifo)(struct musb_hw_ep *ep, u16 len, u8 *dst);
+	void (*write_fifo)(struct musb_hw_ep *ep, u16 len, const u8 *src);
 };
 
 /*
@@ -605,8 +607,9 @@ extern const char musb_driver_name[];
 extern void musb_start(struct musb *musb);
 extern void musb_stop(struct musb *musb);
 
-extern void musb_write_fifo(struct musb_hw_ep *ep, u16 len, const u8 *src);
-extern void musb_read_fifo(struct musb_hw_ep *ep, u16 len, u8 *dst);
+extern void generic_musb_write_fifo(struct musb_hw_ep *ep,
+				u16 len, const u8 *src);
+extern void generic_musb_read_fifo(struct musb_hw_ep *ep, u16 len, u8 *dst);
 
 extern void musb_load_testpacket(struct musb *);
 
@@ -685,6 +688,23 @@ static inline void musb_set_vbus(struct musb *musb, int is_on)
 {
 	if (musb->ops->set_vbus)
 		musb->ops->set_vbus(musb, is_on);
+}
+
+static inline void musb_write_fifo(struct musb_hw_ep *ep,
+				u16 len, const u8 *src)
+{
+	struct musb *musb = ep->musb;
+
+	if (musb->ops->write_fifo)
+		musb->ops->write_fifo(ep, len, src);
+}
+static inline void musb_read_fifo(struct musb_hw_ep *ep,
+				u16 len, u8 *dst)
+{
+	struct musb *musb = ep->musb;
+
+	if (musb->ops->read_fifo)
+		musb->ops->read_fifo(ep, len, dst);
 }
 
 static inline struct dma_controller *__init
