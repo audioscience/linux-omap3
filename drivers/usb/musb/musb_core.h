@@ -51,6 +51,13 @@ struct musb;
 struct musb_hw_ep;
 struct musb_ep;
 
+extern struct musb *gmusb;
+static inline u32 musb_readl(const void __iomem *addr, unsigned offset);
+static inline u16 musb_readw(const void __iomem *addr, unsigned offset);
+static inline u8 musb_readb(const void __iomem *addr, unsigned offset);
+static inline void musb_writel(void __iomem *addr, unsigned offset, u32 data);
+static inline void musb_writew(void __iomem *addr, unsigned offset, u16 data);
+static inline void musb_writeb(void __iomem *addr, unsigned offset, u8 data);
 /* Helper defines for struct musb->hwvers */
 #define MUSB_HWVERS_MAJOR(x)	((x >> 10) & 0x1f)
 #define MUSB_HWVERS_MINOR(x)	(x & 0x3ff)
@@ -282,6 +289,14 @@ struct musb_platform_ops {
 	void	(*dma_destroy)(struct dma_controller *c);
 	void (*read_fifo)(struct musb_hw_ep *ep, u16 len, u8 *dst);
 	void (*write_fifo)(struct musb_hw_ep *ep, u16 len, const u8 *src);
+
+	u32 (*read_long) (const void __iomem *addr, unsigned offset);
+	u16 (*read_word) (const void __iomem *addr, unsigned offset);
+	u8 (*read_byte) (const void __iomem *addr, unsigned offset);
+
+	void (*write_long) (void __iomem *addr, unsigned offset, u32 data);
+	void (*write_word) (void __iomem *addr, unsigned offset, u16 data);
+	void (*write_byte) (void __iomem *addr, unsigned offset, u8 data);
 };
 
 /*
@@ -705,6 +720,61 @@ static inline void musb_read_fifo(struct musb_hw_ep *ep,
 
 	if (musb->ops->read_fifo)
 		musb->ops->read_fifo(ep, len, dst);
+}
+
+static inline u32 musb_readl(const void __iomem *addr, unsigned offset)
+{
+	struct musb *musb = gmusb;
+
+	if (!musb) return 0;
+	if (!musb->ops->read_long)
+		return 0;
+
+	return musb->ops->read_long(addr, offset);
+}
+
+static inline u16 musb_readw(const void __iomem *addr, unsigned offset)
+{
+	struct musb *musb = gmusb;
+	if (!musb) return 0;
+	if (!musb->ops->read_word)
+		return 0;
+
+	return musb->ops->read_word(addr, offset);
+}
+
+static inline u8 musb_readb(const void __iomem *addr, unsigned offset)
+{
+	struct musb *musb = gmusb;
+	if (!musb) return 0;
+	if (!musb->ops->read_byte)
+		return 0;
+
+	return musb->ops->read_byte(addr, offset);
+}
+
+static inline void musb_writel(void __iomem *addr, unsigned offset, u32 data)
+{
+	struct musb *musb = gmusb;
+	if (!musb) return;
+	if (musb->ops->write_long)
+		musb->ops->write_long(addr, offset, data);
+}
+
+static inline void musb_writew(void __iomem *addr, unsigned offset, u16 data)
+{
+	struct musb *musb = gmusb;
+	if (!musb) return;
+	if (musb->ops->write_word)
+		musb->ops->write_word(addr, offset, data);
+}
+
+static inline void musb_writeb(void __iomem *addr, unsigned offset, u8 data)
+{
+	struct musb *musb = gmusb;
+	if (!musb) return;
+	if (musb->ops->write_byte)
+		musb->ops->write_byte(addr, offset, data);
 }
 
 static inline struct dma_controller *__init

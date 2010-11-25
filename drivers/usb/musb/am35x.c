@@ -741,6 +741,14 @@ static struct musb_platform_ops am35x_musb_ops = {
 #endif
 	.read_fifo      = am35x_musb_read_fifo,
 	.write_fifo     = generic_musb_write_fifo,
+
+	.read_long		= generic_musb_readl,
+	.read_word		= generic_musb_readw,
+	.read_byte		= generic_musb_readb,
+
+	.write_long		= generic_musb_writel,
+	.write_word		= generic_musb_writew,
+	.write_byte		= generic_musb_writeb,
 };
 
 static int __init am35x_musb_probe(struct platform_device *pdev)

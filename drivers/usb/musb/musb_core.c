@@ -118,6 +118,7 @@ struct musb *gb_musb;
 unsigned short musb_clock_on = 1;
 #endif
 
+struct musb *gmusb;
 unsigned musb_debug;
 module_param_named(debug, musb_debug, uint, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(debug, "Debug message level. Default = 0");
@@ -1989,6 +1990,7 @@ bad_config:
 		goto fail0;
 	}
 
+	gmusb = musb;
 	spin_lock_init(&musb->lock);
 	musb->ctrl_phys_base = ctrl_phys_addr;
 	musb->board_mode = plat->mode;
