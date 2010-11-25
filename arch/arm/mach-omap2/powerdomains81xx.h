@@ -22,13 +22,63 @@
 #include "cm.h"
 #include "prm.h"
 
-#if defined(CONFIG_ARCH_TI816X)
+#if defined(CONFIG_ARCH_TI816X) || defined(CONFIG_ARCH_TI814X)
 
-static struct powerdomain alwon_816x_pwrdm = {
+static struct powerdomain alwon_81xx_pwrdm = {
 	.name		  = "alwon_pwrdm",
 	.prcm_offs	  = TI81XX_PRM_ALWON_MOD,
-	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X),
+	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X | CHIP_IS_TI814X),
 };
+
+#endif
+
+#if defined(CONFIG_ARCH_TI814X)
+
+static struct powerdomain dsp_814x_pwrdm = {
+	.name		= "dsp_pwrdm",
+	.prcm_offs	= TI814X_PRM_DSP_MOD,
+	.omap_chip	= OMAP_CHIP_INIT(CHIP_IS_TI814X),
+	.pwrsts		= PWRSTS_OFF_ON,
+};
+
+static struct powerdomain alwon2_814x_pwrdm = {
+	.name		= "alwon2_pwrdm",
+	.prcm_offs	= TI814X_PRM_ALWON2_MOD,
+	.omap_chip	= OMAP_CHIP_INIT(CHIP_IS_TI814X),
+	.pwrsts		= PWRSTS_OFF_ON,
+};
+
+static struct powerdomain hdvicp_814x_pwrdm = {
+	.name		= "hdvicp_pwrdm",
+	.prcm_offs	= TI814X_PRM_HDVICP_MOD,
+	.omap_chip	= OMAP_CHIP_INIT(CHIP_IS_TI814X),
+	.pwrsts		= PWRSTS_OFF_ON,
+};
+
+static struct powerdomain hdvpss_814x_pwrdm = {
+	.name		= "hdvpss_pwrdm",
+	.prcm_offs	= TI814X_PRM_HDVPSS_MOD,
+	.omap_chip	= OMAP_CHIP_INIT(CHIP_IS_TI814X),
+	.pwrsts		= PWRSTS_OFF_ON,
+};
+
+static struct powerdomain gfx_814x_pwrdm = {
+	.name		= "gfx_pwrdm",
+	.prcm_offs	= TI814X_PRM_GFX_MOD,
+	.omap_chip	= OMAP_CHIP_INIT(CHIP_IS_TI814X),
+	.pwrsts		= PWRSTS_OFF_ON,
+};
+
+static struct powerdomain isp_814x_pwrdm = {
+	.name		= "isp_pwrdm",
+	.prcm_offs	= TI814X_PRM_ISP_MOD,
+	.omap_chip	= OMAP_CHIP_INIT(CHIP_IS_TI814X),
+	.pwrsts		= PWRSTS_OFF_ON,
+};
+
+#endif /* CONFIG_ARCH_TI814X */
+
+#if defined(CONFIG_ARCH_TI816X)
 
 static struct powerdomain active_816x_pwrdm = {
 	.name		  = "active_pwrdm",
@@ -78,6 +128,6 @@ static struct powerdomain sgx_816x_pwrdm = {
  *
  */
 
-#endif
+#endif /* CONFIG_ARCH_TI816X */
 
 #endif
