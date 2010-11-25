@@ -435,6 +435,11 @@ struct musb {
 	struct list_head	control;	/* of musb_qh */
 	struct list_head	in_bulk;	/* of musb_qh */
 	struct list_head	out_bulk;	/* of musb_qh */
+
+	struct workqueue_struct *gb_queue;
+	struct work_struct      gb_work;
+	spinlock_t              gb_lock;
+	struct list_head	gb_list;	/* of urbs */
 #endif
 
 	/* called with IRQs blocked; ON/nonzero implies starting a session,
@@ -816,6 +821,9 @@ static inline void dma_controller_destroy(struct musb *musb,
 		musb->ops->dma_destroy(c);
 }
 
+#ifdef CONFIG_USB_MUSB_HDRC_HCD
+extern void musb_gb_work(struct work_struct *data);
+#endif
 /*-------------------------- ProcFS definitions ---------------------*/
 
 struct proc_dir_entry;
