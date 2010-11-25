@@ -338,6 +338,8 @@ static struct musb_platform_ops omap2430_musb_ops = {
 	.dma_create	= inventra_dma_controller_create,
 	.dma_destroy	= inventra_dma_controller_destroy,
 #endif
+	.read_fifo	= generic_musb_read_fifo,
+	.write_fifo	= generic_musb_write_fifo,
 };
 
 static int __init omap2430_musb_probe(struct platform_device *pdev)
