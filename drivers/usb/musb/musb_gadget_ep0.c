@@ -807,6 +807,10 @@ setup:
 				printk(KERN_NOTICE "%s: peripheral reset "
 						"irq lost!\n",
 						musb_driver_name);
+				if (musb->has_byte_read_issue)
+					musb->read_mask &=
+						~AM35X_READ_ISSUE_POWER;
+
 				power = musb_readb(mbase, MUSB_POWER);
 				musb->g.speed = (power & MUSB_POWER_HSMODE)
 					? USB_SPEED_HIGH : USB_SPEED_FULL;
