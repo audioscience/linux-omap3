@@ -38,6 +38,7 @@
 #include "cppi41.h"
 #include "cppi41_dma.h"
 
+struct musb *g_musb;
 /*
  * AM35x specific definitions
  */
@@ -79,13 +80,145 @@
 #define AM35X_TX_INTR_MASK	(AM35X_TX_EP_MASK << AM35X_INTR_TX_SHIFT)
 #define AM35X_RX_INTR_MASK	(AM35X_RX_EP_MASK << AM35X_INTR_RX_SHIFT)
 
+#define USB_MENTOR_CORE_OFFSET	0x400
+
 /* CPPI 4.1 queue manager registers */
 #define QMGR_PEND0_REG		0x4090
 #define QMGR_PEND1_REG		0x4094
 #define QMGR_PEND2_REG		0x4098
 
-#define USB_MENTOR_CORE_OFFSET	0x400
+/* AM35x specific read/write functions */
+u16 am35x_musb_readw(const void __iomem *addr, unsigned offset)
+{
+	u32 tmp;
+	u16 val;
 
+	if (addr == g_musb->mregs) {
+
+		switch (offset) {
+		case MUSB_INTRTXE:
+			if (g_musb->read_mask & AM35X_READ_ISSUE_INTRTXE)
+				return g_musb->intrtxe;
+		case MUSB_INTRRXE:
+			if (g_musb->read_mask & AM35X_READ_ISSUE_INTRRXE)
+				return g_musb->intrrxe;
+		default:
+			break;
+		}
+	}
+
+	tmp = __raw_readl(addr + (offset & ~3));
+
+	switch (offset & 0x3) {
+	case 0:
+		val = (tmp & 0xffff);
+		break;
+	case 1:
+		val = (tmp >> 8) & 0xffff;
+		break;
+	case 2:
+	case 3:
+	default:
+		val = (tmp >> 16) & 0xffff;
+		break;
+	}
+	return val;
+}
+void am35x_musb_writew(void __iomem *addr, unsigned offset, u16 data)
+{
+	if (addr == g_musb->mregs) {
+
+		switch (offset) {
+		case MUSB_INTRTXE:
+			g_musb->read_mask |= AM35X_READ_ISSUE_INTRTXE;
+			g_musb->intrtxe = data;
+			break;
+		case MUSB_INTRRXE:
+			g_musb->read_mask |= AM35X_READ_ISSUE_INTRRXE;
+			g_musb->intrrxe = data;
+		default:
+			break;
+		}
+	}
+
+	 __raw_writew(data, addr + offset);
+}
+u8 am35x_musb_readb(const void __iomem *addr, unsigned offset)
+{
+	u32 tmp;
+	u8 val;
+
+	if (addr == g_musb->mregs) {
+
+		switch (offset) {
+		case MUSB_FADDR:
+			if (g_musb->read_mask & AM35X_READ_ISSUE_FADDR)
+				return g_musb->faddr;
+		case MUSB_POWER:
+			if (g_musb->read_mask & AM35X_READ_ISSUE_POWER) {
+				return g_musb->power;
+			} else {
+				tmp = __raw_readl(addr);
+				val = (tmp >> 8);
+				if (tmp & 0xffff0000) {
+					DBG(2, "Missing Tx interrupt\
+						event = 0x%x\n", (u16)\
+						((tmp & 0xffff0000) >> 16));
+				}
+				g_musb->power = val;
+				g_musb->read_mask |= AM35X_READ_ISSUE_POWER;
+				return val;
+			}
+		case MUSB_INTRUSBE:
+			if (g_musb->read_mask & AM35X_READ_ISSUE_INTRUSBE)
+				return g_musb->intrusbe;
+		default:
+			break;
+		}
+	}
+
+	tmp = __raw_readl(addr + (offset & ~3));
+
+	switch (offset & 0x3) {
+	case 0:
+		val = tmp & 0xff;
+		break;
+	case 1:
+		val = (tmp >> 8);
+		break;
+	case 2:
+		val = (tmp >> 16);
+		break;
+	case 3:
+	default:
+		val = (tmp >> 24);
+		break;
+	}
+	return val;
+}
+void am35x_musb_writeb(void __iomem *addr, unsigned offset, u8 data)
+{
+	if (addr == g_musb->mregs) {
+
+		switch (offset) {
+		case MUSB_FADDR:
+			g_musb->read_mask |= AM35X_READ_ISSUE_FADDR;
+			g_musb->faddr = data;
+			break;
+		case MUSB_POWER:
+			g_musb->read_mask |= AM35X_READ_ISSUE_POWER;
+			g_musb->power = data;
+			break;
+		case MUSB_INTRUSBE:
+			g_musb->read_mask |= AM35X_READ_ISSUE_INTRUSBE;
+			g_musb->intrusbe = data;
+		default:
+			break;
+		}
+	}
+
+	 __raw_writeb(data, addr + offset);
+}
 #ifdef CONFIG_USB_TI_CPPI41_DMA
 /*
  * CPPI 4.1 resources used for USB OTG controller module:
@@ -608,6 +741,7 @@ static int am35x_musb_init(struct musb *musb, void *board_data)
 	u32 rev, lvl_intr, sw_reset;
 	int status;
 
+	g_musb = musb;
 	musb->mregs += USB_MENTOR_CORE_OFFSET;
 
 	/* Returns zero if e.g. not clocked */
@@ -651,6 +785,7 @@ static int am35x_musb_init(struct musb *musb, void *board_data)
 	musb->cppi41 = 1;
 #endif
 
+	musb->has_byte_read_issue = 1;
 	musb->isr = am35x_interrupt;
 
 	/* clear level interrupt */
@@ -743,12 +878,12 @@ static struct musb_platform_ops am35x_musb_ops = {
 	.write_fifo     = generic_musb_write_fifo,
 
 	.read_long		= generic_musb_readl,
-	.read_word		= generic_musb_readw,
-	.read_byte		= generic_musb_readb,
+	.read_word		= am35x_musb_readw,
+	.read_byte		= am35x_musb_readb,
 
 	.write_long		= generic_musb_writel,
-	.write_word		= generic_musb_writew,
-	.write_byte		= generic_musb_writeb,
+	.write_word		= am35x_musb_writew,
+	.write_byte		= am35x_musb_writeb,
 };
 
 static int __init am35x_musb_probe(struct platform_device *pdev)

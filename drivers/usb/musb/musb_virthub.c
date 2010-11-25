@@ -67,8 +67,12 @@ static void musb_port_suspend(struct musb *musb, bool do_suspend)
 		musb_writeb(mbase, MUSB_POWER, power);
 
 		/* Needed for OPT A tests */
+		if (musb->has_byte_read_issue)
+			musb->read_mask &= ~AM35X_READ_ISSUE_POWER;
 		power = musb_readb(mbase, MUSB_POWER);
 		while (power & MUSB_POWER_SUSPENDM) {
+			if (musb->has_byte_read_issue)
+				musb->read_mask &= ~AM35X_READ_ISSUE_POWER;
 			power = musb_readb(mbase, MUSB_POWER);
 			if (retries-- < 1)
 				break;
@@ -128,6 +132,9 @@ static void musb_port_reset(struct musb *musb, bool do_reset)
 	/* NOTE:  caller guarantees it will turn off the reset when
 	 * the appropriate amount of time has passed
 	 */
+	if (musb->has_byte_read_issue)
+		musb->read_mask &= ~AM35X_READ_ISSUE_POWER;
+
 	power = musb_readb(mbase, MUSB_POWER);
 	if (do_reset) {
 
@@ -160,6 +167,9 @@ static void musb_port_reset(struct musb *musb, bool do_reset)
 				power & ~MUSB_POWER_RESET);
 
 		musb->ignore_disconnect = false;
+
+		if (musb->has_byte_read_issue)
+			musb->read_mask &= ~AM35X_READ_ISSUE_POWER;
 
 		power = musb_readb(mbase, MUSB_POWER);
 		if (power & MUSB_POWER_HSMODE) {
