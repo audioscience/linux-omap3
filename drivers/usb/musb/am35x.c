@@ -699,7 +699,7 @@ void musb_platform_restore_context(struct musb *musb,
 #endif
 
 /* AM35x supports only 32bit read operation */
-void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
+void am35x_musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 {
 	void __iomem *fifo = hw_ep->fifo;
 	u32		val;
@@ -739,6 +739,8 @@ static struct musb_platform_ops am35x_musb_ops = {
 	.dma_create	= cppi41_dma_controller_create,
 	.dma_destroy	= cppi41_dma_controller_destroy,
 #endif
+	.read_fifo      = am35x_musb_read_fifo,
+	.write_fifo     = generic_musb_write_fifo,
 };
 
 static int __init am35x_musb_probe(struct platform_device *pdev)
