@@ -367,6 +367,8 @@ void __init omap2_init_common_hw(struct omap_sdrc_params *sdrc_cs0,
 		omap4xxx_clk_init();
 	else if (cpu_is_ti816x())
 		ti816x_clk_init();
+	else if (cpu_is_ti814x())
+		ti814x_clk_init();
 	else
 		pr_err("Could not init clock framework - unknown CPU\n");
 
