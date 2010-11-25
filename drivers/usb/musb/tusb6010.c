@@ -1193,6 +1193,14 @@ static struct musb_platform_ops tusb6010_musb_ops = {
 	.set_mode	= tusb6010_musb_set_mode,
 	.read_fifo	= tusb6010_musb_read_fifo,
 	.write_fifo	= tusb6010_musb_write_fifo,
+
+	.read_long		= generic_musb_readl,
+	.read_word		= generic_musb_readw,
+	.read_byte		= tusb_musb_readb,
+
+	.write_long		= generic_musb_writel,
+	.write_word		= generic_musb_writew,
+	.write_byte		= tusb_musb_writeb,
 };
 
 static int __init tusb6010_musb_probe(struct platform_device *pdev)
