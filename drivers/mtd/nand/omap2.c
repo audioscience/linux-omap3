@@ -8,6 +8,8 @@
  * published by the Free Software Foundation.
  */
 
+#define CONFIG_MTD_NAND_OMAP_HWECC
+
 #include <linux/platform_device.h>
 #include <linux/dma-mapping.h>
 #include <linux/delay.h>
@@ -457,8 +459,6 @@ static int omap_verify_buf(struct mtd_info *mtd, const u_char * buf, int len)
 	return 0;
 }
 
-#ifdef CONFIG_MTD_NAND_OMAP_HWECC
-
 /**
  * gen_true_ecc - This function will generate true ECC value
  * @ecc_buf: buffer to store ecc code
@@ -677,8 +677,6 @@ static void omap_enable_hwecc(struct mtd_info *mtd, int mode)
 
 	gpmc_enable_hwecc(info->gpmc_cs, mode, dev_width, info->nand.ecc.size);
 }
-
-#endif
 
 /**
  * omap_wait - wait until the command is done
