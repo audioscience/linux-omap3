@@ -79,6 +79,13 @@
 #define GPMC_PREFETCH_STATUS_FIFO_CNT(val)	((val >> 24) & 0x7F)
 #define GPMC_PREFETCH_STATUS_COUNT(val)	(val & 0x00003fff)
 
+enum omap_ecc {
+	OMAP_ECC_HAMMING_CODE_DIFF_LAYOUT = 0,
+		/* 1-bit s/w ecc and layout different from romcode */
+	OMAP_ECC_HAMMING_CODE_HW,/* 1-bit ecc, romcode layout */
+	OMAP_ECC_HAMMING_CODE_SW,/* 1-bit ecc, romcode layout */
+};
+
 /*
  * Note that all values in this struct are in nanoseconds except sync_clk
  * (which is in picoseconds), while the register values are in gpmc_fck cycles.
