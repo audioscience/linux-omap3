@@ -31,8 +31,9 @@
  * - Consider dependencies across domains (probably not applicable till now)
  */
 
-#if defined(CONFIG_ARCH_TI816X) || defined(CONFIG_ARCH_TI814X)
+#ifdef CONFIG_ARCH_TI81XX
 
+/* Common fo TI816X and TI814X */
 static struct clockdomain alwon_l3_slow_81xx_clkdm = {
 	.name		  = "alwon_l3_slow_clkdm",
 	.pwrdm		  = { .name = "alwon_pwrdm" },
@@ -69,10 +70,7 @@ static struct clockdomain mmu_cfg_81xx_clkdm = {
 	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X | CHIP_IS_TI814X),
 };
 
-#endif /* CONFIG_ARCH_TI816X || CONFIG_ARCH_TI814X */
-
-#if defined(CONFIG_ARCH_TI814X)
-
+/* TI814X specific */
 static struct clockdomain dsp_814x_clkdm= {
 	.name		= "dsp_clkdm",
 	.pwrdm		= { .name = "dsp_pwrdm" },
@@ -151,10 +149,7 @@ static struct clockdomain alwon2_usb_814x_clkdm= {
 	.omap_chip	= OMAP_CHIP_INIT(CHIP_IS_TI814X),
 };
 
-#endif /* CONFIG_ARCH_TI814X */
-
-#if defined(CONFIG_ARCH_TI816X)
-
+/* TI816X specific */
 static struct clockdomain alwon_mpu_816x_clkdm = {
 	.name		  = "alwon_mpu_clkdm",
 	.pwrdm		  = { .name = "alwon_pwrdm" },
@@ -245,6 +240,6 @@ static struct clockdomain default_usb_816x_clkdm = {
 	.omap_chip	  = OMAP_CHIP_INIT(CHIP_IS_TI816X),
 };
 
-#endif /* CONFIG_ARCH_TI816X */
+#endif /* CONFIG_ARCH_TI81XX */
 
 #endif
