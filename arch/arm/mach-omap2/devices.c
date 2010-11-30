@@ -1121,7 +1121,7 @@ void ti816x_ethernet_init(void)
 #else
 static inline void ti816x_ethernet_init(void) {}
 #endif
-=======
+
 #define P0PHYCR		0x178  /* SATA PHY0 Control Register offset
                                 * from AHCI base)
                                 */
@@ -1146,7 +1146,7 @@ static inline void ti816x_ethernet_init(void) {}
 u8	ti_num_ahci_inst = 1;
 struct clk *sata_clk;
 
-static int ahci_plat_init(struct device *dev)
+static int ahci_plat_init(struct device *dev, void __iomem *addr)
 {
 	u32     	phy_val = 0;
 	void __iomem	*base;
@@ -1168,7 +1168,7 @@ static int ahci_plat_init(struct device *dev)
 			PHY_RXCDR << 13 | PHY_RXEQ << 16 |
 			PHY_RxENOC << 20 | PHY_TXINVPAIR << 21 |
 			PHY_TXCM << 22 | PHY_TXSWING  << 23 | PHY_TXDE << 27;
-	base = ioremap(TI816X_SATA_BASE, 0x10ffff);
+	base = ioremap(TI81XX_SATA_BASE, 0x10ffff);
 	if (!base) {
 		printk(KERN_WARNING
 				"%s: Unable to map SATA, "
@@ -1194,12 +1194,12 @@ static void ahci_plat_exit(struct device *dev)
 
 static struct resource ahci_resources[] = {
 	{
-		.start	=	TI816X_SATA_BASE,
-		.end	=	TI816X_SATA_BASE + 0x10fff,
+		.start	=	TI81XX_SATA_BASE,
+		.end	=	TI81XX_SATA_BASE + 0x10fff,
 		.flags	=	IORESOURCE_MEM,
 	},
 	{
-		.start	=	TI816X_IRQ_SATA,
+		.start	=	TI81XX_IRQ_SATA,
 		.flags	=	IORESOURCE_IRQ,
 	}
 };
