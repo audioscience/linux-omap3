@@ -35,6 +35,7 @@
 #include <plat/common.h>
 #include <plat/usb.h>
 
+#include "mux.h"
 #include "board-flash.h"
 
 static struct mtd_partition ti816x_evm_norflash_partitions[] = {
@@ -222,8 +223,17 @@ static void __init ti8168_evm_init_irq(void)
 
 int __init ti_ahci_register(u8 num_inst);
 
+#ifdef CONFIG_OMAP_MUX
+static struct omap_board_mux board_mux[] __initdata = {
+	{ .reg_offset = OMAP_MUX_TERMINATOR },
+};
+#else
+#define board_mux	NULL
+#endif
+
 static void __init ti8168_evm_init(void)
 {
+	ti81xx_mux_init(board_mux);
 	omap_serial_init();
 	ti816x_evm_i2c_init();
 	i2c_add_driver(&ti816xevm_cpld_driver);
