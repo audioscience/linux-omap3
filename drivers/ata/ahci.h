@@ -1,41 +1,4 @@
-/*
- *  ahci.h - Common AHCI SATA definitions and declarations
- *
- *  Maintained by:  Jeff Garzik <jgarzik@pobox.com>
- *    		    Please ALWAYS copy linux-ide@vger.kernel.org
- *		    on emails.
- *
- *  Copyright 2004-2005 Red Hat, Inc.
- *
- *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2, or (at your option)
- *  any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- *
- * libata documentation is available via 'make {ps|pdf}docs',
- * as Documentation/DocBook/libata.*
- *
- * AHCI hardware documentation:
- * http://www.intel.com/technology/serialata/pdf/rev1_0.pdf
- * http://www.intel.com/technology/serialata/pdf/rev1_1.pdf
- *
- */
-
-#ifndef _AHCI_H
-#define _AHCI_H
-
-#include <linux/libata.h>
+#define DRV_NAME	"ahci"
 
 /* Enclosure Management Control */
 #define EM_CTRL_MSG_TYPE              0x000f0000
@@ -63,8 +26,8 @@ enum {
 	AHCI_PORT_PRIV_DMA_SZ	= AHCI_CMD_SLOT_SZ + AHCI_CMD_TBL_AR_SZ +
 				  AHCI_RX_FIS_SZ,
 	AHCI_PORT_PRIV_FBS_DMA_SZ	= AHCI_CMD_SLOT_SZ +
-					  AHCI_CMD_TBL_AR_SZ +
-					  (AHCI_RX_FIS_SZ * 16),
+						AHCI_CMD_TBL_AR_SZ +
+						(AHCI_RX_FIS_SZ * 16),
 	AHCI_IRQ_ON_SG		= (1 << 31),
 	AHCI_CMD_ATAPI		= (1 << 5),
 	AHCI_CMD_WRITE		= (1 << 6),
@@ -194,6 +157,7 @@ enum {
 	PORT_FBS_DEC		= (1 << 1), /* FBS device error clear */
 	PORT_FBS_EN		= (1 << 0), /* Enable FBS */
 
+
 	/* hpriv->flags bits */
 	AHCI_HFLAG_NO_NCQ		= (1 << 0),
 	AHCI_HFLAG_IGN_IRQ_IF_ERR	= (1 << 1), /* ignore IRQ_IF_ERR */
@@ -208,8 +172,6 @@ enum {
 	AHCI_HFLAG_SRST_TOUT_IS_OFFLINE	= (1 << 11), /* treat SRST timeout as
 							link offline */
 	AHCI_HFLAG_NO_SNTF		= (1 << 12), /* no sntf */
-	AHCI_HFLAG_NO_FPDMA_AA		= (1 << 13), /* no FPDMA AA */
-	AHCI_HFLAG_YES_FBS		= (1 << 14), /* force FBS cap on */
 
 	/* ap->flags bits */
 
@@ -225,18 +187,9 @@ enum {
 	EM_MAX_RETRY			= 5,
 
 	/* em_ctl bits */
-	EM_CTL_RST		= (1 << 9), /* Reset */
-	EM_CTL_TM		= (1 << 8), /* Transmit Message */
-	EM_CTL_MR		= (1 << 0), /* Message Recieved */
-	EM_CTL_ALHD		= (1 << 26), /* Activity LED */
-	EM_CTL_XMT		= (1 << 25), /* Transmit Only */
-	EM_CTL_SMB		= (1 << 24), /* Single Message Buffer */
-
-	/* em message type */
-	EM_MSG_TYPE_LED		= (1 << 0), /* LED */
-	EM_MSG_TYPE_SAFTE	= (1 << 1), /* SAF-TE */
-	EM_MSG_TYPE_SES2	= (1 << 2), /* SES-2 */
-	EM_MSG_TYPE_SGPIO	= (1 << 3), /* SGPIO */
+	EM_CTL_RST			= (1 << 9), /* Reset */
+	EM_CTL_TM			= (1 << 8), /* Transmit Message */
+	EM_CTL_ALHD			= (1 << 26), /* Activity LED */
 };
 
 struct ahci_cmd_hdr {
@@ -278,6 +231,7 @@ struct ahci_port_priv {
 	bool			fbs_supported;	/* set iff FBS is supported */
 	bool			fbs_enabled;	/* set iff FBS is enabled */
 	int			fbs_last_dev;	/* save FBS.DEV of last FIS */
+
 	/* enclosure management info per PM slot */
 	struct ahci_em_priv	em_priv[EM_MAX_SLOTS];
 };
@@ -292,23 +246,12 @@ struct ahci_host_priv {
 	u32			saved_cap2;	/* saved initial cap2 */
 	u32			saved_port_map;	/* saved initial port_map */
 	u32 			em_loc; /* enclosure management location */
-	u32			em_buf_sz;	/* EM buffer size in byte */
-	u32			em_msg_type;	/* EM message type */
 };
 
+extern int ahci_em_messages;
 extern int ahci_ignore_sss;
 
-extern struct device_attribute *ahci_shost_attrs[];
-extern struct device_attribute *ahci_sdev_attrs[];
-
-#define AHCI_SHT(drv_name)						\
-	ATA_NCQ_SHT(drv_name),						\
-	.can_queue		= AHCI_MAX_CMDS - 1,			\
-	.sg_tablesize		= AHCI_MAX_SG,				\
-	.dma_boundary		= AHCI_DMA_BOUNDARY,			\
-	.shost_attrs		= ahci_shost_attrs,			\
-	.sdev_attrs		= ahci_sdev_attrs
-
+extern struct scsi_host_template ahci_sht;
 extern struct ata_port_operations ahci_ops;
 
 void ahci_save_initial_config(struct device *dev,
@@ -350,5 +293,3 @@ static inline int ahci_nr_ports(u32 cap)
 {
 	return (cap & 0x1f) + 1;
 }
-
-#endif /* _AHCI_H */
