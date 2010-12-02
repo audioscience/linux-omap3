@@ -729,7 +729,9 @@ static struct davinci_uart_config uart_config __initdata = {
 	.enabled_uarts = (1 << 0),
 };
 
-#define DM646X_EVM_PHY_ID		"0:01"
+#define DM646X_EVM_PHY_MASK		(0x2)
+#define DM646X_EVM_MDIO_FREQUENCY	(2200000) /* PHY bus frequency */
+
 /*
  * The following EDMA channels/slots are not being used by drivers (for
  * example: Timer, GPIO, UART events etc) on dm646x, hence they are being
@@ -782,7 +784,8 @@ static __init void evm_init(void)
 	if (HAS_ATA)
 		davinci_init_ide();
 
-	soc_info->emac_pdata->phy_id = DM646X_EVM_PHY_ID;
+	soc_info->emac_pdata->phy_mask = DM646X_EVM_PHY_MASK;
+	soc_info->emac_pdata->mdio_max_freq = DM646X_EVM_MDIO_FREQUENCY;
 }
 
 #define DM646X_EVM_REF_FREQ		27000000

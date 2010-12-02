@@ -42,7 +42,9 @@
 #include <mach/mux.h>
 #include <mach/usb.h>
 
-#define SFFSDR_PHY_ID		"0:01"
+#define SFFSDR_PHY_MASK		(0x2)
+#define SFFSDR_MDIO_FREQUENCY	(2200000) /* PHY bus frequency */
+
 static struct mtd_partition davinci_sffsdr_nandflash_partition[] = {
 	/* U-Boot Environment: Block 0
 	 * UBL:                Block 1
@@ -141,7 +143,8 @@ static __init void davinci_sffsdr_init(void)
 			     ARRAY_SIZE(davinci_sffsdr_devices));
 	sffsdr_init_i2c();
 	davinci_serial_init(&uart_config);
-	soc_info->emac_pdata->phy_id = SFFSDR_PHY_ID;
+	soc_info->emac_pdata->phy_mask = SFFSDR_PHY_MASK;
+	soc_info->emac_pdata->mdio_max_freq = SFFSDR_MDIO_FREQUENCY;
 	davinci_setup_usb(0, 0); /* We support only peripheral mode. */
 
 	/* mux VLYNQ pins */

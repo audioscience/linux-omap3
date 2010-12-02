@@ -15,8 +15,6 @@
 #include <linux/mtd/partitions.h>
 #include <linux/regulator/machine.h>
 #include <linux/i2c.h>
-#include <linux/i2c/at24.h>
-#include <linux/etherdevice.h>
 
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
@@ -26,65 +24,8 @@
 #include <mach/nand.h>
 #include <mach/mux.h>
 
-#define MITYOMAPL138_PHY_ID		"0:03"
-
-#define FACTORY_CONFIG_MAGIC	0x012C0138
-#define FACTORY_CONFIG_VERSION	0x00010001
-
-/* Data Held in On-Board I2C device */
-struct factory_config {
-	u32	magic;
-	u32	version;
-	u8	mac[6];
-	u32	fpga_type;
-	u32	spare;
-	u32	serialnumber;
-	char	partnum[32];
-};
-
-static struct factory_config factory_config;
-
-static void read_factory_config(struct memory_accessor *a, void *context)
-{
-	int ret;
-	struct davinci_soc_info *soc_info = &davinci_soc_info;
-
-	ret = a->read(a, (char *)&factory_config, 0, sizeof(factory_config));
-	if (ret != sizeof(struct factory_config)) {
-		pr_warning("MityOMAPL138: Read Factory Config Failed: %d\n",
-				ret);
-		return;
-	}
-
-	if (factory_config.magic != FACTORY_CONFIG_MAGIC) {
-		pr_warning("MityOMAPL138: Factory Config Magic Wrong (%X)\n",
-				factory_config.magic);
-		return;
-	}
-
-	if (factory_config.version != FACTORY_CONFIG_VERSION) {
-		pr_warning("MityOMAPL138: Factory Config Version Wrong (%X)\n",
-				factory_config.version);
-		return;
-	}
-
-	pr_info("MityOMAPL138: Found MAC = %pM\n", factory_config.mac);
-	pr_info("MityOMAPL138: Part Number = %s\n", factory_config.partnum);
-	if (is_valid_ether_addr(factory_config.mac))
-		memcpy(soc_info->emac_pdata->mac_addr,
-			factory_config.mac, ETH_ALEN);
-	else
-		pr_warning("MityOMAPL138: Invalid MAC found "
-				"in factory config block\n");
-}
-
-static struct at24_platform_data mityomapl138_fd_chip = {
-	.byte_len	= 256,
-	.page_size	= 8,
-	.flags		= AT24_FLAG_READONLY | AT24_FLAG_IRUGO,
-	.setup		= read_factory_config,
-	.context	= NULL,
-};
+#define MITYOMAPL138_PHY_MASK		0x08 /* hardcoded for now */
+#define MITYOMAPL138_MDIO_FREQUENCY	(2200000) /* PHY bus frequency */
 
 static struct davinci_i2c_platform_data mityomap_i2c_0_pdata = {
 	.bus_freq	= 100,	/* kHz */
@@ -93,14 +34,14 @@ static struct davinci_i2c_platform_data mityomap_i2c_0_pdata = {
 
 /* TPS65023 voltage regulator support */
 /* 1.2V Core */
-static struct regulator_consumer_supply tps65023_dcdc1_consumers[] = {
+struct regulator_consumer_supply tps65023_dcdc1_consumers[] = {
 	{
 		.supply = "cvdd",
 	},
 };
 
 /* 1.8V */
-static struct regulator_consumer_supply tps65023_dcdc2_consumers[] = {
+struct regulator_consumer_supply tps65023_dcdc2_consumers[] = {
 	{
 		.supply = "usb0_vdda18",
 	},
@@ -116,7 +57,7 @@ static struct regulator_consumer_supply tps65023_dcdc2_consumers[] = {
 };
 
 /* 1.2V */
-static struct regulator_consumer_supply tps65023_dcdc3_consumers[] = {
+struct regulator_consumer_supply tps65023_dcdc3_consumers[] = {
 	{
 		.supply = "sata_vdd",
 	},
@@ -132,20 +73,20 @@ static struct regulator_consumer_supply tps65023_dcdc3_consumers[] = {
 };
 
 /* 1.8V Aux LDO, not used */
-static struct regulator_consumer_supply tps65023_ldo1_consumers[] = {
+struct regulator_consumer_supply tps65023_ldo1_consumers[] = {
 	{
 		.supply = "1.8v_aux",
 	},
 };
 
 /* FPGA VCC Aux (2.5 or 3.3) LDO */
-static struct regulator_consumer_supply tps65023_ldo2_consumers[] = {
+struct regulator_consumer_supply tps65023_ldo2_consumers[] = {
 	{
 		.supply = "vccaux",
 	},
 };
 
-static struct regulator_init_data tps65023_regulator_data[] = {
+struct regulator_init_data tps65023_regulator_data[] = {
 	/* dcdc1 */
 	{
 		.constraints = {
@@ -212,7 +153,6 @@ static struct i2c_board_info __initdata mityomap_tps65023_info[] = {
 	},
 	{
 		I2C_BOARD_INFO("24c02", 0x50),
-		.platform_data = &mityomapl138_fd_chip,
 	},
 };
 
@@ -226,7 +166,7 @@ static int __init pmic_tps65023_init(void)
  * MityDSP-L138 includes a 256 MByte large-page NAND flash
  * (128K blocks).
  */
-static struct mtd_partition mityomapl138_nandflash_partition[] = {
+struct mtd_partition mityomapl138_nandflash_partition[] = {
 	{
 		.name		= "rootfs",
 		.offset		= 0,
@@ -333,7 +273,9 @@ static void __init mityomapl138_config_emac(void)
 	/* configure the CFGCHIP3 register for RMII or MII */
 	__raw_writel(val, cfg_chip3_base);
 
-	soc_info->emac_pdata->phy_id = MITYOMAPL138_PHY_ID;
+	soc_info->emac_pdata->phy_mask = MITYOMAPL138_PHY_MASK;
+	pr_debug("setting phy_mask to %x\n", soc_info->emac_pdata->phy_mask);
+	soc_info->emac_pdata->mdio_max_freq = MITYOMAPL138_MDIO_FREQUENCY;
 
 	ret = da8xx_register_emac();
 	if (ret)
@@ -414,6 +356,8 @@ static void __init mityomapl138_map_io(void)
 }
 
 MACHINE_START(MITYOMAPL138, "MityDSP-L138/MityARM-1808")
+	.phys_io	= IO_PHYS,
+	.io_pg_offst	= (__IO_ADDRESS(IO_PHYS) >> 18) & 0xfffc,
 	.boot_params	= (DA8XX_DDR_BASE + 0x100),
 	.map_io		= mityomapl138_map_io,
 	.init_irq	= cp_intc_init,
