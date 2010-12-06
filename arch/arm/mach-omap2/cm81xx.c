@@ -12,23 +12,11 @@
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  */
-#if 0
-#include <linux/kernel.h>
-#include <linux/module.h>
-#include <linux/types.h>
-#endif
 #include <linux/delay.h>
-#if 0
-#include <linux/spinlock.h>
-#include <linux/list.h>
-#endif
 #include <linux/errno.h>
 #include <linux/err.h>
 #include <linux/io.h>
 
-#if 0
-#include <asm/atomic.h>
-#endif
 #include <plat/common.h>
 
 #include "cm.h"
