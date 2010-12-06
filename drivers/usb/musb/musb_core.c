@@ -1989,14 +1989,6 @@ bad_config:
 	 * code does is make sure a clock handle is available; platform
 	 * code manages it during start/stop and suspend/resume.
 	 */
-	if (plat->clock) {
-		musb->clock = clk_get(dev, plat->clock);
-		if (IS_ERR(musb->clock)) {
-			status = PTR_ERR(musb->clock);
-			musb->clock = NULL;
-			goto fail1;
-		}
-	}
 
 	/* The musb_platform_init() call:
 	 *   - adjusts musb->mregs and musb->isr if needed,
@@ -2161,10 +2153,6 @@ fail3:
 	musb_platform_exit(musb);
 
 fail2:
-	if (musb->clock)
-		clk_put(musb->clock);
-
-fail1:
 	dev_err(musb->controller,
 		"musb_init_controller failed with status %d\n", status);
 
