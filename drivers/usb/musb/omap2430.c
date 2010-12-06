@@ -32,6 +32,7 @@
 #include <linux/clk.h>
 #include <linux/io.h>
 #include <linux/platform_device.h>
+#include <linux/dma-mapping.h>
 
 #include "musb_core.h"
 #include "omap2430.h"
@@ -44,6 +45,7 @@ struct omap_musb_glue {
 #define musb_to_omap(d)	dev_get_drvdata(musb->controller->parent)
 
 static struct timer_list musb_idle_timer;
+static u64 musb_dmamask = DMA_BIT_MASK(32);
 
 static void omap2430_musb_do_idle(unsigned long _musb)
 {
@@ -231,12 +233,9 @@ static int omap2430_musb_suspend(struct musb *musb)
 
 static int omap2430_musb_resume(struct musb *musb)
 {
-	struct omap_musb_glue	*omap = musb_to_omap(musb);
 	u32 l;
 
 	otg_set_suspend(musb->xceiv, 0);
-
-	clk_enable(omap->clk);
 
 	omap2430_musb_restore_context(musb);
 
@@ -350,7 +349,7 @@ static int __init omap2430_musb_probe(struct platform_device *pdev)
 		goto err0;
 	}
 
-	musb = platform_device_alloc("musb-hdrc", -1);
+	musb = platform_device_alloc("musb_hdrc", -1);
 	if (!musb) {
 		dev_err(&pdev->dev, "failed to allocate musb device\n");
 		ret = -ENOMEM;
@@ -358,6 +357,12 @@ static int __init omap2430_musb_probe(struct platform_device *pdev)
 	}
 
 	pdata->ops = &omap2430_musb_ops;
+
+	musb->dev.dma_mask = &musb_dmamask;
+	musb->dev.coherent_dma_mask = musb_dmamask;
+
+	platform_device_add_resources(musb, pdev->resource,
+					pdev->num_resources);
 
 	ret = platform_device_add_data(musb, pdata, sizeof(*pdata));
 	if (ret) {
@@ -424,7 +429,7 @@ static int __init omap2430_glue_init(void)
 	return platform_driver_probe(&omap2430_musb_driver,
 			omap2430_musb_probe);
 }
-module_init(omap2430_glue_init);
+subsys_initcall(omap2430_glue_init);
 
 static void __exit omap2430_glue_exit(void)
 {

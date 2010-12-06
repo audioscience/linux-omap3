@@ -30,6 +30,7 @@
 #include <linux/clk.h>
 #include <linux/io.h>
 #include <linux/platform_device.h>
+#include <linux/dma-mapping.h>
 
 #include <plat/usb.h>
 
@@ -82,6 +83,7 @@
 
 struct am35x_musb_glue {
 	struct clk	*clk;
+	struct clk	*fck;
 	struct device	*dev;
 };
 
@@ -175,6 +177,7 @@ static void am35x_set_vbus(struct musb *musb, int is_on)
 #define	POLL_SECONDS	2
 
 static struct timer_list otg_workaround;
+static u64 musb_dmamask = DMA_BIT_MASK(32);
 
 static void otg_timer(unsigned long _musb)
 {
@@ -404,17 +407,6 @@ static int am35x_musb_init(struct musb *musb, void *board_data)
 
 	musb->mregs += USB_MENTOR_CORE_OFFSET;
 
-	clk_enable(musb->clock);
-	DBG(2, "musb->clock=%lud\n", clk_get_rate(musb->clock));
-
-	musb->phy_clock = clk_get(musb->controller, "fck");
-	if (IS_ERR(musb->phy_clock)) {
-		status = PTR_ERR(musb->phy_clock);
-		goto exit0;
-	}
-	clk_enable(musb->phy_clock);
-	DBG(2, "musb->phy_clock=%lud\n", clk_get_rate(musb->phy_clock));
-
 	/* Returns zero if e.g. not clocked */
 	rev = musb_readl(reg_base, USB_REVISION_REG);
 	if (!rev) {
@@ -459,10 +451,6 @@ static int am35x_musb_init(struct musb *musb, void *board_data)
 	omap_ctrl_writel(lvl_intr, AM35XX_CONTROL_LVL_INTR_CLEAR);
 	return 0;
 exit1:
-	clk_disable(musb->phy_clock);
-	clk_put(musb->phy_clock);
-exit0:
-	clk_disable(musb->clock);
 	return status;
 }
 
@@ -557,25 +545,44 @@ static int __init am35x_musb_probe(struct platform_device *pdev)
 		goto err0;
 	}
 
-	musb = platform_device_alloc("musb-hdrc", -1);
+	am35x->fck = clk_get(&pdev->dev, "fck");
+	if (IS_ERR(am35x->fck)) {
+		dev_err(&pdev->dev, "unable to get fclock\n");
+		ret = PTR_ERR(am35x->fck);
+		goto err1;
+	}
+
+	musb = platform_device_alloc("musb_hdrc", -1);
 	if (!musb) {
 		dev_err(&pdev->dev, "failed to allocate musb device\n");
 		ret = -ENOMEM;
-		goto err1;
+		goto err2;
 	}
 
 	pdata->ops = &am35x_musb_ops;
 
+	musb->dev.dma_mask = &musb_dmamask;
+	musb->dev.coherent_dma_mask = musb_dmamask;
+
+	platform_device_add_resources(musb, pdev->resource,
+					pdev->num_resources);
+
 	ret = platform_device_add_data(musb, pdata, sizeof(*pdata));
 	if (ret) {
 		dev_err(&pdev->dev, "failed to add platform_data\n");
-		goto err2;
+		goto err3;
 	}
 
 	ret = clk_enable(am35x->clk);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to enable clock\n");
-		goto err2;
+		goto err3;
+	}
+
+	ret = clk_enable(am35x->fck);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to enable fclock\n");
+		goto err4;
 	}
 
 	platform_set_drvdata(pdev, am35x);
@@ -584,20 +591,21 @@ static int __init am35x_musb_probe(struct platform_device *pdev)
 	ret = platform_device_add(musb);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to register musb device\n");
-		goto err3;
+		goto err5;
 	}
 
 	return 0;
 
-err3:
+err5:
+	clk_disable(am35x->fck);
+err4:
 	clk_disable(am35x->clk);
-
-err2:
+err3:
 	platform_device_put(musb);
-
+err2:
+	clk_put(am35x->fck);
 err1:
 	clk_put(am35x->clk);
-
 err0:
 	kfree(am35x);
 
@@ -610,6 +618,8 @@ static int __exit am35x_musb_remove(struct platform_device *pdev)
 
 	clk_disable(am35x->clk);
 	clk_put(am35x->clk);
+	clk_disable(am35x->fck);
+	clk_put(am35x->fck);
 	kfree(am35x);
 
 	return 0;
@@ -630,7 +640,7 @@ static int __init am35x_glue_init(void)
 {
 	return platform_driver_probe(&am35x_musb_driver, am35x_musb_probe);
 }
-module_init(am35x_glue_init);
+subsys_initcall(am35x_glue_init);
 
 static void __exit am35x_glue_exit(void)
 {

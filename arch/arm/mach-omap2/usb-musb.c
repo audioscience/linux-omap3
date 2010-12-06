@@ -91,7 +91,7 @@ void usb_musb_disable_autoidle(void)
 	}
 }
 
-#ifdef CONFIG_USB_MUSB_SOC
+#ifdef CONFIG_USB_MUSB_HDRC
 
 static struct resource musb_resources[] = {
 	[0] = { /* start and end set dynamically */
@@ -151,6 +151,7 @@ void __init usb_musb_init(struct omap_musb_board_data *board_data)
 	if (cpu_is_omap243x()) {
 		musb_resources[0].start = OMAP243X_HS_BASE;
 	} else if (cpu_is_omap3517() || cpu_is_omap3505()) {
+		musb_device.name = "musb-am35x";
 		musb_resources[0].start = AM35XX_IPSS_USBOTGSS_BASE;
 		musb_resources[1].start = INT_35XX_USBOTG_IRQ;
 	} else if (cpu_is_omap34xx()) {
@@ -183,4 +184,4 @@ void __init usb_musb_init(struct omap_musb_board_data *board_data)
 {
 	usb_musb_pm_init();
 }
-#endif /* CONFIG_USB_MUSB_SOC */
+#endif  /* CONFIG_USB_MUSB_SOC */
