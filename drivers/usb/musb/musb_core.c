@@ -107,11 +107,9 @@
 
 #include "musb_core.h"
 
-
 #ifdef CONFIG_ARCH_DAVINCI
 #include "davinci.h"
 #endif
-
 
 #ifdef	CONFIG_PM
 struct musb *gb_musb;
@@ -1939,6 +1937,7 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl,
 	int			status;
 	struct musb		*musb;
 	struct musb_hdrc_platform_data *plat = dev->platform_data;
+	struct platform_device *pdev = to_platform_device(dev);
 
 	/* The driver might handle more features than the board; OK.
 	 * Fail when the board needs a feature that's not enabled.
@@ -2004,6 +2003,7 @@ bad_config:
 	musb->set_clock = plat->set_clock;
 	musb->min_power = plat->min_power;
 	musb->ops = plat->ops;
+	musb->id = pdev->id;
 
 	/* Clock usage is chip-specific ... functional clock (DaVinci,
 	 * OMAP2430), or PHY ref (some TUSB6010 boards).  All this core
@@ -2160,8 +2160,11 @@ bad_config:
 			? "DMA" : "PIO",
 			musb->nIrq);
 
-	if (status == 0)
-		musb_debug_create("driver/musb_hdrc", musb);
+	if (status == 0) {
+		u8 drvbuf[20];
+		sprintf(drvbuf, "driver/musb_hdrc.%d", musb->id);
+		musb_debug_create(drvbuf, musb);
+	}
 
 #ifdef CONFIG_USB_MUSB_HDRC_HCD
 	musb->gb_queue = create_singlethread_workqueue(dev_name(dev));
@@ -2248,6 +2251,7 @@ static int __exit musb_remove(struct platform_device *pdev)
 {
 	struct musb	*musb = dev_to_musb(&pdev->dev);
 	void __iomem	*ctrl_base = musb->ctrl_base;
+	u8 drvbuf[20];
 
 	/* this gets called on rmmod.
 	 *  - Host mode: host may still be active
@@ -2256,7 +2260,8 @@ static int __exit musb_remove(struct platform_device *pdev)
 	 */
 	musb_exit_debugfs(musb);
 	musb_shutdown(pdev);
-	musb_debug_delete("driver/musb_hdrc", musb);
+	sprintf(drvbuf, "driver/musb_hdrc.%d", musb->id);
+	musb_debug_delete(drvbuf, musb);
 
 	musb_free(musb);
 	iounmap(ctrl_base);
