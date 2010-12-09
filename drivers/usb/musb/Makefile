@@ -44,4 +44,5 @@ obj-$(CONFIG_USB_MUSB_DA8XX)	+= da8xx.o
 obj-$(CONFIG_USB_TUSB6010)	+= tusb6010.o
 obj-$(CONFIG_USB_MUSB_OMAP2PLUS) += omap2430.o
 obj-$(CONFIG_USB_MUSB_AM35X)	+= am35x.o
+musb_hdrc-$(CONFIG_ARCH_TI81XX) += ti81xx.o
 obj-$(CONFIG_USB_MUSB_BLACKFIN)	+= blackfin.o

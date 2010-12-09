@@ -51,7 +51,7 @@ struct musb;
 struct musb_hw_ep;
 struct musb_ep;
 
-extern struct musb *gmusb;
+extern struct musb *gmusb[];
 static inline u32 musb_readl(const void __iomem *addr, unsigned offset);
 static inline u16 musb_readw(const void __iomem *addr, unsigned offset);
 static inline u8 musb_readb(const void __iomem *addr, unsigned offset);
@@ -215,7 +215,7 @@ enum musb_g_ep0_state {
 
 #if defined(CONFIG_ARCH_DAVINCI) || defined(CONFIG_ARCH_OMAP2430) \
 		|| defined(CONFIG_ARCH_OMAP3430) || defined(CONFIG_BLACKFIN) \
-		|| defined(CONFIG_ARCH_OMAP4)
+		|| defined(CONFIG_ARCH_OMAP4) || defined(CONFIG_ARCH_TI81XX)
 /* REVISIT indexed access seemed to
  * misbehave (on DaVinci) for at least peripheral IN ...
  */
@@ -754,7 +754,7 @@ static inline void musb_read_fifo(struct musb_hw_ep *ep,
 
 static inline u32 musb_readl(const void __iomem *addr, unsigned offset)
 {
-	struct musb *musb = gmusb;
+	struct musb *musb = gmusb[0];
 
 	if (!musb) return 0;
 	if (!musb->ops->read_long)
@@ -765,7 +765,7 @@ static inline u32 musb_readl(const void __iomem *addr, unsigned offset)
 
 static inline u16 musb_readw(const void __iomem *addr, unsigned offset)
 {
-	struct musb *musb = gmusb;
+	struct musb *musb = gmusb[0];
 	if (!musb) return 0;
 	if (!musb->ops->read_word)
 		return 0;
@@ -775,7 +775,7 @@ static inline u16 musb_readw(const void __iomem *addr, unsigned offset)
 
 static inline u8 musb_readb(const void __iomem *addr, unsigned offset)
 {
-	struct musb *musb = gmusb;
+	struct musb *musb = gmusb[0];
 	if (!musb) return 0;
 	if (!musb->ops->read_byte)
 		return 0;
@@ -785,7 +785,7 @@ static inline u8 musb_readb(const void __iomem *addr, unsigned offset)
 
 static inline void musb_writel(void __iomem *addr, unsigned offset, u32 data)
 {
-	struct musb *musb = gmusb;
+	struct musb *musb = gmusb[0];
 	if (!musb) return;
 	if (musb->ops->write_long)
 		musb->ops->write_long(addr, offset, data);
@@ -793,7 +793,7 @@ static inline void musb_writel(void __iomem *addr, unsigned offset, u32 data)
 
 static inline void musb_writew(void __iomem *addr, unsigned offset, u16 data)
 {
-	struct musb *musb = gmusb;
+	struct musb *musb = gmusb[0];
 	if (!musb) return;
 	if (musb->ops->write_word)
 		musb->ops->write_word(addr, offset, data);
@@ -801,7 +801,7 @@ static inline void musb_writew(void __iomem *addr, unsigned offset, u16 data)
 
 static inline void musb_writeb(void __iomem *addr, unsigned offset, u8 data)
 {
-	struct musb *musb = gmusb;
+	struct musb *musb = gmusb[0];
 	if (!musb) return;
 	if (musb->ops->write_byte)
 		musb->ops->write_byte(addr, offset, data);

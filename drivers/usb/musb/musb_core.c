@@ -116,7 +116,7 @@ struct musb *gb_musb;
 unsigned short musb_clock_on = 1;
 #endif
 
-struct musb *gmusb;
+struct musb *gmusb[2];
 unsigned musb_debug;
 module_param_named(debug, musb_debug, uint, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(debug, "Debug message level. Default = 0");
@@ -1995,7 +1995,7 @@ bad_config:
 #ifdef CONFIG_USB_MUSB_HDRC_HCD
 	spin_lock_init(&musb->gb_lock);
 #endif
-	gmusb = musb;
+	gmusb[pdev->id] = musb;
 	spin_lock_init(&musb->lock);
 	musb->ctrl_phys_base = ctrl_phys_addr;
 	musb->board_mode = plat->mode;
