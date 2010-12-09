@@ -452,6 +452,7 @@ static struct dma_channel *cppi41_channel_alloc(struct dma_controller
 	cppi_ch->end_pt = ep;
 	cppi_ch->ch_num = ch_num;
 	cppi_ch->channel.status = MUSB_DMA_STATUS_FREE;
+	cppi_ch->channel.max_len = (is_tx) ? CPPI41_TXDMA_MAXLEN : CPPI41_RXDMA_MAXLEN;
 
 	DBG(4, "Allocated DMA %cx channel %d for EP%d\n", is_tx ? 'T' : 'R',
 	    ch_num, ep_num);
