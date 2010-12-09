@@ -182,6 +182,8 @@
 #define DMA_SCHED_LAST_ENTRY_SHIFT	0
 #define DMA_SCHED_LAST_ENTRY_MASK	(0xff << DMA_SCHED_LAST_ENTRY_SHIFT)
 
+#define CPPI41_TXDMA_MAXLEN		(4 * 1024 * 1024 - 1)
+#define CPPI41_RXDMA_MAXLEN		(64 * 1024)
 /*
  * DMA Scheduler - Table Region
  */
