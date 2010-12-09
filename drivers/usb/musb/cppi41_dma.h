@@ -44,6 +44,7 @@ struct usb_cppi41_info {
 	u8 num_rx_comp_q;
 	const u16 *tx_comp_q;
 	const u16 *rx_comp_q;
+	const u8 bd_intr_ctrl;
 };
 
 extern const struct usb_cppi41_info usb_cppi41_info[];
