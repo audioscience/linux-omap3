@@ -23,6 +23,20 @@
 #include <plat/irqs.h>
 #include <plat/board.h>
 #include <plat/common.h>
+#include <plat/usb.h>
+
+static struct omap_musb_board_data musb_board_data = {
+	.interface_type		= MUSB_INTERFACE_ULPI,
+#ifdef CONFIG_USB_MUSB_OTG
+	.mode           = MUSB_OTG,
+#elif defined(CONFIG_USB_MUSB_HDRC_HCD)
+	.mode           = MUSB_HOST,
+#elif defined(CONFIG_USB_GADGET_MUSB_HDRC)
+	.mode           = MUSB_PERIPHERAL,
+#endif
+	.power			= 500,
+	.instances              = 1,
+};
 
 static void __init ti8148_evm_init_irq(void)
 {
@@ -33,6 +47,9 @@ static void __init ti8148_evm_init_irq(void)
 static void __init ti8148_evm_init(void)
 {
 	omap_serial_init();
+
+	/* initialize usb */
+	usb_musb_init(&musb_board_data);
 }
 
 static void __init ti8148_evm_map_io(void)
