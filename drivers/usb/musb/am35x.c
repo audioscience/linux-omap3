@@ -249,7 +249,8 @@ const struct usb_cppi41_info usb_cppi41_info[1] = {
 		.num_tx_comp_q	= 4,
 		.num_rx_comp_q	= 4,
 		.tx_comp_q	= tx_comp_q,
-		.rx_comp_q	= rx_comp_q
+		.rx_comp_q	= rx_comp_q,
+		.bd_intr_ctrl   = 0, /* am35x dont support bd interrupt */
 	}
 };
 
