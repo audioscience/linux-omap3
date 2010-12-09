@@ -33,6 +33,7 @@
 #include <plat/irqs.h>
 #include <plat/board.h>
 #include <plat/common.h>
+#include <plat/usb.h>
 
 #include "board-flash.h"
 
@@ -98,6 +99,19 @@ struct mtd_partition ti816x_spi_partitions[] = {
 		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x2C2000 */
 		.size		= MTDPART_SIZ_FULL,		/* size = 1.24 MiB */
 	}
+};
+
+static struct omap_musb_board_data musb_board_data = {
+	.interface_type         = MUSB_INTERFACE_ULPI,
+#ifdef CONFIG_USB_MUSB_OTG
+	.mode           = MUSB_OTG,
+#elif defined(CONFIG_USB_MUSB_HDRC_HCD)
+	.mode           = MUSB_HOST,
+#elif defined(CONFIG_USB_GADGET_MUSB_HDRC)
+	.mode           = MUSB_PERIPHERAL,
+#endif
+	.power                  = 500,
+	.instances              = 1,
 };
 
 const struct flash_platform_data ti816x_spi_flash = {
@@ -215,6 +229,7 @@ static void __init ti8168_evm_init(void)
 	i2c_add_driver(&ti816xevm_cpld_driver);
 	ti816x_spi_init();
 	ti_ahci_register(2);
+	usb_musb_init(&musb_board_data);
 	board_nor_init(ti816x_evm_norflash_partitions,
 		ARRAY_SIZE(ti816x_evm_norflash_partitions), 0);
 }
