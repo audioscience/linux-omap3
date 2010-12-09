@@ -235,18 +235,22 @@ void am35x_musb_writeb(void __iomem *addr, unsigned offset, u8 data)
  * EP3   3    3    0     22,23  4
  * ---------------------------------
  */
+/* queue number 63 & 64 are tx completion queues */
+static const u16 tx_comp_q[] = { 63, 63, 63, 63 };
+/* queue number 64 & 65 are rx completion queues */
+static const u16 rx_comp_q[] = { 65, 65, 65, 65 };
 
-static const u16 tx_comp_q[] = { 63, 64 };
-static const u16 rx_comp_q[] = { 65, 66 };
-
-const struct usb_cppi41_info usb_cppi41_info = {
-	.dma_block	= 0,
-	.ep_dma_ch	= { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 },
-	.q_mgr		= 0,
-	.num_tx_comp_q	= 2,
-	.num_rx_comp_q	= 2,
-	.tx_comp_q	= tx_comp_q,
-	.rx_comp_q	= rx_comp_q
+const struct usb_cppi41_info usb_cppi41_info[1] = {
+	{
+		.dma_block	= 0,
+		.ep_dma_ch	= { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+					11, 12, 13, 14 },
+		.q_mgr		= 0,
+		.num_tx_comp_q	= 4,
+		.num_rx_comp_q	= 4,
+		.tx_comp_q	= tx_comp_q,
+		.rx_comp_q	= rx_comp_q
+	}
 };
 
 /* Fair scheduling */
@@ -360,7 +364,8 @@ EXPORT_SYMBOL(cppi41_queue_mgr);
 
 int __init cppi41_init(struct musb *musb)
 {
-	u16 numch, blknum = usb_cppi41_info.dma_block, order;
+	struct usb_cppi41_info *cppi_info = &usb_cppi41_info[musb->id];
+	u16 numch, blknum = cppi_info->dma_block, order;
 
 	/* init mappings */
 	cppi41_queue_mgr[0].q_mgr_rgn_base = musb->ctrl_base + 0x4000;
@@ -374,7 +379,7 @@ int __init cppi41_init(struct musb *musb)
 	cppi41_dma_block[0].sched_table_base = musb->ctrl_base + 0x2800;
 
 	/* Initialize for Linking RAM region 0 alone */
-	cppi41_queue_mgr_init(usb_cppi41_info.q_mgr, 0, 0x3fff);
+	cppi41_queue_mgr_init(cppi_info->q_mgr, 0, 0x3fff);
 
 	numch =  USB_CPPI41_NUM_CH * 2;
 	order = get_count_order(numch);
@@ -383,7 +388,7 @@ int __init cppi41_init(struct musb *musb)
 	if (order < 5)
 		order = 5;
 
-	cppi41_dma_block_init(blknum, usb_cppi41_info.q_mgr, order,
+	cppi41_dma_block_init(blknum, cppi_info->q_mgr, order,
 			dma_sched_table, numch);
 	return 0;
 }
@@ -741,6 +746,7 @@ static int am35x_musb_init(struct musb *musb, void *board_data)
 	u32 rev, lvl_intr, sw_reset;
 	int status;
 
+	musb->id = 0
 	g_musb = musb;
 	musb->mregs += USB_MENTOR_CORE_OFFSET;
 
