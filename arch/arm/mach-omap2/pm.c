@@ -80,10 +80,15 @@ static int _init_omap_device(char *name, struct device **new_dev)
 static void omap2_init_processor_devices(void)
 {
 	_init_omap_device("mpu", &mpu_dev);
-	_init_omap_device("iva", &iva_dev);
+
+	if (!cpu_is_ti81xx())
+		_init_omap_device("iva", &iva_dev);
+
 	if (cpu_is_omap44xx()) {
 		_init_omap_device("l3_main_1", &l3_dev);
 		_init_omap_device("dsp", &dsp_dev);
+	} else if (cpu_is_ti81xx()) {
+		_init_omap_device("l3_slow", &l3_dev);
 	} else {
 		_init_omap_device("l3_main", &l3_dev);
 	}
