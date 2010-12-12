@@ -323,7 +323,7 @@ static void txstate(struct musb *musb, struct musb_request *req)
 			if (cpu_is_omap3630() &&
 				(request->dma + request->actual) & 0x3) {
 				request_size =
-				min((size_t)musb_ep->hw_ep->max_packet_sz_tx,
+				min((size_t)max_ep_writesize(musb, musb_ep),
 					(request->length - request->actual));
 				musb_ep->dma->desired_mode = 0;
 			}
