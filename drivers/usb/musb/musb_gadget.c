@@ -320,7 +320,7 @@ static void txstate(struct musb *musb, struct musb_request *req)
 				(musb->hwvers >= MUSB_HWVERS_1800)) {
 
 				request_size = min_t(size_t,
-					musb_ep->hw_ep->max_packet_sz_tx,
+					max_ep_writesize(musb, musb_ep),
 					request->length - request->actual);
 
 				musb_ep->dma->desired_mode = 0;
