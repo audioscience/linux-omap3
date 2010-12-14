@@ -323,7 +323,18 @@ static int omap2430_musb_init(struct musb *musb, void *board_data)
 
 static int omap2430_musb_exit(struct musb *musb)
 {
-	return omap2430_musb_suspend(musb);
+	u32 l;
+
+	/* in any role */
+	l = musb_readl(musb->mregs, OTG_FORCESTDBY);
+	l |= ENABLEFORCE;	/* enable MSTANDBY */
+	musb_writel(musb->mregs, OTG_FORCESTDBY, l);
+
+	l = musb_readl(musb->mregs, OTG_SYSCONFIG);
+	l |= ENABLEWAKEUP;	/* enable wakeup */
+	musb_writel(musb->mregs, OTG_SYSCONFIG, l);
+
+	return 0;
 }
 
 static struct musb_platform_ops omap2430_musb_ops = {
