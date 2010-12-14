@@ -37,8 +37,13 @@
 #include <plat/usb.h>
 #include <plat/gpmc.h>
 #include <plat/nand.h>
+#include <plat/mmc.h>
 
+#include "clock.h"
+#include "clockdomains.h"
+#include "powerdomains.h"
 #include "mux.h"
+#include "hsmmc.h"
 #include "board-flash.h"
 
 static struct mtd_partition ti816x_evm_norflash_partitions[] = {
@@ -136,6 +141,17 @@ struct mtd_partition ti816x_spi_partitions[] = {
 		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x2C2000 */
 		.size		= MTDPART_SIZ_FULL,		/* size = 1.24 MiB */
 	}
+};
+
+static struct omap2_hsmmc_info mmc[] = {
+	{
+		.mmc		= 1,
+		.caps           = MMC_CAP_4_BIT_DATA,
+		.gpio_cd	= -EINVAL,/* Dedicated pins for CD and WP */
+		.gpio_wp	= -EINVAL,
+		.ocr_mask	= MMC_VDD_33_34,
+	},
+	{}	/* Terminator */
 };
 
 static struct omap_musb_board_data musb_board_data = {
@@ -283,6 +299,7 @@ static void __init ti8168_evm_init(void)
 		ARRAY_SIZE(ti816x_evm_norflash_partitions), 0);
 	/* register ahci interface for 2 SATA ports */
 	ti_ahci_register(2);
+	omap2_hsmmc_init(mmc);
 }
 
 static void __init ti8168_evm_map_io(void)

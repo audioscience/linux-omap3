@@ -848,6 +848,18 @@ static inline void omap2_mmc_mux(struct omap_mmc_platform_data *mmc_controller,
 		 * For MMC3 the pins need to be muxed in the board-*.c files
 		 */
 	}
+
+	if (cpu_is_ti816x()) {
+		omap_mux_init_signal("mmc_pow", OMAP_PULL_ENA );
+		omap_mux_init_signal("mmc_clk", OMAP_PIN_OUTPUT );
+		omap_mux_init_signal("mmc_cmd", OMAP_PULL_UP );
+		omap_mux_init_signal("mmc_dat0", OMAP_PULL_UP );
+		omap_mux_init_signal("mmc_dat1_sdirq", OMAP_PULL_UP );
+		omap_mux_init_signal("mmc_dat2_sdrw", OMAP_PULL_UP );
+		omap_mux_init_signal("mmc_dat3", OMAP_PULL_UP );
+		omap_mux_init_signal("mmc_sdcd", OMAP_PULL_ENA );
+		omap_mux_init_signal("mmc_sdwp", OMAP_PULL_ENA );
+	}
 }
 
 void __init omap2_init_mmc(struct omap_mmc_platform_data **mmc_data,
@@ -867,8 +879,13 @@ void __init omap2_init_mmc(struct omap_mmc_platform_data **mmc_data,
 
 		switch (i) {
 		case 0:
-			base = OMAP2_MMC1_BASE;
-			irq = INT_24XX_MMC_IRQ;
+			if (!cpu_is_ti816x()) {
+				base = OMAP2_MMC1_BASE;
+				irq = INT_24XX_MMC_IRQ;
+			} else {
+				base = TI816X_MMC1_BASE;
+				irq = TI81XX_IRQ_SD;
+			}
 			break;
 		case 1:
 			base = OMAP2_MMC2_BASE;
@@ -903,6 +920,9 @@ void __init omap2_init_mmc(struct omap_mmc_platform_data **mmc_data,
 			if (i < 3)
 				irq += OMAP44XX_IRQ_GIC_START;
 			size = OMAP4_HSMMC_SIZE;
+			name = "mmci-omap-hs";
+		} else if (cpu_is_ti816x()) {
+			size = TI816X_HSMMC_SIZE;
 			name = "mmci-omap-hs";
 		} else {
 			size = OMAP3_HSMMC_SIZE;
@@ -1033,7 +1053,7 @@ static struct resource ti81xx_edma_resources[] = {
 static const s16 ti816x_dma_rsv_chans[][2] = {
 	/* (offset, number) */
 	{ 0,  4},	/* !@@@ TODO replace as appropriate - Sundaram*/
-	{24,  4},
+	//{24,  4},
 	{30,  2},
 	{54,  3},
 	{-1, -1}
@@ -1042,7 +1062,7 @@ static const s16 ti816x_dma_rsv_chans[][2] = {
 static const s16 ti816x_dma_rsv_slots[][2] = {
 	/* (offset, number) */
 	{ 0,  4},	/* !@@@ TODO replace as appropriate - Sundaram*/
-	{24,  4},
+//	{24,  4},
 	{30,  2},
 	{54,  3},
 	{128, 384},
