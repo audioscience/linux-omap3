@@ -35,6 +35,7 @@ extern void omap_map_common_io(void);
 extern struct sys_timer omap_timer;
 
 extern void omap_reserve(void);
+extern void ti81xx_reserve(void);
 
 /*
  * IO bases for various OMAP processors
