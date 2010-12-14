@@ -624,9 +624,11 @@ int edma_alloc_channel(int channel,
 	if (channel >= 0) {
 			ctlr = EDMA_CTLR(channel);
 			channel = EDMA_CHAN_SLOT(channel);
-			ret = xbar_event_to_channel_map(channel, &channel, edma_info[ctlr]->xbar_event_mapping);
-			if (ret != 0)
-			return ret;
+			if (xbar_event_to_channel_map) {
+				ret = xbar_event_to_channel_map(channel, &channel, edma_info[ctlr]->xbar_event_mapping);
+				if (ret != 0)
+					return ret;
+			}
 	}
 
 	if (channel < 0) {
