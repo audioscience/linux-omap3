@@ -38,6 +38,7 @@
 #include <plat/gpmc.h>
 #include <plat/nand.h>
 #include <plat/mmc.h>
+#include <plat/asp.h>
 
 #include "clock.h"
 #include "clockdomains.h"
@@ -277,6 +278,26 @@ static void __init ti8168_evm_init_irq(void)
 
 int __init ti_ahci_register(u8 num_inst);
 
+static u8 ti8168_iis_serializer_direction[] = {
+	TX_MODE,	RX_MODE,	INACTIVE_MODE,	INACTIVE_MODE,
+	INACTIVE_MODE,	INACTIVE_MODE,	INACTIVE_MODE,	INACTIVE_MODE,
+	INACTIVE_MODE,	INACTIVE_MODE,	INACTIVE_MODE,	INACTIVE_MODE,
+	INACTIVE_MODE,	INACTIVE_MODE,	INACTIVE_MODE,	INACTIVE_MODE,
+};
+
+static struct snd_platform_data ti8168_evm_snd_data = {
+	.tx_dma_offset	= 0x46800000,
+	.rx_dma_offset	= 0x46800000,
+	.op_mode	= DAVINCI_MCASP_IIS_MODE,
+	.num_serializer = ARRAY_SIZE(ti8168_iis_serializer_direction),
+	.tdm_slots	= 2,
+	.serial_dir	= ti8168_iis_serializer_direction,
+	.asp_chan_q	= EVENTQ_2,
+	.version	= MCASP_VERSION_2,
+	.txnumevt	= 1,
+	.rxnumevt	= 1,
+};
+
 #ifdef CONFIG_OMAP_MUX
 static struct omap_board_mux board_mux[] __initdata = {
 	{ .reg_offset = OMAP_MUX_TERMINATOR },
@@ -300,6 +321,7 @@ static void __init ti8168_evm_init(void)
 	/* register ahci interface for 2 SATA ports */
 	ti_ahci_register(2);
 	omap2_hsmmc_init(mmc);
+	ti81xx_register_mcasp(0, &ti8168_evm_snd_data);
 }
 
 static void __init ti8168_evm_map_io(void)
