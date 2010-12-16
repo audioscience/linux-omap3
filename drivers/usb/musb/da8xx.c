@@ -565,8 +565,8 @@ int __init musb_platform_init(struct musb *musb, void *board_data)
 	if (!rev)
 		goto fail;
 
-	usb_nop_xceiv_register();
-	musb->xceiv = otg_get_transceiver();
+	usb_nop_xceiv_register(musb->id);
+	musb->xceiv = otg_get_transceiver(musb->id);
 	if (!musb->xceiv)
 		goto fail;
 
@@ -607,7 +607,7 @@ int musb_platform_exit(struct musb *musb)
 	phy_off();
 
 	otg_put_transceiver(musb->xceiv);
-	usb_nop_xceiv_unregister();
+	usb_nop_xceiv_unregister(musb->id);
 
 #ifdef CONFIG_USB_TI_CPPI41_DMA
 	cppi41_exit();

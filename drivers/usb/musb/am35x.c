@@ -365,7 +365,7 @@ EXPORT_SYMBOL(cppi41_queue_mgr);
 
 int __init cppi41_init(struct musb *musb)
 {
-	struct usb_cppi41_info *cppi_info = &usb_cppi41_info[musb->id];
+	const struct usb_cppi41_info *cppi_info = &usb_cppi41_info[musb->id];
 	u16 numch, blknum = cppi_info->dma_block, order;
 
 	/* init mappings */
@@ -747,8 +747,9 @@ static int am35x_musb_init(struct musb *musb, void *board_data)
 	u32 rev, lvl_intr, sw_reset;
 	int status;
 
-	musb->id = 0
+	musb->id = 0;
 	g_musb = musb;
+
 	musb->mregs += USB_MENTOR_CORE_OFFSET;
 
 	/* Returns zero if e.g. not clocked */
@@ -758,8 +759,8 @@ static int am35x_musb_init(struct musb *musb, void *board_data)
 		goto exit1;
 	}
 
-	usb_nop_xceiv_register();
-	musb->xceiv = otg_get_transceiver();
+	usb_nop_xceiv_register(musb->id);
+	musb->xceiv = otg_get_transceiver(musb->id);
 	if (!musb->xceiv) {
 		status = -ENODEV;
 		goto exit1;
@@ -812,7 +813,7 @@ static int am35x_musb_exit(struct musb *musb)
 	phy_off();
 
 	otg_put_transceiver(musb->xceiv);
-	usb_nop_xceiv_unregister();
+	usb_nop_xceiv_unregister(musb->id);
 
 #ifdef CONFIG_USB_TI_CPPI41_DMA
 	cppi41_exit();

@@ -1107,8 +1107,8 @@ static int tusb6010_musb_init(struct musb *musb, void *board_data)
 	void __iomem		*sync = NULL;
 	int			ret;
 
-	usb_nop_xceiv_register();
-	musb->xceiv = otg_get_transceiver();
+	usb_nop_xceiv_register(musb->id);
+	musb->xceiv = otg_get_transceiver(musb->id);
 	if (!musb->xceiv)
 		return -ENODEV;
 
@@ -1166,7 +1166,7 @@ done:
 			iounmap(sync);
 
 		otg_put_transceiver(musb->xceiv);
-		usb_nop_xceiv_unregister();
+		usb_nop_xceiv_unregister(musb->id);
 	}
 	return ret;
 }
@@ -1182,7 +1182,7 @@ static int tusb6010_musb_exit(struct musb *musb)
 	iounmap(musb->sync_va);
 
 	otg_put_transceiver(musb->xceiv);
-	usb_nop_xceiv_unregister();
+	usb_nop_xceiv_unregister(musb->id);
 	return 0;
 }
 

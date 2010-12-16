@@ -381,8 +381,8 @@ int __init musb_platform_init(struct musb *musb, void *board_data)
 	void __iomem	*tibase = musb->ctrl_base;
 	u32		revision;
 
-	usb_nop_xceiv_register();
-	musb->xceiv = otg_get_transceiver();
+	usb_nop_xceiv_register(musb->id);
+	musb->xceiv = otg_get_transceiver(musb->id);
 	if (!musb->xceiv)
 		return -ENODEV;
 
@@ -447,7 +447,7 @@ fail:
 	clk_disable(musb->clock);
 
 	otg_put_transceiver(musb->xceiv);
-	usb_nop_xceiv_unregister();
+	usb_nop_xceiv_unregister(musb->id);
 	return -ENODEV;
 }
 
@@ -498,7 +498,7 @@ int musb_platform_exit(struct musb *musb)
 	clk_disable(musb->clock);
 
 	otg_put_transceiver(musb->xceiv);
-	usb_nop_xceiv_unregister();
+	usb_nop_xceiv_unregister(musb->id);
 
 	return 0;
 }

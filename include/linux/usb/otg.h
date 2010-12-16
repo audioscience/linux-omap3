@@ -170,7 +170,7 @@ otg_shutdown(struct otg_transceiver *otg)
 extern struct otg_transceiver *otg_get_transceiver(int id);
 extern void otg_put_transceiver(struct otg_transceiver *);
 #else
-static inline struct otg_transceiver *otg_get_transceiver(void)
+static inline struct otg_transceiver *otg_get_transceiver(int id)
 {
 	return NULL;
 }
