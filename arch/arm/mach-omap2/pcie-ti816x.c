@@ -237,13 +237,13 @@ static void set_outbound_trans(u32 start, u32 end)
 	/* Set outbound translation size per window division */
 	__raw_writel(CFG_PCIM_WIN_SZ_IDX & 0x7, reg_virt + OB_SIZE);
 
-	tr_size = (2 << (CFG_PCIM_WIN_SZ_IDX & 0x7)) * SZ_1M;
+	tr_size = (1 << (CFG_PCIM_WIN_SZ_IDX & 0x7)) * SZ_1M;
 
 	/* Using Direct 1:1 mapping of RC <-> PCI memory space */
 	for (i = 0; (i < CFG_PCIM_WIN_CNT) && (start < end); i++) {
-		start += (tr_size * i);
 		__raw_writel(start | 1, reg_virt + OB_OFFSET_INDEX(i));
 		__raw_writel(0,	reg_virt + OB_OFFSET_HI(i));
+		start += tr_size;
 	}
 
 	/* TODO: ensure unused translation regions are disabled */
