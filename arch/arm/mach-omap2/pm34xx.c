@@ -171,7 +171,7 @@ struct omap_opp omap37x_mpu_rate_table[] = {
 	/*OPP3 (OPP120)*/
 	{S800M, VDD1_OPP3, 0x35},
 	/*OPP4 (OPPTM)*/
-	{S1000M, VDD1_OPP4, 0x3C},
+	{S1000M, VDD1_OPP4, 0x3e},
 };
 
 struct omap_opp omap37x_dsp_rate_table[] = {
