@@ -500,8 +500,6 @@ void cppi41_free(struct musb *musb)
 {
 	if (!cppi41_init_done)
 		return ;
-
-	free_irq(TI81XX_IRQ_USBSS, 0);
 	iounmap(cppi41_dma_base);
 	cppi41_dma_base = 0;
 	cppi41_init_done = 0;
