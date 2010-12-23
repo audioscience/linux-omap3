@@ -48,6 +48,10 @@
 #define ABB_NOMINAL_OPP			2
 #define ABB_SLOW_OPP			3
 
+/* Voltage Margin in mV */
+#define OMAP36XX_HIGH_OPP_VMARGIN	63
+#define OMAP36XX_LOW_OPP_VMARGIN	50
+
 /*
  * VDD1 and VDD2 OPPs derived from the bootarg 'mpurate'
  */
@@ -295,16 +299,64 @@ static u32 swcalc_opp6_nvalue(void)
 	return opp6_nvalue;
 }
 
+
+static unsigned int sr_adjust_efuse_nvalue(unsigned int opp_no,
+						unsigned int orig_opp_nvalue,
+						unsigned int mv_delta)
+{
+	unsigned int new_opp_nvalue;
+	unsigned int senp_gain, senn_gain, rnsenp, rnsenn, pnt_delta, nnt_delta;
+	unsigned int new_senn, new_senp, senn, senp;
+
+	/* calculate SenN and SenP from the efuse value */
+	senp_gain = ((orig_opp_nvalue >> 20) & 0xf);
+	senn_gain = ((orig_opp_nvalue >> 16) & 0xf);
+	rnsenp = ((orig_opp_nvalue >> 8) & 0xff);
+	rnsenn = (orig_opp_nvalue & 0xff);
+
+	senp = ((1<<(senp_gain+8))/(rnsenp));
+	senn = ((1<<(senn_gain+8))/(rnsenn));
+
+	/* calculate the voltage delta */
+	pnt_delta = (26 * mv_delta)/10;
+	nnt_delta = (3 * mv_delta);
+
+	/* now lets add the voltage delta to the sensor values */
+	new_senn = senn + nnt_delta;
+	new_senp = senp + pnt_delta;
+
+	new_opp_nvalue = cal_test_nvalue(new_senn, new_senp);
+
+	printk("Compensating OPP%d for %dmV Orig nvalue:0x%x New nvalue:0x%x \n",
+			opp_no, mv_delta, orig_opp_nvalue, new_opp_nvalue);
+
+	return new_opp_nvalue;
+}
+
 static void sr_set_efuse_nvalues(struct omap_sr *sr)
 {
+	unsigned int opp_nvalue;
+
 	if (sr->srid == SR1) {
 		if (cpu_is_omap3630()) {
 			sr->senn_mod = sr->senp_mod = 0x1;
 
-			sr->opp4_nvalue = omap_ctrl_readl(OMAP36XX_CONTROL_FUSE_OPP4_VDD1);
-			sr->opp3_nvalue = omap_ctrl_readl(OMAP36XX_CONTROL_FUSE_OPP3_VDD1);
-			sr->opp2_nvalue = omap_ctrl_readl(OMAP36XX_CONTROL_FUSE_OPP2_VDD1);
-			sr->opp1_nvalue = omap_ctrl_readl(OMAP36XX_CONTROL_FUSE_OPP1_VDD1);
+			opp_nvalue = omap_ctrl_readl(OMAP36XX_CONTROL_FUSE_OPP4_VDD1);
+			sr->opp4_nvalue = sr_adjust_efuse_nvalue(4, opp_nvalue,
+											OMAP36XX_HIGH_OPP_VMARGIN);
+
+			opp_nvalue = omap_ctrl_readl(OMAP36XX_CONTROL_FUSE_OPP3_VDD1);
+			sr->opp3_nvalue = sr_adjust_efuse_nvalue(3, opp_nvalue,
+											OMAP36XX_HIGH_OPP_VMARGIN);
+
+			opp_nvalue = omap_ctrl_readl(OMAP36XX_CONTROL_FUSE_OPP2_VDD1);
+			sr->opp2_nvalue = sr_adjust_efuse_nvalue(2, opp_nvalue,
+											OMAP36XX_LOW_OPP_VMARGIN);
+
+			opp_nvalue = omap_ctrl_readl(OMAP36XX_CONTROL_FUSE_OPP1_VDD1);
+			sr->opp1_nvalue = sr_adjust_efuse_nvalue(1, opp_nvalue,
+											OMAP36XX_LOW_OPP_VMARGIN);
+
 		} else {
 			sr->senn_mod = (omap_ctrl_readl(OMAP343X_CONTROL_FUSE_SR) &
 						OMAP343X_SR1_SENNENABLE_MASK) >>
