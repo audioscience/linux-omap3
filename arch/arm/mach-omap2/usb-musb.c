@@ -58,7 +58,7 @@ static void __init usb_musb_pm_init(void)
 	if (WARN_ON(!otg_base))
 		return;
 
-	dev_set_name(dev, "musb_hdrc");
+	dev_set_name(dev, "musb-omap2430");
 	otg_clk = clk_get(dev, "ick");
 
 	if (otg_clk && clk_enable(otg_clk)) {
@@ -102,12 +102,16 @@ static struct resource musb_resources[] = {
 		.flags	= IORESOURCE_IRQ,
 	},
 	[2] = {	/* DMA IRQ */
-#ifdef CONFIG_ARCH_TI81XX
-		.flags  = IORESOURCE_MEM,
-	},
-	[3] = { /* DMA IRQ */
-#endif
 		.start	= INT_243X_HS_USB_DMA,
+		.flags	= IORESOURCE_IRQ,
+	},
+	[3] = { /* MEM for TI81x's second musb */
+		.flags  = IORESOURCE_MEM,
+		.start	= TI81XX_USB1_BASE,
+		.end	= TI81XX_USB1_BASE + SZ_2K - 1,
+	},
+	[4] = {	/* IRQ for TI81x's second musb */
+		.start	= TI81XX_IRQ_USB1,
 		.flags	= IORESOURCE_IRQ,
 	},
 };
@@ -142,7 +146,7 @@ static struct platform_device musb_device[] = {
 			.coherent_dma_mask	= DMA_BIT_MASK(32),
 			.platform_data		= &musb_plat[0],
 		},
-		.num_resources	= ARRAY_SIZE(musb_resources)/2,
+		.num_resources	= 3,
 		.resource	= &musb_resources[0],
 	},
 	{
@@ -153,8 +157,8 @@ static struct platform_device musb_device[] = {
 			.coherent_dma_mask	= DMA_BIT_MASK(32),
 			.platform_data		= &musb_plat[1],
 		},
-		.num_resources	= ARRAY_SIZE(musb_resources)/2,
-		.resource	= &musb_resources[2],
+		.num_resources	= 3,
+		.resource	= &musb_resources[3],
 	},
 
 };
@@ -163,15 +167,12 @@ void __init usb_musb_init(struct omap_musb_board_data *board_data)
 {
 	int i;
 
-	musb_resources[0].end = musb_resources[0].start + SZ_4K - 1;
-
 	if (cpu_is_omap243x()) {
 		musb_resources[0].start = OMAP243X_HS_BASE;
 	} else if (cpu_is_omap3517() || cpu_is_omap3505()) {
 		musb_device[0].name = "musb-am35x";
 		musb_resources[0].start = AM35XX_IPSS_USBOTGSS_BASE;
 		musb_resources[1].start = INT_35XX_USBOTG_IRQ;
-		musb_resources[0].end = musb_resources[0].start + SZ_32K - 1;
 	} else if (cpu_is_omap34xx()) {
 		musb_resources[0].start = OMAP34XX_HSUSB_OTG_BASE;
 	} else if (cpu_is_omap44xx()) {
@@ -192,14 +193,18 @@ void __init usb_musb_init(struct omap_musb_board_data *board_data)
 		musb_resources[1].start = TI81XX_IRQ_USB0;
 		musb_resources[0].end = musb_resources[0].start + SZ_2K - 1;
 
-		for (i = 0; i <= board_data->instances; i++)
+		for (i = 0; i <= board_data->instances; i++) {
 			musb_device[i].name = "musb-ti81xx";
+			musb_device[i].num_resources = 2;
+		}
 
-		musb_resources[2].start = TI81XX_USB1_BASE;
-		musb_resources[3].start = TI81XX_IRQ_USB1;
-		musb_resources[2].end = musb_resources[2].start + SZ_2K - 1;
 		musb_config.fifo_mode = 4;
 	}
+
+	if (cpu_is_omap3517() || cpu_is_omap3505())
+		musb_resources[0].end = musb_resources[0].start + SZ_32K - 1;
+	else if (!cpu_is_ti81xx())
+		musb_resources[0].end = musb_resources[0].start + SZ_4K - 1;
 
 	/*
 	 * OMAP3630/AM35x platform has MUSB RTL-1.8 which has the fix for the
