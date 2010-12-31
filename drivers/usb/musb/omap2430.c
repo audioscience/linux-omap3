@@ -41,6 +41,7 @@
 struct omap_musb_glue {
 	struct clk	*clk;
 	struct device	*dev;
+	struct platform_device  *musb;
 };
 
 #define musb_to_omap(d)	dev_get_drvdata(musb->controller->parent)
@@ -411,6 +412,7 @@ static int __init omap2430_musb_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, omap);
 	omap->dev = &pdev->dev;
+	omap->musb = musb;
 
 	ret = platform_device_add(musb);
 	if (ret) {
@@ -439,6 +441,8 @@ static int __exit omap2430_musb_remove(struct platform_device *pdev)
 {
 	struct omap_musb_glue		*omap = platform_get_drvdata(pdev);
 
+	platform_device_del(omap->musb);
+	platform_device_put(omap->musb);
 	clk_disable(omap->clk);
 	clk_put(omap->clk);
 	kfree(omap);

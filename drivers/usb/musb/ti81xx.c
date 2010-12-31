@@ -42,6 +42,7 @@
 struct ti81xx_musb_glue {
 	struct clk      *clk;
 	struct device   *dev;
+	struct platform_device  *musb;
 };
 static u64 musb_dmamask = DMA_BIT_MASK(32);
 static void *usbss_virt_base;
@@ -1233,6 +1234,7 @@ static int __init ti81xx_musb_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, ti81xx);
 	ti81xx->dev = &pdev->dev;
+	ti81xx->musb = musb;
 
 	ret = platform_device_add(musb);
 	if (ret) {
@@ -1261,6 +1263,8 @@ static int __exit ti81xx_musb_remove(struct platform_device *pdev)
 {
 	struct ti81xx_musb_glue          *ti81xx = platform_get_drvdata(pdev);
 
+	platform_device_del(ti81xx->musb);
+	platform_device_put(ti81xx->musb);
 	clk_disable(ti81xx->clk);
 	clk_put(ti81xx->clk);
 	kfree(ti81xx);

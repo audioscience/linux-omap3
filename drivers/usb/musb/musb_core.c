@@ -111,15 +111,16 @@
 #include "davinci.h"
 #endif
 
+struct musb *gb_musb[2];
+EXPORT_SYMBOL(gb_musb);
 #ifdef	CONFIG_PM
-struct musb *gb_musb;
 unsigned short musb_clock_on = 1;
 #endif
 
-struct musb *gmusb[2];
 unsigned musb_debug;
 module_param_named(debug, musb_debug, uint, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(debug, "Debug message level. Default = 0");
+EXPORT_SYMBOL(musb_debug);
 
 #define DRIVER_AUTHOR "Mentor Graphics, Texas Instruments, Nokia"
 #define DRIVER_DESC "Inventra Dual-Role USB Controller Driver"
@@ -271,6 +272,7 @@ void generic_musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 		writesb(fifo, src, len);
 	}
 }
+EXPORT_SYMBOL(generic_musb_write_fifo);
 
 /*
  * Unload an endpoint's FIFO
@@ -309,6 +311,7 @@ void generic_musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 		readsb(fifo, dst, len);
 	}
 }
+EXPORT_SYMBOL(generic_musb_read_fifo);
 
 /*-------------------------------------------------------------------------*/
 
@@ -363,6 +366,7 @@ const char *otg_state_string(struct musb *musb)
 	default:			return "UNDEFINED";
 	}
 }
+EXPORT_SYMBOL(otg_state_string);
 
 #ifdef	CONFIG_USB_MUSB_OTG
 
@@ -1648,7 +1652,7 @@ irqreturn_t musb_interrupt(struct musb *musb)
 
 	return retval;
 }
-
+EXPORT_SYMBOL(musb_interrupt);
 
 #ifndef CONFIG_MUSB_PIO_ONLY
 static int __initdata use_dma = 1;
@@ -1995,7 +1999,7 @@ bad_config:
 #ifdef CONFIG_USB_MUSB_HDRC_HCD
 	spin_lock_init(&musb->gb_lock);
 #endif
-	gmusb[pdev->id] = musb;
+	gb_musb[pdev->id] = musb;
 	spin_lock_init(&musb->lock);
 	musb->ctrl_phys_base = ctrl_phys_addr;
 	musb->board_mode = plat->mode;
@@ -2039,9 +2043,6 @@ bad_config:
 		musb->xceiv->io_ops = &musb_ulpi_access;
 	}
 
-#ifdef CONFIG_PM
-	gb_musb = musb;
-#endif
 #ifndef CONFIG_MUSB_PIO_ONLY
 	if (use_dma && dev->dma_mask) {
 		struct dma_controller	*c;
@@ -2161,7 +2162,7 @@ bad_config:
 			musb->nIrq);
 
 	if (status == 0) {
-		u8 drvbuf[20];
+		u8 drvbuf[19];
 		sprintf(drvbuf, "driver/musb_hdrc.%d", musb->id);
 		musb_debug_create(drvbuf, musb);
 	}
@@ -2251,7 +2252,7 @@ static int __exit musb_remove(struct platform_device *pdev)
 {
 	struct musb	*musb = dev_to_musb(&pdev->dev);
 	void __iomem	*ctrl_base = musb->ctrl_base;
-	u8 drvbuf[20];
+	u8 drvbuf[19];
 
 	/* this gets called on rmmod.
 	 *  - Host mode: host may still be active
@@ -2274,9 +2275,9 @@ static int __exit musb_remove(struct platform_device *pdev)
 
 #ifdef	CONFIG_PM
 
-void musb_save_context()
+void musb_save_context(void)
 {
-	struct musb *musb = gb_musb;
+	struct musb *musb = gb_musb[0];
 	struct musb_context_registers *ctx = &musb->context;
 	int i;
 	void __iomem *musb_base = musb->mregs;
@@ -2347,9 +2348,9 @@ void musb_save_context()
 	musb_platform_suspend(musb);
 }
 
-void musb_restore_context()
+void musb_restore_context(void)
 {
-	struct musb *musb = gb_musb;
+	struct musb *musb = gb_musb[0];
 	struct musb_context_registers *ctx = &musb->context;
 	int i;
 	void __iomem *musb_base = musb->mregs;

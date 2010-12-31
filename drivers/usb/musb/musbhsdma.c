@@ -582,6 +582,7 @@ void inventra_dma_controller_destroy(struct dma_controller *c)
 
 	kfree(controller);
 }
+EXPORT_SYMBOL(inventra_dma_controller_destroy);
 
 struct dma_controller *__init
 inventra_dma_controller_create(struct musb *musb, void __iomem *base)
@@ -623,3 +624,4 @@ inventra_dma_controller_create(struct musb *musb, void __iomem *base)
 
 	return &controller->controller;
 }
+EXPORT_SYMBOL(inventra_dma_controller_create);

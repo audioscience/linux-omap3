@@ -91,7 +91,7 @@ void usb_musb_disable_autoidle(void)
 	}
 }
 
-#ifdef CONFIG_USB_MUSB_HDRC
+#if defined(CONFIG_USB_MUSB_HDRC) || defined(CONFIG_USB_MUSB_HDRC_MODULE)
 
 static struct resource musb_resources[] = {
 	[0] = { /* start and end set dynamically */

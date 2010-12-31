@@ -38,7 +38,6 @@
 #include "cppi41.h"
 #include "cppi41_dma.h"
 
-struct musb *g_musb;
 /*
  * AM35x specific definitions
  */
@@ -93,15 +92,15 @@ u16 am35x_musb_readw(const void __iomem *addr, unsigned offset)
 	u32 tmp;
 	u16 val;
 
-	if (addr == g_musb->mregs) {
+	if (addr == gb_musb[0]->mregs) {
 
 		switch (offset) {
 		case MUSB_INTRTXE:
-			if (g_musb->read_mask & AM35X_READ_ISSUE_INTRTXE)
-				return g_musb->intrtxe;
+			if (gb_musb[0]->read_mask & AM35X_READ_ISSUE_INTRTXE)
+				return gb_musb[0]->intrtxe;
 		case MUSB_INTRRXE:
-			if (g_musb->read_mask & AM35X_READ_ISSUE_INTRRXE)
-				return g_musb->intrrxe;
+			if (gb_musb[0]->read_mask & AM35X_READ_ISSUE_INTRRXE)
+				return gb_musb[0]->intrrxe;
 		default:
 			break;
 		}
@@ -126,16 +125,16 @@ u16 am35x_musb_readw(const void __iomem *addr, unsigned offset)
 }
 void am35x_musb_writew(void __iomem *addr, unsigned offset, u16 data)
 {
-	if (addr == g_musb->mregs) {
+	if (addr == gb_musb[0]->mregs) {
 
 		switch (offset) {
 		case MUSB_INTRTXE:
-			g_musb->read_mask |= AM35X_READ_ISSUE_INTRTXE;
-			g_musb->intrtxe = data;
+			gb_musb[0]->read_mask |= AM35X_READ_ISSUE_INTRTXE;
+			gb_musb[0]->intrtxe = data;
 			break;
 		case MUSB_INTRRXE:
-			g_musb->read_mask |= AM35X_READ_ISSUE_INTRRXE;
-			g_musb->intrrxe = data;
+			gb_musb[0]->read_mask |= AM35X_READ_ISSUE_INTRRXE;
+			gb_musb[0]->intrrxe = data;
 		default:
 			break;
 		}
@@ -148,15 +147,15 @@ u8 am35x_musb_readb(const void __iomem *addr, unsigned offset)
 	u32 tmp;
 	u8 val;
 
-	if (addr == g_musb->mregs) {
+	if (addr == gb_musb[0]->mregs) {
 
 		switch (offset) {
 		case MUSB_FADDR:
-			if (g_musb->read_mask & AM35X_READ_ISSUE_FADDR)
-				return g_musb->faddr;
+			if (gb_musb[0]->read_mask & AM35X_READ_ISSUE_FADDR)
+				return gb_musb[0]->faddr;
 		case MUSB_POWER:
-			if (g_musb->read_mask & AM35X_READ_ISSUE_POWER) {
-				return g_musb->power;
+			if (gb_musb[0]->read_mask & AM35X_READ_ISSUE_POWER) {
+				return gb_musb[0]->power;
 			} else {
 				tmp = __raw_readl(addr);
 				val = (tmp >> 8);
@@ -165,13 +164,13 @@ u8 am35x_musb_readb(const void __iomem *addr, unsigned offset)
 						event = 0x%x\n", (u16)\
 						((tmp & 0xffff0000) >> 16));
 				}
-				g_musb->power = val;
-				g_musb->read_mask |= AM35X_READ_ISSUE_POWER;
+				gb_musb[0]->power = val;
+				gb_musb[0]->read_mask |= AM35X_READ_ISSUE_POWER;
 				return val;
 			}
 		case MUSB_INTRUSBE:
-			if (g_musb->read_mask & AM35X_READ_ISSUE_INTRUSBE)
-				return g_musb->intrusbe;
+			if (gb_musb[0]->read_mask & AM35X_READ_ISSUE_INTRUSBE)
+				return gb_musb[0]->intrusbe;
 		default:
 			break;
 		}
@@ -198,20 +197,20 @@ u8 am35x_musb_readb(const void __iomem *addr, unsigned offset)
 }
 void am35x_musb_writeb(void __iomem *addr, unsigned offset, u8 data)
 {
-	if (addr == g_musb->mregs) {
+	if (addr == gb_musb[0]->mregs) {
 
 		switch (offset) {
 		case MUSB_FADDR:
-			g_musb->read_mask |= AM35X_READ_ISSUE_FADDR;
-			g_musb->faddr = data;
+			gb_musb[0]->read_mask |= AM35X_READ_ISSUE_FADDR;
+			gb_musb[0]->faddr = data;
 			break;
 		case MUSB_POWER:
-			g_musb->read_mask |= AM35X_READ_ISSUE_POWER;
-			g_musb->power = data;
+			gb_musb[0]->read_mask |= AM35X_READ_ISSUE_POWER;
+			gb_musb[0]->power = data;
 			break;
 		case MUSB_INTRUSBE:
-			g_musb->read_mask |= AM35X_READ_ISSUE_INTRUSBE;
-			g_musb->intrusbe = data;
+			gb_musb[0]->read_mask |= AM35X_READ_ISSUE_INTRUSBE;
+			gb_musb[0]->intrusbe = data;
 		default:
 			break;
 		}
@@ -253,6 +252,7 @@ const struct usb_cppi41_info usb_cppi41_info[1] = {
 		.bd_intr_ctrl   = 0, /* am35x dont support bd interrupt */
 	}
 };
+EXPORT_SYMBOL(usb_cppi41_info);
 
 /* Fair scheduling */
 u32 dma_sched_table[] = {
@@ -399,6 +399,7 @@ struct am35x_musb_glue {
 	struct clk	*clk;
 	struct clk	*fck;
 	struct device	*dev;
+	struct platform_device  *musb;
 };
 
 static inline void phy_on(void)
@@ -748,7 +749,6 @@ static int am35x_musb_init(struct musb *musb, void *board_data)
 	int status;
 
 	musb->id = 0;
-	g_musb = musb;
 
 	musb->mregs += USB_MENTOR_CORE_OFFSET;
 
@@ -957,6 +957,7 @@ static int __init am35x_musb_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, am35x);
 	am35x->dev = &pdev->dev;
+	am35x->musb = musb;
 
 	ret = platform_device_add(musb);
 	if (ret) {
@@ -986,6 +987,8 @@ static int __exit am35x_musb_remove(struct platform_device *pdev)
 {
 	struct am35x_musb_glue		*am35x = platform_get_drvdata(pdev);
 
+	platform_device_del(am35x->musb);
+	platform_device_put(am35x->musb);
 	clk_disable(am35x->clk);
 	clk_put(am35x->clk);
 	clk_disable(am35x->fck);

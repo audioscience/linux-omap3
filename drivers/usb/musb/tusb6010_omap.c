@@ -660,6 +660,7 @@ void tusb6010_dma_controller_destroy(struct dma_controller *c)
 
 	kfree(tusb_dma);
 }
+EXPORT_SYMBOL(tusb6010_dma_controller_destroy);
 
 struct dma_controller *__init
 tusb6010_dma_controller_create(struct musb *musb, void __iomem *base)
@@ -724,3 +725,4 @@ cleanup:
 
 	return NULL;
 }
+EXPORT_SYMBOL(tusb6010_dma_controller_create);
