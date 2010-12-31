@@ -95,10 +95,22 @@ static int usb_internal_control_msg(struct usb_device *usb_dev,
 			     len, usb_api_blocking_completion, NULL);
 
 	retv = usb_start_wait_urb(urb, timeout, &length);
-	if (retv < 0)
+	if (retv < 0) {
+		struct usb_hcd *hcd = bus_to_hcd(usb_dev->bus);
+
+		/*
+		 * Recovery mechanism for OMAP3x errata Advisory 3.1.1.198
+		 * REVISIT: Check if control request are done using async
+		 * API usb_submit_urb() instead of usb_control_msg().
+		 */
+		if (!strcmp(hcd->product_desc, "OMAP-EHCI Host Controller") &&
+				retv == -ETIMEDOUT && hcd->driver->recover_hcd)
+			queue_work(ksuspend_usb_wq, &hcd->ehci_omap_work);
+
 		return retv;
-	else
+	} else {
 		return length;
+	}
 }
 
 /**
