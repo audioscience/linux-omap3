@@ -1177,7 +1177,7 @@ static int cppi41_channel_abort(struct dma_channel *channel)
  * cppi41_dma_controller_create - instantiate an object representing
  * DMA controller.
  */
-struct dma_controller * __init cppi41_dma_controller_create(struct musb  *musb,
+struct dma_controller * __devinit cppi41_dma_controller_create(struct musb  *musb,
 						     void __iomem *mregs)
 {
 	struct cppi41 *cppi;

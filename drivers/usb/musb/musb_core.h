@@ -807,7 +807,7 @@ static inline void musb_writeb(void __iomem *addr, unsigned offset, u8 data)
 		musb->ops->write_byte(addr, offset, data);
 }
 
-static inline struct dma_controller *__init
+static inline struct dma_controller *__devinit
 dma_controller_create(struct musb *musb, void __iomem *regs)
 {
 	if (!musb->ops->dma_create)

@@ -584,7 +584,7 @@ void inventra_dma_controller_destroy(struct dma_controller *c)
 }
 EXPORT_SYMBOL(inventra_dma_controller_destroy);
 
-struct dma_controller *__init
+struct dma_controller *__devinit
 inventra_dma_controller_create(struct musb *musb, void __iomem *base)
 {
 	struct musb_dma_controller *controller;
