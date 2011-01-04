@@ -66,8 +66,4 @@ static inline int ti81xx_init_fb(void)
 
 arch_initcall(ti81xx_init_fb);
 
-#else
-
-void ti81xxfb_reserve_sdram_memblock(void) {}
-
 #endif

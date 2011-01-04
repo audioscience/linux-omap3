@@ -34,8 +34,12 @@ extern void ti81xx_set_sdram_vram(u32 size, u32 start);
 extern void ti81xx_vram_get_info(unsigned long *vram,
 				 unsigned long *free_vram,
 				 unsigned long *largest_free_block);
+#ifdef CONFIG_ARCH_TI81XX
 extern void ti81xxfb_reserve_sdram_memblock(void);
+#else
+static inline void ti81xxfb_reserve_sdram_memblock(void) { }
 
+#endif
 
 #endif
 
