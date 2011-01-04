@@ -245,7 +245,7 @@ static inline void omap_init_sti(void) {}
 
 #if defined(CONFIG_SND_SOC) || defined(CONFIG_SND_SOC_MODULE)
 
-#if !defined(CONFIG_ARCH_TI81xx)
+#if !defined(CONFIG_ARCH_TI81XX)
 static struct platform_device omap_pcm = {
 	.name	= "omap-pcm-audio",
 	.id	= -1,
