@@ -470,6 +470,9 @@ static void omap_init_mcspi(void)
 	if (cpu_is_omap44xx())
 		omap4_mcspi_fixup();
 
+	if (cpu_is_ti814x())
+		return;
+
 	if (cpu_is_ti816x())
 		ti816x_mcspi_fixup();
 
