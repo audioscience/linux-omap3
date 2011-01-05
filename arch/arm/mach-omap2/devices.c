@@ -1773,7 +1773,9 @@ static int __init omap2_init_devices(void)
 	 */
 	omap_disable_wdt();
 	omap_hsmmc_reset();
+#if defined(CONFIG_SND_SOC) || defined(CONFIG_SND_SOC_MODULE)
 	omap_init_audio();
+#endif
 	omap_init_camera();
 	omap_init_mbox();
 	omap_init_mcspi();
@@ -1783,10 +1785,12 @@ static int __init omap2_init_devices(void)
 	omap_init_sham();
 	omap_init_aes();
 	omap_init_vout();
+#ifdef CONFIG_ARCH_TI81XX
 	ti81xx_register_edma();
 	ti816x_ethernet_init();
 	ti816x_init_pcie();
 	ti81xx_init_pcm();
+#endif
 
 	return 0;
 }
