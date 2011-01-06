@@ -155,7 +155,7 @@ void omap_prcm_arch_reset(char mode, const char *cmd)
 		omap_writel(l, OMAP343X_SCRATCHPAD + 4);
 	} else if (cpu_is_omap44xx())
 		prcm_offs = OMAP4430_PRM_DEVICE_MOD;
-	else if (cpu_is_ti816x())
+	else if (cpu_is_ti81xx())
 		prcm_offs = 0;
 	else
 		WARN_ON(1);
@@ -167,9 +167,9 @@ void omap_prcm_arch_reset(char mode, const char *cmd)
 		prm_set_mod_reg_bits(OMAP4430_RST_GLOBAL_WARM_SW_MASK,
 				     prcm_offs, OMAP4_RM_RSTCTRL);
 
-	if (cpu_is_ti816x())
-		prm_set_mod_reg_bits(TI816X_GLOBAL_RST_COLD, prcm_offs,
-						 TI816X_PRM_DEVICE_RSTCTRL);
+	if (cpu_is_ti81xx())
+		prm_set_mod_reg_bits(TI81XX_GLOBAL_RST_COLD, prcm_offs,
+						 TI81XX_PRM_DEVICE_RSTCTRL);
 }
 
 static inline u32 __omap_prcm_read(void __iomem *base, s16 module, u16 reg)

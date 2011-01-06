@@ -116,6 +116,7 @@
 #define TI81XX_CM_DEVICE_MOD			0x0100  /* 256B */
 #define TI81XX_CM_DPLL_MOD			0x0300  /* 256B */
 #define TI81XX_CM_ALWON_MOD			0x1400  /* 1KB */
+#define TI81XX_PRM_DEFAULT_MOD			0x0b00  /* 256B */
 #define TI81XX_PRM_ALWON_MOD			0x1800  /* 1KB */
 
 /* TI814X Specific */
@@ -142,7 +143,6 @@
 #define TI816X_CM_IVAHD2_MOD			0x0800  /* 256B */
 #define TI816X_CM_SGX_MOD			0x0900  /* 256B */
 #define TI816X_PRM_ACTIVE_MOD			0x0a00  /* 256B */
-#define TI816X_PRM_DEFAULT_MOD			0x0b00  /* 256B */
 #define TI816X_PRM_IVAHD0_MOD			0x0c00  /* 256B */
 #define TI816X_PRM_IVAHD1_MOD			0x0d00  /* 256B */
 #define TI816X_PRM_IVAHD2_MOD			0x0e00  /* 256B */
