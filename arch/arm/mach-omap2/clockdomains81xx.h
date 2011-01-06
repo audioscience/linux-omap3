@@ -100,9 +100,9 @@ static struct clockdomain isp_814x_clkdm= {
 };
 
 /* GFX clock domain */
-static struct clockdomain gfx_814x_clkdm= {
-	.name		= "gfx_clkdm",
-	.pwrdm		= { .name = "gfx_pwrdm" },
+static struct clockdomain sgx_814x_clkdm= {
+	.name		= "sgx_clkdm",
+	.pwrdm		= { .name = "sgx_pwrdm" },
 	.clkstctrl_reg	= TI814X_CM_GFX_CLKSTCTRL,
 	.clktrctrl_mask	= TI81XX_CLKTRCTRL_MASK,
 	.flags		= CLKDM_CAN_HWSUP_SWSUP,

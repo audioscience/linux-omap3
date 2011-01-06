@@ -369,22 +369,22 @@ static struct clk dsp_fck = {
 };
 
 /* GFX_DPLL for clock3(PRCM in) */
-static struct clk gfx_dpll_ck = {
-	.name		= "gfx_dpll_ck",
+static struct clk sgx_dpll_ck = {
+	.name		= "sgx_dpll_ck",
 	.ops		= &clkops_null,
 	.rate		= 200000000,
 	.flags		= RATE_IN_TI814X,
 };
 
 static const struct clksel sysclk23_div[] = {
-	{ .parent = &gfx_dpll_ck, .rates = div8_rates },
+	{ .parent = &sgx_dpll_ck, .rates = div8_rates },
 	{ .parent = NULL },
 };
 
 /* SYSCLK23(PRCM out) */
 static struct clk sysclk23_ck = {
 	.name		= "sysclk23_ck",
-	.parent		= &gfx_dpll_ck,
+	.parent		= &sgx_dpll_ck,
 	.clksel		= sysclk23_div,
 	.ops		= &clkops_null,
 	.clksel_reg	= TI81XX_CM_DPLL_SYSCLK23_CLKSEL,
@@ -393,31 +393,31 @@ static struct clk sysclk23_ck = {
 };
 
 /* GFX Func Clocks (CORE clk final) */
-static struct clk gfx_fck = {
-	.name		= "gfx_fck",
+static struct clk sgx_ck = {
+	.name		= "sgx_ck",
 	.parent		= &sysclk23_ck,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI814X_CM_GFX_GFX_CLKCTRL,
 	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
-	.clkdm_name	= "gfx_clkdm",
+	.clkdm_name	= "sgx_clkdm",
 	.recalc		= &followparent_recalc,
 };
 
-/* gfx_sys Clock (final) */
-static struct clk gfx_sys_ck = {
-	.name		= "gfx_sys_ck",
+/* sgx_sys Clock (final) */
+static struct clk sgx_sys_ck = {
+	.name		= "sgx_sys_ck",
 	.parent		= &sysclk23_ck,
 	.ops		= &clkops_null,
-	.clkdm_name	= "gfx_clkdm",
+	.clkdm_name	= "sgx_clkdm",
 	.recalc		= &followparent_recalc,
 };
 
-/* gfx_mem Clock (final) */
-static struct clk gfx_mem_ck = {
-	.name		= "gfx_mem_ck",
+/* sgx_mem Clock (final) */
+static struct clk sgx_mem_ck = {
+	.name		= "sgx_mem_ck",
 	.parent		= &sysclk23_ck,
 	.ops		= &clkops_null,
-	.clkdm_name	= "gfx_clkdm",
+	.clkdm_name	= "sgx_clkdm",
 	.recalc		= &followparent_recalc,
 };
 
@@ -3148,7 +3148,7 @@ static const struct clksel clkout0to10_mux_sel[] = {
 	{ .parent = &osc0_clkin_ck, .rates = div_1_6_rates },
 	{ .parent = &osc1_clkin_ck, .rates = div_1_7_rates },
 	{ .parent = &mpu_ck, .rates = div_1_8_rates },
-	{ .parent = &gfx_dpll_ck, .rates = div_1_9_rates },
+	{ .parent = &sgx_dpll_ck, .rates = div_1_9_rates },
 	{ .parent = &rcosc_32k_ck, .rates = div_1_10_rates },
 	{ .parent = NULL}
 };
@@ -3212,11 +3212,11 @@ static struct omap_clk ti814x_clks[] = {
 	CLK(NULL,		"mpu_ck",			&mpu_ck,			CK_TI814X),
 	CLK(NULL,		"dsp_dpll_ck",			&dsp_dpll_ck,			CK_TI814X),
 	CLK(NULL,		"dsp_fck",			&dsp_fck,			CK_TI814X),
-	CLK(NULL,		"gfx_dpll_ck",			&gfx_dpll_ck,			CK_TI814X),
+	CLK(NULL,		"sgx_dpll_ck",			&sgx_dpll_ck,			CK_TI814X),
 	CLK(NULL,		"sysclk23_ck",			&sysclk23_ck,			CK_TI814X),
-	CLK(NULL,		"gfx_fck",			&gfx_fck,			CK_TI814X),
-	CLK(NULL,		"gfx_sys_ck",			&gfx_sys_ck,			CK_TI814X),
-	CLK(NULL,		"gfx_mem_ck",			&gfx_mem_ck,			CK_TI814X),
+	CLK(NULL,		"sgx_ck",			&sgx_ck,			CK_TI814X),
+	CLK(NULL,		"sgx_sys_ck",			&sgx_sys_ck,			CK_TI814X),
+	CLK(NULL,		"sgx_mem_ck",			&sgx_mem_ck,			CK_TI814X),
 	CLK(NULL,		"hdvicp_dpll_ck",		&hdvicp_dpll_ck,		CK_TI814X),
 	CLK(NULL,		"sysclk3_ck",			&sysclk3_ck,			CK_TI814X),
 	CLK(NULL,		"hdvicp_fck",			&hdvicp_fck,			CK_TI814X),
