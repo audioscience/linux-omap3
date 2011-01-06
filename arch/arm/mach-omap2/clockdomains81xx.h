@@ -80,9 +80,9 @@ static struct clockdomain gem_814x_clkdm = {
 	.omap_chip	= OMAP_CHIP_INIT(CHIP_IS_TI814X),
 };
 
-static struct clockdomain hdvicp_814x_clkdm = {
-	.name		= "hdvicp_clkdm",
-	.pwrdm		= { .name = "hdvicp_pwrdm" },
+static struct clockdomain ivahd_814x_clkdm = {
+	.name		= "ivahd_clkdm",
+	.pwrdm		= { .name = "ivahd_pwrdm" },
 	.clkstctrl_reg	= TI814X_CM_HDVICP_CLKSTCTRL,
 	.clktrctrl_mask	= TI81XX_CLKTRCTRL_MASK,
 	.flags		= CLKDM_CAN_HWSUP_SWSUP,
