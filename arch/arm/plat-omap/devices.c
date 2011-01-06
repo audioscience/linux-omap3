@@ -113,10 +113,8 @@ static inline void omap_init_mcpdm(void) {}
 
 #define OMAP_MMC_NR_RES		4
 
-#ifdef CONFIG_ARCH_TI814X
 #define TI814X_DMA_MMC1_RX	3
 #define TI814X_DMA_MMC1_TX	2
-#endif
 
 /*
  * Register MMC devices. Called from mach-omap1 and mach-omap2 device init.
