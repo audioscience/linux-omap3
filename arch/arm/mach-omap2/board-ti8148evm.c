@@ -24,6 +24,24 @@
 #include <plat/board.h>
 #include <plat/common.h>
 #include <plat/usb.h>
+#include <plat/mmc.h>
+
+#include "clock.h"
+#include "clockdomains.h"
+#include "powerdomains.h"
+#include "hsmmc.h"
+
+
+static struct omap2_hsmmc_info mmc[] = {
+       {
+               .mmc            = 1,
+               .caps           = MMC_CAP_4_BIT_DATA,
+               .gpio_cd        = -EINVAL,/* Dedicated pins for CD and WP */
+               .gpio_wp        = -EINVAL,
+               .ocr_mask       = MMC_VDD_33_34,
+       },
+       {}      /* Terminator */
+};
 
 static struct omap_musb_board_data musb_board_data = {
 	.interface_type		= MUSB_INTERFACE_ULPI,
@@ -47,6 +65,8 @@ static void __init ti8148_evm_init_irq(void)
 static void __init ti8148_evm_init(void)
 {
 	omap_serial_init();
+
+	omap2_hsmmc_init(mmc);
 
 	/* initialize usb */
 	usb_musb_init(&musb_board_data);

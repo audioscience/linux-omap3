@@ -541,8 +541,8 @@ static struct clk dsp_ick = {
 };
 
 /* TPTC0 Clock(final) */
-static struct clk tptc1_ick = {
-	.name		= "tptc1_ick",
+static struct clk tptc0_ick = {
+	.name		= "tptc0_ick",
 	.parent		= &sysclk4_ck,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI81XX_CM_ALWON_TPTC0_CLKCTRL,
@@ -552,8 +552,8 @@ static struct clk tptc1_ick = {
 };
 
 /* TPTC1 Clock(final) */
-static struct clk tptc2_ick = {
-	.name		= "tptc2_ick",
+static struct clk tptc1_ick = {
+	.name		= "tptc1_ick",
 	.parent		= &sysclk4_ck,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI81XX_CM_ALWON_TPTC1_CLKCTRL,
@@ -563,8 +563,8 @@ static struct clk tptc2_ick = {
 };
 
 /* TPTC2 Clock(final) */
-static struct clk tptc3_ick = {
-	.name		= "tptc3_ick",
+static struct clk tptc2_ick = {
+	.name		= "tptc2_ick",
 	.parent		= &sysclk4_ck,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI81XX_CM_ALWON_TPTC2_CLKCTRL,
@@ -574,8 +574,8 @@ static struct clk tptc3_ick = {
 };
 
 /* TPTC3 Clock(final) */
-static struct clk tptc4_ick = {
-	.name		= "tptc4_ick",
+static struct clk tptc3_ick = {
+	.name		= "tptc3_ick",
 	.parent		= &sysclk4_ck,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI81XX_CM_ALWON_TPTC3_CLKCTRL,
@@ -3228,10 +3228,10 @@ static struct omap_clk ti814x_clks[] = {
 	CLK(NULL,		"exp_slot_ick",			&exp_slot_ick,			CK_TI814X),
 	CLK(NULL,		"mmu_ick",			&mmu_ick,			CK_TI814X),
 	CLK(NULL,		"dsp_ick",			&dsp_ick,			CK_TI814X),
+	CLK(NULL,		"tptc0_ick",			&tptc0_ick,			CK_TI814X),
 	CLK(NULL,		"tptc1_ick",			&tptc1_ick,			CK_TI814X),
 	CLK(NULL,		"tptc2_ick",			&tptc2_ick,			CK_TI814X),
 	CLK(NULL,		"tptc3_ick",			&tptc3_ick,			CK_TI814X),
-	CLK(NULL,		"tptc4_ick",			&tptc4_ick,			CK_TI814X),
 	CLK(NULL,		"hdvicp_sl2_ick",		&hdvicp_sl2_ick,		CK_TI814X),
 	CLK(NULL,		"tpcc_ick",			&tpcc_ick,			CK_TI814X),
 	CLK(NULL,		"fdif_ick",			&fdif_ick,			CK_TI814X),

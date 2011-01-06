@@ -113,6 +113,11 @@ static inline void omap_init_mcpdm(void) {}
 
 #define OMAP_MMC_NR_RES		4
 
+#ifdef CONFIG_ARCH_TI814X
+#define TI814X_DMA_MMC1_RX	3
+#define TI814X_DMA_MMC1_TX	2
+#endif
+
 /*
  * Register MMC devices. Called from mach-omap1 and mach-omap2 device init.
  */
@@ -137,12 +142,21 @@ int __init omap_mmc_add(const char *name, int id, unsigned long base,
 	/* Populate DMA lines based on the instance used. Rx first,Tx next*/
 	switch (id) {
 	case 0:
-		res[2].start = OMAP24XX_DMA_MMC1_RX;
-		res[2].end = OMAP24XX_DMA_MMC1_RX;
-		res[2].flags = IORESOURCE_DMA;
-		res[3].start = OMAP24XX_DMA_MMC1_TX;
-		res[3].end = OMAP24XX_DMA_MMC1_TX;
-		res[3].flags = IORESOURCE_DMA;
+		if (cpu_is_ti814x()) {
+			res[2].start = TI814X_DMA_MMC1_RX;
+			res[2].end = TI814X_DMA_MMC1_RX;
+			res[2].flags = IORESOURCE_DMA;
+			res[3].start = TI814X_DMA_MMC1_TX;
+			res[3].end = TI814X_DMA_MMC1_TX;
+			res[3].flags = IORESOURCE_DMA;
+		} else {
+			res[2].start = OMAP24XX_DMA_MMC1_RX;
+			res[2].end = OMAP24XX_DMA_MMC1_RX;
+			res[2].flags = IORESOURCE_DMA;
+			res[3].start = OMAP24XX_DMA_MMC1_TX;
+			res[3].end = OMAP24XX_DMA_MMC1_TX;
+			res[3].flags = IORESOURCE_DMA;
+		}
 		break;
 	case 1:
 		res[2].start = OMAP24XX_DMA_MMC2_RX;

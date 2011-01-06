@@ -1347,7 +1347,7 @@ static void omap_hsmmc_config_dma_params(struct omap_hsmmc_host *host,
 	dma_ch = host->dma_ch;
 	blksz = host->data->blksz;
 	nblk = sg_dma_len(sgl) / blksz;
-	if (cpu_is_ti816x()) {
+	if (cpu_is_ti81xx()) {
 		bindex = 4;
 		cindex = blksz;
 	}
@@ -2491,7 +2491,7 @@ static struct platform_driver omap_hsmmc_driver = {
 static int __init omap_hsmmc_init(void)
 {
 	/* Register the MMC driver */
-	return platform_driver_probe(&omap_hsmmc_driver, omap_hsmmc_probe);
+	return platform_driver_probe(&omap_hsmmc_driver, omap_hsmmc_probe);	
 }
 
 static void __exit omap_hsmmc_cleanup(void)
