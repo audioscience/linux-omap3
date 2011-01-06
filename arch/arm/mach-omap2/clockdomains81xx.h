@@ -71,16 +71,16 @@ static struct clockdomain mmu_cfg_81xx_clkdm = {
 };
 
 /* TI814X specific */
-static struct clockdomain dsp_814x_clkdm= {
-	.name		= "dsp_clkdm",
-	.pwrdm		= { .name = "dsp_pwrdm" },
+static struct clockdomain gem_814x_clkdm = {
+	.name		= "gem_clkdm",
+	.pwrdm		= { .name = "gem_pwrdm" },
 	.clkstctrl_reg	= TI814X_CM_DSP_CLKSTCTRL,
 	.clktrctrl_mask	= TI81XX_CLKTRCTRL_MASK,
 	.flags		= CLKDM_CAN_HWSUP_SWSUP,
 	.omap_chip	= OMAP_CHIP_INIT(CHIP_IS_TI814X),
 };
 
-static struct clockdomain hdvicp_814x_clkdm= {
+static struct clockdomain hdvicp_814x_clkdm = {
 	.name		= "hdvicp_clkdm",
 	.pwrdm		= { .name = "hdvicp_pwrdm" },
 	.clkstctrl_reg	= TI814X_CM_HDVICP_CLKSTCTRL,
@@ -90,7 +90,7 @@ static struct clockdomain hdvicp_814x_clkdm= {
 };
 
 /* ISS is inside ISP */
-static struct clockdomain isp_814x_clkdm= {
+static struct clockdomain isp_814x_clkdm = {
 	.name		= "isp_clkdm",
 	.pwrdm		= { .name = "isp_pwrdm" },
 	.clkstctrl_reg	= TI814X_CM_ALWON2_MC_CLKSTCTRL,
@@ -100,7 +100,7 @@ static struct clockdomain isp_814x_clkdm= {
 };
 
 /* GFX clock domain */
-static struct clockdomain sgx_814x_clkdm= {
+static struct clockdomain sgx_814x_clkdm = {
 	.name		= "sgx_clkdm",
 	.pwrdm		= { .name = "sgx_pwrdm" },
 	.clkstctrl_reg	= TI814X_CM_GFX_CLKSTCTRL,
@@ -110,7 +110,7 @@ static struct clockdomain sgx_814x_clkdm= {
 };
 
 /* DSS clock domain */
-static struct clockdomain hdvpss_814x_clkdm= {
+static struct clockdomain hdvpss_814x_clkdm = {
 	.name		= "hdvpss_clkdm",
 	.pwrdm		= { .name = "hdvpss_pwrdm" },
 	.clkstctrl_reg	= TI814X_CM_HDVPSS_CLKSTCTRL,
@@ -120,7 +120,7 @@ static struct clockdomain hdvpss_814x_clkdm= {
 };
 
 /* L3 med clock domain */
-static struct clockdomain alwon2_l3_med_814x_clkdm= {
+static struct clockdomain alwon2_l3_med_814x_clkdm = {
 	.name		= "alwon2_l3_med_clkdm",
 	.pwrdm		= { .name = "alwon2_pwrdm" },
 	.clkstctrl_reg	= TI814X_CM_ALWON2_L3_MED_CLKSTCTRL,
@@ -130,7 +130,7 @@ static struct clockdomain alwon2_l3_med_814x_clkdm= {
 };
 
 /* PCIe clock domain */
-static struct clockdomain alwon2_pcie_814x_clkdm= {
+static struct clockdomain alwon2_pcie_814x_clkdm = {
 	.name		= "alwon2_pcie_clkdm",
 	.pwrdm		= { .name = "alwon2_pwrdm" },
 	.clkstctrl_reg	= TI814X_CM_ALWON2_PCI_CLKSTCTRL,
@@ -140,7 +140,7 @@ static struct clockdomain alwon2_pcie_814x_clkdm= {
 };
 
 /* USB clock domain */
-static struct clockdomain alwon2_usb_814x_clkdm= {
+static struct clockdomain alwon2_usb_814x_clkdm = {
 	.name		= "alwon2_usb_clkdm",
 	.pwrdm		= { .name = "alwon2_pwrdm" },
 	.clkstctrl_reg	= TI814X_CM_ALWON2_L3_SLOW_CLKSTCTRL,

@@ -358,13 +358,13 @@ static struct clk dsp_dpll_ck = {
 };
 
 /* DSP Func Clock(final) bypass PRCM */
-static struct clk dsp_fck = {
-	.name		= "dsp_fck",
+static struct clk gem_fck = {
+	.name		= "gem_fck",
 	.parent		= &dsp_dpll_ck,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI814X_CM_DSP_CLKCTRL,
 	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
-	.clkdm_name	= "dsp_clkdm",
+	.clkdm_name	= "gem_clkdm",
 	.recalc		= &followparent_recalc,
 };
 
@@ -530,13 +530,13 @@ static struct clk mmu_ick = {
 };
 
 /* DSP Clock (final) */
-static struct clk dsp_ick = {
-	.name		= "dsp_ick",
+static struct clk gem_ick = {
+	.name		= "gem_ick",
 	.parent		= &sysclk4_ck,
 	.ops		= &clkops_omap2_dflt,
 	.enable_reg	= TI814X_CM_DSP_CLKCTRL,
 	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
-	.clkdm_name	= "dsp_clkdm",
+	.clkdm_name	= "gem_clkdm",
 	.recalc		= &followparent_recalc,
 };
 
@@ -766,11 +766,11 @@ static struct clk cpsw_ick = {
 };
 
 /* DSP Trace Fun Clock(final) */
-static struct clk dsp_trc_fck = {
-	.name		= "dsp_trc_fck",
+static struct clk gem_trc_fck = {
+	.name		= "gem_trc_fck",
 	.parent		= &sysclk5_ck,
 	.ops		= &clkops_null,
-	.clkdm_name	= "dsp_clkdm",
+	.clkdm_name	= "gem_clkdm",
 	.recalc		= &followparent_recalc,
 };
 
@@ -3211,7 +3211,7 @@ static struct omap_clk ti814x_clks[] = {
 	CLK(NULL,		"arm_dpll_ck",			&arm_dpll_ck,			CK_TI814X),
 	CLK(NULL,		"mpu_ck",			&mpu_ck,			CK_TI814X),
 	CLK(NULL,		"dsp_dpll_ck",			&dsp_dpll_ck,			CK_TI814X),
-	CLK(NULL,		"dsp_fck",			&dsp_fck,			CK_TI814X),
+	CLK(NULL,		"gem_ick",			&gem_ick,			CK_TI814X),
 	CLK(NULL,		"sgx_dpll_ck",			&sgx_dpll_ck,			CK_TI814X),
 	CLK(NULL,		"sysclk23_ck",			&sysclk23_ck,			CK_TI814X),
 	CLK(NULL,		"sgx_ck",			&sgx_ck,			CK_TI814X),
@@ -3227,7 +3227,7 @@ static struct omap_clk ti814x_clks[] = {
 	CLK(NULL,		"hdvicp_ick",			&hdvicp_ick,			CK_TI814X),
 	CLK(NULL,		"exp_slot_ick",			&exp_slot_ick,			CK_TI814X),
 	CLK(NULL,		"mmu_ick",			&mmu_ick,			CK_TI814X),
-	CLK(NULL,		"dsp_ick",			&dsp_ick,			CK_TI814X),
+	CLK(NULL,		"gem_ick",			&gem_ick,			CK_TI814X),
 	CLK(NULL,		"tptc0_ick",			&tptc0_ick,			CK_TI814X),
 	CLK(NULL,		"tptc1_ick",			&tptc1_ick,			CK_TI814X),
 	CLK(NULL,		"tptc2_ick",			&tptc2_ick,			CK_TI814X),
@@ -3250,7 +3250,7 @@ static struct omap_clk ti814x_clks[] = {
 	CLK(NULL,		"ocmc_ram_ick",			&ocmc_ram_ick,			CK_TI814X),
 	CLK("mmci-omap-hs.2",	"ick",				&mmchs3_ick,			CK_TI814X),
 	CLK("cpsw.0",		NULL,				&cpsw_ick,			CK_TI814X),
-	CLK(NULL,		"dsp_trc_fck",			&dsp_trc_fck,			CK_TI814X),
+	CLK(NULL,		"gem_trc_fck",			&gem_trc_fck,			CK_TI814X),
 	CLK(NULL,		"mcasp4_ick",			&mcasp4_ick,			CK_TI814X),
 	CLK(NULL,		"mcasp5_ick",			&mcasp5_ick,			CK_TI814X),
 	CLK(NULL,		"mcasp6_ick",			&mcasp6_ick,			CK_TI814X),
