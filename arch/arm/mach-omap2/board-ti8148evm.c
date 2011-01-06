@@ -62,6 +62,8 @@ static void __init ti8148_evm_init_irq(void)
 	omap_init_irq();
 }
 
+int __init ti_ahci_register(u8 num_inst);
+
 static void __init ti8148_evm_init(void)
 {
 	omap_serial_init();
@@ -70,6 +72,10 @@ static void __init ti8148_evm_init(void)
 
 	/* initialize usb */
 	usb_musb_init(&musb_board_data);
+
+	/* register ahci interface for 1 SATA ports */
+	ti_ahci_register(1);
+
 }
 
 static void __init ti8148_evm_map_io(void)

@@ -1519,6 +1519,15 @@ static inline void ti816x_ethernet_init(void) {}
 #define PHY_TXCM	0 /* bit22       1 */
 #define PHY_TXSWING	0x7 /* bits26:23   4 */
 #define PHY_TXDE	0x0 /* bits31:27   5 */
+
+#define PHY_CFGRX0_VAL		0x00C7CC22
+#define PHY_CFGRX1_VAL		0x008E0500
+#define PHY_CFGRX2_VAL		0x7BDEF000
+#define PHY_CFGRX3_VAL		0x1F180B0F
+#define PHY_CFGTX0_VAL		0x01001622
+#define PHY_CFGTX1_VAL		0x40000002
+#define PHY_CFGTX2_VAL		0x073CE39E
+
 u8	ti_num_ahci_inst = 1;
 struct clk *sata_clk;
 
@@ -1552,12 +1561,25 @@ static int ahci_plat_init(struct device *dev, void __iomem *addr)
 		return -1;
 	}
 
-	/* Initialize the SATA PHY */
-	writel(phy_val,	base + P0PHYCR);
+	if (cpu_is_ti816x()) {
+		/* Initialize the SATA PHY */
+		writel(phy_val,	base + P0PHYCR);
 
-	/* ti816x platform has 2 SATA PHY's Initialize the second instance */
-	if (cpu_is_ti816x() && (ti_num_ahci_inst > 1))
-		writel(phy_val, base + P1PHYCR);
+		/* ti816x platform has 2 SATA PHY's Initialize the second instance */
+		if (cpu_is_ti81xx() && (ti_num_ahci_inst > 1))
+			writel(phy_val, base + P1PHYCR);
+	}
+
+	if (cpu_is_ti814x()) {
+		/* Configuring PHY registers for SATA */
+		writel(PHY_CFGRX0_VAL, base + TI814X_SATA_PHY_CFGRX0_OFFSET);
+		writel(PHY_CFGRX1_VAL, base + TI814X_SATA_PHY_CFGRX1_OFFSET);
+		writel(PHY_CFGRX2_VAL, base + TI814X_SATA_PHY_CFGRX2_OFFSET);
+		writel(PHY_CFGRX3_VAL, base + TI814X_SATA_PHY_CFGRX3_OFFSET);
+		writel(PHY_CFGTX0_VAL, base + TI814X_SATA_PHY_CFGTX0_OFFSET);
+		writel(PHY_CFGTX1_VAL, base + TI814X_SATA_PHY_CFGTX1_OFFSET);
+		writel(PHY_CFGTX2_VAL, base + TI814X_SATA_PHY_CFGTX2_OFFSET);
+	}
 
 	iounmap(base);
 
@@ -1602,7 +1624,7 @@ int __init ti_ahci_register(u8 num_inst)
 	ti_num_ahci_inst = num_inst;
 	ahci_pdata.force_port_map = (1 << num_inst) - 1;
 	ahci_pdata.mask_port_map = 0;
-	return platform_device_register(& ti_ahci_device);
+	return platform_device_register(&ti_ahci_device);
 }
 
 #if defined(CONFIG_ARCH_TI81XX)
