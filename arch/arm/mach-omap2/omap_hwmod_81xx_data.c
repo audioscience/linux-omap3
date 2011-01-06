@@ -182,7 +182,7 @@ static struct omap_hwmod_addr_space ti816x_wd_timer2_addrs[] = {
 
 static struct omap_hwmod_ocp_if ti816x_l4_slow__wd_timer2 = {
 	.master		= &ti816x_l4_slow_hwmod,
-	.slave		= &ti816x_uart1_hwmod,
+	.slave		= &ti816x_wd_timer2_hwmod,
 	.clk		= "wdt2_ick",
 	.addr		= ti816x_wd_timer2_addrs,
 	.addr_cnt	= ARRAY_SIZE(ti816x_wd_timer2_addrs),
