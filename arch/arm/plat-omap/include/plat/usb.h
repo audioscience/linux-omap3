@@ -5,6 +5,7 @@
 
 #include <linux/usb/musb.h>
 #include <plat/board.h>
+#include "../../../mach-omap2/control.h"
 
 #define OMAP3_HS_USB_PORTS	3
 enum ehci_hcd_omap_mode {
