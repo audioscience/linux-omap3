@@ -817,20 +817,20 @@ static irqreturn_t cppi41dma_Interrupt(int irq, void *hci)
 		DBG(4, "CPPI 4.1 IRQ: Tx %x, Rx %x\n", usb0_tx_intr,
 					usb0_rx_intr);
 		if (usb0_tx_intr || usb0_rx_intr) {
-			spin_lock_irqsave(&gmusb[0]->lock, flags);
-			cppi41_completion(gmusb[0], usb0_rx_intr,
+			spin_lock_irqsave(&gb_musb[0]->lock, flags);
+			cppi41_completion(gb_musb[0], usb0_rx_intr,
 						usb0_tx_intr);
-			spin_unlock_irqrestore(&gmusb[0]->lock, flags);
+			spin_unlock_irqrestore(&gb_musb[0]->lock, flags);
 			ret = IRQ_HANDLED;
 		}
 
 		DBG(4, "CPPI 4.1 IRQ: Tx %x, Rx %x\n", usb1_tx_intr,
 			usb1_rx_intr);
 		if (usb1_rx_intr || usb1_tx_intr) {
-			spin_lock_irqsave(&gmusb[1]->lock, flags);
-			cppi41_completion(gmusb[1], usb1_rx_intr,
+			spin_lock_irqsave(&gb_musb[1]->lock, flags);
+			cppi41_completion(gb_musb[1], usb1_rx_intr,
 				usb1_tx_intr);
-			spin_unlock_irqrestore(&gmusb[1]->lock, flags);
+			spin_unlock_irqrestore(&gb_musb[1]->lock, flags);
 			ret = IRQ_HANDLED;
 		}
 		usbss_write(USBSS_IRQ_EOI, 0);
@@ -1001,7 +1001,7 @@ int ti81xx_musb_init(struct musb *musb, void *board_data)
 	u8 mode;
 
 	if (musb->id < 2)
-		gmusb[musb->id] = musb;
+		gb_musb[musb->id] = musb;
 
 	usb_nop_xceiv_register(musb->id);
 
