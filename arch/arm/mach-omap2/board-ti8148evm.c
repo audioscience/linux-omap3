@@ -14,6 +14,11 @@
  */
 #include <linux/kernel.h>
 #include <linux/init.h>
+#include <linux/device.h>
+#include <linux/platform_device.h>
+#include <linux/mtd/mtd.h>
+#include <linux/mtd/nand.h>
+#include <linux/mtd/partitions.h>
 
 #include <mach/hardware.h>
 #include <asm/mach-types.h>
@@ -25,8 +30,51 @@
 #include <plat/common.h>
 #include <plat/usb.h>
 #include <plat/mmc.h>
+#include <plat/gpmc.h>
+#include <plat/nand.h>
+
 
 #include "hsmmc.h"
+#include "board-flash.h"
+
+
+/* NAND flash information */
+static struct mtd_partition ti814x_nand_partitions[] = {
+       /* All the partition sizes are listed in terms of NAND block size */
+       {
+               .name           = "U-Boot-min",
+               .offset         = 0,    /* Offset = 0x0 */
+               .size           = SZ_128K,
+               .mask_flags     = MTD_WRITEABLE,        /* force read-only */
+       },
+       {
+               .name           = "U-Boot",
+               .offset         = MTDPART_OFS_APPEND,   /* Offset = 0x0 + 128K */
+               .size           = 18 * SZ_128K,
+               .mask_flags     = MTD_WRITEABLE,        /* force read-only */
+       },
+       {
+               .name           = "U-Boot Env",
+               .offset         = MTDPART_OFS_APPEND,   /* Offset = 0x260000 */
+               .size           = 1 * SZ_128K,
+       },
+       {
+               .name           = "Kernel",
+               .offset         = MTDPART_OFS_APPEND,   /* Offset = 0x280000 */
+               .size           = 34 * SZ_128K,
+       },
+       {
+               .name           = "File System",
+               .offset         = MTDPART_OFS_APPEND,   /* Offset = 0x6C0000 */
+               .size           = 1601 * SZ_128K,
+       },
+       {
+               .name           = "Reserved",
+               .offset         = MTDPART_OFS_APPEND,   /* Offset = 0xCEE0000 */
+               .size           = MTDPART_SIZ_FULL,
+       },
+
+};
 
 
 static struct omap2_hsmmc_info mmc[] = {
@@ -64,6 +112,9 @@ int __init ti_ahci_register(u8 num_inst);
 static void __init ti8148_evm_init(void)
 {
 	omap_serial_init();
+
+	board_nand_init(ti814x_nand_partitions,
+		ARRAY_SIZE(ti814x_nand_partitions), 0);
 
 	omap2_hsmmc_init(mmc);
 
