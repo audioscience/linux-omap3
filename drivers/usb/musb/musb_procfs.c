@@ -806,13 +806,13 @@ static int musb_proc_read(char *page, char **start,
 	return buffer - page;
 }
 
-void __devexit musb_debug_delete(char *name, struct musb *musb)
+void /*__devexit*/ musb_debug_delete(char *name, struct musb *musb)
 {
 	if (musb->proc_entry)
 		remove_proc_entry(name, NULL);
 }
 
-struct proc_dir_entry *__init
+struct proc_dir_entry *__devinit
 musb_debug_create(char *name, struct musb *data)
 {
 	struct proc_dir_entry	*pde;

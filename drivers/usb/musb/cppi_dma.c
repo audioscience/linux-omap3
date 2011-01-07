@@ -1350,6 +1350,7 @@ cppi_dma_controller_create(struct musb *musb, void __iomem *mregs)
 
 	return &controller->controller;
 }
+EXPORT_SYMBOL(cppi_dma_controller_create);
 
 /*
  *  Destroy a previously-instantiated DMA controller.
@@ -1368,6 +1369,7 @@ void cppi_dma_controller_destroy(struct dma_controller *c)
 
 	kfree(cppi);
 }
+EXPORT_SYMBOL(cppi_dma_controller_destroy);
 
 /*
  * Context: controller irqlocked, endpoint selected

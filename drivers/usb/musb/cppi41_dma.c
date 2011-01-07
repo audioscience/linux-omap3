@@ -1165,6 +1165,7 @@ struct dma_controller * __init cppi41_dma_controller_create(struct musb  *musb,
 
 	return &cppi->controller;
 }
+EXPORT_SYMBOL(cppi41_dma_controller_create);
 
 /**
  * cppi41_dma_controller_destroy - destroy a previously instantiated
@@ -1180,6 +1181,7 @@ void cppi41_dma_controller_destroy(struct dma_controller *controller)
 	/* Free the CPPI object */
 	kfree(cppi);
 }
+EXPORT_SYMBOL(cppi41_dma_controller_destroy);
 
 static void usb_process_tx_queue(struct cppi41 *cppi, unsigned index)
 {
@@ -1323,3 +1325,4 @@ void cppi41_completion(struct musb *musb, u32 rx, u32 tx)
 		if (tx & 1)
 			usb_process_tx_queue(cppi, index);
 }
+EXPORT_SYMBOL(cppi41_completion);

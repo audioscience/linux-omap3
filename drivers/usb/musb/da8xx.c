@@ -110,6 +110,7 @@ const struct usb_cppi41_info usb_cppi41_info = {
 	.tx_comp_q	= tx_comp_q,
 	.rx_comp_q	= rx_comp_q
 };
+EXPORT_SYMBOL(usb_cppi41_info);
 
 /* DMA block configuration */
 static const struct cppi41_tx_ch tx_ch_info[] = {

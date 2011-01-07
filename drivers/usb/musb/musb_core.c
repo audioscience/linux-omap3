@@ -113,15 +113,16 @@
 #endif
 
 
-#ifdef	CONFIG_PM
 struct musb *gb_musb;
+EXPORT_SYMBOL(gb_musb);
+#ifdef	CONFIG_PM
 unsigned short musb_clock_on = 1;
 #endif
 
-struct musb *gmusb;
 unsigned musb_debug;
 module_param_named(debug, musb_debug, uint, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(debug, "Debug message level. Default = 0");
+EXPORT_SYMBOL(musb_debug);
 
 #define DRIVER_AUTHOR "Mentor Graphics, Texas Instruments, Nokia"
 #define DRIVER_DESC "Inventra Dual-Role USB Controller Driver"
@@ -273,6 +274,7 @@ void generic_musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
 		writesb(fifo, src, len);
 	}
 }
+EXPORT_SYMBOL(generic_musb_write_fifo);
 
 /*
  * Unload an endpoint's FIFO
@@ -311,6 +313,7 @@ void generic_musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
 		readsb(fifo, dst, len);
 	}
 }
+EXPORT_SYMBOL(generic_musb_read_fifo);
 
 /*-------------------------------------------------------------------------*/
 
@@ -365,6 +368,7 @@ const char *otg_state_string(struct musb *musb)
 	default:			return "UNDEFINED";
 	}
 }
+EXPORT_SYMBOL(otg_state_string);
 
 #ifdef	CONFIG_USB_MUSB_OTG
 
@@ -1650,7 +1654,7 @@ irqreturn_t musb_interrupt(struct musb *musb)
 
 	return retval;
 }
-
+EXPORT_SYMBOL(musb_interrupt);
 
 #ifndef CONFIG_MUSB_PIO_ONLY
 static int __initdata use_dma = 1;
@@ -1996,7 +2000,7 @@ bad_config:
 #ifdef CONFIG_USB_MUSB_HDRC_HCD
 	spin_lock_init(&musb->gb_lock);
 #endif
-	gmusb = musb;
+	gb_musb = musb;
 	spin_lock_init(&musb->lock);
 	musb->ctrl_phys_base = ctrl_phys_addr;
 	musb->board_mode = plat->mode;
@@ -2039,9 +2043,6 @@ bad_config:
 		musb->xceiv->io_ops = &musb_ulpi_access;
 	}
 
-#ifdef CONFIG_PM
-	gb_musb = musb;
-#endif
 #ifndef CONFIG_MUSB_PIO_ONLY
 	if (use_dma && dev->dma_mask) {
 		struct dma_controller	*c;
@@ -2272,7 +2273,7 @@ static int __exit musb_remove(struct platform_device *pdev)
 
 #ifdef	CONFIG_PM
 
-void musb_save_context()
+void musb_save_context(void)
 {
 	struct musb *musb = gb_musb;
 	struct musb_context_registers *ctx = &musb->context;
@@ -2345,7 +2346,7 @@ void musb_save_context()
 	musb_platform_suspend(musb);
 }
 
-void musb_restore_context()
+void musb_restore_context(void)
 {
 	struct musb *musb = gb_musb;
 	struct musb_context_registers *ctx = &musb->context;
