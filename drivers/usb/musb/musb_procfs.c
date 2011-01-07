@@ -109,6 +109,7 @@ dump_queue(struct list_head *q, char *buf, unsigned max)
 #ifdef CONFIG_USB_GADGET_MUSB_HDRC
 static int dump_ep(struct musb_ep *ep, char *buffer, unsigned max)
 {
+	struct musb	*musb = ep->musb;
 	char		*buf = buffer;
 	int		code = 0;
 	void __iomem	*regs = ep->hw_ep->regs;
@@ -143,7 +144,7 @@ static int dump_ep(struct musb_ep *ep, char *buffer, unsigned max)
 		buf += code;
 		max -= code;
 
-		if ((is_cppi_enabled() || is_cppi41_enabled())
+		if ((musb->cppi30 || musb->cppi41)
 				&& ep->current_epnum) {
 			unsigned	cppi = ep->current_epnum - 1;
 			void __iomem	*base = ep->musb->ctrl_base;
@@ -274,7 +275,7 @@ dump_end_info(struct musb *musb, u8 epnum, char *aBuffer, unsigned max)
 				buf += code;
 				max -= code;
 
-				if ((is_cppi_enabled() || is_cppi41_enabled())
+				if ((musb->cppi30 || musb->cppi41)
 						&& epnum
 						&& hw_ep->rx_channel) {
 					unsigned	cppi = epnum - 1;
@@ -362,7 +363,7 @@ dump_end_info(struct musb *musb, u8 epnum, char *aBuffer, unsigned max)
 				buf += code;
 				max -= code;
 
-				if ((is_cppi_enabled() || is_cppi41_enabled())
+				if ((musb->cppi30 || musb->cppi41)
 						&& epnum
 						&& hw_ep->tx_channel) {
 					unsigned	cppi = epnum - 1;
@@ -483,14 +484,15 @@ static int dump_header_stats(struct musb *musb, char *buffer)
 			"Options: "
 #ifdef CONFIG_MUSB_PIO_ONLY
 			"pio"
-#elif defined(CONFIG_USB_TI_CPPI_DMA)
+#endif
+#if defined(CONFIG_USB_TI_CPPI_DMA)
 			"cppi-dma"
-#elif defined(CONFIG_USB_INVENTRA_DMA)
+#endif
+#if defined(CONFIG_USB_INVENTRA_DMA)
 			"musb-dma"
-#elif defined(CONFIG_USB_TUSB_OMAP_DMA)
+#endif
+#if defined(CONFIG_USB_TUSB_OMAP_DMA)
 			"tusb-omap-dma"
-#else
-			"?dma?"
 #endif
 			", "
 #ifdef CONFIG_USB_MUSB_OTG
@@ -568,7 +570,7 @@ static int dump_header_stats(struct musb *musb, char *buffer)
 	buffer += code;
 #endif	/* DAVINCI */
 
-	if ((is_cppi_enabled() || is_cppi41_enabled())
+	if ((musb->cppi30 || musb->cppi41)
 		&& musb->dma_controller) {
 		code = sprintf(buffer,
 				"CPPI: txcr=%d txsrc=%01x txena=%01x; "

@@ -478,6 +478,11 @@ struct musb {
 	unsigned		hb_iso_tx:1;	/* high bandwidth iso tx? */
 	unsigned		dyn_fifo:1;	/* dynamic FIFO supported? */
 
+	unsigned		inventra:1;	/* using Inventra dma */
+	unsigned		cppi30:1;	/* using CPPI3.0 dma */
+	unsigned		cppi41:1;	/* using CPPI4.1 dma */
+	unsigned		tusbdma:1;	/* using TUSB6010 dma */
+
 	unsigned		bulk_split:1;
 #define	can_bulk_split(musb,type) \
 	(((type) == USB_ENDPOINT_XFER_BULK) && (musb)->bulk_split)
