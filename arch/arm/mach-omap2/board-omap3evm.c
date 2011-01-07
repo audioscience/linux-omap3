@@ -740,6 +740,7 @@ static struct ehci_hcd_omap_platform_data ehci_pdata __initdata = {
 /*
  * OneNAND
  */
+#ifdef CONFIG_MTD_ONENAND_OMAP2
 static struct mtd_partition omap3_evm_onenand_partitions[] = {
 	{
 		.name		= "X-Loader-OneNAND",
@@ -769,10 +770,12 @@ static struct mtd_partition omap3_evm_onenand_partitions[] = {
 		.size		= MTDPART_SIZ_FULL,
 	},
 };
+#endif
 
 /*
  * NAND
  */
+#ifdef CONFIG_MTD_NAND_OMAP2
 static struct mtd_partition omap3_evm_nand_partitions[] = {
 	/* All the partition sizes are listed in terms of NAND block size */
 	{
@@ -804,6 +807,7 @@ static struct mtd_partition omap3_evm_nand_partitions[] = {
 		.offset		= MTDPART_OFS_APPEND,	/* Offset = 0x780000 */
 	},
 };
+#endif
 
 #ifdef CONFIG_OMAP_MUX
 static struct omap_board_mux omap35x_board_mux[] __initdata = {
@@ -904,11 +908,14 @@ static void __init omap3_evm_init(void)
 	ads7846_dev_init();
 	omap3evm_init_smsc911x();
 	omap3_evm_display_init();
-	/* NAND */
+#ifdef CONFIG_MTD_NAND_OMAP2
 	board_nand_init(omap3_evm_nand_partitions,
 			ARRAY_SIZE(omap3_evm_nand_partitions), 0);
+#endif
+#ifdef CONFIG_MTD_ONENAND_OMAP2
 	board_onenand_init(omap3_evm_onenand_partitions,
 			ARRAY_SIZE(omap3_evm_onenand_partitions), 0);
+#endif
 }
 
 MACHINE_START(OMAP3EVM, "OMAP3 EVM")

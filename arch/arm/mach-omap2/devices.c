@@ -962,7 +962,9 @@ static int __init omap2_init_devices(void)
 	 * in alphabetical order so they're easier to sort through.
 	 */
 	omap_hsmmc_reset();
+#if defined(CONFIG_SND_SOC) || defined(CONFIG_SND_SOC_MODULE)
 	omap_init_audio();
+#endif
 	omap_init_camera();
 	omap_init_mbox();
 	omap_init_mcspi();
