@@ -26,9 +26,6 @@
 #include <plat/usb.h>
 #include <plat/mmc.h>
 
-#include "clock.h"
-#include "clockdomains.h"
-#include "powerdomains.h"
 #include "hsmmc.h"
 
 
