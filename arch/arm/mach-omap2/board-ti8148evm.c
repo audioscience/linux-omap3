@@ -21,6 +21,8 @@
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/nand.h>
 #include <linux/mtd/partitions.h>
+#include <linux/i2c.h>
+#include <linux/i2c/at24.h>
 
 #include <mach/hardware.h>
 #include <asm/mach-types.h>
@@ -160,6 +162,38 @@ static struct omap_musb_board_data musb_board_data = {
 	.instances              = 1,
 };
 
+static struct at24_platform_data eeprom_info = {
+	.byte_len       = (256*1024) / 8,
+	.page_size      = 64,
+	.flags          = AT24_FLAG_ADDR16,
+};
+
+static struct i2c_board_info __initdata ti814x_i2c_boardinfo[] = {
+	{
+		I2C_BOARD_INFO("eeprom", 0x50),
+		.platform_data	= &eeprom_info,
+	},
+	{
+		I2C_BOARD_INFO("cpld", 0x23),
+	},
+	{
+		I2C_BOARD_INFO("tlv320aic3x", 0x18),
+	},
+	{
+		I2C_BOARD_INFO("IO Expander", 0x20),
+	},
+
+};
+
+static void __init ti814x_evm_i2c_init(void)
+{
+	/* There are 4 instances of I2C in TI814X but currently only one
+	 * instance is being used on the TI8148 EVM
+	 */
+	omap_register_i2c_bus(1, 100, ti814x_i2c_boardinfo,
+				ARRAY_SIZE(ti814x_i2c_boardinfo));
+}
+
 static void __init ti8148_evm_init_irq(void)
 {
 	omap2_init_common_hw(NULL, NULL);
@@ -174,6 +208,8 @@ static void __init ti8148_evm_init(void)
 
 	board_nand_init(ti814x_nand_partitions,
 		ARRAY_SIZE(ti814x_nand_partitions), 0);
+
+	ti814x_evm_i2c_init();
 
 	omap2_hsmmc_init(mmc);
 
