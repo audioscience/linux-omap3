@@ -371,9 +371,7 @@ static struct clk dsp_dpll_ck = {
 static struct clk gem_fck = {
 	.name		= "gem_fck",
 	.parent		= &dsp_dpll_ck,
-	.ops		= &clkops_omap2_dflt,
-	.enable_reg	= TI814X_CM_DSP_CLKCTRL,
-	.enable_bit	= TI81XX_MODULEMODE_SWCTRL,
+	.ops		= &clkops_null,
 	.clkdm_name	= "gem_clkdm",
 	.recalc		= &followparent_recalc,
 };
