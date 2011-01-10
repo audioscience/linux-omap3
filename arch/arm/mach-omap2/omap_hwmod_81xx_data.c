@@ -580,7 +580,7 @@ static struct omap_hwmod ti816x_i2c1_hwmod = {
 	.slaves		= ti816x_i2c1_slaves,
 	.slaves_cnt	= ARRAY_SIZE(ti816x_i2c1_slaves),
 	.class		= &i2c_class,
-	.omap_chip	= OMAP_CHIP_INIT(CHIP_IS_TI816X),
+	.omap_chip	= OMAP_CHIP_INIT(CHIP_IS_TI816X | CHIP_IS_TI814X),
 };
 
 /* I2C1 */
@@ -647,7 +647,7 @@ static __initdata struct omap_hwmod *ti81xx_hwmods[] = {
 	&ti814x_uart4_hwmod,
 	&ti814x_uart5_hwmod,
 	&ti814x_uart6_hwmod,
-	&ti816x_i2c1_hwmod,
+	&ti816x_i2c1_hwmod,	/* Note: In TI814X this enables I2C0/2 */
 	&ti816x_i2c2_hwmod,
 	&ti816x_wd_timer2_hwmod,
 	NULL,
