@@ -849,7 +849,6 @@ static irqreturn_t ti81xx_interrupt(int irq, void *hci)
 
 	/* Acknowledge and handle non-CPPI interrupts */
 	/* Get endpoint interrupts */
-	musb->int_rx = musb->int_tx = musb->int_usb = 0;
 	epintr = musb_readl(reg_base, USB_EP_INTR_STATUS_REG);
 	if (epintr) {
 		musb_writel(reg_base, USB_EP_INTR_STATUS_REG, epintr);
@@ -929,12 +928,8 @@ static irqreturn_t ti81xx_interrupt(int irq, void *hci)
 		ret = IRQ_HANDLED;
 	}
 
-	if (musb->int_tx || musb->int_rx || musb->int_usb) {
-		irqreturn_t mret;
-		mret = musb_interrupt(musb);
-		if (mret == IRQ_HANDLED)
-			ret = IRQ_HANDLED;
-	}
+	if (musb->int_tx || musb->int_rx || musb->int_usb)
+		ret |= musb_interrupt(musb);
 
  eoi:
 	/* EOI needs to be written for the IRQ to be re-asserted. */
@@ -942,8 +937,6 @@ static irqreturn_t ti81xx_interrupt(int irq, void *hci)
 		/* write EOI */
 		musb_writel(reg_base, USB_IRQ_EOI, 0);
 	}
-
-	ret = IRQ_HANDLED;
 
 	/* Poll for ID change */
 	if (is_otg_enabled(musb) && musb->xceiv->state == OTG_STATE_B_IDLE)
