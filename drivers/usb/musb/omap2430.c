@@ -228,8 +228,6 @@ static int omap2430_musb_suspend(struct musb *musb)
 
 	otg_set_suspend(musb->xceiv, 1);
 
-	clk_disable(omap->clk);
-
 	return 0;
 }
 
