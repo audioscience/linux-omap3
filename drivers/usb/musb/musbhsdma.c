@@ -387,7 +387,8 @@ static int dma_channel_program(struct dma_channel *channel,
 	 * Fail such DMA transfers, so that the backup PIO mode
 	 * can carry out the transfer
 	 */
-	if ((musb->hwvers >= MUSB_HWVERS_1800) && (dma_addr % 4))
+	if (!use_sdma_workaround() && (musb->hwvers >= MUSB_HWVERS_1800)
+			&& (dma_addr % 4))
 		return false;
 
 	channel->actual_len = 0;
