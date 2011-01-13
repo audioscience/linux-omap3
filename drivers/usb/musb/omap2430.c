@@ -212,7 +212,6 @@ static void omap2430_musb_restore_context(struct musb *musb)
 
 static int omap2430_musb_suspend(struct musb *musb)
 {
-	struct omap_musb_glue	*omap = musb_to_omap(musb);
 	u32 l;
 
 	/* in any role */
