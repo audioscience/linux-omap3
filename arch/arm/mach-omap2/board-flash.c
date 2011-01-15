@@ -145,16 +145,12 @@ __init board_nand_init(struct mtd_partition *nand_parts, u8 nr_parts, u8 cs)
 	board_nand_data.parts		= nand_parts;
 	board_nand_data.nr_parts		= nr_parts;
 
-	if (cpu_is_omap3630())
-		board_nand_data.devsize = 1;
-	
-	board_nand_data.ecc_opt = OMAP_ECC_HAMMING_CODE_DIFF_LAYOUT;
-
-	if (cpu_is_ti81xx())
-	{
+	if (cpu_is_omap3630()) {
 		board_nand_data.devsize = 1;
 		board_nand_data.xfer_type = NAND_OMAP_POLLED;
 	}
+
+	board_nand_data.ecc_opt = OMAP_ECC_HAMMING_CODE_DIFF_LAYOUT;
 
 	gpmc_nand_init(&board_nand_data);
 }
