@@ -59,6 +59,7 @@
 #define OMAP3EVM_ETHR_ID_REV	0x50
 #define OMAP3EVM_ETHR_GPIO_IRQ	176
 #define OMAP3EVM_SMSC911X_CS	5
+#define OMAP3EVM_ETHR_GPIO_RST 7
 
 static u8 omap3_evm_version;
 
@@ -136,6 +137,20 @@ static inline void __init omap3evm_init_smsc911x(void)
 		rate = 100000000;
 	else
 		rate = clk_get_rate(l3ck);
+
+	/* Configure ethernet controller reset gpio */
+	if (gpio_request(OMAP3EVM_ETHR_GPIO_RST, "1: SMSC911x gpio") < 0) {
+		pr_err(KERN_ERR "Failed to request GPIO7 for smsc911x gpio\n");
+		return;
+	}
+
+	gpio_direction_output(OMAP3EVM_ETHR_GPIO_RST, 1);
+	/* reset pulse to ethernet controller*/
+	usleep_range(150, 220);
+	gpio_set_value(OMAP3EVM_ETHR_GPIO_RST, 0);
+	usleep_range(150, 220);
+	gpio_set_value(OMAP3EVM_ETHR_GPIO_RST, 1);
+	usleep_range(1, 2);
 
 	if (gpio_request(OMAP3EVM_ETHR_GPIO_IRQ, "SMSC911x irq") < 0) {
 		printk(KERN_ERR "Failed to request GPIO%d for smsc911x IRQ\n",
@@ -817,6 +832,8 @@ static struct omap_board_mux omap35x_board_mux[] __initdata = {
 	OMAP3_MUX(MCSPI1_CS1, OMAP_MUX_MODE4 | OMAP_PIN_INPUT_PULLUP |
 				OMAP_PIN_OFF_INPUT_PULLUP | OMAP_PIN_OFF_OUTPUT_LOW |
 				OMAP_PIN_OFF_WAKEUPENABLE),
+	OMAP3_MUX(SYS_BOOT5, OMAP_MUX_MODE4 | OMAP_PIN_INPUT_PULLUP |
+				OMAP_PIN_OFF_NONE),
 	{ .reg_offset = OMAP_MUX_TERMINATOR },
 };
 
