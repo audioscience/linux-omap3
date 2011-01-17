@@ -140,18 +140,20 @@ static inline void __init omap3evm_init_smsc911x(void)
 		rate = clk_get_rate(l3ck);
 
 	/* Configure ethernet controller reset gpio */
-	if (gpio_request(OMAP3EVM_ETHR_GPIO_RST, "1: SMSC911x gpio") < 0) {
-		pr_err(KERN_ERR "Failed to request GPIO7 for smsc911x gpio\n");
-		return;
-	}
+	if (cpu_is_omap3430()) {
+		if (gpio_request(OMAP3EVM_ETHR_GPIO_RST, "1: SMSC911x gpio") < 0) {
+			pr_err(KERN_ERR "Failed to request GPIO7 for smsc911x\n");
+			return;
+		}
 
-	gpio_direction_output(OMAP3EVM_ETHR_GPIO_RST, 1);
-	/* reset pulse to ethernet controller*/
-	usleep_range(150, 220);
-	gpio_set_value(OMAP3EVM_ETHR_GPIO_RST, 0);
-	usleep_range(150, 220);
-	gpio_set_value(OMAP3EVM_ETHR_GPIO_RST, 1);
-	usleep_range(1, 2);
+		gpio_direction_output(OMAP3EVM_ETHR_GPIO_RST, 1);
+		/* reset pulse to ethernet controller*/
+		usleep_range(150, 220);
+		gpio_set_value(OMAP3EVM_ETHR_GPIO_RST, 0);
+		usleep_range(150, 220);
+		gpio_set_value(OMAP3EVM_ETHR_GPIO_RST, 1);
+		usleep_range(1, 2);
+	}
 
 	if (gpio_request(OMAP3EVM_ETHR_GPIO_IRQ, "SMSC911x irq") < 0) {
 		printk(KERN_ERR "Failed to request GPIO%d for smsc911x IRQ\n",
