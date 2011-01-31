@@ -45,17 +45,25 @@ static struct vps_payload_info  *dc_payload_info;
 /*store the current VENC setting*/
 static struct vps_dcvencinfo venc_info = {
 	{
-		{VPS_DC_VENC_HDMI, 0, FVID2_STD_1080P_60, 1920, \
-		1080, FVID2_SF_PROGRESSIVE, {}, 0},
+		{VPS_DC_VENC_HDMI,
+		    {FVID2_STD_1080P_60, 1920, 1080, FVID2_SF_PROGRESSIVE,\
+			148500, 60, 88, 148, 44, 4, 36, 5},
+		3, 0, 0},
 
-		{VPS_DC_VENC_DVO2, 0, FVID2_STD_1080P_60,    \
-		1920, 1080, FVID2_SF_PROGRESSIVE, {}, 0},
+		{VPS_DC_VENC_DVO2,
+		    {FVID2_STD_1080P_60, 1920, 1080, FVID2_SF_PROGRESSIVE,\
+			148500, 60, 88, 148, 44, 4, 36, 5},
+		3, 0, 0},
 
-		{VPS_DC_VENC_SD, 0, FVID2_STD_NTSC,	  \
-		720, 480, FVID2_SF_INTERLACED, {}, 0},
+		{VPS_DC_VENC_SD,
+		    {FVID2_STD_NTSC, 720, 480, FVID2_SF_INTERLACED,\
+			216000, 60, 12, 68, 64, 5, 41, 5},
+		0, 0, 0},
 
-		{VPS_DC_VENC_HDCOMP, 0, FVID2_STD_1080I_60,	\
-		1920, 1080, FVID2_SF_INTERLACED, {}, 0},
+		{VPS_DC_VENC_HDCOMP,
+		    {FVID2_STD_1080I_60, 1920, 1080, FVID2_SF_PROGRESSIVE,\
+			74250, 60, 88, 148, 44, 2, 15, 5},
+		2, 0, 0}
 
 	},
 	0,
@@ -67,44 +75,154 @@ static struct vps_dcvencinfo venc_info = {
 **********************************************************/
 
 /*store the current mode info*/
-static const struct dc_vencmode_info mode_name[] = {
-	{"ntsc", 720, 480, 0, FVID2_STD_NTSC},
-	{"pal", 720, 576, 0, FVID2_STD_PAL},
-	{"1080p-60", 1920, 1080, 1, FVID2_STD_1080P_60},
-	{"720p-60", 1280, 720, 1, FVID2_STD_720P_60},
-	{"1080i-60", 1920, 1080, 0, FVID2_STD_1080I_60},
-	{"1080p-30", 1920, 1080, 1, FVID2_STD_1080P_30},
-	{"1920x1080@60", 1920, 1080, 1, FVID2_STD_1080P_60},
-	{"1920x1080@60i", 1920, 1080, 0, FVID2_STD_1080I_60},
-	{"1920x1080@30", 1920, 1080, 1, FVID2_STD_1080P_30},
-	{"1280x720@60", 1280, 720, 1, FVID2_STD_720P_60}
+static const struct dc_vencmode_info vmode_info[] = {
+	{"ntsc", FVID2_STD_NTSC,
+	    {FVID2_STD_NTSC, 720, 480, FVID2_SF_INTERLACED,
+		216000, 60, 12, 68, 64, 5, 41, 5}
+	},
+	{"pal", FVID2_STD_PAL,
+	    {FVID2_STD_PAL, 720, 576, FVID2_SF_INTERLACED,
+		216000, 50, 16, 58, 64, 6, 31, 6}
+	},
+	{"1080p-60", FVID2_STD_1080P_60,
+	    {FVID2_STD_1080P_60, 1920, 1080, FVID2_SF_PROGRESSIVE,
+		148500, 60, 88, 148, 44, 4, 36, 5}
+	},
+	{"1920x1080@60", FVID2_STD_1080P_60,
+	    {FVID2_STD_CUSTOM, 1920, 1080, FVID2_SF_PROGRESSIVE,
+		148500, 60, 88, 148, 44, 4, 36, 5}
+	},
+	{"1080p-50", FVID2_STD_1080P_50,
+	    {FVID2_STD_1080P_50,  1920, 1080, FVID2_SF_PROGRESSIVE,
+		148500, 50, 528, 148, 44, 4, 36, 5}
+	},
+	{"1920x1080@50", FVID2_STD_1080P_50,
+	    {FVID2_STD_CUSTOM, 1920, 1080, FVID2_SF_PROGRESSIVE,
+		148500, 50, 528, 148, 44, 4, 36, 5}
+	},
+	{"1080p-30", FVID2_STD_1080P_30,
+	    {FVID2_STD_1080P_30, 1920, 1080, FVID2_SF_PROGRESSIVE,
+		74250, 30, 88, 148, 44, 4, 36, 5}
+	},
+	{"1920x1080@30", FVID2_STD_1080P_30,
+	    {FVID2_STD_CUSTOM, 1920, 1080, FVID2_SF_PROGRESSIVE,
+		74250, 30, 88, 148, 44, 4, 36, 5}
+	},
+	{"720p-60", FVID2_STD_720P_60,
+	    {FVID2_STD_720P_60, 1280, 720, FVID2_SF_PROGRESSIVE,
+		74250, 60, 110, 220, 40, 5, 20, 5}
+	},
+	{"1280x720@60", FVID2_STD_720P_60,
+	    {FVID2_STD_CUSTOM, 1280, 720, FVID2_SF_PROGRESSIVE,
+		74250, 60, 110, 220, 40, 5, 20, 5}
+	},
+	{"720p-50", FVID2_STD_720P_50,
+	    {FVID2_STD_720P_50, 1280, 720, FVID2_SF_PROGRESSIVE,
+		74250, 50, 440, 220, 40, 5, 20, 5}
+	},
+	{"1280x720@50", FVID2_STD_720P_50,
+	    { FVID2_STD_CUSTOM, 1280, 720, FVID2_SF_PROGRESSIVE,
+		74250, 50, 440, 220, 40, 5, 20, 5}
+	},
+	{"1080i-60", FVID2_STD_1080I_60,
+	    {FVID2_STD_1080I_60, 1920, 1080, FVID2_SF_INTERLACED,
+		74250, 60, 88, 148, 44, 2, 15, 5}
+	},
+	{"1920x1080@60i", FVID2_STD_1080I_60,
+	    {FVID2_STD_CUSTOM, 1920, 1080, FVID2_SF_INTERLACED,
+		74250, 60, 88, 148, 44, 2, 15, 5}
+	},
+	{"1080i-50", FVID2_STD_1080I_50,
+	    {FVID2_STD_1080I_50, 1920, 1080, FVID2_SF_INTERLACED,
+		742500, 50, 528, 148, 44, 2, 15, 5}
+	},
+	{"1920x1080@50i", FVID2_STD_1080I_50,
+	    {FVID2_STD_CUSTOM, 1920, 1080, FVID2_SF_INTERLACED,
+		742500, 50, 528, 148, 44, 2, 15, 5}
+	},
+	/*VGA*/
+	{"640x480@60", FVID2_STD_VGA_60,
+	    {FVID2_STD_CUSTOM, 640, 480, FVID2_SF_PROGRESSIVE,
+		25088, 60, 16, 48, 96, 10, 33, 2}
+	},
+	{"640x480@72", FVID2_STD_VGA_72,
+	    {FVID2_STD_CUSTOM, 640, 480, FVID2_SF_PROGRESSIVE,
+		31488, 72, 24, 128, 40, 9, 29, 2}
+	},
+	{"640x480@75", FVID2_STD_VGA_75,
+	    {FVID2_STD_CUSTOM, 640, 480, FVID2_SF_PROGRESSIVE,
+		31488, 75, 16, 120, 64, 1, 16, 3}
+	},
+	{"640x480@85", FVID2_STD_VGA_85,
+	    {FVID2_STD_CUSTOM, 640, 480, FVID2_SF_PROGRESSIVE,
+		35840, 85, 56, 80, 56, 1, 25, 3}
+	},
+	/*SVGA*/
+	{"800x600@60", FVID2_STD_SVGA_60,
+	    {FVID2_STD_CUSTOM, 800, 600, FVID2_SF_PROGRESSIVE,
+		39936, 60, 40, 88, 128, 1, 23, 4}
+	},
+	{"800x600@72", FVID2_STD_SVGA_72,
+	    {FVID2_STD_CUSTOM, 800, 600, FVID2_SF_PROGRESSIVE,
+		49920, 72, 56, 64, 120, 37, 23, 6}
+	},
+	{"800x600@75", FVID2_STD_SVGA_75,
+	    {FVID2_STD_CUSTOM, 800, 600, FVID2_SF_PROGRESSIVE,
+		49400, 75, 16, 160, 80, 1, 21, 3}
+	},
+	{"800x600@85", FVID2_STD_SVGA_85,
+	    {FVID2_STD_CUSTOM, 800, 600, FVID2_SF_PROGRESSIVE,
+		56000, 85, 32, 152, 64, 1, 27, 3}
+	},
+	/*XGA*/
+	{"1024x768@60", FVID2_STD_XGA_60,
+	    {FVID2_STD_XGA_60, 1024, 768, FVID2_SF_PROGRESSIVE,
+		65000, 60, 24, 160, 136, 3, 29, 6}
+	},
+	{"1024x768@70", FVID2_STD_XGA_70,
+	    {FVID2_STD_CUSTOM, 1024, 768, FVID2_SF_PROGRESSIVE,
+		74752, 70, 24, 144, 136, 3, 29, 6}
+	},
+	{"1024x768@75", FVID2_STD_XGA_75,
+	    {FVID2_STD_XGA_75, 1024, 768, FVID2_SF_PROGRESSIVE,
+		78720, 75, 16, 176, 96, 1, 28, 3}
+	},
+	{"1024x768@85", FVID2_STD_XGA_85,
+	    {FVID2_STD_CUSTOM, 1024, 768, FVID2_SF_PROGRESSIVE,
+		94464, 85, 48, 208, 96, 1, 36, 3}
+	},
+	/*SXGA*/
+	{"1280x1024@60", FVID2_STD_SXGA_60,
+	    {FVID2_STD_SXGA_60, 1280, 1024, FVID2_SF_PROGRESSIVE,
+		108000, 60, 48, 248, 112, 1, 38, 3}
+	},
+	{"1280x1024@75", FVID2_STD_SXGA_75,
+	    {FVID2_STD_SXGA_75, 1280, 1024, FVID2_SF_PROGRESSIVE,
+		135000, 75, 16, 248, 144, 1, 38, 3}
+	},
+	{"1280x1024@85", FVID2_STD_SXGA_85,
+	    {FVID2_STD_CUSTOM, 1280, 1024, FVID2_SF_PROGRESSIVE,
+		157440, 85, 64, 224, 160, 1, 44, 3}
+	},
+	/*UXGA*/
+	{"1600x1200@60", FVID2_STD_UXGA_60,
+	    {FVID2_STD_UXGA_60, 1600, 1200, FVID2_SF_PROGRESSIVE,
+		162000, 60, 64, 304, 192, 1, 46, 3}
+	}
+
 };
 
 static const struct dc_vencname_info venc_name[VPS_DC_MAX_VENC] = {
 	{"hdmi", VPS_DC_VENC_HDMI, VPS_DC_HDMI_BLEND, HDMI},
 	{"dvo2", VPS_DC_VENC_DVO2, VPS_DC_DVO2_BLEND, DVO2},
 	{"sdvenc", VPS_DC_VENC_SD, VPS_DC_SDVENC_BLEND, SDVENC},
-#ifdef CONFIG_ARCH_TI816X
 	{"hdcomp", VPS_DC_VENC_HDCOMP, VPS_DC_HDCOMP_BLEND, HDCOMP}
-#endif
 };
 
 static const struct vps_sname_info pllvenc_name[] = {
 	 {"rfclk", VPS_SYSTEM_VPLL_OUTPUT_VENC_RF},
 	 {"dclk", VPS_SYSTEM_VPLL_OUTPUT_VENC_D},
 	 {"aclk", VPS_SYSTEM_VPLL_OUTPUT_VENC_A}
-};
-
-static const struct vps_sname_info pllclk_name[VPS_SYSTEM_VPLL_MAX_FREQ] = {
-	{"54", VPS_SYSTEM_VPLL_FREQ_54MHZ},
-	{"74.25", VPS_SYSTEM_VPLL_FREQ_74_25MHZ},
-	{"148.5", VPS_SYSTEM_VPLL_FREQ_148_5MHZ},
-	{"297", VPS_SYSTEM_VPLL_FREQ_297MHZ},
-	{"65", VPS_SYSTEM_VPLL_FREQ_65MHZ},
-	{"79", VPS_SYSTEM_VPLL_FREQ_79MHZ},
-	{"108", VPS_SYSTEM_VPLL_FREQ_108MHZ},
-	{"135", VPS_SYSTEM_VPLL_FREQ_135MHZ},
-	{"162", VPS_SYSTEM_VPLL_FREQ_162MHZ}
 };
 
 static const struct vps_sname_info vclksrc_name[] =  {
@@ -139,9 +257,9 @@ static const struct vps_sname_info datafmt_name[] = {
 
 static const struct vps_sname_info dc_nodes[] = {
 	{"main", VPS_DC_MAIN_INPUT_PATH},			/*0*/
-	{"vcomp_mux", VPS_DC_VCOMP_MUX},			/*1*/
-	{"hdcomp_mux", VPS_DC_HDCOMP_MUX},			/*2*/
-	{"sdvenc_mux", VPS_DC_SDVENC_MUX },			/*3*/
+	{"vcompmux", VPS_DC_VCOMP_MUX},			/*1*/
+	{"hdcompmux", VPS_DC_HDCOMP_MUX},			/*2*/
+	{"sdvencmux", VPS_DC_SDVENC_MUX },			/*3*/
 	{"aux", VPS_DC_AUX_INPUT_PATH},				/*4*/
 	{"bp0", VPS_DC_BP0_INPUT_PATH},				/*5*/
 	{"bp1", VPS_DC_BP1_INPUT_PATH},				/*6*/
@@ -192,20 +310,25 @@ static inline bool isdigitalvenc(int vid)
 	return false;
 }
 
-static inline bool isdigitalclk(enum vps_dcvencclksrcsel clk)
+static inline bool isdigitalclk(u32 clk)
 {
 	if ((clk == VPS_DC_CLKSRC_VENCA) ||
-		(clk == VPS_DC_CLKSRC_VENCA_DIV2) ||
-		(clk == VPS_DC_CLKSRC_VENCA_DIV2_DIFF))
+	(clk == VPS_DC_CLKSRC_VENCA_DIV2) ||
+	(clk == VPS_DC_CLKSRC_VENCA_DIV2_DIFF))
 		return false;
 
 	return true;
+
 }
 static inline bool isvalidclksrc(int vid, enum vps_dcvencclksrcsel clk)
 {
 	if ((vid == VPS_DC_VENC_HDMI) && (!isdigitalclk(clk)))
 		return false;
-
+	/*ti814x, DVO2 must be aclk*/
+	if (cpu_is_ti814x()) {
+		if ((vid == VPS_DC_VENC_DVO2) && (isdigitalclk(clk)))
+			return false;
+	}
 	return true;
 }
 
@@ -236,12 +359,32 @@ static inline u32 get_plloutputvenc(int bid)
 	if (bid == SDVENC)
 		return VPS_SYSTEM_VPLL_OUTPUT_VENC_RF;
 
+	if (cpu_is_ti814x())
+		return VPS_SYSTEM_VPLL_OUTPUT_VENC_D;
+
 	if (isdigitalclk(clksrc.clksrc))
 		return VPS_SYSTEM_VPLL_OUTPUT_VENC_D;
 	else
 		return VPS_SYSTEM_VPLL_OUTPUT_VENC_A;
 }
 
+/*get the pixel clock for the standard mode*/
+static inline int get_pllclock(u32 mid, u32 *freq)
+{
+	int i;
+	for (i = 0; i < ARRAY_SIZE(vmode_info); i++) {
+		if (vmode_info[i].standard == mid) {
+			*freq = vmode_info[i].minfo.pixelclock;
+			if ((mid == FVID2_STD_NTSC) ||
+			    (mid == FVID2_STD_PAL)) {
+				if (cpu_is_ti814x())
+					*freq = 54000;
+			}
+		return 0;
+		}
+	}
+	return -EINVAL;
+}
 /*get the current format based on the mode id*/
 static int dc_get_format_from_mid(int mid,
 					    u32 *width,
@@ -249,12 +392,11 @@ static int dc_get_format_from_mid(int mid,
 					    u8 *scformat)
 {
 	int i;
-	for (i = 0; i < ARRAY_SIZE(mode_name); i++) {
-		/*FIX me add customer mode in the future*/
-		if (mid == mode_name[i].mid) {
-			*width = mode_name[i].width;
-			*height = mode_name[i].height;
-			*scformat = mode_name[i].scformat;
+	for (i = 0; i < ARRAY_SIZE(vmode_info); i++) {
+		if (mid == vmode_info[i].standard) {
+			*width = vmode_info[i].minfo.width;
+			*height = vmode_info[i].minfo.height;
+			*scformat = vmode_info[i].minfo.scanformat;
 			return 0;
 		}
 	}
@@ -262,7 +404,22 @@ static int dc_get_format_from_mid(int mid,
 	return -EINVAL;
 }
 
+static int dc_get_timing(int mid, struct fvid2_modeinfo *minfo)
+{
+	int i;
+	for (i = 0; i < ARRAY_SIZE(vmode_info); i++) {
+		if (mid == vmode_info[i].standard)  {
+			memcpy(minfo, &vmode_info[i].minfo, sizeof(*minfo));
+			if ((mid == FVID2_STD_NTSC) || (mid == FVID2_STD_PAL)) {
+				if (cpu_is_ti814x())
+					minfo->pixelclock = 54000;
+			}
 
+			return 0;
+		}
+	}
+	return -EINVAL;
+}
 /*get the index of the desired venc id in the database*/
 static int get_idx_from_vid(int vid, int *idx)
 {
@@ -299,10 +456,10 @@ static int dc_get_modeid(char *mname, int *mid)
 {
 	int i;
 
-	for (i = 0; i < ARRAY_SIZE(mode_name); i++) {
-		const struct dc_vencmode_info *vinfo = &mode_name[i];
+	for (i = 0; i < ARRAY_SIZE(vmode_info); i++) {
+		const struct dc_vencmode_info *vinfo = &vmode_info[i];
 		if (sysfs_streq(mname, vinfo->name)) {
-			*mid = vinfo->mid;
+			*mid = vinfo->standard;
 			return 0;
 		}
 	}
@@ -351,61 +508,6 @@ static int  dc_get_vencinfo(struct vps_dcvencinfo *vinfo)
 
 	return r;
 
-}
-
-/*get the pll clock based on the mode*/
-static enum vps_vpllclkfreq dc_get_pllfreq(int vid, int mid)
-{
-	enum vps_dcvencclksrcsel  clk;
-	int idx;
-
-	get_idx_from_vid(vid, &idx);
-
-	clk = disp_ctrl->blenders[idx].clksrc.clksrc;
-	switch (mid) {
-	case FVID2_STD_1080P_60:
-		if (vid == VPS_DC_VENC_HDMI)
-			if (cpu_is_ti816x())
-				return VPS_SYSTEM_VPLL_FREQ_297MHZ;
-			else
-				return VPS_SYSTEM_VPLL_FREQ_148_5MHZ;
-		else if (vid == VPS_DC_VENC_DVO2) {
-			if (isdigitalclk(clk) && (cpu_is_ti816x()))
-				return VPS_SYSTEM_VPLL_FREQ_297MHZ;
-			else
-				return VPS_SYSTEM_VPLL_FREQ_148_5MHZ;
-		} else if ((vid == VPS_DC_VENC_HDCOMP) && (cpu_is_ti816x())) {
-			if (isdigitalclk(clk) && (cpu_is_ti816x()))
-				return VPS_SYSTEM_VPLL_FREQ_297MHZ;
-			else
-				return VPS_SYSTEM_VPLL_FREQ_148_5MHZ;
-		}
-	case FVID2_STD_1080P_30:
-	case FVID2_STD_1080I_60:
-	case FVID2_STD_720P_60:
-		if (vid == VPS_DC_VENC_HDMI)
-			if (cpu_is_ti816x())
-				return VPS_SYSTEM_VPLL_FREQ_148_5MHZ;
-			else
-				return VPS_SYSTEM_VPLL_FREQ_74_25MHZ;
-		else if (vid == VPS_DC_VENC_DVO2) {
-			if (isdigitalclk(clk) && (cpu_is_ti816x()))
-				return VPS_SYSTEM_VPLL_FREQ_148_5MHZ;
-			else
-				return VPS_SYSTEM_VPLL_FREQ_74_25MHZ;
-		} else if ((vid == VPS_DC_VENC_HDCOMP) && (cpu_is_ti816x())) {
-			if (isdigitalclk(clk))
-				return VPS_SYSTEM_VPLL_FREQ_148_5MHZ;
-			else
-				return VPS_SYSTEM_VPLL_FREQ_74_25MHZ;
-		}
-
-	case FVID2_STD_NTSC:
-	case FVID2_STD_PAL:
-		return VPS_SYSTEM_VPLL_FREQ_54MHZ;
-	default:
-		return VPS_SYSTEM_VPLL_FREQ_148_5MHZ;
-	}
 }
 
 /*is venc running*/
@@ -467,30 +569,34 @@ static int dc_set_output(struct vps_dcoutputinfo *oinfo)
 	return r;
 
 }
-
 /*set up the pll clock*/
-static int dc_set_pll(int bid, int mid)
+static int dc_set_pllclock(int bid, u32 clock)
 {
-
 	struct vps_systemvpllclk pll;
 	int r = 0;
-	enum vps_vpllclkfreq  freq;
-	bool    update = false;
 
-
-	freq =  dc_get_pllfreq(venc_name[bid].vid, mid);
-	pll.outputvenc = (enum vps_vplloutputclk)get_plloutputvenc(bid);
-	r = vps_system_getpll(&pll);
-	if (r)
+	/*FIXME: call function of HDMI driver to set HDMI for ti814x*/
+	if (cpu_is_ti814x() && (bid == HDMI))
 		return r;
-	/*only if it is a new clock*/
-	if (pll.outputclk != freq) {
-		update = true;
-		pll.outputclk = freq;
+
+	pll.outputvenc = (enum vps_vplloutputclk)get_plloutputvenc(bid);
+	pll.outputclk = clock;
+	r = vps_system_setpll(&pll);
+	return r;
+}
+
+static int dc_set_pll_by_mid(int bid, int mid)
+{
+	int r = 0;
+	u32  clock;
+
+	r =  get_pllclock(mid, &clock);
+	if (r) {
+		VPSSERR("nonexit mode %d\n", mid);
+		return r;
 	}
 
-	if (update == true)
-		r = vps_system_setpll(&pll);
+	r = dc_set_pllclock(bid, clock);
 
 	return r;
 }
@@ -558,17 +664,19 @@ static int dc_get_format_from_vid(int vid,
 	if (r)
 		return -EINVAL;
 
-	if (vinfo.modeinfo[0].iscustommode) {
-		*width = vinfo.modeinfo[0].framewidth;
-		*height = vinfo.modeinfo[0].frameheight;
-		*scformat = vinfo.modeinfo[0].scanformat;
-	} else
-		r = dc_get_format_from_mid(vinfo.modeinfo[0].standard,
+	if (vinfo.modeinfo[0].minfo.standard == FVID2_STD_CUSTOM) {
+		*width = vinfo.modeinfo[0].minfo.width;
+		*height = vinfo.modeinfo[0].minfo.height;
+		*scformat = vinfo.modeinfo[0].minfo.scanformat;
+	} else {
+		r = dc_get_format_from_mid(vinfo.modeinfo[0].minfo.standard,
 					   width,
 					   height,
 					   scformat);
+	}
 
-	return r;
+
+	return 0;
 }
 
 /*get the format based on the blender id*/
@@ -698,8 +806,8 @@ static int dc_set_vencmode(struct vps_dcvencinfo *vinfo)
 	disp_ctrl->vinfo->tiedvencs = 0;
 	for (i = 0; i < vinfo->numvencs; i++) {
 		if (vi.modeinfo[i].isvencrunning) {
-			if (vi.modeinfo[i].standard !=
-			    vinfo->modeinfo[i].standard) {
+			if (vi.modeinfo[i].minfo.standard !=
+			    vinfo->modeinfo[i].minfo.standard) {
 				r = -EINVAL;
 				VPSSERR("venc %d already running with \
 						different mode\n",
@@ -744,6 +852,51 @@ exit:
 
 }
 
+static int dc_enum_node_input(struct vps_dispctrl *dctrl,
+				struct vps_dcenumnodeinput *eninput)
+{
+	int r = 0;
+
+	if ((dctrl == NULL) || (dctrl->fvid2_handle == NULL))
+		return -EINVAL;
+
+	*dctrl->dceninput = *eninput;
+
+	r = vps_fvid2_control(dctrl->fvid2_handle,
+			IOCTL_VPS_DCTRL_ENUM_NODE_INPUTS,
+			(void *)dctrl->dceninput_phy,
+			NULL);
+
+	if (!r)
+		*eninput = *dctrl->dceninput;
+
+	return r;
+
+}
+
+static int dc_get_node_status(struct vps_dispctrl *dctrl,
+			struct vps_dcnodeinput *ninput)
+{
+	int r = 0;
+
+	if ((dctrl == NULL) || (dctrl->fvid2_handle == NULL))
+		return -EINVAL;
+
+	*dctrl->nodeinfo = *ninput;
+
+	r = vps_fvid2_control(dctrl->fvid2_handle,
+			IOCTL_VPS_DCTRL_GET_NODE_INPUT_STATUS,
+			(void *)dctrl->ninfo_phy,
+			NULL);
+
+	if (r)
+		VPSSERR("failed to get node status\n");
+	else
+		*ninput = *dctrl->nodeinfo;
+
+	return r;
+
+}
 /*E******************************** private functions *********************/
 
 /*S*******************************  public functions  *********************/
@@ -978,6 +1131,49 @@ int vps_dc_get_color(struct vps_dccigrtconfig *cigconfig)
 	return r;
 
 }
+
+int vps_dc_enum_node_input(struct vps_dcenumnodeinput *eninput)
+{
+	int r = 0;
+
+	VPSSDBG("enum node input\n");
+	dc_lock(disp_ctrl);
+	r = dc_enum_node_input(disp_ctrl, eninput);
+	dc_unlock(disp_ctrl);
+	return r;
+}
+
+int vps_dc_get_node_status(struct vps_dcnodeinput *ninput)
+{
+	int r = 0;
+
+	VPSSDBG("get node status\n");
+	dc_lock(disp_ctrl);
+	r = dc_get_node_status(disp_ctrl, ninput);
+	dc_unlock(disp_ctrl);
+	return r;
+
+}
+int vps_dc_get_timing(u32 id, struct fvid2_modeinfo *tinfo)
+{
+	int i;
+
+
+	for (i = 0; i < disp_ctrl->numvencs; i++) {
+		if (id == venc_name[i].blendid) {
+			*tinfo = venc_info.modeinfo[i].minfo;
+			if ((tinfo->standard == FVID2_STD_NTSC) ||
+				(tinfo->standard == FVID2_STD_PAL)) {
+				if (cpu_is_ti814x())
+					tinfo->pixelclock = 54000;
+			}
+
+
+			return 0;
+		}
+	}
+	return -EINVAL;
+}
 /*E********************************* public functions *****************/
 
 /*sysfs function for blender starting from here*/
@@ -986,10 +1182,24 @@ static ssize_t blender_mode_show(struct dc_blender_info *binfo, char *buf)
 	int i;
 	u32 idx = binfo->idx;
 	int l = 0;
-	for (i = 0; i < ARRAY_SIZE(mode_name); i++) {
-		if (mode_name[i].mid == venc_info.modeinfo[idx].standard) {
+	for (i = 0; i < ARRAY_SIZE(vmode_info); i++) {
+		u32 standard = venc_info.modeinfo[idx].minfo.standard;
+		if (standard == FVID2_STD_CUSTOM) {
+			if (venc_info.modeinfo[idx].minfo.scanformat ==
+			    FVID2_SF_INTERLACED)
+				l = snprintf(buf, PAGE_SIZE, "%ux%u@%ui\n",
+				venc_info.modeinfo[idx].minfo.width,
+				venc_info.modeinfo[idx].minfo.height,
+				venc_info.modeinfo[idx].minfo.fps);
+			else
+				l = snprintf(buf, PAGE_SIZE, "%ux%u@%u\n",
+					venc_info.modeinfo[idx].minfo.width,
+					venc_info.modeinfo[idx].minfo.height,
+					venc_info.modeinfo[idx].minfo.fps);
+
+		} else if (vmode_info[i].standard == standard) {
 			l = snprintf(buf, PAGE_SIZE, "%s\n",
-				mode_name[i].name);
+				vmode_info[i].name);
 			break;
 		}
 	}
@@ -1025,15 +1235,17 @@ static ssize_t blender_mode_store(struct dc_blender_info *binfo,
 
 	/*only set the PLL if it is auto mode*/
 	if (binfo->dctrl->automode) {
-		r = dc_set_pll(binfo->idx, mid);
+		r = dc_set_pll_by_mid(binfo->idx, mid);
 		if (r)
 			goto exit;
 	}
-	venc_info.modeinfo[idx].standard = mid;
-	venc_info.modeinfo[idx].iscustommode = false;
+	venc_info.modeinfo[idx].minfo.standard = mid;
+	dc_get_timing(mid, &venc_info.modeinfo[idx].minfo);
+#ifdef CONFIG_ARCH_TI816X
 	if (cpu_is_ti816x()) {
 		if (binfo->idx == HDCOMP) {
-			if (mid == FVID2_STD_1080P_60)
+			if ((mid == FVID2_STD_1080P_60) ||
+			    (mid == FVID2_STD_1080P_50))
 				r = pcf8575_ths7360_hd_enable(
 					TI816X_THS7360_SF_TRUE_HD_MODE);
 			else
@@ -1046,6 +1258,7 @@ static ssize_t blender_mode_store(struct dc_blender_info *binfo,
 
 		}
 	}
+#endif
 	r = size;
 exit:
 	dc_unlock(binfo->dctrl);
@@ -1055,37 +1268,16 @@ exit:
 static ssize_t blender_timings_show(struct dc_blender_info *binfo, char *buf)
 {
 	int r;
-	struct vps_dctiminginfo *t;
-	struct vps_dcvencinfo vinfo;
+	struct fvid2_modeinfo *t;
 
-	dc_lock(binfo->dctrl);
-
-	vinfo.modeinfo[0].vencid = venc_name[binfo->idx].vid;
-	vinfo.numvencs = 1;
-
-	r = dc_get_vencinfo(&vinfo);
-	dc_unlock(binfo->dctrl);
-
-	if (r) {
-		VPSSERR(" Failed to get venc infor\n");
-		return -EINVAL;
-	}
-
-	if (vinfo.modeinfo[0].iscustommode == 0) {
-		VPSSERR("no timing information available\n");
-		return 0;
-	}
-
-	t = &vinfo.modeinfo[0].tinfo;
+	t = &venc_info.modeinfo[binfo->idx].minfo;
 	r = snprintf(buf,
 			PAGE_SIZE,
-			"%u,%u/%u/%u/%u,%u/%u/%u/%u/%u/%u/%u,%u/%u\n",
+			"%u,%u/%u/%u/%u,%u/%u/%u/%u,%u\n",
 			t->pixelclock,
 			t->width, t->hfrontporch, t->hbackporch, t->hsynclen,
-			t->height, t->vfrontporch[0], t->vfrontporch[1],
-			t->vbackporch[0], t->vbackporch[1],
-			t->vsynclen[0], t->vsynclen[1],
-			t->scanformat, t->mode);
+			t->height, t->vfrontporch, t->vbackporch, t->vsynclen,
+			t->scanformat);
 
 	return r;
 
@@ -1095,7 +1287,9 @@ static ssize_t blender_timings_store(struct dc_blender_info *binfo,
 		const char *buf, size_t size)
 {
 	int r = 0;
-	struct vps_dctiminginfo t;
+	struct fvid2_modeinfo t;
+	u32 num;
+	u32 vmode;
 	if (binfo->idx == SDVENC)
 		return -EINVAL;
 
@@ -1108,19 +1302,41 @@ static ssize_t blender_timings_store(struct dc_blender_info *binfo,
 		goto exit;
 	}
 
-
-	if (sscanf(buf, "%u,%u/%u/%u/%u,%u/%u/%u/%u/%u/%u/%u, %u/%u",
+	num = sscanf(buf, "%u,%u/%u/%u/%u,%u/%u/%u/%u,%u/%u",
 			&t.pixelclock,
 			&t.width, &t.hfrontporch, &t.hbackporch, &t.hsynclen,
-			&t.height, &t.vfrontporch[0], &t.vfrontporch[1],
-			&t.vbackporch[0], &t.vbackporch[1], &t.vsynclen[0],
-			&t.vsynclen[1], &t.scanformat, &t.mode) != 14) {
+			&t.height, &t.vfrontporch, &t.vbackporch, &t.vsynclen,
+			&t.scanformat, &vmode);
+
+	if (!((num == 11) || (num == 10))) {
+		r = -EINVAL;
+		VPSSERR("wrong timing input %d\n", num);
+		goto exit;
+	}
+	/*if use did not assign mode, than we fix it to 1*/
+	if (num == 10)
+		vmode = 1;
+
+	memcpy(&venc_info.modeinfo[binfo->idx].minfo, &t, sizeof(t));
+	venc_info.modeinfo[binfo->idx].minfo.standard = FVID2_STD_CUSTOM;
+	venc_info.modeinfo[binfo->idx].mode = vmode;
+	/*calculate the refresh rate*/
+	venc_info.modeinfo[binfo->idx].minfo.fps =
+		(t.pixelclock * 1000)  /
+		    ((t.width + t.hfrontporch + t.hbackporch + t.hsynclen) *
+		    (t.height + t.vfrontporch + t.vbackporch + t.vsynclen));
+
+	if (t.scanformat == 0)
+		venc_info.modeinfo[binfo->idx].minfo.fps *= 2;
+	r = dc_set_pllclock(binfo->idx, t.pixelclock);
+
+	if (r) {
+		VPSSERR("failed to set %dKHz clock\n",
+			t.pixelclock);
 		r = -EINVAL;
 		goto exit;
 	}
-	/*update the local structure*/
-	memcpy(&venc_info.modeinfo[binfo->idx].tinfo, &t, sizeof(t));
-	venc_info.modeinfo[binfo->idx].iscustommode = true;
+
 	r = size;
 exit:
 	dc_unlock(binfo->dctrl);
@@ -1180,8 +1396,25 @@ static ssize_t blender_enabled_store(struct dc_blender_info *binfo,
 		memcpy(&vinfo.modeinfo[0],
 		   &venc_info.modeinfo[idx],
 		   sizeof(struct vps_dcvencinfo));
+
 		vinfo.numvencs = 1;
 		vinfo.tiedvencs = 0;
+#if 0
+		if (vinfo.modeinfo[0].minfo.standard == FVID2_STD_CUSTOM) {
+			struct vps_systemvpllclk pllclk;
+			pllclk.outputvenc = get_plloutputvenc(binfo->idx);
+			pllclk.outputclk = vinfo.modeinfo[0].minfo.pixelclock;
+
+			r = vps_system_setpll(&pllclk);
+			if (r) {
+				VPSSERR("failed to set %s pll %d\n",
+					pllvenc_name[pllclk.outputvenc].name,
+					pllclk.outputclk);
+				r = -EINVAL;
+				goto exit;
+			}
+		}
+#endif
 		r = dc_set_vencmode(&vinfo);
 		if (r) {
 			VPSSERR("failed to enable venc %s\n",
@@ -1411,7 +1644,7 @@ struct blender_attribute {
 
 static BLENDER_ATTR(mode, S_IRUGO | S_IWUSR,
 				blender_mode_show, blender_mode_store);
-static BLENDER_ATTR(timing, S_IRUGO | S_IWUSR,
+static BLENDER_ATTR(timings, S_IRUGO | S_IWUSR,
 				blender_timings_show, blender_timings_store);
 static BLENDER_ATTR(enabled, S_IRUGO | S_IWUSR,
 				blender_enabled_show, blender_enabled_store);
@@ -1422,7 +1655,7 @@ static BLENDER_ATTR(clksrc, S_IRUGO | S_IWUSR,
 
 static struct attribute *blender_sysfs_attrs[] = {
 	&blender_attr_mode.attr,
-	&blender_attr_timing.attr,
+	&blender_attr_timings.attr,
 	&blender_attr_enabled.attr,
 	&blender_attr_output.attr,
 	&blender_attr_clksrc.attr,
@@ -1478,23 +1711,31 @@ static struct kobj_type blender_ktype = {
 
 static ssize_t dctrl_pllclks_show(struct vps_dispctrl *dctrl, char *buf)
 {
-	int r = 0, l = 0, i = 0;
+	int r = 0, l = 0, i;
 	struct vps_systemvpllclk  pllclk;
 
 	for (i = 0; i < VPS_SYSTEM_VPLL_OUTPUT_MAX_VENC; i++) {
 		pllclk.outputvenc = (enum vps_vplloutputclk)i;
+		/*no need for APLL for TI814X*/
+		if ((pllclk.outputvenc == VPS_SYSTEM_VPLL_OUTPUT_VENC_A) &&
+			cpu_is_ti814x())
+			continue;
 		r = vps_system_getpll(&pllclk);
 		if (r)
 			return -EINVAL;
-		l += snprintf(buf + l,
-			      PAGE_SIZE - l,
-			      "%s:%s",
-			      pllvenc_name[i].name,
-			      pllclk_name[pllclk.outputclk].name);
-		if (i != VPS_SYSTEM_VPLL_OUTPUT_MAX_VENC - 1)
+		if (i == 0)
 			l += snprintf(buf + l,
 				      PAGE_SIZE - l,
-				      ",");
+				      "%s:%d",
+				      pllvenc_name[i].name,
+				      pllclk.outputclk);
+		else
+			l += snprintf(buf + l,
+				      PAGE_SIZE - l,
+				      ",%s:%d",
+				      pllvenc_name[i].name,
+				      pllclk.outputclk);
+
 	}
 	l += snprintf(buf + l,
 		      PAGE_SIZE - l,
@@ -1527,8 +1768,7 @@ static ssize_t dctrl_pllclks_store(struct vps_dispctrl *dctrl,
 		venc_str = this_opt;
 		clk_str = p + 1;
 		pllclk.outputvenc = VPS_SYSTEM_VPLL_OUTPUT_MAX_VENC;
-		pllclk.outputclk = VPS_SYSTEM_VPLL_MAX_FREQ;
-
+		pllclk.outputclk = 0xFFFFFFFF;
 		/*get the output venc*/
 		for (i = 0; i < VPS_SYSTEM_VPLL_OUTPUT_MAX_VENC; i++) {
 			if (sysfs_streq(venc_str, pllvenc_name[i].name))  {
@@ -1542,20 +1782,18 @@ static ssize_t dctrl_pllclks_store(struct vps_dispctrl *dctrl,
 			r = -EINVAL;
 			goto exit;
 		}
-		/*get the pll clk*/
-		for (i = 0; i < VPS_SYSTEM_VPLL_MAX_FREQ; i++) {
-			if (sysfs_streq(clk_str, pllclk_name[i].name)) {
-				pllclk.outputclk =
-					pllclk_name[i].value;
-				break;
-			}
-		}
 
-		if (i == VPS_SYSTEM_VPLL_MAX_FREQ) {
-			VPSSERR("wrong pll clk %s", clk_str);
+		if ((pllclk.outputvenc == VPS_SYSTEM_VPLL_OUTPUT_VENC_A) &&
+			cpu_is_ti814x()) {
+			VPSSERR("Invalid VENCA PLL\n");
 			r = -EINVAL;
 			goto exit;
+
 		}
+		/*get the pll clk*/
+		pllclk.outputclk = simple_strtoul((const char *)clk_str,
+						NULL,
+						10);
 
 		r = vps_system_setpll(&pllclk);
 		if (r)
@@ -1824,12 +2062,8 @@ static int parse_def_modes(const char *mode)
 
 		get_idx_from_vid(vid, &idx);
 		vinfo->modeinfo[idx].vencid = vid;
-		vinfo->modeinfo[idx].standard = mid;
-		vinfo->modeinfo[idx].iscustommode = 0;
-		dc_get_format_from_mid(mid,
-				       &vinfo->modeinfo[idx].framewidth,
-				       &vinfo->modeinfo[idx].frameheight,
-				       (u8 *)&vinfo->modeinfo[idx].scanformat);
+		vinfo->modeinfo[idx].minfo.standard = mid;
+		dc_get_timing(mid, &vinfo->modeinfo[idx].minfo);
 
 	   if (options == NULL)
 			break;
@@ -1840,17 +2074,40 @@ static int parse_def_modes(const char *mode)
 	return r;
 
 }
+void __init vps_dc_ctrl_init(struct vps_dispctrl *dctrl)
+{
+	struct vps_dcedeconfig *edecfg = dctrl->dcedecfg;
 
+	dctrl->dccreatecfg->edeconfig =
+		(struct vps_dcedeconfig *)dctrl->dcede_phy;
+	/*setup default ede values*/
+	edecfg->ltienable = 0;
+	edecfg->horzpeaking = 0;
+	edecfg->ctienable = 0;
+	edecfg->transadjustenable = 0;
+	edecfg->lumapeaking = 0;
+	edecfg->chromapeaking = 0;
+	edecfg->minclipluma = 0;
+	edecfg->maxclipluma = 1023;
+	edecfg->minclipchroma = 0;
+	edecfg->maxclipchroma = 1023;
+	edecfg->bypass = 0;
+
+}
 static inline int get_payload_size(void)
 {
 	int size = 0;
-	size  = sizeof(struct vps_dcconfig);
+	size  = sizeof(struct vps_dccreateconfig);
+	size += sizeof(struct vps_dcedeconfig);
+	size += sizeof(u32);
+	size += sizeof(struct vps_dcconfig);
 	size += sizeof(struct vps_dcvencinfo);
 	size += sizeof(struct vps_dcnodeinput);
 	size += sizeof(struct vps_dcmodeinfo);
 	size += sizeof(struct vps_dcoutputinfo);
 	size += sizeof(struct vps_dcvencclksrc);
 	size += sizeof(struct vps_dccigrtconfig);
+	size += sizeof(struct vps_dcenumnodeinput);
 	size += sizeof(u32);  /*this is for the disable venc command*/
 	/*FIXME add more here*/
 
@@ -1863,17 +2120,33 @@ static inline void assign_payload_addr(struct vps_dispctrl *dctrl,
 {
 	int offset = *buf_offset;
 
+	/*dc create config*/
+	dctrl->dccreatecfg = (struct vps_dccreateconfig *)setaddr(pinfo,
+					&offset,
+					&dctrl->dccreate_phy,
+					sizeof(struct vps_dccreateconfig));
+
+	/*ede config*/
+	dctrl->dcedecfg = (struct vps_dcedeconfig *)setaddr(pinfo,
+					&offset,
+					&dctrl->dcede_phy,
+					sizeof(struct vps_dcedeconfig));
+	/*return status*/
+	dctrl->dcrtstatus = (u32 *)setaddr(pinfo,
+					&offset,
+					&dctrl->dcrtst_phy,
+					sizeof(u32));
 	/*dc config */
 	dctrl->dccfg = (struct vps_dcconfig *)setaddr(pinfo,
-					      &offset,
-					      &dctrl->dccfg_phy,
-					      sizeof(struct vps_dcconfig));
+				      &offset,
+				      &dctrl->dccfg_phy,
+				      sizeof(struct vps_dcconfig));
 
 	/* venc info*/
 	dctrl->vinfo = (struct vps_dcvencinfo *)setaddr(pinfo,
-						&offset,
-						&dctrl->vinfo_phy,
-						sizeof(struct vps_dcvencinfo));
+					&offset,
+					&dctrl->vinfo_phy,
+					sizeof(struct vps_dcvencinfo));
 
 	/*node input*/
 	dctrl->nodeinfo = (struct vps_dcnodeinput *)setaddr(
@@ -1907,6 +2180,12 @@ static inline void assign_payload_addr(struct vps_dispctrl *dctrl,
 					&offset,
 					&dctrl->cigcfg_phy,
 					sizeof(struct vps_dccigrtconfig));
+	/*DC enum node input*/
+	dctrl->dceninput = (struct vps_dcenumnodeinput *)setaddr(
+					pinfo,
+					&offset,
+					&dctrl->dceninput_phy,
+					sizeof(struct vps_dcenumnodeinput));
 
 	*buf_offset = offset;
 }
@@ -1941,11 +2220,26 @@ int __init vps_dc_init(struct platform_device *pdev,
 	}
 	dc_payload_info->size = PAGE_ALIGN(size);
 	memset(dc_payload_info->vaddr, 0, dc_payload_info->size);
+	/*allocate display_control memory*/
+	disp_ctrl = kzalloc(sizeof(struct vps_dispctrl), GFP_KERNEL);
+	if (disp_ctrl == NULL) {
+		r = -ENOMEM;
+		goto cleanup;
+	}
+	disp_ctrl->automode = true;
+	disp_ctrl->numvencs = vps_get_numvencs();
+	venc_info.numvencs = disp_ctrl->numvencs;
+	disp_ctrl->vencmask = (1 << VPS_DC_MAX_VENC) - 1;
+	if (cpu_is_ti814x())
+		disp_ctrl->vencmask -= VPS_DC_VENC_HDCOMP;
 
+	assign_payload_addr(disp_ctrl, dc_payload_info, &offset);
+
+	vps_dc_ctrl_init(disp_ctrl);
 	/*get dc handle*/
 	dc_handle = vps_fvid2_create(FVID2_VPS_DCTRL_DRV,
 				     VPS_DCTRL_INST_0,
-				     NULL,
+				     (void *)disp_ctrl->dccreate_phy,
 				     (void *)dc_payload_info->paddr,
 				     NULL);
 
@@ -1956,23 +2250,7 @@ int __init vps_dc_init(struct platform_device *pdev,
 		goto cleanup;
 	}
 
-
-	/*allocate display_control memory*/
-	disp_ctrl = kzalloc(sizeof(struct vps_dispctrl), GFP_KERNEL);
-	if (disp_ctrl == NULL) {
-		r = -ENOMEM;
-		goto cleanup;
-	}
 	disp_ctrl->fvid2_handle = dc_handle;
-	disp_ctrl->automode = true;
-	disp_ctrl->numvencs = vps_get_numvencs();
-	venc_info.numvencs = disp_ctrl->numvencs;
-	disp_ctrl->vencmask = (1 << VPS_DC_MAX_VENC) - 1;
-	if (cpu_is_ti814x())
-		disp_ctrl->vencmask -= VPS_DC_VENC_HDCOMP;
-
-	assign_payload_addr(disp_ctrl, dc_payload_info, &offset);
-
 	mutex_init(&disp_ctrl->dcmutex);
 
 	r = kobject_init_and_add(
@@ -1989,10 +2267,8 @@ int __init vps_dc_init(struct platform_device *pdev,
 
 		blend->idx = i;
 		blend->actnodes = 0;
-		blend->name = venc_name[i].name;
+		blend->name = (char *)venc_name[i].name;
 		blend->dctrl = disp_ctrl;
-		blend->tinfo = NULL;
-
 		if (i != SDVENC) {
 			blend->clksrc.venc = venc_name[i].vid;
 			dc_get_clksrc(&blend->clksrc);
@@ -2038,27 +2314,37 @@ int __init vps_dc_init(struct platform_device *pdev,
 			opinfo->vencnodenum = VPS_DC_VENC_HDMI;
 			opinfo->dvofmt = VPS_DC_DVOFMT_TRIPLECHAN_DISCSYNC;
 			opinfo->dataformat = FVID2_DF_RGB24_888;
-
-			if (cpu_is_ti816x())
+			if (cpu_is_ti816x() && (VPS_PLATFORM_CPU_REV_1_0 ==
+			    vps_system_getcpurev()))
 				clksrcp->clksrc = VPS_DC_CLKSRC_VENCD_DIV2;
 			else
 				clksrcp->clksrc = VPS_DC_CLKSRC_VENCD;
 			break;
+
 		case DVO2:
 			opinfo->vencnodenum = VPS_DC_VENC_DVO2;
 			opinfo->dvofmt = VPS_DC_DVOFMT_DOUBLECHAN;
 			opinfo->dataformat = FVID2_DF_YUV422SP_UV;
 
-			if (cpu_is_ti816x())
-				clksrcp->clksrc = VPS_DC_CLKSRC_VENCD_DIV2;
-			else
+
+			if (cpu_is_ti816x()) {
+				if (VPS_PLATFORM_CPU_REV_1_0 ==
+				    vps_system_getcpurev())
+					clksrcp->clksrc =
+						VPS_DC_CLKSRC_VENCD_DIV2;
+				else
+					clksrcp->clksrc = VPS_DC_CLKSRC_VENCD;
+			} else
 				clksrcp->clksrc = VPS_DC_CLKSRC_VENCA;
 
 			break;
 		case SDVENC:
 			opinfo->vencnodenum = VPS_DC_VENC_SD;
-			opinfo->afmt = VPS_DC_A_OUTPUT_COMPOSITE;
-			opinfo->dataformat = FVID2_DF_YUV422SP_UV;
+			if (cpu_is_ti816x())
+				opinfo->afmt = VPS_DC_A_OUTPUT_COMPOSITE;
+			else
+				opinfo->afmt = VPS_DC_A_OUTPUT_SVIDEO;
+			opinfo->dataformat = FVID2_DF_RGB24_888;
 			break;
 	if (cpu_is_ti816x()) {
 		case HDCOMP:
@@ -2093,12 +2379,11 @@ int __init vps_dc_init(struct platform_device *pdev,
 	}
 	/*config the PLL*/
 	for (i = 0; i < venc_info.numvencs; i++) {
-		r = dc_set_pll(i, venc_info.modeinfo[i].standard);
+		r = dc_set_pll_by_mid(i, venc_info.modeinfo[i].minfo.standard);
 		if (r) {
 			VPSSERR("failed to set pll");
 			goto cleanup;
 		}
-
 	}
 
 	/*setup the output format*/
@@ -2116,22 +2401,27 @@ int __init vps_dc_init(struct platform_device *pdev,
 		goto cleanup;
 	}
 	/*set the the THS filter*/
+#ifdef CONFIG_ARCH_TI816X
 	if (cpu_is_ti816x()) {
 		r = pcf8575_ths7375_enable(TI816X_THSFILTER_ENABLE_MODULE);
-		if (venc_info.modeinfo[HDCOMP].standard == FVID2_STD_1080P_60)
+		if ((venc_info.modeinfo[HDCOMP].minfo.standard ==
+		    FVID2_STD_1080P_60)  ||
+		    (venc_info.modeinfo[HDCOMP].minfo.standard ==
+		    FVID2_STD_1080P_50))
 			r |= pcf8575_ths7360_hd_enable(
 				TI816X_THS7360_SF_TRUE_HD_MODE);
 		else
 			r |= pcf8575_ths7360_hd_enable(
 				TI816X_THS7360_SF_HD_MODE);
-	}
 
-	r |= pcf8575_ths7360_sd_enable(TI816X_THSFILTER_ENABLE_MODULE);
+		r |= pcf8575_ths7360_sd_enable(TI816X_THSFILTER_ENABLE_MODULE);
 
-	if (r < 0) {
-		VPSSERR("failed to setup THS filter.\n");
-		goto cleanup;
+		if (r < 0) {
+			VPSSERR("failed to setup THS filter.\n");
+			goto cleanup;
+		}
 	}
+#endif
 	return 0;
 cleanup:
 	vps_dc_deinit(pdev);
@@ -2155,7 +2445,6 @@ int __exit vps_dc_deinit(struct platform_device *pdev)
 			}
 		}
 
-
 		kobject_del(&disp_ctrl->kobj);
 		kobject_put(&disp_ctrl->kobj);
 
@@ -2177,6 +2466,7 @@ int __exit vps_dc_deinit(struct platform_device *pdev)
 				      dc_payload_info->size);
 
 		kfree(dc_payload_info);
+		dc_payload_info = NULL;
 	}
 
 	if (dc_handle) {

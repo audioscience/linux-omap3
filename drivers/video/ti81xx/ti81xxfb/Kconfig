@@ -5,9 +5,10 @@ menuconfig FB_TI81XX
 	select FB_CFB_COPYAREA
 	select FB_CFB_IMAGEBLIT
 	---help---
-             Frame buffer driver for TI81xx based board. This driver
-             use the GRPX ports inside of HDVPSS HW to display RGB
-             data format.
+	     Frame buffer driver for TI81xx based board. This driver
+	     use the GRPX ports inside of HDVPSS HW to display RGB
+	     data format.
+	     Use 'M' to build as module.
 
 config FB_TI81XX_DEBUG_SUPPORT
 	bool "Debug support for TI81XX FB"

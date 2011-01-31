@@ -137,6 +137,8 @@ struct vps_grpx_ctrl {
 
 	int (*get_stenparams)(struct vps_grpx_ctrl *gctrl,
 			 u32 *ptr, u32 *pitch);
+	int (*get_timing)(struct vps_grpx_ctrl *gctrl,
+			struct fvid2_modeinfo *tinfo);
 	int (*create)(struct vps_grpx_ctrl *gctrl);
 	int (*delete)(struct vps_grpx_ctrl *gctrl);
 	int (*wait_for_vsync)(struct vps_grpx_ctrl *gctrl);

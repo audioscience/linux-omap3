@@ -65,7 +65,7 @@ this driver.
 /*TI816X*/
 #define TI816X_SHARING_BUFFER_BASE    0xB2C00000
 /*C6A18X*/
-#define TIC6A816X_SHARING_BUFFER_BASE 0x8DE00000
+#define TIC6A81XX_SHARING_BUFFER_BASE 0x8DE00000
 /*TI814X*/
 #define TI814X_SHARING_BUFFER_BASE    0xCFE00000
 
@@ -199,7 +199,7 @@ int __init vps_sbuf_init(const char *sbaddr, const char *sbsize)
 		if (cpu_is_ti816x())
 			addr = TI816X_SHARING_BUFFER_BASE;
 		else
-			addr = TI814X_SHARING_BUFFER_BASE;
+			addr = TIC6A81XX_SHARING_BUFFER_BASE;
 	}
 	/*parse the commond argumetn for the payload size*/
 	if (sbsize)

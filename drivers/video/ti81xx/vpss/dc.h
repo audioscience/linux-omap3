@@ -45,18 +45,16 @@ enum dc_idtype {
 
 
 struct dc_vencmode_info {
-	char                 *name;
-	u16                  width;
-	u16                  height;
-	u8                   scformat;
-	enum fvid2_standard  mid;
+	const char                 *name;
+	u32                   standard;
+	struct fvid2_modeinfo minfo;
 };
 
 struct dc_vencname_info {
-	char *name;
+	const char *name;
 	int  vid;
 	int  blendid;
-	/*0:hdmi, 1: HDCOMP, 2: DVO2, 3:SD*/
+	/*0:HDMI, 1: DVO2 , 2: SD, 3: HDCOMP*/
 	int  idx;
 };
 
@@ -66,7 +64,6 @@ struct dc_blender_info {
 	bool                     enabled;
 	struct kobject           kobj;
 	u32                      actnodes;
-	struct vps_dctiminginfo  *tinfo;
 	struct vps_dispctrl      *dctrl;
 	struct vps_dcvencclksrc  clksrc;
 	struct vps_dcoutputinfo  outinfo;
@@ -79,6 +76,12 @@ struct vps_dispctrl {
 	u8                         numvencs;
 	u8                         vencmask;
 	/*start of shared structure*/
+	struct vps_dccreateconfig  *dccreatecfg;
+	u32                        dccreate_phy;
+	struct vps_dcedeconfig     *dcedecfg;
+	u32                        dcede_phy;
+	u32                        *dcrtstatus;
+	u32                        dcrtst_phy;
 	struct vps_dcconfig        *dccfg;
 	u32                        dccfg_phy;
 	struct vps_dcvencinfo      *vinfo;
@@ -93,6 +96,8 @@ struct vps_dispctrl {
 	u32                        dis_vencsphy;
 	struct vps_dccigrtconfig   *cigcfg;
 	u32                         cigcfg_phy;
+	struct vps_dcenumnodeinput  *dceninput;
+	u32                         dceninput_phy;
 	/*end of shared structure*/
 	int                        tiedvenc;
 	int                        enabled_venc_ids;
@@ -117,7 +122,9 @@ int vps_dc_get_tiedvenc(u8 *tiedvenc);
 int vps_dc_set_color(struct vps_dccigrtconfig *cigconfig);
 int vps_dc_get_color(struct vps_dccigrtconfig *cigconfig);
 
-
+int vps_dc_enum_node_input(struct vps_dcenumnodeinput *eninput);
+int vps_dc_get_node_status(struct vps_dcnodeinput *ninput);
+int vps_dc_get_timing(u32 id, struct fvid2_modeinfo *tinfo);
 
 #endif
 #endif

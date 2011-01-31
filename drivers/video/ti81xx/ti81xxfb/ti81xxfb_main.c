@@ -350,6 +350,7 @@ static int check_fb_var(struct fb_info *fbi, struct fb_var_screeninfo *var)
 {
 	int				bpp;
 	struct ti81xxfb_info		*tfbi = FB2TFB(fbi);
+	struct vps_grpx_ctrl            *gctrl = tfbi->gctrl;
 	enum   fvid2_dataformat		df;
 	unsigned long			line_size;
 
@@ -441,20 +442,38 @@ static int check_fb_var(struct fb_info *fbi, struct fb_var_screeninfo *var)
 
 	/*FIX ME timing information should got from media controller
 	through FVID2 interface */
-	var->pixclock = 0;
-	var->left_margin = 0;
-	var->right_margin = 0;
-	var->upper_margin = 0;
-	var->lower_margin = 0;
-	var->hsync_len = 0;
-	var->vsync_len = 0;
-	var->sync = 0;
-	/*FIX ME should vmode set by others*/
-	if (tfbi->idx == 2)
-		var->vmode = FB_VMODE_INTERLACED;
-	else
-		var->vmode = FB_VMODE_NONINTERLACED;
+	if (gctrl->get_timing) {
+		struct fvid2_modeinfo tinfo;
+		gctrl->get_timing(gctrl, &tinfo);
 
+		var->pixclock = KHZ2PICOS(tinfo.pixelclock);
+		var->left_margin = tinfo.hbackporch;
+		var->right_margin = tinfo.hfrontporch;
+		var->upper_margin = tinfo.vbackporch;
+		var->lower_margin = tinfo.vfrontporch;
+		var->hsync_len = tinfo.hsynclen;
+		var->vsync_len = tinfo.vsynclen;
+		if (tinfo.scanformat)
+			var->vmode = FB_VMODE_NONINTERLACED;
+		else
+			var->vmode = FB_VMODE_INTERLACED;
+
+	} else {
+		var->pixclock = 0;
+		var->left_margin = 0;
+		var->right_margin = 0;
+		var->upper_margin = 0;
+		var->lower_margin = 0;
+		var->hsync_len = 0;
+		var->vsync_len = 0;
+
+		var->sync = 0;
+		/*FIX ME should vmode set by others*/
+		if (tfbi->idx == 2)
+			var->vmode = FB_VMODE_INTERLACED;
+		else
+			var->vmode = FB_VMODE_NONINTERLACED;
+	}
 	return 0;
 }
 

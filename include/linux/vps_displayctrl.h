@@ -287,8 +287,6 @@ struct vps_dcedgeinfo {
  *  \brief Structure for configuring the HDVenc timing parameters.
  */
 struct vps_dctiminginfo {
-	u32			pixelclock;
-	/**< Required pixel clock */
 	u32			hfrontporch;
 	/**< Horizontal front porch. Same for both fields in case of interlaced
 	display */
@@ -303,11 +301,11 @@ struct vps_dctiminginfo {
 	/**< Vertical back porch for each field or frame */
 	u32			vsynclen[2];
 	/**< Vertical sync length for each field */
-	u32			height;
-	/**< Active height of each field or frame */
 	u32			width;
 	/**< Active width for each frame. Same for both fields in case
 	     of interlaced display */
+	u32			height;
+	/**< Active height of each field or frame */
 	u32			scanformat;
 	/**< Scan format */
 	u32			mode;
@@ -319,42 +317,22 @@ struct vps_dctiminginfo {
  * \brief Structure containing mode information.
  */
 struct vps_dcmodeinfo {
-	u32              vencid;
+	u32                            vencid;
 	/**< Identifies the VENC on which mode parameters is to be applied.
 	     Use one of VPS_DC_VENC_HDMI, VPS_DC_VENC_HDCOMP,
 	     VPS_DC_VENC_DVO2, VPS_DC_VENC_SD macro for this variable. */
-	u32             iscustommode;
-	/**< Flag to indicate whether custom mode is used or not.
-	     Display controller provides two ways to configure mode in the
-	     venc i.e. by specifying mode in the modeid
-	     variable where standard timing parameters will be used for
-	     the mode and by specifying all the timing parameters for the mode.
-	     For the standard mode, only modeId variables needs to be
-	     configured.
-	     Note: Custom timing parameters are still not supported in
-	     the display controller */
-	u32              standard;
-	/**< VENC video standard.
-	     For valid values see #FVID2_Standard. */
-	u32              framewidth;
-	/**< Width of the frame. Used only for the custom mode, which is
-	     not supported currently */
-	u32              frameheight;
-	/**< Height of the frame. Used only for the custom mode, which is
-	     not supported currently */
-	u32              scanformat;
-	/**< scan format. used only for the custom mode, which is
-	     not supported currently. for valid values see #fvid2_scanformat.
-	     */
-	struct	vps_dctiminginfo     tinfo;
+
+	struct	fvid2_modeinfo         minfo;
 	/**< timing information.  if this is null this will be used to configure
 	     the timings instead of the standard modeid. currently this is not
 	     supported */
-	u32              isvencrunning;
+	u32                             mode;
+	/**< VENC Mode */
+	u32                             isvencrunning;
 	/**< Flag to indicate whether VENC is running or not. This is
 	     read only parameter returned from the display controller to
 	     indicated whether given venc is running or not. */
-	u32              numinpath;
+	u32                             numinpath;
 	/**< This is read only parameter returned from the display
 	     controller to inform number of input paths connected to
 	     the this vencs. */
@@ -1096,9 +1074,6 @@ struct vps_dccigmainconfig {
 	     of the CIG. Enabling this will require input video of type
 	     progressive and CIG will interlace it and provide interlaced
 	     video to the blender */
-	u32                vertdecimation;
-	/**< Enables the Vertical Decimation. Use only if the contraining is
-	     enabled */
 };
 
 /**

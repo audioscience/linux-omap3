@@ -185,6 +185,14 @@ static struct i2c_board_info __initdata ti814x_i2c_boardinfo[] = {
 
 };
 
+static struct platform_device vpss_device = {
+	.name = "vpss",
+	.id = -1,
+	.dev = {
+		.platform_data = NULL,
+	},
+};
+
 static void __init ti814x_evm_i2c_init(void)
 {
 	/* There are 4 instances of I2C in TI814X but currently only one
@@ -222,6 +230,16 @@ static void __init ti8148_evm_init_irq(void)
 
 int __init ti_ahci_register(u8 num_inst);
 
+static void __init ti814x_vpss_init(void)
+{
+	/*FIXME add platform data here*/
+
+	if (platform_device_register(&vpss_device))
+		printk(KERN_ERR "failed to register ti814x_vpss device\n");
+	else
+		printk(KERN_INFO "registered ti814x_vpss device\n");
+}
+
 static void __init ti8148_evm_init(void)
 {
 	omap_serial_init();
@@ -242,6 +260,7 @@ static void __init ti8148_evm_init(void)
 	ti8148_spi_init();
 
 	ti81xx_register_mcasp(0, &ti8148_evm_snd_data);
+	ti814x_vpss_init();
 }
 
 static void __init ti8148_evm_map_io(void)
@@ -254,6 +273,7 @@ MACHINE_START(TI8148EVM, "ti8148evm")
 	/* Maintainer: Texas Instruments */
 	.boot_params	= 0x80000100,
 	.map_io		= ti8148_evm_map_io,
+	.reserve         = ti81xx_reserve,
 	.init_irq	= ti8148_evm_init_irq,
 	.init_machine	= ti8148_evm_init,
 	.timer		= &omap_timer,

@@ -64,7 +64,7 @@ struct vps_payload_info {
 };
 
 struct vps_sname_info {
-	char *name;
+	const char *name;
 	u32 value;
 };
 

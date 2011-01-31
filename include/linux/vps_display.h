@@ -150,6 +150,22 @@ struct vps_disprtparams {
          Pass NULL if no change is required or VCOMP is not present in the
          display path. If application passes non-NULL when VCOMP is not present
          in the display path, then this runtime parameter will be ignored. */
+    struct vps_frameparams        *infrmprms;
+    /**< Frame params for input frame - used to change the frame width and
+         height at runtime.
+         Note that this is used only in non-mosaic mode when the buffer
+         dimension is smaller than the VENC size.
+         When changing the size, the application should ensure that the
+         startX/startY + the frame size doesn't exceed the display resolution.
+         Pass NULL if no change is required. */
+    struct vps_posconfig          *vpdmaposcfg;
+    /**< VPDMA position configuration containing startX and startY.
+         Note that this is used only in non-mosaic mode when the buffer
+         dimension is smaller than the VENC size.
+         When changing the position, the application should ensure that the
+         startX/startY + the frame size doesn't exceed the display resolution.
+         Pass NULL if no change is required. */
+
 } ;
 
 /**

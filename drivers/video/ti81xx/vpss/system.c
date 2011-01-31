@@ -36,7 +36,6 @@
 #include "core.h"
 
 
-
 struct vps_system_ctrl {
 	u32       *handle;
 	struct vps_systemvpllclk   *pllclk;
@@ -50,16 +49,25 @@ static struct vps_system_ctrl   *sys_ctrl;
 
 static inline bool isvalidpllclk(struct vps_systemvpllclk *pllclk)
 {
+	if (pllclk->outputclk == 0)
+		return false;
+
 	switch (pllclk->outputvenc) {
 	case VPS_SYSTEM_VPLL_OUTPUT_VENC_RF:
-		if (pllclk->outputclk != VPS_SYSTEM_VPLL_FREQ_54MHZ)
-			return false;
+		if (cpu_is_ti816x()) {
+			if (pllclk->outputclk != 216000)
+				return false;
+		} else {
+			if (pllclk->outputclk != 54000)
+				return false;
+		}
 		break;
 	case VPS_SYSTEM_VPLL_OUTPUT_VENC_A:
 	case VPS_SYSTEM_VPLL_OUTPUT_VENC_D:
-		if ((pllclk->outputclk == VPS_SYSTEM_VPLL_FREQ_54MHZ) ||
-			(pllclk->outputclk == VPS_SYSTEM_VPLL_MAX_FREQ))
-			return false;
+		if (cpu_is_ti814x()) {
+			if (pllclk->outputclk == 54000)
+				return false;
+		}
 		break;
 	default:
 		return false;
@@ -73,15 +81,28 @@ int vps_system_setpll(struct vps_systemvpllclk *pll)
 	int r;
 	struct vps_system_ctrl *sctrl = sys_ctrl;
 
-	VPSSDBG("enter setpll\n");
 	if ((sctrl == NULL) || (sctrl->handle == NULL))
+		return 0;
+
+	VPSSDBG("enter set pll %dKHz for VENC %d\n",
+		pll->outputclk, pll->outputvenc);
+
+	/*set HDMI pll by HDMI Driver*/
+	if (cpu_is_ti814x() &&
+		(pll->outputvenc == VPS_SYSTEM_VPLL_OUTPUT_VENC_A))
 		return 0;
 
 	if (!isvalidpllclk(pll))
 		return -EINVAL;
 
-	sctrl->pllclk->outputvenc = pll->outputvenc;
-	sctrl->pllclk->outputclk = pll->outputclk;
+	*sctrl->pllclk = *pll;
+
+	/*if it is pg1 and ti816x and digital clock source, double it*/
+	if (cpu_is_ti816x() &&
+	    (VPS_PLATFORM_CPU_REV_1_0 == vps_system_getcpurev())
+	    && (VPS_SYSTEM_VPLL_OUTPUT_VENC_D == sctrl->pllclk->outputvenc))
+		sctrl->pllclk->outputclk <<= 1;
+
 	r = vps_fvid2_control(sctrl->handle,
 			      IOCTL_VPS_VID_SYSTEM_SET_VIDEO_PLL,
 			      (void *)sctrl->pllclk_phy,
@@ -114,13 +135,18 @@ int vps_system_getpll(struct vps_systemvpllclk *pll)
 	if (r)
 		VPSSERR("get pll failed\n");
 	else {
-		pll->outputvenc = sctrl->pllclk->outputvenc;
-		pll->outputclk = sctrl->pllclk->outputclk;
+		if (cpu_is_ti816x() &&
+		    (VPS_PLATFORM_CPU_REV_1_0 == vps_system_getcpurev())
+		    && (sctrl->pllclk->outputvenc ==
+		    VPS_SYSTEM_VPLL_OUTPUT_VENC_D))
+			sctrl->pllclk->outputclk >>= 1;
+
+		*pll = *sctrl->pllclk;
 	}
 	return r;
 }
 
-static int vps_system_getplatformid(u32 *pid)
+int vps_system_getplatformid(u32 *pid)
 {
 	int r;
 	struct vps_system_ctrl *sctrl = sys_ctrl;
@@ -140,7 +166,6 @@ static int vps_system_getplatformid(u32 *pid)
 	return r;
 
 }
-
 static u32 system_create(struct vps_system_ctrl *sctrl)
 {
 	if (sctrl == NULL)

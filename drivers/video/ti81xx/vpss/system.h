@@ -24,6 +24,7 @@
 #ifndef __DRIVERS_VIDEO_TI81XX_VPSS_SYSTEM_H__
 #define __DRIVERS_VIDEO_TI81XX_VPSS_SYSTEM_H__
 
+
 /**< Platform driver Id */
 #define FVID2_VPS_VID_SYSTEM_DRV          (VPS_VID_SYSTEM_DRV_BASE + 0x0000)
 
@@ -90,32 +91,6 @@ enum vps_vplloutputclk {
 };
 
 /**
- *  \brief Enum defining pixel clock frequency.
- */
-enum vps_vpllclkfreq {
-	VPS_SYSTEM_VPLL_FREQ_54MHZ = 0,
-	/* 54 MHz Pixel Clock. */
-	VPS_SYSTEM_VPLL_FREQ_74_25MHZ,
-	/* 74.25 MHz Pixel Clock. */
-	VPS_SYSTEM_VPLL_FREQ_148_5MHZ,
-	/* 148.5 MHz Pixel Clock */
-	VPS_SYSTEM_VPLL_FREQ_297MHZ,
-	/* 297 MHz Pixel Clock. */
-	VPS_SYSTEM_VPLL_FREQ_65MHZ,
-	/* 65 MHz Pixel Clock. */
-	VPS_SYSTEM_VPLL_FREQ_79MHZ,
-	/* 79 MHz Pixel Clock. */
-	VPS_SYSTEM_VPLL_FREQ_108MHZ,
-	/* 108 MHz Pixel Clock. */
-	VPS_SYSTEM_VPLL_FREQ_135MHZ,
-	/* 135 MHz Pixel Clock */
-	VPS_SYSTEM_VPLL_FREQ_162MHZ,
-	/* 148.5 MHz Pixel Clock */
-	VPS_SYSTEM_VPLL_MAX_FREQ
-	/**< This should be last Enum. */
-};
-
-/**
  *  \brief Platform ID.
  */
 enum vps_platformid {
@@ -131,6 +106,22 @@ enum vps_platformid {
 	/**< TI814x Simulator. */
 	VPS_PLATFORM_ID_MAX
 	/**< Max Platform ID. */
+};
+
+/**
+ *  \brief CPU revision ID.
+ */
+enum  vps_platformcpurev {
+	VPS_PLATFORM_CPU_REV_1_0,
+	/**< CPU revision 1.0. */
+	VPS_PLATFORM_CPU_REV_1_1,
+	/**< CPU revision 1.1. */
+	VPS_PLATFORM_CPU_REV_2_0,
+	/**< CPU revision 2.0. */
+	VPS_PLATFORM_CPU_REV_UNKNOWN,
+	/**< Unknown/unsupported CPU revision. */
+	VPS_PLATFORM_CPU_REV_MAX
+	/**< Max CPU revision. */
 };
 
 /**
@@ -154,14 +145,33 @@ struct vps_systemvpllclk {
 	/**< Select output venc for which video pll is configured.
 	 See #vps_vplloutputclk  See for all possible values */
 	u32 outputclk;
-	/**< Pixel clock for Venc. See #vps_vpllclkfreq for possible values.
-	 VPS_SYSTEM_VPLL_FREQ_54MHZ pixel clock is supported only on RF VENC.
-	 */
+	/**< Pixel clock for Venc.*/
 } ;
 
 int vps_system_setpll(struct vps_systemvpllclk *pll);
 int vps_system_getpll(struct vps_systemvpllclk *pll);
-int vps_system_getplatform(u32 *pid);
+int vps_system_getplatformid(u32 *pid);
+static inline enum vps_platformcpurev  vps_system_getcpurev(void)
+{
+	u32 devid, cpurev;
+	devid = omap_readl(0x48140600);
 
+	cpurev = (devid >> 28) & 0xF;
+
+	switch (cpurev) {
+	case 0:
+		return VPS_PLATFORM_CPU_REV_1_0;
+	case 1:
+		if (cpu_is_ti816x())
+			return VPS_PLATFORM_CPU_REV_1_1;
+		else
+			return VPS_PLATFORM_CPU_REV_MAX;
+	case 2:
+		return VPS_PLATFORM_CPU_REV_MAX;
+	default:
+		return VPS_PLATFORM_CPU_REV_MAX;
+	}
+
+}
 
 #endif

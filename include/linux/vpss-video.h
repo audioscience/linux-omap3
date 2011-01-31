@@ -33,6 +33,9 @@
 #define VPSS_VID_CAPS_CROPING               2
 #define VPSS_VID_CAPS_POSITIONING           4
 #define VPSS_VID_CAPS_COLOR                 8
+
+#define VPSS_VPDMA_BUFFER_ALIGN 0xFFFFFFF0
+
 enum vps_video_colormask {
 	VPS_VIDEO_COLOR_NOMASK,
 	VPS_VIDEO_COLOR_MASK_1BIT,
@@ -72,12 +75,12 @@ struct vps_video_ctrl {
 	/*runtime paramter changes*/
 	struct vps_disprtparams         *vrtparams;
 	u32                             vrt_phy;
-	/*crop config*/
-	struct vps_cropconfig           *vcrop;
-	u32                             vcrop_phy;
 	/*position config*/
-	struct vps_posconfig            *vposconfig;
-	u32                             vpc_phy;
+	struct vps_posconfig            *vdmaposcfg;
+	u32                             vdpc_phy;
+	/*video region config*/
+	struct vps_frameparams         *vfrmprm;
+	u32                            vfp_phy;
 	/*dispaly status*/
 	struct vps_dispstatus           *vstatus;
 	u32                             vs_phy;
@@ -130,7 +133,7 @@ struct vps_video_ctrl {
 	int (*set_pos) (struct vps_video_ctrl *vctrl,
 			   u32 posx, u32 posy);
 	int (*set_crop) (struct vps_video_ctrl *vctrl,
-			   u32 posx, u32 posy, u32 w, u32 h);
+			   u32 posx, u32 posy, u32 pitch, u32 w, u32 h);
 	int (*set_buffer)(struct vps_video_ctrl *vctrl,
 		u32 buffer_paddr, u8 idx);
 	int (*get_resolution)(struct vps_video_ctrl *vctrl,

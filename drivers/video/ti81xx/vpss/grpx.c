@@ -296,6 +296,17 @@ static int vps_grpx_get_resolution(struct vps_grpx_ctrl *gctrl,
 
 	return 0;
 }
+
+static int vps_grpx_get_timing(struct vps_grpx_ctrl *gctrl,
+		struct fvid2_modeinfo *tinfo)
+{
+	int r;
+	VPSSDBG("(%d) - get timing\n", gctrl->grpx_num);
+
+	r = vps_dc_get_timing(gctrl->enodes[0], tinfo);
+	return r;
+}
+
 static int vps_grpx_set_format(struct vps_grpx_ctrl *gctrl,
 	u8 bpp, u32 df, u32 pitch)
 {
@@ -1143,6 +1154,7 @@ void __init vps_fvid2_grpx_ctrl_init(struct vps_grpx_ctrl *gctrl)
 	gctrl->get_regparams = vps_grpx_get_regparams;
 	gctrl->set_stenparams = vps_grpx_set_stenparams;
 	gctrl->get_stenparams = vps_grpx_get_stenparams;
+	gctrl->get_timing = vps_grpx_get_timing;
 	gctrl->create = vps_grpx_create;
 	gctrl->delete = vps_grpx_delete;
 	gctrl->wait_for_vsync = vps_grpx_wait_vsync_timeout;

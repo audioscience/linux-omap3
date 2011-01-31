@@ -676,6 +676,41 @@ struct fvid2_frame {
 } ;
 
 /**
+ *  \brief FVID2 Mode information structure.
+ */
+struct fvid2_modeinfo {
+	u32              standard;
+	/**< [IN] Standard for which to get the info.
+	 For valid values see #FVID2_Standard. */
+	u32              width;
+	/**< Active video frame width in pixels. */
+	u32              height;
+	/**< Active video frame height in lines. */
+	u32              scanformat;
+	/**< Scan format of standard. For valid values see #FVID2_ScanFormat. */
+	u32              pixelclock;
+	/**< Pixel clock of standard in KHz. */
+	u32              fps;
+	/**< Frames per second. Not Used */
+	u32              hfrontporch;
+	/**< Horizontal front porch. Same for both fields in case of interlaced
+	display */
+	u32              hbackporch;
+	/**< Horizontal back porch */
+	u32              hsynclen;
+	/**< Horizontal sync length. Same for both fields in case of interlaced
+	display */
+	u32              vfrontporch;
+	/**< Vertical front porch for each field or frame */
+	u32              vbackporch;
+	/**< Vertical back porch for each field or frame */
+	u32              vsynclen;
+	/**< Vertical sync length for each field */
+	u32              reserved[4u];
+	/**< For future use. Not used currently. */
+};
+
+/**
  *	\brief FVID2 frame buffer list used to exchange multiple FVID2
  *	frames in a single driver call.
  */

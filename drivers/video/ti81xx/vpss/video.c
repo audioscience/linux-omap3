@@ -78,38 +78,40 @@ static inline void video_print_status(struct vps_video_ctrl *vctrl)
 
 }
 
-static inline int video_get_inputid(struct vps_video_ctrl *vctrl, int nid)
+static inline int video_get_inputid(struct vps_video_ctrl *vctrl,
+					int bid,
+					int inputnode)
 {
-	switch (nid) {
+	switch (bid) {
 	case VPS_DC_HDMI_BLEND:
-		if (vctrl->idx == 0)
+		if ((inputnode == VPS_DC_VCOMP) ||
+		    (inputnode == VPS_DC_VCOMP_MUX))
 			return VPS_DC_CIG_NON_CONSTRAINED_OUTPUT;
-		else if (vctrl->idx == 1)
+		else if (inputnode == VPS_DC_HDCOMP_MUX)
 			return VPS_DC_CIG_PIP_OUTPUT;
 		else
 			return -EINVAL;
 		break;
 	case VPS_DC_HDCOMP_BLEND:
-		if (vctrl->idx == 0)
+		if ((inputnode == VPS_DC_VCOMP) ||
+		    (inputnode == VPS_DC_VCOMP_MUX))
 			return VPS_DC_CIG_CONSTRAINED_OUTPUT;
-		else if (vctrl->idx == 1)
+		else if (inputnode == VPS_DC_HDCOMP_MUX)
 			return VPS_DC_CIG_PIP_OUTPUT;
 		else
 			return -EINVAL;
 		break;
 	case VPS_DC_DVO2_BLEND:
-		if (vctrl->idx == 0)
+		if ((inputnode == VPS_DC_VCOMP) ||
+		    (inputnode == VPS_DC_VCOMP_MUX))
 			return VPS_DC_CIG_NON_CONSTRAINED_OUTPUT;
-		else if (vctrl->idx == 1)
+		else if (inputnode == VPS_DC_HDCOMP_MUX)
 			return VPS_DC_CIG_PIP_OUTPUT;
 		else
 			return -EINVAL;
 		break;
 	case VPS_DC_SDVENC_BLEND:
-		if (vctrl->idx == 0)
 			return VPS_DC_SDVENC_MUX;
-		else
-			return -EINVAL;
 		break;
 	}
 	return -EINVAL;
@@ -122,8 +124,9 @@ static void video_rt_reset(struct vps_video_ctrl *vctrl)
 
 	vctrl->framelist->perlistcfg = NULL;
 	vctrl->vrtparams->layoutid = NULL;
-	vctrl->vrtparams->vcompcropcfg = NULL;
-	vctrl->vrtparams->vcompposcfg = NULL;
+	vctrl->vrtparams->infrmprms = NULL;
+	vctrl->vrtparams->vpdmaposcfg = NULL;
+
 }
 
 /* this will be the call back register to the VPSS m3 for the VSYNC isr*/
@@ -152,8 +155,49 @@ static int video_create(struct vps_video_ctrl *vctrl,
 	u32				vidinstid;
 	int r = 0;
 
+
+	struct vps_dcenumnodeinput eninput;
+	struct vps_dcnodeinput ninput;
+
+	eninput.inputidx = 0;
+	while (r == 0) {
+		eninput.nodeid = vctrl->nodes[0].nodeid;
+		r = vps_dc_enum_node_input(&eninput);
+		ninput.nodeid = eninput.nodeid;
+		ninput.inputid = eninput.inputid;
+		vps_dc_get_node_status(&ninput);
+
+		VPSSERR("nid:%d iid%d on/off:%d\n",
+			ninput.nodeid, ninput.inputid, ninput.isenable);
+		eninput.inputidx++;
+	}
+	r = 0;
 	VPSSDBG("create video%d\n", vctrl->idx);
 
+
+#if 0
+	for (i = 0; (i < vctrl->num_edges) && (r == 0); i++) {
+		vctrl->nodes[i].isenable = 1;
+		r = vps_dc_set_node(vctrl->nodes[i].nodeid,
+				vctrl->nodes[i].inputid,
+				vctrl->nodes[i].isenable);
+
+	}
+
+	if (r)
+		return r;
+
+	for (i = 0; (i < vctrl->num_outputs) && (r == 0); i++) {
+		vctrl->enodes[i].isenable = 1;
+		r = vps_dc_set_node(vctrl->enodes[i].nodeid,
+				vctrl->enodes[i].inputid,
+				vctrl->enodes[i].isenable);
+
+	}
+
+	if (r)
+		return r;
+#endif
 	vctrl->cbparams->appdata = NULL;
 	vctrl->cbparams->errlist = NULL;
 	vctrl->cbparams->errcbfnx = NULL;
@@ -291,8 +335,9 @@ static int video_dequeue(struct vps_video_ctrl *vctrl)
 			      (struct fvid2_framelist *)vctrl->frmls_phy,
 			      0,
 			      FVID2_TIMEOUT_NONE);
-#if 1
-{
+
+#if 0
+if (!r) {
 	u32 addr = (u32)vctrl->framelist->frames[0];
 	int index;
 
@@ -532,9 +577,8 @@ static int video_check_format(struct vps_video_ctrl *vctrl,
 			r = -EINVAL;
 		}
 	}
-	/*FIX ME make sue the display window is not off the frame boundry*/
 
-	/* Check whether window width/startX is even */
+	/* Check whether window width is even */
 	if (fmt->width & 0x01u)	{
 		VPSSERR("width(%d) can't be odd!!\n", fmt->width);
 		r = -EINVAL;
@@ -547,7 +591,7 @@ static int video_check_format(struct vps_video_ctrl *vctrl,
 			if (fmt->height & 0x03u) {
 				VPSSERR("height(%d)should be multiple"
 					"of 4 for YUV420 "
-					"format in display mode!!\n",
+					"format in interlaced display mode!!\n",
 					fmt->height);
 				r = -EINVAL;
 		    }
@@ -657,14 +701,15 @@ static int video_set_rtpos(struct vps_video_ctrl *vctrl, u32 posx, u32 posy)
 {
 
 	VPSSDBG("set position\n");
-	if ((vctrl == NULL) && (!(vctrl->caps & VPSS_VID_CAPS_POSITIONING)))
+	if ((vctrl == NULL) || (!(vctrl->caps & VPSS_VID_CAPS_POSITIONING)))
 		return -EINVAL;
 
-	vctrl->vposconfig->startx = posx;
-	vctrl->vposconfig->starty = posy;
+	/*This need be even number*/
+	vctrl->vdmaposcfg->startx = (posx & ~1);
+	vctrl->vdmaposcfg->starty = (posy & ~1);
 
-	vctrl->vrtparams->vcompposcfg = (struct vps_posconfig *)
-					vctrl->vpc_phy;
+	vctrl->vrtparams->vpdmaposcfg = (struct vps_posconfig *)
+					vctrl->vdpc_phy;
 
 	vctrl->framelist->perlistcfg = (void *)
 					vctrl->vrt_phy;
@@ -673,20 +718,27 @@ static int video_set_rtpos(struct vps_video_ctrl *vctrl, u32 posx, u32 posy)
 }
 
 static int video_set_rtcrop(struct vps_video_ctrl *vctrl, u32 posx, u32 posy,
-				 u32 w, u32 h)
+				 u32 pitch, u32 w, u32 h)
 {
 	VPSSDBG("Set crop\n");
 
-	if ((vctrl == NULL) && (!(vctrl->caps & VPSS_VID_CAPS_CROPING)))
+	if ((vctrl == NULL) || (!(vctrl->caps & VPSS_VID_CAPS_CROPING)))
 		return -EINVAL;
 
-	vctrl->vcrop->cropstartx = posx;
-	vctrl->vcrop->cropstarty = posy;
-	vctrl->vcrop->cropwidth = w;
-	vctrl->vcrop->cropheight = h;
+	vctrl->vfrmprm->width = w;
+	vctrl->vfrmprm->height = h;
+	/*for 420SP format, height need be multiple of 4
+		when interlaced output*/
+	if ((vctrl->fmt->dataformat == FVID2_DF_YUV420SP_UV) &&
+		(vctrl->scformat == FVID2_SF_INTERLACED))
+		vctrl->vfrmprm->height &= ~3;
+	vctrl->vfrmprm->memtype = vctrl->vcparams->memtype;
+	vctrl->vfrmprm->pitch[0] = pitch;
+	vctrl->vfrmprm->pitch[1] = pitch;
+	vctrl->vfrmprm->pitch[2] = pitch;
 
-	vctrl->vrtparams->vcompcropcfg = (struct vps_cropconfig *)
-					vctrl->vcrop_phy;
+	vctrl->vrtparams->infrmprms = (struct vps_frameparams *)
+					vctrl->vfp_phy;
 
 	vctrl->framelist->perlistcfg = (void *)
 					vctrl->vrt_phy;
@@ -701,7 +753,7 @@ static int video_get_color(struct vps_video_ctrl *vctrl,
 
 	VPSSDBG("get color\n");
 
-	if ((vctrl == NULL) & (!(vctrl->caps & VPSS_VID_CAPS_COLOR)) ||
+	if ((vctrl == NULL) || (!(vctrl->caps & VPSS_VID_CAPS_COLOR)) ||
 		(color == NULL))
 		return -EINVAL;
 
@@ -1016,17 +1068,33 @@ static ssize_t video_enabled_store(struct vps_video_ctrl *vctrl,
 static ssize_t video_nodes_show(struct vps_video_ctrl *vctrl,
 				char *buf)
 {
-	int i, r;
+	int i, r = 0;
 	int l = 0;
 	char name[10];
+	struct vps_dcenumnodeinput eninput;
+	struct vps_dcnodeinput ninput;
 
-	l += snprintf(buf + l, PAGE_SIZE - l, "%d", vctrl->num_outputs);
+	eninput.inputidx = 0;
+	while (r == 0) {
+		eninput.nodeid = vctrl->nodes[0].nodeid;
+		r = vps_dc_enum_node_input(&eninput);
+		ninput.nodeid = eninput.nodeid;
+		ninput.inputid = eninput.inputid;
+		vps_dc_get_node_status(&ninput);
+
+		VPSSERR("nid:%d iid%d on/off:%d\n",
+			ninput.nodeid, ninput.inputid, ninput.isenable);
+		eninput.inputidx++;
+	}
+	vps_dc_get_node_name(vctrl->nodes[0].nodeid, name);
+	if (vctrl->num_edges)
+		l += snprintf(buf + l, PAGE_SIZE - l, "%s", name);
+	else
+		return snprintf(buf, PAGE_SIZE, " ");
+
 	for (i = 0; i < vctrl->num_outputs; i++)  {
 		r = vps_dc_get_node_name(vctrl->enodes[i].nodeid, name);
-		if (i == 0)
-			l += snprintf(buf + l, PAGE_SIZE - l, ":%s", name);
-		else
-			l += snprintf(buf + l, PAGE_SIZE - l, ",%s", name);
+		l += snprintf(buf + l, PAGE_SIZE - l, ",%s", name);
 	}
 	l += snprintf(buf + l, PAGE_SIZE - l, "\n");
 
@@ -1043,26 +1111,78 @@ static ssize_t video_nodes_store(struct vps_video_ctrl *vctrl,
 	int idx = 0;
 	u8 tiedvenc = 0;
 	char *input = (char *)buf, *this_opt;
+	/*this is store the edege without blender lever*/
+	u8 numedges = 0;
+	int nodeid;
+	struct vps_dcnodeinput nodes[VPS_DISPLAY_MAX_EDGES];
+	/*this is for the blender*/
 	struct vps_dcnodeinput enodes[VPS_DC_MAX_VENC - 1];
 	struct vps_dcvencinfo vinfo;
 
 	if (vctrl->isstarted) {
-		VPSSERR("please stop grpx%d before continue.\n",
+		VPSSERR("please stop video%d before continue.\n",
 			vctrl->idx);
 		return -EINVAL;
 	}
 
 	video_lock(vctrl);
 
-	this_opt = strsep(&input, ":");
-	total = simple_strtoul(this_opt, &this_opt, 10);
-
-	if ((total == 0) || (total > (vps_get_numvencs() - 1))) {
-		VPSSERR("(%d)- no node to set\n", vctrl->idx);
+	/*get the edge path first*/
+	this_opt = strsep(&input, ",");
+	if (vps_dc_get_id(this_opt, &nodeid, DC_NODE_ID)) {
+		VPSSERR("(%d): wrong paths\n", vctrl->idx);
 		r = -EINVAL;
 		goto exit;
 	}
-	/*check the remaining input string*/
+	if ((vctrl->idx == 2) && (nodeid != VPS_DC_SDVENC_MUX)) {
+		VPSSERR("(%d): can not connect other nodes except"
+				" sdvencmux only\n", vctrl->idx);
+		r = -EINVAL;
+		goto exit;
+	}
+
+
+	switch (nodeid) {
+	case VPS_DC_VCOMP:
+		nodes[0].nodeid = VPS_DC_VCOMP;
+		nodes[0].inputid = VPS_DC_MAIN_INPUT_PATH;
+		numedges = 1;
+		break;
+	case VPS_DC_VCOMP_MUX:
+		nodes[0].nodeid = VPS_DC_VCOMP_MUX;
+		if (vctrl->idx == 0)
+			nodes[0].inputid = VPS_DC_BP0_INPUT_PATH;
+		else if (vctrl->idx == 1)
+			nodes[0].inputid = VPS_DC_BP1_INPUT_PATH;
+
+		nodes[1].nodeid = VPS_DC_VCOMP;
+		nodes[1].inputid = VPS_DC_VCOMP_MUX;
+		numedges = 2;
+		break;
+	case VPS_DC_HDCOMP_MUX:
+		nodes[0].nodeid = VPS_DC_HDCOMP_MUX;
+		if (vctrl->idx == 0)
+			nodes[0].inputid = VPS_DC_BP0_INPUT_PATH;
+		else if (vctrl->idx == 1)
+			nodes[0].inputid = VPS_DC_BP1_INPUT_PATH;
+
+		nodes[1].nodeid = VPS_DC_CIG_PIP_INPUT;
+		nodes[1].inputid = VPS_DC_HDCOMP_MUX;
+		numedges = 2;
+		break;
+	case VPS_DC_SDVENC_MUX:
+		nodes[0].nodeid = VPS_DC_SDVENC_MUX;
+		if (vctrl->idx == 0)
+			nodes[0].inputid = VPS_DC_BP0_INPUT_PATH;
+		else if (vctrl->idx == 1)
+			nodes[0].inputid = VPS_DC_BP1_INPUT_PATH;
+		else if (vctrl->idx == 2)
+			nodes[0].inputid = VPS_DC_SEC1_INPUT_PATH;
+
+		numedges = 1;
+	}
+
+	/*get the output venc information, could be multiple output*/
 	if ((input == NULL) || (!(strcmp(input, "\0")))) {
 		r = -EINVAL;
 		VPSSERR("(%d)- wrong node information\n", vctrl->idx);
@@ -1071,9 +1191,6 @@ static ssize_t video_nodes_store(struct vps_video_ctrl *vctrl,
 	/*parse each end note*/
 	while (!r && (this_opt = strsep(&input, ",")) != NULL) {
 		int nid, inputid;
-
-		if (idx > total)
-			break;
 
 		if (vps_dc_get_id(this_opt, &nid, DC_NODE_ID)) {
 			VPSSERR("(%d)- failed to parse node name %s\n",
@@ -1087,7 +1204,7 @@ static ssize_t video_nodes_store(struct vps_video_ctrl *vctrl,
 			      &vinfo.modeinfo[idx].vencid,
 			      DC_VENC_ID);
 		enodes[idx].nodeid = nid;
-		inputid = video_get_inputid(vctrl, nid);
+		inputid = video_get_inputid(vctrl, nid, nodeid);
 		if (inputid < 0) {
 			VPSSERR("(%d) - invalid node %s",
 				vctrl->idx,
@@ -1105,6 +1222,7 @@ static ssize_t video_nodes_store(struct vps_video_ctrl *vctrl,
 		if (input == NULL)
 			break;
 	}
+	total = idx;
 	/*the total is not match what parsed in the string*/
 	if (idx != total) {
 		r = -EINVAL;
@@ -1112,6 +1230,7 @@ static ssize_t video_nodes_store(struct vps_video_ctrl *vctrl,
 			vctrl->idx);
 		goto exit;
 	}
+
 	vinfo.numvencs = total;
 	for (i = 0; i < total; i++)
 		tiedvenc |= vinfo.modeinfo[i].vencid;
@@ -1146,6 +1265,42 @@ static ssize_t video_nodes_store(struct vps_video_ctrl *vctrl,
 			goto exit;
 		}
 	}
+	/*should we reconfig the display path or not*/
+/*	if (nodeid != vctrl->nodes[0].nodeid) */
+	{
+		/*disable old first*/
+		for (i = 0; (i < vctrl->num_edges) && (r == 0); i++) {
+			vctrl->nodes[i].isenable = 0;
+			r = vps_dc_set_node(vctrl->nodes[i].nodeid,
+					vctrl->nodes[i].inputid,
+					vctrl->nodes[i].isenable);
+		}
+
+		if (r) {
+			r = -EINVAL;
+			VPSSERR("(%d): failed to disable old path\n",
+				vctrl->idx);
+			goto exit;
+		}
+
+		/*enable the new path*/
+		for (i = 0; (i < numedges) && (r == 0); i++) {
+			nodes[i].isenable = 1;
+			r = vps_dc_set_node(nodes[i].nodeid,
+					nodes[i].inputid,
+					nodes[i].isenable);
+		}
+		if (r) {
+			r = -EINVAL;
+			VPSSERR("(%d): failed to enable new path\n",
+				vctrl->idx);
+			goto exit;
+		}
+		/*store back to the local structure*/
+		vctrl->num_edges = numedges;
+		for (i = 0; i < vctrl->num_edges; i++)
+			vctrl->nodes[i] = nodes[i];
+	}
 
 	/*disable the exit nodes*/
 	for (i = 0; (i < vctrl->num_outputs) && (r == 0); i++) {
@@ -1156,7 +1311,7 @@ static ssize_t video_nodes_store(struct vps_video_ctrl *vctrl,
 	}
 	if (r) {
 		r = -EINVAL;
-		VPSSERR("(%d)- failed to disable node\n",
+		VPSSERR("(%d)- failed to disable old output nodes\n",
 			vctrl->idx);
 		goto exit;
 	}
@@ -1169,7 +1324,7 @@ static ssize_t video_nodes_store(struct vps_video_ctrl *vctrl,
 	}
 	if (r) {
 		r = -EINVAL;
-		VPSSERR("(%d)- failed to enable node\n",
+		VPSSERR("(%d)- failed to enable new output nodes\n",
 			vctrl->idx);
 		goto exit;
 	}
@@ -1433,8 +1588,8 @@ static inline int get_alloc_size(void)
 	size += sizeof(struct vps_dispcreateparams);
 	size += sizeof(struct vps_dispcreatestatus);
 	size += sizeof(struct vps_disprtparams);
-	size += sizeof(struct vps_cropconfig);
 	size += sizeof(struct vps_posconfig);
+	size += sizeof(struct vps_frameparams);
 	size += sizeof(struct vps_dispstatus);
 
 	size += sizeof(struct fvid2_cbparams);
@@ -1442,7 +1597,7 @@ static inline int get_alloc_size(void)
 	size += sizeof(struct fvid2_framelist);
 	size += sizeof(struct fvid2_frame) *MAX_BUFFER_NUM;
 
-	return size;
+	return size * VPS_DISPLAY_INST_MAX;
 }
 
 static inline void assign_payload_addr(struct vps_video_ctrl *vctrl,
@@ -1468,17 +1623,17 @@ static inline void assign_payload_addr(struct vps_video_ctrl *vctrl,
 				&vctrl->vrt_phy,
 				sizeof(struct vps_disprtparams));
 
-	vctrl->vcrop = (struct vps_cropconfig *)
+	vctrl->vdmaposcfg = (struct vps_posconfig *)
 				setaddr(pinfo,
 				buf_offset,
-				&vctrl->vcrop_phy,
-				sizeof(struct vps_cropconfig));
-
-	vctrl->vposconfig = (struct vps_posconfig *)
-				setaddr(pinfo,
-				buf_offset,
-				&vctrl->vpc_phy,
+				&vctrl->vdpc_phy,
 				sizeof(struct vps_posconfig));
+
+	vctrl->vfrmprm  = (struct vps_frameparams *)
+				setaddr(pinfo,
+				buf_offset,
+				&vctrl->vfp_phy,
+				sizeof(struct vps_frameparams));
 
 	vctrl->vstatus = (struct vps_dispstatus *)
 				setaddr(pinfo,
@@ -1583,8 +1738,7 @@ int __init vps_video_init(struct platform_device *pdev)
 			vctrl->enodes[0].inputid =
 				VPS_DC_CIG_NON_CONSTRAINED_OUTPUT;
 
-			/*only the VCOMP path has capability to do positioning*/
-			vctrl->caps |= VPSS_VID_CAPS_POSITIONING |
+			vctrl->caps = VPSS_VID_CAPS_POSITIONING |
 				VPSS_VID_CAPS_COLOR | VPSS_VID_CAPS_CROPING;
 			break;
 		case 1:
@@ -1602,7 +1756,8 @@ int __init vps_video_init(struct platform_device *pdev)
 				vctrl->enodes[0].nodeid = VPS_DC_DVO2_BLEND;
 
 			vctrl->enodes[0].inputid = VPS_DC_CIG_PIP_OUTPUT;
-			vctrl->caps |= VPSS_VID_CAPS_COLOR;
+			vctrl->caps = VPSS_VID_CAPS_POSITIONING |
+				VPSS_VID_CAPS_COLOR | VPSS_VID_CAPS_CROPING;
 			break;
 		case 2:
 			num_edges = 1;
@@ -1612,8 +1767,12 @@ int __init vps_video_init(struct platform_device *pdev)
 			num_outputs = 1;
 			vctrl->enodes[0].nodeid = VPS_DC_SDVENC_BLEND;
 			vctrl->enodes[0].inputid = VPS_DC_SDVENC_MUX;
+			vctrl->caps = VPSS_VID_CAPS_POSITIONING |
+					 VPSS_VID_CAPS_CROPING;
+
 			break;
 		}
+#if 1
 		for (j = 0; j < num_edges; j++) {
 			vctrl->nodes[j].isenable = 1;
 			r = vps_dc_set_node(vctrl->nodes[j].nodeid,
@@ -1638,7 +1797,10 @@ int __init vps_video_init(struct platform_device *pdev)
 			}
 		}
 		vctrl->num_outputs = num_outputs;
-
+#else
+		vctrl->num_edges = num_edges;
+		vctrl->num_outputs = num_outputs;
+#endif
 		r = video_create_sysfs(vctrl);
 		if (r)
 			goto cleanup;
