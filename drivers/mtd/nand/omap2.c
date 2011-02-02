@@ -827,7 +827,7 @@ static int omap_correct_data(struct mtd_info *mtd, u_char *dat,
 		}
 
 		if (eccflag == 1) {
-			printk(KERN_INFO "...bch correct(%d 512 byte)\n", i+1);
+		//	printk(KERN_INFO "...bch correct(%d 512 byte)\n", i+1);
 #if defined(CONFIG_MTD_NAND_OMAP_BCH_8)
 			count = decode_bch(1, calc_ecc, err_loc);
 #else
