@@ -1685,6 +1685,7 @@ void musb_host_rx(struct musb *musb, u8 epnum)
 
 				ret = c->channel_program(dma, qh->maxpacket,
 						0, (u32) buf, length);
+				done = false;
 			} else {
 				done = false;
 			}
