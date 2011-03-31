@@ -2406,6 +2406,7 @@ void musb_save_context(struct musb *musb)
 		}
 	}
 }
+EXPORT_SYMBOL_GPL(musb_save_context);
 
 void musb_restore_context(struct musb *musb)
 {
@@ -2476,6 +2477,7 @@ void musb_restore_context(struct musb *musb)
 		}
 	}
 }
+EXPORT_SYMBOL_GPL(musb_restore_context);
 
 static int musb_suspend(struct device *dev)
 {
