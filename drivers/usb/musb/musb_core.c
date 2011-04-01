@@ -2405,6 +2405,7 @@ void musb_save_context(struct musb *musb)
 				musb_read_rxhubport(musb_base, i);
 		}
 	}
+	musb_writeb(musb_base, MUSB_INDEX, musb->context.index);
 }
 EXPORT_SYMBOL_GPL(musb_save_context);
 
@@ -2476,6 +2477,7 @@ void musb_restore_context(struct musb *musb)
 				musb->context.index_regs[i].rxhubport);
 		}
 	}
+	musb_writeb(musb_base, MUSB_INDEX, musb->context.index);
 }
 EXPORT_SYMBOL_GPL(musb_restore_context);
 
