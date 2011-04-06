@@ -1038,13 +1038,14 @@ void omap_push_sram_idle(void)
 	else
 		_omap_sram_idle = omap_sram_push(omap34xx_cpu_suspend,
 					omap34xx_cpu_suspend_sz);
-	if (omap_type() != OMAP2_DEVICE_TYPE_GP)
+	if (omap_type() != OMAP2_DEVICE_TYPE_GP) {
 		if (cpu_is_omap3505() || cpu_is_omap3517())
 			_omap_save_secure_sram = omap_sram_push(omap3517_save_secure_ram_context,
 					omap3517_save_secure_ram_context_sz);
 		else
 			_omap_save_secure_sram = omap_sram_push(save_secure_ram_context,
 					save_secure_ram_context_sz);
+	}
 }
 
 static void __init pm_errata_configure(void)
