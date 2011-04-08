@@ -1752,6 +1752,7 @@ void ti814x_cpsw_init(void)
 static inline void ti814x_cpsw_init(void) {}
 #endif
 
+#ifdef CONFIG_ARCH_TI81XX
 static void ti81xx_ethernet_init(void)
 {
 	if (cpu_is_ti816x())
@@ -1759,6 +1760,7 @@ static void ti81xx_ethernet_init(void)
 	else
 		ti814x_cpsw_init();
 }
+#endif
 
 #define P0PHYCR		0x178  /* SATA PHY0 Control Register offset
                                 * from AHCI base)
