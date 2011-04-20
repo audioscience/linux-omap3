@@ -348,10 +348,9 @@ CONFIG_SPI=y
 #
 CONFIG_SPI_OMAP24XX=y
 
-#
-# PPS support
-#
-CONFIG_DEBUG_GPIO=y
+
+# CONFIG_DEBUG_GPIO is not set
+
 CONFIG_GPIO_SYSFS=y
 #
 # I2C GPIO expanders:
