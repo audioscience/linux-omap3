@@ -313,6 +313,7 @@ static struct omap_dss_device omap3_evm_lcd_device = {
 	.set_backlight		= omap3evm_set_bl_intensity,
 };
 
+#ifdef CONFIG_OMAP2_DSS_VENC
 static int omap3_evm_enable_tv(struct omap_dss_device *dssdev)
 {
 	omap_pm_set_min_bus_tput(&dssdev->dev, OCP_INITIATOR_AGENT, 400000);
@@ -336,6 +337,7 @@ static struct omap_dss_device omap3_evm_tv_device = {
 	.platform_enable	= omap3_evm_enable_tv,
 	.platform_disable	= omap3_evm_disable_tv,
 };
+#endif /* CONFIG_OMAP2_DSS_VENC */
 
 static int omap3_evm_enable_dvi(struct omap_dss_device *dssdev)
 {
@@ -370,7 +372,9 @@ static struct omap_dss_device omap3_evm_dvi_device = {
 
 static struct omap_dss_device *omap3_evm_dss_devices[] = {
 	&omap3_evm_lcd_device,
+#ifdef CONFIG_OMAP2_DSS_VENC
 	&omap3_evm_tv_device,
+#endif
 	&omap3_evm_dvi_device,
 };
 
