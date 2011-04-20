@@ -339,6 +339,7 @@ static struct omap_dss_device omap3_evm_tv_device = {
 };
 #endif /* CONFIG_OMAP2_DSS_VENC */
 
+#ifdef CONFIG_PANEL_GENERIC
 static int omap3_evm_enable_dvi(struct omap_dss_device *dssdev)
 {
 	if (lcd_enabled) {
@@ -369,13 +370,16 @@ static struct omap_dss_device omap3_evm_dvi_device = {
 	.platform_enable	= omap3_evm_enable_dvi,
 	.platform_disable	= omap3_evm_disable_dvi,
 };
+#endif /* CONFIG_PANEL_GENERIC */
 
 static struct omap_dss_device *omap3_evm_dss_devices[] = {
 	&omap3_evm_lcd_device,
 #ifdef CONFIG_OMAP2_DSS_VENC
 	&omap3_evm_tv_device,
 #endif
+#ifdef CONFIG_PANEL_GENERIC
 	&omap3_evm_dvi_device,
+#endif
 };
 
 static struct omap_dss_board_info omap3_evm_dss_data = {
