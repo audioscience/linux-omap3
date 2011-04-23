@@ -74,6 +74,7 @@ obj-$(CONFIG_SMARTREFLEX_CLASS2)	+= smartreflex-class2.o
 
 AFLAGS_sleep24xx.o			:=-Wa,-march=armv6
 AFLAGS_sleep34xx.o			:=-Wa,-march=armv7-a
+AFLAGS_sleep3517.o			:=-Wa,-march=armv7-a
 
 ifeq ($(CONFIG_PM_VERBOSE),y)
 CFLAGS_pm_bus.o				+= -DDEBUG
