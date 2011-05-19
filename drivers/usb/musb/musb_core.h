@@ -276,6 +276,7 @@ struct musb_platform_ops {
 	struct dma_controller* (*dma_controller_create)(struct musb *,
 		void __iomem *);
 	void (*dma_controller_destroy)(struct dma_controller *);
+	int (*simulate_babble_intr)(struct musb *musb);
 };
 
 /*
@@ -387,6 +388,7 @@ struct musb {
 
 	irqreturn_t		(*isr)(int, void *);
 	struct work_struct	irq_work;
+	struct work_struct	work;
 	u16			hwvers;
 
 /* this hub status bit is reserved by USB 2.0 and not seen by usbcore */
@@ -666,6 +668,14 @@ static inline u16 musb_platform_get_hw_revision(struct musb *musb)
 	return musb->ops->get_hw_revision(musb);
 }
 
+static inline int musb_simulate_babble_intr(struct musb *musb)
+{
+	if (!musb->ops->simulate_babble_intr)
+		return -EINVAL;
+
+	return musb->ops->simulate_babble_intr(musb);
+}
+
 static inline const char *get_dma_name(struct musb *musb)
 {
 #ifdef CONFIG_MUSB_PIO_ONLY
@@ -705,5 +715,4 @@ static inline void musb_debug_delete(char *name, struct musb *data)
 {
 }
 #endif
-
 #endif	/* __MUSB_CORE_H__ */
