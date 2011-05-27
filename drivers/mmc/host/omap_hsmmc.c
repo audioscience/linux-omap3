@@ -220,7 +220,6 @@ static int omap_hsmmc_card_detect(struct device *dev, int slot)
 
 		if (!enabled)
 			mmc_host_disable(host->mmc);
-printk("PSTATE %x\n", pstate);
 		pstate = pstate & PSTATE_CINS_MASK;
 		pstate = pstate >> PSTATE_CINS_SHIFT;
 		return pstate;
