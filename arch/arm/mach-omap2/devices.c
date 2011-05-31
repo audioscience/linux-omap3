@@ -1340,8 +1340,8 @@ static struct ti816x_sr_platform_data ti816x_sr_pdata = {
 	.irq_delay		= 2000,
 	.no_of_vds		= 1,
 	.no_of_sens		= ARRAY_SIZE(sr_sensor_data),
-	.vstep_size		= 15000,
-	.enable_on_init		= 0,
+	.vstep_size_mv		= 15000,
+	.enable_on_init		= false,
 	.sr_sdata		= sr_sensor_data,
 };
 

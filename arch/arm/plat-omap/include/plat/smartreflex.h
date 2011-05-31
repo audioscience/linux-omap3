@@ -260,7 +260,7 @@ int sr_register_class(struct omap_sr_class_data *class_data);
 struct ti816x_sr_sdata {
 	u32	efuse_offs;
 	u32	nvalue;
-	s32	e2v_gain;
+	u32	e2v_gain;
 	u32	err_weight;
 	u32	err_minlimit;
 	u32	err_maxlimit;
@@ -279,19 +279,19 @@ struct ti816x_sr_sdata {
  * @no_of_vds:		Number of voltage domains to which SR needed
  * @no_of_sens:		Number of SR sensors used to monitor the device
  *			performance, temp etc...
- * @vstep_size:		PMIC voltage step size
+ * @vstep_size_mv:	PMIC voltage step size in milli volt
  * @enable_on_init:	whether this sr module needs to enabled at
  *			boot up or not.
  */
 struct ti816x_sr_platform_data {
 	struct ti816x_sr_sdata	*sr_sdata;
 	char			*vd_name;
-	int			ip_type;
-	int			irq_delay;
-	int			no_of_vds;
-	int			no_of_sens;
-	int			vstep_size;
-	int			enable_on_init;
+	u32			ip_type;
+	u32			irq_delay;
+	u32			no_of_vds;
+	u32			no_of_sens;
+	u32			vstep_size_mv;
+	bool			enable_on_init;
 };
 
 #endif /* CONFIG_TI816X_SMARTREFLEX */
