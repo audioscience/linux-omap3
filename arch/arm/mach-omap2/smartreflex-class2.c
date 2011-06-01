@@ -634,17 +634,14 @@ static int __init sr_class2_init(void)
 
 	if (sr_debugfs_enable == 1) {
 		ret = sr_debugfs_entires(&srcore);
-		if (ret) {
-			printk(KERN_ERR "Debug FS entires are created\n");
-			goto fail_hvt_req_irq;
-		}
-	} else {
-		ret = sr_set_nvalues(&srcore);
-		if (ret) {
-			printk(KERN_WARNING "SmartReflex Driver is not"
-						"initialized\n");
-			goto fail_hvt_req_irq;
-		}
+		if (ret)
+			printk(KERN_INFO "Debug FS entires are not created\n");
+	}
+
+	ret = sr_set_nvalues(&srcore);
+	if (ret) {
+		printk(KERN_ERR "SmartReflex Driver is not initialized\n");
+		goto fail_hvt_req_irq;
 	}
 
 	/* Read current GPIO value and voltage */
