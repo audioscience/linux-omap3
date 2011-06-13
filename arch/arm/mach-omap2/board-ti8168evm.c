@@ -170,6 +170,7 @@ static struct at24_platform_data eeprom_info = {
 	.flags          = AT24_FLAG_ADDR16,
 };
 
+#ifdef CONFIG_REGULATOR_GPIO
 static struct regulator_consumer_supply ti816x_gpio_dcdc_supply[] = {
 	{
 		.supply = "vdd_avs",
@@ -184,7 +185,7 @@ static struct regulator_init_data gpio_pmic_init_data = {
 		.valid_ops_mask	= (REGULATOR_CHANGE_VOLTAGE |
 			REGULATOR_CHANGE_STATUS),
 	},
-	.num_consumer_supplies	= 1,
+	.num_consumer_supplies	= ARRAY_SIZE(ti816x_gpio_dcdc_supply),
 	.consumer_supplies	= ti816x_gpio_dcdc_supply,
 };
 
@@ -210,6 +211,8 @@ static struct gpio_reg_platform_data gpio_vr_init_data = {
 	.gpio_vsel_table	= ti816x_vsel_table,
 	.num_voltages		= ARRAY_SIZE(ti816x_vsel_table),
 	.gpios			= vcore_gpios,
+	.gpio_single_bank	= true,
+	.gpio_arr_mask		= 0xF,
 	.num_gpio_pins		= ARRAY_SIZE(vcore_gpios),
 	.pmic_vout		= 600000,
 };
@@ -230,6 +233,9 @@ static void __init ti816x_gpio_vr_init(void)
 	else
 		printk(KERN_INFO "registered ti816x_gpio_vr device\n");
 }
+#else
+static inline void ti816x_gpio_vr_init(void) {}
+#endif
 
 static struct i2c_board_info __initdata ti816x_i2c_boardinfo0[] = {
 	{

@@ -529,7 +529,7 @@ static int sr_debugfs_entries(struct ti816x_sr *sr_info)
 
 		(void) debugfs_create_x32("err2voltgain", S_IRUGO,
 					sen_dir, &sr_info->sen[i].e2v_gain);
-		(void) debugfs_create_x32("nvalue", S_IRUGO | S_IWUGO,
+		(void) debugfs_create_x32("nvalue", S_IRUGO,
 					sen_dir, &sr_info->sen[i].nvalue);
 	}
 	return 0;
