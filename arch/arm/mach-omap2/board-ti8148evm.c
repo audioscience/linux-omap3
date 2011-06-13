@@ -44,15 +44,16 @@
 #include "hsmmc.h"
 
 
+
 static struct omap2_hsmmc_info mmc[] = {
-       {
-               .mmc            = 1,
-               .caps           = MMC_CAP_4_BIT_DATA,
-               .gpio_cd        = -EINVAL,/* Dedicated pins for CD and WP */
-               .gpio_wp        = -EINVAL,
-               .ocr_mask       = MMC_VDD_33_34,
-       },
-       {}      /* Terminator */
+	{
+		.mmc            = 1,
+		.caps           = MMC_CAP_4_BIT_DATA,
+		.gpio_cd        = -EINVAL,/* Dedicated pins for CD and WP */
+		.gpio_wp        = -EINVAL,
+		.ocr_mask       = MMC_VDD_33_34,
+	},
+	{}      /* Terminator */
 };
 
 static struct at24_platform_data eeprom_info = {
@@ -137,7 +138,7 @@ static struct mtd_partition ti814x_nand_partitions[] = {
 		.offset         = MTDPART_OFS_APPEND,   /* Offset = 0x6C0000 */
 		.size           = 1601 * SZ_128K,
 	},
-	{	
+	{
 		.name           = "Reserved",
 		.offset         = MTDPART_OFS_APPEND,   /* Offset = 0xCEE0000 */
 		.size           = MTDPART_SIZ_FULL,
@@ -243,7 +244,7 @@ static struct platform_device ti814x_hdmi_plat_device = {
 	.id = -1,
 	.num_resources = 0,
 	.dev = {
-//		.release = ti81xx_hdmi_platform_release,
+		/*.release = ti81xx_hdmi_platform_release,*/
 		.platform_data = NULL,
 	}
 };
@@ -251,8 +252,8 @@ static struct platform_device ti814x_hdmi_plat_device = {
 static void __init ti814x_hdmi_init(void)
 {
 
-	if(platform_device_register(&ti814x_hdmi_plat_device))
-		printk("KERN_ERR: Could not register TI814x onchip-HDMI device\n");
+	if (platform_device_register(&ti814x_hdmi_plat_device))
+		printk(KERN_ERR "Could not register TI814x onchip-HDMI device\n");
 	else
 		printk(KERN_INFO "registered TI814x on-chip HDMI device\n");
 	/*FIXME add platform data here*/
