@@ -159,11 +159,6 @@ static int omap3evm_tvp514x_s_power(struct v4l2_subdev *subdev, u32 on)
 
 	omap3evm_set_mux(MUX_EN_TVP5146);
 
-	/* Assert the reset signal */
-	gpio_set_value(TVP5146_DEC_RST, 0);
-	mdelay(5);
-	gpio_set_value(TVP5146_DEC_RST, 1);
-
 	return 0;
 }
 
@@ -296,7 +291,10 @@ static int __init omap3evm_cam_init(void)
 		printk(KERN_ERR "failed to get GPIO98_VID_DEC_RES\n");
 		goto err_5;
 	}
-	gpio_direction_output(TVP5146_DEC_RST, 1);
+	/* Assert the reset signal */
+	gpio_direction_output(TVP5146_DEC_RST, 0);
+	mdelay(5);
+	gpio_set_value(TVP5146_DEC_RST, 1);
 
 	omap3_init_camera(&omap3evm_isp_platform_data);
 
