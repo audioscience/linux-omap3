@@ -341,9 +341,9 @@ static int twl4030_configure_resource(struct twl4030_resconfig *rconfig)
 {
 	int rconfig_addr;
 	int err;
-	u8 type;
-	u8 grp;
-	u8 remap;
+	u8 type, type_value;
+	u8 grp, grp_value;
+	u8 remap, remap_value;
 
 	if (rconfig->resource > TOTAL_RESOURCES) {
 		pr_err("TWL4030 Resource %d does not exist\n",
@@ -354,76 +354,94 @@ static int twl4030_configure_resource(struct twl4030_resconfig *rconfig)
 	rconfig_addr = res_config_addrs[rconfig->resource];
 
 	/* Set resource group */
-	err = twl_i2c_read_u8(TWL4030_MODULE_PM_RECEIVER, &grp,
-			      rconfig_addr + DEV_GRP_OFFSET);
-	if (err) {
-		pr_err("TWL4030 Resource %d group could not be read\n",
-			rconfig->resource);
-		return err;
-	}
-
 	if (rconfig->devgroup != TWL4030_RESCONFIG_UNDEF) {
-		grp &= ~DEV_GRP_MASK;
-		grp |= rconfig->devgroup << DEV_GRP_SHIFT;
-		err = twl_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
-				       grp, rconfig_addr + DEV_GRP_OFFSET);
-		if (err < 0) {
-			pr_err("TWL4030 failed to program devgroup\n");
+		err = twl_i2c_read_u8(TWL4030_MODULE_PM_RECEIVER, &grp,
+			      rconfig_addr + DEV_GRP_OFFSET);
+		if (err) {
+			pr_err("TWL4030 Resource %d group could not be read\n",
+				rconfig->resource);
 			return err;
+		}
+
+		grp_value = (grp & DEV_GRP_MASK) >> DEV_GRP_SHIFT;
+
+		if (rconfig->devgroup != grp_value) {
+			grp &= ~DEV_GRP_MASK;
+			grp |= rconfig->devgroup << DEV_GRP_SHIFT;
+			err = twl_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+				       grp, rconfig_addr + DEV_GRP_OFFSET);
+			if (err < 0) {
+				pr_err("TWL4030 failed to program devgroup\n");
+				return err;
+			}
 		}
 	}
 
 	/* Set resource types */
-	err = twl_i2c_read_u8(TWL4030_MODULE_PM_RECEIVER, &type,
+	if ((rconfig->type != TWL4030_RESCONFIG_UNDEF) ||
+		(rconfig->type2 != TWL4030_RESCONFIG_UNDEF)) {
+
+		err = twl_i2c_read_u8(TWL4030_MODULE_PM_RECEIVER, &type,
 				rconfig_addr + TYPE_OFFSET);
-	if (err < 0) {
-		pr_err("TWL4030 Resource %d type could not be read\n",
-			rconfig->resource);
-		return err;
-	}
+		if (err < 0) {
+			pr_err("TWL4030 Resource %d type could not be read\n",
+				rconfig->resource);
+			return err;
+		}
 
-	if (rconfig->type != TWL4030_RESCONFIG_UNDEF) {
-		type &= ~TYPE_MASK;
-		type |= rconfig->type << TYPE_SHIFT;
-	}
+		type_value = type;
 
-	if (rconfig->type2 != TWL4030_RESCONFIG_UNDEF) {
-		type &= ~TYPE2_MASK;
-		type |= rconfig->type2 << TYPE2_SHIFT;
-	}
+		if (rconfig->type != TWL4030_RESCONFIG_UNDEF) {
+			type &= ~TYPE_MASK;
+			type |= rconfig->type << TYPE_SHIFT;
+		}
 
-	err = twl_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+		if (rconfig->type2 != TWL4030_RESCONFIG_UNDEF) {
+			type &= ~TYPE2_MASK;
+			type |= rconfig->type2 << TYPE2_SHIFT;
+		}
+
+		if (type != type_value) {
+			err = twl_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
 				type, rconfig_addr + TYPE_OFFSET);
-	if (err < 0) {
-		pr_err("TWL4030 failed to program resource type\n");
-		return err;
+			if (err < 0) {
+				pr_err("TWL4030 failed to program resource type\n");
+				return err;
+			}
+		}
 	}
 
 	/* Set remap states */
-	err = twl_i2c_read_u8(TWL4030_MODULE_PM_RECEIVER, &remap,
+	if ((rconfig->remap_off != TWL4030_RESCONFIG_UNDEF) ||
+		(rconfig->remap_sleep != TWL4030_RESCONFIG_UNDEF)) {
+		err = twl_i2c_read_u8(TWL4030_MODULE_PM_RECEIVER, &remap,
 			      rconfig_addr + REMAP_OFFSET);
-	if (err < 0) {
-		pr_err("TWL4030 Resource %d remap could not be read\n",
-			rconfig->resource);
-		return err;
-	}
+		if (err < 0) {
+			pr_err("TWL4030 Resource %d remap could not be read\n",
+				rconfig->resource);
+			return err;
+		}
 
-	if (rconfig->remap_off != TWL4030_RESCONFIG_UNDEF) {
-		remap &= ~OFF_STATE_MASK;
-		remap |= rconfig->remap_off << OFF_STATE_SHIFT;
-	}
+		remap_value = remap;
 
-	if (rconfig->remap_sleep != TWL4030_RESCONFIG_UNDEF) {
-		remap &= ~SLEEP_STATE_MASK;
-		remap |= rconfig->remap_sleep << SLEEP_STATE_SHIFT;
-	}
+		if (rconfig->remap_off != TWL4030_RESCONFIG_UNDEF) {
+			remap &= ~OFF_STATE_MASK;
+			remap |= rconfig->remap_off << OFF_STATE_SHIFT;
+		}
 
-	err = twl_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
-			       remap,
-			       rconfig_addr + REMAP_OFFSET);
-	if (err < 0) {
-		pr_err("TWL4030 failed to program remap\n");
-		return err;
+		if (rconfig->remap_sleep != TWL4030_RESCONFIG_UNDEF) {
+			remap &= ~SLEEP_STATE_MASK;
+			remap |= rconfig->remap_sleep << SLEEP_STATE_SHIFT;
+		}
+
+		if (remap != remap_value) {
+			err = twl_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER,
+			       remap, rconfig_addr + REMAP_OFFSET);
+			if (err < 0) {
+				pr_err("TWL4030 failed to program remap\n");
+				return err;
+			}
+		}
 	}
 
 	return 0;
