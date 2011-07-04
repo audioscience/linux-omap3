@@ -69,6 +69,14 @@ static u8 twl4030_start_script_address = 0x2b;
 #define R_DCDC_GLOBAL_CFG     PHY_TO_OFF_PM_RECEIVER(0x61)
 #define CFG_ENABLE_SRFLX      0x08
 
+#define R_VDD1_OSC		0x5C
+#define R_VDD2_OSC		0x6A
+#define R_VIO_OSC		0x52
+#define EXT_FS_CLK_EN		BIT(6)
+
+#define R_WDT_CFG		0x03
+#define WDT_WRK_TIMEOUT		0x03
+
 /* resource configuration registers
    <RESOURCE>_DEV_GRP   at address 'n+0'
    <RESOURCE>_TYPE      at address 'n+1'
@@ -541,6 +549,67 @@ void __init twl4030_power_sr_init()
 }
 EXPORT_SYMBOL_GPL(twl4030_remove_script);
 
+/**
+ * twl_dcdc_use_hfclk - API to use HFCLK for TWL DCDCs
+ *
+ * TWL DCDCs switching to HFCLK instead of using internal RC oscillator.
+ */
+static int twl_dcdc_use_hfclk(void)
+{
+	u8 val;
+	u8 smps_osc_reg[] = {R_VDD1_OSC, R_VDD2_OSC, R_VIO_OSC};
+	int i;
+	int err;
+
+	for (i = 0; i < sizeof(smps_osc_reg); i++) {
+		err = twl_i2c_read_u8(TWL4030_MODULE_PM_RECEIVER, &val,
+							smps_osc_reg[i]);
+		val |= EXT_FS_CLK_EN;
+		err |= twl_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, val,
+							smps_osc_reg[i]);
+	}
+	return err;
+}
+
+/**
+ * twl_erratum27_workaround - Workaround for TWL5030 Silicon Erratum 27
+ * 27 - VDD1, VDD2, may have glitches when their output value is updated.
+ * 28 - VDD1 and / or VDD2 DCDC clock may stop working when internal clock is
+ * switched from internal to external.
+ *
+ * Workaround requires the TWL DCDCs to use HFCLK instead of
+ * internal oscillator. Also enable TWL watchdog before switching the osc
+ * to recover if the VDD1/VDD2 stop working.
+ */
+static void twl_erratum27_workaround(void)
+{
+	u8 wdt_counter_val = 0;
+	int err;
+
+	/* Setup the twl wdt to take care of borderline failure case */
+	err = twl_i2c_read_u8(TWL4030_MODULE_PM_RECEIVER, &wdt_counter_val,
+			R_WDT_CFG);
+	err |= twl_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, WDT_WRK_TIMEOUT,
+			R_WDT_CFG);
+
+	/* TWL DCDC switching to HFCLK */
+	err |= twl_dcdc_use_hfclk();
+
+	/* restore the original value */
+	err |= twl_i2c_write_u8(TWL4030_MODULE_PM_RECEIVER, wdt_counter_val,
+			R_WDT_CFG);
+	if (err)
+		pr_warning("TWL4030: workaround setup failed!\n");
+}
+
+static bool is_twl5030_erratum27wa_required(void)
+{
+	if (twl_get_type() == TWL_SIL_5030)
+		return (twl_get_version() < TWL5030_REV_1_2);
+
+	return 0;
+}
+
 int twl4030_power_init(struct twl4030_power_data *twl4030_scripts)
 {
 	int err = 0;
@@ -559,6 +628,16 @@ int twl4030_power_init(struct twl4030_power_data *twl4030_scripts)
 			TWL4030_PM_MASTER_PROTECT_KEY);
 	if (err)
 		goto unlock;
+
+	/* Applying TWL5030 Erratum 27 WA based on Si revision &
+	 * flag updated from board file*/
+	if (is_twl5030_erratum27wa_required()) {
+		pr_info("TWL5030: Enabling workaround for Si Erratum 27\n");
+		twl_erratum27_workaround();
+		if (twl4030_scripts->twl5030_erratum27wa_script)
+			twl4030_scripts->twl5030_erratum27wa_script();
+	}
+
 	for (i = 0; i < twl4030_scripts->num; i++) {
 		err = load_twl4030_script(twl4030_scripts->scripts[i], address);
 		if (err)

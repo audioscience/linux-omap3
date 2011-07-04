@@ -671,6 +671,7 @@ struct twl4030_power_data {
 	struct twl4030_script **scripts;
 	unsigned num;
 	struct twl4030_resconfig *resource_config;
+	void (*twl5030_erratum27wa_script)(void);
 #define TWL4030_RESCONFIG_UNDEF	((u8)-1)
 };
 

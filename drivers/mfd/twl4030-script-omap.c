@@ -326,10 +326,160 @@ static struct twl4030_resconfig twl4030_rconfig[] __initdata = {
 	{ 0, 0},
 };
 
+/*
+ * Sleep and active sequences with changes for TWL5030 Erratum 27 workaround
+ *
+ * Sysoff (using sys_off signal):
+ *	When SYS_CLKREQ goes low during retention no resources will be affected
+ *	since no resources are assigned to P3 only.
+ *
+ *	Since all resources are assigned to P1 and P3 then all resources
+ *	will be affected on the falling edge of P3 (SYS_CLKREQ).
+ *	When OMAP lower the SYS_CLKREQ signal PMIC will execute the
+ *	A2S sequence in which HFCLKOUT is dissabled first and
+ *	after 488.32 usec(PRM_VOLTOFFSET) resources assigned to P1 and P3
+ *	and of TYPE2=1 are put to sleep
+ *	(VDD1, VDD2, VPLL1, REGEN, NRESPWRON & SYSEN).
+ *	Again after a 61.04 usec resources assigned to P1 and P3
+ *	and of TYPE2=2 are put to sleep
+ *	(VINTANA1, VINTANA2, VINTDIG, VIO & CLKEN).
+ *
+ *	On wakeup event OMAP goes active and pulls the SYS_CLKREQ high,
+ *	and will execute the S2A sequence which is same for P1_P2 & P3.
+ *	This will turn on all resources of TYPE2=2 to go to the active state.
+ *	Three dummy broadcast messages are added to get a delay of ~10 ms
+ *	before enabling the HFCLKOUT resource. And after a 30.52 usec
+ *	all resources of TYPE2=1 are put to the active state.
+ *
+ *	This 10ms delay can be reduced if the oscillator is having less
+ *	stabilization time. A should be taken care if it needs more time
+ *	for stabilization.
+ *
+ */
+
+/**
+ * DOC: Sleep to Active sequence for P1/P2/P3
+ *
+ * The wakeup sequence is adjusted to do the VDD1/VDD2 voltage ramp-up
+ * only after HFCLKIN is stabilized and the HFCLKOUT is enabled.
+ */
+static struct twl4030_ins wakeup_seq_erratum27[] __initdata = {
+	/*
+	 * Broadcast message to put res(TYPE2 = 2) to active.
+	 * Wait for ~10 mS (ramp-up time for OSC on the board)
+	 * after HFCLKIN is enabled
+	 */
+	{MSG_BROADCAST(DEV_GRP_NULL, RES_GRP_ALL, RES_TYPE_R0, RES_TYPE2_R2,
+							RES_STATE_ACTIVE), 55},
+	{MSG_BROADCAST(DEV_GRP_NULL, RES_GRP_ALL, RES_TYPE_R0, RES_TYPE2_R2,
+							RES_STATE_ACTIVE), 55},
+	{MSG_BROADCAST(DEV_GRP_NULL, RES_GRP_ALL, RES_TYPE_R0, RES_TYPE2_R2,
+							RES_STATE_ACTIVE), 54},
+	{MSG_BROADCAST(DEV_GRP_NULL, RES_GRP_ALL, RES_TYPE_R0, RES_TYPE2_R2,
+							RES_STATE_ACTIVE), 1},
+	/* Singular message to enable HCLKOUT after HFCLKIN is stabilized */
+	{MSG_SINGULAR(DEV_GRP_NULL, RES_HFCLKOUT, RES_STATE_ACTIVE), 1},
+	/*
+	 * Broadcast message to put res(TYPE2 = 1) to active.
+	 * VDD1/VDD2 ramp-up after HFCLKIN is stable and HFCLKOUT is enabled.
+	 */
+	{MSG_BROADCAST(DEV_GRP_NULL, RES_GRP_ALL, RES_TYPE_R0, RES_TYPE2_R1,
+							RES_STATE_ACTIVE), 2},
+};
+
+static struct twl4030_script wakeup_script_erratum27 __initdata = {
+	.script	= wakeup_seq_erratum27,
+	.size	= ARRAY_SIZE(wakeup_seq_erratum27),
+	.flags	= TWL4030_WAKEUP12_SCRIPT | TWL4030_WAKEUP3_SCRIPT,
+};
+
+/**
+ * DOC: Active to Sleep sequence for P1/P2/P3
+ *
+ * The sleep sequence is adjusted to do the switching of VDD1/VDD2/VIO OSC from
+ * HFCLKIN to internal oscillator when the HFCLKIN is stable.
+ */
+static struct twl4030_ins sleep_on_seq_erratum27[] __initdata = {
+	/*
+	 * Singular message to disable HCLKOUT.
+	 * Wait for ~488.32 uS to do the switching of VDD1/VDD2/VIO OSC from
+	 * HFCLKIN to internal oscillator before disabling HFCLKIN.
+	 */
+	{MSG_SINGULAR(DEV_GRP_NULL, RES_HFCLKOUT, RES_STATE_SLEEP), 20},
+	/* Broadcast message to put res(TYPE2 = 1) to sleep */
+	{MSG_BROADCAST(DEV_GRP_NULL, RES_GRP_ALL, RES_TYPE_R0, RES_TYPE2_R1,
+							RES_STATE_SLEEP), 2},
+	/* Broadcast message to put res(TYPE2 = 2) to sleep, disable HFCLKIN */
+	{MSG_BROADCAST(DEV_GRP_NULL, RES_GRP_ALL, RES_TYPE_R0, RES_TYPE2_R2,
+							RES_STATE_SLEEP), 2},
+};
+
+static struct twl4030_script sleep_on_script_erratum27 __initdata = {
+	.script	= sleep_on_seq_erratum27,
+	.size	= ARRAY_SIZE(sleep_on_seq_erratum27),
+	.flags	= TWL4030_SLEEP_SCRIPT,
+};
+
+/* TWL4030 script for sleep, wakeup & warm_reset */
+static struct twl4030_script *twl4030_scripts_erratum27[] __initdata = {
+	&wakeup_script_erratum27,
+	&sleep_on_script_erratum27,
+	&wrst_script,
+};
+
+/**
+ * DOC: TWL4030 resource configuration
+ *
+ * VDD1/VDD2/VPLL are assigned to P1 and P3, to have better control
+ * during OFFMODE. HFCLKOUT is assigned to P1 and P3 (*p2) to turn off
+ * only during OFFMODE.
+ * (*P2 is included if the platform uses it for modem/some other processor)
+ */
+static struct twl4030_resconfig twl4030_rconfig_erratum27[] __initdata = {
+	{ .resource = RES_VPLL1, .devgroup = DEV_GRP_P1 | DEV_GRP_P3,
+		.type = 3, .type2 = 1, .remap_sleep = RES_STATE_OFF },
+	{ .resource = RES_VINTANA1, .devgroup = DEV_GRP_ALL, .type = 1,
+		.type2 = 2, .remap_sleep = RES_STATE_SLEEP },
+	{ .resource = RES_VINTANA2, .devgroup = DEV_GRP_ALL, .type = 0,
+		.type2 = 2, .remap_sleep = RES_STATE_SLEEP },
+	{ .resource = RES_VINTDIG, .devgroup = DEV_GRP_ALL, .type = 1,
+		.type2 = 2, .remap_sleep = RES_STATE_SLEEP },
+	{ .resource = RES_VIO, .devgroup = DEV_GRP_ALL, .type = 2,
+		.type2 = 2, .remap_sleep = RES_STATE_SLEEP },
+	{ .resource = RES_VDD1, .devgroup = DEV_GRP_P1 | DEV_GRP_P3,
+		.type = 4, .type2 = 1, .remap_sleep = RES_STATE_OFF },
+	{ .resource = RES_VDD2, .devgroup = DEV_GRP_P1 | DEV_GRP_P3,
+		.type = 3, .type2 = 1, .remap_sleep = RES_STATE_OFF },
+	{ .resource = RES_REGEN, .devgroup = DEV_GRP_ALL, .type = 2,
+		.type2 = 1, .remap_sleep = RES_STATE_SLEEP },
+	{ .resource = RES_NRES_PWRON, .devgroup = DEV_GRP_ALL, .type = 0,
+		.type2 = 1, .remap_sleep = RES_STATE_SLEEP },
+	{ .resource = RES_CLKEN, .devgroup = DEV_GRP_ALL, .type = 3,
+		.type2 = 2, .remap_sleep = RES_STATE_SLEEP },
+	{ .resource = RES_SYSEN, .devgroup = DEV_GRP_ALL, .type = 6,
+		.type2 = 1, .remap_sleep = RES_STATE_SLEEP },
+	{ .resource = RES_HFCLKOUT, .devgroup = DEV_GRP_P1 | DEV_GRP_P3,
+		.type = 0, .type2 = 1, .remap_sleep = RES_STATE_SLEEP },
+	{ 0, 0},
+};
+
+/**
+ * twl5030_script_erratum27() - API to modify TWL4030 script
+ *
+ * Updating the TWL4030 script & resource configuration
+ */
+static void __init twl5030_script_erratum27(void)
+{
+	twl4030_generic_script.scripts = twl4030_scripts_erratum27;
+	twl4030_generic_script.num = ARRAY_SIZE(twl4030_scripts_erratum27);
+	twl4030_generic_script.resource_config = twl4030_rconfig_erratum27;
+}
+
 struct twl4030_power_data twl4030_generic_script __initdata = {
 	.scripts	= twl4030_scripts,
 	.num		= ARRAY_SIZE(twl4030_scripts),
 	.resource_config = twl4030_rconfig,
+	.twl5030_erratum27wa_script = twl5030_script_erratum27,
 };
 
 static int __init twl4030_script_probe(struct platform_device *pdev)
