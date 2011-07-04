@@ -204,6 +204,12 @@ static inline int twl6030_mmc_card_detect(struct device *dev, int slot)
 	return -EIO;
 }
 #endif
+
+#ifdef CONFIG_TWL4030_POWER
+extern struct twl4030_power_data twl4030_generic_script;
+#else
+#define twl4030_generic_script	NULL;
+#endif
 /*----------------------------------------------------------------------*/
 
 /*
@@ -436,9 +442,23 @@ static inline int twl6030_mmc_card_detect(struct device *dev, int slot)
 
 /* Power bus message definitions */
 
-/* The TWL4030/5030 splits its power-management resources (the various
- * regulators, clock and reset lines) into 3 processor groups - P1, P2 and
- * P3. These groups can then be configured to transition between sleep, wait-on
+/*
+ * The TWL4030/5030 splits its power-management resources (the various
+ * regulators, clock and reset lines) into 3 processor groups - P1, P2 and P3.
+ *
+ * Resources attached to device group P1 is managed depending on the state of
+ * NSLEEP1 pin of TWL4030, which is connected to sys_off signal from OMAP
+ *
+ * Resources attached to device group P2 is managed depending on the state of
+ * NSLEEP2 pin of TWL4030, which is can be connected to a modem or
+ * connectivity chip
+ *
+ * Resources attached to device group P3 is managed depending on the state of
+ * CLKREQ pin of TWL4030, which is connected to clk request signal from OMAP
+ *
+ * If required these resources can be attached to combination of P1/P2/P3.
+ *
+ * These groups can then be configured to transition between sleep, wait-on
  * and active states by sending messages to the power bus.  See Section 5.4.2
  * Power Resources of TWL4030 TRM
  */
@@ -448,7 +468,17 @@ static inline int twl6030_mmc_card_detect(struct device *dev, int slot)
 #define DEV_GRP_P1		0x1	/* P1: all OMAP devices */
 #define DEV_GRP_P2		0x2	/* P2: all Modem devices */
 #define DEV_GRP_P3		0x4	/* P3: all peripheral devices */
+#define DEV_GRP_ALL		0x7	/* P1/P2/P3: all devices */
 
+/*
+ * The 27 power resources in TWL4030 is again divided into
+ * analog resources:
+ *	Power Providers - LDO regulators, dc-to-dc regulators
+ *	Power Reference - analog reference
+ *
+ * and digital resources:
+ *	Reset & Clock - reset and clock signals.
+ */
 /* Resource groups */
 #define RES_GRP_RES		0x0	/* Reserved */
 #define RES_GRP_PP		0x1	/* Power providers */
@@ -460,7 +490,10 @@ static inline int twl6030_mmc_card_detect(struct device *dev, int slot)
 #define RES_GRP_ALL		0x7	/* All resource groups */
 
 #define RES_TYPE2_R0		0x0
+#define RES_TYPE2_R1		0x1
+#define RES_TYPE2_R2		0x2
 
+#define RES_TYPE_R0		0x0
 #define RES_TYPE_ALL		0x7
 
 /* Resource states */
@@ -626,9 +659,9 @@ struct twl4030_power_data {
 #define TWL4030_RESCONFIG_UNDEF	((u8)-1)
 };
 
-extern void twl4030_power_init(struct twl4030_power_data *triton2_scripts);
-extern void twl4030_power_sr_init(void);
+extern int twl4030_power_init(struct twl4030_power_data *triton2_scripts);
 extern int twl4030_remove_script(u8 flags);
+extern void twl4030_power_sr_init(void);
 
 struct twl4030_codec_audio_data {
 	unsigned int audio_mclk; /* not used, will be removed */

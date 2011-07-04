@@ -40,6 +40,7 @@ obj-$(CONFIG_TWL4030_CORE)	+= twl-core.o twl4030-irq.o twl6030-irq.o
 obj-$(CONFIG_TWL4030_POWER)    += twl4030-power.o
 obj-$(CONFIG_TWL4030_CODEC)	+= twl4030-codec.o
 obj-$(CONFIG_TWL6030_PWM)	+= twl6030-pwm.o
+obj-$(CONFIG_TWL4030_SCRIPT)    += twl4030-script-omap.o
 
 obj-$(CONFIG_MFD_MC13XXX)	+= mc13xxx-core.o
 

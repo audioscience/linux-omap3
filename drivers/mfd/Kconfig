@@ -180,6 +180,17 @@ config TWL4030_POWER
 	  and load scripts controling which resources are switched off/on
 	  or reset when a sleep, wakeup or warm reset event occurs.
 
+config TWL4030_SCRIPT
+	tristate "Support TWL4030 script for OMAP3 boards"
+	depends on TWL4030_CORE && TWL4030_POWER
+	help
+	  Say yes here if you want to use the twl4030 power scripts
+	  for OMAP3 boards. Power bus message sequence for
+	  TWL4030 to enter sleep/wakeup/warm_reset.
+
+	  TWL4030 power scripts which can be used by different
+	  OMAP3 boards with the power companion chip (TWL4030 series).
+
 config TWL4030_CODEC
 	bool
 	depends on TWL4030_CORE

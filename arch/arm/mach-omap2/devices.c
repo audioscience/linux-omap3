@@ -316,6 +316,20 @@ static inline void omap_init_audio(void) {}
 
 #endif /* defined(CONFIG_SND_SOC) || defined(CONFIG_SND_SOC_MODULE) */
 
+#ifdef CONFIG_ARCH_OMAP3
+static struct platform_device omap_twl4030_script = {
+	.name	= "twl4030_script",
+	.id	= -1,
+};
+
+static void omap_init_twl4030_script(void)
+{
+	platform_device_register(&omap_twl4030_script);
+}
+#else
+static inline void omap_init_twl4030_script(void) {}
+#endif
+
 #if defined(CONFIG_SPI_OMAP24XX) || defined(CONFIG_SPI_OMAP24XX_MODULE)
 
 #include <plat/mcspi.h>
@@ -2010,6 +2024,7 @@ static int __init omap2_init_devices(void)
 	omap_init_sham();
 	omap_init_aes();
 	omap_init_vout();
+	omap_init_twl4030_script();
 #ifdef CONFIG_ARCH_TI81XX
 	ti81xx_ethernet_init();
 	ti816x_init_pcie();

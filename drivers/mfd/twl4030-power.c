@@ -129,7 +129,7 @@ static u8 res_config_addrs[] = {
 	[RES_MAIN_REF]	= 0x94,
 };
 
-static int __init twl4030_write_script_byte(u8 address, u8 byte)
+static int twl4030_write_script_byte(u8 address, u8 byte)
 {
 	int err;
 
@@ -143,7 +143,7 @@ out:
 	return err;
 }
 
-static int __init twl4030_write_script_ins(u8 address, u16 pmb_message,
+static int twl4030_write_script_ins(u8 address, u16 pmb_message,
 					   u8 delay, u8 next)
 {
 	int err;
@@ -163,7 +163,7 @@ out:
 	return err;
 }
 
-static int __init twl4030_write_script(u8 address, struct twl4030_ins *script,
+static int twl4030_write_script(u8 address, struct twl4030_ins *script,
 				       int len)
 {
 	int err;
@@ -188,7 +188,7 @@ static int __init twl4030_write_script(u8 address, struct twl4030_ins *script,
 	return err;
 }
 
-static int __init twl4030_config_wakeup3_sequence(u8 address)
+static int twl4030_config_wakeup3_sequence(u8 address)
 {
 	int err;
 	u8 data;
@@ -213,7 +213,7 @@ out:
 	return err;
 }
 
-static int __init twl4030_config_wakeup12_sequence(u8 address)
+static int twl4030_config_wakeup12_sequence(u8 address)
 {
 	int err = 0;
 	u8 data;
@@ -267,7 +267,7 @@ out:
 	return err;
 }
 
-static int __init twl4030_config_sleep_sequence(u8 address)
+static int twl4030_config_sleep_sequence(u8 address)
 {
 	int err;
 
@@ -281,7 +281,7 @@ static int __init twl4030_config_sleep_sequence(u8 address)
 	return err;
 }
 
-static int __init twl4030_config_warmreset_sequence(u8 address)
+static int twl4030_config_warmreset_sequence(u8 address)
 {
 	int err;
 	u8 rd_data;
@@ -329,7 +329,7 @@ out:
 	return err;
 }
 
-static int __init twl4030_configure_resource(struct twl4030_resconfig *rconfig)
+static int twl4030_configure_resource(struct twl4030_resconfig *rconfig)
 {
 	int rconfig_addr;
 	int err;
@@ -421,7 +421,7 @@ static int __init twl4030_configure_resource(struct twl4030_resconfig *rconfig)
 	return 0;
 }
 
-static int __init load_twl4030_script(struct twl4030_script *tscript,
+static int load_twl4030_script(struct twl4030_script *tscript,
 	       u8 address)
 {
 	int err;
@@ -539,8 +539,9 @@ void __init twl4030_power_sr_init()
 	/* Register the SR init API with the Smartreflex driver */
 	omap_sr_register_pmic(&twl4030_sr_data);
 }
+EXPORT_SYMBOL_GPL(twl4030_remove_script);
 
-void __init twl4030_power_init(struct twl4030_power_data *twl4030_scripts)
+int twl4030_power_init(struct twl4030_power_data *twl4030_scripts)
 {
 	int err = 0;
 	int i;
@@ -558,7 +559,6 @@ void __init twl4030_power_init(struct twl4030_power_data *twl4030_scripts)
 			TWL4030_PM_MASTER_PROTECT_KEY);
 	if (err)
 		goto unlock;
-
 	for (i = 0; i < twl4030_scripts->num; i++) {
 		err = load_twl4030_script(twl4030_scripts->scripts[i], address);
 		if (err)
@@ -581,18 +581,19 @@ void __init twl4030_power_init(struct twl4030_power_data *twl4030_scripts)
 			TWL4030_PM_MASTER_PROTECT_KEY);
 	if (err)
 		pr_err("TWL4030 Unable to relock registers\n");
-	return;
+	return err;
 
 unlock:
 	if (err)
 		pr_err("TWL4030 Unable to unlock registers\n");
-	return;
+	return err;
 load:
 	if (err)
 		pr_err("TWL4030 failed to load scripts\n");
-	return;
+	return err;
 resource:
 	if (err)
 		pr_err("TWL4030 failed to configure resource\n");
-	return;
+	return err;
 }
+EXPORT_SYMBOL_GPL(twl4030_power_init);
