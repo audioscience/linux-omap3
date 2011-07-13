@@ -65,6 +65,12 @@
 
 static u8 omap3_evm_version;
 
+extern void omap_pm_sys_offmode_select(int);
+extern void omap_pm_sys_offmode_pol(int);
+extern void omap_pm_sys_clkreq_pol(int);
+extern void omap_pm_auto_off(int);
+extern void omap_pm_auto_ret(int);
+
 u8 get_omap3_evm_rev(void)
 {
 	return omap3_evm_version;
@@ -914,6 +920,27 @@ static struct omap_musb_board_data musb_board_data = {
 	.power			= 100,
 };
 
+/**
+ * Board specific initialization of PM components
+ */
+static void __init omap3_evm_pm_init(void)
+{
+	/* Don't use sys_offmode signal */
+	omap_pm_sys_offmode_select(0);
+
+	/* sys_clkreq - active low */
+	omap_pm_sys_clkreq_pol(0);
+
+	/* sys_offmode - active low */
+	omap_pm_sys_offmode_pol(0);
+
+	/* Automatically send OFF command */
+	omap_pm_auto_off(1);
+
+	/* Automatically send RET command */
+	omap_pm_auto_ret(1);
+}
+
 static void __init omap3_evm_init(void)
 {
 	omap3_evm_get_revision();
@@ -970,6 +997,9 @@ static void __init omap3_evm_init(void)
 	ads7846_dev_init();
 	omap3evm_init_smsc911x();
 	omap3_evm_display_init();
+
+	omap3_evm_pm_init();
+
 	/* NAND */
 	board_nand_init(omap3_evm_nand_partitions,
 			ARRAY_SIZE(omap3_evm_nand_partitions),

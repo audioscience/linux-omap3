@@ -1033,6 +1033,83 @@ void omap_push_sram_idle(void)
 	}
 }
 
+/**
+ * Select whether OFF command is sent via I2C
+ * 1 - Yes. Command is automatically send when the voltage
+ *     domain is in the appropriate standby mode.
+ * 0 - No. Command is not sent
+ */
+void omap_pm_auto_off(int flag)
+{
+	if (flag)
+		omap2_prm_set_mod_reg_bits(OMAP3430_AUTO_OFF_MASK,
+					OMAP3430_GR_MOD, OMAP3_PRM_VOLTCTRL_OFFSET);
+	else
+		omap2_prm_clear_mod_reg_bits(OMAP3430_AUTO_OFF_MASK,
+					OMAP3430_GR_MOD, OMAP3_PRM_VOLTCTRL_OFFSET);
+}
+
+/**
+ * Select whether RET command is sent via I2C
+ * 1 - Yes. Command is automatically send when the voltage
+ *     domain is in the appropriate standby mode.
+ * 0 - No. Command is not sent
+ */
+void omap_pm_auto_ret(int flag)
+{
+	if (flag)
+		omap2_prm_set_mod_reg_bits(OMAP3430_AUTO_RET_MASK,
+					OMAP3430_GR_MOD, OMAP3_PRM_VOLTCTRL_OFFSET);
+	else
+		omap2_prm_clear_mod_reg_bits(OMAP3430_AUTO_RET_MASK,
+					OMAP3430_GR_MOD, OMAP3_PRM_VOLTCTRL_OFFSET);
+}
+
+/**
+ * Select whether sys_offmode is asserted
+ * 1 - Yes. sys_offmode is asserted
+ * 0 - No. OFF command is sent through I2C
+ */
+void omap_pm_sys_offmode_select(int flag)
+{
+	if (flag)
+		omap2_prm_set_mod_reg_bits(OMAP3430_SEL_OFF_MASK,
+					OMAP3430_GR_MOD, OMAP3_PRM_VOLTCTRL_OFFSET);
+	else
+		omap2_prm_clear_mod_reg_bits(OMAP3430_SEL_OFF_MASK,
+					OMAP3430_GR_MOD, OMAP3_PRM_VOLTCTRL_OFFSET);
+}
+
+/**
+ * Select the polarity of sys_offmode signal
+ * 1 - sys_offmode is active high
+ * 0 - sys_offmode is active low
+ */
+void omap_pm_sys_offmode_pol(int flag)
+{
+	if (flag)
+		omap2_prm_set_mod_reg_bits(OMAP3430_OFFMODE_POL_MASK,
+					OMAP3430_GR_MOD, OMAP3_PRM_POLCTRL_OFFSET);
+	else
+		omap2_prm_clear_mod_reg_bits(OMAP3430_OFFMODE_POL_MASK,
+					OMAP3430_GR_MOD, OMAP3_PRM_POLCTRL_OFFSET);
+}
+
+/**
+ * Select the polarity of sys_clkreq signal
+ * 1 - sys_clkreq is active high
+ * 0 - sys_clkreq is active low
+ */
+void omap_pm_sys_clkreq_pol(int flag)
+{
+	if (flag)
+		omap2_prm_set_mod_reg_bits(OMAP3430_CLKREQ_POL_MASK,
+					OMAP3430_GR_MOD, OMAP3_PRM_POLCTRL_OFFSET);
+	else
+		omap2_prm_clear_mod_reg_bits(OMAP3430_CLKREQ_POL_MASK,
+					OMAP3430_GR_MOD, OMAP3_PRM_POLCTRL_OFFSET);
+}
+
 static void __init pm_errata_configure(void)
 {
 	if (cpu_is_omap3630()) {
