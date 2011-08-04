@@ -183,6 +183,7 @@ config TWL4030_POWER
 config TWL4030_SCRIPT
 	tristate "Support TWL4030 script for OMAP3 boards"
 	depends on TWL4030_CORE && TWL4030_POWER
+	default y
 	help
 	  Say yes here if you want to use the twl4030 power scripts
 	  for OMAP3 boards. Power bus message sequence for
