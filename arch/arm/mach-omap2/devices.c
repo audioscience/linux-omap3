@@ -316,7 +316,7 @@ static inline void omap_init_audio(void) {}
 
 #endif /* defined(CONFIG_SND_SOC) || defined(CONFIG_SND_SOC_MODULE) */
 
-#ifdef CONFIG_ARCH_OMAP3
+#if defined(CONFIG_TWL4030_SCRIPT) || defined(CONFIG_TWL4030_SCRIPT_MODULE)
 static struct platform_device omap_twl4030_script = {
 	.name	= "twl4030_script",
 	.id	= -1,
