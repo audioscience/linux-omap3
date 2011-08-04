@@ -628,6 +628,88 @@ static bool is_twl5030_erratum27wa_required(void)
 	return 0;
 }
 
+/**
+ * PMIC initialization specific for the OMAP3EVM
+ */
+static int twl4030_omap3evm_init(void)
+{
+	int err = 0;
+
+	err = twl_i2c_write_u8(TWL4030_MODULE_PM_MASTER, 0x0A,
+					TWL4030_PM_MASTER_CFG_BOOT);
+
+	if (unlikely(err))
+		pr_err("err: CFG_BOOT\n");
+
+	/* PWR_EDR1 */
+	err = twl_i2c_write_u8(TWL4030_MODULE_INT, 0x00,
+					TWL4030_INT_PWR_EDR1);
+
+	if (unlikely(err))
+		pr_err("err: PWR_EDR1\n");
+
+	/* PWR_EDR2 */
+	err = twl_i2c_write_u8(TWL4030_MODULE_INT, 0x00,
+					TWL4030_INT_PWR_EDR2);
+
+	if (unlikely(err))
+		pr_err("err: PWR_EDR2\n");
+
+	/* PWR_SIH_CTRL */
+	err = twl_i2c_write_u8(TWL4030_MODULE_INT, 0x05,
+					TWL4030_INT_PWR_SIH_CTRL);
+
+	if (unlikely(err))
+		pr_err("err: PWR_EDR2\n");
+
+	/* CFG_P1_TRANSITION */
+	err = twl_i2c_write_u8(TWL4030_MODULE_PM_MASTER, 0x00,
+					TWL4030_PM_MASTER_CFG_P1_TRANSITION);
+
+	if (unlikely(err))
+		pr_err("err: CFG_P1_TRANSITION\n");
+
+	/* CFG_P2_TRANSITION */
+	err = twl_i2c_write_u8(TWL4030_MODULE_PM_MASTER, 0x00,
+					TWL4030_PM_MASTER_CFG_P2_TRANSITION);
+
+	if (unlikely(err))
+		pr_err("err: CFG_P2_TRANSITION\n");
+
+	/* CFG_P3_TRANSITION */
+	err = twl_i2c_write_u8(TWL4030_MODULE_PM_MASTER, 0x00,
+					TWL4030_PM_MASTER_CFG_P3_TRANSITION);
+
+	if (unlikely(err))
+		pr_err("err: CFG_P3_TRANSITION\n");
+
+	/* P1_SW_EVENTS */
+	err = twl_i2c_write_u8(TWL4030_MODULE_PM_MASTER, 0x08,
+					TWL4030_PM_MASTER_P1_SW_EVENTS);
+
+	if (unlikely(err))
+		pr_err("err: P1_SW_EVENTS\n");
+
+	/* P2_SW_EVENTS */
+	err = twl_i2c_write_u8(TWL4030_MODULE_PM_MASTER, 0x08,
+					TWL4030_PM_MASTER_P2_SW_EVENTS);
+
+	if (unlikely(err))
+		pr_err("err: P2_SW_EVENTS\n");
+
+	/* P3_SW_EVENTS */
+	err = twl_i2c_write_u8(TWL4030_MODULE_PM_MASTER, 0x08,
+					TWL4030_PM_MASTER_P3_SW_EVENTS);
+
+	if (unlikely(err))
+		pr_err("err: P3_SW_EVENTS\n");
+
+	if (unlikely(err))
+		return -1;
+
+	return 0;
+}
+
 int twl4030_power_init(struct twl4030_power_data *twl4030_scripts)
 {
 	int err = 0;
@@ -672,6 +754,17 @@ int twl4030_power_init(struct twl4030_power_data *twl4030_scripts)
 			resconfig++;
 
 		}
+	}
+
+	/*
+	 * TODO: Workaround until we get better way to identify that
+	 *       we are running on OMAP3EVM. May not be necessary - but
+	 *       being prudent to ensure we don't break any other board.
+	 */
+	if (machine_is_omap3evm()) {
+		err = twl4030_omap3evm_init() ;
+		if (err)
+			goto unlock;
 	}
 
 	err = twl_i2c_write_u8(TWL4030_MODULE_PM_MASTER, 0,
