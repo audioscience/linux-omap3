@@ -533,6 +533,109 @@ static struct twl4030_usb_data omap3evm_usb_data = {
 	.usb_mode	= T2_USB_MODE_ULPI,
 };
 
+/**
+ * Macro to configure resources
+ */
+#define TWL4030_RESCONFIG(res,grp,typ1,typ2,state)	\
+	{						\
+		.resource	= res,			\
+		.devgroup	= grp,			\
+		.type		= typ1,			\
+		.type2		= typ2,			\
+		.remap_sleep	= state			\
+	}
+
+static struct twl4030_resconfig  __initdata board_twl4030_rconfig[] = {
+	TWL4030_RESCONFIG(RES_VPLL1, DEV_GRP_P1, 3, 1, RES_STATE_OFF),		/* ? */
+	TWL4030_RESCONFIG(RES_VINTANA1, DEV_GRP_ALL, 1, 2, RES_STATE_SLEEP),
+	TWL4030_RESCONFIG(RES_VINTANA2, DEV_GRP_ALL, 0, 2, RES_STATE_SLEEP),
+	TWL4030_RESCONFIG(RES_VINTDIG, DEV_GRP_ALL, 1, 2, RES_STATE_SLEEP),
+	TWL4030_RESCONFIG(RES_VIO, DEV_GRP_ALL, 2, 2, RES_STATE_SLEEP),
+	TWL4030_RESCONFIG(RES_VDD1, DEV_GRP_P1, 4, 1, RES_STATE_OFF),		/* ? */
+	TWL4030_RESCONFIG(RES_VDD2, DEV_GRP_P1, 3, 1, RES_STATE_OFF),		/* ? */
+	TWL4030_RESCONFIG(RES_REGEN, DEV_GRP_ALL, 2, 1, RES_STATE_SLEEP),
+	TWL4030_RESCONFIG(RES_NRES_PWRON, DEV_GRP_ALL, 0, 1, RES_STATE_SLEEP),
+	TWL4030_RESCONFIG(RES_CLKEN, DEV_GRP_ALL, 3, 2, RES_STATE_SLEEP),
+	TWL4030_RESCONFIG(RES_SYSEN, DEV_GRP_ALL, 6, 1, RES_STATE_SLEEP),
+	TWL4030_RESCONFIG(RES_HFCLKOUT, DEV_GRP_P3, 0, 2, RES_STATE_SLEEP),	/* ? */
+	TWL4030_RESCONFIG(0, 0, 0, 0, 0),
+};
+
+/**
+ * Optimized 'Active to Sleep' sequence
+ */
+static struct twl4030_ins omap3evm_sleep_seq[] __initdata = {
+	{ MSG_SINGULAR(DEV_GRP_NULL, RES_HFCLKOUT, RES_STATE_SLEEP), 20},
+	{ MSG_BROADCAST(DEV_GRP_NULL, RES_GRP_ALL, RES_TYPE_R0, RES_TYPE2_R1, RES_STATE_SLEEP), 2 },
+	{ MSG_BROADCAST(DEV_GRP_NULL, RES_GRP_ALL, RES_TYPE_R0, RES_TYPE2_R2, RES_STATE_SLEEP), 2 },
+};
+
+static struct twl4030_script omap3evm_sleep_script __initdata = {
+	.script	= omap3evm_sleep_seq,
+	.size	= ARRAY_SIZE(omap3evm_sleep_seq),
+	.flags	= TWL4030_SLEEP_SCRIPT,
+};
+
+/**
+ * Optimized 'Sleep to Active (P12)' sequence
+ */
+static struct twl4030_ins omap3evm_wake_p12_seq[] __initdata = {
+	{ MSG_BROADCAST(DEV_GRP_NULL, RES_GRP_ALL, RES_TYPE_R0, RES_TYPE2_R1, RES_STATE_ACTIVE), 2 }
+};
+
+static struct twl4030_script omap3evm_wake_p12_script __initdata = {
+	.script = omap3evm_wake_p12_seq,
+	.size   = ARRAY_SIZE(omap3evm_wake_p12_seq),
+	.flags  = TWL4030_WAKEUP12_SCRIPT,
+};
+
+/**
+ * Optimized 'Sleep to Active' (P3) sequence
+ */
+static struct twl4030_ins omap3evm_wake_p3_seq[] __initdata = {
+	{ MSG_BROADCAST(DEV_GRP_NULL, RES_GRP_ALL, RES_TYPE_R0, RES_TYPE2_R2, RES_STATE_ACTIVE), 2 }
+};
+
+static struct twl4030_script omap3evm_wake_p3_script __initdata = {
+	.script = omap3evm_wake_p3_seq,
+	.size   = ARRAY_SIZE(omap3evm_wake_p3_seq),
+	.flags  = TWL4030_WAKEUP3_SCRIPT,
+};
+
+/**
+ * Optimized warm reset sequence (for less power surge)
+ */
+static struct twl4030_ins omap3evm_wrst_seq[] __initdata = {
+	{ MSG_SINGULAR(DEV_GRP_ALL, RES_NRES_PWRON, RES_STATE_OFF), 2 },
+	{ MSG_SINGULAR(DEV_GRP_ALL, RES_MAIN_REF, RES_STATE_WRST), 2 },
+	{ MSG_BROADCAST(DEV_GRP_ALL, RES_GRP_ALL, RES_TYPE_R0, 0x2, RES_STATE_WRST), 0x2},
+	{ MSG_SINGULAR(DEV_GRP_ALL, RES_VUSB_3V1, RES_STATE_WRST), 0x2 },
+	{ MSG_SINGULAR(DEV_GRP_P1, RES_VPLL1, RES_STATE_WRST), 0x2 },
+	{ MSG_SINGULAR(DEV_GRP_P1, RES_VDD2, RES_STATE_WRST), 0x7 },
+	{ MSG_SINGULAR(DEV_GRP_P1, RES_VDD1, RES_STATE_WRST), 0x25 },
+	{ MSG_BROADCAST(DEV_GRP_NULL, RES_GRP_RC, RES_TYPE_ALL, RES_TYPE2_R0, RES_STATE_WRST), 0x2 },
+	{ MSG_SINGULAR(DEV_GRP_ALL, RES_NRES_PWRON, RES_STATE_ACTIVE), 0x2 },
+};
+
+static struct twl4030_script omap3evm_wrst_script __initdata = {
+	.script = omap3evm_wrst_seq,
+	.size   = ARRAY_SIZE(omap3evm_wrst_seq),
+	.flags  = TWL4030_WRST_SCRIPT,
+};
+
+static struct twl4030_script __initdata *board_twl4030_scripts[] = {
+	&omap3evm_wake_p12_script,
+	&omap3evm_wake_p3_script,
+	&omap3evm_sleep_script,
+	&omap3evm_wrst_script
+};
+
+static struct twl4030_power_data __initdata omap3evm_script_data = {
+	.scripts		= board_twl4030_scripts,
+	.num			= ARRAY_SIZE(board_twl4030_scripts),
+	.resource_config	= board_twl4030_rconfig,
+};
+
 static uint32_t board_keymap[] = {
 	KEY(0, 0, KEY_LEFT),
 	KEY(0, 1, KEY_DOWN),
@@ -692,6 +795,7 @@ static struct twl4030_platform_data omap3evm_twldata = {
 	.vaux2          = &omap3evm_vaux2,
 	.vio		= &omap3_evm_vio,
 	.vaux3		= &omap3evm_vaux3,
+	.power		= &omap3evm_script_data,
 };
 
 static struct i2c_board_info __initdata omap3evm_i2c_boardinfo[] = {
