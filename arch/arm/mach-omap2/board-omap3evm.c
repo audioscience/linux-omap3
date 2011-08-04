@@ -1029,11 +1029,11 @@ static struct omap_musb_board_data musb_board_data = {
  */
 static void __init omap3_evm_pm_init(void)
 {
-	/* Don't use sys_offmode signal */
-	omap_pm_sys_offmode_select(0);
+	/* Use sys_offmode signal */
+	omap_pm_sys_offmode_select(1);
 
-	/* sys_clkreq - active low */
-	omap_pm_sys_clkreq_pol(0);
+	/* sys_clkreq - active high */
+	omap_pm_sys_clkreq_pol(1);
 
 	/* sys_offmode - active low */
 	omap_pm_sys_offmode_pol(0);
