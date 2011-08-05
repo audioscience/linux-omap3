@@ -515,8 +515,10 @@ static void __exit twl4030_script_cleanup(void)
 	platform_driver_unregister(&twl4030_script_driver);
 }
 
+/*
 module_init(twl4030_script_init);
 module_exit(twl4030_script_cleanup);
+*/
 
 MODULE_DESCRIPTION("OMAP TWL4030 script driver");
 MODULE_LICENSE("GPL");
