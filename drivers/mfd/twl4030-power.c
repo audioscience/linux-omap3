@@ -683,31 +683,7 @@ static int twl4030_omap3evm_init(void)
 	if (unlikely(err))
 		pr_err("err: CFG_P3_TRANSITION\n");
 
-	/* P1_SW_EVENTS */
-	err = twl_i2c_write_u8(TWL4030_MODULE_PM_MASTER, 0x08,
-					TWL4030_PM_MASTER_P1_SW_EVENTS);
-
-	if (unlikely(err))
-		pr_err("err: P1_SW_EVENTS\n");
-
-	/* P2_SW_EVENTS */
-	err = twl_i2c_write_u8(TWL4030_MODULE_PM_MASTER, 0x08,
-					TWL4030_PM_MASTER_P2_SW_EVENTS);
-
-	if (unlikely(err))
-		pr_err("err: P2_SW_EVENTS\n");
-
-	/* P3_SW_EVENTS */
-	err = twl_i2c_write_u8(TWL4030_MODULE_PM_MASTER, 0x08,
-					TWL4030_PM_MASTER_P3_SW_EVENTS);
-
-	if (unlikely(err))
-		pr_err("err: P3_SW_EVENTS\n");
-
-	if (unlikely(err))
-		return -1;
-
-	return 0;
+	return err;
 }
 
 int twl4030_power_init(struct twl4030_power_data *twl4030_scripts)
