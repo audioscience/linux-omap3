@@ -307,6 +307,11 @@ config BACKLIGHT_PCF50633
 	  If you have a backlight driven by a NXP PCF50633 MFD, say Y here to
 	  enable its driver.
 
+config BACKLIGHT_TI8148
+	tristate "Backlight driver for TI8148 Catalog card"
+	depends on BACKLIGHT_CLASS_DEVICE
+	help
+	  If you have LCD on  on TI814x daughter card say Y here to enable driver
 endif # BACKLIGHT_CLASS_DEVICE
 
 endif # BACKLIGHT_LCD_SUPPORT

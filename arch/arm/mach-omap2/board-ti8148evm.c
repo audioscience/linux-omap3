@@ -132,6 +132,12 @@ static struct i2c_board_info __initdata ti814x_i2c_boardinfo[] = {
 		I2C_BOARD_INFO("qt602240_ts", 0x4A),
 		.platform_data = &ts_platform_data,
 	},
+	{
+		I2C_BOARD_INFO("PCF_8575", 0x21),
+	},
+	{
+		I2C_BOARD_INFO("tlc59108", 0x40),
+	},
 
 };
 
