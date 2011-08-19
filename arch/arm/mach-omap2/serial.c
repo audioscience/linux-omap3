@@ -369,11 +369,6 @@ static void omap_uart_block_sleep(struct omap_uart_state *uart)
 
 static void omap_uart_allow_sleep(struct omap_uart_state *uart)
 {
-	if (device_may_wakeup(&uart->pdev->dev))
-		omap_uart_enable_wakeup(uart);
-	else
-		omap_uart_disable_wakeup(uart);
-
 	if (!uart->clocked)
 		return;
 
@@ -395,6 +390,11 @@ void omap_uart_prepare_idle(int num)
 
 	list_for_each_entry(uart, &uart_list, node) {
 		if (num == uart->num && uart->can_sleep) {
+			if (device_may_wakeup(&uart->pdev->dev))
+				omap_uart_enable_wakeup(uart);
+			else
+				omap_uart_disable_wakeup(uart);
+
 			omap_uart_disable_clocks(uart);
 			return;
 		}
