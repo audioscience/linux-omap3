@@ -25,6 +25,7 @@
 #include "clockdomain.h"
 #include "cm-regbits-34xx.h"
 #include "cm2xxx_3xxx.h"
+#include "clock.h"
 #include "pm.h"
 
 static struct omap_device_pm_latency *pm_lats;
@@ -106,7 +107,7 @@ static int _init_omap_device(char *name, struct device **new_dev)
 
 static unsigned long omap3_mpu_get_rate(struct device *dev)
 {
-	return dpll1_clk->rate;
+	return omap2_get_dpll_rate(dpll1_clk);
 }
 
 static int omap3_mpu_set_rate(struct device *dev, unsigned long rate)
@@ -133,9 +134,7 @@ static int omap3_mpu_set_rate(struct device *dev, unsigned long rate)
 #ifdef CONFIG_CPU_FREQ
 	/* Send a post notification to CPUFreq */
 	cpufreq_notify_transition(&freqs_notify, CPUFREQ_POSTCHANGE);
-#endif
-
-#ifndef CONFIG_CPU_FREQ
+#else
 	/*Update loops_per_jiffy if processor speed is being changed*/
 	loops_per_jiffy = compute_lpj(loops_per_jiffy,
 			cur_rate / 1000, rate / 1000);
