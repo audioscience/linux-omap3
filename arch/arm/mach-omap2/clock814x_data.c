@@ -1560,6 +1560,14 @@ static struct clk elm_ick = {
 	.recalc		= &followparent_recalc,
 };
 
+static struct clk elm_fck = {
+	.name		= "elm_fck",
+	.parent		= &sysclk6_ck,
+	.ops		= &clkops_null,
+	.clkdm_name	= "alwon_l3_slow_clkdm",
+	.recalc		= &followparent_recalc,
+};
+
 /* MMCHS0 Clock(final) */
 static struct clk mmchs1_ick = {
 	.name		= "mmchs1_ick",
@@ -3879,6 +3887,7 @@ static struct omap_clk ti814x_clks[] = {
 	CLK(NULL,		"mmu_cfg_ick",			&mmu_cfg_ick,			CK_TI814X),
 	CLK(NULL,		"p1500_ick",			&p1500_ick,			CK_TI814X),
 	CLK(NULL,		"elm_ick",			&elm_ick,			CK_TI814X),
+	CLK(NULL,		"elm_fck",			&elm_fck,			CK_TI814X),
 	CLK("mmci-omap-hs.0",	"ick",				&mmchs1_ick,			CK_TI814X),
 	CLK("mmci-omap-hs.1",	"ick",				&mmchs2_ick,			CK_TI814X),
 	CLK(NULL,		"atl_ick",			&atl_ick,			CK_TI814X),
