@@ -1954,6 +1954,14 @@ static int ahci_port_suspend(struct ata_port *ap, pm_message_t mesg)
 }
 #endif
 
+/* following macros can be selectively turned on to allocate memory for
+ * AHCI command slot and command table from internal OCMC RAM
+ * This is used as an experimental workaround */
+
+#define CMD_SLOT_RX_FIS_OCMC   1
+#define CMD_TBL_PRD_OCMC       1
+
+
 static int ahci_port_start(struct ata_port *ap)
 {
 	struct ahci_host_priv *hpriv = ap->host->private_data;
@@ -1962,6 +1970,11 @@ static int ahci_port_start(struct ata_port *ap)
 	void *mem;
 	dma_addr_t mem_dma;
 	size_t dma_sz, rx_fis_sz;
+#if CMD_SLOT_RX_FIS_OCMC || CMD_TBL_PRD_OCMC
+	static int port = 0;
+	void *mem1;
+	dma_addr_t mem1_dma;
+#endif
 
 	pp = devm_kzalloc(dev, sizeof(*pp), GFP_KERNEL);
 	if (!pp)
@@ -1992,10 +2005,45 @@ static int ahci_port_start(struct ata_port *ap)
 		rx_fis_sz = AHCI_RX_FIS_SZ;
 	}
 
+#if CMD_SLOT_RX_FIS_OCMC || CMD_TBL_PRD_OCMC
+	if (port == 0) {
+		port = 1;
+		mem1 = ioremap_nocache(0x40300000, dma_sz);
+		mem1_dma = 0x40300000;
+	} else {
+		mem1 = ioremap_nocache(0x40300000 + dma_sz, dma_sz);
+		mem1_dma = 0x40300000 + dma_sz;
+	}
+	printk(KERN_CRIT"ahci: reserving memory from OCMC. mem=%p dma=%p sz=%d\n",
+		mem1, mem1_dma, dma_sz);
+#endif
+	/* avoiding checks to see if memory is already allocated from OCMC
+	 * assuming port_start is called only once for each port
+	 * Need to fix if built as module.*/
 	mem = dmam_alloc_coherent(dev, dma_sz, &mem_dma, GFP_KERNEL);
 	if (!mem)
 		return -ENOMEM;
 	memset(mem, 0, dma_sz);
+
+	/* at this stage we have 2 pools, mem pointing to region from DDR
+	 * mem1 pointing to region from OCMC
+	 */
+#if CMD_SLOT_RX_FIS_OCMC
+	pp->cmd_slot = mem1;
+	pp->cmd_slot_dma = mem1_dma;
+
+	mem1 += AHCI_CMD_SLOT_SZ;
+	mem1_dma += AHCI_CMD_SLOT_SZ;
+
+	/*
+	 *  Second item: Received-FIS area
+	 */
+	pp->rx_fis = mem1;
+	pp->rx_fis_dma = mem1_dma;
+
+	mem1 += rx_fis_sz;
+	mem1_dma += rx_fis_sz;
+#else
 
 	/*
 	 * First item in chunk of DMA memory: 32-slot command table,
@@ -2015,13 +2063,19 @@ static int ahci_port_start(struct ata_port *ap)
 
 	mem += rx_fis_sz;
 	mem_dma += rx_fis_sz;
+#endif
 
+#if CMD_TBL_PRD_OCMC
+	pp->cmd_tbl = mem1;
+	pp->cmd_tbl_dma = mem1_dma;
+#else
 	/*
 	 * Third item: data area for storing a single command
 	 * and its scatter-gather table
 	 */
 	pp->cmd_tbl = mem;
 	pp->cmd_tbl_dma = mem_dma;
+#endif
 
 	/*
 	 * Save off initial list of interrupts to be enabled.
