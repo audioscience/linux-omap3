@@ -224,6 +224,9 @@ static ssize_t musb_test_mode_write(struct file *file,
 
 	if (!strncmp(buf, "test packet", 10)) {
 		test = MUSB_TEST_PACKET;
+		musb_writeb(musb->mregs, MUSB_DEVCTL,
+			musb_readb(musb->mregs, MUSB_DEVCTL) |
+			MUSB_DEVCTL_SESSION);
 		musb_load_testpacket(musb);
 	}
 
@@ -237,6 +240,11 @@ static ssize_t musb_test_mode_write(struct file *file,
 		test = MUSB_TEST_SE0_NAK;
 
 	musb_writeb(musb->mregs, MUSB_TESTMODE, test);
+
+	if (test == MUSB_TEST_PACKET) {
+		musb_writeb(musb->control_ep->regs, MUSB_CSR0,
+			MUSB_CSR0_TXPKTRDY);
+	}
 
 	return count;
 }
