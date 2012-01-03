@@ -628,7 +628,7 @@ static int video_mode_to_dss_mode(struct omap_vout_device *vout)
 	struct omap_overlay *ovl;
 	struct omapvideo_info *ovid;
 	struct v4l2_pix_format *pix = &vout->pix;
-	enum omap_color_mode mode;
+	enum omap_color_mode mode = -EINVAL;
 
 	ovid = &vout->vid_info;
 	ovl = ovid->overlays[0];
@@ -1093,7 +1093,7 @@ static int omap_vout_buffer_prepare(struct videobuf_queue *q,
 	if (!rotation_enabled(vout))
 		return 0;
 
-	dmabuf = vout->buf_phy_addr[vb->i];
+	dmabuf = (dma_addr_t) vout->queued_buf_addr[vb->i];
 	/* If rotation is enabled, copy input buffer into VRFB
 	 * memory space using DMA. We are copying input buffer
 	 * into VRFB memory space of desired angle and DSS will
@@ -2497,7 +2497,7 @@ static int omap_vout_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static int __init omap_vout_probe(struct platform_device *pdev)
+static int omap_vout_probe(struct platform_device *pdev)
 {
 	int ret = 0, i;
 	struct omap_overlay *ovl;
