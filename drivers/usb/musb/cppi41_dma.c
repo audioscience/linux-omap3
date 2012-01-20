@@ -1317,12 +1317,25 @@ void txdma_completion_work(struct work_struct *data)
 
 }
 
-void cppi41_handle_txfifo_intr(struct musb *musb)
+void cppi41_handle_txfifo_intr(struct musb *musb, u16 usbintr)
 {
 	struct cppi41 *cppi;
+	struct cppi41_channel *tx_ch;
+	int index;
 
 	cppi = container_of(musb->dma_controller, struct cppi41, controller);
-	schedule_work(&cppi->txdma_work);
+	for (index = 0; index < USB_CPPI41_NUM_CH; index++) {
+		if (usbintr && (1 << index)) {
+			tx_ch = &cppi->tx_cppi_ch[index];
+			if (tx_ch->tx_complete) {
+				tx_ch->channel.status =
+					MUSB_DMA_STATUS_FREE;
+				tx_ch->tx_complete = 0;
+				DBG(4, "txc: givback ep%d\n", index+1);
+				musb_dma_completion(musb, index+1, 1);
+			}
+		}
+	}
 }
 EXPORT_SYMBOL(cppi41_handle_txfifo_intr);
 
@@ -1431,8 +1444,14 @@ static void usb_process_tx_queue(struct cppi41 *cppi, unsigned index)
 			 * USB functionality. So far, we have obsered
 			 * failure with iperf.
 			 */
+			/* wait for tx fifo empty completion interrupt
+			 * if enabled other wise use the workthread
+			 * to poll fifo empty status
+			 */
 			tx_ch->tx_complete = 1;
-			if (!cppi->txfifo_intr_enable)
+			if (cppi->txfifo_intr_enable)
+				DBG(4, "wait for TxF-EmptyIntr ep%d\n", ep_num);
+			else
 				schedule_work(&cppi->txdma_work);
 		}
 	}

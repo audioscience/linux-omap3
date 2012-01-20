@@ -853,9 +853,10 @@ static irqreturn_t ti81xx_interrupt(int irq, void *hci)
 
 	if (musb->txfifo_intr_enable && (usbintr & USB_INTR_TXFIFO_MASK)) {
 #ifdef CONFIG_USB_TI_CPPI41_DMA
-		cppi41_handle_txfifo_intr(musb);
+		DBG(4, "Isr:TxfifoIntr %x\n", usbintr >> USB_INTR_TXFIFO_EMPTY);
+		cppi41_handle_txfifo_intr(musb,
+				usbintr >> USB_INTR_TXFIFO_EMPTY);
 		ret = IRQ_HANDLED;
-		goto eoi;
 #endif
 	}
 	/*
@@ -1098,9 +1099,9 @@ int ti81xx_musb_init(struct musb *musb)
 		/* Enabling txfifo intr features, is not working
 		 * reliablely, hence disable txfifo intr logic
 		 */
-		musb->txfifo_intr_enable = 0;
+		musb->txfifo_intr_enable = 1;
 
-		if (musb->txfifo_intr_enable)
+		if (!musb->txfifo_intr_enable)
 			printk(KERN_DEBUG "TxFifo Empty intr disabled\n");
 		else
 			printk(KERN_DEBUG "TxFifo Empty intr enabled\n");
