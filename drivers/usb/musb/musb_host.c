@@ -700,12 +700,6 @@ static bool musb_tx_dma_program(struct dma_controller *dma,
 
 	qh->segsize = length;
 
-	/*
-	 * Ensure the data reaches to main memory before starting
-	 * DMA transfer
-	 */
-	wmb();
-
 	if (!dma->channel_program(channel, pkt_size, mode,
 			urb->transfer_dma + offset, length)) {
 		dma->channel_release(channel);
@@ -716,7 +710,14 @@ static bool musb_tx_dma_program(struct dma_controller *dma,
 		musb_writew(epio, MUSB_TXCSR, csr | MUSB_TXCSR_H_WZC_BITS);
 		return false;
 	}
+	/*
+	 * Ensure the data reaches to main memory before starting
+	 * DMA transfer
+	 */
+	wmb();
 
+	/* flush the cache */
+	flush_cache_all();
 	return true;
 }
 
