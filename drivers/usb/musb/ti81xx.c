@@ -522,7 +522,6 @@ int cppi41_enable_sched_rx(void)
 	cppi41_dma_sched_tbl_init(0, 0, dma_sched_table, 30);
 	return 0;
 }
-#endif /* CONFIG_USB_TI_CPPI41_DMA */
 
 /*
  * Because we don't set CTRL.UINT, it's "important" to:
@@ -530,6 +529,33 @@ int cppi41_enable_sched_rx(void)
  *	  initial setup, as a workaround);
  *	- use INTSET/INTCLR instead.
  */
+
+void txfifoempty_int_enable(struct musb *musb, u8 ep_num)
+{
+	void __iomem *reg_base = musb->ctrl_base;
+	u32 coremask;
+
+	if (musb->txfifo_intr_enable) {
+		coremask = musb_readl(reg_base, USB_CORE_INTR_SET_REG);
+		coremask |= (1 << (ep_num + 16));
+		musb_writel(reg_base, USB_CORE_INTR_SET_REG, coremask);
+		DBG(1, "enable txF intr ep%d coremask %x\n", ep_num, coremask);
+	}
+}
+EXPORT_SYMBOL(txfifoempty_int_enable);
+
+void txfifoempty_int_disable(struct musb *musb, u8 ep_num)
+{
+	void __iomem *reg_base = musb->ctrl_base;
+	u32 coremask;
+
+	if (musb->txfifo_intr_enable) {
+		coremask = (1 << (ep_num + 16));
+		musb_writel(reg_base, USB_CORE_INTR_CLEAR_REG, coremask);
+	}
+}
+EXPORT_SYMBOL(txfifoempty_int_disable);
+#endif /* CONFIG_USB_TI_CPPI41_DMA */
 
 /**
  * ti81xx_musb_enable - enable interrupts
@@ -543,10 +569,6 @@ void ti81xx_musb_enable(struct musb *musb)
 	epmask = ((musb->epmask & USB_TX_EP_MASK) << USB_INTR_TX_SHIFT) |
 	       ((musb->epmask & USB_RX_EP_MASK) << USB_INTR_RX_SHIFT);
 	coremask = (0x01ff << USB_INTR_USB_SHIFT);
-
-	/* TX endpoint Empty FIFO interrupts */
-	if (musb->txfifo_intr_enable)
-		coremask |= (0xffff << 16);
 
 	coremask &= ~MUSB_INTR_SOF;
 
@@ -853,12 +875,13 @@ static irqreturn_t ti81xx_interrupt(int irq, void *hci)
 
 	if (musb->txfifo_intr_enable && (usbintr & USB_INTR_TXFIFO_MASK)) {
 #ifdef CONFIG_USB_TI_CPPI41_DMA
-		DBG(4, "Isr:TxfifoIntr %x\n", usbintr >> USB_INTR_TXFIFO_EMPTY);
+		DBG(1, "Isr:TxfifoIntr %x\n", usbintr >> USB_INTR_TXFIFO_EMPTY);
 		cppi41_handle_txfifo_intr(musb,
 				usbintr >> USB_INTR_TXFIFO_EMPTY);
 		ret = IRQ_HANDLED;
 #endif
 	}
+	usbintr &= ~0xFFFF;
 	/*
 	 * DRVVBUS IRQs are the only proxy we have (a very poor one!) for
 	 * AM3517's missing ID change IRQ.  We need an ID change IRQ to

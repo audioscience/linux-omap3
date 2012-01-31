@@ -57,4 +57,6 @@ void cppi41_completion(struct musb *musb, u32 rx, u32 tx);
  * @musb:	the controller
  */
 void cppi41_handle_txfifo_intr(struct musb *musb, u16 usbintr);
+void txfifoempty_int_enable(struct musb *musb, u8 ep_num);
+void txfifoempty_int_disable(struct musb *musb, u8 ep_num);
 #endif	/* _CPPI41_DMA_H_ */

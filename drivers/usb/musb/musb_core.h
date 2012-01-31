@@ -706,6 +706,7 @@ static inline const char *get_dma_name(struct musb *musb)
 		return "?dma?";
 #endif
 }
+extern int musb_get_xfertype(struct musb *musb, u8 ep_num, int is_in);
 
 #ifdef CONFIG_USB_MUSB_HDRC_HCD
 extern void musb_gb_work(struct work_struct *data);
