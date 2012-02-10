@@ -530,7 +530,7 @@ int cppi41_enable_sched_rx(void)
  *	- use INTSET/INTCLR instead.
  */
 
-void txfifoempty_int_enable(struct musb *musb, u8 ep_num)
+void txfifoempty_intr_enable(struct musb *musb, u8 ep_num)
 {
 	void __iomem *reg_base = musb->ctrl_base;
 	u32 coremask;
@@ -542,9 +542,8 @@ void txfifoempty_int_enable(struct musb *musb, u8 ep_num)
 		DBG(1, "enable txF intr ep%d coremask %x\n", ep_num, coremask);
 	}
 }
-EXPORT_SYMBOL(txfifoempty_int_enable);
 
-void txfifoempty_int_disable(struct musb *musb, u8 ep_num)
+void txfifoempty_intr_disable(struct musb *musb, u8 ep_num)
 {
 	void __iomem *reg_base = musb->ctrl_base;
 	u32 coremask;
@@ -554,7 +553,7 @@ void txfifoempty_int_disable(struct musb *musb, u8 ep_num)
 		musb_writel(reg_base, USB_CORE_INTR_CLEAR_REG, coremask);
 	}
 }
-EXPORT_SYMBOL(txfifoempty_int_disable);
+
 #endif /* CONFIG_USB_TI_CPPI41_DMA */
 
 /**
@@ -1210,6 +1209,9 @@ static struct musb_platform_ops ti81xx_ops = {
 	.dma_controller_create	= cppi41_dma_controller_create,
 	.dma_controller_destroy	= cppi41_dma_controller_destroy,
 	.simulate_babble_intr	= musb_simulate_babble,
+
+	.txfifoempty_intr_enable = txfifoempty_intr_enable,
+	.txfifoempty_intr_disable = txfifoempty_intr_disable,
 };
 
 static void __devexit ti81xx_delete_musb_pdev(struct ti81xx_glue *glue, u8 id)

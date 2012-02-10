@@ -434,13 +434,6 @@ static void txstate(struct musb *musb, struct musb_request *req)
 			musb_readw(epio, MUSB_TXMAXP));
 }
 
-int musb_get_xfertype(struct musb *musb, u8 ep_num, int is_in)
-{
-	struct musb_ep	*musb_ep = &musb->endpoints[ep_num].ep_in;
-	return musb_ep->type;
-}
-EXPORT_SYMBOL(musb_get_xfertype);
-
 /*
  * FIFO state update (e.g. data ready).
  * Called from IRQ,  with controller locked.
@@ -898,6 +891,7 @@ static int musb_gadget_enable(struct usb_ep *ep,
 		goto fail;
 	}
 	musb_ep->type = usb_endpoint_type(desc);
+	hw_ep->xfer_type = musb_ep->type;
 
 	/* check direction and (later) maxpacket size against endpoint */
 	if (usb_endpoint_num(desc) != epnum)

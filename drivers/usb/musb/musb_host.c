@@ -243,6 +243,7 @@ musb_start_urb(struct musb *musb, int is_in, struct musb_qh *qh)
 	/* initialize software qh state */
 	qh->offset = 0;
 	qh->segsize = 0;
+	hw_ep->xfer_type = qh->type;
 
 	/* gather right source of data */
 	switch (qh->type) {
@@ -719,31 +720,6 @@ static bool musb_tx_dma_program(struct dma_controller *dma,
 
 	return true;
 }
-
-int musb_get_xfertype(struct musb *musb, u8 ep_num, int is_in)
-{
-	struct musb_hw_ep	*hw_ep = musb->endpoints + ep_num;
-	struct musb_qh		*qh = hw_ep->out_qh;
-	struct urb		*urb;
-	struct usb_host_endpoint	*hep;
-	struct usb_endpoint_descriptor	*epd;
-	int type = -1;
-
-	if (!qh)
-		return type;
-
-	urb = next_urb(qh);
-	if (!urb)
-		return type;
-	hep = urb->ep;
-	if (hep) {
-		epd = &hep->desc;
-		type = usb_endpoint_type(epd);
-	}
-
-	return type;
-}
-EXPORT_SYMBOL(musb_get_xfertype);
 
 /*
  * Program an HDRC endpoint as per the given URB

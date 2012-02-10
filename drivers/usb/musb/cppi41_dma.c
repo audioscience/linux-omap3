@@ -568,7 +568,8 @@ static unsigned cppi41_next_tx_segment(struct cppi41_channel *tx_ch)
 	u16 tx_comp_q = cppi_info->tx_comp_q[tx_ch->ch_num];
 	u8 en_bd_intr = cppi->en_bd_intr;
 	u8 is_isoc = 0;
-	int xfer_type;
+	struct musb_hw_ep *hw_ep = cppi->musb->endpoints + tx_ch->end_pt->epnum;
+	int xfer_type = hw_ep->xfer_type;
 
 	/*
 	 * Tx can use the generic RNDIS mode where we can probably fit this
@@ -595,7 +596,6 @@ static unsigned cppi41_next_tx_segment(struct cppi41_channel *tx_ch)
 	    tx_ch->ch_num, tx_ch->dma_mode ? "accelerated" : "transparent",
 	    pkt_size, num_pds, tx_ch->start_addr + tx_ch->curr_offset, length);
 
-	xfer_type = musb_get_xfertype(cppi->musb, tx_ch->end_pt->epnum, 1);
 	if (xfer_type  == USB_ENDPOINT_XFER_ISOC)
 		is_isoc = 1;
 
