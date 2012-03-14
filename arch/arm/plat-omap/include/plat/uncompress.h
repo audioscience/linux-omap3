@@ -181,6 +181,7 @@ static inline void __arch_decomp_setup(unsigned long arch_id)
 
 		/* TI8148 base boards using UART1 */
 		DEBUG_LL_TI81XX(1, ti8148evm);
+		DEBUG_LL_TI81XX(1, asi1230);
 
 		/* DM385 base boards using UART1 */
 		DEBUG_LL_TI81XX(1, dm385evm);
