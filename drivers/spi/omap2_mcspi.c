@@ -689,9 +689,17 @@ static int omap2_mcspi_setup_transfer(struct spi_device *spi,
 	/* standard 4-wire master mode:  SCK, MOSI/out, MISO/in, nCS
 	 * REVISIT: this controller could support SPI_3WIRE mode.
 	 */
+#if 1 // CONFIG_OMAP3_SPI_REVERSE_DATAPINS ASI1230 rev A HW fix. Remove for rev B
+	/* Reverse OMAP3 de facto convention on SPI data pin direction.
+	 * In this configuration SPI[X]_D[0] is MOSI and SPI[X]_D[1] is MISO.
+	 */
+	l &= ~(OMAP2_MCSPI_CHCONF_DPE0);
+	l |= OMAP2_MCSPI_CHCONF_IS | OMAP2_MCSPI_CHCONF_DPE1;
+#else
+	/* In this configuration SPI[X]_D[0] is MISO and SPI[X]_D[1] is MOSI. */
 	l &= ~(OMAP2_MCSPI_CHCONF_IS|OMAP2_MCSPI_CHCONF_DPE1);
 	l |= OMAP2_MCSPI_CHCONF_DPE0;
-
+#endif
 	/* wordlength */
 	l &= ~OMAP2_MCSPI_CHCONF_WL_MASK;
 	l |= (word_len - 1) << 7;
