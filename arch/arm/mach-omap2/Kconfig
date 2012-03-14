@@ -326,6 +326,21 @@ config MACH_TI8148EVM
 	default y
 	depends on ARCH_TI814X
 
+config MACH_ASI1230
+	bool "AudioScience ASI1230"
+	default n
+	depends on ARCH_TI814X
+
+config MACH_DM385EVM
+	bool "DM385 Evaluation Module"
+	default y
+	depends on ARCH_TI814X
+
+config MACH_TI811XEVM
+	bool "TI811X Evaluation Module"
+	default y
+	depends on ARCH_TI814X
+
 config MACH_TI8168EVM
 	bool "TI8168 Evaluation Module"
 	default y
