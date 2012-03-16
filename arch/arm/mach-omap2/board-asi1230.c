@@ -74,7 +74,7 @@ static struct omap2_hsmmc_info mmc[] = {
 };
 
 const struct flash_platform_data asi1230_spi_flash = {
-	.type		= "w25x16",
+	.type		= "m25p16",
 	.name		= "spi_flash",
 	.parts		= NULL,
 	.nr_parts	= 0,
@@ -118,6 +118,23 @@ static void __init asi1230_evm_init_irq(void)
 	gpmc_init();
 }
 
+#define PHY_VSC8601_ID 0x00070421
+#define PHY_VSC8601_MASK 0xFFFFFFFF
+#define PHY_VSC8601_EXCTRL1_REG 0x17
+#define PHY_VSC8601_RXCLKSKEW 0x100
+
+static int asi1230_evm_vsc_phy_fixup(struct phy_device *phydev)
+{
+	unsigned int val;
+
+    /* Enable RGMII RX/TX clock skew */
+    val = phy_read(phydev, PHY_VSC8601_EXCTRL1_REG);
+    val |= PHY_VSC8601_RXCLKSKEW;
+    phy_write(phydev, PHY_VSC8601_EXCTRL1_REG, val);
+    val = phy_read(phydev, PHY_VSC8601_EXCTRL1_REG);
+	return 0;
+}
+
 static void __init asi1230_evm_init(void)
 {
 	ti814x_mux_init(board_mux);
@@ -130,6 +147,9 @@ static void __init asi1230_evm_init(void)
 
     asi1230_spi_init();
 	regulator_use_dummy_regulator();
+
+	/* Register a clock skew ETH PHY fix for */
+	phy_register_fixup_for_uid(PHY_VSC8601_ID, PHY_VSC8601_MASK, asi1230_evm_vsc_phy_fixup);
 }
 
 static void __init asi1230_evm_map_io(void)
@@ -151,8 +171,8 @@ MACHINE_START(ASI1230, "asi1230")
 	/* Maintainer: Texas Instruments */
 	.boot_params	= 0x80000100,
 	.map_io		= asi1230_evm_map_io,
-	.reserve         = asi1230_reserve, //ti81xx_reserve,
-	.init_irq	= asi1230_evm_init_irq,
-	.init_machine	= asi1230_evm_init,
-	.timer		= &omap_timer,
+	.reserve        = asi1230_reserve, //ti81xx_reserve,
+	.init_irq       = asi1230_evm_init_irq,
+	.init_machine   = asi1230_evm_init,
+	.timer          = &omap_timer,
 MACHINE_END
