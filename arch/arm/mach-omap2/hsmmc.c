@@ -260,8 +260,8 @@ void __init omap2_hsmmc_init(struct omap2_hsmmc_info *controllers)
 			goto done;
 		}
 
-		if (cpu_is_ti816x())
-			mmc->version = MMC_CTRL_VERSION_2;
+		if (cpu_is_ti81xx())
+			mmc->version = MMC_CTRL_VERSION_1;
 
 		if (c->name)
 			strncpy(hc->name, c->name, HSMMC_NAME_LEN);
