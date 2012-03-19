@@ -104,6 +104,13 @@ struct spi_board_info __initdata asi1230_spi_slave_info[] = {
 		.bus_num	= 1,
 		.chip_select	= 0,
 	},
+	{
+		.modalias	= "spidev",
+		.irq		= -1,
+		.max_speed_hz	= 50000000,
+		.bus_num	= 2,
+		.chip_select	= 0,
+	},
 };
 
 void __init asi1230_spi_init(void)
