@@ -69,9 +69,13 @@ static void __init asi1230_i2c_init(void)
 				ARRAY_SIZE(asi1230_i2c_boardinfo));
 }
 
-/* I must define the following two functions or usb-ehci.c (!!!) will be missing symbols */
+#ifndef CONFIG_MACH_TI8148EVM
+/* I must define the following two functions when TI8148EVM support is not configured in 
+ * or usb-ehci.c (!!!) will be missing symbols
+ */
 int vps_ti814x_select_video_decoder(int vid_decoder_id) { return 0; }
 int vps_ti814x_set_tvp7002_filter(enum fvid2_standard standard) { return 0; }
+#endif
 
 static struct omap2_hsmmc_info mmc[] = {
 	{
