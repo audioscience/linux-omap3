@@ -19,7 +19,6 @@
 #include <linux/spi/flash.h>
 #include <linux/platform_device.h>
 #include <linux/mtd/mtd.h>
-#include <linux/mtd/nand.h>
 #include <linux/mtd/partitions.h>
 #include <linux/gpio.h>
 #include <linux/i2c.h>
@@ -57,6 +56,18 @@ static struct omap_board_mux board_mux[] __initdata = {
 #else
 #define board_mux     NULL
 #endif
+
+static struct i2c_board_info __initdata asi1230_i2c_boardinfo[] = {
+	{
+		I2C_BOARD_INFO("lm75", 0x4B),
+	},
+};
+
+static void __init asi1230_i2c_init(void)
+{
+	omap_register_i2c_bus(1, 100, asi1230_i2c_boardinfo,
+				ARRAY_SIZE(asi1230_i2c_boardinfo));
+}
 
 /* I must define the following two functions or usb-ehci.c (!!!) will be missing symbols */
 int vps_ti814x_select_video_decoder(int vid_decoder_id) { return 0; }
@@ -97,20 +108,7 @@ void __init asi1230_spi_init(void)
 				ARRAY_SIZE(asi1230_spi_slave_info));
 }
 
-static struct omap_musb_board_data musb_board_data = {
-	.interface_type		= MUSB_INTERFACE_ULPI,
-#ifdef CONFIG_USB_MUSB_OTG
-	.mode           = MUSB_OTG,
-#elif defined(CONFIG_USB_MUSB_HDRC_HCD)
-	.mode           = MUSB_HOST,
-#elif defined(CONFIG_USB_GADGET_MUSB_HDRC)
-	.mode           = MUSB_PERIPHERAL,
-#endif
-	.power		= 500,
-	.instances	= 1,
-};
-
-static void __init asi1230_evm_init_irq(void)
+static void __init asi1230_init_irq(void)
 {
 	omap2_init_common_infrastructure();
 	omap2_init_common_devices(NULL, NULL);
@@ -123,7 +121,7 @@ static void __init asi1230_evm_init_irq(void)
 #define PHY_VSC8601_EXCTRL1_REG 0x17
 #define PHY_VSC8601_RXCLKSKEW 0x100
 
-static int asi1230_evm_vsc_phy_fixup(struct phy_device *phydev)
+static int asi1230_vsc_phy_fixup(struct phy_device *phydev)
 {
 	unsigned int val;
 
@@ -135,24 +133,21 @@ static int asi1230_evm_vsc_phy_fixup(struct phy_device *phydev)
 	return 0;
 }
 
-static void __init asi1230_evm_init(void)
+static void __init asi1230_init(void)
 {
 	ti814x_mux_init(board_mux);
 	omap_serial_init();
-
+	asi1230_i2c_init();
 	omap2_hsmmc_init(mmc);
 
-	/* initialize usb */
-	usb_musb_init(&musb_board_data);
-
-    asi1230_spi_init();
+	asi1230_spi_init();
 	regulator_use_dummy_regulator();
 
 	/* Register a clock skew ETH PHY fix for */
-	phy_register_fixup_for_uid(PHY_VSC8601_ID, PHY_VSC8601_MASK, asi1230_evm_vsc_phy_fixup);
+	phy_register_fixup_for_uid(PHY_VSC8601_ID, PHY_VSC8601_MASK, asi1230_vsc_phy_fixup);
 }
 
-static void __init asi1230_evm_map_io(void)
+static void __init asi1230_map_io(void)
 {
 	omap2_set_globals_ti814x();
 	ti81xx_map_common_io();
@@ -161,18 +156,18 @@ static void __init asi1230_evm_map_io(void)
 #if 1
 void  __init asi1230_reserve(void)
 {
-	ti81xx_set_sdram_vram(0, 0);
+	//ti81xx_set_sdram_vram(0, 0);
 	ti81xxfb_reserve_sdram_memblock();
 //	ti81xx_pcie_mem_reserve_sdram_memblock();
 }
 #endif
 
 MACHINE_START(ASI1230, "asi1230")
-	/* Maintainer: Texas Instruments */
+	/* Maintainer: Audioscience Inc */
 	.boot_params	= 0x80000100,
-	.map_io		= asi1230_evm_map_io,
+	.map_io		= asi1230_map_io,
 	.reserve        = asi1230_reserve, //ti81xx_reserve,
-	.init_irq       = asi1230_evm_init_irq,
-	.init_machine   = asi1230_evm_init,
+	.init_irq       = asi1230_init_irq,
+	.init_machine   = asi1230_init,
 	.timer          = &omap_timer,
 MACHINE_END
