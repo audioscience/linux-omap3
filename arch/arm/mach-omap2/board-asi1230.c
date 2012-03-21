@@ -21,6 +21,7 @@
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
 #include <linux/gpio.h>
+#include <linux/leds.h>
 #include <linux/i2c.h>
 #include <linux/phy.h>
 #include <linux/regulator/machine.h>
@@ -35,11 +36,9 @@
 #include <plat/board.h>
 #include <plat/common.h>
 #include <plat/asp.h>
-#include <plat/usb.h>
+#include <plat/led.h>
 #include <plat/mmc.h>
 #include <plat/gpmc.h>
-#include <plat/nand.h>
-#include <plat/hdmi_lib.h>
 #include <plat/ti81xx_ram.h>
 #include <mach/board-ti814x.h>
 
@@ -144,6 +143,53 @@ static int asi1230_vsc_phy_fixup(struct phy_device *phydev)
 	return 0;
 }
 
+#define LED0_GPIO 1
+#define LED1_GPIO 2
+#define LED2_GPIO 3
+#define LED3_GPIO 4
+
+static struct gpio_led asi1230_led_config[] = {
+	{
+		.name	= "asi1230:led0:mmc0_act",
+		.default_trigger	= "mmc0",
+		.active_low		= true,
+		.gpio	= LED0_GPIO,
+	},
+	{
+		.name	= "asi1230:led1",
+		.active_low		= true,
+		.gpio	= LED1_GPIO,
+	},
+	{
+		.name	= "asi1230:led2",
+		.active_low		= true,
+		.gpio	= LED2_GPIO,
+	},
+	{
+		.name	= "asi1230:led3:sys_heartbeat",
+		.default_trigger	= "heartbeat",
+		.active_low		= true,
+		.gpio	= LED3_GPIO,
+	},
+};
+
+static struct gpio_led_platform_data asi1230_led_data = {
+	.leds		= asi1230_led_config,
+	.num_leds	= ARRAY_SIZE(asi1230_led_config),
+};
+
+static struct platform_device asi1230_led_device = {
+	.name	= "leds-gpio",
+	.id		= -1,
+	.dev		= {
+		.platform_data	= &asi1230_led_data,
+	},
+};
+
+static struct platform_device *asi1230_devices[] __initdata = {
+	&asi1230_led_device,
+};
+
 static void __init asi1230_init(void)
 {
 	ti814x_mux_init(board_mux);
@@ -152,6 +198,7 @@ static void __init asi1230_init(void)
 	omap2_hsmmc_init(mmc);
 
 	asi1230_spi_init();
+	platform_add_devices(asi1230_devices, ARRAY_SIZE(asi1230_devices));
 	regulator_use_dummy_regulator();
 
 	/* Register a clock skew ETH PHY fix for */
