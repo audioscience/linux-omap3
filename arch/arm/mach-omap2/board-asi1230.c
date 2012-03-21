@@ -21,6 +21,8 @@
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
 #include <linux/gpio.h>
+#include <linux/gpio_keys.h>
+#include <linux/input.h>
 #include <linux/leds.h>
 #include <linux/i2c.h>
 #include <linux/phy.h>
@@ -147,6 +149,7 @@ static int asi1230_vsc_phy_fixup(struct phy_device *phydev)
 #define LED1_GPIO 2
 #define LED2_GPIO 3
 #define LED3_GPIO 4
+#define J2_9_GPIO 5
 
 static struct gpio_led asi1230_led_config[] = {
 	{
@@ -186,8 +189,34 @@ static struct platform_device asi1230_led_device = {
 	},
 };
 
+static struct gpio_keys_button asi1230_gpio_buttons[] = {
+	{
+		.code			= KEY_VENDOR,
+		.gpio			= J2_9_GPIO,
+		.desc			= "eng_mode_jumper",
+		.type			= EV_KEY,
+		.active_low		= true,
+		.wakeup			= 1,
+	},
+};
+
+static struct gpio_keys_platform_data asi1230_gpio_key_data = {
+	.buttons	= asi1230_gpio_buttons,
+	.nbuttons	= ARRAY_SIZE(asi1230_gpio_buttons),
+	.rep		= false,
+};
+
+static struct platform_device asi1230_keys_device = {
+	.name	= "gpio-keys",
+	.id	= -1,
+	.dev	= {
+		.platform_data	= &asi1230_gpio_key_data,
+	},
+};
+
 static struct platform_device *asi1230_devices[] __initdata = {
 	&asi1230_led_device,
+	&asi1230_keys_device,
 };
 
 static void __init asi1230_init(void)
