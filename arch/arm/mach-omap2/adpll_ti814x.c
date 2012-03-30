@@ -883,8 +883,8 @@ int ti814x_dpll_set_rate(struct clk *clk, unsigned long rate)
 	 * doing anything; we need the bypass clock running to reprogram
 	 * the DPLL.
 	 */
-	omap2_clk_enable(dd->clk_bypass);
-	omap2_clk_enable(dd->clk_ref);
+	clk_enable(dd->clk_bypass);
+	clk_enable(dd->clk_ref);
 
 	if ((dd->clk_bypass->rate == rate) &&
 		(clk->dpll_data->modes & (1 << ADPLL_LOW_POWER_BYPASS))) {
@@ -923,15 +923,15 @@ int ti814x_dpll_set_rate(struct clk *clk, unsigned long rate)
 		 * any unnecessary hardware disable->enable transitions.
 		 */
 		if (clk->usecount) {
-			omap2_clk_enable(new_parent);
-			omap2_clk_disable(clk->parent);
+			clk_enable(new_parent);
+			clk_disable(clk->parent);
 		}
 		clk_reparent(clk, new_parent);
 		clk->rate = dd->last_rounded_rate;
 		propagate_rate(clk);
 	}
-	omap2_clk_disable(dd->clk_ref);
-	omap2_clk_disable(dd->clk_bypass);
+	clk_disable(dd->clk_ref);
+	clk_disable(dd->clk_bypass);
 
 	return 0;
 }
