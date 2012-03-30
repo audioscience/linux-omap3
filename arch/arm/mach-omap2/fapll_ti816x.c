@@ -660,8 +660,8 @@ int ti816x_fapll_set_rate(struct clk *clk, unsigned long rate)
 	 * doing anything; we need the bypass clock running to reprogram
 	 * the FAPLL.
 	 */
-	omap2_clk_enable(fd->clk_bypass);
-	omap2_clk_enable(fd->clk_ref);
+	clk_enable(fd->clk_bypass);
+	clk_enable(fd->clk_ref);
 
 	if (fd->clk_bypass->rate == rate &&
 		(clk->fapll_data->modes & FAPLL_LOW_POWER_BYPASS)) {
@@ -696,14 +696,14 @@ int ti816x_fapll_set_rate(struct clk *clk, unsigned long rate)
 		 * any unnecessary hardware disable->enable transitions.
 		 */
 		if (clk->usecount) {
-			omap2_clk_enable(new_parent);
-			omap2_clk_disable(clk->parent);
+			clk_enable(new_parent);
+			clk_disable(clk->parent);
 		}
 		clk_reparent(clk, new_parent);
 		clk->rate = fd->last_rounded_rate;
 	}
-	omap2_clk_disable(fd->clk_ref);
-	omap2_clk_disable(fd->clk_bypass);
+	clk_disable(fd->clk_ref);
+	clk_disable(fd->clk_bypass);
 
 	return 0;
 }

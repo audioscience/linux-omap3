@@ -244,7 +244,7 @@ const struct clkops clkops_omap2_dflt = {
  * simply disabling one clock.  Intended to be called with the clockfw_lock
  * spinlock held.  No return value.
  */
-void omap2_clk_disable(struct clk *clk)
+static void omap2_clk_disable(struct clk *clk)
 {
 	if (clk->usecount == 0) {
 		WARN(1, "clock: %s: omap2_clk_disable() called, but usecount "
@@ -281,7 +281,7 @@ void omap2_clk_disable(struct clk *clk)
  * called with the clockfw_lock spinlock held.  Returns 0 upon success
  * or a negative error code upon failure.
  */
-int omap2_clk_enable(struct clk *clk)
+static int omap2_clk_enable(struct clk *clk)
 {
 	int ret;
 
@@ -333,7 +333,7 @@ oce_err1:
 }
 
 /* Given a clock and a rate apply a clock specific rounding function */
-long omap2_clk_round_rate(struct clk *clk, unsigned long rate)
+static long omap2_clk_round_rate(struct clk *clk, unsigned long rate)
 {
 	if (clk->round_rate)
 		return clk->round_rate(clk, rate);
@@ -342,7 +342,7 @@ long omap2_clk_round_rate(struct clk *clk, unsigned long rate)
 }
 
 /* Set the clock rate for a clock source */
-int omap2_clk_set_rate(struct clk *clk, unsigned long rate)
+static int omap2_clk_set_rate(struct clk *clk, unsigned long rate)
 {
 	int ret = -EINVAL;
 
@@ -355,7 +355,7 @@ int omap2_clk_set_rate(struct clk *clk, unsigned long rate)
 	return ret;
 }
 
-int omap2_clk_set_parent(struct clk *clk, struct clk *new_parent)
+static int omap2_clk_set_parent(struct clk *clk, struct clk *new_parent)
 {
 	if (!clk->clksel)
 		return -EINVAL;
