@@ -516,7 +516,7 @@ int omap2_clksel_set_parent(struct clk *clk, struct clk *new_parent)
  * @clk: struct clk * to program rate
  * @rate: target rate to program
  *
- * This function is intended to be called by the aduio and some
+ * This function is intended to be called by the audio and some
  * of the coprocessors. Program @clk's rate to @rate in the hardware.
  * The clock should be disabled when this happens, otherwise setrate
  * will fail, because this is treated as clock being used. If multiple
@@ -624,9 +624,9 @@ static int _ti814x_adpll_check_and_set_rate(struct clk *clk,
 		*dpll_setrate = 1;
 	} else if (dclk->set_rate) {
 		if (dclk->usecount > 1) {
-			pr_err("clock: %s, parent %s is already in use, can't"
+			pr_warn("clock: %s,\'s parent %s is already in use, can't"
 				" change rate\n", clk->name, dclk->name);
-			return -EBUSY;
+			return -EBUSY; //?EWB
 		}
 		ret = dclk->set_rate(dclk, rate);
 		if (!ret) {
@@ -647,11 +647,10 @@ static int _ti814x_adpll_check_and_set_rate(struct clk *clk,
  * @clk: struct clk * to program rate
  * @rate: target rate to program
  *
- * This function is intended to be called by the aduio and some
+ * This function is intended to be called by the audio and some
  * of the coprocessors. Program @clk's rate to @rate in the hardware.
- * The clock should be disabled when this happens, otherwise setrate
- * will fail, because this is treated as clock being used. If multiple
- * drivers are using the clock, returns -EINVAL with error message.
+ * The clock must be enabled, or -EPERM is returned
+ * If multiple drivers are using the clock, returns -EBUSY with error message.
  * Returns -EINVAL upon error, or 0 upon success.
  */
 int ti814x_clksel_set_rate(struct clk *clk, unsigned long rate)
@@ -661,22 +660,22 @@ int ti814x_clksel_set_rate(struct clk *clk, unsigned long rate)
 	int ret, dpll_setrate = 0;
 
 	if (clk->usecount == 0) {
-		pr_err("clock: Enable the clock '%s' before setting rate\n",
+		pr_err("clock: Enable %s before setting rate\n",
 			clk->name);
-		return -EINVAL;
+		return -EPERM;
 	}
 	if (clk->usecount > 1) {
-		pr_err("clock: '%s' clock is in use can't change the rate "
-			"usecount = '%d'", clk->name, clk->usecount);
-		return -EBUSY;
+		pr_warn("clock: %s usecount(%d) > 1 - can't change the rate\n",
+			clk->name, clk->usecount);
+		return -EBUSY; //?EWB
 	}
 
 	pclk = clk->parent;
 	if (pclk->usecount > 1) {
-		pr_err("clock: '%s' clock's parent '%s' is in use can't"
-			" change the rate usecount = %d", clk->name,
+		pr_warn("clock: %s's parent %s usecount(%d) > 1 -"
+			"can't change the rate\n", clk->name,
 			pclk->name, pclk->usecount);
-		return -EBUSY;
+		return -EBUSY; //?EWB
 	}
 
 	dclk = pclk->parent;
@@ -704,9 +703,10 @@ int ti814x_clksel_set_rate(struct clk *clk, unsigned long rate)
 	}
 	if (dpll_setrate) {
 		if (dclk->usecount > 1) {
-			pr_err("clock: %s, parent %s is already in use, can't"
-			"change rate\n", pclk->name, dclk->name);
-			return -EBUSY;
+			pr_warn("clock: %s's parent %s usecount(%d) > 1"
+				" - can't change the rate\n", pclk->name,
+				dclk->name, dclk->usecount);
+			return -EBUSY; //?EWB
 		}
 
 		/* Changing the DPLL rate */
