@@ -76,12 +76,6 @@
 #define TI814X_ARM_DPLL_ID			1
 #define TI814X_DDR_DPLL_ID			2
 
-
-int omap2_clk_enable(struct clk *clk);
-void omap2_clk_disable(struct clk *clk);
-long omap2_clk_round_rate(struct clk *clk, unsigned long rate);
-int omap2_clk_set_rate(struct clk *clk, unsigned long rate);
-int omap2_clk_set_parent(struct clk *clk, struct clk *new_parent);
 int omap2_dpll_set_rate_tolerance(struct clk *clk, unsigned int tolerance);
 long omap2_dpll_round_rate(struct clk *clk, unsigned long target_rate);
 unsigned long omap3_dpll_recalc(struct clk *clk);
