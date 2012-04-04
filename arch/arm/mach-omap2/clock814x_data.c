@@ -265,16 +265,6 @@ static const struct clksel_rate div8_rates[] = {
 	{ .div = 0 },
 };
 
-/* Divide by 8 clock rates with default clock is 1/1*/
-static const struct clksel_rate div5_prcmckout_rates[] = {
-	{ .div = 1, .val = 0, .flags = RATE_IN_TI814X },
-	{ .div = 2, .val = 1, .flags = RATE_IN_TI814X },
-	{ .div = 4, .val = 2, .flags = RATE_IN_TI814X },
-	{ .div = 8, .val = 3, .flags = RATE_IN_TI814X },
-	{ .div = 16, .val = 4, .flags = RATE_IN_TI814X },
-	{ .div = 0 },
-};
-
 static const struct clksel_rate div2_sysclk6_rates[] = {
 	{ .div = 2, .val = 0, .flags = RATE_IN_TI814X },
 	{ .div = 4, .val = 1, .flags = RATE_IN_TI814X },
@@ -3689,7 +3679,7 @@ static struct clk clkout_prcm_mux_ck = {
 };
 
 static const struct clksel clkout_1to16_div[] = {
-	{ .parent = &clkout_prcm_mux_ck, .rates = div5_prcmckout_rates },
+	{ .parent = &clkout_prcm_mux_ck, .rates = div8_rates },
 	{ .parent = NULL },
 };
 
