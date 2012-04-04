@@ -3990,7 +3990,7 @@ static struct clk clkout_prcm_mux_ck = {
 };
 
 static const struct clksel clkout_1to16_div[] = {
-	{ .parent = &clkout_prcm_mux_ck, .rates = div5_prcmckout_rates },
+	{ .parent = &clkout_prcm_mux_ck, .rates = div8_rates },
 	{ .parent = NULL },
 };
 
