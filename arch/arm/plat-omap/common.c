@@ -65,13 +65,23 @@ EXPORT_SYMBOL(omap_get_var_config);
 
 void  __init ti81xx_reserve(void)
 {
+#ifdef CONFIG_FB_TI81XX
 	ti81xxfb_reserve_sdram_memblock();
+#endif
+#ifdef CONFIG_PCI
 	ti81xx_pcie_mem_reserve_sdram_memblock();
+#endif
 }
 
 void __init omap_reserve(void)
 {
+#if defined(CONFIG_FB_OMAP2) || defined(CONFIG_FB_OMAP2_MODULE)
 	omapfb_reserve_sdram_memblock();
+#endif
+
+#ifdef CONFIG_OMAP2_VRAM
 	omap_vram_reserve_sdram_memblock();
+#endif
+
 	omap_dsp_reserve_sdram_memblock();
 }

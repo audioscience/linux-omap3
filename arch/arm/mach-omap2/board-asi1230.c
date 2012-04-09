@@ -70,12 +70,15 @@ static void __init asi1230_i2c_init(void)
 				ARRAY_SIZE(asi1230_i2c_boardinfo));
 }
 
-#ifndef CONFIG_MACH_TI8148EVM
-/* I must define the following two functions when TI8148EVM support is not configured in 
- * or usb-ehci.c (!!!) will be missing symbols
- */
+#ifdef CONFIG_MACH_TI8148EVM
+#error Cannot compile ASI1230 support together with TI8148EVM support
+/* The following two functions must be defined when TI8148EVM support is not configured in 
+ * or usb-ehci.c (!!!) will be missing symbols. The problem goes away after tweaking Makefiles
+ * to exclude USB support when deselected but a proper fix would require refactoring
+ * EVM and platform code.
 int vps_ti814x_select_video_decoder(int vid_decoder_id) { return 0; }
 int vps_ti814x_set_tvp7002_filter(enum fvid2_standard standard) { return 0; }
+ */
 #endif
 
 static struct omap2_hsmmc_info mmc[] = {
@@ -237,7 +240,7 @@ static void __init asi1230_map_io(void)
 
 void  __init asi1230_reserve(void)
 {
-	ti81xxfb_reserve_sdram_memblock();
+    /* TODO: Reserve memory for PCI when PCI support is enabled */
 }
 
 static void __init asi1230_init(void)
