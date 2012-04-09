@@ -123,7 +123,10 @@ void __init asi1230_spi_init(void)
 #define PHY_VSC8601_ID 0x00070421
 #define PHY_VSC8601_MASK 0xFFFFFFFF
 #define PHY_VSC8601_EXCTRL1_REG 0x17
+#define PHY_VSC8601_LEDCTRL_REG 0x1B
 #define PHY_VSC8601_RXCLKSKEW 0x100
+#define PHY_VSC8601_LEDBLINK_EN 0x04
+#define PHY_VSC8601_LEDBLINK_10HZ 0x02
 
 static int asi1230_vsc_phy_fixup(struct phy_device *phydev)
 {
@@ -134,6 +137,11 @@ static int asi1230_vsc_phy_fixup(struct phy_device *phydev)
     val |= PHY_VSC8601_RXCLKSKEW;
     phy_write(phydev, PHY_VSC8601_EXCTRL1_REG, val);
     val = phy_read(phydev, PHY_VSC8601_EXCTRL1_REG);
+
+    /* Blink RJ-45 activity LED at a 10Hz rate */
+    val = phy_read(phydev, PHY_VSC8601_LEDCTRL_REG);
+    val |= PHY_VSC8601_LEDBLINK_EN | PHY_VSC8601_LEDBLINK_10HZ;
+    phy_write(phydev, PHY_VSC8601_LEDCTRL_REG, val);
 	return 0;
 }
 
