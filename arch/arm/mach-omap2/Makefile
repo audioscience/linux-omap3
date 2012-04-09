@@ -139,8 +139,12 @@ obj-$(CONFIG_ARCH_OMAP3)		+= $(clock-common) clock3xxx.o \
 obj-$(CONFIG_ARCH_OMAP4)		+= $(clock-common) clock44xx_data.o \
 					   dpll3xxx.o
 obj-$(CONFIG_ARCH_TI81XX)		+= $(clock-common) clock816x_data.o \
-					   clock814x_data.o clock81xx.o ti81xx_vpss.o \
+					   clock814x_data.o clock81xx.o \
 					   fapll_ti816x.o adpll_ti814x.o
+
+ifneq ($(CONFIG_TI81XX_VPSS),)
+obj-$(CONFIG_ARCH_TI81XX)		+= ti81xx_vpss.o 
+endif
 
 # OMAP2 clock rate set data (old "OPP" data)
 obj-$(CONFIG_ARCH_OMAP2420)		+= opp2420_data.o
@@ -268,11 +272,13 @@ obj-$(CONFIG_MACH_ASI1230)		+= board-asi1230.o \
 					   hsmmc.o \
 					   board-flash.o
 # Platform specific device init code
+ifeq ($(CONFIG_USB_SUPPORT),y)
 usbfs-$(CONFIG_ARCH_OMAP_OTG)		:= usb-fs.o
 obj-y					+= $(usbfs-m) $(usbfs-y)
 obj-y					+= usb-musb.o
 obj-$(CONFIG_MACH_OMAP2_TUSB6010)	+= usb-tusb6010.o
 obj-y					+= usb-ehci.o
+endif
 
 onenand-$(CONFIG_MTD_ONENAND_OMAP2)	:= gpmc-onenand.o
 obj-y					+= $(onenand-m) $(onenand-y)

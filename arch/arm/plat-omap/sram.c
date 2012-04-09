@@ -188,18 +188,21 @@ static void __init omap_detect_sram(void)
 			omap_sram_size = 0x4000;
 		}
 	}
+#if defined(CONFIG_FB_OMAP2) || defined(CONFIG_FB_OMAP2_MODULE)
 	reserved = omapfb_reserve_sram(omap_sram_start, omap_sram_base,
 				       omap_sram_size,
 				       omap_sram_start + SRAM_BOOTLOADER_SZ,
 				       omap_sram_size - SRAM_BOOTLOADER_SZ);
 	omap_sram_size -= reserved;
+#endif
 
+#ifdef CONFIG_OMAP2_VRAM
 	reserved = omap_vram_reserve_sram(omap_sram_start, omap_sram_base,
 			omap_sram_size,
 			omap_sram_start + SRAM_BOOTLOADER_SZ,
 			omap_sram_size - SRAM_BOOTLOADER_SZ);
 	omap_sram_size -= reserved;
-
+#endif
 	omap_sram_ceil = omap_sram_base + omap_sram_size;
 }
 

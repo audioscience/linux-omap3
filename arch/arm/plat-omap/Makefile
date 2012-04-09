@@ -5,7 +5,24 @@
 # Common support
 ifeq ($(CONFIG_ARCH_TI81XX),y)
 obj-y := common.o sram.o clock.o devices.o mux.o gpio.o \
-	 usb.o fb.o io.o counter_32k.o hdmi_lib.o hdcp_ddc.o hdcp_lib.o
+	  io.o counter_32k.o
+
+ifneq ($(CONFIG_TI81XX_HDMI_HDCP),)
+obj-y += hdcp_dcc.o hdcp_lib.o
+endif
+
+ifneq ($(CONFIG_TI81XX_HDMI),)
+obj-y += hdmi_lib.o
+endif
+
+ifeq ($(CONFIG_FB),y)
+obj-y += fb.o
+endif
+
+ifeq ($(CONFIG_USB_SUPPORT),y)
+obj-y += usb.o
+endif
+
 else
 obj-y := common.o sram.o clock.o devices.o dma.o mux.o gpio.o \
 	 usb.o fb.o io.o counter_32k.o
