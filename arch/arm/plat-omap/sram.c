@@ -114,7 +114,9 @@ static int is_sram_locked(void)
  */
 static void __init omap_detect_sram(void)
 {
+#if defined(CONFIG_FB_OMAP2) || defined(CONFIG_FB_OMAP2_MODULE) || defined(CONFIG_OMAP2_VRAM)
 	unsigned long reserved;
+#endif
 
 	if (cpu_class_is_omap2()) {
 		if (is_sram_locked()) {
