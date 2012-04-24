@@ -2397,6 +2397,13 @@ void ti814x_cpsw_init(void)
 			(cpu_is_ti814x() && omap_rev() > TI8148_REV_ES1_0)))
 		cpsw_slaves[0].phy_id = "0:01";
 
+	if (cpu_is_ti814x() && omap_rev() > TI8148_REV_ES1_0) {
+		ti814x_cpsw_pdata.no_bd_ram = true;
+		ti814x_cpsw_pdata.bd_ram_size = SZ_64K;
+		ti814x_cpsw_pdata.hw_ram_addr = 0;
+		ti814x_cpsw_pdata.rx_descs = 1024;
+	}
+
 	if (cpu_is_ti811x()) {
 		cpsw_slaves[0].slave_reg_ofs		= 0x200;
 		cpsw_slaves[0].sliver_reg_ofs		= 0xd80;
