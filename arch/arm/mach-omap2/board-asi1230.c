@@ -91,15 +91,16 @@ static struct omap2_hsmmc_info mmc[] = {
 	 },
 	{}			/* Terminator */
 };
-
+#if 0 /* Disable SPI Flash for revA HW */
 const struct flash_platform_data asi1230_spi_flash = {
 	.type = "m25p16",
 	.name = "spi_flash",
 	.parts = NULL,
 	.nr_parts = 0,
 };
-
+#endif
 struct spi_board_info __initdata asi1230_spi_slave_info[] = {
+#if 0 /* Disable SPI Flash for revA HW */
 	{
 	 .modalias = "m25p80",
 	 .platform_data = &asi1230_spi_flash,
@@ -108,6 +109,7 @@ struct spi_board_info __initdata asi1230_spi_slave_info[] = {
 	 .bus_num = 1,
 	 .chip_select = 0,
 	 },
+#endif
 	{
 	 .modalias = "spidev",
 	 .irq = -1,
