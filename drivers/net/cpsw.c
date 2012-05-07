@@ -33,6 +33,10 @@
 #include "cpsw_ale.h"
 #include "davinci_cpdma.h"
 
+#ifdef CONFIG_TI_CPSW_ASI_LW
+#include "cpsw_lw.h"
+#endif /* CONFIG_TI_CPSW_ASI_LW */
+
 #define CPSW_DEBUG	(NETIF_MSG_HW		| NETIF_MSG_WOL		| \
 			 NETIF_MSG_DRV		| NETIF_MSG_LINK	| \
 			 NETIF_MSG_IFUP		| NETIF_MSG_INTR	| \
@@ -346,6 +350,10 @@ struct cpsw_priv {
 #ifdef CONFIG_TI_CPSW_DUAL_EMAC
 	u32				emac_port;
 #endif /* CONFIG_TI_CPSW_DUAL_EMAC */
+
+#ifdef CONFIG_TI_CPSW_ASI_LW
+	struct cpsw_lw_info *lw_info;
+#endif /* CONFIG_TI_CPSW_ASI_LW */
 };
 
 static int cpsw_set_coalesce(struct net_device *ndev,
@@ -1160,6 +1168,10 @@ static int cpsw_ndo_stop(struct net_device *ndev)
 
 	msg(info, ifdown, "shutting down cpsw device\n");
 	netif_stop_queue(priv->ndev);
+#ifdef CONFIG_TI_CPSW_ASI_LW
+	if (cpsw_lw_status(priv->lw_info) == CPSW_ASI_MODE_LW)
+		cpsw_lw_stop(priv->lw_info);
+#endif /* CONFIG_TI_CPSW_ASI_LW */
 	napi_disable(&priv->napi);
 	netif_carrier_off(priv->ndev);
 
@@ -2349,9 +2361,77 @@ static int cpsw_switch_config_ioctl(struct net_device *ndev,
 }
 #endif /* CONFIG_TI_CPSW_DUAL_EMAC */
 
+#ifdef CONFIG_TI_CPSW_ASI_LW
+static int cpsw_asi_setmode(struct net_device *ndev,
+		struct cpsw_lw_msg *msg)
+{
+	struct cpsw_priv *priv = netdev_priv(ndev);
+	int ret = -EFAULT;
+
+	spin_lock(&priv->lock);
+
+	if (msg->req.modecmd.mode_id == cpsw_lw_status(priv->lw_info)) {
+		msg->errno = -EALREADY;
+		ret = 0;
+		goto done;
+	}
+
+	if (msg->req.modecmd.mode_id == CPSW_ASI_MODE_LW) {
+		cpsw_intr_disable(priv);
+		cpsw_disable_irq(priv);
+		napi_disable(&priv->napi);
+		cpsw_lw_start(priv->lw_info);
+	} else if (msg->req.modecmd.mode_id == CPSW_ASI_MODE_NORMAL) {
+		cpsw_lw_stop(priv->lw_info);
+		napi_enable(&priv->napi);
+		cpdma_ctlr_eoi(priv->dma);
+		cpsw_intr_enable(priv);
+		cpsw_enable_irq(priv);
+	} else {
+		ret = -EINVAL;
+	}
+
+done:
+	spin_unlock(&priv->lock);
+	return ret;
+}
+
+static int cpsw_asi_config_ioctl(struct net_device *ndev,
+		struct ifreq *ifrq, int cmd)
+{
+	struct cpsw_lw_msg lw_msg;
+	int ret = -EFAULT;
+
+	/*
+	* Only SIOCDEVPRIVATE is used as cmd argument and hence, there is no
+	* switch statement required.
+	* Function calls are based on switch_config.cmd
+	*/
+	if (cmd != CPSW_LW_IOCTL)
+		return ret;
+
+	if (copy_from_user(&lw_msg,
+			(struct cpsw_lw_msg *)(ifrq->ifr_data),
+			sizeof(struct cpsw_lw_msg)))
+		return ret;
+
+	switch (lw_msg.cmd) {
+	case CPSW_LW_DRVMSG_SETMODE:
+		ret = cpsw_asi_setmode(ndev, &lw_msg);
+		break;
+	default:
+		ret = -EOPNOTSUPP;
+	}
+
+	return ret;
+}
+#endif /* CONFIG_TI_CPSW_ASI_LW */
+
 static int cpsw_ndo_do_ioctl(struct net_device *ndev, struct ifreq *ifrq,
 		int cmd)
 {
+	struct cpsw_priv *priv = netdev_priv(ndev);
+
 	if (!(netif_running(ndev)))
 		return -EINVAL;
 
@@ -2369,6 +2449,14 @@ static int cpsw_ndo_do_ioctl(struct net_device *ndev, struct ifreq *ifrq,
 #else
 		return cpsw_switch_config_ioctl(ndev, ifrq, cmd);
 #endif /* CONFIG_TI_CPSW_DUAL_EMAC */
+
+#ifdef CONFIG_TI_CPSW_ASI_LW
+	case CPSW_LW_IOCTL:
+		if (priv->lw_info)
+			return cpsw_asi_config_ioctl(ndev, ifrq, cmd);
+		else
+			return -EFAULT;
+#endif /* CONFIG_TI_CPSW_ASI_LW */
 
 	default:
 		return -EOPNOTSUPP;
@@ -2721,6 +2809,16 @@ static int __devinit cpsw_probe(struct platform_device *pdev)
 	gpriv = priv;
 #endif /* CONFIG_PTP_1588_CLOCK_CPTS */
 
+#if CONFIG_TI_CPSW_ASI_LW
+	/* Init ASI LW stuff */
+	priv->lw_info = cpsw_lw_create(ndev);
+	if (!priv->lw_info) {
+		ret = -ENOMEM;
+		dev_err(priv->dev, "failed to init livewire support\n");
+		goto clean_ndev_ret;
+	}
+#endif /* CONFIG_TI_CPSW_ASI_LW */
+
 	if (is_valid_ether_addr(data->mac_addr)) {
 		memcpy(priv->mac_addr, data->mac_addr, ETH_ALEN);
 		printk(KERN_INFO "Detected MACID=%x:%x:%x:%x:%x:%x\n",
@@ -3025,6 +3123,10 @@ clean_clk_ret:
 	kfree(priv->cpts_time);
 	kfree(priv->slaves);
 clean_ndev_ret:
+#ifdef CONFIG_TI_CPSW_ASI_LW
+	if (priv->lw_info)
+		cpsw_lw_destroy(ndev, priv->lw_info);
+#endif /* CONFIG_TI_CPSW_ASI_LW */
 	free_netdev(ndev);
 	return ret;
 }
@@ -3050,6 +3152,9 @@ static int __devexit cpsw_remove(struct platform_device *pdev)
 	clk_put(priv->clk);
 	kfree(priv->cpts_time);
 	kfree(priv->slaves);
+#ifdef CONFIG_TI_CPSW_ASI_LW
+	cpsw_lw_destroy(ndev, priv->lw_info);
+#endif /* CONFIG_TI_CPSW_ASI_LW */
 	free_netdev(ndev);
 
 	return 0;

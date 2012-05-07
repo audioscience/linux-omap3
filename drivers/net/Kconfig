@@ -2103,6 +2103,12 @@ config TI_CPSW_DUAL_EMAC
 	help
 	  This driver makes TI's CPSW Ethernet Switch as Dual EMAC.
 
+config TI_CPSW_ASI_LW
+	bool "TI CPSW ASI Livewire Support"
+	depends on ARM && (ARCH_DAVINCI || ARCH_TI814X) && TI_CPSW && !TI_CPSW_DUAL_EMAC && !NET_POLL_CONTROLLER
+	help
+	  Compile in AudioScience Livewire support for CPSW
+
 
 config E1000
 	tristate "Intel(R) PRO/1000 Gigabit Ethernet support"

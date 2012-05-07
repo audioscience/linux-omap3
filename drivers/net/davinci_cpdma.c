@@ -93,9 +93,10 @@ enum cpdma_state {
 	CPDMA_STATE_IDLE,
 	CPDMA_STATE_ACTIVE,
 	CPDMA_STATE_TEARDOWN,
+	CPDMA_STATE_PAUSE,
 };
 
-const char *cpdma_state_str[] = { "idle", "active", "teardown" };
+const char *cpdma_state_str[] = { "idle", "active", "teardown", "pause" };
 
 struct cpdma_ctlr {
 	enum cpdma_state	state;
@@ -120,6 +121,9 @@ struct cpdma_chan {
 	struct cpdma_chan_stats		stats;
 	/* offsets into dmaregs */
 	int	int_set, int_clear, td;
+#ifdef CONFIG_TI_CPSW_ASI_LW
+	int budget;
+#endif /* CONFIG_TI_CPSW_ASI_LW */
 };
 
 /* The following make access to common cpdma_ctlr params more readable */
@@ -300,6 +304,15 @@ struct cpdma_ctlr *cpdma_ctlr_create(struct cpdma_params *params)
 	return ctlr;
 }
 EXPORT_SYMBOL(cpdma_ctlr_create);
+
+int cpdma_ctlr_numdesc(struct cpdma_ctlr *ctlr)
+{
+    if (!ctlr || !ctlr->pool)
+        return -EINVAL;
+
+    return ctlr->pool->num_desc;
+}
+EXPORT_SYMBOL(cpdma_ctlr_numdesc);
 
 int cpdma_ctlr_start(struct cpdma_ctlr *ctlr)
 {
@@ -534,6 +547,11 @@ struct cpdma_chan *cpdma_chan_create(struct cpdma_ctlr *ctlr, int chan_num,
 	chan->state	= CPDMA_STATE_IDLE;
 	chan->chan_num	= chan_num;
 	chan->handler	= handler;
+
+#ifdef CONFIG_TI_CPSW_ASI_LW
+    /* Default to unlimited budget */
+	chan->budget    = -1;
+#endif /* CONFIG_TI_CPSW_ASI_LW */
 
 	if (is_rx_chan(chan)) {
 		chan->hdp	= ctlr->params.rxhdp + offset;
@@ -836,7 +854,7 @@ int cpdma_chan_start(struct cpdma_chan *chan)
 	unsigned long		flags;
 
 	spin_lock_irqsave(&chan->lock, flags);
-	if (chan->state != CPDMA_STATE_IDLE) {
+	if (chan->state != CPDMA_STATE_IDLE && chan->state != CPDMA_STATE_PAUSE) {
 		spin_unlock_irqrestore(&chan->lock, flags);
 		return -EBUSY;
 	}
@@ -918,6 +936,58 @@ int cpdma_chan_stop(struct cpdma_chan *chan)
 	return 0;
 }
 EXPORT_SYMBOL(cpdma_chan_stop);
+
+#ifdef CONFIG_TI_CPSW_ASI_LW
+int cpdma_chan_desc_count(struct cpdma_chan *chan)
+{
+    return chan->count;
+}
+EXPORT_SYMBOL(cpdma_chan_desc_count);
+
+int cpdma_chan_pause(struct cpdma_chan *chan)
+{
+	unsigned long		flags;
+
+	spin_lock_irqsave(&chan->lock, flags);
+	if (chan->state != CPDMA_STATE_ACTIVE) {
+		spin_unlock_irqrestore(&chan->lock, flags);
+		return -EINVAL;
+	}
+	chan->state = CPDMA_STATE_PAUSE;
+	spin_unlock_irqrestore(&chan->lock, flags);
+	return 0;
+}
+EXPORT_SYMBOL(cpdma_chan_pause);
+
+int cpdma_chan_reset(struct cpdma_chan *chan, int budget)
+{
+	struct cpdma_ctlr *ctlr = chan->ctlr;
+	unsigned long flags;
+
+	if (!chan)
+		return -EINVAL;
+
+	spin_lock_irqsave(&ctlr->lock, flags);
+	if (chan->state != CPDMA_STATE_IDLE)
+		cpdma_chan_stop(chan);
+	spin_unlock_irqrestore(&ctlr->lock, flags);
+
+	spin_lock_irqsave(&chan->lock, flags);
+	chan->budget = budget;
+	spin_unlock_irqrestore(&chan->lock, flags);
+	return 0;
+}
+EXPORT_SYMBOL(cpdma_chan_reset);
+
+struct cpdma_chan *cpdma_chan_create_budget(struct cpdma_ctlr *ctlr, int chan_num,
+				     cpdma_handler_fn handler, int budget)
+{
+    struct cpdma_chan *chan = cpdma_chan_create(ctlr, chan_num, handler);
+    chan->budget = budget;
+    return chan;
+}
+EXPORT_SYMBOL(cpdma_chan_create_budget);
+#endif /* CONFIG_TI_CPSW_ASI_LW */
 
 int cpdma_chan_int_ctrl(struct cpdma_chan *chan, bool enable)
 {
