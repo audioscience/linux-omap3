@@ -17,6 +17,21 @@
 #define shmem_read(desc, fld)		__raw_readl(&(desc)->fld)
 #define shmem_write(desc, fld, v)	__raw_writel((u32)(v), &(desc)->fld)
 
+#define CPSW_LW_DEBUG	(NETIF_MSG_HW		| NETIF_MSG_WOL		| \
+			 NETIF_MSG_DRV		| NETIF_MSG_LINK	| \
+			 NETIF_MSG_IFUP		| NETIF_MSG_INTR	| \
+			 NETIF_MSG_PROBE	| NETIF_MSG_TIMER	| \
+			 NETIF_MSG_IFDOWN	| NETIF_MSG_RX_ERR	| \
+			 NETIF_MSG_TX_ERR	| NETIF_MSG_TX_DONE	| \
+			 NETIF_MSG_PKTDATA	| NETIF_MSG_TX_QUEUED	| \
+			 NETIF_MSG_RX_STATUS)
+
+#define msg(level, type, format, ...)				\
+do {								\
+	if (netif_msg_##type(lw_info) && net_ratelimit())		\
+		dev_##level(&lw_info->ndev->dev, format, ## __VA_ARGS__);	\
+} while (0)
+
 struct cpsw_lw_shmem {
 	u32 int_flags;
 
@@ -35,13 +50,14 @@ struct cpsw_lw_info {
 	struct cpsw_lw_shmem __iomem *shmem;
 	dma_addr_t shmem_hw_addr;
 
+	u32 msg_enable;
 	wait_queue_head_t wq;
 
 	struct net_device *ndev;
 	struct napi_struct napi;
 
 	struct cpdma_ctlr *cpdma_ctlr;
-	struct cpdma_chan *tx_chan;
+	struct cpdma_chan *tx_chan, *rx_chan;
 	struct cpdma_chan *outgoing_tx_chan;
 	u32 tx_budget; /* in octets */
 
@@ -65,8 +81,6 @@ struct cpsw_lw_info {
 
 #define napi_to_lwinfo(napi) container_of(napi, struct cpsw_lw_info, napi)
 
-static void cpsw_lw_tx_handler(void *token, int len, int status);
-static void cpsw_lw_rx_handler(void *token, int len, int status);
 static inline int cpsw_lw_prepmsg_slave(struct cpsw_lw_info *lw_info,
 					enum cpsw_drv_cmd cmd, void *buf, size_t buf_size);
 static inline int cpsw_lw_postmsg_slave(struct cpsw_lw_info *lw_info,
@@ -84,103 +98,63 @@ static void cpsw_lw_notification_callback(u16 procid, u16 lineid, u32 eventno,
 	BUG_ON(lw_info == NULL);
 	
 	// Start the next channel if the currently outgoing channel is done
-	if (!cpdma_chan_desc_count(lw_info->outgoing_tx_chan))
+	if (likely(cpdma_chan_isdone(lw_info->outgoing_tx_chan) || !cpdma_chan_desc_count(lw_info->outgoing_tx_chan)))
 		cpdma_chan_start(lw_info->tx_chan);
 
 	// Schedule NAPI, will eventually call cpsw_lw_poll()
 	napi_schedule(&lw_info->napi);
 
-	if (lw_info->shmem->s2h_msg_status == CPSW_LW_MSM_POST ||
-		lw_info->shmem->h2s_msg_status == CPSW_LW_MSM_DONE)
+	if (unlikely(lw_info->shmem->s2h_msg_status == CPSW_LW_MSM_POST ||
+		lw_info->shmem->h2s_msg_status == CPSW_LW_MSM_DONE))
 		wake_up(&lw_info->wq);
-}
-
-static void cpsw_lw_tx_handler(void *token, int len, int status)
-{
-	struct sk_buff		*skb = token;
-	struct net_device	*ndev = skb->dev;
-	struct cpsw_priv	*priv = netdev_priv(ndev);
-
-	if (unlikely(netif_queue_stopped(ndev)))
-		netif_start_queue(ndev);
-
-	priv->stats.tx_packets++;
-	priv->stats.tx_bytes += len;
-	dev_kfree_skb_any(skb);
-}
-
-static void cpsw_lw_rx_handler(void *token, int len, int status)
-{
-	struct sk_buff		*skb = token;
-	struct net_device	*ndev = skb->dev;
-	struct cpsw_priv	*priv = netdev_priv(ndev);
-	int			ret = 0;
-
-	/* free and bail if we are shutting down */
-	if (unlikely(!netif_running(ndev)) ||
-			unlikely(!netif_carrier_ok(ndev))) {
-		dev_kfree_skb_any(skb);
-		return;
-	}
-
-	if (likely(status >= 0)) {
-		skb_put(skb, len);
-		skb->protocol = eth_type_trans(skb, ndev);
-		netif_receive_skb(skb);
-		priv->stats.rx_bytes += len;
-		priv->stats.rx_packets++;
-		skb = NULL;
-	}
-
-
-	if (unlikely(!netif_running(ndev))) {
-		if (skb)
-			dev_kfree_skb_any(skb);
-		return;
-	}
-
-	if (likely(!skb)) {
-		skb = netdev_alloc_skb_ip_align(ndev, priv->rx_packet_max);
-		if (WARN_ON(!skb))
-			return;
-
-		ret = cpdma_chan_submit(priv->rxch, skb, skb->data,
-				skb_tailroom(skb), 0, GFP_KERNEL);
-	}
-
-	WARN_ON(ret < 0);
-
 }
 
 static int cpsw_lw_poll(struct napi_struct *napi, int budget)
 {
 	struct cpsw_lw_info *lw_info = napi_to_lwinfo(napi);
-	int num_tx, num_rx;
+	int num_tx = 0, num_rx;
 
 	struct cpdma_chan *next_tx_chan;
 	unsigned long flags;
 
-#if 0
-	if (cpdma_chan_desc_count(lw_info->outgoing_tx_chan))
-		; /* Log an error, the outgoing channel should be done by now */
+	/* Log an error, the outgoing channel should be done by now */
+	if (unlikely(cpdma_chan_desc_count(lw_info->outgoing_tx_chan) && 
+				!cpdma_chan_isdone(lw_info->outgoing_tx_chan))) {
+		msg(err, intr, "TX queue from the previous slot is still running\n");
+		goto skip_tx_turn;
+	}
 
-	/* For speed, instead of creating and destroying a channel we should add a cpdma_chan_reset() function */
-	next_tx_chan = cpdma_chan_create_budget(lw_info->cpdma_ctlr, tx_chan_num(0), cpsw_lw_tx_handler, lw_info->tx_budget);
-	if (cpdma_chan_desc_count(lw_info->outgoing_tx_chan))
-		; /* Log an error, the outgoing channel should be done by now */
-	cpdma_chan_destroy(lw_info->outgoing_tx_chan);
+	if (unlikely(!cpdma_chan_isactive(lw_info->tx_chan) &&
+				cpdma_chan_desc_count(lw_info->tx_chan))) {
+		msg(err, intr, "TX queue for the current slot is not active\n");
+		goto skip_tx_turn;
+	}
 
+	/* Swap the two tx queues so we can start feeding the one that is not running */
 	spin_lock_irqsave(&lw_info->lock, flags);
+	next_tx_chan = lw_info->outgoing_tx_chan;
 	lw_info->outgoing_tx_chan = lw_info->tx_chan;
 	lw_info->tx_chan = next_tx_chan;
 	spin_unlock_irqrestore(&lw_info->lock, flags);
 
-	num_tx = cpdma_chan_process(priv->txch, 128);
-	num_rx = cpdma_chan_process(priv->rxch, budget);
+	/* Process all TX buffers. When the function returns the channel should be empty */
+	num_tx = cpdma_chan_process(lw_info->tx_chan, INT_MAX);
+	if (unlikely(cpdma_chan_desc_count(lw_info->tx_chan)))
+		msg(err, intr, "TX queue not empty after flush\n");
+
+	/* Reset the channel's budget */
+	cpdma_chan_reset(lw_info->tx_chan, lw_info->tx_budget);
+
+	/* Restart the outgoing packets queue */
+	netif_wake_queue(lw_info->ndev);
+
+skip_tx_turn:
+
+	num_rx = cpdma_chan_process(lw_info->rx_chan, budget);
 
 	if (num_rx || num_tx)
 		msg(dbg, intr, "poll %d rx, %d tx pkts\n", num_rx, num_tx);
-#endif
+
 	if (num_rx < budget) {
 		napi_complete(napi);
 	}
@@ -188,20 +162,22 @@ static int cpsw_lw_poll(struct napi_struct *napi, int budget)
 	return num_rx;
 }
 
+/* Messaging */
+
 static inline int cpsw_lw_prepmsg_slave(struct cpsw_lw_info *lw_info,
 					enum cpsw_drv_cmd cmd, void *buf, size_t buf_size)
 {
 	if (!lw_info || !buf || buf_size > sizeof(union req_data))
 		return -EINVAL;
 
-	spin_lock(&lw_info->shmem_lock);
+	spin_lock(&lw_info->lock);
 	/* If the message is being processed bail out */
 	if (shmem_read(lw_info->shmem, h2s_msg_status) != CPSW_LW_MSM_FREE) {
-		spin_unlock(&lw_info->shmem_lock);
+		spin_unlock(&lw_info->lock);
 		return -EINPROGRESS;
 	}
 	shmem_write(lw_info->shmem, h2s_msg_status, CPSW_LW_MSM_PREP);
-	spin_unlock(&lw_info->shmem_lock);
+	spin_unlock(&lw_info->lock);
 
 	memset(&lw_info->host_to_slave.req, 0, sizeof(struct cpsw_lw_msg));
 	lw_info->host_to_slave.cmd = cmd;
@@ -214,13 +190,13 @@ static inline int cpsw_lw_postmsg_slave(struct cpsw_lw_info *lw_info, bool wait_
 	if (!lw_info)
 		return -EINVAL;
 
-	spin_lock(&lw_info->shmem_lock);	
+	spin_lock(&lw_info->lock);	
 	if (shmem_read(lw_info->shmem, h2s_msg_status) != CPSW_LW_MSM_PREP) {
-		spin_unlock(&lw_info->shmem_lock);
+		spin_unlock(&lw_info->lock);
 		return -EINPROGRESS;
 	}
 	shmem_write(lw_info->shmem, h2s_msg_status, CPSW_LW_MSM_POST);
-	spin_unlock(&lw_info->shmem_lock);	
+	spin_unlock(&lw_info->lock);	
 
 	dma_sync_single_for_device(&lw_info->ndev->dev, lw_info->h2s_msg_bufaddr,
 							sizeof(lw_info->host_to_slave), DMA_TO_DEVICE);
@@ -234,18 +210,18 @@ static inline int cpsw_lw_recvmsg_slave(struct cpsw_lw_info *lw_info,
 	if (!lw_info)
 		return -EINVAL;
 
-	spin_lock(&lw_info->shmem_lock);	
+	spin_lock(&lw_info->lock);
 	if (shmem_read(lw_info->shmem, h2s_msg_status) != CPSW_LW_MSM_DONE) {
-		spin_unlock(&lw_info->shmem_lock);
+		spin_unlock(&lw_info->lock);
 		return -EINPROGRESS;
 	}
 	dma_sync_single_for_cpu(&lw_info->ndev->dev, lw_info->h2s_msg_bufaddr,
 							sizeof(lw_info->host_to_slave), DMA_FROM_DEVICE);
 	if (dest_buf) {
-		memcpy(msg, &lw_info->host_to_slave, sizeof(*msg));
+		memcpy(dest_buf, &lw_info->host_to_slave, sizeof(*dest_buf));
 		shmem_write(lw_info->shmem, h2s_msg_status, CPSW_LW_MSM_FREE);
 	}
-	spin_unlock(&lw_info->shmem_lock);
+	spin_unlock(&lw_info->lock);
 
 	return 0;
 }
@@ -255,13 +231,13 @@ static inline int cpsw_lw_freemsg_slave(struct cpsw_lw_info *lw_info)
 	if (!lw_info)
 		return -EINVAL;
 
-	spin_lock(&lw_info->shmem_lock);	
+	spin_lock(&lw_info->lock);	
 	if (shmem_read(lw_info->shmem, h2s_msg_status) != CPSW_LW_MSM_DONE) {
-		spin_unlock(&lw_info->shmem_lock);
+		spin_unlock(&lw_info->lock);
 		return -EINPROGRESS;
 	}
 	shmem_write(lw_info->shmem, h2s_msg_status, CPSW_LW_MSM_FREE);
-	spin_unlock(&lw_info->shmem_lock);
+	spin_unlock(&lw_info->lock);
 
 	return 0;
 }
@@ -284,6 +260,16 @@ static inline int cpsw_lw_notify_slave(struct cpsw_lw_info *lw_info, bool wait_c
 }
 
 /*  */
+
+netdev_tx_t cpsw_lw_xmit(struct cpsw_lw_info *lw_info, struct sk_buff *skb, void *data, size_t len)
+{
+	return NETDEV_TX_OK;
+}
+
+void cpsw_lw_tx_timeout(struct cpsw_lw_info *lw_info)
+{
+
+}
 
 int cpsw_lw_status(struct cpsw_lw_info *lw_info)
 {
@@ -379,7 +365,6 @@ struct cpsw_lw_info* cpsw_lw_create(struct net_device *ndev)
 	}
 
 	spin_lock_init(&lw_info->lock);
-	spin_lock_init(&lw_info->shmem_lock);
 	init_waitqueue_head(&lw_info->wq);
 
 	lw_info->ndev = ndev;
@@ -417,6 +402,8 @@ struct cpsw_lw_info* cpsw_lw_create(struct net_device *ndev)
 	shmem_write(lw_info->shmem, s2h_msg_bufaddr, lw_info->s2h_msg_bufaddr);
 
 	netif_napi_add(ndev, &lw_info->napi, cpsw_lw_poll, LW_NAPI_POLL_WEIGHT);
+
+	lw_info->msg_enable = CPSW_LW_DEBUG;
 
 	return lw_info;
 

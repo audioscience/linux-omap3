@@ -539,19 +539,19 @@ struct cpdma_chan *cpdma_chan_create(struct cpdma_ctlr *ctlr, int chan_num,
 		goto err_chan_alloc;
 
 	spin_lock_irqsave(&ctlr->lock, flags);
+#ifdef CONFIG_TI_CPSW_ASI_LW
+    /* Default to an effectively unlimited budget */
+	chan->budget    = INT_MAX;
+#else
 	ret = -EBUSY;
 	if (ctlr->channels[chan_num])
 		goto err_chan_busy;
+#endif /* CONFIG_TI_CPSW_ASI_LW */
 
 	chan->ctlr	= ctlr;
 	chan->state	= CPDMA_STATE_IDLE;
 	chan->chan_num	= chan_num;
 	chan->handler	= handler;
-
-#ifdef CONFIG_TI_CPSW_ASI_LW
-    /* Default to unlimited budget */
-	chan->budget    = -1;
-#endif /* CONFIG_TI_CPSW_ASI_LW */
 
 	if (is_rx_chan(chan)) {
 		chan->hdp	= ctlr->params.rxhdp + offset;
@@ -573,7 +573,12 @@ struct cpdma_chan *cpdma_chan_create(struct cpdma_ctlr *ctlr, int chan_num,
 
 	spin_lock_init(&chan->lock);
 
+#ifdef CONFIG_TI_CPSW_ASI_LW
+	if (!ctlr->channels[chan_num])
+		ctlr->channels[chan_num] = chan;
+#else /* CONFIG_TI_CPSW_ASI_LW */
 	ctlr->channels[chan_num] = chan;
+#endif /* CONFIG_TI_CPSW_ASI_LW */
 	spin_unlock_irqrestore(&ctlr->lock, flags);
 	return chan;
 
@@ -596,7 +601,12 @@ int cpdma_chan_destroy(struct cpdma_chan *chan)
 	spin_lock_irqsave(&ctlr->lock, flags);
 	if (chan->state != CPDMA_STATE_IDLE)
 		cpdma_chan_stop(chan);
+#ifdef CONFIG_TI_CPSW_ASI_LW
+	if (ctlr->channels[chan->chan_num] == chan)
+		ctlr->channels[chan->chan_num] = NULL;
+#else /* CONFIG_TI_CPSW_ASI_LW */
 	ctlr->channels[chan->chan_num] = NULL;
+#endif /* CONFIG_TI_CPSW_ASI_LW */
 	spin_unlock_irqrestore(&ctlr->lock, flags);
 	kfree(chan);
 	return 0;
@@ -719,6 +729,15 @@ int cpdma_chan_submit(struct cpdma_chan *chan, void *token, void *data,
 		goto unlock_ret;
 	}
 
+#ifdef CONFIG_TI_CPSW_ASI_LW
+#define ETH_OVERHEAD_OCTETS (12+7+1) /* Preamble(7) + StartOfFrame(1) + InterframeGap(12) */
+
+	if (chan->budget - (len+ETH_OVERHEAD_OCTETS) < 0) {
+		ret = -EBUSY;
+		goto unlock_ret;	
+	}
+#endif /* CONFIG_TI_CPSW_ASI_LW */
+
 	is_rx = (chan->rxfree != 0);
 	desc = cpdma_desc_alloc(ctlr->pool, 1, is_rx);
 	if (!desc) {
@@ -752,6 +771,8 @@ int cpdma_chan_submit(struct cpdma_chan *chan, void *token, void *data,
 		chan_write(chan, rxfree, 1);
 
 	chan->count++;
+	if (unlikely(chan->budget != INT_MAX))
+		chan->budget -= len+ETH_OVERHEAD_OCTETS;
 
 unlock_ret:
 	spin_unlock_irqrestore(&chan->lock, flags);
@@ -814,6 +835,7 @@ static int __cpdma_chan_process(struct cpdma_chan *chan)
 	chan->count--;
 	chan->stats.good_dequeue++;
 
+	/* Isn't re-queuing redundant? all cases should be already handled in submit... */
 	if ((status & CPDMA_DESC_EOQ) && (chan->head) &&
 			(!(status & CPDMA_DESC_TD_COMPLETE))) {
 		chan->stats.requeue++;
@@ -938,15 +960,82 @@ int cpdma_chan_stop(struct cpdma_chan *chan)
 EXPORT_SYMBOL(cpdma_chan_stop);
 
 #ifdef CONFIG_TI_CPSW_ASI_LW
+bool cpdma_chan_isactive(struct cpdma_chan *chan)
+{
+	if (!chan)
+		return -EINVAL;
+
+	if (chan->state == CPDMA_STATE_ACTIVE)
+        return true;
+    return false;
+}
+EXPORT_SYMBOL(cpdma_chan_isactive);
+
+bool cpdma_chan_isdone(struct cpdma_chan *chan)
+{
+	struct cpdma_desc __iomem *tail;
+	unsigned long flags;
+	u32 mode;
+
+	if (!chan)
+		return -EINVAL;
+
+	spin_lock_irqsave(&chan->lock, flags);
+
+	tail = chan->tail;
+	if (!tail)
+		goto ret_f;
+	
+	mode = desc_read(tail, hw_mode);
+	if ((mode & (CPDMA_DESC_EOQ | CPDMA_DESC_OWNER)) != CPDMA_DESC_EOQ)
+		goto ret_f;
+
+	spin_unlock_irqrestore(&chan->lock, flags);
+	return true;
+
+ret_f:
+	spin_unlock_irqrestore(&chan->lock, flags);
+    return false;
+}
+EXPORT_SYMBOL(cpdma_chan_isdone);
+
 int cpdma_chan_desc_count(struct cpdma_chan *chan)
 {
+	if (!chan)
+		return -EINVAL;
+
     return chan->count;
 }
 EXPORT_SYMBOL(cpdma_chan_desc_count);
+#if 0
+int cpdma_ctlr_swapchans(struct cpdma_ctlr *ctlr, struct cpdma_chan *newchan,
+							struct cpdma_chan **oldchan)
+{
+	int chan_num;
+	unsigned long flags, flags2, flags3;
+
+	if (!ctrl || !newchan || !oldchan)
+		return -EINVAL;
+
+	spin_lock_irqsave(&ctlr->lock, flags);
+	spin_lock_irqsave(&newchan->lock, flags2);
+	chan_num = newchan->chan_num;
+	*oldchan = ctlr->channels[chan_num];
+	spin_lock_irqsave(&(*oldchan)->lock, flags3);
+	ctlr->channels[chan_num] = newchan;
+	spin_unlock_irqrestore(&(*oldchan)->lock, flags3);
+	spin_unlock_irqrestore(&newchan->lock, flags2);
+	spin_unlock_irqrestore(&ctlr->lock, flags);
+	return 0;
+}
+EXPORT_SYMBOL(cpdma_ctlr_swapchans);
 
 int cpdma_chan_pause(struct cpdma_chan *chan)
 {
-	unsigned long		flags;
+	unsigned long flags;
+
+	if (!chan)
+		return -EINVAL;
 
 	spin_lock_irqsave(&chan->lock, flags);
 	if (chan->state != CPDMA_STATE_ACTIVE) {
@@ -958,7 +1047,7 @@ int cpdma_chan_pause(struct cpdma_chan *chan)
 	return 0;
 }
 EXPORT_SYMBOL(cpdma_chan_pause);
-
+#endif
 int cpdma_chan_reset(struct cpdma_chan *chan, int budget)
 {
 	struct cpdma_ctlr *ctlr = chan->ctlr;
@@ -978,6 +1067,18 @@ int cpdma_chan_reset(struct cpdma_chan *chan, int budget)
 	return 0;
 }
 EXPORT_SYMBOL(cpdma_chan_reset);
+
+struct cpdma_chan *cpdma_chan_bynum(struct cpdma_ctlr *ctlr, int chan_num)
+{
+	struct cpdma_chan *chan;
+	unsigned long flags;
+
+	spin_lock_irqsave(&ctlr->lock, flags);
+	chan = ctlr->channels[chan_num];
+	spin_unlock_irqrestore(&ctlr->lock, flags);
+	return chan;
+}
+EXPORT_SYMBOL(cpdma_chan_bynum);
 
 struct cpdma_chan *cpdma_chan_create_budget(struct cpdma_ctlr *ctlr, int chan_num,
 				     cpdma_handler_fn handler, int budget)

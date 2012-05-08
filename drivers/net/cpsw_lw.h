@@ -85,10 +85,13 @@ struct cpsw_lw_msg {
 struct cpsw_lw_info;
 struct cpsw_priv;
 
-struct cpsw_lw_info* cpsw_lw_create(struct net_device *ndev);
+void cpsw_lw_tx_timeout(struct cpsw_lw_info *lw_info);
+netdev_tx_t cpsw_lw_xmit(struct cpsw_lw_info *lw_info,
+				struct sk_buff *skb, void *data, size_t len);
+int cpsw_lw_status(struct cpsw_lw_info *lw_info);
 int cpsw_lw_start(struct cpsw_lw_info *lw_info);
 int cpsw_lw_stop(struct cpsw_lw_info *lw_info);
-int cpsw_lw_status(struct cpsw_lw_info *lw_info);
+struct cpsw_lw_info* cpsw_lw_create(struct net_device *ndev);
 void cpsw_lw_destroy(struct net_device *ndev, struct cpsw_lw_info *lw_info);
 
 #endif /* __CPSW_LW_H__ */

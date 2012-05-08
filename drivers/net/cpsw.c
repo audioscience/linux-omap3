@@ -1228,8 +1228,17 @@ static netdev_tx_t cpsw_ndo_start_xmit(struct sk_buff *skb,
 				skb->len, 2, GFP_KERNEL);
 	}
 #else
+#ifdef CONFIG_TI_CPSW_ASI_LW
+	BUG_ON(priv->lw_info == NULL);
+	ret = cpsw_lw_xmit(priv->lw_info, skb, skb->data, skb->len);
+	if (ret == NETDEV_TX_BUSY) {
+		netif_stop_queue(ndev);
+		return ret;
+	}
+#else
 	ret = cpdma_chan_submit(priv->txch, skb, skb->data,
 				skb->len, 0, GFP_KERNEL);
+#endif /* CONFIG_TI_CPSW_ASI_LW */
 #endif /* CONFIG_TI_CPSW_DUAL_EMAC */
 
 	if (unlikely(ret != 0)) {
@@ -2549,6 +2558,10 @@ static int cpsw_ndo_set_mac_address(struct net_device *ndev, void *p)
 
 static void cpsw_ndo_tx_timeout(struct net_device *ndev)
 {
+#ifdef CONFIG_TI_CPSW_ASI_LW
+	struct cpsw_priv *priv = netdev_priv(ndev);
+	cpsw_lw_tx_timeout(priv->lw_info);
+#else
 	struct cpsw_priv *priv = netdev_priv(ndev);
 
 	msg(err, tx_err, "transmit timeout, restarting dma");
@@ -2560,6 +2573,7 @@ static void cpsw_ndo_tx_timeout(struct net_device *ndev)
 	cpdma_ctlr_int_ctrl(priv->dma, true);
 	cpsw_intr_enable(priv);
 	cpdma_ctlr_eoi(priv->dma);
+#endif /* CONFIG_TI_CPSW_ASI_LW */
 }
 
 static struct net_device_stats *cpsw_ndo_get_stats(struct net_device *ndev)
