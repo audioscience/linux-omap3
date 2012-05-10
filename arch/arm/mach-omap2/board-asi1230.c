@@ -15,6 +15,7 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/device.h>
+#include <linux/clk.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/flash.h>
 #include <linux/platform_device.h>
@@ -247,6 +248,8 @@ void __init asi1230_reserve(void)
 
 static void __init asi1230_init(void)
 {
+	struct clk *dev_clk;
+
 	ti814x_mux_init(board_mux);
 	omap_serial_init();
 	asi1230_i2c_init();
@@ -256,7 +259,11 @@ static void __init asi1230_init(void)
 	platform_add_devices(asi1230_devices, ARRAY_SIZE(asi1230_devices));
 	regulator_use_dummy_regulator();
 
-	/* Register a clock skew ETH PHY fix for VSC8601 */
+	/* Enable McASP0 clock so it can be accessed by other CPUs */
+	dev_clk = clk_get_sys("davinci-mcasp.0", NULL);
+	BUG_ON(IS_ERR(dev_clk));
+	clk_enable(dev_clk);
+
 	phy_register_fixup_for_uid(PHY_VSC8601_ID, PHY_VSC8601_MASK,
 				   asi1230_vsc_phy_fixup);
 }
