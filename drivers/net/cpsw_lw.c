@@ -9,10 +9,13 @@
 
 #include <syslink/notify.h>
 
-#include "cpsw_lw.h"
+#include <linux/cpsw_lw.h>
 #include "davinci_cpdma.h"
 
 #define LW_NAPI_POLL_WEIGHT 64
+#define CPSW_LW_RELVER ((0x00 << 16) | (0x01 << 8))
+#define CPSW_LW_MSG_POLL_PERIOD 50
+#define CPSW_LW_MSG_TIMEOUT 1000
 
 #define shmem_read(desc, fld)		__raw_readl(&(desc)->fld)
 #define shmem_write(desc, fld, v)	__raw_writel((u32)(v), &(desc)->fld)
@@ -32,18 +35,6 @@ do {								\
 		dev_##level(&lw_info->ndev->dev, format, ## __VA_ARGS__);	\
 } while (0)
 
-struct cpsw_lw_shmem {
-	u32 int_flags;
-
-	s16 slave_state;
-	s16 slave_errno;
-
-	u32 h2s_msg_status;
-	u32 h2s_msg_bufaddr;
-	u32 s2h_msg_status;
-	u32 s2h_msg_bufaddr;
-};
-
 struct cpsw_lw_info {
 	spinlock_t lock;
 
@@ -53,6 +44,7 @@ struct cpsw_lw_info {
 	u32 msg_enable;
 	wait_queue_head_t wq;
 
+	struct platform_device *pdev;
 	struct net_device *ndev;
 	struct napi_struct napi;
 
@@ -61,9 +53,9 @@ struct cpsw_lw_info {
 	struct cpdma_chan *outgoing_tx_chan;
 	u32 tx_budget; /* in octets */
 
-	s32 state;
-	u32 req_mode;
-	u32 cur_mode;
+	s32 status;
+	//u32 req_mode;
+	//u32 cur_mode;
 
 	u16 slave_proc_id;
 	u16 slave_line_id;
@@ -101,7 +93,7 @@ static void cpsw_lw_notification_callback(u16 procid, u16 lineid, u32 eventno,
 	if (likely(cpdma_chan_isdone(lw_info->outgoing_tx_chan) || !cpdma_chan_desc_count(lw_info->outgoing_tx_chan)))
 		cpdma_chan_start(lw_info->tx_chan);
 
-	// Schedule NAPI, will eventually call cpsw_lw_poll()
+	// Schedule NAPI, will eventually call cpsw_lw_poll() in a separate context
 	napi_schedule(&lw_info->napi);
 
 	if (unlikely(lw_info->shmem->s2h_msg_status == CPSW_LW_MSM_POST ||
@@ -171,7 +163,7 @@ static inline int cpsw_lw_prepmsg_slave(struct cpsw_lw_info *lw_info,
 		return -EINVAL;
 
 	spin_lock(&lw_info->lock);
-	/* If the message is being processed bail out */
+	/* If a message is being processed bail out */
 	if (shmem_read(lw_info->shmem, h2s_msg_status) != CPSW_LW_MSM_FREE) {
 		spin_unlock(&lw_info->lock);
 		return -EINPROGRESS;
@@ -182,6 +174,26 @@ static inline int cpsw_lw_prepmsg_slave(struct cpsw_lw_info *lw_info,
 	memset(&lw_info->host_to_slave.req, 0, sizeof(struct cpsw_lw_msg));
 	lw_info->host_to_slave.cmd = cmd;
 	memcpy(&lw_info->host_to_slave.req, buf, buf_size);
+	lw_info->host_to_slave.msg_errno = -EBADE;
+	return 0;
+}
+
+static inline int cpsw_lw_prepmsg_slave_fromptr(struct cpsw_lw_info *lw_info,
+					struct cpsw_lw_msg *msg)
+{
+	if (!lw_info || !msg)
+		return -EINVAL;
+
+	spin_lock(&lw_info->lock);
+	/* If a message is being processed bail out */
+	if (shmem_read(lw_info->shmem, h2s_msg_status) != CPSW_LW_MSM_FREE) {
+		spin_unlock(&lw_info->lock);
+		return -EINPROGRESS;
+	}
+	shmem_write(lw_info->shmem, h2s_msg_status, CPSW_LW_MSM_PREP);
+	memcpy(&lw_info->host_to_slave, msg, sizeof(struct cpsw_lw_msg));
+	spin_unlock(&lw_info->lock);
+
 	return 0;
 }
 
@@ -195,11 +207,10 @@ static inline int cpsw_lw_postmsg_slave(struct cpsw_lw_info *lw_info, bool wait_
 		spin_unlock(&lw_info->lock);
 		return -EINPROGRESS;
 	}
+	dma_sync_single_for_device(&lw_info->pdev->dev, lw_info->h2s_msg_bufaddr,
+							sizeof(lw_info->host_to_slave), DMA_TO_DEVICE);
 	shmem_write(lw_info->shmem, h2s_msg_status, CPSW_LW_MSM_POST);
 	spin_unlock(&lw_info->lock);	
-
-	dma_sync_single_for_device(&lw_info->ndev->dev, lw_info->h2s_msg_bufaddr,
-							sizeof(lw_info->host_to_slave), DMA_TO_DEVICE);
 
 	return cpsw_lw_notify_slave(lw_info, true);
 }
@@ -215,7 +226,7 @@ static inline int cpsw_lw_recvmsg_slave(struct cpsw_lw_info *lw_info,
 		spin_unlock(&lw_info->lock);
 		return -EINPROGRESS;
 	}
-	dma_sync_single_for_cpu(&lw_info->ndev->dev, lw_info->h2s_msg_bufaddr,
+	dma_sync_single_for_cpu(&lw_info->pdev->dev, lw_info->h2s_msg_bufaddr,
 							sizeof(lw_info->host_to_slave), DMA_FROM_DEVICE);
 	if (dest_buf) {
 		memcpy(dest_buf, &lw_info->host_to_slave, sizeof(*dest_buf));
@@ -242,6 +253,18 @@ static inline int cpsw_lw_freemsg_slave(struct cpsw_lw_info *lw_info)
 	return 0;
 }
 
+static inline int cpsw_lw_resetmsg_slave(struct cpsw_lw_info *lw_info)
+{
+	if (!lw_info)
+		return -EINVAL;
+
+	spin_lock(&lw_info->lock);	
+	shmem_write(lw_info->shmem, h2s_msg_status, CPSW_LW_MSM_FREE);
+	spin_unlock(&lw_info->lock);
+
+	return 0;
+}
+
 static inline int cpsw_lw_notify_slave(struct cpsw_lw_info *lw_info, bool wait_clear)
 {
 	int res;
@@ -259,6 +282,26 @@ static inline int cpsw_lw_notify_slave(struct cpsw_lw_info *lw_info, bool wait_c
 	return res;
 }
 
+static int cpsw_lw_waitres_wq_slave(struct cpsw_lw_info *lw_info,
+									long poll_period,
+									long poll_timeout)
+{
+	long res = 0;
+	do {
+		res = wait_event_interruptible_timeout(lw_info->wq,
+					shmem_read(lw_info->shmem, h2s_msg_status) == CPSW_LW_MSM_DONE,
+					usecs_to_jiffies(poll_period));
+		if (res)
+			break;
+		poll_timeout -= poll_period;
+	} while(poll_timeout > 0);
+
+	if (res == -ERESTARTSYS)
+		return -EINTR;
+	if (poll_timeout <= 0)
+		return -ETIMEDOUT; /* or -ETIME ? */
+	return 0;
+}
 /*  */
 
 netdev_tx_t cpsw_lw_xmit(struct cpsw_lw_info *lw_info, struct sk_buff *skb, void *data, size_t len)
@@ -271,6 +314,56 @@ void cpsw_lw_tx_timeout(struct cpsw_lw_info *lw_info)
 
 }
 
+int cpsw_lw_usermsg(struct cpsw_lw_info *lw_info, struct cpsw_lw_msg *msg)
+{
+	int status;
+
+	if (msg->cmd >= CPSW_LW_FWMSG_BASE) {
+		/* Send message to firmware */
+		if ((status = cpsw_lw_prepmsg_slave_fromptr(lw_info, msg)))
+			goto err;
+		if ((status = cpsw_lw_postmsg_slave(lw_info, true)))
+			goto err;
+		if ((status = cpsw_lw_waitres_wq_slave(lw_info,
+											CPSW_LW_MSG_POLL_PERIOD,
+								 			CPSW_LW_MSG_TIMEOUT)))
+			goto err;
+		if ((status = cpsw_lw_recvmsg_slave(lw_info, msg)))
+			goto err;
+		return 0;
+err:
+		cpsw_lw_resetmsg_slave(lw_info);
+		return status;
+	}
+
+	/* Driver message */
+	switch (msg->cmd) {
+		case CPSW_LW_DRVMSG_GETVER:
+			msg->res.ver_info.rel_ver = CPSW_LW_RELVER;
+			msg->msg_errno = 0;
+			break;
+
+		case CPSW_LW_DRVMSG_GETSTATUS:
+			msg->res.status_info.status = lw_info->status;
+			msg->msg_errno = 0;
+			break;
+
+		case CPSW_LW_DRVMSG_SETNOTIFYPARAMS:
+			spin_lock(&lw_info->lock);
+			lw_info->slave_proc_id = msg->req.notify_params.proc_id;
+			lw_info->slave_line_id = msg->req.notify_params.line_id;
+			lw_info->slave_event_id = msg->req.notify_params.event_id;
+			msg->msg_errno = 0;
+			spin_unlock(&lw_info->lock);
+			break;
+
+		default:
+			return -EOPNOTSUPP;
+	}
+
+	return 0;
+}
+
 int cpsw_lw_status(struct cpsw_lw_info *lw_info)
 {
 	int tmp;
@@ -279,7 +372,7 @@ int cpsw_lw_status(struct cpsw_lw_info *lw_info)
 		return -EINVAL;
 
 	spin_lock(&lw_info->lock);
-	tmp = lw_info->cur_mode;
+	tmp = lw_info->status;
 	spin_unlock(&lw_info->lock);
 	return tmp;
 }
@@ -291,10 +384,8 @@ int cpsw_lw_start(struct cpsw_lw_info *lw_info)
 	int status;
 
 	spin_lock(&lw_info->lock);
-	
-	napi_enable(&lw_info->napi);
 
-	if (lw_info->state != CPSW_LW_DRV_READY) {
+	if (lw_info->status != CPSW_LW_DRV_READY) {
 		return -EBUSY;
 	}
 
@@ -309,26 +400,14 @@ int cpsw_lw_start(struct cpsw_lw_info *lw_info)
 
 	cpsw_lw_prepmsg_slave(lw_info, CPSW_LW_FWMSG_GETVER, NULL, 0);
 	status = cpsw_lw_postmsg_slave(lw_info, true);
-#if 0
-	cpsw_lw_waitres_wq_slave(lw_info, CPSW_LW_MSG_POLL_PERIOD, CPSW_LW_MSG_TIMEOUT);
-	cpsw_lw_pollres_slave(lw_info, CPSW_LW_MSG_POLL_PERIOD, CPSW_LW_MSG_TIMEOUT);
 
-	int retries = 4;
-	do {
-		long res = wait_event_interruptible_timeout(lw_info->wq,
-					shmem_read(lw_info->shmem, h2s_msg_status) == CPSW_LW_MSM_DONE,
-					usecs_to_jiffies(50));
-		if (res) {
-			status = res;
-			break;
-		}
-	} while(retries--);
+		if ((status = cpsw_lw_waitres_wq_slave(lw_info,
+											CPSW_LW_MSG_POLL_PERIOD,
+								 			CPSW_LW_MSG_TIMEOUT)))
+			goto err;
 
-	if ()
-		return -EINTR;
-	if ()
-		return -ETIMEDOUT; /* or -ETIME ? */
-#endif
+	napi_enable(&lw_info->napi);
+
 	spin_unlock(&lw_info->lock);
 
 	return 0;
@@ -354,7 +433,7 @@ err:
 	return 0;
 }
 
-struct cpsw_lw_info* cpsw_lw_create(struct net_device *ndev)
+struct cpsw_lw_info* cpsw_lw_create(struct platform_device *pdev, struct net_device *ndev)
 {
 	struct cpsw_lw_info *lw_info;
 
@@ -366,11 +445,15 @@ struct cpsw_lw_info* cpsw_lw_create(struct net_device *ndev)
 
 	spin_lock_init(&lw_info->lock);
 	init_waitqueue_head(&lw_info->wq);
-
 	lw_info->ndev = ndev;
+	lw_info->pdev = pdev;
+	/* Defaults for usermode testing */
+	lw_info->slave_proc_id = 3;
+	lw_info->slave_line_id = 0;
+	lw_info->slave_event_id = 7;
 
 	/* Allocate un-cached memory to communicate with the slave CPU */	
-	lw_info->shmem = (struct cpsw_lw_shmem __force __iomem *)dma_alloc_coherent(&ndev->dev,
+	lw_info->shmem = (struct cpsw_lw_shmem __force __iomem *)dma_alloc_coherent(&pdev->dev,
 													sizeof(struct cpsw_lw_shmem), 
 													&lw_info->shmem_hw_addr, GFP_KERNEL);
 	if (!lw_info->shmem) {
@@ -378,7 +461,7 @@ struct cpsw_lw_info* cpsw_lw_create(struct net_device *ndev)
 		goto err;
 	}
 
-	lw_info->h2s_msg_bufaddr = dma_map_single(&ndev->dev, &lw_info->host_to_slave,
+	lw_info->h2s_msg_bufaddr = dma_map_single(&pdev->dev, &lw_info->host_to_slave,
 								sizeof(lw_info->host_to_slave), DMA_TO_DEVICE);
 
 	if (dma_mapping_error(&ndev->dev, lw_info->h2s_msg_bufaddr)) {
@@ -386,7 +469,11 @@ struct cpsw_lw_info* cpsw_lw_create(struct net_device *ndev)
 		goto err;
 	}
 
-	lw_info->s2h_msg_bufaddr = dma_map_single(&ndev->dev, &lw_info->slave_to_host,
+	/* Regain ownership of the host to slave message buffer */
+	dma_sync_single_for_cpu(&pdev->dev, lw_info->h2s_msg_bufaddr,
+							sizeof(lw_info->host_to_slave), DMA_FROM_DEVICE);
+
+	lw_info->s2h_msg_bufaddr = dma_map_single(&pdev->dev, &lw_info->slave_to_host,
 								sizeof(lw_info->slave_to_host), DMA_FROM_DEVICE);
 
 	if (dma_mapping_error(&ndev->dev, lw_info->s2h_msg_bufaddr)) {
@@ -394,9 +481,9 @@ struct cpsw_lw_info* cpsw_lw_create(struct net_device *ndev)
 		goto free_h2s_mapping;
 	}
 
-	shmem_write(lw_info->shmem, slave_state, 0);
+	shmem_write(lw_info->shmem, slave_status, 0);
 	shmem_write(lw_info->shmem, slave_errno, 0);
-	shmem_write(lw_info->shmem, h2s_msg_status, 0);
+	shmem_write(lw_info->shmem, h2s_msg_status, CPSW_LW_MSM_FREE);
 	shmem_write(lw_info->shmem, s2h_msg_status, 0);
 	shmem_write(lw_info->shmem, h2s_msg_bufaddr, lw_info->h2s_msg_bufaddr);
 	shmem_write(lw_info->shmem, s2h_msg_bufaddr, lw_info->s2h_msg_bufaddr);
@@ -408,12 +495,12 @@ struct cpsw_lw_info* cpsw_lw_create(struct net_device *ndev)
 	return lw_info;
 
 free_h2s_mapping:
-	dma_unmap_single(&ndev->dev, lw_info->h2s_msg_bufaddr,
+	dma_unmap_single(&pdev->dev, lw_info->h2s_msg_bufaddr,
 						sizeof(lw_info->host_to_slave), DMA_TO_DEVICE);
 
 err:
 	if (lw_info->shmem)
-		dma_free_coherent(&ndev->dev, sizeof(struct cpsw_lw_shmem), 
+		dma_free_coherent(&pdev->dev, sizeof(struct cpsw_lw_shmem), 
 							lw_info->shmem, lw_info->shmem_hw_addr);
 	if (lw_info)
 		kfree(lw_info);
@@ -426,14 +513,14 @@ void cpsw_lw_destroy(struct net_device *ndev, struct cpsw_lw_info *lw_info)
 		return;
 
 	if (lw_info->h2s_msg_bufaddr)
-		dma_unmap_single(&ndev->dev, lw_info->h2s_msg_bufaddr,
+		dma_unmap_single(&lw_info->pdev->dev, lw_info->h2s_msg_bufaddr,
 						sizeof(lw_info->host_to_slave), DMA_TO_DEVICE);
 	if (lw_info->s2h_msg_bufaddr)
-		dma_unmap_single(&ndev->dev, lw_info->s2h_msg_bufaddr,
+		dma_unmap_single(&lw_info->pdev->dev, lw_info->s2h_msg_bufaddr,
 						sizeof(lw_info->host_to_slave), DMA_TO_DEVICE);
 
 	if (lw_info->shmem)
-		dma_free_coherent(&ndev->dev, sizeof(struct cpsw_lw_shmem),
+		dma_free_coherent(&lw_info->pdev->dev, sizeof(struct cpsw_lw_shmem),
 						lw_info->shmem, lw_info->shmem_hw_addr);
 	kfree(lw_info);
 }

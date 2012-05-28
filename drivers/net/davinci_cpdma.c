@@ -542,6 +542,10 @@ struct cpdma_chan *cpdma_chan_create(struct cpdma_ctlr *ctlr, int chan_num,
 #ifdef CONFIG_TI_CPSW_ASI_LW
     /* Default to an effectively unlimited budget */
 	chan->budget    = INT_MAX;
+	/* Skip checking if the channel is already in use,
+	 * this case should be handled properly but will most likely result
+	 * in significant changes in this module's API
+	 */
 #else
 	ret = -EBUSY;
 	if (ctlr->channels[chan_num])
@@ -771,8 +775,10 @@ int cpdma_chan_submit(struct cpdma_chan *chan, void *token, void *data,
 		chan_write(chan, rxfree, 1);
 
 	chan->count++;
+#ifdef CONFIG_TI_CPSW_ASI_LW
 	if (unlikely(chan->budget != INT_MAX))
 		chan->budget -= len+ETH_OVERHEAD_OCTETS;
+#endif
 
 unlock_ret:
 	spin_unlock_irqrestore(&chan->lock, flags);

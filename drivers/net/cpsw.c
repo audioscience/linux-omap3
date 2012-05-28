@@ -34,7 +34,7 @@
 #include "davinci_cpdma.h"
 
 #ifdef CONFIG_TI_CPSW_ASI_LW
-#include "cpsw_lw.h"
+#include <linux/cpsw_lw.h>
 #endif /* CONFIG_TI_CPSW_ASI_LW */
 
 #define CPSW_DEBUG	(NETIF_MSG_HW		| NETIF_MSG_WOL		| \
@@ -1169,7 +1169,7 @@ static int cpsw_ndo_stop(struct net_device *ndev)
 	msg(info, ifdown, "shutting down cpsw device\n");
 	netif_stop_queue(priv->ndev);
 #ifdef CONFIG_TI_CPSW_ASI_LW
-	if (cpsw_lw_status(priv->lw_info) == CPSW_ASI_MODE_LW)
+	if (cpsw_lw_status(priv->lw_info) != CPSW_LW_DRV_READY)
 		cpsw_lw_stop(priv->lw_info);
 #endif /* CONFIG_TI_CPSW_ASI_LW */
 	napi_disable(&priv->napi);
@@ -1230,10 +1230,15 @@ static netdev_tx_t cpsw_ndo_start_xmit(struct sk_buff *skb,
 #else
 #ifdef CONFIG_TI_CPSW_ASI_LW
 	BUG_ON(priv->lw_info == NULL);
-	ret = cpsw_lw_xmit(priv->lw_info, skb, skb->data, skb->len);
-	if (ret == NETDEV_TX_BUSY) {
-		netif_stop_queue(ndev);
-		return ret;
+	if (cpsw_lw_status(priv->lw_info) != CPSW_ASI_DRV_RUNNING) {
+		ret = cpdma_chan_submit(priv->txch, skb, skb->data,
+					skb->len, 0, GFP_KERNEL);	
+	} else {
+		ret = cpsw_lw_xmit(priv->lw_info, skb, skb->data, skb->len);
+		if (ret == NETDEV_TX_BUSY) {
+			netif_stop_queue(ndev);
+			return ret;
+		}
 	}
 #else
 	ret = cpdma_chan_submit(priv->txch, skb, skb->data,
@@ -2371,7 +2376,10 @@ static int cpsw_switch_config_ioctl(struct net_device *ndev,
 #endif /* CONFIG_TI_CPSW_DUAL_EMAC */
 
 #ifdef CONFIG_TI_CPSW_ASI_LW
-static int cpsw_asi_setmode(struct net_device *ndev,
+/* cpsw_lw_setmode() has to be in cpsw.c because it needs access
+ * to this module's private functions.
+ */
+static int cpsw_lw_setmode(struct net_device *ndev,
 		struct cpsw_lw_msg *msg)
 {
 	struct cpsw_priv *priv = netdev_priv(ndev);
@@ -2379,23 +2387,27 @@ static int cpsw_asi_setmode(struct net_device *ndev,
 
 	spin_lock(&priv->lock);
 
-	if (msg->req.modecmd.mode_id == cpsw_lw_status(priv->lw_info)) {
-		msg->errno = -EALREADY;
+	if (msg->req.modecmd.mode_id == cpsw_lw_mode(priv->lw_info)) {
+		msg->msg_errno = -EALREADY;
 		ret = 0;
 		goto done;
 	}
 
 	if (msg->req.modecmd.mode_id == CPSW_ASI_MODE_LW) {
+		netif_stop_queue(ndev);
 		cpsw_intr_disable(priv);
 		cpsw_disable_irq(priv);
 		napi_disable(&priv->napi);
 		cpsw_lw_start(priv->lw_info);
+		netif_start_queue(ndev);
 	} else if (msg->req.modecmd.mode_id == CPSW_ASI_MODE_NORMAL) {
+		netif_stop_queue(ndev);
 		cpsw_lw_stop(priv->lw_info);
 		napi_enable(&priv->napi);
 		cpdma_ctlr_eoi(priv->dma);
 		cpsw_intr_enable(priv);
 		cpsw_enable_irq(priv);
+		netif_start_queue(ndev);
 	} else {
 		ret = -EINVAL;
 	}
@@ -2408,6 +2420,7 @@ done:
 static int cpsw_asi_config_ioctl(struct net_device *ndev,
 		struct ifreq *ifrq, int cmd)
 {
+	struct cpsw_priv *priv = netdev_priv(ndev);
 	struct cpsw_lw_msg lw_msg;
 	int ret = -EFAULT;
 
@@ -2419,18 +2432,26 @@ static int cpsw_asi_config_ioctl(struct net_device *ndev,
 	if (cmd != CPSW_LW_IOCTL)
 		return ret;
 
-	if (copy_from_user(&lw_msg,
-			(struct cpsw_lw_msg *)(ifrq->ifr_data),
-			sizeof(struct cpsw_lw_msg)))
-		return ret;
+	if (copy_from_user(&lw_msg, ifrq->ifr_data, sizeof(struct cpsw_lw_msg)))
+		return -EFAULT;
+
+	if (lw_msg.cmd < CPSW_LW_DRVMSG_BASE ||
+		lw_msg.cmd >= CPSW_LW_FWMSG_LAST ||
+		(lw_msg.cmd >= CPSW_LW_DRVMSG_LAST && lw_msg.cmd < CPSW_LW_FWMSG_BASE))
+		return -EOPNOTSUPP;
 
 	switch (lw_msg.cmd) {
-	case CPSW_LW_DRVMSG_SETMODE:
-		ret = cpsw_asi_setmode(ndev, &lw_msg);
-		break;
-	default:
-		ret = -EOPNOTSUPP;
+		case CPSW_LW_DRVMSG_SETMODE:
+			ret = cpsw_lw_setmode(ndev, &lw_msg);
+			break;
+
+		default:
+			/* FIXME: Lock priv here */
+			ret = cpsw_lw_usermsg(priv->lw_info, &lw_msg);
 	}
+
+	if (copy_to_user(ifrq->ifr_data, &lw_msg, sizeof(struct cpsw_lw_msg)))
+		return -EFAULT;
 
 	return ret;
 }
@@ -2439,7 +2460,9 @@ static int cpsw_asi_config_ioctl(struct net_device *ndev,
 static int cpsw_ndo_do_ioctl(struct net_device *ndev, struct ifreq *ifrq,
 		int cmd)
 {
+#ifdef CONFIG_TI_CPSW_ASI_LW
 	struct cpsw_priv *priv = netdev_priv(ndev);
+#endif
 
 	if (!(netif_running(ndev)))
 		return -EINVAL;
@@ -2558,21 +2581,25 @@ static int cpsw_ndo_set_mac_address(struct net_device *ndev, void *p)
 
 static void cpsw_ndo_tx_timeout(struct net_device *ndev)
 {
-#ifdef CONFIG_TI_CPSW_ASI_LW
-	struct cpsw_priv *priv = netdev_priv(ndev);
-	cpsw_lw_tx_timeout(priv->lw_info);
-#else
 	struct cpsw_priv *priv = netdev_priv(ndev);
 
-	msg(err, tx_err, "transmit timeout, restarting dma");
-	priv->stats.tx_errors++;
-	cpsw_intr_disable(priv);
-	cpdma_ctlr_int_ctrl(priv->dma, false);
-	cpdma_chan_stop(priv->txch);
-	cpdma_chan_start(priv->txch);
-	cpdma_ctlr_int_ctrl(priv->dma, true);
-	cpsw_intr_enable(priv);
-	cpdma_ctlr_eoi(priv->dma);
+#ifdef CONFIG_TI_CPSW_ASI_LW
+	if (cpsw_lw_status(priv->lw_info) == CPSW_ASI_DRV_RUNNING) {
+		struct cpsw_priv *priv = netdev_priv(ndev);
+		cpsw_lw_tx_timeout(priv->lw_info);
+	} else
+#else
+	{
+		msg(err, tx_err, "transmit timeout, restarting dma");
+		priv->stats.tx_errors++;
+		cpsw_intr_disable(priv);
+		cpdma_ctlr_int_ctrl(priv->dma, false);
+		cpdma_chan_stop(priv->txch);
+		cpdma_chan_start(priv->txch);
+		cpdma_ctlr_int_ctrl(priv->dma, true);
+		cpsw_intr_enable(priv);
+		cpdma_ctlr_eoi(priv->dma);
+	}
 #endif /* CONFIG_TI_CPSW_ASI_LW */
 }
 
@@ -2823,13 +2850,13 @@ static int __devinit cpsw_probe(struct platform_device *pdev)
 	gpriv = priv;
 #endif /* CONFIG_PTP_1588_CLOCK_CPTS */
 
-#if CONFIG_TI_CPSW_ASI_LW
+#ifdef CONFIG_TI_CPSW_ASI_LW
 	/* Init ASI LW stuff */
-	priv->lw_info = cpsw_lw_create(ndev);
+	priv->lw_info = cpsw_lw_create(pdev, ndev);
 	if (!priv->lw_info) {
 		ret = -ENOMEM;
 		dev_err(priv->dev, "failed to init livewire support\n");
-		goto clean_ndev_ret;
+		/* goto clean_ndev_ret; do not abort probe in case LW is broken */
 	}
 #endif /* CONFIG_TI_CPSW_ASI_LW */
 
