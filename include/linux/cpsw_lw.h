@@ -64,6 +64,8 @@ enum cpsw_drv_cmd {
 
     CPSW_LW_FWMSG_GETVER = CPSW_LW_FWMSG_BASE,
 	CPSW_LW_FWMSG_GETSTATUS,
+    CPSW_LW_FWMSG_START,
+    CPSW_LW_FWMSG_STOP,
     CPSW_LW_FWMSG_PING,
     CPSW_LW_FWMSG_WAKE,
     CPSW_LW_FWMSG_LAST,
@@ -84,8 +86,8 @@ struct cpsw_lw_shmem {
 	uint32_t s2h_msg_bufaddr;
 };
 
-struct cpsw_lw_mode_cmd {
-	uint32_t mode_id;
+struct cpsw_lw_modedata {
+	uint32_t mode;
 };
 
 struct cpsw_lw_verdata {
@@ -103,11 +105,12 @@ struct cpsw_lw_notifyparams {
 };
 
 union req_data {
-    struct cpsw_lw_mode_cmd modecmd;
+    struct cpsw_lw_modedata mode_info;
     struct cpsw_lw_notifyparams notify_params;
 };
 
 union res_data {
+    struct cpsw_lw_modedata mode_info;
     struct cpsw_lw_verdata ver_info;
     struct cpsw_lw_statusdata status_info;
 };
@@ -123,16 +126,18 @@ struct cpsw_lw_msg {
 /* Forward declarations */
 struct cpsw_lw_info;
 struct cpsw_priv;
+struct cpdma_chan;
 
 int cpsw_lw_usermsg(struct cpsw_lw_info *lw_info, struct cpsw_lw_msg *lw_msg);
 void cpsw_lw_tx_timeout(struct cpsw_lw_info *lw_info);
-netdev_tx_t cpsw_lw_xmit(struct cpsw_lw_info *lw_info,
-				struct sk_buff *skb, void *data, size_t len);
+enum cpsw_lw_drv_mode cpsw_lw_mode(struct cpsw_lw_info *lw_info);
 enum cpsw_lw_drv_state cpsw_lw_status(struct cpsw_lw_info *lw_info);
 enum cpsw_lw_drv_mode cpsw_lw_mode(struct cpsw_lw_info *lw_info);
 int cpsw_lw_start(struct cpsw_lw_info *lw_info);
 int cpsw_lw_stop(struct cpsw_lw_info *lw_info);
-struct cpsw_lw_info* cpsw_lw_create(struct platform_device *pdev, struct net_device *ndev);
+struct cpsw_lw_info* cpsw_lw_create(struct platform_device *pdev,
+				struct net_device *ndev,
+				struct cpdma_chan *tx_chan, struct cpdma_chan *rx_chan);
 void cpsw_lw_destroy(struct net_device *ndev, struct cpsw_lw_info *lw_info);
 
 #endif /* __KERNEL__ */

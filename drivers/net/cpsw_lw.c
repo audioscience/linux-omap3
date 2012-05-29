@@ -48,14 +48,12 @@ struct cpsw_lw_info {
 	struct net_device *ndev;
 	struct napi_struct napi;
 
-	struct cpdma_ctlr *cpdma_ctlr;
 	struct cpdma_chan *tx_chan, *rx_chan;
-	struct cpdma_chan *outgoing_tx_chan;
 	u32 tx_budget; /* in octets */
+	u32 tx_timeout_count;
 
-	s32 status;
-	//u32 req_mode;
-	//u32 cur_mode;
+	enum cpsw_lw_drv_state status;
+	enum cpsw_lw_drv_mode mode;
 
 	u16 slave_proc_id;
 	u16 slave_line_id;
@@ -80,78 +78,91 @@ static inline int cpsw_lw_postmsg_slave(struct cpsw_lw_info *lw_info,
 static inline int cpsw_lw_notify_slave(struct cpsw_lw_info *lw_info,
 					bool wait_clear);
 
-/* Callbacks */
+/* SysLink and NAPI Callbacks */
 
+/* NOTE: Depending on the context in which cpsw_lw_notification_callback()
+ * is called it may be possible (and advantageous) to merge it with 
+ * cpsw_lw_poll() thus removing the need to use NAPI at all.
+ */
+
+/* No spin_lock(&lw_info->lock) inside this function because lw_info 
+ * is only read and we make sure the relevant fields never change while 
+ * the callback is registered.
+ */
 static void cpsw_lw_notification_callback(u16 procid, u16 lineid, u32 eventno, 
 			void *arg, u32 payload)
 {
 	struct cpsw_lw_info *lw_info = arg;
 
 	BUG_ON(lw_info == NULL);
-	
-	// Start the next channel if the currently outgoing channel is done
-	if (likely(cpdma_chan_isdone(lw_info->outgoing_tx_chan) || !cpdma_chan_desc_count(lw_info->outgoing_tx_chan)))
-		cpdma_chan_start(lw_info->tx_chan);
 
-	// Schedule NAPI, will eventually call cpsw_lw_poll() in a separate context
+	if (unlikely(lw_info->status != CPSW_LW_DRV_RUNNING))
+		return;
+
+	/* NOTE: payload is currently unused. We could use it to send: 
+	 * budget (3 bytes) + message available flags (1 byte); this way
+	 * we wouldn't touch uncached memory unless necessary. */
+
+	/* Warn if the TX channel is not done by now */
+	if (unlikely(!cpdma_chan_isdone(lw_info->tx_chan)))
+		msg(err, intr, "TX queue from the previous slot is still running\n");
+
+	/* Restore the TX queue's budget */
+	cpdma_chan_setbudget(lw_info->tx_chan, lw_info->tx_budget);
+	/* Restart the outgoing packets queue */
+	netif_wake_queue(lw_info->ndev);
+
+	/* Schedule NAPI, will eventually call cpsw_lw_poll() in a separate context */
 	napi_schedule(&lw_info->napi);
 
+	/* Wake up processes waiting on messaging events */
 	if (unlikely(lw_info->shmem->s2h_msg_status == CPSW_LW_MSM_POST ||
 		lw_info->shmem->h2s_msg_status == CPSW_LW_MSM_DONE))
 		wake_up(&lw_info->wq);
 }
 
+/* No spin_lock(&lw_info->lock) inside this function because we make sure NAPI
+ * is not scheduled while the content of lw_info is being changed 
+ * except for lw_info->tx_timeout_count. However, we are OK with 
+ * lw_info->tx_timeout_count being reset. In the worst case we end up restarting
+ * the TX channel twice in a row.
+ */
 static int cpsw_lw_poll(struct napi_struct *napi, int budget)
 {
 	struct cpsw_lw_info *lw_info = napi_to_lwinfo(napi);
 	int num_tx = 0, num_rx;
 
-	struct cpdma_chan *next_tx_chan;
-	unsigned long flags;
+	BUG_ON(lw_info == NULL);
 
-	/* Log an error, the outgoing channel should be done by now */
-	if (unlikely(cpdma_chan_desc_count(lw_info->outgoing_tx_chan) && 
-				!cpdma_chan_isdone(lw_info->outgoing_tx_chan))) {
-		msg(err, intr, "TX queue from the previous slot is still running\n");
-		goto skip_tx_turn;
+	/* Force DMA to restart in case of TX timeout, maybe unneeded because
+	 * the following cpdma_chan_process() could take care of it.
+	 * At some point we should try to remove this and test.
+	 */
+	if (unlikely(lw_info->tx_timeout_count)) {
+		cpdma_chan_stop(lw_info->tx_chan);
+		cpdma_chan_start(lw_info->tx_chan);
+		lw_info->tx_timeout_count = 0;
 	}
 
-	if (unlikely(!cpdma_chan_isactive(lw_info->tx_chan) &&
-				cpdma_chan_desc_count(lw_info->tx_chan))) {
-		msg(err, intr, "TX queue for the current slot is not active\n");
-		goto skip_tx_turn;
-	}
-
-	/* Swap the two tx queues so we can start feeding the one that is not running */
-	spin_lock_irqsave(&lw_info->lock, flags);
-	next_tx_chan = lw_info->outgoing_tx_chan;
-	lw_info->outgoing_tx_chan = lw_info->tx_chan;
-	lw_info->tx_chan = next_tx_chan;
-	spin_unlock_irqrestore(&lw_info->lock, flags);
-
-	/* Process all TX buffers. When the function returns the channel should be empty */
+	/* Process all TX buffers. */
 	num_tx = cpdma_chan_process(lw_info->tx_chan, INT_MAX);
-	if (unlikely(cpdma_chan_desc_count(lw_info->tx_chan)))
-		msg(err, intr, "TX queue not empty after flush\n");
-
-	/* Reset the channel's budget */
-	cpdma_chan_reset(lw_info->tx_chan, lw_info->tx_budget);
-
-	/* Restart the outgoing packets queue */
-	netif_wake_queue(lw_info->ndev);
-
-skip_tx_turn:
-
 	num_rx = cpdma_chan_process(lw_info->rx_chan, budget);
 
-	if (num_rx || num_tx)
+	if (likely(num_rx || num_tx))
 		msg(dbg, intr, "poll %d rx, %d tx pkts\n", num_rx, num_tx);
 
-	if (num_rx < budget) {
+	if (likely(num_rx < budget)) {
 		napi_complete(napi);
 	}
 
 	return num_rx;
+}
+
+void cpsw_lw_tx_timeout(struct cpsw_lw_info *lw_info)
+{
+	BUG_ON(lw_info == NULL);
+
+	lw_info->tx_timeout_count++;
 }
 
 /* Messaging */
@@ -159,7 +170,11 @@ skip_tx_turn:
 static inline int cpsw_lw_prepmsg_slave(struct cpsw_lw_info *lw_info,
 					enum cpsw_drv_cmd cmd, void *buf, size_t buf_size)
 {
-	if (!lw_info || !buf || buf_size > sizeof(union req_data))
+	if (!lw_info)
+		return -EINVAL;
+
+	/* buf can be NULL IFF buf_size is also 0 */
+	if ((!buf && buf_size != 0) || buf_size > sizeof(union req_data))
 		return -EINVAL;
 
 	spin_lock(&lw_info->lock);
@@ -173,7 +188,8 @@ static inline int cpsw_lw_prepmsg_slave(struct cpsw_lw_info *lw_info,
 
 	memset(&lw_info->host_to_slave.req, 0, sizeof(struct cpsw_lw_msg));
 	lw_info->host_to_slave.cmd = cmd;
-	memcpy(&lw_info->host_to_slave.req, buf, buf_size);
+	if (buf)
+		memcpy(&lw_info->host_to_slave.req, buf, buf_size);
 	lw_info->host_to_slave.msg_errno = -EBADE;
 	return 0;
 }
@@ -271,14 +287,12 @@ static inline int cpsw_lw_notify_slave(struct cpsw_lw_info *lw_info, bool wait_c
 	
 	if (!lw_info)
 		return -EINVAL;
-	
-	spin_lock(&lw_info->lock);
+
 	res = notify_send_event(lw_info->slave_proc_id,
 				lw_info->slave_line_id,
 				lw_info->slave_event_id,
 				lw_info->shmem_hw_addr,
 				wait_clear);
-	spin_unlock(&lw_info->lock);
 	return res;
 }
 
@@ -302,17 +316,8 @@ static int cpsw_lw_waitres_wq_slave(struct cpsw_lw_info *lw_info,
 		return -ETIMEDOUT; /* or -ETIME ? */
 	return 0;
 }
+
 /*  */
-
-netdev_tx_t cpsw_lw_xmit(struct cpsw_lw_info *lw_info, struct sk_buff *skb, void *data, size_t len)
-{
-	return NETDEV_TX_OK;
-}
-
-void cpsw_lw_tx_timeout(struct cpsw_lw_info *lw_info)
-{
-
-}
 
 int cpsw_lw_usermsg(struct cpsw_lw_info *lw_info, struct cpsw_lw_msg *msg)
 {
@@ -348,6 +353,11 @@ err:
 			msg->msg_errno = 0;
 			break;
 
+		case CPSW_LW_DRVMSG_GETMODE:
+			msg->res.mode_info.mode = lw_info->mode;
+			msg->msg_errno = 0;
+			break;
+
 		case CPSW_LW_DRVMSG_SETNOTIFYPARAMS:
 			spin_lock(&lw_info->lock);
 			lw_info->slave_proc_id = msg->req.notify_params.proc_id;
@@ -364,7 +374,22 @@ err:
 	return 0;
 }
 
-int cpsw_lw_status(struct cpsw_lw_info *lw_info)
+/* Lifecycle related functions */
+
+enum cpsw_lw_drv_mode cpsw_lw_mode(struct cpsw_lw_info *lw_info)
+{
+	int tmp;
+
+	if (!lw_info)
+		return -EINVAL;
+
+	spin_lock(&lw_info->lock);
+	tmp = lw_info->mode;
+	spin_unlock(&lw_info->lock);
+	return tmp;
+}
+
+enum cpsw_lw_drv_state cpsw_lw_status(struct cpsw_lw_info *lw_info)
 {
 	int tmp;
 
@@ -377,17 +402,17 @@ int cpsw_lw_status(struct cpsw_lw_info *lw_info)
 	return tmp;
 }
 
-/* Lifecycle related functions */
-
 int cpsw_lw_start(struct cpsw_lw_info *lw_info)
 {
 	int status;
 
 	spin_lock(&lw_info->lock);
-
 	if (lw_info->status != CPSW_LW_DRV_READY) {
+		spin_unlock(&lw_info->lock);
 		return -EBUSY;
 	}
+	lw_info->status = CPSW_LW_DRV_STARTING;
+	spin_unlock(&lw_info->lock);
 
 	/* Setup to receive notifications */
 	status = notify_register_event(lw_info->host_proc_id,
@@ -398,42 +423,109 @@ int cpsw_lw_start(struct cpsw_lw_info *lw_info)
 	if (status < 0)
 		return status;
 
-	cpsw_lw_prepmsg_slave(lw_info, CPSW_LW_FWMSG_GETVER, NULL, 0);
+	status = cpsw_lw_prepmsg_slave(lw_info, CPSW_LW_FWMSG_GETVER, NULL, 0);
+	if (status)
+		goto err;
 	status = cpsw_lw_postmsg_slave(lw_info, true);
+	if (status)
+		goto err;
+	status = cpsw_lw_waitres_wq_slave(lw_info,
+										CPSW_LW_MSG_POLL_PERIOD,
+										CPSW_LW_MSG_TIMEOUT);
+	if (status)
+		goto err;
+	status = cpsw_lw_freemsg_slave(lw_info);
+	if (status)
+		goto err;
 
-		if ((status = cpsw_lw_waitres_wq_slave(lw_info,
-											CPSW_LW_MSG_POLL_PERIOD,
-								 			CPSW_LW_MSG_TIMEOUT)))
-			goto err;
+	/* If major revision number do not match, report an error */
+	if ((lw_info->host_to_slave.res.ver_info.rel_ver & 0xFF000000) != 
+		(CPSW_LW_RELVER & 0xFF000000)) {
+		dev_err(&lw_info->ndev->dev, "Driver ver 0x%08x and firmware ver 0x%08x are incompatible\n",
+		CPSW_LW_RELVER, lw_info->host_to_slave.res.ver_info.rel_ver);
+		status = -EOPNOTSUPP;
+		goto err;
+	}
 
 	napi_enable(&lw_info->napi);
 
-	spin_unlock(&lw_info->lock);
+	status = cpsw_lw_prepmsg_slave(lw_info, CPSW_LW_FWMSG_START, NULL, 0);
+	if (status)
+		goto err;
+	status = cpsw_lw_postmsg_slave(lw_info, true);
+	if (status)
+		goto err;
+	status = cpsw_lw_waitres_wq_slave(lw_info,
+									CPSW_LW_MSG_POLL_PERIOD,
+									CPSW_LW_MSG_TIMEOUT);
+	if (status)
+		goto err;
+	status = cpsw_lw_freemsg_slave(lw_info);
+	if (status)
+		goto err;
 
-	return 0;
+	lw_info->status = CPSW_LW_DRV_RUNNING;
+	lw_info->mode = CPSW_ASI_MODE_LW;
+	return status;
+
+err:
+	cpsw_lw_resetmsg_slave(lw_info);
+	cpsw_lw_prepmsg_slave(lw_info, CPSW_LW_FWMSG_STOP, NULL, 0);
+	cpsw_lw_postmsg_slave(lw_info, true);
+	cpsw_lw_waitres_wq_slave(lw_info, CPSW_LW_MSG_POLL_PERIOD,
+											CPSW_LW_MSG_TIMEOUT);
+	cpsw_lw_resetmsg_slave(lw_info);
+
+	napi_disable(&lw_info->napi);
+
+	notify_unregister_event(lw_info->host_proc_id,
+				lw_info->host_line_id,
+				lw_info->host_event_id,
+				(notify_fn_notify_cbck)cpsw_lw_notification_callback,
+				(void *)lw_info);
+	lw_info->status = CPSW_LW_DRV_READY;
+	return status;
 }
 
 int cpsw_lw_stop(struct cpsw_lw_info *lw_info)
 {
 	int status;
 
-	spin_lock(&lw_info->lock);
+	lw_info->status = CPSW_LW_DRV_STOPPING;
+	status = cpsw_lw_prepmsg_slave(lw_info, CPSW_LW_FWMSG_STOP, NULL, 0);
+	if (status)
+		goto err;
+	status = cpsw_lw_postmsg_slave(lw_info, true);
+	if (status)
+		goto err;
+	status = cpsw_lw_waitres_wq_slave(lw_info, CPSW_LW_MSG_POLL_PERIOD,
+											CPSW_LW_MSG_TIMEOUT);
+	if (status)
+		goto err;
+	cpsw_lw_resetmsg_slave(lw_info);
+
+err:
+	if (status)
+		dev_err(&lw_info->ndev->dev, "cpsw_lw_stop() failed to stop FW\n");
+
 	status = notify_unregister_event(lw_info->host_proc_id,
 				lw_info->host_line_id,
 				lw_info->host_event_id,
 				(notify_fn_notify_cbck)cpsw_lw_notification_callback,
 				(void *)lw_info);
 	if (status < 0)
-		goto err;
+		dev_err(&lw_info->ndev->dev, "cpsw_lw_stop() failed to unregister event callback\n");
 
 	napi_disable(&lw_info->napi);
-
-err:
-	spin_unlock(&lw_info->lock);
+	lw_info->status = CPSW_LW_DRV_READY;
+	lw_info->mode = CPSW_ASI_MODE_NORMAL;
 	return 0;
 }
 
-struct cpsw_lw_info* cpsw_lw_create(struct platform_device *pdev, struct net_device *ndev)
+struct cpsw_lw_info* cpsw_lw_create(struct platform_device *pdev,
+				struct net_device *ndev,
+				struct cpdma_chan *tx_chan,
+				struct cpdma_chan *rx_chan)
 {
 	struct cpsw_lw_info *lw_info;
 
@@ -447,11 +539,18 @@ struct cpsw_lw_info* cpsw_lw_create(struct platform_device *pdev, struct net_dev
 	init_waitqueue_head(&lw_info->wq);
 	lw_info->ndev = ndev;
 	lw_info->pdev = pdev;
+	lw_info->tx_chan = tx_chan;
+	lw_info->rx_chan = rx_chan;
+	lw_info->tx_budget = INT_MAX;
+	lw_info->mode = CPSW_ASI_MODE_NORMAL;
+	lw_info->status = CPSW_LW_DRV_INIT;
 	/* Defaults for usermode testing */
 	lw_info->slave_proc_id = 3;
 	lw_info->slave_line_id = 0;
 	lw_info->slave_event_id = 7;
-
+	lw_info->host_proc_id = 3;
+	lw_info->host_line_id = 0;
+	lw_info->host_event_id = 8;
 	/* Allocate un-cached memory to communicate with the slave CPU */	
 	lw_info->shmem = (struct cpsw_lw_shmem __force __iomem *)dma_alloc_coherent(&pdev->dev,
 													sizeof(struct cpsw_lw_shmem), 
@@ -491,7 +590,7 @@ struct cpsw_lw_info* cpsw_lw_create(struct platform_device *pdev, struct net_dev
 	netif_napi_add(ndev, &lw_info->napi, cpsw_lw_poll, LW_NAPI_POLL_WEIGHT);
 
 	lw_info->msg_enable = CPSW_LW_DEBUG;
-
+	lw_info->status = CPSW_LW_DRV_READY;
 	return lw_info;
 
 free_h2s_mapping:

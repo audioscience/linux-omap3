@@ -84,8 +84,7 @@ int cpdma_chan_stop(struct cpdma_chan *chan);
 int cpdma_chan_dump(struct cpdma_chan *chan);
 int cpdma_chan_desc_count(struct cpdma_chan *chan);
 bool cpdma_chan_isdone(struct cpdma_chan *chan);
-bool cpdma_chan_isactive(struct cpdma_chan *chan);
-int cpdma_chan_reset(struct cpdma_chan *chan, int budget);
+int cpdma_chan_setbudget(struct cpdma_chan *chan, int budget);
 
 int cpdma_chan_get_stats(struct cpdma_chan *chan,
 			 struct cpdma_chan_stats *stats);
