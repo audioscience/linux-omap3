@@ -46,7 +46,6 @@ struct cpsw_lw_info {
 
 	struct platform_device *pdev;
 	struct net_device *ndev;
-	struct napi_struct napi;
 
 	struct cpdma_chan *tx_chan, *rx_chan;
 	u32 tx_budget; /* in octets */
@@ -68,8 +67,6 @@ struct cpsw_lw_info {
 	dma_addr_t h2s_msg_bufaddr;
 	dma_addr_t s2h_msg_bufaddr;
 };
-
-#define napi_to_lwinfo(napi) container_of(napi, struct cpsw_lw_info, napi)
 
 static inline int cpsw_lw_prepmsg_slave(struct cpsw_lw_info *lw_info,
 					enum cpsw_drv_cmd cmd, void *buf, size_t buf_size);
@@ -93,6 +90,7 @@ static void cpsw_lw_notification_callback(u16 procid, u16 lineid, u32 eventno,
 			void *arg, u32 payload)
 {
 	struct cpsw_lw_info *lw_info = arg;
+	int num_rx, num_tx;
 
 	BUG_ON(lw_info == NULL);
 
@@ -110,29 +108,8 @@ static void cpsw_lw_notification_callback(u16 procid, u16 lineid, u32 eventno,
 	/* Restore the TX queue's budget */
 	cpdma_chan_setbudget(lw_info->tx_chan, lw_info->tx_budget);
 	/* Restart the outgoing packets queue */
-	netif_wake_queue(lw_info->ndev);
-
-	/* Schedule NAPI, will eventually call cpsw_lw_poll() in a separate context */
-	napi_schedule(&lw_info->napi);
-
-	/* Wake up processes waiting on messaging events */
-	if (unlikely(lw_info->shmem->s2h_msg_status == CPSW_LW_MSM_POST ||
-		lw_info->shmem->h2s_msg_status == CPSW_LW_MSM_DONE))
-		wake_up(&lw_info->wq);
-}
-
-/* No spin_lock(&lw_info->lock) inside this function because we make sure NAPI
- * is not scheduled while the content of lw_info is being changed 
- * except for lw_info->tx_timeout_count. However, we are OK with 
- * lw_info->tx_timeout_count being reset. In the worst case we end up restarting
- * the TX channel twice in a row.
- */
-static int cpsw_lw_poll(struct napi_struct *napi, int budget)
-{
-	struct cpsw_lw_info *lw_info = napi_to_lwinfo(napi);
-	int num_tx = 0, num_rx;
-
-	BUG_ON(lw_info == NULL);
+	if (likely(netif_queue_stopped(lw_info->ndev)))
+		netif_wake_queue(lw_info->ndev);
 
 	/* Force DMA to restart in case of TX timeout, maybe unneeded because
 	 * the following cpdma_chan_process() could take care of it.
@@ -146,16 +123,15 @@ static int cpsw_lw_poll(struct napi_struct *napi, int budget)
 
 	/* Process all TX buffers. */
 	num_tx = cpdma_chan_process(lw_info->tx_chan, INT_MAX);
-	num_rx = cpdma_chan_process(lw_info->rx_chan, budget);
+	num_rx = cpdma_chan_process(lw_info->rx_chan, INT_MAX);
 
 	if (likely(num_rx || num_tx))
 		msg(dbg, intr, "poll %d rx, %d tx pkts\n", num_rx, num_tx);
 
-	if (likely(num_rx < budget)) {
-		napi_complete(napi);
-	}
-
-	return num_rx;
+	/* Wake up processes waiting on messaging events */
+	if (unlikely(lw_info->shmem->s2h_msg_status == CPSW_LW_MSM_POST ||
+		lw_info->shmem->h2s_msg_status == CPSW_LW_MSM_DONE))
+		wake_up(&lw_info->wq);
 }
 
 void cpsw_lw_tx_timeout(struct cpsw_lw_info *lw_info)
@@ -447,8 +423,6 @@ int cpsw_lw_start(struct cpsw_lw_info *lw_info)
 		goto err;
 	}
 
-	napi_enable(&lw_info->napi);
-
 	status = cpsw_lw_prepmsg_slave(lw_info, CPSW_LW_FWMSG_START, NULL, 0);
 	if (status)
 		goto err;
@@ -475,8 +449,6 @@ err:
 	cpsw_lw_waitres_wq_slave(lw_info, CPSW_LW_MSG_POLL_PERIOD,
 											CPSW_LW_MSG_TIMEOUT);
 	cpsw_lw_resetmsg_slave(lw_info);
-
-	napi_disable(&lw_info->napi);
 
 	notify_unregister_event(lw_info->host_proc_id,
 				lw_info->host_line_id,
@@ -516,7 +488,6 @@ err:
 	if (status < 0)
 		dev_err(&lw_info->ndev->dev, "cpsw_lw_stop() failed to unregister event callback\n");
 
-	napi_disable(&lw_info->napi);
 	lw_info->status = CPSW_LW_DRV_READY;
 	lw_info->mode = CPSW_ASI_MODE_NORMAL;
 	return 0;
@@ -586,8 +557,6 @@ struct cpsw_lw_info* cpsw_lw_create(struct platform_device *pdev,
 	shmem_write(lw_info->shmem, s2h_msg_status, 0);
 	shmem_write(lw_info->shmem, h2s_msg_bufaddr, lw_info->h2s_msg_bufaddr);
 	shmem_write(lw_info->shmem, s2h_msg_bufaddr, lw_info->s2h_msg_bufaddr);
-
-	netif_napi_add(ndev, &lw_info->napi, cpsw_lw_poll, LW_NAPI_POLL_WEIGHT);
 
 	lw_info->msg_enable = CPSW_LW_DEBUG;
 	lw_info->status = CPSW_LW_DRV_READY;
