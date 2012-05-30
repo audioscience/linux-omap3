@@ -102,7 +102,8 @@ static void cpsw_lw_notification_callback(u16 procid, u16 lineid, u32 eventno,
 	 * we wouldn't touch uncached memory unless necessary. */
 
 	/* Warn if the TX channel is not done by now */
-	if (unlikely(!cpdma_chan_isdone(lw_info->tx_chan)))
+	if (unlikely(lw_info->tx_budget != INT_MAX &&
+					!cpdma_chan_isdone(lw_info->tx_chan)))
 		msg(err, intr, "TX queue from the previous slot is still running\n");
 
 	/* Restore the TX queue's budget */
@@ -124,9 +125,6 @@ static void cpsw_lw_notification_callback(u16 procid, u16 lineid, u32 eventno,
 	/* Process all TX buffers. */
 	num_tx = cpdma_chan_process(lw_info->tx_chan, INT_MAX);
 	num_rx = cpdma_chan_process(lw_info->rx_chan, INT_MAX);
-
-	if (likely(num_rx || num_tx))
-		msg(dbg, intr, "poll %d rx, %d tx pkts\n", num_rx, num_tx);
 
 	/* Wake up processes waiting on messaging events */
 	if (unlikely(lw_info->shmem->s2h_msg_status == CPSW_LW_MSM_POST ||
