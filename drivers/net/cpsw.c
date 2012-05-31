@@ -656,6 +656,15 @@ void cpsw_rx_handler(void *token, int len, int status)
 		skb = NULL;
 	}
 
+#ifdef CONFIG_TI_CPSW_ASI_LW
+	/* It would be better to re-queue the skb rather than freeing it and 
+	 * allocating a new one shortly after.
+	 */
+	if (unlikely(status == -ECANCELED)) {
+		dev_kfree_skb_any(skb);
+		skb = NULL;
+	}
+#endif /* CONFIG_TI_CPSW_ASI_LW */
 
 	if (unlikely(!netif_running(ndev))) {
 		if (skb)
@@ -707,8 +716,8 @@ static int cpsw_poll(struct napi_struct *napi, int budget)
 	struct cpsw_priv	*priv = napi_to_priv(napi);
 	int			num_tx, num_rx;
 
-	num_tx = cpdma_chan_process(priv->txch, 128);
-	num_rx = cpdma_chan_process(priv->rxch, budget);
+	num_tx = cpdma_chan_process(priv->txch, 128, false);
+	num_rx = cpdma_chan_process(priv->rxch, budget, false);
 
 	if (num_rx || num_tx)
 		msg(dbg, intr, "poll %d rx, %d tx pkts\n", num_rx, num_tx);

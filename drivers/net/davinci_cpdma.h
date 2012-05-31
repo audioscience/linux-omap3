@@ -84,13 +84,14 @@ int cpdma_chan_stop(struct cpdma_chan *chan);
 int cpdma_chan_dump(struct cpdma_chan *chan);
 int cpdma_chan_desc_count(struct cpdma_chan *chan);
 bool cpdma_chan_isdone(struct cpdma_chan *chan);
+dma_addr_t cpdma_chan_headesc(struct cpdma_chan *chan);
 int cpdma_chan_setbudget(struct cpdma_chan *chan, int budget);
 
 int cpdma_chan_get_stats(struct cpdma_chan *chan,
 			 struct cpdma_chan_stats *stats);
 int cpdma_chan_submit(struct cpdma_chan *chan, void *token, void *data,
 		      int len, int directed, gfp_t gfp_mask);
-int cpdma_chan_process(struct cpdma_chan *chan, int quota);
+int cpdma_chan_process(struct cpdma_chan *chan, int quota, int lw_mode);
 
 int cpdma_ctlr_int_ctrl(struct cpdma_ctlr *ctlr, bool enable);
 void cpdma_ctlr_eoi(struct cpdma_ctlr *ctlr);

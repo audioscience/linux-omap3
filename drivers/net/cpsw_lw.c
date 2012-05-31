@@ -75,12 +75,7 @@ static inline int cpsw_lw_postmsg_slave(struct cpsw_lw_info *lw_info,
 static inline int cpsw_lw_notify_slave(struct cpsw_lw_info *lw_info,
 					bool wait_clear);
 
-/* SysLink and NAPI Callbacks */
-
-/* NOTE: Depending on the context in which cpsw_lw_notification_callback()
- * is called it may be possible (and advantageous) to merge it with 
- * cpsw_lw_poll() thus removing the need to use NAPI at all.
- */
+/* Callbacks */
 
 /* No spin_lock(&lw_info->lock) inside this function because lw_info 
  * is only read and we make sure the relevant fields never change while 
@@ -123,8 +118,11 @@ static void cpsw_lw_notification_callback(u16 procid, u16 lineid, u32 eventno,
 	}
 
 	/* Process all TX buffers. */
-	num_tx = cpdma_chan_process(lw_info->tx_chan, INT_MAX);
-	num_rx = cpdma_chan_process(lw_info->rx_chan, INT_MAX);
+	num_tx = cpdma_chan_process(lw_info->tx_chan, INT_MAX, true);
+	num_rx = cpdma_chan_process(lw_info->rx_chan, INT_MAX, true);
+
+	if (!shmem_read(lw_info->shmem, next_rxdesc_addr))
+		shmem_write(lw_info->shmem, next_rxdesc_addr, cpdma_chan_headesc(lw_info->rx_chan));
 
 	/* Wake up processes waiting on messaging events */
 	if (unlikely(lw_info->shmem->s2h_msg_status == CPSW_LW_MSM_POST ||
@@ -386,6 +384,7 @@ int cpsw_lw_start(struct cpsw_lw_info *lw_info)
 		return -EBUSY;
 	}
 	lw_info->status = CPSW_LW_DRV_STARTING;
+	shmem_write(lw_info->shmem, next_rxdesc_addr, 0);
 	spin_unlock(&lw_info->lock);
 
 	/* Setup to receive notifications */
@@ -486,6 +485,7 @@ err:
 	if (status < 0)
 		dev_err(&lw_info->ndev->dev, "cpsw_lw_stop() failed to unregister event callback\n");
 
+	shmem_write(lw_info->shmem, next_rxdesc_addr, 0);
 	lw_info->status = CPSW_LW_DRV_READY;
 	lw_info->mode = CPSW_ASI_MODE_NORMAL;
 	return 0;

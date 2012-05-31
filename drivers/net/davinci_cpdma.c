@@ -64,6 +64,11 @@
 
 #define CPDMA_TEARDOWN_VALUE	0xfffffffc
 
+#ifdef CONFIG_TI_CPSW_ASI_LW
+#define CPSW_LW_PROCESSED_FLAG BIT(16)
+#define CPSW_LW_DISCARD_FLAG BIT(17)
+#endif /* CONFIG_TI_CPSW_ASI_LW */
+
 struct cpdma_desc {
 	/* hardware fields */
 	u32			hw_next;
@@ -785,7 +790,7 @@ static void __cpdma_chan_free(struct cpdma_chan *chan,
 	(*chan->handler)(token, outlen, status);
 }
 
-static int __cpdma_chan_process(struct cpdma_chan *chan)
+static int __cpdma_chan_process(struct cpdma_chan *chan, int lw_mode)
 {
 	struct cpdma_ctlr		*ctlr = chan->ctlr;
 	struct cpdma_desc __iomem	*desc;
@@ -793,6 +798,10 @@ static int __cpdma_chan_process(struct cpdma_chan *chan)
 	struct cpdma_desc_pool		*pool = ctlr->pool;
 	dma_addr_t			desc_dma;
 	unsigned long			flags;
+	int err;
+#ifdef CONFIG_TI_CPSW_ASI_LW
+	u32 cpsw_lw_flags;
+#endif
 
 	spin_lock_irqsave(&chan->lock, flags);
 
@@ -812,6 +821,17 @@ static int __cpdma_chan_process(struct cpdma_chan *chan)
 		goto unlock_ret;
 	}
 
+#ifdef CONFIG_TI_CPSW_ASI_LW
+	cpsw_lw_flags = __raw_readl(&desc->hw_len);
+	/* Stop processing RX descriptors when we encounter a descriptor 
+	 * not yet processed by the firmware.
+	 */
+	if (lw_mode && is_rx_chan(chan) && !(cpsw_lw_flags & CPSW_LW_PROCESSED_FLAG)) {
+		status = -EBUSY;
+		goto unlock_ret;
+	}
+#endif /* CONFIG_TI_CPSW_ASI_LW */
+
 	status	= status & (CPDMA_DESC_EOQ | CPDMA_DESC_TD_COMPLETE |
 				CPDMA_DESC_PORT_MASK);
 
@@ -828,7 +848,8 @@ static int __cpdma_chan_process(struct cpdma_chan *chan)
 
 	spin_unlock_irqrestore(&chan->lock, flags);
 
-	__cpdma_chan_free(chan, desc, outlen, (int)status);
+	err = (lw_mode && is_rx_chan(chan) && (cpsw_lw_flags & CPSW_LW_DISCARD_FLAG))?-ECANCELED:0;
+	__cpdma_chan_free(chan, desc, outlen, err);
 	return status;
 
 unlock_ret:
@@ -836,7 +857,7 @@ unlock_ret:
 	return status;
 }
 
-int cpdma_chan_process(struct cpdma_chan *chan, int quota)
+int cpdma_chan_process(struct cpdma_chan *chan, int quota, int lw_mode)
 {
 	int used = 0, ret = 0;
 
@@ -844,7 +865,7 @@ int cpdma_chan_process(struct cpdma_chan *chan, int quota)
 		return -EINVAL;
 
 	while (used < quota) {
-		ret = __cpdma_chan_process(chan);
+		ret = __cpdma_chan_process(chan, lw_mode);
 		if (ret < 0)
 			break;
 		used++;
@@ -916,7 +937,7 @@ int cpdma_chan_stop(struct cpdma_chan *chan)
 
 	/* handle completed packets */
 	do {
-		ret = __cpdma_chan_process(chan);
+		ret = __cpdma_chan_process(chan, false);
 		if (ret < 0)
 			break;
 	} while ((ret & CPDMA_DESC_TD_COMPLETE) == 0);
@@ -956,6 +977,22 @@ int cpdma_chan_setbudget(struct cpdma_chan *chan, int budget)
 	return 0;
 }
 EXPORT_SYMBOL(cpdma_chan_setbudget);
+
+dma_addr_t cpdma_chan_headesc(struct cpdma_chan *chan)
+{
+	unsigned long flags;
+	dma_addr_t desc_addr = 0;
+
+	if (!chan)
+		return -EINVAL;
+
+	spin_lock_irqsave(&chan->lock, flags);
+	if (chan->head)
+		desc_addr = desc_phys(chan->ctlr->pool, chan->head);
+	spin_unlock_irqrestore(&chan->lock, flags);
+	return desc_addr;
+}
+EXPORT_SYMBOL(cpdma_chan_headesc);
 
 bool cpdma_chan_isdone(struct cpdma_chan *chan)
 {

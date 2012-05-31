@@ -80,6 +80,8 @@ struct cpsw_lw_shmem {
 	int16_t slave_status;
 	int16_t slave_errno;
 
+	uint32_t next_rxdesc_addr;
+
 	uint32_t h2s_msg_status;
 	uint32_t h2s_msg_bufaddr;
 	uint32_t s2h_msg_status;
