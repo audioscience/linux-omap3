@@ -2400,6 +2400,7 @@ static int cpsw_lw_setmode(struct net_device *ndev,
 			cpsw_intr_disable(priv);
 			cpsw_disable_irq(priv);
 			napi_disable(&priv->napi);
+			napi_synchronize(&priv->napi);
 			msg->msg_errno = cpsw_lw_start(priv->lw_info);
 			netif_start_queue(ndev);
 			if (msg->msg_errno) {
