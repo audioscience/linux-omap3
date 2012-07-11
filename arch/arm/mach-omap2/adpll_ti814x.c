@@ -379,7 +379,7 @@ static int _adpll_test_fint(struct clk *clk, u8 n)
 static int _adpll_test_dco_freq(struct dpll_data *dd, unsigned long targ_rate)
 {
 	unsigned long long dco_freq;
-	u8 m2 = dd->post_div_m2;
+	u8 m2 = dd->last_rounded_m2;
 	int ret = 0;
 
 	if (dd->flags & TI814X_ADPLL_LS_TYPE) {
@@ -391,6 +391,7 @@ static int _adpll_test_dco_freq(struct dpll_data *dd, unsigned long targ_rate)
 				m2++;
 			} else if (dco_freq > ADPLLS_DCO_FREQ_MAX) {
 				ret = ADPLL_DCO_INVALID;
+				m2--;
 				break;
 			} else {
 				ret = ADPLL_DCO_VALID;
@@ -408,6 +409,7 @@ static int _adpll_test_dco_freq(struct dpll_data *dd, unsigned long targ_rate)
 				m2++;
 			} else if (dco_freq > ADPLLJ_DCO_FREQ_MAX_HS1) {
 				ret = ADPLL_DCO_INVALID;
+				m2--;
 				break;
 			} else {
 				ret = ADPLL_DCO_VALID;
@@ -483,6 +485,9 @@ static int _dpll_get_rounded_vals(struct clk *clk, unsigned long target_rate)
 	if (!dd)
 		return -EINVAL;
 
+	/* Use default value for m2 if it's the first time we get called */
+	if (!dd->last_rounded_m2)
+		dd->last_rounded_m2 = dd->post_div_m2;
 	dd->last_rounded_n = dd->pre_div_n;
 	inp_rate = clk->parent->rate;
 	ret = _adpll_test_dco_freq(dd, target_rate);
