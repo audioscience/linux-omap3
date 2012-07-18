@@ -412,13 +412,21 @@ static int cpts_time_evts_fifo_push(struct cpts_evts_fifo *fifo,
 	if (fifo->tail >= CPTS_FIFO_SIZE)
 		fifo->tail = 0;
 
+	if (fifo->head == fifo->tail) {
+		fifo->fifo[fifo->tail].event_high = 0;
+		fifo->fifo[fifo->tail].ts = 0;
+		fifo->head++;
+		if (fifo->head >= CPTS_FIFO_SIZE)
+			fifo->head = 0;
+	}
+
 	return 0;
 }
 
 static int cpts_time_evts_fifo_pop(struct cpts_evts_fifo *fifo,
 				u32 evt_high, struct cpts_time_evts *evt)
 {
-	u32 i;
+	u32 i, ev_found = 0;
 
 	if (fifo->head == fifo->tail)
 		return -1;
@@ -431,16 +439,21 @@ static int cpts_time_evts_fifo_pop(struct cpts_evts_fifo *fifo,
 
 			fifo->fifo[i].event_high = 0;
 			fifo->fifo[i].ts = 0;
-
+			ev_found = 1;
+		}
+		if (fifo->fifo[i].event_high == 0 && i == fifo->head) {
 			fifo->head++;
 			if (fifo->head >= CPTS_FIFO_SIZE)
 				fifo->head = 0;
-			return 0;
 		}
+		if (ev_found)
+			return 0;
 		i++;
 		if (i >= CPTS_FIFO_SIZE)
 			i = 0;
 	}
+	printk(KERN_DEBUG "cpts_time_evts_fifo_pop() evt %05x not found\n",
+			evt_high);
 	return 0;
 }
 
