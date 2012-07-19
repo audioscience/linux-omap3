@@ -596,7 +596,8 @@ void cpsw_tx_handler(void *token, int len, int status)
 			PTP_ETHER_TYPE)) {
 		evt_high = (skb->data[14] & 0xf) << 16;
 		evt_high |= htons(*((unsigned short *)&skb->data[44]));
-		cpts_isr(priv);
+		if (unlikely(__raw_readl(&priv->cpts_reg->intstat_raw) & 0x01))
+			cpts_isr(priv);
 		cpts_tx_timestamp(priv, skb, evt_high);
 	}
 #endif
@@ -644,6 +645,8 @@ void cpsw_rx_handler(void *token, int len, int status)
 				== PTP_ETHER_TYPE)) {
 			evt_high = (skb->data[14] & 0xf) << 16;
 			evt_high |= htons(*((unsigned short *)&skb->data[44]));
+			if (unlikely(__raw_readl(&priv->cpts_reg->intstat_raw) & 0x01))
+				cpts_isr(priv);
 			cpts_rx_timestamp(priv, skb, evt_high);
 		}
 #endif
