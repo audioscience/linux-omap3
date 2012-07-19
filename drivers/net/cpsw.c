@@ -556,6 +556,7 @@ int cpts_systime_read(u64 *ns)
 		return -ENODEV;
 	}
 
+	time_push = 0;
 	__raw_writel(0x1, &gpriv->cpts_reg->ts_push);
 	for (i = 0; i < 20; i++) {
 		cpts_isr(gpriv);
