@@ -577,8 +577,11 @@ static void cpts_rx_timestamp(struct cpsw_priv *priv,
 {
 	struct cpts_time_evts evt = {0, 0};
 	struct skb_shared_hwtstamps *shhwtstamps;
+	unsigned long flags;
 
+	spin_lock_irqsave(&cpts_time_lock, flags);
 	cpts_time_evts_fifo_pop(&(priv->cpts_time->rx_fifo), evt_high, &evt);
+	spin_unlock_irqrestore(&cpts_time_lock, flags);
 
 	shhwtstamps = skb_hwtstamps(skb);
 	memset(shhwtstamps, 0, sizeof(*shhwtstamps));
@@ -590,8 +593,11 @@ static void cpts_tx_timestamp(struct cpsw_priv *priv,
 {
 	struct cpts_time_evts evt = {0, 0};
 	struct skb_shared_hwtstamps shhwtstamps;
+	unsigned long flags;
 
+	spin_lock_irqsave(&cpts_time_lock, flags);
 	cpts_time_evts_fifo_pop(&(priv->cpts_time->tx_fifo), evt_high, &evt);
+	spin_unlock_irqrestore(&cpts_time_lock, flags);
 
 	memset(&shhwtstamps, 0, sizeof(struct skb_shared_hwtstamps));
 	shhwtstamps.hwtstamp = ns_to_ktime(evt.ts);
