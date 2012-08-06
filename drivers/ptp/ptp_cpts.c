@@ -44,6 +44,8 @@ struct cpts_clock {
 	int initial_freq;
 };
 
+static struct cpts_clock cpts_clock;
+
 DEFINE_SPINLOCK(register_lock);
 
 /*
@@ -142,26 +144,36 @@ static int ptp_cpts_settime(struct ptp_clock_info *ptp,
 	return 0;
 }
 
+static int ptp_cpts_extevent(int index, u64 timestamp)
+{
+	struct ptp_clock_event evt;
+	if (index != 0 || !cpts_clock.exts0_enabled) {
+		printk(KERN_ERR "Unexpected event on channel %d, clk %s, ts %10lld\n",
+				index, cpts_clock.caps.name, timestamp);
+		return -EINVAL;
+	}
+	evt.type = PTP_CLOCK_EXTTS;
+	evt.index = index;
+	evt.timestamp = timestamp;
+	ptp_clock_event(cpts_clock.ptp_clock, &evt);
+	return 0;
+}
+
 static int ptp_cpts_enable(struct ptp_clock_info *ptp,
 			  struct ptp_clock_request *rq, int on)
 {
 	struct cpts_clock *cpts_clock = container_of(ptp,
 			struct cpts_clock, caps);
 
-	switch (rq->type) {
-	case PTP_CLK_REQ_EXTTS:
-		switch (rq->extts.index) {
-		case 0:
-			cpts_clock->exts0_enabled = on ? 1 : 0;
-			return 0;
-		default:
-			return -EINVAL;
-		}
-	default:
-		break;
-	}
+	if (rq->type != PTP_CLK_REQ_EXTTS)
+		return -EOPNOTSUPP;
+	if (rq->extts.index != 0)
+		return -EINVAL;
 
-	return -EOPNOTSUPP;
+	cpts_clock->exts0_enabled = on ? 1 : 0;
+	cpts_set_hwevent_callback(ptp_cpts_extevent);
+	cpts_ctrl_hwpush(0, on);
+	return 0;
 }
 
 static struct ptp_clock_info ptp_cpts_caps = {
@@ -179,10 +191,9 @@ static struct ptp_clock_info ptp_cpts_caps = {
 
 /* module operations */
 
-static struct cpts_clock cpts_clock;
-
 static void __exit ptp_cpts_exit(void)
 {
+	cpts_set_hwevent_callback(NULL);
 	clk_disable(cpts_clock.cpts_ref_clk);
 	clk_put(cpts_clock.cpts_ref_clk);
 	ptp_clock_unregister(cpts_clock.ptp_clock);

@@ -337,6 +337,7 @@ struct cpts_time_handle {
 	int tshi;
 	bool first_half;
 	int freq;
+	int (*cpts_extevent_cb)(int index, u64 timestamp);
 };
 
 struct cpsw_priv {
@@ -401,6 +402,8 @@ DEFINE_SPINLOCK(cpts_time_lock);
 static struct cpsw_priv *gpriv;
 static u64 time_push;
 
+typedef int (*cpts_extevent_cb)(int index, u64 timestamp);
+
 static int cpts_time_evts_fifo_push(struct cpts_evts_fifo *fifo,
 				struct cpts_time_evts *evt)
 {
@@ -457,6 +460,16 @@ static int cpts_time_evts_fifo_pop(struct cpts_evts_fifo *fifo,
 	return 0;
 }
 
+int cpts_set_hwevent_callback(cpts_extevent_cb cb) {
+	unsigned long flags;
+
+	spin_lock_irqsave(&cpts_time_lock, flags);
+	gpriv->cpts_time->cpts_extevent_cb = cb;
+	spin_unlock_irqrestore(&cpts_time_lock, flags);
+	return 0;
+}
+EXPORT_SYMBOL_GPL(cpts_set_hwevent_callback);
+
 static int cpts_isr(struct cpsw_priv *priv)
 {
 	unsigned long flags;
@@ -492,8 +505,18 @@ static int cpts_isr(struct cpsw_priv *priv)
 			spin_unlock_irqrestore(&cpts_time_lock, flags);
 		} else if ((event_high & 0xf00000) == CPTS_TS_HW_PUSH) {
 			/* HW TS Push */
-			printk(KERN_ERR "CPTS_TS_HW_PUSH Not Utilised\n");
-			/* TBD */
+			if (priv->cpts_time->first_half &&
+					event_tslo & 0x80000000) {
+				/* this is misaligned ts */
+				ts = (u64)(priv->cpts_time->tshi - 1);
+			} else {
+				ts = (u64)(priv->cpts_time->tshi);
+			}
+			ts = (ts << 32) | event_tslo;
+			spin_lock_irqsave(&cpts_time_lock, flags);
+			if (priv->cpts_time->cpts_extevent_cb)
+				priv->cpts_time->cpts_extevent_cb(0 , CPTSCOUNT_TO_NANOSEC(ts));
+			spin_unlock_irqrestore(&cpts_time_lock, flags);
 		} else if ((event_high & 0xf00000) == CPTS_TS_ETH_RX) {
 			/* Ethernet Rx Ts */
 			struct cpts_time_evts evt;
@@ -544,6 +567,19 @@ static int cpts_isr(struct cpsw_priv *priv)
 	}
 	return 0;
 }
+
+int cpts_ctrl_hwpush(int index, int state)
+{
+	u32 regval = __raw_readl(&gpriv->cpts_reg->control);
+	if (state)
+		regval |= (0x100 << index);
+	else
+		regval &= ~(0x100 << index);
+	__raw_writel(regval, &gpriv->cpts_reg->control);
+	printk(KERN_DEBUG "Set CPTS HW PUSH %d state to %d\n", index, state);
+	return 0;
+}
+EXPORT_SYMBOL_GPL(cpts_ctrl_hwpush);
 
 int cpts_systime_write(u64 ns)
 {
