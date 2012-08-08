@@ -481,6 +481,7 @@ static int cpts_isr(struct cpsw_priv *priv)
 
 		event_high = __raw_readl(&priv->cpts_reg->event_high);
 		event_tslo = __raw_readl(&priv->cpts_reg->event_low);
+		__raw_writel(0x01, &priv->cpts_reg->event_pop);
 
 		if ((event_high & 0xf00000) == CPTS_TS_PUSH) {
 			/*Push TS to Read */
@@ -562,7 +563,6 @@ static int cpts_isr(struct cpsw_priv *priv)
 			printk(KERN_ERR "Invalid CPTS Event type...\n");
 		}
 
-		__raw_writel(0x01, &priv->cpts_reg->event_pop);
 		cpdma_ctlr_eoi_statistics(priv->dma);
 	}
 	return 0;
