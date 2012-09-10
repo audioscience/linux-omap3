@@ -88,4 +88,13 @@ config PTP_1588_CLOCK_CPTS
 comment "Enable NETWORK_PHY_TIMESTAMPING to see the additional clocks."
 	depends on PTP_1588_CLOCK && (NETWORK_PHY_TIMESTAMPING=n)
 
+config PTP_1588_CLOCK_TI814X_GEN
+	tristate "Adjust any TI814X clock frequency"
+	depends on PTP_1588_CLOCK
+	depends on ARM && ( ARCH_DAVINCI || ARCH_OMAP3 || ARCH_TI81XX )
+	help
+	  This driver exposes a TI814X clock as a PTP device
+	  so its frequency can be adjusted. There is no support for
+	  event timestamping nor for adjusting the clock's offset.
+
 endmenu
