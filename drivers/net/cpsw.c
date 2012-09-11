@@ -396,7 +396,7 @@ struct cpsw_priv {
 static int cpsw_set_coalesce(struct net_device *ndev,
 			struct ethtool_coalesce *coal);
 
-#ifdef CONFIG_PTP_1588_CLOCK_CPTS
+#if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
 DEFINE_SPINLOCK(cpts_time_lock);
 static struct cpsw_priv *gpriv;
 static u64 time_push;
@@ -558,6 +558,7 @@ int cpts_systime_write(u64 ns)
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(cpts_systime_write);
 
 int cpts_systime_read(u64 *ns)
 {
@@ -584,6 +585,7 @@ int cpts_systime_read(u64 *ns)
 
 	return ret;
 }
+EXPORT_SYMBOL_GPL(cpts_systime_read);
 
 static void cpts_rx_timestamp(struct cpsw_priv *priv,
 			struct sk_buff *skb, u32 evt_high)
@@ -641,14 +643,14 @@ void cpsw_tx_handler(void *token, int len, int status)
 	struct sk_buff		*skb = token;
 	struct net_device	*ndev = skb->dev;
 	struct cpsw_priv	*priv = netdev_priv(ndev);
-#ifdef CONFIG_PTP_1588_CLOCK_CPTS
+#if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
 	u32			evt_high = 0;
 #endif
 
 	if (unlikely(netif_queue_stopped(ndev)))
 		netif_start_queue(ndev);
 
-#ifdef CONFIG_PTP_1588_CLOCK_CPTS
+#if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
 	if ((priv->cpts_time->enable_timestamping) &&
 			((htons(*((unsigned short *)&skb->data[12]))) ==
 			PTP_ETHER_TYPE)) {
@@ -671,7 +673,7 @@ void cpsw_rx_handler(void *token, int len, int status)
 	struct net_device	*ndev = skb->dev;
 	struct cpsw_priv	*priv = netdev_priv(ndev);
 	int			ret = 0;
-#ifdef CONFIG_PTP_1588_CLOCK_CPTS
+#if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
 	u32			evt_high = 0;
 #endif
 
@@ -697,7 +699,7 @@ void cpsw_rx_handler(void *token, int len, int status)
 	if (likely(status >= 0)) {
 		skb_put(skb, len);
 
-#ifdef CONFIG_PTP_1588_CLOCK_CPTS
+#if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
 		if ((priv->cpts_time->enable_timestamping) &&
 				((htons(*((unsigned short *)&skb->data[12])))
 				== PTP_ETHER_TYPE)) {
@@ -740,7 +742,7 @@ static irqreturn_t cpsw_interrupt(int irq, void *dev_id)
 {
 	struct cpsw_priv *priv = dev_id;
 
-#ifdef CONFIG_PTP_1588_CLOCK_CPTS
+#if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
 	cpts_isr(priv);
 #endif /* CONFIG_PTP_1588_CLOCK_CPTS */
 
@@ -1206,7 +1208,7 @@ static int cpsw_ndo_open(struct net_device *ndev)
 	napi_enable(&priv->napi);
 	cpdma_ctlr_eoi(priv->dma);
 
-#ifdef CONFIG_PTP_1588_CLOCK_CPTS
+#if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
 	reg = __raw_readl(&priv->cpts_reg->id_ver);
 	if (reg == CPTS_VERSION) {
 		printk(KERN_ERR "Found CPTS and initializing...\n");
@@ -1397,7 +1399,7 @@ static void cpsw_ndo_vlan_rx_kill_vid(struct net_device *ndev,
 }
 #endif /* VLAN_SUPPORT */
 
-#ifdef CONFIG_PTP_1588_CLOCK_CPTS
+#if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
 
 #ifdef CONFIG_TI_CPSW_DUAL_EMAC
 
@@ -2405,7 +2407,7 @@ static int cpsw_ndo_do_ioctl(struct net_device *ndev, struct ifreq *ifrq,
 
 	switch (cmd) {
 	case SIOCSHWTSTAMP:
-#ifdef CONFIG_PTP_1588_CLOCK_CPTS
+#if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
 		return cpsw_hwtstamp_ioctl(ndev, ifrq, cmd);
 #else
 		return -EOPNOTSUPP;
@@ -2782,7 +2784,7 @@ static int __devinit cpsw_probe(struct platform_device *pdev)
 	priv->rx_packet_max = max(rx_packet_max, 128);
 
 	priv->cpts_time = kzalloc(sizeof(struct cpts_time_handle), GFP_KERNEL);
-#ifdef CONFIG_PTP_1588_CLOCK_CPTS
+#if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
 	gpriv = priv;
 #endif /* CONFIG_PTP_1588_CLOCK_CPTS */
 

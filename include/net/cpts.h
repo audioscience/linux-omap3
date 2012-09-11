@@ -15,7 +15,7 @@
 #ifndef __TI_CPTS_H__
 #define __TI_CPTS_H__
 
-int cpts_systime_write(u64 ns);
-int cpts_systime_read(u64 *ns);
+extern int cpts_systime_write(u64 ns);
+extern int cpts_systime_read(u64 *ns);
 
 #endif
