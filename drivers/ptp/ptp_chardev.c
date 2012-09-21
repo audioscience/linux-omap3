@@ -120,6 +120,9 @@ ssize_t ptp_read(struct posix_clock *pc,
 
 	cnt = cnt / sizeof(struct ptp_extts_event);
 
+	if ((rdflags & O_NONBLOCK) && !queue_cnt(queue))
+		return -EAGAIN;
+
 	if (mutex_lock_interruptible(&ptp->tsevq_mux))
 		return -ERESTARTSYS;
 
