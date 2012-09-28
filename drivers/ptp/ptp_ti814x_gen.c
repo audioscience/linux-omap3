@@ -27,7 +27,7 @@
 #include <linux/ptp_clock_kernel.h>
 
 #define DRIVER		"ptp_ti814x_gen"
-#define REF_CLOCK_NAME		"audio_dpll_clk1_ck"
+#define REF_CLOCK_NAME		"audio_dpll_ck"
 
 struct clock_info {
 	struct ptp_clock *ptp_clock;
@@ -68,7 +68,7 @@ static int ptp_ti814x_gen_adjfreq(struct ptp_clock_info *ptp, s32 ppb)
 
 	ret = clk_set_rate(clock_info->ref_clk, target_freq);
 	if (ret)
-		printk(KERN_ERR "Failed to set the rate %d\n", ret);
+		printk(KERN_ERR "Failed to set the rate %ld, %d\n", target_freq, ret);
 
 	return 0;
 }
