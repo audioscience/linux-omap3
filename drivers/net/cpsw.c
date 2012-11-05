@@ -1132,6 +1132,7 @@ static int cpsw_ndo_open(struct net_device *ndev)
 		return ret;
 	}
 
+	sysfs_attr_init(&dev_attr_hw_stats.attr);
 	ret = device_create_file(&ndev->dev, &dev_attr_hw_stats);
 	if (ret < 0) {
 		dev_err(priv->dev, "unable to add device attr\n");
