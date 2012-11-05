@@ -232,7 +232,7 @@ static void __init asi1230_map_io(void)
 
 void  __init asi1230_reserve(void)
 {
-    /* TODO: Reserve memory for PCI when PCI support is enabled */
+	ti81xx_reserve();
 }
 
 static void __init asi1230_init(void)
