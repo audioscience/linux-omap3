@@ -612,9 +612,10 @@ u32 ti814x_get_dpll_rate(struct clk *clk)
 	m2 = v & TI814X_ADPLL_M2_DIV_MASK;
 	m2 >>= __ffs(TI814X_ADPLL_M2_DIV_MASK);
 
-	den = (unsigned long long)(((n+1) << 18)*m2);
+	den = (n+1)*m2;
 	dpll_rate = (unsigned long long)(dd->clk_ref->rate * num);
 	do_div(dpll_rate, den);
+	dpll_rate >>= 18;
 
 	return dpll_rate;
 }
