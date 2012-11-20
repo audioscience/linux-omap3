@@ -27,7 +27,7 @@
 #include <linux/ptp_clock_kernel.h>
 
 #define DRIVER		"ptp_ti814x_gen"
-#define REF_CLOCK_NAME		"audio_dpll_ck"
+#define REF_CLOCK_NAME		"video0_dpll_ck"
 
 struct clock_info {
 	struct ptp_clock *ptp_clock;
@@ -82,7 +82,7 @@ static int ptp_ti814x_gen_enable(struct ptp_clock_info *ptp,
 
 static struct ptp_clock_info ptp_ti814x_gen_caps = {
 	.owner		= THIS_MODULE,
-	.name		= "TI814x gen clk",
+	.name		= REF_CLOCK_NAME,
 	.max_adj	= 66666655,
 	.n_ext_ts	= 0,
 	.pps		= 0,
