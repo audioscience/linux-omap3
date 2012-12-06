@@ -73,7 +73,7 @@ static void __init asi1230_i2c_init(void)
 
 #ifdef CONFIG_MACH_TI8148EVM
 #error Cannot compile ASI1230 support together with TI8148EVM support
-/* The following two functions must be defined when TI8148EVM support is not configured in 
+/* The following two functions must be defined when TI8148EVM support is not configured in
  * or usb-ehci.c (!!!) will be missing symbols. The problem goes away after tweaking Makefiles
  * to exclude USB support when deselected but a proper fix would require refactoring
  * EVM and platform code.
@@ -106,7 +106,7 @@ struct spi_board_info __initdata asi1230_spi_slave_info[] = {
 	 .modalias = "m25p80",
 	 .platform_data = &asi1230_spi_flash,
 	 .irq = -1,
-	 .max_speed_hz = 75000000,
+	 .max_speed_hz = 48000000,	// max speed of TI814x SPI is 48MHz
 	 .bus_num = 1,
 	 .chip_select = 0,
 	 },
@@ -114,21 +114,21 @@ struct spi_board_info __initdata asi1230_spi_slave_info[] = {
 	{
 	 .modalias = "spidev",
 	 .irq = -1,
-	 .max_speed_hz = 50000000,
+	 .max_speed_hz = 48000000,
 	 .bus_num = 1,
 	 .chip_select = 1,
 	 },
 	{
 	 .modalias = "spidev",
 	 .irq = -1,
-	 .max_speed_hz = 50000000,
+	 .max_speed_hz = 48000000,
 	 .bus_num = 1,
 	 .chip_select = 2,
 	 },
 	{
 	 .modalias = "spidev",
 	 .irq = -1,
-	 .max_speed_hz = 50000000,
+	 .max_speed_hz = 48000000,
 	 .bus_num = 2,
 	 .chip_select = 0,
 	 },
