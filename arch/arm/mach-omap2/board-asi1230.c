@@ -67,7 +67,7 @@ static struct i2c_board_info __initdata asi1230_i2c_boardinfo[] = {
 
 static void __init asi1230_i2c_init(void)
 {
-	omap_register_i2c_bus(1, 100, asi1230_i2c_boardinfo,
+	omap_register_i2c_bus(1, 400, asi1230_i2c_boardinfo, /* note 400kHz bus speed */
 			      ARRAY_SIZE(asi1230_i2c_boardinfo));
 }
 
