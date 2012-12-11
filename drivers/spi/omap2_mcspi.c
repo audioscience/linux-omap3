@@ -90,11 +90,21 @@
 #define OMAP2_MCSPI_CHCONF_TURBO	BIT(19)
 #define OMAP2_MCSPI_CHCONF_FORCE	BIT(20)
 
+#if defined(CONFIG_ARCH_TI81XX)
+// additional CHCONF bits that are TI81XX specific
+#define OMAP2_MCSPI_CHCONF_TCS_MASK	(0x03 << 25)
+#define OMAP2_MCSPI_CHCONF_CLKG		BIT(29)
+#endif
+
 #define OMAP2_MCSPI_CHSTAT_RXS		BIT(0)
 #define OMAP2_MCSPI_CHSTAT_TXS		BIT(1)
 #define OMAP2_MCSPI_CHSTAT_EOT		BIT(2)
 
 #define OMAP2_MCSPI_CHCTRL_EN		BIT(0)
+#if defined(CONFIG_ARCH_TI81XX)
+// additional CHCTRL bits that are TI81XX specific
+#define OMAP2_MCSPI_CHCTRL_EXTCLK_MASK	(0xFF << 8)
+#endif
 
 #define OMAP2_MCSPI_WAKEUPENABLE_WKEN	BIT(0)
 
@@ -229,9 +239,12 @@ static void omap2_mcspi_set_dma_req(const struct spi_device *spi,
 
 static void omap2_mcspi_set_enable(const struct spi_device *spi, int enable)
 {
-	u32 l;
+	u32 l = mcspi_read_cs_reg(spi, OMAP2_MCSPI_CHCTRL0);
 
-	l = enable ? OMAP2_MCSPI_CHCTRL_EN : 0;
+	/*l = enable ? OMAP2_MCSPI_CHCTRL_EN : 0;*/
+	l &= ~OMAP2_MCSPI_CHCTRL_EN;
+	if (enable )
+		l |= OMAP2_MCSPI_CHCTRL_EN;
 	mcspi_write_cs_reg(spi, OMAP2_MCSPI_CHCTRL0, l);
 	/* Flash post-writes */
 	mcspi_read_cs_reg(spi, OMAP2_MCSPI_CHCTRL0);
@@ -663,6 +676,9 @@ static int omap2_mcspi_setup_transfer(struct spi_device *spi,
 	struct omap2_mcspi *mcspi;
 	struct spi_master *spi_cntrl;
 	u32 l = 0, div = 0;
+	#if defined(CONFIG_ARCH_TI81XX)
+	u32 ctrl_reg=0;
+	#endif
 	u8 word_len = spi->bits_per_word;
 	u32 speed_hz = spi->max_speed_hz;
 
@@ -677,12 +693,25 @@ static int omap2_mcspi_setup_transfer(struct spi_device *spi,
 	if (t && t->speed_hz)
 		speed_hz = t->speed_hz;
 
+	#if defined(CONFIG_ARCH_TI81XX)
+	/* use "one clock cycle granularity" to program SPI clock */
+	if (speed_hz) {
+		div = (OMAP2_MCSPI_MAX_FREQ/speed_hz)-1;
+		/* if we are in-between frequencies then use next highest divider */
+		if((OMAP2_MCSPI_MAX_FREQ % speed_hz) !=0 )
+			div++;
+		if(div > 0xFFF)
+			div = 0xFFF;
+	} else
+		div = 0xFFF;	/* divide by 4096 */
+	#else /* use default "power of 2 granularity" to program SPI clock */
 	if (speed_hz) {
 		while (div <= 15 && (OMAP2_MCSPI_MAX_FREQ / (1 << div))
 					> speed_hz)
 			div++;
 	} else
 		div = 15;
+	#endif
 
 	l = mcspi_cached_chconf0(spi);
 
@@ -702,9 +731,20 @@ static int omap2_mcspi_setup_transfer(struct spi_device *spi,
 	else
 		l &= ~OMAP2_MCSPI_CHCONF_EPOL;
 
+	#if defined(CONFIG_ARCH_TI81XX)
+	/* use "one clock cycle granularity" to program SPI clock */
+	l |= OMAP2_MCSPI_CHCONF_CLKG;
+	l &= ~OMAP2_MCSPI_CHCONF_CLKD_MASK;
+	l |= ((div & 0xF) << 2);
+	ctrl_reg = mcspi_read_cs_reg(spi, OMAP2_MCSPI_CHCTRL0);
+	ctrl_reg &= ~OMAP2_MCSPI_CHCTRL_EXTCLK_MASK;
+	ctrl_reg |= ((div >> 4) <<8 );
+	mcspi_write_cs_reg(spi, OMAP2_MCSPI_CHCTRL0, ctrl_reg);
+	#else
 	/* set clock divisor */
 	l &= ~OMAP2_MCSPI_CHCONF_CLKD_MASK;
 	l |= div << 2;
+	#endif
 
 	/* set SPI mode 0..3 */
 	if (spi->mode & SPI_CPOL)
@@ -715,6 +755,10 @@ static int omap2_mcspi_setup_transfer(struct spi_device *spi,
 		l |= OMAP2_MCSPI_CHCONF_PHA;
 	else
 		l &= ~OMAP2_MCSPI_CHCONF_PHA;
+
+	#if defined(CONFIG_ARCH_TI81XX)
+	l &= ~OMAP2_MCSPI_CHCONF_TCS_MASK;	/* set num clk cycles between CS active and 1st edge of clock to 0.5 */
+	#endif
 
 	mcspi_write_chconf0(spi, l);
 
