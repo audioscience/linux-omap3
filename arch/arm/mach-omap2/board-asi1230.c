@@ -173,13 +173,14 @@ static int asi1230_vsc_phy_fixup(struct phy_device *phydev)
 
 static struct gpio_led asi1230_led_config[] = {
 	{
-	 .name = "asi1230:led0:mmc0_act",
-	 .default_trigger = "mmc0",
+	 .name = "asi1230:led0:sys_heartbeat",
+	 .default_trigger = "heartbeat",
 	 .active_low = true,
 	 .gpio = LED0_GPIO,
 	 },
 	{
-	 .name = "asi1230:led1",
+	 .name = "asi1230:led1:mmc0_act",
+	 .default_trigger = "mmc0",
 	 .active_low = true,
 	 .gpio = LED1_GPIO,
 	 },
@@ -189,8 +190,7 @@ static struct gpio_led asi1230_led_config[] = {
 	 .gpio = LED2_GPIO,
 	 },
 	{
-	 .name = "asi1230:led3:sys_heartbeat",
-	 .default_trigger = "heartbeat",
+	 .name = "asi1230:led3",
 	 .active_low = true,
 	 .gpio = LED3_GPIO,
 	 },
