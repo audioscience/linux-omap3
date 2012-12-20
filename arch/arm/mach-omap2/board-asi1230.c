@@ -169,6 +169,11 @@ static int asi1230_vsc_phy_fixup(struct phy_device *phydev)
 #define LED1_GPIO 2
 #define LED2_GPIO 3
 #define LED3_GPIO 4
+#define LED4_GPIO 15
+#define LED5_GPIO 16
+#define LED6_GPIO 17
+#define LED7_GPIO 18
+
 #define J2_9_GPIO 5
 
 static struct gpio_led asi1230_led_config[] = {
@@ -193,6 +198,27 @@ static struct gpio_led asi1230_led_config[] = {
 	 .name = "asi1230:led3",
 	 .active_low = true,
 	 .gpio = LED3_GPIO,
+	 },
+	/* led 4..7 are for the DSP to use */
+	{
+	 .name = "asi1230:led4",
+	 .active_low = true,
+	 .gpio = LED4_GPIO,
+	 },
+	{
+	 .name = "asi1230:led5",
+	 .active_low = true,
+	 .gpio = LED5_GPIO,
+	 },
+	{
+	 .name = "asi1230:led6",
+	 .active_low = true,
+	 .gpio = LED6_GPIO,
+	 },
+	{
+	 .name = "asi1230:led7",
+	 .active_low = true,
+	 .gpio = LED7_GPIO,
 	 },
 };
 
