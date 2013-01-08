@@ -145,6 +145,14 @@ static int ptp_clock_adjtime(struct posix_clock *pc, struct timex *tx)
 	} else if (tx->modes & ADJ_FREQUENCY) {
 
 		err = ops->adjfreq(ops, scaled_ppm_to_ppb(tx->freq));
+	} else if ((tx->modes & ADJ_TICK) && ops->settick) {
+		if (!(tx->modes & ADJ_NANO))
+			tx->tick *= 1000;
+		err = ops->settick(ops, tx->tick);
+	} else if (!(tx->modes & ADJ_TICK) && ops->gettick) {
+		err = ops->gettick(ops, &tx->tick);
+		if (!(tx->modes & ADJ_NANO))
+			tx->tick /= 1000;
 	}
 
 	return err;

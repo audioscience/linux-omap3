@@ -52,6 +52,12 @@ struct ptp_clock_request {
  * @adjfreq:  Adjusts the frequency of the hardware clock.
  *            parameter delta: Desired period change in parts per billion.
  *
+ * @settick:  Sets the clock period duration of the underlying clock
+ *            parameter tick_scaled_ns: Duration of the clock period
+ *
+ * @gettick:  Gets the clock period duration of the underlying clock
+ *            parameter tick_scaled_ns: Duration of the clock period
+ *
  * @adjtime:  Shifts the time of the hardware clock.
  *            parameter delta: Desired change in nanoseconds.
  *
@@ -80,6 +86,8 @@ struct ptp_clock_info {
 	int n_per_out;
 	int pps;
 	int (*adjfreq)(struct ptp_clock_info *ptp, s32 delta);
+	int (*settick)(struct ptp_clock_info *ptp, long tick_scaled_ns);
+	int (*gettick)(struct ptp_clock_info *ptp, long *tick_scaled_ns);
 	int (*adjtime)(struct ptp_clock_info *ptp, s64 delta);
 	int (*gettime)(struct ptp_clock_info *ptp, struct timespec *ts);
 	int (*settime)(struct ptp_clock_info *ptp, const struct timespec *ts);
