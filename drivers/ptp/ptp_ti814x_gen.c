@@ -42,18 +42,41 @@ static struct clock_info clock_info;
  * PTP clock operations
  */
 
+static int ptp_ti814x_gen_settick(struct ptp_clock_info *ptp, long tick_scaled_ns)
+{
+	int ret;
+	u32 target_freq;
+	struct clock_info *clock_info = container_of(ptp, struct clock_info,
+			caps);
+
+	if (!tick_scaled_ns) {
+		printk(KERN_ERR "Failed to set the rate. tick duration is zero\n");
+		return -EINVAL;
+	}
+
+	target_freq = div_u64((1000000000ULL << 32), tick_scaled_ns) >> 16;
+
+	ret = clk_set_rate(clock_info->ref_clk, target_freq);
+	if (ret) {
+		printk(KERN_ERR "Failed to set the rate %uHz, %d\n", target_freq, ret);
+	} else {
+		clock_info->initial_freq = target_freq;
+		printk(KERN_INFO "Set " REF_CLOCK_NAME " freq to %uHz\n", target_freq);
+	}
+
+	return ret;
+}
+
 static int ptp_ti814x_gen_adjfreq(struct ptp_clock_info *ptp, s32 ppb)
 {
 	int ret;
-	unsigned long freq = 0, target_freq = 0, current_freq = 0;
+	unsigned long freq = 0, target_freq = 0;
 	int diff;
 	int neg_adj = 0;
 	u64 adj;
 	struct clock_info *clock_info = container_of(ptp, struct clock_info,
 			caps);
 
-	current_freq = clock_info->ref_clk->recalc(
-			clock_info->ref_clk);
 	freq = clock_info->initial_freq;
 
 	if (ppb < 0) {
@@ -87,6 +110,7 @@ static struct ptp_clock_info ptp_ti814x_gen_caps = {
 	.n_ext_ts	= 0,
 	.pps		= 0,
 	.adjfreq	= ptp_ti814x_gen_adjfreq,
+	.settick	= ptp_ti814x_gen_settick,
 	.adjtime	= NULL,
 	.gettime	= NULL,
 	.settime	= NULL,
