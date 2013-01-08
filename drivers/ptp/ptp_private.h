@@ -44,7 +44,7 @@ struct ptp_clock {
 	struct ptp_clock_info *info;
 	dev_t devid;
 	int index; /* index into clocks.map */
-	struct pps_device *pps_source;
+	int pps_source;
 	struct timestamp_event_queue tsevq; /* simple fifo for time stamps */
 	struct mutex tsevq_mux; /* one process at a time reading the fifo */
 	wait_queue_head_t tsev_wq;
