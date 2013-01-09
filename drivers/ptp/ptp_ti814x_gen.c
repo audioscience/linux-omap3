@@ -54,7 +54,7 @@ static int ptp_ti814x_gen_settick(struct ptp_clock_info *ptp, long tick_scaled_n
 		return -EINVAL;
 	}
 
-	target_freq = div_u64((1000000000ULL << 32), tick_scaled_ns) >> 16;
+	target_freq = div_u64((1000000000ULL << 32), tick_scaled_ns) >> 8;
 
 	ret = clk_set_rate(clock_info->ref_clk, target_freq);
 	if (ret) {
