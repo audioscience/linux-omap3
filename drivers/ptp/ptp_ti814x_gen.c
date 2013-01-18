@@ -67,6 +67,39 @@ static int ptp_ti814x_gen_settick(struct ptp_clock_info *ptp, long tick_scaled_n
 	return ret;
 }
 
+static int ptp_ti814x_gen_setfreq(struct ptp_clock_info *ptp,
+		struct ptp_clock_freq *freq)
+{
+	int ret;
+	u32 target_freq;
+	struct clock_info *clock_info = container_of(ptp, struct clock_info,
+			caps);
+
+	if (!(freq->flags && PTP_FREQ_SET)) {
+		freq->freq_hz = clock_info->ref_clk->recalc(
+			clock_info->ref_clk);
+		freq->freq_frac = 0;
+		return 0;
+	}
+
+	target_freq = freq->freq_hz;
+
+	if (!target_freq) {
+		printk(KERN_ERR "Failed to set the rate. target frequency is zero\n");
+		return -EINVAL;
+	}
+
+	ret = clk_set_rate(clock_info->ref_clk, target_freq);
+	if (ret) {
+		printk(KERN_ERR "Failed to set the rate of " REF_CLOCK_NAME " to %uHz, %d\n", target_freq, ret);
+	} else {
+		clock_info->initial_freq = target_freq;
+		printk(KERN_INFO "Set " REF_CLOCK_NAME " freq to %uHz\n", target_freq);
+	}
+
+	return ret;
+}
+
 static int ptp_ti814x_gen_adjfreq(struct ptp_clock_info *ptp, s32 ppb)
 {
 	int ret;
@@ -91,7 +124,7 @@ static int ptp_ti814x_gen_adjfreq(struct ptp_clock_info *ptp, s32 ppb)
 
 	ret = clk_set_rate(clock_info->ref_clk, target_freq);
 	if (ret)
-		printk(KERN_ERR "Failed to set the rate of " REF_CLOCK_NAME " to %uHz, %d\n", target_freq, ret);
+		printk(KERN_ERR "Failed to set the rate of " REF_CLOCK_NAME " to %luHz, %d\n", target_freq, ret);
 
 	return 0;
 }
@@ -110,6 +143,7 @@ static struct ptp_clock_info ptp_ti814x_gen_caps = {
 	.n_ext_ts	= 0,
 	.pps		= 0,
 	.adjfreq	= ptp_ti814x_gen_adjfreq,
+	.setfreq	= ptp_ti814x_gen_setfreq,
 	.settick	= ptp_ti814x_gen_settick,
 	.adjtime	= NULL,
 	.gettime	= NULL,
