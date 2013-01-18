@@ -86,6 +86,7 @@ struct ptp_clock_info {
 	int n_per_out;
 	int pps;
 	int (*adjfreq)(struct ptp_clock_info *ptp, s32 delta);
+	int (*setfreq)(struct ptp_clock_info *ptp, struct ptp_clock_freq *freq);
 	int (*settick)(struct ptp_clock_info *ptp, long tick_scaled_ns);
 	int (*gettick)(struct ptp_clock_info *ptp, long *tick_scaled_ns);
 	int (*adjtime)(struct ptp_clock_info *ptp, s64 delta);

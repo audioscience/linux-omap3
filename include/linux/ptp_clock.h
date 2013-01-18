@@ -29,6 +29,9 @@
 #define PTP_RISING_EDGE    (1<<1)
 #define PTP_FALLING_EDGE   (1<<2)
 
+#define PTP_FREQ_SET          (1<<0) /* Set center frequency */
+#define PTP_FREQ_NO_RESET_ADJ (1<<1) /* Do not reset adjustment */
+
 /*
  * struct ptp_clock_time - represents a time value
  *
@@ -67,12 +70,20 @@ struct ptp_perout_request {
 	unsigned int rsv[4];          /* Reserved for future use. */
 };
 
+struct ptp_clock_freq {
+	unsigned int flags;
+	__u32 freq_hz;
+	__u32 freq_frac;
+	unsigned int rsv[4];          /* Reserved for future use. */
+};
+
 #define PTP_CLK_MAGIC '='
 
 #define PTP_CLOCK_GETCAPS  _IOR(PTP_CLK_MAGIC, 1, struct ptp_clock_caps)
 #define PTP_EXTTS_REQUEST  _IOW(PTP_CLK_MAGIC, 2, struct ptp_extts_request)
 #define PTP_PEROUT_REQUEST _IOW(PTP_CLK_MAGIC, 3, struct ptp_perout_request)
 #define PTP_ENABLE_PPS     _IOW(PTP_CLK_MAGIC, 4, int)
+#define PTP_CLOCK_FREQ     _IOWR(PTP_CLK_MAGIC, 5, struct ptp_clock_freq)
 
 struct ptp_extts_event {
 	struct ptp_clock_time t; /* Time event occured. */

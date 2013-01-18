@@ -33,6 +33,7 @@ long ptp_ioctl(struct posix_clock *pc, unsigned int cmd, unsigned long arg)
 {
 	struct ptp_clock_caps caps;
 	struct ptp_clock_request req;
+	struct ptp_clock_freq freq;
 	struct ptp_clock *ptp = container_of(pc, struct ptp_clock, clock);
 	struct ptp_clock_info *ops = ptp->info;
 	int enable, err = 0;
@@ -87,6 +88,19 @@ long ptp_ioctl(struct posix_clock *pc, unsigned int cmd, unsigned long arg)
 		err = ops->enable(ops, &req, enable);
 		break;
 
+	case PTP_CLOCK_FREQ:
+		if (copy_from_user(&freq, (void __user *)arg,
+				   sizeof(freq))) {
+			err = -EFAULT;
+			break;
+		}
+		if (ops->setfreq) {
+			err = ops->setfreq(ops, &freq);
+			if (!err)
+				err = copy_to_user((void __user *)arg, &freq, sizeof(freq));
+		} else
+			err = -ENOTTY;
+		break;
 	default:
 		err = -ENOTTY;
 		break;
