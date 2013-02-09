@@ -61,13 +61,13 @@ do {								\
 #define cpsw_enable_irq(priv)	\
 	do {			\
 		u32 i;		\
-		for (i = 0; i < priv->num_irqs-1; i++) \
+		for (i = 0; i < priv->num_irqs; i++) \
 			enable_irq(priv->irqs_table[i]); \
 	} while (0);
 #define cpsw_disable_irq(priv)	\
 	do {			\
 		u32 i;		\
-		for (i = 0; i < priv->num_irqs-1; i++) \
+		for (i = 0; i < priv->num_irqs; i++) \
 			disable_irq_nosync(priv->irqs_table[i]); \
 	} while (0);
 #else
@@ -473,7 +473,6 @@ EXPORT_SYMBOL_GPL(cpts_set_hwevent_callback);
 static int cpts_isr(struct cpsw_priv *priv)
 {
 	unsigned long flags;
-	int ret = 0;
 
 	while (__raw_readl(&priv->cpts_reg->intstat_raw) & 0x01) {
 		u32	event_high;
@@ -524,7 +523,6 @@ static int cpts_isr(struct cpsw_priv *priv)
 				cpts_time_evts_fifo_push(
 					&(priv->cpts_time->rx_fifo), &evt);
 				spin_unlock_irqrestore(&cpts_time_lock, flags);
-				ret += 1;
 			}
 		} else if ((event_high & 0xf00000) == CPTS_TS_ETH_TX) {
 			/* Ethernet Tx Ts */
@@ -537,7 +535,6 @@ static int cpts_isr(struct cpsw_priv *priv)
 				cpts_time_evts_fifo_push(
 					&(priv->cpts_time->tx_fifo), &evt);
 				spin_unlock_irqrestore(&cpts_time_lock, flags);
-				ret += 1;
 			}
 		} else {
 			printk(KERN_ERR "Invalid CPTS Event type...\n");
@@ -545,7 +542,7 @@ static int cpts_isr(struct cpsw_priv *priv)
 
 		cpdma_ctlr_eoi_statistics(priv->dma);
 	}
-	return ret;
+	return 0;
 }
 
 int cpts_ctrl_hwpush(int index, int state)
@@ -759,12 +756,7 @@ static irqreturn_t cpsw_interrupt(int irq, void *dev_id)
 	struct cpsw_priv *priv = dev_id;
 
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
-/*
-	if (__raw_readl(&priv->cpts_reg->intstat_masked) & 0x01)
-		dev_err(priv->dev, "CPTS interrupt\n");
-*/
-	if (__raw_readl(&priv->cpts_reg->intstat_raw) & 0x01)
-		cpts_isr(priv);
+	cpts_isr(priv);
 #endif /* CONFIG_PTP_1588_CLOCK_CPTS */
 
 	if (likely(netif_running(priv->ndev))) {
@@ -3090,10 +3082,6 @@ static int __devinit cpsw_probe(struct platform_device *pdev)
 	priv->slaves[1].ndev = ndev;
 #endif /* CONFIG_TI_CPSW_DUAL_EMAC */
 
-#if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
-	/* Enable CPTS interrupt */
-	__raw_writel(0x01, &priv->cpts_reg->int_enable);
-#endif
 	return 0;
 
 clean_irq_ret:
@@ -3126,11 +3114,6 @@ static int __devexit cpsw_remove(struct platform_device *pdev)
 	struct net_device *ndev = platform_get_drvdata(pdev);
 	struct cpsw_priv *priv = netdev_priv(ndev);
 	int i;
-
-#if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
-	/* Disable CPTS interrupt */
-	__raw_writel(0x00, &priv->cpts_reg->int_enable);
-#endif
 
 	msg(notice, probe, "removing device\n");
 	platform_set_drvdata(pdev, NULL);
