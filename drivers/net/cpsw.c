@@ -1231,7 +1231,7 @@ static int cpsw_ndo_open(struct net_device *ndev)
 		/* Enable CPTS Interrupt */
 		__raw_writel(0x01, &priv->cpts_reg->int_enable);
 		/* Enable CPSW_SS Misc Interrupt */
-		__raw_writel(0x10, &priv->ss_regs->misc_stat);
+		__raw_writel(0x10, &priv->ss_regs->misc_en);
 	} else {
 		printk(KERN_ERR "Cannot find CPTS\n");
 	}
