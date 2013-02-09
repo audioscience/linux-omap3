@@ -61,13 +61,13 @@ do {								\
 #define cpsw_enable_irq(priv)	\
 	do {			\
 		u32 i;		\
-		for (i = 0; i < priv->num_irqs; i++) \
+		for (i = 0; i < priv->num_irqs-1; i++) \
 			enable_irq(priv->irqs_table[i]); \
 	} while (0);
 #define cpsw_disable_irq(priv)	\
 	do {			\
 		u32 i;		\
-		for (i = 0; i < priv->num_irqs; i++) \
+		for (i = 0; i < priv->num_irqs-1; i++) \
 			disable_irq_nosync(priv->irqs_table[i]); \
 	} while (0);
 #else
@@ -392,9 +392,6 @@ struct cpsw_priv {
 #ifdef CONFIG_TI_CPSW_DUAL_EMAC
 	u32				emac_port;
 #endif /* CONFIG_TI_CPSW_DUAL_EMAC */
-#if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
-	struct timer_list cpts_timer;
-#endif
 };
 
 static int cpsw_set_coalesce(struct net_device *ndev,
@@ -757,35 +754,15 @@ void cpsw_rx_handler(void *token, int len, int status)
 
 }
 
-#if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
-static void cpts_timer_handler(unsigned long arg)
-{
-	struct cpsw_priv *priv = (struct cpsw_priv *)arg;
-	int ret = 0;
-	if (__raw_readl(&priv->cpts_reg->intstat_raw) & 0x01)
-		ret = cpts_isr(priv);
-	if (ret) {
-		if (likely(netif_running(priv->ndev))) {
-			napi_schedule(&priv->napi);
-		}
-#ifdef CONFIG_TI_CPSW_DUAL_EMAC
-		else if (likely(netif_running(priv->slaves[1].ndev))) {
-			struct cpsw_priv *priv_sl2 = netdev_priv(priv->slaves[1].ndev);
-			napi_schedule(&priv_sl2->napi);
-		}
-#endif /* CONFIG_TI_CPSW_DUAL_EMAC */
-	}
-
-	priv->cpts_timer.expires = jiffies + msecs_to_jiffies(10);
-	add_timer(&priv->cpts_timer);
-}
-#endif /* CONFIG_PTP_1588_CLOCK_CPTS */
-
 static irqreturn_t cpsw_interrupt(int irq, void *dev_id)
 {
 	struct cpsw_priv *priv = dev_id;
 
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
+/*
+	if (__raw_readl(&priv->cpts_reg->intstat_masked) & 0x01)
+		dev_err(priv->dev, "CPTS interrupt\n");
+*/
 	if (__raw_readl(&priv->cpts_reg->intstat_raw) & 0x01)
 		cpts_isr(priv);
 #endif /* CONFIG_PTP_1588_CLOCK_CPTS */
@@ -3114,9 +3091,8 @@ static int __devinit cpsw_probe(struct platform_device *pdev)
 #endif /* CONFIG_TI_CPSW_DUAL_EMAC */
 
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
-	setup_timer(&priv->cpts_timer, cpts_timer_handler, (unsigned long)priv);
-	priv->cpts_timer.expires = jiffies + msecs_to_jiffies(10);
-	add_timer(&priv->cpts_timer);
+	/* Enable CPTS interrupt */
+	__raw_writel(0x01, &priv->cpts_reg->int_enable);
 #endif
 	return 0;
 
@@ -3152,7 +3128,8 @@ static int __devexit cpsw_remove(struct platform_device *pdev)
 	int i;
 
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
-	del_timer(&priv->cpts_timer);
+	/* Disable CPTS interrupt */
+	__raw_writel(0x00, &priv->cpts_reg->int_enable);
 #endif
 
 	msg(notice, probe, "removing device\n");
