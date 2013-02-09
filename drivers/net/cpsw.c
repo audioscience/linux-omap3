@@ -766,15 +766,11 @@ static void cpts_timer_handler(unsigned long arg)
 		ret = cpts_isr(priv);
 	if (ret) {
 		if (likely(netif_running(priv->ndev))) {
-			cpsw_intr_disable(priv);
-			cpsw_disable_irq(priv);
 			napi_schedule(&priv->napi);
 		}
 #ifdef CONFIG_TI_CPSW_DUAL_EMAC
 		else if (likely(netif_running(priv->slaves[1].ndev))) {
 			struct cpsw_priv *priv_sl2 = netdev_priv(priv->slaves[1].ndev);
-			cpsw_intr_disable(priv_sl2);
-			cpsw_disable_irq(priv_sl2);
 			napi_schedule(&priv_sl2->napi);
 		}
 #endif /* CONFIG_TI_CPSW_DUAL_EMAC */
