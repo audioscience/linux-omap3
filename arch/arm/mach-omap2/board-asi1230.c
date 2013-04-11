@@ -92,12 +92,40 @@ static struct omap2_hsmmc_info mmc[] = {
 	 },
 	{}			/* Terminator */
 };
+
+/* SPI fLash information */
+static struct mtd_partition asi1230_spi_partitions[] = {
+	/* All the partition sizes are listed in terms of erase size */
+	{
+		.name		= "Bootloader",
+		.offset		= 0,
+		.size		= 2*SZ_64K,
+		.mask_flags	= MTD_WRITEABLE, /* force read-only */
+	},
+	{
+		.name		= "Board info",
+		.offset		= MTDPART_OFS_APPEND, /* 0x20000 */
+		.size		= SZ_64K,
+	},
+	{
+		.name		= "Bootloader Env",
+		.offset		= MTDPART_OFS_APPEND, /* 0x30000 */
+		.size		= SZ_64K,
+	},
+	{
+		.name		= "Kernel",
+		.offset		= MTDPART_OFS_APPEND, /* 0x40000 */
+		.size		= MTDPART_SIZ_FULL,
+	}
+};
+
 const struct flash_platform_data asi1230_spi_flash = {
 	.type = "m25p16",
 	.name = "spi_flash",
-	.parts = NULL,
-	.nr_parts = 0,
+	.parts = asi1230_spi_partitions,
+	.nr_parts = ARRAY_SIZE(asi1230_spi_partitions),
 };
+
 struct spi_board_info __initdata asi1230_spi_slave_info[] = {
 	{
 	 .modalias = "m25p80",
