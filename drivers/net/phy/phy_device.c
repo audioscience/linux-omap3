@@ -874,6 +874,35 @@ static int genphy_config_init(struct phy_device *phydev)
 	}
 
 	phydev->supported = features;
+
+	/* Read back currently advertized features */
+	features = 0;
+	val = phy_read(phydev, MII_ADVERTISE);
+
+	if (val < 0)
+		return val;
+
+	if (val & ADVERTISE_100FULL)
+		features |= SUPPORTED_100baseT_Full;
+	if (val & ADVERTISE_100HALF)
+		features |= SUPPORTED_100baseT_Half;
+	if (val & ADVERTISE_10FULL)
+		features |= SUPPORTED_10baseT_Full;
+	if (val & ADVERTISE_10HALF)
+		features |= SUPPORTED_10baseT_Half;
+
+	if (val & BMSR_ESTATEN) {
+		val = phy_read(phydev, MII_CTRL1000);
+
+		if (val < 0)
+			return val;
+
+		if (val & ADVERTISE_1000FULL)
+			features |= SUPPORTED_1000baseT_Full;
+		if (val & ADVERTISE_1000HALF)
+			features |= SUPPORTED_1000baseT_Half;
+	}
+
 	phydev->advertising = features;
 
 	return 0;
