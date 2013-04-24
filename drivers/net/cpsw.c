@@ -965,52 +965,6 @@ static ssize_t cpsw_hw_stats_show(struct device *dev,
 
 DEVICE_ATTR(hw_stats, S_IRUGO, cpsw_hw_stats_show, NULL);
 
-static void cpsw_set_phy_config(struct cpsw_priv *priv, struct phy_device *phy)
-{
-	struct cpsw_platform_data *pdata = priv->pdev->dev.platform_data;
-	struct mii_bus *miibus;
-	int phy_addr = 0;
-	u16 val = 0;
-	u16 tmp = 0;
-
-	if (!pdata->gigabit_en)
-		return;
-
-	if (!phy)
-		return;
-
-	miibus = phy->bus;
-
-	if (!miibus)
-		return;
-
-	phy_addr = phy->addr;
-
-	/* Following lines enable gigbit advertisement capability even in case
-	 * the advertisement is not enabled by default
-	 */
-	val = miibus->read(miibus, phy_addr, MII_BMCR);
-	val |= (BMCR_SPEED100 | BMCR_ANENABLE | BMCR_FULLDPLX);
-	miibus->write(miibus, phy_addr, MII_BMCR, val);
-	tmp = miibus->read(miibus, phy_addr, MII_BMCR);
-
-	tmp = miibus->read(miibus, phy_addr, MII_BMSR);
-	if (tmp & 0x1) {
-		val = miibus->read(miibus, phy_addr, MII_CTRL1000);
-		val |= BIT(9);
-		miibus->write(miibus, phy_addr, MII_CTRL1000, val);
-		tmp = miibus->read(miibus, phy_addr, MII_CTRL1000);
-	}
-
-	val = miibus->read(miibus, phy_addr, MII_ADVERTISE);
-	val |= (ADVERTISE_10HALF | ADVERTISE_10FULL | \
-		ADVERTISE_100HALF | ADVERTISE_100FULL);
-	miibus->write(miibus, phy_addr, MII_ADVERTISE, val);
-	tmp = miibus->read(miibus, phy_addr, MII_ADVERTISE);
-
-	return;
-}
-
 #ifdef CONFIG_TI_CPSW_DUAL_EMAC
 static int cpsw_common_res_usage_stat(struct cpsw_priv *priv)
 {
@@ -1076,7 +1030,6 @@ static void cpsw_slave_open(struct cpsw_slave *slave, struct cpsw_priv *priv)
 	} else {
 		printk(KERN_ERR "\nCPSW phy found : id is : 0x%x\n",
 			slave->phy->phy_id);
-		cpsw_set_phy_config(priv, slave->phy);
 		phy_start(slave->phy);
 	}
 }
