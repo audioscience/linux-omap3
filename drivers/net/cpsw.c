@@ -29,6 +29,7 @@
 #include <linux/ethtool.h>
 #include <linux/cpsw.h>
 #include <linux/net_switch_config.h>
+#include <net/sock.h>
 
 #include "cpsw_ale.h"
 #include "davinci_cpdma.h"
@@ -321,6 +322,7 @@ struct cpts_regs {
 struct cpts_time_evts {
 	uint32_t event_high;
 	u64 ts;
+	struct sk_buff *skb;
 };
 
 struct cpts_evts_fifo {
@@ -404,20 +406,56 @@ static u64 time_push;
 
 typedef int (*cpts_extevent_cb)(int index, u64 timestamp);
 
+static void cpts_time_evts_fifo_init(struct cpts_evts_fifo *fifo)
+{
+	fifo->head = 0;
+	fifo->tail = 0;
+	memset(fifo->fifo, 0, sizeof(fifo->fifo));
+}
+
+/* Free all SKB the fifo may be holding, leave the event IDs */
+static void cpts_time_evts_fifo_flush(struct cpts_evts_fifo *fifo)
+{
+	int i;
+	struct cpts_time_evts *evt;
+
+	for (i = 0; i < CPTS_FIFO_SIZE; i++) {
+		evt = &fifo->fifo[i];
+		if (!evt->event_high)
+			continue;
+		if (evt->skb) {
+			sock_put(evt->skb->sk);
+			evt->skb->sk = NULL;
+			dev_kfree_skb_any(evt->skb);
+			evt->skb = NULL;
+		}
+	}
+}
+
 static int cpts_time_evts_fifo_push(struct cpts_evts_fifo *fifo,
 				struct cpts_time_evts *evt)
 {
 
 	fifo->fifo[fifo->tail].event_high = evt->event_high;
-	fifo->fifo[fifo->tail].ts = CPTSCOUNT_TO_NANOSEC(evt->ts);
+	fifo->fifo[fifo->tail].ts = evt->ts;
+	fifo->fifo[fifo->tail].skb = evt->skb;
 
 	fifo->tail++;
 	if (fifo->tail >= CPTS_FIFO_SIZE)
 		fifo->tail = 0;
 
 	if (fifo->head == fifo->tail) {
+		printk(KERN_DEBUG "cpts_time_evts_fifo_push() evt %05x "
+			"discarded\n",
+			fifo->fifo[fifo->tail].event_high & 0xFFFFF);
 		fifo->fifo[fifo->tail].event_high = 0;
 		fifo->fifo[fifo->tail].ts = 0;
+		if (fifo->fifo[fifo->tail].skb) {
+			sock_put(fifo->fifo[fifo->tail].skb->sk);
+			fifo->fifo[fifo->tail].skb->sk = NULL;
+			dev_kfree_skb_any(fifo->fifo[fifo->tail].skb);
+			fifo->fifo[fifo->tail].skb = NULL;
+		}
 		fifo->head++;
 		if (fifo->head >= CPTS_FIFO_SIZE)
 			fifo->head = 0;
@@ -439,9 +477,11 @@ static int cpts_time_evts_fifo_pop(struct cpts_evts_fifo *fifo,
 		if (evt_high == fifo->fifo[i].event_high) {
 			evt->event_high = fifo->fifo[i].event_high;
 			evt->ts = fifo->fifo[i].ts;
+			evt->skb = fifo->fifo[i].skb;
 
 			fifo->fifo[i].event_high = 0;
 			fifo->fifo[i].ts = 0;
+			fifo->fifo[i].skb = NULL;
 			ev_found = 1;
 		}
 		if (fifo->fifo[i].event_high == 0 && i == fifo->head) {
@@ -455,9 +495,7 @@ static int cpts_time_evts_fifo_pop(struct cpts_evts_fifo *fifo,
 		if (i >= CPTS_FIFO_SIZE)
 			i = 0;
 	}
-	printk(KERN_DEBUG "cpts_time_evts_fifo_pop() evt %05x not found\n",
-			evt_high);
-	return 0;
+	return -1;
 }
 
 int cpts_set_hwevent_callback(cpts_extevent_cb cb) {
@@ -469,6 +507,32 @@ int cpts_set_hwevent_callback(cpts_extevent_cb cb) {
 	return 0;
 }
 EXPORT_SYMBOL_GPL(cpts_set_hwevent_callback);
+
+static void cpts_ts_eth_tx_event(struct cpts_time_handle *cpts_time, u32 evt_high,
+	u64 ts)
+{
+	int err = 0;
+	unsigned long flags;
+	struct cpts_time_evts evt = {0};
+	struct skb_shared_hwtstamps shhwtstamps;
+
+	if (!cpts_time->enable_timestamping)
+		return;
+
+	spin_lock_irqsave(&cpts_time_lock, flags);
+	err = cpts_time_evts_fifo_pop(&cpts_time->tx_fifo, evt_high,
+		&evt);
+	spin_unlock_irqrestore(&cpts_time_lock, flags);
+
+	if (err < 0) {
+		printk(KERN_DEBUG "cpts_isr() evt %05x not found\n", evt_high);
+	} else if (evt.skb) {
+		BUG_ON(evt.skb->sk == NULL);
+		memset(&shhwtstamps, 0, sizeof(shhwtstamps));
+		shhwtstamps.hwtstamp = ns_to_ktime(CPTSCOUNT_TO_NANOSEC(ts));
+		skb_complete_tx_timestamp(evt.skb, &shhwtstamps);
+	}
+}
 
 static int cpts_isr(struct cpsw_priv *priv)
 {
@@ -510,14 +574,14 @@ static int cpts_isr(struct cpsw_priv *priv)
 			/* HW TS Push */
 			spin_lock_irqsave(&cpts_time_lock, flags);
 			if (priv->cpts_time->cpts_extevent_cb)
-				priv->cpts_time->cpts_extevent_cb(0 , CPTSCOUNT_TO_NANOSEC(ts));
+				priv->cpts_time->cpts_extevent_cb(0, CPTSCOUNT_TO_NANOSEC(ts));
 			spin_unlock_irqrestore(&cpts_time_lock, flags);
 		} else if ((event_high & 0xf00000) == CPTS_TS_ETH_RX) {
 			/* Ethernet Rx Ts */
-			struct cpts_time_evts evt;
+			struct cpts_time_evts evt = {0};
 
 			evt.event_high = event_high & 0xfffff;
-			evt.ts = ts;
+			evt.ts = CPTSCOUNT_TO_NANOSEC(ts);
 			if (priv->cpts_time->enable_timestamping) {
 				spin_lock_irqsave(&cpts_time_lock, flags);
 				cpts_time_evts_fifo_push(
@@ -526,16 +590,8 @@ static int cpts_isr(struct cpsw_priv *priv)
 			}
 		} else if ((event_high & 0xf00000) == CPTS_TS_ETH_TX) {
 			/* Ethernet Tx Ts */
-			struct cpts_time_evts evt;
-
-			evt.event_high = event_high & 0xfffff;
-			evt.ts = ts;
-			if (priv->cpts_time->enable_timestamping) {
-				spin_lock_irqsave(&cpts_time_lock, flags);
-				cpts_time_evts_fifo_push(
-					&(priv->cpts_time->tx_fifo), &evt);
-				spin_unlock_irqrestore(&cpts_time_lock, flags);
-			}
+			cpts_ts_eth_tx_event(priv->cpts_time,
+				event_high & 0xfffff, ts);
 		} else {
 			printk(KERN_ERR "Invalid CPTS Event type...\n");
 		}
@@ -603,13 +659,18 @@ EXPORT_SYMBOL_GPL(cpts_systime_read);
 static void cpts_rx_timestamp(struct cpsw_priv *priv,
 			struct sk_buff *skb, u32 evt_high)
 {
-	struct cpts_time_evts evt = {0, 0};
+	int err = 0;
+	struct cpts_time_evts evt = {0};
 	struct skb_shared_hwtstamps *shhwtstamps;
 	unsigned long flags;
 
 	spin_lock_irqsave(&cpts_time_lock, flags);
-	cpts_time_evts_fifo_pop(&(priv->cpts_time->rx_fifo), evt_high, &evt);
+	err = cpts_time_evts_fifo_pop(&(priv->cpts_time->rx_fifo), evt_high, &evt);
 	spin_unlock_irqrestore(&cpts_time_lock, flags);
+
+	if (err < 0)
+		printk(KERN_DEBUG "cpts_rx_timestamp() evt %05x not found\n",
+			evt_high);
 
 	shhwtstamps = skb_hwtstamps(skb);
 	memset(shhwtstamps, 0, sizeof(*shhwtstamps));
@@ -619,17 +680,36 @@ static void cpts_rx_timestamp(struct cpsw_priv *priv,
 static void cpts_tx_timestamp(struct cpsw_priv *priv,
 			struct sk_buff *skb, u32 evt_high)
 {
-	struct cpts_time_evts evt = {0, 0};
-	struct skb_shared_hwtstamps shhwtstamps;
 	unsigned long flags;
+	struct cpts_time_evts evt = {0};
+	struct sk_buff *clone = NULL;
 
+	BUG_ON(skb == NULL);
+	evt.event_high = evt_high;
+
+	if (skb->sk) {
+		struct sock *sk;
+		sk = skb->sk;
+		/* Clone skb */
+		if (!atomic_inc_not_zero(&sk->sk_refcnt)) {
+			printk(KERN_ERR "cpts_tx_timestamp() sock has zero "
+				"refcnt\n");
+			return;
+		}
+		clone = skb_clone(skb, GFP_ATOMIC);
+		if (!clone) {
+			printk(KERN_ERR "cpts_tx_timestamp() cannot clone "
+				"skb\n");
+			sock_put(sk);
+			return;
+		}
+		clone->sk = sk;
+	}
+	/* The event we push has either an skb with a valid socket or NULL */
+	evt.skb = clone;
 	spin_lock_irqsave(&cpts_time_lock, flags);
-	cpts_time_evts_fifo_pop(&(priv->cpts_time->tx_fifo), evt_high, &evt);
+	cpts_time_evts_fifo_push(&(priv->cpts_time->tx_fifo), &evt);
 	spin_unlock_irqrestore(&cpts_time_lock, flags);
-
-	memset(&shhwtstamps, 0, sizeof(struct skb_shared_hwtstamps));
-	shhwtstamps.hwtstamp = ns_to_ktime(evt.ts);
-	skb_tstamp_tx(skb, &shhwtstamps);
 }
 #endif
 
@@ -656,24 +736,9 @@ void cpsw_tx_handler(void *token, int len, int status)
 	struct sk_buff		*skb = token;
 	struct net_device	*ndev = skb->dev;
 	struct cpsw_priv	*priv = netdev_priv(ndev);
-#if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
-	u32			evt_high = 0;
-#endif
 
 	if (unlikely(netif_queue_stopped(ndev)))
 		netif_start_queue(ndev);
-
-#if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
-	if ((priv->cpts_time->enable_timestamping) &&
-			((htons(*((unsigned short *)&skb->data[12]))) ==
-			PTP_ETHER_TYPE)) {
-		evt_high = (skb->data[14] & 0xf) << 16;
-		evt_high |= htons(*((unsigned short *)&skb->data[44]));
-		if (unlikely(__raw_readl(&priv->cpts_reg->intstat_raw) & 0x01))
-			cpts_isr(priv);
-		cpts_tx_timestamp(priv, skb, evt_high);
-	}
-#endif
 
 	priv->stats.tx_packets++;
 	priv->stats.tx_bytes += len;
@@ -1259,6 +1324,16 @@ static netdev_tx_t cpsw_ndo_start_xmit(struct sk_buff *skb,
 		goto fail;
 	}
 
+#if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
+	if (unlikely(priv->cpts_time->enable_timestamping &&
+			((htons(*((unsigned short *)&skb->data[12]))) ==
+			PTP_ETHER_TYPE))) {
+		u32 evt_high = (skb->data[14] & 0xf) << 16;
+		evt_high |= htons(*((unsigned short *)&skb->data[44]));
+		cpts_tx_timestamp(priv, skb, evt_high);
+	}
+#endif
+
 #ifdef CONFIG_TI_CPSW_DUAL_EMAC
 	if (ndev == priv->slaves[0].ndev) {
 		ret = cpdma_chan_submit(priv->txch, skb, skb->data,
@@ -1498,6 +1573,7 @@ static int cpts_enable_l2_ts(struct cpsw_priv *priv, bool state)
 static int cpsw_hwtstamp_ioctl(struct net_device *ndev,
 		struct ifreq *ifr, int cmd)
 {
+	unsigned long flags;
 	struct hwtstamp_config config;
 	struct cpsw_priv *priv = netdev_priv(ndev);
 
@@ -1568,11 +1644,10 @@ static int cpsw_hwtstamp_ioctl(struct net_device *ndev,
 		dev_info(priv->dev, "Disabling PTP Time stamping...\n");
 	}
 
-	/* Empty Queue */
-	priv->cpts_time->rx_fifo.head = 0;
-	priv->cpts_time->tx_fifo.head = 0;
-	priv->cpts_time->rx_fifo.tail = 0;
-	priv->cpts_time->tx_fifo.tail = 0;
+	spin_lock_irqsave(&cpts_time_lock, flags);
+	cpts_time_evts_fifo_flush(&priv->cpts_time->rx_fifo);
+	cpts_time_evts_fifo_flush(&priv->cpts_time->tx_fifo);
+	spin_unlock_irqrestore(&cpts_time_lock, flags);
 
 	return copy_to_user(ifr->ifr_data, &config, sizeof(config)) ?
 			-EFAULT : 0;
@@ -2753,6 +2828,8 @@ static int __devinit cpsw_probe(struct platform_device *pdev)
 	priv->cpts_time = kzalloc(sizeof(struct cpts_time_handle), GFP_KERNEL);
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
 	gpriv = priv;
+	cpts_time_evts_fifo_init(&priv->cpts_time->rx_fifo);
+	cpts_time_evts_fifo_init(&priv->cpts_time->tx_fifo);
 #endif /* CONFIG_PTP_1588_CLOCK_CPTS */
 
 	if (is_valid_ether_addr(data->mac_addr)) {
