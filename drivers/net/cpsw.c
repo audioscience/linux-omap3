@@ -320,6 +320,7 @@ struct cpts_regs {
  * CPTS Events
  */
 struct cpts_time_evts {
+	uint32_t valid;
 	uint32_t event_high;
 	u64 ts;
 	struct sk_buff *skb;
@@ -328,6 +329,7 @@ struct cpts_time_evts {
 struct cpts_evts_fifo {
 	struct cpts_time_evts fifo[CPTS_FIFO_SIZE];
 	u32 head, tail;
+	uint16_t last_seqid;
 };
 /*
  * Time Handle
@@ -421,7 +423,7 @@ static void cpts_time_evts_fifo_flush(struct cpts_evts_fifo *fifo)
 
 	for (i = 0; i < CPTS_FIFO_SIZE; i++) {
 		evt = &fifo->fifo[i];
-		if (!evt->event_high)
+		if (!evt->valid)
 			continue;
 		if (evt->skb) {
 			sock_put(evt->skb->sk);
@@ -435,26 +437,30 @@ static void cpts_time_evts_fifo_flush(struct cpts_evts_fifo *fifo)
 static int cpts_time_evts_fifo_push(struct cpts_evts_fifo *fifo,
 				struct cpts_time_evts *evt)
 {
-
+	fifo->fifo[fifo->tail].valid = 1;
 	fifo->fifo[fifo->tail].event_high = evt->event_high;
 	fifo->fifo[fifo->tail].ts = evt->ts;
 	fifo->fifo[fifo->tail].skb = evt->skb;
+	fifo->last_seqid = evt->event_high & 0xffff;
 
 	fifo->tail++;
 	if (fifo->tail >= CPTS_FIFO_SIZE)
 		fifo->tail = 0;
 
 	if (fifo->head == fifo->tail) {
-		printk(KERN_DEBUG "cpts_time_evts_fifo_push() evt %05x "
-			"discarded\n",
-			fifo->fifo[fifo->tail].event_high & 0xFFFFF);
-		fifo->fifo[fifo->tail].event_high = 0;
-		fifo->fifo[fifo->tail].ts = 0;
-		if (fifo->fifo[fifo->tail].skb) {
-			sock_put(fifo->fifo[fifo->tail].skb->sk);
-			fifo->fifo[fifo->tail].skb->sk = NULL;
-			dev_kfree_skb_any(fifo->fifo[fifo->tail].skb);
-			fifo->fifo[fifo->tail].skb = NULL;
+		if (fifo->fifo[fifo->tail].valid) {
+			printk(KERN_DEBUG "cpts_time_evts_fifo_push() evt %05x "
+				"discarded\n",
+				fifo->fifo[fifo->tail].event_high & 0xFFFFF);
+			fifo->fifo[fifo->tail].valid = 0;
+			fifo->fifo[fifo->tail].event_high = 0;
+			fifo->fifo[fifo->tail].ts = 0;
+			if (fifo->fifo[fifo->tail].skb) {
+				sock_put(fifo->fifo[fifo->tail].skb->sk);
+				fifo->fifo[fifo->tail].skb->sk = NULL;
+				dev_kfree_skb_any(fifo->fifo[fifo->tail].skb);
+				fifo->fifo[fifo->tail].skb = NULL;
+			}
 		}
 		fifo->head++;
 		if (fifo->head >= CPTS_FIFO_SIZE)
@@ -474,23 +480,44 @@ static int cpts_time_evts_fifo_pop(struct cpts_evts_fifo *fifo,
 
 	i = fifo->head;
 	while (i != fifo->tail) {
-		if (evt_high == fifo->fifo[i].event_high) {
+		u16 age;
+
+		if (fifo->fifo[i].valid == 1 &&
+				evt_high == fifo->fifo[i].event_high) {
 			evt->event_high = fifo->fifo[i].event_high;
 			evt->ts = fifo->fifo[i].ts;
 			evt->skb = fifo->fifo[i].skb;
 
+			fifo->fifo[i].valid = 0;
 			fifo->fifo[i].event_high = 0;
 			fifo->fifo[i].ts = 0;
 			fifo->fifo[i].skb = NULL;
 			ev_found = 1;
 		}
-		if (fifo->fifo[i].event_high == 0 && i == fifo->head) {
+		if (fifo->fifo[i].valid == 0 && i == fifo->head) {
 			fifo->head++;
 			if (fifo->head >= CPTS_FIFO_SIZE)
 				fifo->head = 0;
 		}
 		if (ev_found)
 			return 0;
+
+		age = fifo->last_seqid - (fifo->fifo[i].event_high & 0xffff);
+		if (fifo->fifo[i].valid == 1 && age > 512) {
+			printk(KERN_DEBUG "cpts_time_evts_fifo_pop() evt %05x "
+				"aged out of FIFO\n",
+				fifo->fifo[i].event_high & 0xFFFFF);
+			if (fifo->fifo[i].skb) {
+				sock_put(fifo->fifo[i].skb->sk);
+				fifo->fifo[i].skb->sk = NULL;
+				dev_kfree_skb_any(fifo->fifo[i].skb);
+				fifo->fifo[i].skb = NULL;
+			}
+			fifo->fifo[i].valid = 0;
+			fifo->fifo[i].event_high = 0;
+			fifo->fifo[i].ts = 0;
+		}
+
 		i++;
 		if (i >= CPTS_FIFO_SIZE)
 			i = 0;
