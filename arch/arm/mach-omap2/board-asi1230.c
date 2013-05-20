@@ -136,7 +136,7 @@ struct spi_board_info __initdata asi1230_spi_slave_info[] = {
 	 .chip_select = 0,
 	 },
 	{
-	 .modalias = "spidev",		/* spare */
+	 .modalias = "spidev",		/* PGA2505 (ASI2350 only) */
 	 .irq = -1,
 	 .max_speed_hz = 48000000,
 	 .bus_num = 1,
@@ -149,13 +149,15 @@ struct spi_board_info __initdata asi1230_spi_slave_info[] = {
 	 .bus_num = 2,
 	 .chip_select = 0,
 	 },
+#if 0
 	{
-	 .modalias = "spidev",		/* PGA2505 (ASI2350 only) */
+	 .modalias = "spidev",		/* unusable due to error on ASI2610B PCB */
 	 .irq = -1,
 	 .max_speed_hz = 48000000,
 	 .bus_num = 2,
 	 .chip_select = 1,
 	 },
+#endif
 };
 
 void __init asi1230_spi_init(void)
