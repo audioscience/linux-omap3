@@ -993,11 +993,13 @@ static int c_show(struct seq_file *m, void *v)
 		seq_printf(m, "BogoMIPS\t: %lu.%02lu\n\n",
 			   per_cpu(cpu_data, i).loops_per_jiffy / (500000UL/HZ),
 			   (per_cpu(cpu_data, i).loops_per_jiffy / (5000UL/HZ)) % 100);
+		seq_printf(m, "lpj\t\t: %lu\n", loops_per_jiffy);
 	}
 #else /* CONFIG_SMP */
 	seq_printf(m, "BogoMIPS\t: %lu.%02lu\n",
 		   loops_per_jiffy / (500000/HZ),
 		   (loops_per_jiffy / (5000/HZ)) % 100);
+	seq_printf(m, "lpj\t\t: %lu\n", loops_per_jiffy);
 #endif
 
 	/* dump out the processor features */
