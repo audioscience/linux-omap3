@@ -90,6 +90,7 @@ header-y += coff.h
 header-y += comstats.h
 header-y += connector.h
 header-y += const.h
+header-y += cpsw_ioctl.h
 header-y += cramfs_fs.h
 header-y += cuda.h
 header-y += cyclades.h

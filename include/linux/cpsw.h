@@ -3,6 +3,8 @@
 
 #include <linux/if_ether.h>
 
+#include "cpsw_ioctl.h"
+
 struct cpsw_slave_data {
 	u32		slave_reg_ofs;
 	u32		sliver_reg_ofs;

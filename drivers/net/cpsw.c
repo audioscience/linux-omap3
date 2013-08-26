@@ -396,6 +396,7 @@ struct cpsw_priv {
 #ifdef CONFIG_TI_CPSW_DUAL_EMAC
 	u32				emac_port;
 #endif /* CONFIG_TI_CPSW_DUAL_EMAC */
+	struct cpsw_tscorr tscorr_data[tscorr_type_count];
 };
 
 static int cpsw_set_coalesce(struct net_device *ndev,
@@ -535,12 +536,13 @@ int cpts_set_hwevent_callback(cpts_extevent_cb cb) {
 }
 EXPORT_SYMBOL_GPL(cpts_set_hwevent_callback);
 
-static void cpts_ts_eth_tx_event(struct cpts_time_handle *cpts_time, u32 evt_high,
+static void cpts_ts_eth_tx_event(struct cpsw_priv *priv, u32 evt_high,
 	u64 ts)
 {
 	int err = 0;
 	unsigned long flags;
 	struct cpts_time_evts evt = {0};
+	struct cpts_time_handle *cpts_time = priv->cpts_time;
 	struct skb_shared_hwtstamps shhwtstamps;
 
 	if (!cpts_time->enable_timestamping)
@@ -556,7 +558,8 @@ static void cpts_ts_eth_tx_event(struct cpts_time_handle *cpts_time, u32 evt_hig
 	} else if (evt.skb) {
 		BUG_ON(evt.skb->sk == NULL);
 		memset(&shhwtstamps, 0, sizeof(shhwtstamps));
-		shhwtstamps.hwtstamp = ns_to_ktime(CPTSCOUNT_TO_NANOSEC(ts));
+		shhwtstamps.hwtstamp = ns_to_ktime(CPTSCOUNT_TO_NANOSEC(ts) +
+			priv->tscorr_data[mbit_corr].tx_correction);
 		skb_complete_tx_timestamp(evt.skb, &shhwtstamps);
 	}
 }
@@ -617,7 +620,7 @@ static int cpts_isr(struct cpsw_priv *priv)
 			}
 		} else if ((event_high & 0xf00000) == CPTS_TS_ETH_TX) {
 			/* Ethernet Tx Ts */
-			cpts_ts_eth_tx_event(priv->cpts_time,
+			cpts_ts_eth_tx_event(priv,
 				event_high & 0xfffff, ts);
 		} else {
 			printk(KERN_ERR "Invalid CPTS Event type...\n");
@@ -701,7 +704,8 @@ static void cpts_rx_timestamp(struct cpsw_priv *priv,
 
 	shhwtstamps = skb_hwtstamps(skb);
 	memset(shhwtstamps, 0, sizeof(*shhwtstamps));
-	shhwtstamps->hwtstamp = ns_to_ktime(evt.ts);
+	shhwtstamps->hwtstamp = ns_to_ktime(evt.ts +
+		priv->tscorr_data[mbit_corr].rx_correction);
 }
 
 static void cpts_tx_timestamp(struct cpsw_priv *priv,
@@ -2468,6 +2472,55 @@ static int cpsw_switch_config_ioctl(struct net_device *ndev,
 }
 #endif /* CONFIG_TI_CPSW_DUAL_EMAC */
 
+static int cpsw_tscorr_ioctl(struct net_device *ndev,
+		struct ifreq *ifrq, int cmd)
+{
+	int ret = 0;
+	struct cpsw_tscorr_payload *corr_cmd;
+	struct cpsw_priv *priv = netdev_priv(ndev);
+
+	if (cmd != CPSW_TSCORR_IOCTL)
+		return -EFAULT;
+
+	corr_cmd = kzalloc(sizeof(*corr_cmd), GFP_KERNEL);
+	if (!corr_cmd)
+		return -ENOMEM;
+
+	if (copy_from_user(corr_cmd, (ifrq->ifr_data), sizeof(*corr_cmd))) {
+		ret = -EFAULT;
+		goto done;
+	}
+
+	if (corr_cmd->corr_type < 0 ||
+		corr_cmd->corr_type >= tscorr_type_count) {
+		corr_cmd->err = -EINVAL;
+		goto done;
+	}
+
+	switch(corr_cmd->cmd) {
+		case cmd_set:
+			priv->tscorr_data[corr_cmd->corr_type] =
+				corr_cmd->corr_data;
+			corr_cmd->err = 0;
+			break;
+
+		case cmd_get:
+			corr_cmd->corr_data =
+				priv->tscorr_data[corr_cmd->corr_type];
+			corr_cmd->err = 0;
+			break;
+
+		default:
+			corr_cmd->err = -EOPNOTSUPP;
+	}
+
+done:
+	if (copy_to_user(ifrq->ifr_data, corr_cmd, sizeof(*corr_cmd)))
+		ret = -EFAULT;
+	kfree(corr_cmd);
+	return ret;
+}
+
 static int cpsw_ndo_do_ioctl(struct net_device *ndev, struct ifreq *ifrq,
 		int cmd)
 {
@@ -2488,6 +2541,9 @@ static int cpsw_ndo_do_ioctl(struct net_device *ndev, struct ifreq *ifrq,
 #else
 		return cpsw_switch_config_ioctl(ndev, ifrq, cmd);
 #endif /* CONFIG_TI_CPSW_DUAL_EMAC */
+
+	case CPSW_TSCORR_IOCTL:
+		return cpsw_tscorr_ioctl(ndev, ifrq, cmd);
 
 	default:
 		return -EOPNOTSUPP;
@@ -2851,6 +2907,7 @@ static int __devinit cpsw_probe(struct platform_device *pdev)
 	priv->dev  = &ndev->dev;
 	priv->msg_enable = netif_msg_init(debug_level, CPSW_DEBUG);
 	priv->rx_packet_max = max(rx_packet_max, 128);
+	memset(priv->tscorr_data, 0, sizeof(priv->tscorr_data));
 
 	priv->cpts_time = kzalloc(sizeof(struct cpts_time_handle), GFP_KERNEL);
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
