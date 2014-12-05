@@ -1660,7 +1660,7 @@ static int cpsw_hwtstamp_ioctl(struct net_device *ndev,
 		config.rx_filter = HWTSTAMP_FILTER_PTP_V2_L2_EVENT;
 		cpts_enable_l2_ts(priv, true);
 		priv->cpts_time->enable_timestamping = true;
-		dev_info(priv->dev, "Enabling PTP Time stamping...\n");
+		dev_dbg(priv->dev, "Enabling PTP Time stamping...\n");
 		break;
 	default:
 		return -ERANGE;
@@ -1672,7 +1672,7 @@ static int cpsw_hwtstamp_ioctl(struct net_device *ndev,
 		cpts_enable_l2_ts(priv, false);
 
 		priv->cpts_time->enable_timestamping = false;
-		dev_info(priv->dev, "Disabling PTP Time stamping...\n");
+		dev_dbg(priv->dev, "Disabling PTP Time stamping...\n");
 	}
 
 	spin_lock_irqsave(&cpts_time_lock, flags);
