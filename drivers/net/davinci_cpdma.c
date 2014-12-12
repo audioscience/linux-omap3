@@ -891,6 +891,11 @@ int cpdma_chan_stop(struct cpdma_chan *chan)
 		cpu_relax();
 	}
 	WARN_ON(!time_before(jiffies, timeout));
+	if (!time_before(jiffies, timeout)) {
+		struct device *dev = chan->ctlr->dev;
+		dev_err(dev, "CPDMA DMASTATUS reg: 0x%x\n",
+			dma_reg_read(ctlr, CPDMA_DMASTATUS));
+	}
 	chan_write(chan, cp, CPDMA_TEARDOWN_VALUE);
 
 	/* handle completed packets */
