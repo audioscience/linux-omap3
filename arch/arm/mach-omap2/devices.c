@@ -1606,7 +1606,7 @@ static const s16 ti814x_dma_rsv_chans[][2] = {
 	/* (offset, number) */
 	{0, 2},
 	{8, 2},    /* McASP0 TX/RX */
-	{14, 2},
+	{14, 2},   /* McBSP0 TX/RX */
 	{26, 6},
 	{48, 4},
 	{56, 8},
@@ -1617,7 +1617,7 @@ static const s16 ti814x_dma_rsv_slots[][2] = {
 	/* (offset, number) */
 	{0, 2},
 	{8, 2},    /* McASP0 TX/RX */
-	{14, 2},
+	{14, 2},   /* McBSP0 TX/RX */
 	{26, 6},
 	{48, 4},
 	{56, 8},
