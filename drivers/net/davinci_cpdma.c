@@ -892,9 +892,21 @@ int cpdma_chan_stop(struct cpdma_chan *chan)
 	}
 	WARN_ON(!time_before(jiffies, timeout));
 	if (!time_before(jiffies, timeout)) {
+		int idx;
 		struct device *dev = chan->ctlr->dev;
+		dev_err(dev, "------------TX Timeout (debug report)-------\n");
 		dev_err(dev, "CPDMA DMASTATUS reg: 0x%x\n",
 			dma_reg_read(ctlr, CPDMA_DMASTATUS));
+		for (idx = 0; idx < 8; idx++) {
+			int offset = (idx % CPDMA_MAX_CHANNELS) * 4;
+			void __iomem *hdp = ctlr->params.txhdp + offset;
+			dev_err(dev, "CPDMA TX%d_HDP reg: 0x%x\n",
+				idx, __raw_readl(hdp));
+			hdp = ctlr->params.rxhdp + offset;
+			dev_err(dev, "CPDMA RX%d_HDP reg: 0x%x\n",
+				idx, __raw_readl(hdp));
+		}
+		dev_err(dev, "------------TX Timeout (end report)---------\n");
 	}
 	chan_write(chan, cp, CPDMA_TEARDOWN_VALUE);
 
