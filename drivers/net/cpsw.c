@@ -1222,10 +1222,6 @@ static int cpsw_ndo_open(struct net_device *ndev)
 #ifdef CONFIG_TI_CPSW_DUAL_EMAC
 	if (!cpsw_common_res_usage_stat(priv)) {
 #endif /* CONFIG_TI_CPSW_DUAL_EMAC */
-		/* setup tx dma to fixed prio and zero offset */
-		cpdma_control_set(priv->dma, CPDMA_TX_PRIO_FIXED, 1);
-		cpdma_control_set(priv->dma, CPDMA_RX_BUFFER_OFFSET, 0);
-
 		/* disable priority elevation and enable statistics
 		on all ports */
 		__raw_writel(0, &priv->regs->ptype);
@@ -1267,6 +1263,11 @@ static int cpsw_ndo_open(struct net_device *ndev)
 	}
 
 	cpdma_ctlr_start(priv->dma);
+	/* setup tx dma to fixed prio and zero offset after cpdma_ctlr_start() */
+	/* because the latter issues a CPDMA soft reset which wipes settings */
+	cpdma_control_set(priv->dma, CPDMA_TX_PRIO_FIXED, 1);
+	cpdma_control_set(priv->dma, CPDMA_RX_BUFFER_OFFSET, 0);
+
 	cpsw_intr_enable(priv);
 	napi_enable(&priv->napi);
 	cpdma_ctlr_eoi(priv->dma);
