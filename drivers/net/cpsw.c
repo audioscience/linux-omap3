@@ -2477,48 +2477,43 @@ static int cpsw_tscorr_ioctl(struct net_device *ndev,
 		struct ifreq *ifrq, int cmd)
 {
 	int ret = 0;
-	struct cpsw_tscorr_payload *corr_cmd;
+	struct cpsw_tscorr_payload corr_cmd = {0};
 	struct cpsw_priv *priv = netdev_priv(ndev);
 
 	if (cmd != CPSW_TSCORR_IOCTL)
 		return -EFAULT;
 
-	corr_cmd = kzalloc(sizeof(*corr_cmd), GFP_KERNEL);
-	if (!corr_cmd)
-		return -ENOMEM;
-
-	if (copy_from_user(corr_cmd, (ifrq->ifr_data), sizeof(*corr_cmd))) {
+	if (copy_from_user(&corr_cmd, (ifrq->ifr_data), sizeof(corr_cmd))) {
 		ret = -EFAULT;
 		goto done;
 	}
 
-	if (corr_cmd->corr_type < 0 ||
-		corr_cmd->corr_type >= tscorr_type_count) {
-		corr_cmd->err = -EINVAL;
+	if (corr_cmd.corr_type < 0 ||
+		corr_cmd.corr_type >= tscorr_type_count) {
+		corr_cmd.err = -EINVAL;
 		goto done;
 	}
 
-	switch(corr_cmd->cmd) {
+	switch(corr_cmd.cmd) {
 		case cmd_set:
-			priv->tscorr_data[corr_cmd->corr_type] =
-				corr_cmd->corr_data;
-			corr_cmd->err = 0;
+			priv->tscorr_data[corr_cmd.corr_type] =
+				corr_cmd.corr_data;
+			corr_cmd.err = 0;
 			break;
 
 		case cmd_get:
-			corr_cmd->corr_data =
-				priv->tscorr_data[corr_cmd->corr_type];
-			corr_cmd->err = 0;
+			corr_cmd.corr_data =
+				priv->tscorr_data[corr_cmd.corr_type];
+			corr_cmd.err = 0;
 			break;
 
 		default:
-			corr_cmd->err = -EOPNOTSUPP;
+			corr_cmd.err = -EOPNOTSUPP;
 	}
 
 done:
-	if (copy_to_user(ifrq->ifr_data, corr_cmd, sizeof(*corr_cmd)))
+	if (copy_to_user(ifrq->ifr_data, &corr_cmd, sizeof(corr_cmd)))
 		ret = -EFAULT;
-	kfree(corr_cmd);
 	return ret;
 }
 
