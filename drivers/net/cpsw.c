@@ -698,14 +698,16 @@ static void cpts_rx_timestamp(struct cpsw_priv *priv,
 	err = cpts_time_evts_fifo_pop(&(priv->cpts_time->rx_fifo), evt_high, &evt);
 	spin_unlock_irqrestore(&cpts_time_lock, flags);
 
-	if (err < 0)
-		printk(KERN_DEBUG "cpts_rx_timestamp() evt %05x not found\n",
-			evt_high);
-
 	shhwtstamps = skb_hwtstamps(skb);
 	memset(shhwtstamps, 0, sizeof(*shhwtstamps));
-	shhwtstamps->hwtstamp = ns_to_ktime(evt.ts +
-		priv->tscorr_data[mbit_corr].rx_correction);
+
+	if (err < 0) {
+		printk(KERN_DEBUG "cpts_rx_timestamp() evt %05x not found\n",
+			evt_high);
+	} else {
+		shhwtstamps->hwtstamp = ns_to_ktime(evt.ts +
+			priv->tscorr_data[mbit_corr].rx_correction);
+	}
 }
 
 static void cpts_tx_timestamp(struct cpsw_priv *priv,
