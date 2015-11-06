@@ -57,25 +57,6 @@ do {								\
 
 #define CPSW_PRIMAP(shift, priority)    (priority << (shift * 4))
 
-#define CPSW_IRQ_QUIRK
-#ifdef CPSW_IRQ_QUIRK
-#define cpsw_enable_irq(priv)	\
-	do {			\
-		u32 i;		\
-		for (i = 0; i < priv->num_irqs; i++) \
-			enable_irq(priv->irqs_table[i]); \
-	} while (0);
-#define cpsw_disable_irq(priv)	\
-	do {			\
-		u32 i;		\
-		for (i = 0; i < priv->num_irqs; i++) \
-			disable_irq_nosync(priv->irqs_table[i]); \
-	} while (0);
-#else
-#define cpsw_enable_irq(priv) do { } while (0);
-#define cpsw_disable_irq(priv) do { } while (0);
-#endif
-
 #define CPSW_VER_1		0x19010a
 #define CPSW_VER_2		0x19010c
 #define cpsw_slave_reg(priv, slave, reg)				\
@@ -385,12 +366,9 @@ struct cpsw_priv {
 	struct cpdma_ctlr		*dma;
 	struct cpdma_chan		*txch, *rxch;
 	struct cpsw_ale			*ale;
-
-#ifdef CPSW_IRQ_QUIRK
 	/* snapshot of IRQ numbers */
-	u32 irqs_table[4];
+	int irqs_table[4];
 	u32 num_irqs;
-#endif
 #ifdef VLAN_SUPPORT
 	struct vlan_group *vlgrp;
 #endif /* VLAN_SUPPORT */
@@ -659,8 +637,6 @@ static int cpts_isr(struct cpsw_priv *priv)
 		} else {
 			printk(KERN_ERR "Invalid CPTS Event type...\n");
 		}
-
-		cpdma_ctlr_eoi_statistics(priv->dma);
 	}
 	return 0;
 }
@@ -787,6 +763,11 @@ static void cpts_tx_timestamp(struct cpsw_priv *priv,
 
 static void cpsw_intr_enable(struct cpsw_priv *priv)
 {
+	if (priv->ss_regs->tx_en || priv->ss_regs->tx_en) {
+			printk(KERN_DEBUG "interrupts already enabled."
+				" rx_ex:0x%08x and tx_ex:0x%08x",
+				priv->ss_regs->rx_en, priv->ss_regs->tx_en);
+	}
 	__raw_writel(0xFF, &priv->ss_regs->tx_en);
 	__raw_writel(0xFF, &priv->ss_regs->rx_en);
 
@@ -796,6 +777,11 @@ static void cpsw_intr_enable(struct cpsw_priv *priv)
 
 static void cpsw_intr_disable(struct cpsw_priv *priv)
 {
+	if (!priv->ss_regs->tx_en || !priv->ss_regs->tx_en) {
+			printk(KERN_DEBUG "interrupts already disabled."
+				" rx_ex:0x%08x and tx_ex:0x%08x",
+				priv->ss_regs->rx_en, priv->ss_regs->tx_en);
+	}
 	__raw_writel(0, &priv->ss_regs->tx_en);
 	__raw_writel(0, &priv->ss_regs->rx_en);
 
@@ -895,25 +881,46 @@ static irqreturn_t cpsw_interrupt(int irq, void *dev_id)
 
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
 	if (irq == priv->irqs_table[3]) {
+		if (priv->ss_regs->misc_stat & 0x10) {
 			cpts_isr(priv);
+			goto handled;
+		} else {
+			printk(KERN_DEBUG "IRQ %d with misc_stat:0x%08u", irq,
+				priv->ss_regs->misc_stat);
+			goto not_handled;
+		}
 	}
 #endif /* CONFIG_PTP_1588_CLOCK_CPTS */
 
-	if (likely(netif_running(priv->ndev))) {
-		cpsw_intr_disable(priv);
-		cpsw_disable_irq(priv);
-		napi_schedule(&priv->napi);
+	if ((irq == priv->irqs_table[1]) || (irq == priv->irqs_table[2])) {
+		if (!(priv->ss_regs->rx_stat & 0x01) && !(priv->ss_regs->tx_stat & 0x01)) {
+			printk(KERN_DEBUG "IRQ %d with rx_stat:0x%08x and tx_stat:0x%08x", irq,
+				priv->ss_regs->rx_stat, priv->ss_regs->tx_stat);
+			goto not_handled;
+		}
+
+		if (likely(netif_running(priv->ndev))) {
+			cpsw_intr_disable(priv);
+			napi_schedule(&priv->napi);
+		}
+
+		goto handled;
 	}
 
 #ifdef CONFIG_TI_CPSW_DUAL_EMAC
 	else if (likely(netif_running(priv->slaves[1].ndev))) {
 		struct cpsw_priv *priv_sl2 = netdev_priv(priv->slaves[1].ndev);
 		cpsw_intr_disable(priv_sl2);
-		cpsw_disable_irq(priv_sl2);
 		napi_schedule(&priv_sl2->napi);
 	}
 #endif /* CONFIG_TI_CPSW_DUAL_EMAC */
 
+not_handled:
+	printk(KERN_DEBUG "IRQ %d not handled", irq);
+	return IRQ_NONE;
+
+handled:
+	cpdma_ctlr_eoi(priv->dma, irq-priv->irqs_table[0]);
 	return IRQ_HANDLED;
 }
 
@@ -930,9 +937,7 @@ static int cpsw_poll(struct napi_struct *napi, int budget)
 
 	if (num_rx < budget) {
 		napi_complete(napi);
-		cpdma_ctlr_eoi(priv->dma);
 		cpsw_intr_enable(priv);
-		cpsw_enable_irq(priv);
 	}
 
 	return num_rx;
@@ -1314,7 +1319,6 @@ static int cpsw_ndo_open(struct net_device *ndev)
 
 	cpsw_intr_enable(priv);
 	napi_enable(&priv->napi);
-	cpdma_ctlr_eoi(priv->dma);
 
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
 	reg = __raw_readl(&priv->cpts_reg->id_ver);
@@ -2686,7 +2690,6 @@ static void cpsw_ndo_tx_timeout(struct net_device *ndev)
 	cpdma_chan_start(priv->txch);
 	cpdma_ctlr_int_ctrl(priv->dma, true);
 	cpsw_intr_enable(priv);
-	cpdma_ctlr_eoi(priv->dma);
 }
 
 static struct net_device_stats *cpsw_ndo_get_stats(struct net_device *ndev)
@@ -2705,7 +2708,6 @@ static void cpsw_ndo_poll_controller(struct net_device *ndev)
 	cpsw_interrupt(ndev->irq, priv);
 	cpdma_ctlr_int_ctrl(priv->dma, true);
 	cpsw_intr_enable(priv);
-	cpdma_ctlr_eoi(priv->dma);
 }
 #endif
 
@@ -3116,10 +3118,8 @@ static int __devinit cpsw_probe(struct platform_device *pdev)
 				pr_err("error attaching irq\n");
 				goto clean_ale_ret;
 			}
-			#ifdef CPSW_IRQ_QUIRK
 			priv->irqs_table[k] = i;
 			priv->num_irqs = k+1;
-			#endif
 		}
 		k++;
 	}
@@ -3208,10 +3208,8 @@ static int __devinit cpsw_probe(struct platform_device *pdev)
 	priv_sl2->ale = priv->ale;
 	priv_sl2->cpts_reg = priv->cpts_reg;
 	for (i = 0; i < priv->num_irqs; i++) {
-		#ifdef CPSW_IRQ_QUIRK
 		priv_sl2->irqs_table[i] = priv->irqs_table[i];
 		priv_sl2->num_irqs = priv->num_irqs;
-		#endif
 	}
 
 #ifdef VLAN_SUPPORT
