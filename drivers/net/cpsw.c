@@ -58,23 +58,6 @@ do {								\
 #define CPSW_PRIMAP(shift, priority)    (priority << (shift * 4))
 
 #define CPSW_IRQ_QUIRK
-#ifdef CPSW_IRQ_QUIRK
-#define cpsw_enable_irq(priv)	\
-	do {			\
-		u32 i;		\
-		for (i = 0; i < priv->num_irqs; i++) \
-			enable_irq(priv->irqs_table[i]); \
-	} while (0);
-#define cpsw_disable_irq(priv)	\
-	do {			\
-		u32 i;		\
-		for (i = 0; i < priv->num_irqs; i++) \
-			disable_irq_nosync(priv->irqs_table[i]); \
-	} while (0);
-#else
-#define cpsw_enable_irq(priv) do { } while (0);
-#define cpsw_disable_irq(priv) do { } while (0);
-#endif
 
 #define CPSW_VER_1		0x19010a
 #define CPSW_VER_2		0x19010c
@@ -859,7 +842,8 @@ static irqreturn_t cpsw_interrupt(int irq, void *dev_id)
 
 	if (likely(netif_running(priv->ndev))) {
 		cpsw_intr_disable(priv);
-		cpsw_disable_irq(priv);
+		disable_irq_nosync(priv->irqs_table[1]);
+		disable_irq_nosync(priv->irqs_table[2]);
 		napi_schedule(&priv->napi);
 	}
 
@@ -867,7 +851,8 @@ static irqreturn_t cpsw_interrupt(int irq, void *dev_id)
 	else if (likely(netif_running(priv->slaves[1].ndev))) {
 		struct cpsw_priv *priv_sl2 = netdev_priv(priv->slaves[1].ndev);
 		cpsw_intr_disable(priv_sl2);
-		cpsw_disable_irq(priv_sl2);
+		disable_irq_nosync(priv->irqs_table[1]);
+		disable_irq_nosync(priv->irqs_table[2]);
 		napi_schedule(&priv_sl2->napi);
 	}
 #endif /* CONFIG_TI_CPSW_DUAL_EMAC */
@@ -890,7 +875,8 @@ static int cpsw_poll(struct napi_struct *napi, int budget)
 		napi_complete(napi);
 		cpdma_ctlr_eoi(priv->dma);
 		cpsw_intr_enable(priv);
-		cpsw_enable_irq(priv);
+		enable_irq(priv->irqs_table[1]);
+		enable_irq(priv->irqs_table[2]);
 	}
 
 	return num_rx;
