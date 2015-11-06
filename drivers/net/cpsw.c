@@ -115,7 +115,7 @@ do {								\
 #define CPSW_V2_TS_ANNEX_D_EN		BIT(4)
 #define CPSW_V2_SEQ_ID_OFS_SHIFT	16
 
-#define CPTS_FIFO_SIZE			32
+#define CPTS_FIFO_SIZE			64
 #define CPTS_READ_TS_MAX_TRY		20
 #define CPTL_CLK_FREQ			250000000 /*250MHz*/
 #define DEFAULT_CPTS_CLK		CPTS_CLK_SEL_AUDIO
@@ -327,9 +327,10 @@ struct cpts_time_evts {
 };
 
 struct cpts_evts_fifo {
+	bool is_tx;
 	struct cpts_time_evts fifo[CPTS_FIFO_SIZE];
 	u32 head, tail;
-	uint16_t last_seqid;
+	u32 ts_high;
 };
 /*
  * Time Handle
@@ -409,11 +410,27 @@ static u64 time_push;
 
 typedef int (*cpts_extevent_cb)(int index, u64 timestamp);
 
-static void cpts_time_evts_fifo_init(struct cpts_evts_fifo *fifo)
+static void cpts_time_evts_fifo_init(struct cpts_evts_fifo *fifo, bool is_tx)
 {
-	fifo->head = 0;
-	fifo->tail = 0;
-	memset(fifo->fifo, 0, sizeof(fifo->fifo));
+	memset(fifo, 0, sizeof(fifo));
+	fifo->is_tx = is_tx;
+}
+
+#define log_cpts_fifo_state(fifo) \
+{ \
+	printk(KERN_DEBUG "%s() cpts %s fifo qhi:%u qti:%u tsh:0x%x", __func__, \
+		fifo->is_tx ? "tx" : "rx", fifo->head, fifo->tail, fifo->ts_high); \
+}
+
+#define log_cpts_fifo_entry(fifo, entry, extra) \
+{ \
+	printk(KERN_DEBUG "%s() cpts %s fifo qhi:%u qti:%u tsh:0x%x " \
+		"evt v:%u age:%u e:0x%04hx s:%hu ts:0x%016llx b:%p" extra, \
+		__func__, fifo->is_tx ? "tx" : "rx", \
+		fifo->head, fifo->tail, fifo->ts_high, (entry)->valid, \
+		fifo->ts_high - (u32)((entry)->ts>>32), \
+		(entry)->event_high>>16, (entry)->event_high&0xffff, \
+		(entry)->ts, (entry)->skb); \
 }
 
 /* Free all SKB the fifo may be holding, leave the event IDs */
@@ -422,10 +439,16 @@ static void cpts_time_evts_fifo_flush(struct cpts_evts_fifo *fifo)
 	int i;
 	struct cpts_time_evts *evt;
 
+	log_cpts_fifo_state(fifo);
+
 	for (i = 0; i < CPTS_FIFO_SIZE; i++) {
 		evt = &fifo->fifo[i];
 		if (!evt->valid)
 			continue;
+
+		log_cpts_fifo_entry(fifo, evt, " removed");
+
+		evt->valid = 0;
 		if (evt->skb) {
 			sock_put(evt->skb->sk);
 			evt->skb->sk = NULL;
@@ -433,16 +456,25 @@ static void cpts_time_evts_fifo_flush(struct cpts_evts_fifo *fifo)
 			evt->skb = NULL;
 		}
 	}
+	fifo->head = 0;
+	fifo->tail = 0;
 }
 
 static int cpts_time_evts_fifo_push(struct cpts_evts_fifo *fifo,
 				struct cpts_time_evts *evt)
 {
+	u32 ts_high = evt->ts >> 32;
+	if (((long)((ts_high) - (fifo->ts_high)) < 0)) {
+		log_cpts_fifo_entry(fifo, evt, " rejected");
+		return -1;
+	}
+
 	fifo->fifo[fifo->tail].valid = 1;
 	fifo->fifo[fifo->tail].event_high = evt->event_high;
 	fifo->fifo[fifo->tail].ts = evt->ts;
 	fifo->fifo[fifo->tail].skb = evt->skb;
-	fifo->last_seqid = evt->event_high & 0xffff;
+	fifo->ts_high = ts_high;
+	/* log_cpts_fifo_entry(fifo, &fifo->fifo[fifo->tail], " pushed"); */
 
 	fifo->tail++;
 	if (fifo->tail >= CPTS_FIFO_SIZE)
@@ -450,9 +482,7 @@ static int cpts_time_evts_fifo_push(struct cpts_evts_fifo *fifo,
 
 	if (fifo->head == fifo->tail) {
 		if (fifo->fifo[fifo->tail].valid) {
-			printk(KERN_DEBUG "cpts_time_evts_fifo_push() evt %05x "
-				"discarded\n",
-				fifo->fifo[fifo->tail].event_high & 0xFFFFF);
+			log_cpts_fifo_entry(fifo, &fifo->fifo[fifo->tail], " discarded");
 			fifo->fifo[fifo->tail].valid = 0;
 			fifo->fifo[fifo->tail].event_high = 0;
 			fifo->fifo[fifo->tail].ts = 0;
@@ -468,6 +498,7 @@ static int cpts_time_evts_fifo_push(struct cpts_evts_fifo *fifo,
 			fifo->head = 0;
 	}
 
+	/* log_cpts_fifo_state(fifo); */
 	return 0;
 }
 
@@ -481,7 +512,7 @@ static int cpts_time_evts_fifo_pop(struct cpts_evts_fifo *fifo,
 
 	i = fifo->head;
 	while (i != fifo->tail) {
-		u16 age;
+		u32 age;
 
 		if (fifo->fifo[i].valid == 1 &&
 				evt_high == fifo->fifo[i].event_high) {
@@ -500,14 +531,14 @@ static int cpts_time_evts_fifo_pop(struct cpts_evts_fifo *fifo,
 			if (fifo->head >= CPTS_FIFO_SIZE)
 				fifo->head = 0;
 		}
-		if (ev_found)
+		if (ev_found) {
+			/* log_cpts_fifo_entry(fifo, evt, " matched"); */
 			return 0;
+		}
 
-		age = fifo->last_seqid - (fifo->fifo[i].event_high & 0xffff);
-		if (fifo->fifo[i].valid == 1 && age > 512) {
-			printk(KERN_DEBUG "cpts_time_evts_fifo_pop() evt %05x "
-				"aged out of FIFO\n",
-				fifo->fifo[i].event_high & 0xFFFFF);
+		age = fifo->ts_high - (fifo->fifo[i].ts>>32);
+		if (fifo->fifo[i].valid == 1 && age > 1) {
+			log_cpts_fifo_entry(fifo, &fifo->fifo[i], " aged");
 			if (fifo->fifo[i].skb) {
 				sock_put(fifo->fifo[i].skb->sk);
 				fifo->fifo[i].skb->sk = NULL;
@@ -523,6 +554,8 @@ static int cpts_time_evts_fifo_pop(struct cpts_evts_fifo *fifo,
 		if (i >= CPTS_FIFO_SIZE)
 			i = 0;
 	}
+
+	/* log_cpts_fifo_state(fifo); */
 	return -1;
 }
 
@@ -554,7 +587,8 @@ static void cpts_ts_eth_tx_event(struct cpsw_priv *priv, u32 evt_high,
 	spin_unlock_irqrestore(&cpts_time_lock, flags);
 
 	if (err < 0) {
-		printk(KERN_DEBUG "cpts_isr() evt %05x not found\n", evt_high);
+		printk(KERN_DEBUG "cpts_ts_eth_tx_event() e:0x%04hx s:%hu not found\n",
+			evt_high>>16, evt_high&0xffff);
 	} else if (evt.skb) {
 		BUG_ON(evt.skb->sk == NULL);
 		memset(&shhwtstamps, 0, sizeof(shhwtstamps));
@@ -702,8 +736,8 @@ static void cpts_rx_timestamp(struct cpsw_priv *priv,
 	memset(shhwtstamps, 0, sizeof(*shhwtstamps));
 
 	if (err < 0) {
-		printk(KERN_DEBUG "cpts_rx_timestamp() evt %05x not found\n",
-			evt_high);
+		printk(KERN_DEBUG "cpts_rx_timestamp() e:0x%04hx s:%hu not found\n",
+			evt_high>>16, evt_high&0xffff);
 	} else {
 		shhwtstamps->hwtstamp = ns_to_ktime(evt.ts +
 			priv->tscorr_data[mbit_corr].rx_correction);
@@ -714,6 +748,7 @@ static void cpts_tx_timestamp(struct cpsw_priv *priv,
 			struct sk_buff *skb, u32 evt_high)
 {
 	unsigned long flags;
+	int err;
 	struct cpts_time_evts evt = {0};
 	struct sk_buff *clone = NULL;
 
@@ -741,8 +776,12 @@ static void cpts_tx_timestamp(struct cpsw_priv *priv,
 	/* The event we push has either an skb with a valid socket or NULL */
 	evt.skb = clone;
 	spin_lock_irqsave(&cpts_time_lock, flags);
-	cpts_time_evts_fifo_push(&(priv->cpts_time->tx_fifo), &evt);
+	err = cpts_time_evts_fifo_push(&(priv->cpts_time->tx_fifo), &evt);
 	spin_unlock_irqrestore(&cpts_time_lock, flags);
+	if (err) {
+		sock_put(evt.skb->sk);
+		dev_kfree_skb_any(evt.skb);
+	}
 }
 #endif
 
@@ -855,7 +894,9 @@ static irqreturn_t cpsw_interrupt(int irq, void *dev_id)
 	struct cpsw_priv *priv = dev_id;
 
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
-	cpts_isr(priv);
+	if (irq == priv->irqs_table[3]) {
+			cpts_isr(priv);
+	}
 #endif /* CONFIG_PTP_1588_CLOCK_CPTS */
 
 	if (likely(netif_running(priv->ndev))) {
@@ -2911,8 +2952,8 @@ static int __devinit cpsw_probe(struct platform_device *pdev)
 	priv->cpts_time = kzalloc(sizeof(struct cpts_time_handle), GFP_KERNEL);
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
 	gpriv = priv;
-	cpts_time_evts_fifo_init(&priv->cpts_time->rx_fifo);
-	cpts_time_evts_fifo_init(&priv->cpts_time->tx_fifo);
+	cpts_time_evts_fifo_init(&priv->cpts_time->rx_fifo, false);
+	cpts_time_evts_fifo_init(&priv->cpts_time->tx_fifo, true);
 #endif /* CONFIG_PTP_1588_CLOCK_CPTS */
 
 	if (is_valid_ether_addr(data->mac_addr)) {
