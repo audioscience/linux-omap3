@@ -371,7 +371,7 @@ struct cpsw_priv {
 
 #ifdef CPSW_IRQ_QUIRK
 	/* snapshot of IRQ numbers */
-	u32 irqs_table[4];
+	int irqs_table[4];
 	u32 num_irqs;
 #endif
 #ifdef VLAN_SUPPORT
@@ -642,8 +642,6 @@ static int cpts_isr(struct cpsw_priv *priv)
 		} else {
 			printk(KERN_ERR "Invalid CPTS Event type...\n");
 		}
-
-		cpdma_ctlr_eoi_statistics(priv->dma);
 	}
 	return 0;
 }
@@ -878,6 +876,7 @@ static irqreturn_t cpsw_interrupt(int irq, void *dev_id)
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
 	if (irq == priv->irqs_table[3]) {
 			cpts_isr(priv);
+		goto done;
 	}
 #endif /* CONFIG_PTP_1588_CLOCK_CPTS */
 
@@ -898,6 +897,8 @@ static irqreturn_t cpsw_interrupt(int irq, void *dev_id)
 	}
 #endif /* CONFIG_TI_CPSW_DUAL_EMAC */
 
+done:
+	cpdma_ctlr_eoi(priv->dma, irq-priv->irqs_table[0]);
 	return IRQ_HANDLED;
 }
 
@@ -914,7 +915,6 @@ static int cpsw_poll(struct napi_struct *napi, int budget)
 
 	if (num_rx < budget) {
 		napi_complete(napi);
-		cpdma_ctlr_eoi(priv->dma);
 		cpsw_intr_enable(priv);
 		enable_irq(priv->irqs_table[1]);
 		enable_irq(priv->irqs_table[2]);
@@ -1299,7 +1299,6 @@ static int cpsw_ndo_open(struct net_device *ndev)
 
 	cpsw_intr_enable(priv);
 	napi_enable(&priv->napi);
-	cpdma_ctlr_eoi(priv->dma);
 
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
 	reg = __raw_readl(&priv->cpts_reg->id_ver);
@@ -2671,7 +2670,6 @@ static void cpsw_ndo_tx_timeout(struct net_device *ndev)
 	cpdma_chan_start(priv->txch);
 	cpdma_ctlr_int_ctrl(priv->dma, true);
 	cpsw_intr_enable(priv);
-	cpdma_ctlr_eoi(priv->dma);
 }
 
 static struct net_device_stats *cpsw_ndo_get_stats(struct net_device *ndev)
@@ -2690,7 +2688,6 @@ static void cpsw_ndo_poll_controller(struct net_device *ndev)
 	cpsw_interrupt(ndev->irq, priv);
 	cpdma_ctlr_int_ctrl(priv->dma, true);
 	cpsw_intr_enable(priv);
-	cpdma_ctlr_eoi(priv->dma);
 }
 #endif
 

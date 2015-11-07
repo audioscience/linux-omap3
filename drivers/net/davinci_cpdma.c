@@ -497,10 +497,9 @@ int cpdma_ctlr_int_ctrl(struct cpdma_ctlr *ctlr, bool enable)
 }
 EXPORT_SYMBOL(cpdma_ctlr_int_ctrl);
 
-void cpdma_ctlr_eoi(struct cpdma_ctlr *ctlr)
+void cpdma_ctlr_eoi(struct cpdma_ctlr *ctlr, u32 vec)
 {
-	dma_reg_write(ctlr, CPDMA_MACEOIVECTOR, 1);
-	dma_reg_write(ctlr, CPDMA_MACEOIVECTOR, 2);
+	dma_reg_write(ctlr, CPDMA_MACEOIVECTOR, vec);
 }
 EXPORT_SYMBOL(cpdma_ctlr_eoi);
 
