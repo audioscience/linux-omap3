@@ -885,21 +885,23 @@ static irqreturn_t cpsw_interrupt(int irq, void *dev_id)
 
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
 	if (irq == priv->irqs_table[3]) {
-		if (priv->ss_regs->misc_stat & 0x10) {
+		if (priv->cpts_reg->intstat_raw & 0x01) {
 			cpts_isr(priv);
 			goto handled;
 		} else {
-			printk(KERN_DEBUG "IRQ %d with misc_stat:0x%08u", irq,
-				priv->ss_regs->misc_stat);
+			printk(KERN_DEBUG "IRQ %d with intstat_raw:0x%08u", irq,
+				priv->cpts_reg->intstat_raw);
 			goto not_handled;
 		}
 	}
 #endif /* CONFIG_PTP_1588_CLOCK_CPTS */
 
 	if ((irq == priv->irqs_table[1]) || (irq == priv->irqs_table[2])) {
-		if (!(priv->ss_regs->rx_stat & 0x01) && !(priv->ss_regs->tx_stat & 0x01)) {
+		u32 cpdma_rx_intstat_raw = cpdma_control_get(priv->dma, CPDMA_RX_INTSTAT_RAW);
+		u32 cpdma_tx_intstat_raw = cpdma_control_get(priv->dma, CPDMA_TX_INTSTAT_RAW);
+		if (!(cpdma_rx_intstat_raw & 0x01) && !(cpdma_tx_intstat_raw & 0x01)) {
 			printk(KERN_DEBUG "IRQ %d with rx_stat:0x%08x and tx_stat:0x%08x", irq,
-				priv->ss_regs->rx_stat, priv->ss_regs->tx_stat);
+				cpdma_rx_intstat_raw, cpdma_tx_intstat_raw);
 			goto not_handled;
 		}
 
@@ -910,7 +912,7 @@ static irqreturn_t cpsw_interrupt(int irq, void *dev_id)
 			} else {
 				printk(KERN_DEBUG "napi_schedule_prep() failed while handling "
 					"IRQ %d with rx_stat:0x%08x and tx_stat:0x%08x", irq,
-					priv->ss_regs->rx_stat, priv->ss_regs->tx_stat);
+					cpdma_rx_intstat_raw, cpdma_tx_intstat_raw);
 			}
 		}
 
@@ -937,6 +939,7 @@ handled:
 static int cpsw_poll(struct napi_struct *napi, int budget)
 {
 	struct cpsw_priv	*priv = napi_to_priv(napi);
+	u32 cpdma_rx_intstat_raw, cpdma_tx_intstat_raw;
 	int			num_tx, num_rx, total = 0;
 
 	num_rx = cpdma_chan_process(priv->rxch, budget);
@@ -949,15 +952,16 @@ static int cpsw_poll(struct napi_struct *napi, int budget)
 	if (total < budget) {
 		napi_complete(napi);
 		cpsw_intr_enable(priv);
-		if ((priv->ss_regs->rx_stat & 0x01) || (priv->ss_regs->tx_stat & 0x01)) {
+		cpdma_rx_intstat_raw = cpdma_control_get(priv->dma, CPDMA_RX_INTSTAT_RAW);
+		cpdma_tx_intstat_raw = cpdma_control_get(priv->dma, CPDMA_TX_INTSTAT_RAW);
+		if ((cpdma_rx_intstat_raw & 0x01) || (cpdma_tx_intstat_raw & 0x01)) {
 			printk(KERN_DEBUG "napi_complete() with "
 								"rx_stat:0x%08x and tx_stat:0x%08x",
-								priv->ss_regs->rx_stat,
-								priv->ss_regs->tx_stat);
+								cpdma_rx_intstat_raw,
+								cpdma_tx_intstat_raw);
 			cpsw_intr_disable(priv);
 			if (!napi_reschedule(napi)) {
-				printk(KERN_DEBUG "napi_reschedule() -> false, re-enable interrupts");
-				cpsw_intr_enable(priv);
+				printk(KERN_DEBUG "napi_reschedule() -> false");
 			} else {
 				printk(KERN_DEBUG "napi_reschedule() OK");
 			}
