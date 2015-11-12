@@ -905,7 +905,13 @@ static irqreturn_t cpsw_interrupt(int irq, void *dev_id)
 
 		if (likely(netif_running(priv->ndev))) {
 			cpsw_intr_disable(priv);
-			napi_schedule(&priv->napi);
+			if (napi_schedule_prep(&priv->napi)) {
+				__napi_schedule(&priv->napi);
+			} else {
+				printk(KERN_DEBUG "napi_schedule_prep() failed while handling "
+					"IRQ %d with rx_stat:0x%08x and tx_stat:0x%08x", irq,
+					priv->ss_regs->rx_stat, priv->ss_regs->tx_stat);
+			}
 		}
 
 		goto handled;
@@ -931,20 +937,28 @@ handled:
 static int cpsw_poll(struct napi_struct *napi, int budget)
 {
 	struct cpsw_priv	*priv = napi_to_priv(napi);
-	int			num_tx, num_rx;
+	int			num_tx, num_rx, total = 0;
 
-	num_tx = cpdma_chan_process(priv->txch, 128);
 	num_rx = cpdma_chan_process(priv->rxch, budget);
+	num_tx = cpdma_chan_process(priv->txch, budget-num_rx);
 
 	if (num_rx || num_tx)
 		msg(dbg, intr, "poll %d rx, %d tx pkts\n", num_rx, num_tx);
 
-	if (num_rx < budget) {
+	total = num_rx+num_tx;
+	if (total < budget) {
 		napi_complete(napi);
 		cpsw_intr_enable(priv);
+		if ((priv->ss_regs->rx_stat & 0x01) || (priv->ss_regs->tx_stat & 0x01)) {
+			printk(KERN_DEBUG "napi_complete() with "
+								"rx_stat:0x%08x and tx_stat:0x%08x",
+								priv->ss_regs->rx_stat,
+								priv->ss_regs->tx_stat);
+			napi_reschedule(napi);
+		}
 	}
 
-	return num_rx;
+	return total;
 }
 
 static inline void soft_reset(const char *module, void __iomem *reg)
