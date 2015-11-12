@@ -906,8 +906,8 @@ static irqreturn_t cpsw_interrupt(int irq, void *dev_id)
 		}
 
 		if (likely(netif_running(priv->ndev))) {
-			cpsw_intr_disable(priv);
 			if (napi_schedule_prep(&priv->napi)) {
+				cpsw_intr_disable(priv);
 				__napi_schedule(&priv->napi);
 			} else {
 				printk(KERN_DEBUG "napi_schedule_prep() failed while handling "
@@ -952,6 +952,7 @@ static int cpsw_poll(struct napi_struct *napi, int budget)
 	if (total < budget) {
 		napi_complete(napi);
 		cpsw_intr_enable(priv);
+#if 0
 		cpdma_rx_intstat_raw = cpdma_control_get(priv->dma, CPDMA_RX_INTSTAT_RAW);
 		cpdma_tx_intstat_raw = cpdma_control_get(priv->dma, CPDMA_TX_INTSTAT_RAW);
 		if ((cpdma_rx_intstat_raw & 0x01) || (cpdma_tx_intstat_raw & 0x01)) {
@@ -966,6 +967,7 @@ static int cpsw_poll(struct napi_struct *napi, int budget)
 				printk(KERN_DEBUG "napi_reschedule() OK");
 			}
 		}
+#endif
 	}
 
 	return total;
