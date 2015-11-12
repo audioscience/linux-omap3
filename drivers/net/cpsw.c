@@ -954,7 +954,13 @@ static int cpsw_poll(struct napi_struct *napi, int budget)
 								"rx_stat:0x%08x and tx_stat:0x%08x",
 								priv->ss_regs->rx_stat,
 								priv->ss_regs->tx_stat);
-			napi_reschedule(napi);
+			cpsw_intr_disable(priv);
+			if (!napi_reschedule(napi)) {
+				printk(KERN_DEBUG "napi_reschedule() -> false, re-enable interrupts");
+				cpsw_intr_enable(priv);
+			} else {
+				printk(KERN_DEBUG "napi_reschedule() OK");
+			}
 		}
 	}
 
