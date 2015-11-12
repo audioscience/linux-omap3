@@ -939,16 +939,30 @@ handled:
 static int cpsw_poll(struct napi_struct *napi, int budget)
 {
 	struct cpsw_priv	*priv = napi_to_priv(napi);
-	u32 cpdma_rx_intstat_raw, cpdma_tx_intstat_raw;
 	int			num_tx, num_rx, total = 0;
 
-	num_rx = cpdma_chan_process(priv->rxch, budget);
-	num_tx = cpdma_chan_process(priv->txch, budget-num_rx);
+	do {
+		int budget_left = budget - total;
+		u32 cpdma_rx_intstat_raw = cpdma_control_get(priv->dma, CPDMA_RX_INTSTAT_RAW);
+		u32 cpdma_tx_intstat_raw = cpdma_control_get(priv->dma, CPDMA_TX_INTSTAT_RAW);
 
-	if (num_rx || num_tx)
-		msg(dbg, intr, "poll %d rx, %d tx pkts\n", num_rx, num_tx);
+		num_rx = 0;
+		if (cpdma_rx_intstat_raw && 0x01) {
+			num_rx = cpdma_chan_process(priv->rxch, budget_left/2 + 1);
+			budget_left -= num_rx;
+		}
 
-	total = num_rx+num_tx;
+		num_tx = 0;
+		if (cpdma_tx_intstat_raw && 0x01) {
+			num_tx = cpdma_chan_process(priv->txch, budget_left);
+			budget_left -= num_tx;
+		}
+
+		total += num_rx + num_tx;
+		if (num_rx || num_tx)
+			msg(dbg, intr, "poll %d rx, %d tx pkts\n", num_rx, num_tx);
+	} while ((num_rx || num_tx) && budget > total);
+
 	if (total < budget) {
 		napi_complete(napi);
 		cpsw_intr_enable(priv);
