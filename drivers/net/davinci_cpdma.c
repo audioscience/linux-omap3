@@ -976,6 +976,8 @@ struct cpdma_control_info controls[] = {
 	[CPDMA_STAT_RX_ERR_CODE]  = {CPDMA_DMASTATUS,	12, 0xf,    ACCESS_RW},
 	[CPDMA_STAT_RX_ERR_CHAN]  = {CPDMA_DMASTATUS,	8,  0x7,    ACCESS_RW},
 	[CPDMA_RX_BUFFER_OFFSET]  = {CPDMA_RXBUFFOFS,	0,  0xffff, ACCESS_RW},
+	[CPDMA_TX_INTSTAT_RAW]	  = {CPDMA_TXINTSTATRAW,	0,  0xffffffff, ACCESS_RO},
+	[CPDMA_RX_INTSTAT_RAW]	  = {CPDMA_RXINTSTATRAW,	0,  0xffffffff, ACCESS_RO},
 };
 
 int cpdma_control_get(struct cpdma_ctlr *ctlr, int control)

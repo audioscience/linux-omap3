@@ -105,6 +105,8 @@ enum cpdma_control {
 	CPDMA_STAT_RX_ERR_CHAN,		/* read-only */
 	CPDMA_STAT_RX_ERR_CODE,		/* read-only */
 	CPDMA_RX_BUFFER_OFFSET,		/* read-write */
+	CPDMA_TX_INTSTAT_RAW,		/* read-only */
+	CPDMA_RX_INTSTAT_RAW,		/* read-only */
 };
 
 int cpdma_control_get(struct cpdma_ctlr *ctlr, int control);
