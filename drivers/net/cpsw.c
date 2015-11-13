@@ -879,61 +879,90 @@ void cpsw_rx_handler(void *token, int len, int status)
 
 }
 
-static irqreturn_t cpsw_interrupt(int irq, void *dev_id)
+static irqreturn_t cpsw_dummy_interrupt(int irq, void *dev_id)
+{
+	struct cpsw_priv *priv = dev_id;
+	printk(KERN_DEBUG "IRQ %d with rx_stat:0x%08x, tx_stat:0x%08x, "
+		"misc_stat:0x%08x", irq, priv->ss_regs->rx_stat,
+		priv->ss_regs->tx_stat, priv->cpts_reg->intstat_raw);
+	return IRQ_NONE;
+}
+
+static irqreturn_t cpsw_rx_interrupt(int irq, void *dev_id)
+{
+	struct cpsw_priv *priv = dev_id;
+	u32 cpdma_intstat_raw = cpdma_control_get(priv->dma, CPDMA_RX_INTSTAT_RAW);
+	if (!(cpdma_intstat_raw & 0x01)) {
+		printk(KERN_DEBUG "IRQ %d with rx_stat_raw:0x%08x", irq,
+			cpdma_intstat_raw);
+		goto not_handled;
+	}
+
+	if (likely(netif_running(priv->ndev))) {
+		if (napi_schedule_prep(&priv->napi)) {
+			__raw_writel(0, &priv->ss_regs->rx_en);
+			__napi_schedule(&priv->napi);
+		} else {
+			printk(KERN_DEBUG "napi_schedule_prep() failed while handling "
+				"IRQ %d with rx_stat:0x%08x", irq, cpdma_intstat_raw);
+		}
+	}
+
+	WARN_ON(irq - priv->irqs_table[0] != 1);
+	cpdma_ctlr_eoi(priv->dma, 1);
+	return IRQ_HANDLED;
+
+not_handled:
+	return IRQ_NONE;
+}
+
+static irqreturn_t cpsw_tx_interrupt(int irq, void *dev_id)
+{
+	struct cpsw_priv *priv = dev_id;
+	u32 cpdma_intstat_raw = cpdma_control_get(priv->dma, CPDMA_TX_INTSTAT_RAW);
+	if (!(cpdma_intstat_raw & 0x01)) {
+		printk(KERN_DEBUG "IRQ %d with tx_stat_raw:0x%08x", irq,
+			cpdma_intstat_raw);
+		goto not_handled;
+	}
+
+	if (likely(netif_running(priv->ndev))) {
+		if (napi_schedule_prep(&priv->napi)) {
+			__raw_writel(0, &priv->ss_regs->tx_en);
+			__napi_schedule(&priv->napi);
+		} else {
+			printk(KERN_DEBUG "napi_schedule_prep() failed while handling "
+				"IRQ %d with tx_stat:0x%08x", irq, cpdma_intstat_raw);
+		}
+	}
+
+	WARN_ON(irq - priv->irqs_table[0] != 2);
+	cpdma_ctlr_eoi(priv->dma, 2);
+	return IRQ_HANDLED;
+
+not_handled:
+	return IRQ_NONE;
+}
+
+static irqreturn_t cpsw_misc_interrupt(int irq, void *dev_id)
 {
 	struct cpsw_priv *priv = dev_id;
 
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
-	if (irq == priv->irqs_table[3]) {
-		if (priv->cpts_reg->intstat_raw & 0x01) {
-			cpts_isr(priv);
-			goto handled;
-		} else {
-			printk(KERN_DEBUG "IRQ %d with intstat_raw:0x%08u", irq,
-				priv->cpts_reg->intstat_raw);
-			goto not_handled;
-		}
-	}
-#endif /* CONFIG_PTP_1588_CLOCK_CPTS */
-
-	if ((irq == priv->irqs_table[1]) || (irq == priv->irqs_table[2])) {
-		u32 cpdma_rx_intstat_raw = cpdma_control_get(priv->dma, CPDMA_RX_INTSTAT_RAW);
-		u32 cpdma_tx_intstat_raw = cpdma_control_get(priv->dma, CPDMA_TX_INTSTAT_RAW);
-		if (!(cpdma_rx_intstat_raw & 0x01) && !(cpdma_tx_intstat_raw & 0x01)) {
-			printk(KERN_DEBUG "IRQ %d with rx_stat:0x%08x and tx_stat:0x%08x", irq,
-				cpdma_rx_intstat_raw, cpdma_tx_intstat_raw);
-			goto not_handled;
-		}
-
-		if (likely(netif_running(priv->ndev))) {
-			if (napi_schedule_prep(&priv->napi)) {
-				cpsw_intr_disable(priv);
-				__napi_schedule(&priv->napi);
-			} else {
-				printk(KERN_DEBUG "napi_schedule_prep() failed while handling "
-					"IRQ %d with rx_stat:0x%08x and tx_stat:0x%08x", irq,
-					cpdma_rx_intstat_raw, cpdma_tx_intstat_raw);
-			}
-		}
-
-		goto handled;
+	if (!(priv->cpts_reg->intstat_raw & 0x01)) {
+		printk(KERN_DEBUG "IRQ %d with intstat_raw:0x%08u", irq,
+			priv->cpts_reg->intstat_raw);
+		goto not_handled;
 	}
 
-#ifdef CONFIG_TI_CPSW_DUAL_EMAC
-	else if (likely(netif_running(priv->slaves[1].ndev))) {
-		struct cpsw_priv *priv_sl2 = netdev_priv(priv->slaves[1].ndev);
-		cpsw_intr_disable(priv_sl2);
-		napi_schedule(&priv_sl2->napi);
-	}
-#endif /* CONFIG_TI_CPSW_DUAL_EMAC */
+	cpts_isr(priv);
+	WARN_ON(irq - priv->irqs_table[0] != 3);
+	cpdma_ctlr_eoi(priv->dma, 3);
+	return IRQ_HANDLED;
 
 not_handled:
-	printk(KERN_DEBUG "IRQ %d not handled", irq);
+#endif /* CONFIG_PTP_1588_CLOCK_CPTS */
 	return IRQ_NONE;
-
-handled:
-	cpdma_ctlr_eoi(priv->dma, irq-priv->irqs_table[0]);
-	return IRQ_HANDLED;
 }
 
 static int cpsw_poll(struct napi_struct *napi, int budget)
@@ -2968,6 +2997,12 @@ static int __devinit cpsw_probe(struct platform_device *pdev)
 	void __iomem			*regs;
 	struct resource			*res;
 	int ret = 0, i, k = 0;
+	irq_handler_t irq_handler[ARRAY_SIZE(priv->irqs_table)] = {
+		cpsw_dummy_interrupt,
+		cpsw_rx_interrupt,
+		cpsw_tx_interrupt,
+		cpsw_misc_interrupt,
+	};
 #ifdef CONFIG_TI_CPSW_DUAL_EMAC
 	/* Priv for second Interface */
 	struct cpsw_priv		*priv_sl2;
@@ -3155,9 +3190,10 @@ static int __devinit cpsw_probe(struct platform_device *pdev)
 		goto clean_ale_ret;
 	}
 
+	k = 0;
 	while ((res = platform_get_resource(priv->pdev, IORESOURCE_IRQ, k))) {
 		for (i = res->start; i <= res->end; i++) {
-			if (request_irq(i, cpsw_interrupt, IRQF_DISABLED,
+			if (request_irq(i, irq_handler[k], IRQF_DISABLED,
 					dev_name(&pdev->dev), priv)) {
 				pr_err("error attaching irq\n");
 				goto clean_ale_ret;
