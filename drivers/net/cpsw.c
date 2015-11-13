@@ -334,7 +334,8 @@ struct cpsw_priv {
 	struct net_device		*ndev;
 	struct resource			*cpsw_res;
 	struct resource			*cpsw_ss_res;
-	struct napi_struct		napi;
+	struct napi_struct		rx_napi;
+	struct napi_struct		tx_napi;
 #define napi_to_priv(napi)	container_of(napi, struct cpsw_priv, napi)
 	struct device			*dev;
 	struct cpsw_platform_data	data;
@@ -775,8 +776,6 @@ static void cpsw_intr_enable(struct cpsw_priv *priv)
 	}
 	__raw_writel(0xFF, &priv->ss_regs->tx_en);
 	__raw_writel(0xFF, &priv->ss_regs->rx_en);
-
-	cpdma_ctlr_int_ctrl(priv->dma, true);
 	return;
 }
 
@@ -789,8 +788,6 @@ static void cpsw_intr_disable(struct cpsw_priv *priv)
 	}
 	__raw_writel(0, &priv->ss_regs->tx_en);
 	__raw_writel(0, &priv->ss_regs->rx_en);
-
-	cpdma_ctlr_int_ctrl(priv->dma, false);
 	return;
 }
 
@@ -899,9 +896,9 @@ static irqreturn_t cpsw_rx_interrupt(int irq, void *dev_id)
 	}
 
 	if (likely(netif_running(priv->ndev))) {
-		if (napi_schedule_prep(&priv->napi)) {
+		if (napi_schedule_prep(&priv->rx_napi)) {
 			__raw_writel(0, &priv->ss_regs->rx_en);
-			__napi_schedule(&priv->napi);
+			__napi_schedule(&priv->rx_napi);
 		} else {
 			printk(KERN_DEBUG "napi_schedule_prep() failed while handling "
 				"IRQ %d with rx_stat:0x%08x", irq, cpdma_intstat_raw);
@@ -927,9 +924,9 @@ static irqreturn_t cpsw_tx_interrupt(int irq, void *dev_id)
 	}
 
 	if (likely(netif_running(priv->ndev))) {
-		if (napi_schedule_prep(&priv->napi)) {
+		if (napi_schedule_prep(&priv->tx_napi)) {
 			__raw_writel(0, &priv->ss_regs->tx_en);
-			__napi_schedule(&priv->napi);
+			__napi_schedule(&priv->tx_napi);
 		} else {
 			printk(KERN_DEBUG "napi_schedule_prep() failed while handling "
 				"IRQ %d with tx_stat:0x%08x", irq, cpdma_intstat_raw);
@@ -965,55 +962,40 @@ not_handled:
 	return IRQ_NONE;
 }
 
-static int cpsw_poll(struct napi_struct *napi, int budget)
+static int cpsw_rx_poll(struct napi_struct *rx_napi, int budget)
 {
-	struct cpsw_priv	*priv = napi_to_priv(napi);
-	int			num_tx, num_rx, total = 0;
+	struct cpsw_priv *priv = napi_to_priv(rx_napi);
+	int	num_frames;
 
-	do {
-		int budget_left = budget - total;
-		u32 cpdma_rx_intstat_raw = cpdma_control_get(priv->dma, CPDMA_RX_INTSTAT_RAW);
-		u32 cpdma_tx_intstat_raw = cpdma_control_get(priv->dma, CPDMA_TX_INTSTAT_RAW);
-
-		num_rx = 0;
-		if (cpdma_rx_intstat_raw && 0x01) {
-			num_rx = cpdma_chan_process(priv->rxch, budget_left/2 + 1);
-			budget_left -= num_rx;
-		}
-
-		num_tx = 0;
-		if (cpdma_tx_intstat_raw && 0x01) {
-			num_tx = cpdma_chan_process(priv->txch, budget_left);
-			budget_left -= num_tx;
-		}
-
-		total += num_rx + num_tx;
-		if (num_rx || num_tx)
-			msg(dbg, intr, "poll %d rx, %d tx pkts\n", num_rx, num_tx);
-	} while ((num_rx || num_tx) && budget > total);
-
-	if (total < budget) {
-		napi_complete(napi);
-		cpsw_intr_enable(priv);
-#if 0
-		cpdma_rx_intstat_raw = cpdma_control_get(priv->dma, CPDMA_RX_INTSTAT_RAW);
-		cpdma_tx_intstat_raw = cpdma_control_get(priv->dma, CPDMA_TX_INTSTAT_RAW);
-		if ((cpdma_rx_intstat_raw & 0x01) || (cpdma_tx_intstat_raw & 0x01)) {
-			printk(KERN_DEBUG "napi_complete() with "
-								"rx_stat:0x%08x and tx_stat:0x%08x",
-								cpdma_rx_intstat_raw,
-								cpdma_tx_intstat_raw);
-			cpsw_intr_disable(priv);
-			if (!napi_reschedule(napi)) {
-				printk(KERN_DEBUG "napi_reschedule() -> false");
-			} else {
-				printk(KERN_DEBUG "napi_reschedule() OK");
-			}
-		}
-#endif
+	num_frames = cpdma_chan_process(priv->rxch, budget);
+	if (num_frames) {
+		msg(dbg, intr, "poll %d rx", num_frames);
 	}
 
-	return total;
+	if (num_frames < budget) {
+		napi_complete(rx_napi);
+		__raw_writel(0xFF, &priv->ss_regs->rx_en);
+	}
+
+	return num_frames;
+}
+
+static int cpsw_tx_poll(struct napi_struct *tx_napi, int budget)
+{
+	struct cpsw_priv	*priv = napi_to_priv(tx_napi);
+	int	num_frames;
+
+	num_frames = cpdma_chan_process(priv->txch, budget);
+	if (num_frames) {
+		msg(dbg, intr, "poll %d tx", num_frames);
+	}
+
+	if (num_frames < budget) {
+		napi_complete(tx_napi);
+		__raw_writel(0xFF, &priv->ss_regs->tx_en);
+	}
+
+	return num_frames;
 }
 
 static inline void soft_reset(const char *module, void __iomem *reg)
@@ -1384,6 +1366,8 @@ static int cpsw_ndo_open(struct net_device *ndev)
 		cpsw_set_coalesce(ndev, &coal);
 	}
 
+	napi_enable(&priv->rx_napi);
+	napi_enable(&priv->tx_napi);
 	cpdma_ctlr_start(priv->dma);
 	/* setup tx dma to fixed prio and zero offset after cpdma_ctlr_start() */
 	/* because the latter issues a CPDMA soft reset which wipes settings */
@@ -1391,7 +1375,7 @@ static int cpsw_ndo_open(struct net_device *ndev)
 	cpdma_control_set(priv->dma, CPDMA_RX_BUFFER_OFFSET, 0);
 
 	cpsw_intr_enable(priv);
-	napi_enable(&priv->napi);
+	cpdma_ctlr_int_ctrl(priv->dma, true);
 
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
 	reg = __raw_readl(&priv->cpts_reg->id_ver);
@@ -1430,19 +1414,13 @@ static int cpsw_ndo_stop(struct net_device *ndev)
 
 	msg(info, ifdown, "shutting down cpsw device\n");
 	netif_stop_queue(priv->ndev);
-	napi_disable(&priv->napi);
 	netif_carrier_off(priv->ndev);
-
-#ifdef CONFIG_TI_CPSW_DUAL_EMAC
-	if (cpsw_common_res_usage_stat(priv) <= 1) {
-#endif /* CONFIG_TI_CPSW_DUAL_EMAC */
-		cpsw_intr_disable(priv);
-		cpdma_ctlr_int_ctrl(priv->dma, false);
-		cpdma_ctlr_stop(priv->dma);
-		cpsw_ale_stop(priv->ale);
-#ifdef CONFIG_TI_CPSW_DUAL_EMAC
-	}
-#endif /* CONFIG_TI_CPSW_DUAL_EMAC */
+	cpsw_intr_disable(priv);
+	cpdma_ctlr_int_ctrl(priv->dma, false);
+	napi_disable(&priv->rx_napi);
+	napi_disable(&priv->tx_napi);
+	cpdma_ctlr_stop(priv->dma);
+	cpsw_ale_stop(priv->ale);
 
 	device_remove_file(&ndev->dev, &dev_attr_hw_stats);
 
@@ -2759,8 +2737,10 @@ static void cpsw_ndo_tx_timeout(struct net_device *ndev)
 	priv->stats.tx_errors++;
 	cpsw_intr_disable(priv);
 	cpdma_ctlr_int_ctrl(priv->dma, false);
+	napi_disable(&priv->tx_napi);
 	cpdma_chan_stop(priv->txch);
 	cpdma_chan_start(priv->txch);
+	napi_enable(&priv->tx_napi);
 	cpdma_ctlr_int_ctrl(priv->dma, true);
 	cpsw_intr_enable(priv);
 }
@@ -3214,7 +3194,8 @@ static int __devinit cpsw_probe(struct platform_device *pdev)
 
 	ndev->netdev_ops = &cpsw_netdev_ops;
 	SET_ETHTOOL_OPS(ndev, &cpsw_ethtool_ops);
-	netif_napi_add(ndev, &priv->napi, cpsw_poll, CPSW_POLL_WEIGHT);
+	netif_napi_add(ndev, &priv->rx_napi, cpsw_rx_poll, CPSW_POLL_WEIGHT);
+	netif_napi_add(ndev, &priv->tx_napi, cpsw_tx_poll, CPSW_POLL_WEIGHT);
 
 	/* register the network device */
 	SET_NETDEV_DEV(ndev, &pdev->dev);
