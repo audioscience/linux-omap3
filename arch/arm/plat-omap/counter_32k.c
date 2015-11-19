@@ -32,6 +32,7 @@
  */
 
 #define OMAP16XX_TIMER_32K_SYNCHRONIZED		0xfffbc410
+#define TI814X_32KSYNCT_BASE		0x481C3000
 
 #if !(defined(CONFIG_ARCH_OMAP730) || defined(CONFIG_ARCH_OMAP15XX)	\
 		|| defined(CONFIG_ARCH_TI81XX))
@@ -88,6 +89,15 @@ static cycle_t omap44xx_32k_read(struct clocksource *cs)
 }
 #else
 #define omap44xx_32k_read	NULL
+#endif
+
+#ifdef CONFIG_ARCH_TI81XX
+static cycle_t ti814x_32k_read(struct clocksource *cs)
+{
+	return omap_readl(TI814X_32KSYNCT_BASE + 0x30) - offset_32k;
+}
+#else
+#define ti814x_32k_read	NULL
 #endif
 
 /*
@@ -162,6 +172,8 @@ static int __init omap_init_clocksource_32k(void)
 			clocksource_32k.read = omap34xx_32k_read;
 		else if (cpu_is_omap44xx())
 			clocksource_32k.read = omap44xx_32k_read;
+		else if (cpu_is_ti814x())
+			clocksource_32k.read = ti814x_32k_read;
 		else
 			return -ENODEV;
 
