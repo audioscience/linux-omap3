@@ -838,7 +838,8 @@ void cpsw_rx_handler(void *token, int len, int status)
 
 	/* free and bail if we are shutting down */
 	if (unlikely(!netif_running(ndev)) ||
-			unlikely(!netif_carrier_ok(ndev))) {
+			unlikely(!netif_carrier_ok(ndev)) ||
+			status < 0) {
 		dev_kfree_skb_any(skb);
 		return;
 	}
