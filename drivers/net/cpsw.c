@@ -764,7 +764,7 @@ static void cpts_tx_timestamp(struct cpsw_priv *priv,
 	spin_unlock_irqrestore(&cpts_time_lock, flags);
 	if (err) {
 		sock_put(evt.skb->sk);
-		dev_kfree_skb_any(evt.skb);
+		dev_kfree_skb(evt.skb);
 	}
 }
 #endif
@@ -809,7 +809,7 @@ void cpsw_tx_handler(void *token, int len, int status)
 				skb_recycle_check(skb, priv->rx_packet_max)) {
 				__skb_queue_head(&priv->rx_recycle, skb);
 			} else {
-				dev_kfree_skb_any(skb);
+				dev_kfree_skb(skb);
 			}
 	}
 }
@@ -840,7 +840,7 @@ void cpsw_rx_handler(void *token, int len, int status)
 	if (unlikely(!netif_running(ndev)) ||
 			unlikely(!netif_carrier_ok(ndev)) ||
 			status < 0) {
-		dev_kfree_skb_any(skb);
+		dev_kfree_skb(skb);
 		return;
 	}
 
