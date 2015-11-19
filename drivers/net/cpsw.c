@@ -49,6 +49,7 @@ do {								\
 		dev_##level(priv->dev, format, ## __VA_ARGS__);	\
 } while (0)
 
+#define CPSW_MAX_RECYCLED_SKB	(128)
 #define CPSW_POLL_WEIGHT	64
 #define CPSW_MIN_PACKET_SIZE	60
 #define CPSW_MAX_PACKET_SIZE	(1500 + 14 + 4 + 4)
@@ -335,6 +336,7 @@ struct cpsw_priv {
 	struct napi_struct		rx_napi;
 	struct napi_struct		tx_napi;
 #define napi_to_priv(napi)	container_of(napi, struct cpsw_priv, napi)
+	struct sk_buff_head rx_recycle;
 	struct device			*dev;
 	struct cpsw_platform_data	data;
 	struct cpsw_regs __iomem	*regs;
@@ -797,7 +799,14 @@ void cpsw_tx_handler(void *token, int len, int status)
 
 	priv->stats.tx_packets++;
 	priv->stats.tx_bytes += len;
-	dev_kfree_skb_any(skb);
+	if (skb != NULL) {
+		if (skb_queue_len(&priv->rx_recycle) <= CPSW_MAX_RECYCLED_SKB &&
+				skb_recycle_check(skb, priv->rx_packet_max)) {
+				__skb_queue_head(&priv->rx_recycle, skb);
+			} else {
+				dev_kfree_skb_any(skb);
+			}
+	}
 }
 
 void cpsw_rx_handler(void *token, int len, int status)
@@ -853,7 +862,10 @@ void cpsw_rx_handler(void *token, int len, int status)
 	}
 
 	if (likely(!skb)) {
-		skb = netdev_alloc_skb_ip_align(ndev, priv->rx_packet_max);
+		skb = __skb_dequeue(&priv->rx_recycle);
+		if (skb == NULL)
+			skb = netdev_alloc_skb_ip_align(ndev, priv->rx_packet_max);
+
 		if (WARN_ON(!skb))
 			return;
 
@@ -1355,6 +1367,8 @@ static int cpsw_ndo_open(struct net_device *ndev)
 		cpsw_set_coalesce(ndev, &coal);
 	}
 
+	skb_queue_head_init(&priv->rx_recycle);
+
 	napi_enable(&priv->rx_napi);
 	napi_enable(&priv->tx_napi);
 	cpdma_ctlr_start(priv->dma);
@@ -1410,6 +1424,8 @@ static int cpsw_ndo_stop(struct net_device *ndev)
 	napi_disable(&priv->tx_napi);
 	cpdma_ctlr_stop(priv->dma);
 	cpsw_ale_stop(priv->ale);
+
+	skb_queue_purge(&priv->rx_recycle);
 
 	device_remove_file(&ndev->dev, &dev_attr_hw_stats);
 
