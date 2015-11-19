@@ -865,13 +865,6 @@ void cpsw_rx_handler(void *token, int len, int status)
 		skb = NULL;
 	}
 
-
-	if (unlikely(!netif_running(ndev))) {
-		if (skb)
-			dev_kfree_skb_any(skb);
-		return;
-	}
-
 	if (likely(!skb)) {
 		skb = __skb_dequeue(&priv->rx_recycle);
 		if (skb == NULL)
