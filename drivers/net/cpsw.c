@@ -547,11 +547,7 @@ static int cpts_time_evts_fifo_pop(struct cpts_evts_fifo *fifo,
 }
 
 int cpts_set_hwevent_callback(cpts_extevent_cb cb) {
-	unsigned long flags;
-
-	spin_lock_irqsave(&cpts_time_lock, flags);
 	gpriv->cpts_time->cpts_extevent_cb = cb;
-	spin_unlock_irqrestore(&cpts_time_lock, flags);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(cpts_set_hwevent_callback);
@@ -560,7 +556,6 @@ static void cpts_ts_eth_tx_event(struct cpsw_priv *priv, u32 evt_high,
 	u64 ts)
 {
 	int err = 0;
-	unsigned long flags;
 	struct cpts_time_evts evt = {0};
 	struct cpts_time_handle *cpts_time = priv->cpts_time;
 	struct skb_shared_hwtstamps shhwtstamps;
@@ -568,10 +563,10 @@ static void cpts_ts_eth_tx_event(struct cpsw_priv *priv, u32 evt_high,
 	if (!cpts_time->enable_timestamping)
 		return;
 
-	spin_lock_irqsave(&cpts_time_lock, flags);
+	spin_lock(&cpts_time_lock);
 	err = cpts_time_evts_fifo_pop(&cpts_time->tx_fifo, evt_high,
 		&evt);
-	spin_unlock_irqrestore(&cpts_time_lock, flags);
+	spin_unlock(&cpts_time_lock);
 
 	if (err < 0) {
 		printk(KERN_DEBUG "cpts_ts_eth_tx_event() e:0x%04hx s:%hu not found\n",
@@ -587,13 +582,12 @@ static void cpts_ts_eth_tx_event(struct cpsw_priv *priv, u32 evt_high,
 
 static int cpts_poll(struct cpsw_priv *priv)
 {
-	unsigned long flags;
-
 	while (__raw_readl(&priv->cpts_reg->intstat_raw) & 0x01) {
 		u32	event_high;
 		u32	event_tslo;
 		u64 ts = 0;
 
+		spin_lock(&cpts_time_lock);
 		event_high = __raw_readl(&priv->cpts_reg->event_high);
 		event_tslo = __raw_readl(&priv->cpts_reg->event_low);
 		__raw_writel(0x01, &priv->cpts_reg->event_pop);
@@ -605,6 +599,7 @@ static int cpts_poll(struct cpsw_priv *priv)
 		} else {
 			ts = (u64)(priv->cpts_time->tshi);
 		}
+		spin_unlock(&cpts_time_lock);
 		ts = (ts << 32) | event_tslo;
 
 		if ((event_high & 0xf00000) == CPTS_TS_PUSH) {
@@ -612,21 +607,21 @@ static int cpts_poll(struct cpsw_priv *priv)
 			time_push = ts;
 		} else if ((event_high & 0xf00000) == CPTS_TS_ROLLOVER) {
 			/* Roll over */
-			spin_lock_irqsave(&cpts_time_lock, flags);
+			spin_lock(&cpts_time_lock);
 			priv->cpts_time->tshi++;
 			priv->cpts_time->first_half = true;
-			spin_unlock_irqrestore(&cpts_time_lock, flags);
+			spin_unlock(&cpts_time_lock);
 		} else if ((event_high & 0xf00000) == CPTS_TS_HROLLOVER) {
 			/* Half Roll Over */
-			spin_lock_irqsave(&cpts_time_lock, flags);
+			spin_lock(&cpts_time_lock);
 			priv->cpts_time->first_half = false;
-			spin_unlock_irqrestore(&cpts_time_lock, flags);
+			spin_unlock(&cpts_time_lock);
 		} else if ((event_high & 0xf00000) == CPTS_TS_HW_PUSH) {
 			/* HW TS Push */
-			spin_lock_irqsave(&cpts_time_lock, flags);
+			spin_lock(&cpts_time_lock);
 			if (priv->cpts_time->cpts_extevent_cb)
 				priv->cpts_time->cpts_extevent_cb(0, CPTSCOUNT_TO_NANOSEC(ts));
-			spin_unlock_irqrestore(&cpts_time_lock, flags);
+			spin_unlock(&cpts_time_lock);
 		} else if ((event_high & 0xf00000) == CPTS_TS_ETH_RX) {
 			/* Ethernet Rx Ts */
 			struct cpts_time_evts evt = {0};
@@ -634,15 +629,13 @@ static int cpts_poll(struct cpsw_priv *priv)
 			evt.event_high = event_high & 0xfffff;
 			evt.ts = CPTSCOUNT_TO_NANOSEC(ts);
 			if (priv->cpts_time->enable_timestamping) {
-				spin_lock_irqsave(&cpts_time_lock, flags);
-				cpts_time_evts_fifo_push(
-					&(priv->cpts_time->rx_fifo), &evt);
-				spin_unlock_irqrestore(&cpts_time_lock, flags);
+				spin_lock(&cpts_time_lock);
+				cpts_time_evts_fifo_push(&(priv->cpts_time->rx_fifo), &evt);
+				spin_unlock(&cpts_time_lock);
 			}
 		} else if ((event_high & 0xf00000) == CPTS_TS_ETH_TX) {
 			/* Ethernet Tx Ts */
-			cpts_ts_eth_tx_event(priv,
-				event_high & 0xfffff, ts);
+			cpts_ts_eth_tx_event(priv, event_high & 0xfffff, ts);
 		} else {
 			printk(KERN_ERR "Invalid CPTS Event type...\n");
 		}
@@ -699,11 +692,13 @@ int cpts_systime_read(u64 *ns)
 	time_push = 0;
 	tasklet_disable(&gpriv->cpts_time->poll_tasklet);
 	__raw_writel(0x1, &gpriv->cpts_reg->ts_push);
+	spin_lock_bh(&cpts_time_lock);
 	for (i = 0; i < 20; i++) {
 		cpts_poll(gpriv);
 		if (time_push)
 			break;
 	}
+	spin_unlock_bh(&cpts_time_lock);
 	tasklet_enable(&gpriv->cpts_time->poll_tasklet);
 	if (i >= 20) {
 		*ns = 0;
@@ -721,11 +716,10 @@ static void cpts_rx_timestamp(struct cpsw_priv *priv,
 	int err = 0;
 	struct cpts_time_evts evt = {0};
 	struct skb_shared_hwtstamps *shhwtstamps;
-	unsigned long flags;
 
-	spin_lock_irqsave(&cpts_time_lock, flags);
+	spin_lock(&cpts_time_lock);
 	err = cpts_time_evts_fifo_pop(&(priv->cpts_time->rx_fifo), evt_high, &evt);
-	spin_unlock_irqrestore(&cpts_time_lock, flags);
+	spin_unlock(&cpts_time_lock);
 
 	shhwtstamps = skb_hwtstamps(skb);
 	memset(shhwtstamps, 0, sizeof(*shhwtstamps));
@@ -742,7 +736,6 @@ static void cpts_rx_timestamp(struct cpsw_priv *priv,
 static void cpts_tx_timestamp(struct cpsw_priv *priv,
 			struct sk_buff *skb, u32 evt_high)
 {
-	unsigned long flags;
 	int err;
 	struct cpts_time_evts evt = {0};
 	struct sk_buff *clone = NULL;
@@ -770,9 +763,9 @@ static void cpts_tx_timestamp(struct cpsw_priv *priv,
 	}
 	/* The event we push has either an skb with a valid socket or NULL */
 	evt.skb = clone;
-	spin_lock_irqsave(&cpts_time_lock, flags);
+	spin_lock(&cpts_time_lock);
 	err = cpts_time_evts_fifo_push(&(priv->cpts_time->tx_fifo), &evt);
-	spin_unlock_irqrestore(&cpts_time_lock, flags);
+	spin_unlock(&cpts_time_lock);
 	if (err) {
 		sock_put(evt.skb->sk);
 		dev_kfree_skb(evt.skb);
@@ -1740,7 +1733,6 @@ static int cpts_enable_l2_ts(struct cpsw_priv *priv, bool state)
 static int cpsw_hwtstamp_ioctl(struct net_device *ndev,
 		struct ifreq *ifr, int cmd)
 {
-	unsigned long flags;
 	struct hwtstamp_config config;
 	struct cpsw_priv *priv = netdev_priv(ndev);
 
@@ -1811,10 +1803,10 @@ static int cpsw_hwtstamp_ioctl(struct net_device *ndev,
 		dev_dbg(priv->dev, "Disabling PTP Time stamping...\n");
 	}
 
-	spin_lock_irqsave(&cpts_time_lock, flags);
+	spin_lock_bh(&cpts_time_lock);
 	cpts_time_evts_fifo_flush(&priv->cpts_time->rx_fifo);
 	cpts_time_evts_fifo_flush(&priv->cpts_time->tx_fifo);
-	spin_unlock_irqrestore(&cpts_time_lock, flags);
+	spin_unlock_bh(&cpts_time_lock);
 
 	return copy_to_user(ifr->ifr_data, &config, sizeof(config)) ?
 			-EFAULT : 0;
