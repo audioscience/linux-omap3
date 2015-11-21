@@ -498,9 +498,9 @@ static int cpts_time_evts_fifo_pop(struct cpts_evts_fifo *fifo,
 
 	i = fifo->head;
 	while (i != fifo->tail) {
-		u32 age;
+		u32 age = fifo->ts_high - (fifo->fifo[i].ts>>32);
 
-		if (fifo->fifo[i].valid == 1 &&
+		if (fifo->fifo[i].valid == 1 && age == 0 &&
 				evt_high == fifo->fifo[i].event_high) {
 			evt->event_high = fifo->fifo[i].event_high;
 			evt->ts = fifo->fifo[i].ts;
@@ -522,7 +522,6 @@ static int cpts_time_evts_fifo_pop(struct cpts_evts_fifo *fifo,
 			return 0;
 		}
 
-		age = fifo->ts_high - (fifo->fifo[i].ts>>32);
 		if (fifo->fifo[i].valid == 1 && age > 1) {
 			log_cpts_fifo_entry(fifo, &fifo->fifo[i], " aged");
 			if (fifo->fifo[i].skb) {
