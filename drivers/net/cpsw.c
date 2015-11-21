@@ -24,6 +24,7 @@
 #include <linux/netdevice.h>
 #include <linux/phy.h>
 #include <linux/workqueue.h>
+#include <linux/clocksource.h>
 #include <linux/delay.h>
 #include <linux/if_vlan.h>
 #include <linux/net_tstamp.h>
@@ -98,12 +99,10 @@ do {								\
 #define CPSW_V2_SEQ_ID_OFS_SHIFT	16
 
 #define CPTS_FIFO_SIZE			64
-#define CPTS_READ_TS_MAX_TRY		20
-#define CPTL_CLK_FREQ			250000000 /*250MHz*/
+#define CPTS_CLK_FREQ			(250000000UL) /* 250MHz */
 #define DEFAULT_CPTS_CLK		CPTS_CLK_SEL_AUDIO
-#define NANOSEC_CPTSCOUNT_CONV_SHIFT	2	/*1GHz/250Mhz=4 "1<<2 - 4"*/
-#define NANOSEC_TO_CPTSCOUNT(_NS_)	(_NS_ >> NANOSEC_CPTSCOUNT_CONV_SHIFT)
-#define CPTSCOUNT_TO_NANOSEC(_NS_)	(_NS_ << NANOSEC_CPTSCOUNT_CONV_SHIFT)
+#define NANOSEC_CPTSCOUNT_SHIFT (0)
+#define NANOSEC_CPTSCOUNT_MULT  (NSEC_PER_SEC/CPTS_CLK_FREQ) /* 1GHz/250Mhz */
 
 /* CPSW control module masks */
 #define CPSW_INTPACEEN		(0x3 << 16)
@@ -321,13 +320,15 @@ struct cpts_time_handle {
 	struct cpts_evts_fifo tx_fifo;
 	struct cpts_evts_fifo rx_fifo;
 	bool enable_timestamping;
-	int tshi;
-	bool first_half;
 	int freq;
 	int (*cpts_extevent_cb)(int index, u64 timestamp);
 	struct tasklet_struct poll_tasklet;
 	wait_queue_head_t wq;
-	u64 last_ts_pushed;
+	cycle_t last_cyc_ts;
+	atomic_t ts_push_requested;
+	volatile u64 last_ts_pushed;
+	struct cyclecounter cc;
+	struct timecounter tc;
 };
 
 struct cpsw_priv {
@@ -559,8 +560,7 @@ static void cpts_ts_eth_tx_event(struct cpsw_priv *priv, u32 evt_high,
 		return;
 
 	spin_lock(&cpts_time_lock);
-	err = cpts_time_evts_fifo_pop(&cpts_time->tx_fifo, evt_high,
-		&evt);
+	err = cpts_time_evts_fifo_pop(&cpts_time->tx_fifo, evt_high, &evt);
 	spin_unlock(&cpts_time_lock);
 
 	if (err < 0) {
@@ -569,10 +569,20 @@ static void cpts_ts_eth_tx_event(struct cpsw_priv *priv, u32 evt_high,
 	} else if (evt.skb) {
 		BUG_ON(evt.skb->sk == NULL);
 		memset(&shhwtstamps, 0, sizeof(shhwtstamps));
-		shhwtstamps.hwtstamp = ns_to_ktime(CPTSCOUNT_TO_NANOSEC(ts) +
+		/* FIXME: we should do ktime_add_ns(ns_to_ktime(ts), corr)
+		   but it fails for -ve values.
+		*/
+		shhwtstamps.hwtstamp = ns_to_ktime(ts +
 			priv->tscorr_data[mbit_corr].tx_correction);
 		skb_complete_tx_timestamp(evt.skb, &shhwtstamps);
 	}
+}
+
+static cycle_t cpts_last_cyc_ts(const struct cyclecounter *cc)
+{
+	struct cpts_time_handle *state = container_of(cc,
+		struct cpts_time_handle, cc);
+	return state->last_cyc_ts;
 }
 
 static int cpts_poll(struct cpsw_priv *priv)
@@ -582,53 +592,46 @@ static int cpts_poll(struct cpsw_priv *priv)
 
 	while (__raw_readl(&reg->intstat_raw) & 0x01) {
 		u32	event_high;
-		u32	event_tslo;
+		u32	event_low;
+		u32	event_type;
 		u64 ts = 0;
 
 		event_high = __raw_readl(&reg->event_high);
-		event_tslo = __raw_readl(&reg->event_low);
+		event_low = __raw_readl(&reg->event_low);
 		__raw_writel(0x01, &reg->event_pop);
+		event_type = event_high & 0xf00000;
 
-		if (unlikely(state->first_half &&
-				event_tslo & 0x80000000)) {
-			/* this is misaligned ts */
-			ts = (u64)(state->tshi - 1);
-		} else {
-			ts = (u64)(state->tshi);
-		}
-		ts = (ts << 32) | event_tslo;
-
-		if ((event_high & 0xf00000) == CPTS_TS_PUSH) {
-			/*Push TS to Read */
+		if (unlikely(event_type == CPTS_TS_ROLLOVER)) {
+			state->last_cyc_ts = 0;
+			ts = timecounter_read(&state->tc);
+		} else if (unlikely(event_type == CPTS_TS_HROLLOVER)) {
+			state->last_cyc_ts = (1<<31);
+			ts = timecounter_read(&state->tc);
+		} else if (unlikely(event_type == CPTS_TS_PUSH)) {
+			ts = timecounter_cyc2time(&state->tc, event_low);
 			state->last_ts_pushed = ts;
+			wmb();
+			atomic_dec(&state->ts_push_requested);
 			wake_up_interruptible(&state->wq);
-		} else if ((event_high & 0xf00000) == CPTS_TS_ROLLOVER) {
-			/* Roll over */
-			state->tshi++;
-			state->first_half = true;
-		} else if ((event_high & 0xf00000) == CPTS_TS_HROLLOVER) {
-			/* Half Roll Over */
-			state->first_half = false;
-		} else if ((event_high & 0xf00000) == CPTS_TS_HW_PUSH) {
-			/* HW TS Push */
+		} else if (event_type == CPTS_TS_HW_PUSH) {
+			ts = timecounter_cyc2time(&state->tc, event_low);
 			if (state->cpts_extevent_cb)
-				state->cpts_extevent_cb(0, CPTSCOUNT_TO_NANOSEC(ts));
-		} else if ((event_high & 0xf00000) == CPTS_TS_ETH_RX) {
-			/* Ethernet Rx Ts */
-			struct cpts_time_evts evt = {0};
-
-			evt.event_high = event_high & 0xfffff;
-			evt.ts = CPTSCOUNT_TO_NANOSEC(ts);
+				state->cpts_extevent_cb(0, ts);
+		} else if (event_type == CPTS_TS_ETH_RX) {
+			struct cpts_time_evts evt = {
+				.event_high = event_high & 0xfffff,
+				.ts = timecounter_cyc2time(&state->tc, event_low),
+			};
 			if (state->enable_timestamping) {
 				spin_lock(&cpts_time_lock);
-				cpts_time_evts_fifo_push(&(state->rx_fifo), &evt);
+				cpts_time_evts_fifo_push(&state->rx_fifo, &evt);
 				spin_unlock(&cpts_time_lock);
 			}
-		} else if ((event_high & 0xf00000) == CPTS_TS_ETH_TX) {
-			/* Ethernet Tx Ts */
+		} else if (event_type == CPTS_TS_ETH_TX) {
+			ts = timecounter_cyc2time(&state->tc, event_low);
 			cpts_ts_eth_tx_event(priv, event_high & 0xfffff, ts);
 		} else {
-			printk(KERN_ERR "Invalid CPTS Event type...\n");
+			printk(KERN_ERR "Invalid CPTS Event type 0x%x", event_high);
 		}
 	}
 	return 0;
@@ -661,11 +664,7 @@ int cpts_systime_write(u64 ns)
 		printk(KERN_ERR "Device Error, No device found\n");
 		return -ENODEV;
 	}
-	ns = NANOSEC_TO_CPTSCOUNT(ns);
-	__raw_writel((u32)(ns & 0xffffffff), &gpriv->cpts_reg->ts_load_val);
-	__raw_writel(0x1, &gpriv->cpts_reg->ts_load_en);
-	gpriv->cpts_time->tshi = (u32)(ns >> 32);
-
+	timecounter_init(&gpriv->cpts_time->tc, &gpriv->cpts_time->cc, ns);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(cpts_systime_write);
@@ -681,19 +680,23 @@ int cpts_systime_read(u64 *ns)
 	}
 
 	*ns = 0;
-	cpts_time->last_ts_pushed = 0;
-	/* trigger CPTS timestamp FIFO push */
-	__raw_writel(0x1, &gpriv->cpts_reg->ts_push);
+	if (atomic_add_return(1, &cpts_time->ts_push_requested) == 1) {
+		/* trigger CPTS timestamp FIFO push */
+		__raw_writel(0x1, &gpriv->cpts_reg->ts_push);
+	} else {
+		atomic_dec(&cpts_time->ts_push_requested);
+	}
 	/* the next time cpts_poll() is run by IRQ or NAPI it will wake us up */
 	ret = wait_event_interruptible_timeout(cpts_time->wq,
-		cpts_time->last_ts_pushed != 0, msecs_to_jiffies(1000));
-	if (ret == 0) {
-		ret = -ETIMEDOUT;
-	} else if (ret == -ERESTARTSYS) {
-		/* pass on the return value */
-	} else {
-		*ns = CPTSCOUNT_TO_NANOSEC(cpts_time->last_ts_pushed);
+		atomic_read(&cpts_time->ts_push_requested) == 0,
+		msecs_to_jiffies(1000));
+	if (ret > 0) {
+		*ns = cpts_time->last_ts_pushed;
 		ret = 0;
+	} else if (!ret) {
+		ret = -ETIMEDOUT;
+	} else {
+		/* pass on -ve return value including -ERESTARTSYS */
 	}
 
 	return ret;
@@ -718,6 +721,9 @@ static void cpts_rx_timestamp(struct cpsw_priv *priv,
 		printk(KERN_DEBUG "cpts_rx_timestamp() e:0x%04hx s:%hu not found\n",
 			evt_high>>16, evt_high&0xffff);
 	} else {
+		/* FIXME: we should do ktime_add_ns(ns_to_ktime(ts), corr)
+		   but it fails for -ve values.
+		*/
 		shhwtstamps->hwtstamp = ns_to_ktime(evt.ts +
 			priv->tscorr_data[mbit_corr].rx_correction);
 	}
@@ -1379,6 +1385,8 @@ static int cpsw_ndo_open(struct net_device *ndev)
 	reg = __raw_readl(&priv->cpts_reg->id_ver);
 	if (reg == CPTS_VERSION) {
 		printk(KERN_ERR "Found CPTS and initializing...\n");
+		timecounter_init(&priv->cpts_time->tc, &priv->cpts_time->cc,
+			ktime_to_ns(ktime_get_real()));
 		/* Enable CPTS */
 		__raw_writel(0x01, &priv->cpts_reg->control);
 		/* Enable CPTS Interrupt */
@@ -3014,6 +3022,10 @@ static int __devinit cpsw_probe(struct platform_device *pdev)
 	cpts_time_evts_fifo_init(&priv->cpts_time->tx_fifo, true);
 	tasklet_init(&priv->cpts_time->poll_tasklet, cpts_tasklet, (unsigned long)priv);
 	init_waitqueue_head(&priv->cpts_time->wq);
+	priv->cpts_time->cc.read = cpts_last_cyc_ts;
+	priv->cpts_time->cc.mask = CLOCKSOURCE_MASK(32);
+	priv->cpts_time->cc.mult = NANOSEC_CPTSCOUNT_MULT;
+	priv->cpts_time->cc.shift = NANOSEC_CPTSCOUNT_SHIFT;
 #endif /* CONFIG_PTP_1588_CLOCK_CPTS */
 
 	if (is_valid_ether_addr(data->mac_addr)) {
