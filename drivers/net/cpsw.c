@@ -592,7 +592,6 @@ static int cpts_poll(struct cpsw_priv *priv)
 		u32	event_tslo;
 		u64 ts = 0;
 
-		spin_lock(&cpts_time_lock);
 		event_high = __raw_readl(&reg->event_high);
 		event_tslo = __raw_readl(&reg->event_low);
 		__raw_writel(0x01, &reg->event_pop);
@@ -604,7 +603,6 @@ static int cpts_poll(struct cpsw_priv *priv)
 		} else {
 			ts = (u64)(state->tshi);
 		}
-		spin_unlock(&cpts_time_lock);
 		ts = (ts << 32) | event_tslo;
 
 		if ((event_high & 0xf00000) == CPTS_TS_PUSH) {
@@ -613,21 +611,15 @@ static int cpts_poll(struct cpsw_priv *priv)
 			wake_up_interruptible(&state->wq);
 		} else if ((event_high & 0xf00000) == CPTS_TS_ROLLOVER) {
 			/* Roll over */
-			spin_lock(&cpts_time_lock);
 			state->tshi++;
 			state->first_half = true;
-			spin_unlock(&cpts_time_lock);
 		} else if ((event_high & 0xf00000) == CPTS_TS_HROLLOVER) {
 			/* Half Roll Over */
-			spin_lock(&cpts_time_lock);
 			state->first_half = false;
-			spin_unlock(&cpts_time_lock);
 		} else if ((event_high & 0xf00000) == CPTS_TS_HW_PUSH) {
 			/* HW TS Push */
-			spin_lock(&cpts_time_lock);
 			if (state->cpts_extevent_cb)
 				state->cpts_extevent_cb(0, CPTSCOUNT_TO_NANOSEC(ts));
-			spin_unlock(&cpts_time_lock);
 		} else if ((event_high & 0xf00000) == CPTS_TS_ETH_RX) {
 			/* Ethernet Rx Ts */
 			struct cpts_time_evts evt = {0};
