@@ -13,6 +13,7 @@
  * GNU General Public License for more details.
  */
 #include <linux/kernel.h>
+#include <linux/wait.h>
 #include <linux/io.h>
 #include <linux/clk.h>
 #include <linux/timer.h>
@@ -328,6 +329,8 @@ struct cpts_time_handle {
 	int freq;
 	int (*cpts_extevent_cb)(int index, u64 timestamp);
 	struct tasklet_struct poll_tasklet;
+	wait_queue_head_t wq;
+	u64 last_ts_pushed;
 };
 
 struct cpsw_priv {
@@ -394,7 +397,6 @@ static int cpsw_set_coalesce(struct net_device *ndev,
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
 DEFINE_SPINLOCK(cpts_time_lock);
 static struct cpsw_priv *gpriv;
-static u64 time_push;
 
 typedef int (*cpts_extevent_cb)(int index, u64 timestamp);
 
@@ -604,7 +606,8 @@ static int cpts_poll(struct cpsw_priv *priv)
 
 		if ((event_high & 0xf00000) == CPTS_TS_PUSH) {
 			/*Push TS to Read */
-			time_push = ts;
+			priv->cpts_time->last_ts_pushed = ts;
+			wake_up_interruptible(&priv->cpts_time->wq);
 		} else if ((event_high & 0xf00000) == CPTS_TS_ROLLOVER) {
 			/* Roll over */
 			spin_lock(&cpts_time_lock);
@@ -681,30 +684,29 @@ EXPORT_SYMBOL_GPL(cpts_systime_write);
 
 int cpts_systime_read(u64 *ns)
 {
-	int ret = 0;
-	int i;
+	struct cpts_time_handle *cpts_time = gpriv->cpts_time;
+	int ret;
 
 	if (gpriv == NULL) {
 		printk(KERN_ERR "Device Error, No device found\n");
 		return -ENODEV;
 	}
 
-	time_push = 0;
-	tasklet_disable(&gpriv->cpts_time->poll_tasklet);
+	*ns = 0;
+	cpts_time->last_ts_pushed = 0;
+	/* trigger CPTS timestamp FIFO push */
 	__raw_writel(0x1, &gpriv->cpts_reg->ts_push);
-	spin_lock_bh(&cpts_time_lock);
-	for (i = 0; i < 20; i++) {
-		cpts_poll(gpriv);
-		if (time_push)
-			break;
+	/* the next time cpts_poll() is run by IRQ or NAPI it will wake us up */
+	ret = wait_event_interruptible_timeout(cpts_time->wq,
+		cpts_time->last_ts_pushed != 0, msecs_to_jiffies(1000));
+	if (ret == 0) {
+		ret = -ETIMEDOUT;
+	} else if (ret == -ERESTARTSYS) {
+		/* pass on the return value */
+	} else {
+		*ns = CPTSCOUNT_TO_NANOSEC(cpts_time->last_ts_pushed);
+		ret = 0;
 	}
-	spin_unlock_bh(&cpts_time_lock);
-	tasklet_enable(&gpriv->cpts_time->poll_tasklet);
-	if (i >= 20) {
-		*ns = 0;
-		ret = -EBUSY;
-	} else
-		*ns = CPTSCOUNT_TO_NANOSEC(time_push);
 
 	return ret;
 }
@@ -3039,6 +3041,7 @@ static int __devinit cpsw_probe(struct platform_device *pdev)
 	cpts_time_evts_fifo_init(&priv->cpts_time->rx_fifo, false);
 	cpts_time_evts_fifo_init(&priv->cpts_time->tx_fifo, true);
 	tasklet_init(&priv->cpts_time->poll_tasklet, cpts_tasklet, (unsigned long)priv);
+	init_waitqueue_head(&priv->cpts_time->wq);
 #endif /* CONFIG_PTP_1588_CLOCK_CPTS */
 
 	if (is_valid_ether_addr(data->mac_addr)) {
