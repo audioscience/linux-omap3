@@ -584,46 +584,49 @@ static void cpts_ts_eth_tx_event(struct cpsw_priv *priv, u32 evt_high,
 
 static int cpts_poll(struct cpsw_priv *priv)
 {
-	while (__raw_readl(&priv->cpts_reg->intstat_raw) & 0x01) {
+	struct cpts_time_handle *state = priv->cpts_time;
+	struct cpts_regs *reg = priv->cpts_reg;
+
+	while (__raw_readl(&reg->intstat_raw) & 0x01) {
 		u32	event_high;
 		u32	event_tslo;
 		u64 ts = 0;
 
 		spin_lock(&cpts_time_lock);
-		event_high = __raw_readl(&priv->cpts_reg->event_high);
-		event_tslo = __raw_readl(&priv->cpts_reg->event_low);
-		__raw_writel(0x01, &priv->cpts_reg->event_pop);
+		event_high = __raw_readl(&reg->event_high);
+		event_tslo = __raw_readl(&reg->event_low);
+		__raw_writel(0x01, &reg->event_pop);
 
-		if (unlikely(priv->cpts_time->first_half &&
+		if (unlikely(state->first_half &&
 				event_tslo & 0x80000000)) {
 			/* this is misaligned ts */
-			ts = (u64)(priv->cpts_time->tshi - 1);
+			ts = (u64)(state->tshi - 1);
 		} else {
-			ts = (u64)(priv->cpts_time->tshi);
+			ts = (u64)(state->tshi);
 		}
 		spin_unlock(&cpts_time_lock);
 		ts = (ts << 32) | event_tslo;
 
 		if ((event_high & 0xf00000) == CPTS_TS_PUSH) {
 			/*Push TS to Read */
-			priv->cpts_time->last_ts_pushed = ts;
-			wake_up_interruptible(&priv->cpts_time->wq);
+			state->last_ts_pushed = ts;
+			wake_up_interruptible(&state->wq);
 		} else if ((event_high & 0xf00000) == CPTS_TS_ROLLOVER) {
 			/* Roll over */
 			spin_lock(&cpts_time_lock);
-			priv->cpts_time->tshi++;
-			priv->cpts_time->first_half = true;
+			state->tshi++;
+			state->first_half = true;
 			spin_unlock(&cpts_time_lock);
 		} else if ((event_high & 0xf00000) == CPTS_TS_HROLLOVER) {
 			/* Half Roll Over */
 			spin_lock(&cpts_time_lock);
-			priv->cpts_time->first_half = false;
+			state->first_half = false;
 			spin_unlock(&cpts_time_lock);
 		} else if ((event_high & 0xf00000) == CPTS_TS_HW_PUSH) {
 			/* HW TS Push */
 			spin_lock(&cpts_time_lock);
-			if (priv->cpts_time->cpts_extevent_cb)
-				priv->cpts_time->cpts_extevent_cb(0, CPTSCOUNT_TO_NANOSEC(ts));
+			if (state->cpts_extevent_cb)
+				state->cpts_extevent_cb(0, CPTSCOUNT_TO_NANOSEC(ts));
 			spin_unlock(&cpts_time_lock);
 		} else if ((event_high & 0xf00000) == CPTS_TS_ETH_RX) {
 			/* Ethernet Rx Ts */
@@ -631,9 +634,9 @@ static int cpts_poll(struct cpsw_priv *priv)
 
 			evt.event_high = event_high & 0xfffff;
 			evt.ts = CPTSCOUNT_TO_NANOSEC(ts);
-			if (priv->cpts_time->enable_timestamping) {
+			if (state->enable_timestamping) {
 				spin_lock(&cpts_time_lock);
-				cpts_time_evts_fifo_push(&(priv->cpts_time->rx_fifo), &evt);
+				cpts_time_evts_fifo_push(&(state->rx_fifo), &evt);
 				spin_unlock(&cpts_time_lock);
 			}
 		} else if ((event_high & 0xf00000) == CPTS_TS_ETH_TX) {
