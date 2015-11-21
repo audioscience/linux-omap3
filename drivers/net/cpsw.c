@@ -327,6 +327,7 @@ struct cpts_time_handle {
 	bool first_half;
 	int freq;
 	int (*cpts_extevent_cb)(int index, u64 timestamp);
+	struct tasklet_struct poll_tasklet;
 };
 
 struct cpsw_priv {
@@ -339,6 +340,7 @@ struct cpsw_priv {
 	struct napi_struct		tx_napi;
 #define napi_to_priv(napi)	container_of(napi, struct cpsw_priv, napi)
 	struct sk_buff_head rx_recycle;
+	struct sk_buff_head pending_ts_queue;
 	struct device			*dev;
 	struct cpsw_platform_data	data;
 	struct cpsw_regs __iomem	*regs;
@@ -583,7 +585,7 @@ static void cpts_ts_eth_tx_event(struct cpsw_priv *priv, u32 evt_high,
 	}
 }
 
-static int cpts_isr(struct cpsw_priv *priv)
+static int cpts_poll(struct cpsw_priv *priv)
 {
 	unsigned long flags;
 
@@ -648,6 +650,14 @@ static int cpts_isr(struct cpsw_priv *priv)
 	return 0;
 }
 
+static void cpts_tasklet(unsigned long data)
+{
+	struct cpsw_priv *priv = (struct cpsw_priv *)data;
+	cpts_poll(priv);
+	/* re-enable interrupts so the tasklet can be scheduled again */
+	__raw_writel(0x10, &priv->ss_regs->misc_en);
+}
+
 int cpts_ctrl_hwpush(int index, int state)
 {
 	u32 regval = __raw_readl(&gpriv->cpts_reg->control);
@@ -687,12 +697,14 @@ int cpts_systime_read(u64 *ns)
 	}
 
 	time_push = 0;
+	tasklet_disable(&gpriv->cpts_time->poll_tasklet);
 	__raw_writel(0x1, &gpriv->cpts_reg->ts_push);
 	for (i = 0; i < 20; i++) {
-		cpts_isr(gpriv);
+		cpts_poll(gpriv);
 		if (time_push)
 			break;
 	}
+	tasklet_enable(&gpriv->cpts_time->poll_tasklet);
 	if (i >= 20) {
 		*ns = 0;
 		ret = -EBUSY;
@@ -847,13 +859,13 @@ void cpsw_rx_handler(void *token, int len, int status)
 		skb_put(skb, len);
 
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
-		if ((priv->cpts_time->enable_timestamping) &&
+		if (unlikely((priv->cpts_time->enable_timestamping) &&
 				((ntohs(*((unsigned short *)&skb->data[12])))
-				== PTP_ETHER_TYPE)) {
+				== PTP_ETHER_TYPE))) {
 			evt_high = (skb->data[14] & 0xf) << 16;
 			evt_high |= ntohs(*((unsigned short *)&skb->data[44]));
-			if (unlikely(__raw_readl(&priv->cpts_reg->intstat_raw) & 0x01))
-				cpts_isr(priv);
+			if (__raw_readl(&priv->cpts_reg->intstat_raw) & 0x01)
+				cpts_poll(priv);
 			cpts_rx_timestamp(priv, skb, evt_high);
 		}
 #endif
@@ -957,7 +969,9 @@ static irqreturn_t cpsw_misc_interrupt(int irq, void *dev_id)
 		goto not_handled;
 	}
 
-	cpts_isr(priv);
+	/* misc interrupts are re-enabled at the end of the CPTS tasklet */
+	__raw_writel(0x00, &priv->ss_regs->misc_en);
+	tasklet_schedule(&priv->cpts_time->poll_tasklet);
 	WARN_ON(irq - priv->irqs_table[0] != 3);
 	cpdma_ctlr_eoi(priv->dma, 3);
 	return IRQ_HANDLED;
@@ -972,33 +986,44 @@ static int cpsw_rx_poll(struct napi_struct *rx_napi, int budget)
 	struct cpsw_priv *priv = napi_to_priv(rx_napi);
 	int	num_frames;
 
-	num_frames = cpdma_chan_process(priv->rxch, budget);
-	if (num_frames) {
-		msg(dbg, intr, "poll %d rx", num_frames);
-	}
+	/* disable cpts poll tasklet for the duration so we can call cpts_poll() */
+	tasklet_disable(&priv->cpts_time->poll_tasklet);
+	{
+		num_frames = cpdma_chan_process(priv->rxch, budget);
+		if (num_frames) {
+			msg(dbg, intr, "poll %d rx", num_frames);
+		}
 
-	if (num_frames < budget) {
-		napi_complete(rx_napi);
-		__raw_writel(0xFF, &priv->ss_regs->rx_en);
+		if (num_frames < budget) {
+			napi_complete(rx_napi);
+			__raw_writel(0xFF, &priv->ss_regs->rx_en);
+		}
+
 	}
+	tasklet_enable(&priv->cpts_time->poll_tasklet);
 
 	return num_frames;
 }
 
 static int cpsw_tx_poll(struct napi_struct *tx_napi, int budget)
 {
-	struct cpsw_priv	*priv = napi_to_priv(tx_napi);
+	struct cpsw_priv *priv = napi_to_priv(tx_napi);
 	int	num_frames;
 
-	num_frames = cpdma_chan_process(priv->txch, budget);
-	if (num_frames) {
-		msg(dbg, intr, "poll %d tx", num_frames);
-	}
+	/* disable cpts poll tasklet for the duration so we can call cpts_poll() */
+	tasklet_disable(&priv->cpts_time->poll_tasklet);
+	{
+		num_frames = cpdma_chan_process(priv->txch, budget);
+		if (num_frames) {
+			msg(dbg, intr, "poll %d tx", num_frames);
+		}
 
-	if (num_frames < budget) {
-		napi_complete(tx_napi);
-		__raw_writel(0xFF, &priv->ss_regs->tx_en);
+		if (num_frames < budget) {
+			napi_complete(tx_napi);
+			__raw_writel(0xFF, &priv->ss_regs->tx_en);
+		}
 	}
+	tasklet_enable(&priv->cpts_time->poll_tasklet);
 
 	return num_frames;
 }
@@ -1372,6 +1397,7 @@ static int cpsw_ndo_open(struct net_device *ndev)
 	}
 
 	skb_queue_head_init(&priv->rx_recycle);
+	skb_queue_head_init(&priv->pending_ts_queue);
 
 	napi_enable(&priv->rx_napi);
 	napi_enable(&priv->tx_napi);
@@ -1430,6 +1456,7 @@ static int cpsw_ndo_stop(struct net_device *ndev)
 	cpsw_ale_stop(priv->ale);
 
 	skb_queue_purge(&priv->rx_recycle);
+	skb_queue_purge(&priv->pending_ts_queue);
 
 	device_remove_file(&ndev->dev, &dev_attr_hw_stats);
 
@@ -3024,6 +3051,7 @@ static int __devinit cpsw_probe(struct platform_device *pdev)
 	gpriv = priv;
 	cpts_time_evts_fifo_init(&priv->cpts_time->rx_fifo, false);
 	cpts_time_evts_fifo_init(&priv->cpts_time->tx_fifo, true);
+	tasklet_init(&priv->cpts_time->poll_tasklet, cpts_tasklet, (unsigned long)priv);
 #endif /* CONFIG_PTP_1588_CLOCK_CPTS */
 
 	if (is_valid_ether_addr(data->mac_addr)) {
