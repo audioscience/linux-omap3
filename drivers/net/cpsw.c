@@ -404,14 +404,14 @@ static void cpts_time_evts_fifo_init(struct cpts_evts_fifo *fifo, bool is_tx)
 
 #define log_cpts_fifo_state(fifo) \
 { \
-	printk(KERN_DEBUG "%s() cpts %s fifo h:%u t:%u tsh:%u", __func__, \
+	printk(KERN_DEBUG "%s() cpts %s fifo qhi:%u qti:%u tsh:0x%x", __func__, \
 		fifo->is_tx ? "tx" : "rx", fifo->head, fifo->tail, fifo->ts_high); \
 }
 
 #define log_cpts_fifo_entry(fifo, entry, extra) \
 { \
-	printk(KERN_DEBUG "%s() cpts %s fifo h:%u t:%u tsh:%u " \
-		"evt v:%u age:%u e:0x%04hx s:%hu ts:%llu b:%p" extra, \
+	printk(KERN_DEBUG "%s() cpts %s fifo qhi:%u qti:%u tsh:0x%x " \
+		"evt v:%u age:%u e:0x%04hx s:%hu ts:0x%016llx b:%p" extra, \
 		__func__, fifo->is_tx ? "tx" : "rx", \
 		fifo->head, fifo->tail, fifo->ts_high, (entry)->valid, \
 		fifo->ts_high - (u32)((entry)->ts>>32), \
