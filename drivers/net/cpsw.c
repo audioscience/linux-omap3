@@ -1003,20 +1003,15 @@ static int cpsw_tx_poll(struct napi_struct *tx_napi, int budget)
 	struct cpsw_priv *priv = napi_to_priv(tx_napi);
 	int	num_frames;
 
-	/* disable cpts poll tasklet for the duration so we can call cpts_poll() */
-	tasklet_disable(&priv->cpts_time->poll_tasklet);
-	{
-		num_frames = cpdma_chan_process(priv->txch, budget);
-		if (num_frames) {
-			msg(dbg, intr, "poll %d tx", num_frames);
-		}
-
-		if (num_frames < budget) {
-			napi_complete(tx_napi);
-			__raw_writel(0xFF, &priv->ss_regs->tx_en);
-		}
+	num_frames = cpdma_chan_process(priv->txch, budget);
+	if (num_frames) {
+		msg(dbg, intr, "poll %d tx", num_frames);
 	}
-	tasklet_enable(&priv->cpts_time->poll_tasklet);
+
+	if (num_frames < budget) {
+		napi_complete(tx_napi);
+		__raw_writel(0xFF, &priv->ss_regs->tx_en);
+	}
 
 	return num_frames;
 }
