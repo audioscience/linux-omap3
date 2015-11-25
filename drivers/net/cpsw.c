@@ -476,24 +476,6 @@ static inline int cpts_event_findremove(struct cpts_evt_ring *ring,
 	return -1;
 }
 
-static inline int cpts_event_pop(struct cpts_evt_ring *ring,
-	struct cpts_event *evt)
-{
-	unsigned long head = ACCESS_ONCE(ring->head);
-	unsigned long tail = ring->tail;
-
-	smp_read_barrier_depends();
-
-	if (CIRC_CNT(head, tail, ARRAY_SIZE(ring->array)) >= 1) {
-		*evt = ring->array[tail];
-		smp_mb();
-		ring->tail = tail & (ARRAY_SIZE(ring->array)-1);
-		return 0;
-	}
-
-	return -1;
-}
-
 static int cpts_event_push(struct cpts_evt_ring *ring,
 	struct cpts_event *evt)
 {
@@ -516,26 +498,6 @@ static int cpts_event_push(struct cpts_evt_ring *ring,
 	ring->head = (head+1) & (ARRAY_SIZE(ring->array)-1);
 	smp_wmb();
 	return 0;
-}
-
-/* Free all SKB the ring may be holding */
-static void cpts_time_evts_ring_flush(struct cpts_evt_ring *ring)
-{
-	log_cpts_ring_state(ring);
-	while (true) {
-		struct cpts_event evt;
-		int res = cpts_event_pop(ring, &evt);
-		log_cpts_ring_entry(ring, &evt, " removed");
-		if (res < 0)
-			break;
-		if (evt.valid && evt.skb) {
-			sock_put(evt.skb->sk);
-			evt.skb->sk = NULL;
-			dev_kfree_skb_any(evt.skb);
-			evt.skb = NULL;
-		}
-	}
-	log_cpts_ring_state(ring);
 }
 
 static inline int cpts_rxevent_findremove(struct cpts_time_handle *cpts,
@@ -1799,13 +1761,6 @@ static int cpsw_hwtstamp_ioctl(struct net_device *ndev,
 		priv->cpts_time->enable_timestamping = false;
 		dev_dbg(priv->dev, "Disabling PTP Time stamping...\n");
 	}
-
-#if 0
-	spin_lock_bh(&cpts_time_lock);
-	cpts_evt_ring_flush(&priv->cpts_time->rx_ring);
-	cpts_evt_ring_flush(&priv->cpts_time->tx_ring);
-	spin_unlock_bh(&cpts_time_lock);
-#endif
 
 	return copy_to_user(ifr->ifr_data, &config, sizeof(config)) ?
 			-EFAULT : 0;
