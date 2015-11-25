@@ -13,6 +13,7 @@
  * GNU General Public License for more details.
  */
 #include <linux/kernel.h>
+#include <linux/circ_buf.h>
 #include <linux/wait.h>
 #include <linux/io.h>
 #include <linux/clk.h>
@@ -304,25 +305,25 @@ struct cpts_regs {
 /*
  * CPTS Events
  */
-struct cpts_time_evts {
-	uint32_t valid;
+struct cpts_event {
+	bool valid;
+	unsigned long hz;
 	uint32_t event_high;
-	u64 ts;
 	struct sk_buff *skb;
+	u64 ts;
 };
 
-struct cpts_evts_fifo {
+struct cpts_evt_ring {
 	bool is_tx;
-	struct cpts_time_evts fifo[CPTS_FIFO_SIZE];
-	u32 head, tail;
-	u32 ts_high;
+	struct cpts_event array[CPTS_FIFO_SIZE];
+	unsigned long head, tail;
 };
 /*
  * Time Handle
  */
 struct cpts_time_handle {
-	struct cpts_evts_fifo tx_fifo;
-	struct cpts_evts_fifo rx_fifo;
+	struct cpts_evt_ring tx_ring;
+	struct cpts_evt_ring rx_ring;
 	bool enable_timestamping;
 	int freq;
 	int (*cpts_extevent_cb)(int index, u64 timestamp);
@@ -396,157 +397,169 @@ static int cpsw_set_coalesce(struct net_device *ndev,
 			struct ethtool_coalesce *coal);
 
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
-DEFINE_SPINLOCK(cpts_time_lock);
 static struct cpsw_priv *gpriv;
 
 typedef int (*cpts_extevent_cb)(int index, u64 timestamp);
 
-static void cpts_time_evts_fifo_init(struct cpts_evts_fifo *fifo, bool is_tx)
+static void cpts_evt_ring_init(struct cpts_evt_ring *ring, bool is_tx)
 {
-	memset(fifo, 0, sizeof(fifo));
-	fifo->is_tx = is_tx;
+	memset(ring, 0, sizeof(ring));
+	ring->is_tx = is_tx;
 }
 
-#define log_cpts_fifo_state(fifo) \
+#define log_cpts_ring_state(ring) \
 { \
-	printk(KERN_DEBUG "%s() cpts %s fifo qhi:%u qti:%u tsh:0x%x", __func__, \
-		fifo->is_tx ? "tx" : "rx", fifo->head, fifo->tail, fifo->ts_high); \
+	printk(KERN_DEBUG "%s() cpts %s ring qhi:%lu qti:%lu", __func__, \
+		ring->is_tx ? "tx" : "rx", ring->head, ring->tail); \
 }
 
-#define log_cpts_fifo_entry(fifo, entry, extra) \
+#define log_cpts_ring_entry(ring, entry, extra) \
 { \
-	printk(KERN_DEBUG "%s() cpts %s fifo qhi:%u qti:%u tsh:0x%x " \
-		"evt v:%u age:%u e:0x%04hx s:%hu ts:0x%016llx b:%p" extra, \
-		__func__, fifo->is_tx ? "tx" : "rx", \
-		fifo->head, fifo->tail, fifo->ts_high, (entry)->valid, \
-		fifo->ts_high - (u32)((entry)->ts>>32), \
+	printk(KERN_DEBUG "%s() cpts %s ring qhi:%lu qti:%lu " \
+		"evt v:%u age:%lu e:0x%04hx s:%hu ts:0x%016llx b:%p" extra, \
+		__func__, ring->is_tx ? "tx" : "rx", \
+		ring->head, ring->tail, (entry)->valid, \
+		jiffies - (entry)->hz, \
 		(entry)->event_high>>16, (entry)->event_high&0xffff, \
 		(entry)->ts, (entry)->skb); \
 }
 
-/* Free all SKB the fifo may be holding, leave the event IDs */
-static void cpts_time_evts_fifo_flush(struct cpts_evts_fifo *fifo)
+static inline int event_expired(struct cpts_event *evt)
 {
-	int i;
-	struct cpts_time_evts *evt;
-
-	log_cpts_fifo_state(fifo);
-
-	for (i = 0; i < CPTS_FIFO_SIZE; i++) {
-		evt = &fifo->fifo[i];
-		if (!evt->valid)
-			continue;
-
-		log_cpts_fifo_entry(fifo, evt, " removed");
-
-		evt->valid = 0;
-		if (evt->skb) {
-			sock_put(evt->skb->sk);
-			evt->skb->sk = NULL;
-			dev_kfree_skb_any(evt->skb);
-			evt->skb = NULL;
-		}
-	}
-	fifo->head = 0;
-	fifo->tail = 0;
+	return time_after(jiffies, evt->hz+2);
 }
 
-static int cpts_time_evts_fifo_push(struct cpts_evts_fifo *fifo,
-				struct cpts_time_evts *evt)
+static inline int cpts_event_findremove(struct cpts_evt_ring *ring,
+	u32 evt_high, struct cpts_event *evt)
 {
-	u32 ts_high = evt->ts >> 32;
-	if (((long)((ts_high) - (fifo->ts_high)) < 0)) {
-		log_cpts_fifo_entry(fifo, evt, " rejected");
+	bool match_found = false;
+	unsigned long head = ACCESS_ONCE(ring->head);
+	unsigned long tail = ring->tail;
+	unsigned long cur = tail;
+	bool valid_encountered = false;
+
+	smp_read_barrier_depends();
+
+	while (CIRC_CNT(head, cur, ARRAY_SIZE(ring->array)) >= 1) {
+		struct cpts_event *entry = &ring->array[cur];
+		if (entry->valid && event_expired(entry)) {
+			entry->valid = false;
+			if (entry->skb) {
+				sock_put(entry->skb->sk);
+				entry->skb->sk = NULL;
+				dev_kfree_skb_any(entry->skb);
+				entry->skb = NULL;
+			}
+			log_cpts_ring_entry(ring, entry, " aged");
+		} else if (entry->valid && entry->event_high == evt_high) {
+			*evt = *entry;
+			entry->valid = false;
+			match_found = true;
+		} else if (entry->valid) {
+			valid_encountered = true;
+		}
+
+		cur = (cur+1) & (ARRAY_SIZE(ring->array)-1);
+
+		if (!valid_encountered)
+			tail++;
+		if (match_found)
+			break;
+	}
+
+	smp_mb();
+	ring->tail = tail & (ARRAY_SIZE(ring->array)-1);
+
+	if (match_found)
+		return 0;
+
+	return -1;
+}
+
+static inline int cpts_event_pop(struct cpts_evt_ring *ring,
+	struct cpts_event *evt)
+{
+	unsigned long head = ACCESS_ONCE(ring->head);
+	unsigned long tail = ring->tail;
+
+	smp_read_barrier_depends();
+
+	if (CIRC_CNT(head, tail, ARRAY_SIZE(ring->array)) >= 1) {
+		*evt = ring->array[tail];
+		smp_mb();
+		ring->tail = tail & (ARRAY_SIZE(ring->array)-1);
+		return 0;
+	}
+
+	return -1;
+}
+
+static int cpts_event_push(struct cpts_evt_ring *ring,
+	struct cpts_event *evt)
+{
+	unsigned long head = ring->head;
+	unsigned long tail = ACCESS_ONCE(ring->tail);
+	struct cpts_event*dst = &ring->array[head];
+
+	if (CIRC_SPACE(head, tail, ARRAY_SIZE(ring->array)) < 1) {
+		log_cpts_ring_entry(ring, evt, " rejected, ring full");
 		return -1;
 	}
 
-	fifo->fifo[fifo->tail].valid = 1;
-	fifo->fifo[fifo->tail].event_high = evt->event_high;
-	fifo->fifo[fifo->tail].ts = evt->ts;
-	fifo->fifo[fifo->tail].skb = evt->skb;
-	fifo->ts_high = ts_high;
-	/* log_cpts_fifo_entry(fifo, &fifo->fifo[fifo->tail], " pushed"); */
+	dst->hz = jiffies + 2;
+	dst->event_high = evt->event_high;
+	dst->ts = evt->ts;
+	dst->skb = evt->skb;
+	dst->valid = true;
+	smp_wmb();
 
-	fifo->tail++;
-	if (fifo->tail >= CPTS_FIFO_SIZE)
-		fifo->tail = 0;
-
-	if (fifo->head == fifo->tail) {
-		if (fifo->fifo[fifo->tail].valid) {
-			log_cpts_fifo_entry(fifo, &fifo->fifo[fifo->tail], " discarded");
-			fifo->fifo[fifo->tail].valid = 0;
-			fifo->fifo[fifo->tail].event_high = 0;
-			fifo->fifo[fifo->tail].ts = 0;
-			if (fifo->fifo[fifo->tail].skb) {
-				sock_put(fifo->fifo[fifo->tail].skb->sk);
-				fifo->fifo[fifo->tail].skb->sk = NULL;
-				dev_kfree_skb_any(fifo->fifo[fifo->tail].skb);
-				fifo->fifo[fifo->tail].skb = NULL;
-			}
-		}
-		fifo->head++;
-		if (fifo->head >= CPTS_FIFO_SIZE)
-			fifo->head = 0;
-	}
-
-	/* log_cpts_fifo_state(fifo); */
+	ring->head = (head+1) & (ARRAY_SIZE(ring->array)-1);
+	smp_wmb();
 	return 0;
 }
 
-static int cpts_time_evts_fifo_pop(struct cpts_evts_fifo *fifo,
-				u32 evt_high, struct cpts_time_evts *evt)
+/* Free all SKB the ring may be holding */
+static void cpts_time_evts_ring_flush(struct cpts_evt_ring *ring)
 {
-	u32 i, ev_found = 0;
-
-	if (fifo->head == fifo->tail)
-		return -1;
-
-	i = fifo->head;
-	while (i != fifo->tail) {
-		u32 age = fifo->ts_high - (fifo->fifo[i].ts>>32);
-
-		if (fifo->fifo[i].valid == 1 && age == 0 &&
-				evt_high == fifo->fifo[i].event_high) {
-			evt->event_high = fifo->fifo[i].event_high;
-			evt->ts = fifo->fifo[i].ts;
-			evt->skb = fifo->fifo[i].skb;
-
-			fifo->fifo[i].valid = 0;
-			fifo->fifo[i].event_high = 0;
-			fifo->fifo[i].ts = 0;
-			fifo->fifo[i].skb = NULL;
-			ev_found = 1;
+	log_cpts_ring_state(ring);
+	while (true) {
+		struct cpts_event evt;
+		int res = cpts_event_pop(ring, &evt);
+		log_cpts_ring_entry(ring, &evt, " removed");
+		if (res < 0)
+			break;
+		if (evt.valid && evt.skb) {
+			sock_put(evt.skb->sk);
+			evt.skb->sk = NULL;
+			dev_kfree_skb_any(evt.skb);
+			evt.skb = NULL;
 		}
-		if (fifo->fifo[i].valid == 0 && i == fifo->head) {
-			fifo->head++;
-			if (fifo->head >= CPTS_FIFO_SIZE)
-				fifo->head = 0;
-		}
-		if (ev_found) {
-			/* log_cpts_fifo_entry(fifo, evt, " matched"); */
-			return 0;
-		}
-
-		if (fifo->fifo[i].valid == 1 && age > 1) {
-			log_cpts_fifo_entry(fifo, &fifo->fifo[i], " aged");
-			if (fifo->fifo[i].skb) {
-				sock_put(fifo->fifo[i].skb->sk);
-				fifo->fifo[i].skb->sk = NULL;
-				dev_kfree_skb_any(fifo->fifo[i].skb);
-				fifo->fifo[i].skb = NULL;
-			}
-			fifo->fifo[i].valid = 0;
-			fifo->fifo[i].event_high = 0;
-			fifo->fifo[i].ts = 0;
-		}
-
-		i++;
-		if (i >= CPTS_FIFO_SIZE)
-			i = 0;
 	}
+	log_cpts_ring_state(ring);
+}
 
-	/* log_cpts_fifo_state(fifo); */
-	return -1;
+static inline int cpts_rxevent_findremove(struct cpts_time_handle *cpts,
+	u32 evt_high, struct cpts_event *evt)
+{
+	return cpts_event_findremove(&cpts->rx_ring, evt_high, evt);
+}
+
+static inline int cpts_txevent_findremove(struct cpts_time_handle *cpts,
+	u32 evt_high, struct cpts_event *evt)
+{
+	return cpts_event_findremove(&cpts->tx_ring, evt_high, evt);
+}
+
+static inline int cpts_txevent_push(struct cpts_time_handle *cpts,
+	struct cpts_event *evt)
+{
+	return cpts_event_push(&cpts->tx_ring, evt);
+}
+
+static inline int cpts_rxevent_push(struct cpts_time_handle *cpts,
+	struct cpts_event *evt)
+{
+	return cpts_event_push(&cpts->rx_ring, evt);
 }
 
 int cpts_set_hwevent_callback(cpts_extevent_cb cb) {
@@ -559,17 +572,14 @@ static void cpts_ts_eth_tx_event(struct cpsw_priv *priv, u32 evt_high,
 	u64 ts)
 {
 	int err = 0;
-	struct cpts_time_evts evt = {0};
+	struct cpts_event evt = {0};
 	struct cpts_time_handle *cpts_time = priv->cpts_time;
 	struct skb_shared_hwtstamps shhwtstamps;
 
 	if (!cpts_time->enable_timestamping)
 		return;
 
-	spin_lock(&cpts_time_lock);
-	err = cpts_time_evts_fifo_pop(&cpts_time->tx_fifo, evt_high, &evt);
-	spin_unlock(&cpts_time_lock);
-
+	err = cpts_txevent_findremove(cpts_time, evt_high, &evt);
 	if (err < 0) {
 		printk(KERN_DEBUG "cpts_ts_eth_tx_event() e:0x%04hx s:%hu not found\n",
 			evt_high>>16, evt_high&0xffff);
@@ -623,14 +633,14 @@ static int cpts_poll(struct cpsw_priv *priv)
 			if (state->cpts_extevent_cb)
 				state->cpts_extevent_cb(0, ts);
 		} else if (event_type == CPTS_TS_ETH_RX) {
-			struct cpts_time_evts evt = {
-				.event_high = event_high & 0xfffff,
-				.ts = timecounter_cyc2time(&state->tc, event_low),
-			};
-			if (state->enable_timestamping) {
-				spin_lock(&cpts_time_lock);
-				cpts_time_evts_fifo_push(&state->rx_fifo, &evt);
-				spin_unlock(&cpts_time_lock);
+			if (unlikely(!state->enable_timestamping)) {
+				continue;
+			} else {
+				struct cpts_event evt = {
+					.event_high = event_high & 0xfffff,
+					.ts = timecounter_cyc2time(&state->tc, event_low),
+				};
+				cpts_rxevent_push(state, &evt);
 			}
 		} else if (event_type == CPTS_TS_ETH_TX) {
 			ts = timecounter_cyc2time(&state->tc, event_low);
@@ -708,16 +718,11 @@ static void cpts_rx_timestamp(struct cpsw_priv *priv,
 			struct sk_buff *skb, u32 evt_high)
 {
 	int err = 0;
-	struct cpts_time_evts evt = {0};
-	struct skb_shared_hwtstamps *shhwtstamps;
+	struct cpts_event evt = {0};
+	struct skb_shared_hwtstamps *shhwtstamps = skb_hwtstamps(skb);
 
-	spin_lock(&cpts_time_lock);
-	err = cpts_time_evts_fifo_pop(&(priv->cpts_time->rx_fifo), evt_high, &evt);
-	spin_unlock(&cpts_time_lock);
-
-	shhwtstamps = skb_hwtstamps(skb);
 	memset(shhwtstamps, 0, sizeof(*shhwtstamps));
-
+	err = cpts_rxevent_findremove(priv->cpts_time, evt_high, &evt);
 	if (err < 0) {
 		printk(KERN_DEBUG "cpts_rx_timestamp() e:0x%04hx s:%hu not found\n",
 			evt_high>>16, evt_high&0xffff);
@@ -734,7 +739,7 @@ static void cpts_tx_timestamp(struct cpsw_priv *priv,
 			struct sk_buff *skb, u32 evt_high)
 {
 	int err;
-	struct cpts_time_evts evt = {0};
+	struct cpts_event evt = {0};
 	struct sk_buff *clone = NULL;
 
 	BUG_ON(skb == NULL);
@@ -760,9 +765,7 @@ static void cpts_tx_timestamp(struct cpsw_priv *priv,
 	}
 	/* The event we push has either an skb with a valid socket or NULL */
 	evt.skb = clone;
-	spin_lock(&cpts_time_lock);
-	err = cpts_time_evts_fifo_push(&(priv->cpts_time->tx_fifo), &evt);
-	spin_unlock(&cpts_time_lock);
+	err = cpts_txevent_push(priv->cpts_time, &evt);
 	if (err) {
 		sock_put(evt.skb->sk);
 		dev_kfree_skb(evt.skb);
@@ -1797,10 +1800,12 @@ static int cpsw_hwtstamp_ioctl(struct net_device *ndev,
 		dev_dbg(priv->dev, "Disabling PTP Time stamping...\n");
 	}
 
+#if 0
 	spin_lock_bh(&cpts_time_lock);
-	cpts_time_evts_fifo_flush(&priv->cpts_time->rx_fifo);
-	cpts_time_evts_fifo_flush(&priv->cpts_time->tx_fifo);
+	cpts_evt_ring_flush(&priv->cpts_time->rx_ring);
+	cpts_evt_ring_flush(&priv->cpts_time->tx_ring);
 	spin_unlock_bh(&cpts_time_lock);
+#endif
 
 	return copy_to_user(ifr->ifr_data, &config, sizeof(config)) ?
 			-EFAULT : 0;
@@ -3035,8 +3040,8 @@ static int __devinit cpsw_probe(struct platform_device *pdev)
 	priv->cpts_time = kzalloc(sizeof(struct cpts_time_handle), GFP_KERNEL);
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
 	gpriv = priv;
-	cpts_time_evts_fifo_init(&priv->cpts_time->rx_fifo, false);
-	cpts_time_evts_fifo_init(&priv->cpts_time->tx_fifo, true);
+	cpts_evt_ring_init(&priv->cpts_time->rx_ring, false);
+	cpts_evt_ring_init(&priv->cpts_time->tx_ring, true);
 	tasklet_init(&priv->cpts_time->poll_tasklet, cpts_tasklet, (unsigned long)priv);
 	init_waitqueue_head(&priv->cpts_time->wq);
 	priv->cpts_time->cc.read = cpts_last_cyc_ts;
