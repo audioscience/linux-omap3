@@ -37,6 +37,70 @@
 #include "cpsw_ale.h"
 #include "davinci_cpdma.h"
 
+/*
+
+Theory of operation
+
+Interrupts and tasks
+
+The driver makes use of RX pulse, TX pulse and 'misc' IRQ (for CPTS events).
+IRQ handlers mask the interrupt (not the IRQ) which triggered them, schedule
+the relevant work and acknowledge the IRQ.
+
+RX and TX pulse IRQs respectively schedule RX and TX NAPI poll. Misc IRQ
+schedules a CPTS poll tasklet. All poll tasks unmask their corresponding
+interrupt once done so they can be re-scheduled when required. Linux guarantees
+only one instance of each poll task can be scheduled or running at any given
+time but the three tasks may be running concurrently on different cores.
+
+Timestamping
+
+CPTS hardware event FIFO servicing is done in cpts_poll() which is called by
+cpts_tasklet() and cpsw_rx_poll(), the latter is the NAPI RX poll function.
+Rollover and half-rollover events are used to maintain the state of the
+timecounter instance used by cpts_poll(), the remaining events types are
+handled as follows:
+
+1- H/W events are passed to the PTP driver instance associated with the CPTS.
+2- Timestamp push events (triggered by usermode requests) wake up usermode
+processes which requested the timestamp.
+3- TX timestamps events are looked up in a ring buffer with pending TX events
+and associated transmitted PTP packets buffers. If found, the timestamp is
+associated with the PTP packet buffer and the network stack is notified.
+4- RX timestamps are pushed into a ring buffer of pending PTP RX events.
+
++-------------+                                +-----------------------+
+|             |        +---------------+       |                       |
+|             <--------+ TX frame ring <-------+ cpsw_ndo_start_xmit() |
+|             |        +---------------+       |                       |
+|             |                                +-----------------------+
+| cpts_poll() |
+|             |                                +-----------------------+
+|             |        +---------------+       |                       |
+|             +--------> RX event ring +------->   cpsw_rx_handler()   |
+|             |        +---------------+       |                       |
++-------------+                                +-----------------------+
+
+The cpts_poll() function is the only consumer of pending TX PTP frames and the
+only producer of RX events.
+
+Timestamps for transmitted PTP packets are available only after transmission
+so cpsw_ndo_start_xmit() pushes a clone of PTP SKBs into a TX frame ring which
+cpts_poll() will remove when the corresponding timestamp becomes available.
+
+Timestamps for received PTP packets are (usually) in the CPTS H/W FIFO after
+the CPDMA relinquished ownership of the receive buffer so cpsw_rx_handler()
+removes PTP RX event timestamps matching the PTP packet it is handling.
+However, in order to make sure the RX timestamp for the currently handled
+packet is in the RX event ring, a last minute servicing of the CPTS H/W FIFO
+is required so cpsw_rx_handler() also calls cpts_poll() before attempting to
+match the current packet with events in the RX event ring. In order to avoid
+running cpts_poll() concurrently with cpts_tasklet() (which would break the
+design's assumption of one-instance per poll task) the execution of
+cpts_tasklet() is disabled during the excution of the RX NAPI poll task.
+
+*/
+
 #define CPSW_DEBUG	(NETIF_MSG_HW		| NETIF_MSG_WOL		| \
 			 NETIF_MSG_DRV		| NETIF_MSG_LINK	| \
 			 NETIF_MSG_IFUP		| NETIF_MSG_INTR	| \
