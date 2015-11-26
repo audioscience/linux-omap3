@@ -330,7 +330,8 @@ struct cpts_time_handle {
 	struct tasklet_struct poll_tasklet;
 	wait_queue_head_t wq;
 	cycle_t last_cyc_ts;
-	u64 last_ts_pushed;
+	atomic_t ts_push_requested;
+	volatile u64 last_ts_pushed;
 	struct cyclecounter cc;
 	struct timecounter tc;
 };
@@ -589,6 +590,8 @@ static int cpts_poll(struct cpsw_priv *priv)
 		} else if (unlikely(event_type == CPTS_TS_PUSH)) {
 			ts = timecounter_cyc2time(&state->tc, event_low);
 			state->last_ts_pushed = ts;
+			wmb();
+			atomic_dec(&state->ts_push_requested);
 			wake_up_interruptible(&state->wq);
 		} else if (event_type == CPTS_TS_HW_PUSH) {
 			ts = timecounter_cyc2time(&state->tc, event_low);
@@ -657,12 +660,16 @@ int cpts_systime_read(u64 *ns)
 	}
 
 	*ns = 0;
-	cpts_time->last_ts_pushed = 0;
-	/* trigger CPTS timestamp FIFO push */
-	__raw_writel(0x1, &gpriv->cpts_reg->ts_push);
+	if (atomic_add_return(1, &cpts_time->ts_push_requested) == 1) {
+		/* trigger CPTS timestamp FIFO push */
+		__raw_writel(0x1, &gpriv->cpts_reg->ts_push);
+	} else {
+		atomic_dec(&cpts_time->ts_push_requested);
+	}
 	/* the next time cpts_poll() is run by IRQ or NAPI it will wake us up */
 	ret = wait_event_interruptible_timeout(cpts_time->wq,
-		cpts_time->last_ts_pushed != 0, msecs_to_jiffies(1000));
+		atomic_read(&cpts_time->ts_push_requested) == 0,
+		msecs_to_jiffies(1000));
 	if (ret == 0) {
 		ret = -ETIMEDOUT;
 	} else if (ret == -ERESTARTSYS) {
