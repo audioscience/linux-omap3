@@ -728,13 +728,13 @@ int cpts_systime_read(u64 *ns)
 	ret = wait_event_interruptible_timeout(cpts_time->wq,
 		atomic_read(&cpts_time->ts_push_requested) == 0,
 		msecs_to_jiffies(1000));
-	if (ret == 0) {
-		ret = -ETIMEDOUT;
-	} else if (ret == -ERESTARTSYS) {
-		/* pass on the return value */
-	} else {
+	if (ret > 0) {
 		*ns = cpts_time->last_ts_pushed;
 		ret = 0;
+	} else if (!ret) {
+		ret = -ETIMEDOUT;
+	} else {
+		/* pass on -ve return value including -ERESTARTSYS */
 	}
 
 	return ret;
