@@ -166,10 +166,10 @@ do {								\
 
 #define CPTS_FIFO_SIZE			64
 #define CPTS_READ_TS_MAX_TRY		20
-#define CPTL_CLK_FREQ			250000000 /*250MHz*/
+#define CPTL_CLK_FREQ			(250000000UL) /* 250MHz */
 #define DEFAULT_CPTS_CLK		CPTS_CLK_SEL_AUDIO
 #define NANOSEC_CPTSCOUNT_SHIFT (0)
-#define NANOSEC_CPTSCOUNT_MULT  (1<<2) /* 1GHz/250Mhz=4 "1<<2 = 4" */
+#define NANOSEC_CPTSCOUNT_MULT  (NSEC_PER_SEC/CPTL_CLK_FREQ) /* 1GHz/250Mhz */
 
 /* CPSW control module masks */
 #define CPSW_INTPACEEN		(0x3 << 16)
