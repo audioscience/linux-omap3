@@ -125,8 +125,6 @@ do {								\
 
 #define CPSW_PRIMAP(shift, priority)    (priority << (shift * 4))
 
-#define CPSW_IRQ_QUIRK
-
 #define CPSW_VER_1		0x19010a
 #define CPSW_VER_2		0x19010c
 #define cpsw_slave_reg(priv, slave, reg)				\
@@ -443,12 +441,9 @@ struct cpsw_priv {
 	struct cpdma_ctlr		*dma;
 	struct cpdma_chan		*txch, *rxch;
 	struct cpsw_ale			*ale;
-
-#ifdef CPSW_IRQ_QUIRK
 	/* snapshot of IRQ numbers */
 	int irqs_table[4];
 	u32 num_irqs;
-#endif
 #ifdef VLAN_SUPPORT
 	struct vlan_group *vlgrp;
 #endif /* VLAN_SUPPORT */
@@ -3238,10 +3233,8 @@ static int __devinit cpsw_probe(struct platform_device *pdev)
 				pr_err("error attaching irq\n");
 				goto clean_ale_ret;
 			}
-			#ifdef CPSW_IRQ_QUIRK
 			priv->irqs_table[k] = i;
 			priv->num_irqs = k+1;
-			#endif
 		}
 		k++;
 	}
@@ -3331,10 +3324,8 @@ static int __devinit cpsw_probe(struct platform_device *pdev)
 	priv_sl2->ale = priv->ale;
 	priv_sl2->cpts_reg = priv->cpts_reg;
 	for (i = 0; i < priv->num_irqs; i++) {
-		#ifdef CPSW_IRQ_QUIRK
 		priv_sl2->irqs_table[i] = priv->irqs_table[i];
 		priv_sl2->num_irqs = priv->num_irqs;
-		#endif
 	}
 
 #ifdef VLAN_SUPPORT
