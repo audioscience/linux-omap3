@@ -487,7 +487,35 @@ static inline int event_expired(struct cpts_event *evt)
 	return time_after(jiffies, evt->hz+2);
 }
 
-static inline int cpts_event_findremove(struct cpts_evt_ring *ring,
+static inline void cpts_event_age(struct cpts_evt_ring *ring,
+	struct cpts_event *entry)
+{
+	entry->valid = false;
+	if (entry->skb) {
+		sock_put(entry->skb->sk);
+		dev_kfree_skb(entry->skb);
+	}
+	memset(entry, 0, sizeof(*entry));
+}
+
+static void cpts_event_sweep(struct cpts_evt_ring *ring)
+{
+	unsigned long head = ACCESS_ONCE(ring->head);
+	unsigned long tail = ring->tail;
+
+	smp_read_barrier_depends();
+
+	while (CIRC_CNT(head, tail, ARRAY_SIZE(ring->array)) >= 1) {
+		struct cpts_event *entry = &ring->array[tail];
+		if (entry->valid && event_expired(entry)) {
+			log_cpts_ring_entry(ring, entry, " aged");
+			cpts_event_age(ring, entry);
+		}
+		tail = (tail+1) & (ARRAY_SIZE(ring->array)-1);
+	}
+}
+
+static int cpts_event_findremove(struct cpts_evt_ring *ring,
 	u32 evt_high, struct cpts_event *evt)
 {
 	bool match_found = false;
@@ -501,14 +529,8 @@ static inline int cpts_event_findremove(struct cpts_evt_ring *ring,
 	while (CIRC_CNT(head, cur, ARRAY_SIZE(ring->array)) >= 1) {
 		struct cpts_event *entry = &ring->array[cur];
 		if (entry->valid && event_expired(entry)) {
-			entry->valid = false;
-			if (entry->skb) {
-				sock_put(entry->skb->sk);
-				entry->skb->sk = NULL;
-				dev_kfree_skb(entry->skb);
-				entry->skb = NULL;
-			}
 			log_cpts_ring_entry(ring, entry, " aged");
+			cpts_event_age(ring, entry);
 		} else if (entry->valid && entry->event_high == evt_high) {
 			*evt = *entry;
 			entry->valid = false;
@@ -1014,6 +1036,7 @@ static int cpsw_rx_poll(struct napi_struct *rx_napi, int budget)
 		}
 
 		if (num_frames < budget) {
+			cpts_event_sweep(&priv->cpts_time->rx_ring);
 			napi_complete(rx_napi);
 			__raw_writel(0xFF, &priv->ss_regs->rx_en);
 		}
