@@ -3102,8 +3102,7 @@ static int __devinit cpsw_probe(struct platform_device *pdev)
 		dev_err(priv->dev, "failed to get device clock\n");
 	}
 
-	/* default to rx_coalesce_usecs = 1008 (63*16) */
-	priv->coal_intvl = 63;
+	priv->coal_intvl = 0;
 	priv->bus_freq_mhz = clk_get_rate(priv->clk) / 1000000;
 
 	priv->cpsw_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
