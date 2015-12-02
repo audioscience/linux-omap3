@@ -312,7 +312,7 @@ struct cpts_event {
 struct cpts_evt_ring {
 	bool is_tx;
 	struct cpts_event array[CPTS_FIFO_SIZE];
-	unsigned long head, tail;
+	int head, tail;
 };
 /*
  * Time Handle
@@ -401,15 +401,15 @@ static void cpts_evt_ring_init(struct cpts_evt_ring *ring, bool is_tx)
 
 #define log_cpts_ring_state(ring) \
 { \
-	printk(KERN_DEBUG "%s() cpts %s ring qhi:%lu qti:%lu", __func__, \
+	printk(KERN_DEBUG "%s() cpts %s ring qhi:%d qti:%d\n", __func__, \
 		ring->is_tx ? "tx" : "rx", ring->head, ring->tail); \
 }
 
 #define log_cpts_ring_entry(ring, entry, extra) \
 { \
 	long age = (long)jiffies - (long)((entry)->ts_jiffies); \
-	printk(KERN_DEBUG "%s() cpts %s ring qhi:%lu qti:%lu " \
-		"evt v:%u age:%ld e:0x%04hx s:%hu ts:0x%016llx b:%p" extra, \
+	printk(KERN_DEBUG "%s() cpts %s ring qhi:%d qti:%d " \
+		"evt v:%u age:%ld e:0x%04hx s:%hu ts:0x%016llx b:%p" extra "\n", \
 		__func__, ring->is_tx ? "tx" : "rx", \
 		ring->head, ring->tail, (entry)->valid, age, \
 		(entry)->event_high>>16, (entry)->event_high&0xffff, \
