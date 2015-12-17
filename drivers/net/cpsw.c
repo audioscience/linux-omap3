@@ -863,9 +863,6 @@ void cpsw_rx_handler(void *token, int len, int status)
 	struct net_device	*ndev = skb->dev;
 	struct cpsw_priv	*priv = netdev_priv(ndev);
 	int			ret = 0;
-#if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
-	u32			evt_high = 0;
-#endif
 
 #ifdef CONFIG_TI_CPSW_DUAL_EMAC
 	if (CPDMA_RX_SOURCE_PORT(status) == 1) {
@@ -894,7 +891,7 @@ void cpsw_rx_handler(void *token, int len, int status)
 		if (unlikely((priv->cpts_time->enable_timestamping) &&
 				((ntohs(*((unsigned short *)&skb->data[12])))
 				== PTP_ETHER_TYPE))) {
-			evt_high = (skb->data[14] & 0xf) << 16;
+			u32 evt_high = (skb->data[14] & 0xf) << 16;
 			evt_high |= ntohs(*((unsigned short *)&skb->data[44]));
 			if (__raw_readl(&priv->cpts_reg->intstat_raw) & 0x01)
 				cpts_poll(priv);
