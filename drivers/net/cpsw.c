@@ -861,7 +861,6 @@ void cpsw_rx_handler(void *token, int len, int status)
 	struct sk_buff		*skb = token;
 	struct net_device	*ndev = skb->dev;
 	struct cpsw_priv	*priv = netdev_priv(ndev);
-	int			ret = 0;
 
 #ifdef CONFIG_TI_CPSW_DUAL_EMAC
 	if (CPDMA_RX_SOURCE_PORT(status) == 1) {
@@ -875,47 +874,39 @@ void cpsw_rx_handler(void *token, int len, int status)
 	}
 #endif /* CONFIG_TI_CPSW_DUAL_EMAC */
 
-	/* free and bail if we are shutting down */
-	if (unlikely(!netif_running(ndev)) ||
-			unlikely(!netif_carrier_ok(ndev)) ||
-			status < 0) {
+	if (unlikely(status < 0)) {
 		dev_kfree_skb(skb);
 		return;
 	}
 
-	if (likely(status >= 0)) {
-		skb_put(skb, len);
+	skb_put(skb, len);
+	skb->protocol = eth_type_trans(skb, ndev);
 
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
-		if (unlikely((priv->cpts_time->enable_timestamping) &&
-				((ntohs(*((unsigned short *)&skb->data[12])))
-				== ETH_P_1588))) {
-			u32 evt_high = (skb->data[14] & 0xf) << 16;
-			evt_high |= ntohs(*((unsigned short *)&skb->data[44]));
-			if (__raw_readl(&priv->cpts_reg->intstat_raw) & 0x01)
-				cpts_poll(priv);
-			cpts_rx_timestamp(priv, skb, evt_high);
-		}
+	if (unlikely(priv->cpts_time->enable_timestamping &&
+			ntohs(skb->protocol) == ETH_P_1588)) {
+		u32 evt_high = (skb->data[0] & 0xf) << 16;
+		evt_high |= ntohs(*((unsigned short *)&skb->data[30]));
+		if (__raw_readl(&priv->cpts_reg->intstat_raw) & 0x01)
+			cpts_poll(priv);
+		cpts_rx_timestamp(priv, skb, evt_high);
+	}
 #endif
 
-		skb->protocol = eth_type_trans(skb, ndev);
-		netif_receive_skb(skb);
-		priv->stats.rx_bytes += len;
-		priv->stats.rx_packets++;
-		skb = NULL;
-	}
+	netif_receive_skb(skb);
+	priv->stats.rx_bytes += len;
+	priv->stats.rx_packets++;
 
-	if (likely(!skb)) {
+	if (likely(netif_running(ndev))) {
+		int	ret = 0;
+
 		skb = netdev_alloc_skb_ip_align(ndev, priv->rx_packet_max);
 		if (WARN_ON(!skb))
 			return;
-
 		ret = cpdma_chan_submit(priv->rxch, skb, skb->data,
 				skb_tailroom(skb), 0, GFP_KERNEL);
+		WARN_ON(ret < 0);
 	}
-
-	WARN_ON(ret < 0);
-
 }
 
 static irqreturn_t cpsw_dummy_interrupt(int irq, void *dev_id)
