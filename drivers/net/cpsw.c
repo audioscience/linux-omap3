@@ -139,7 +139,6 @@ do {								\
 
 #define ALE_ALL_PORTS			0x7
 
-#define PTP_ETHER_TYPE			0x88f7
 #define CPTS_VERSION			0x4e8a0101
 #define CPTS_TS_PUSH			0x0
 #define CPTS_TS_ROLLOVER		(0x1 << 20)
@@ -890,7 +889,7 @@ void cpsw_rx_handler(void *token, int len, int status)
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
 		if (unlikely((priv->cpts_time->enable_timestamping) &&
 				((ntohs(*((unsigned short *)&skb->data[12])))
-				== PTP_ETHER_TYPE))) {
+				== ETH_P_1588))) {
 			u32 evt_high = (skb->data[14] & 0xf) << 16;
 			evt_high |= ntohs(*((unsigned short *)&skb->data[44]));
 			if (__raw_readl(&priv->cpts_reg->intstat_raw) & 0x01)
@@ -1512,8 +1511,7 @@ static netdev_tx_t cpsw_ndo_start_xmit(struct sk_buff *skb,
 
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
 	if (unlikely(priv->cpts_time->enable_timestamping &&
-			((ntohs(*((unsigned short *)&skb->data[12]))) ==
-			PTP_ETHER_TYPE))) {
+			((ntohs(*((unsigned short *)&skb->data[12]))) == ETH_P_1588))) {
 		u32 evt_high = (skb->data[14] & 0xf) << 16;
 		evt_high |= ntohs(*((unsigned short *)&skb->data[44]));
 		cpts_tx_timestamp(priv, skb, evt_high);
