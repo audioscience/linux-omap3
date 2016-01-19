@@ -2401,9 +2401,9 @@ void ti814x_cpsw_init(void)
 
 	if (cpu_is_ti814x() && omap_rev() > TI8148_REV_ES1_0) {
 		ti814x_cpsw_pdata.no_bd_ram = true;
-		ti814x_cpsw_pdata.bd_ram_size = SZ_64K;
+		ti814x_cpsw_pdata.bd_ram_size = SZ_32K;
 		ti814x_cpsw_pdata.hw_ram_addr = 0;
-		ti814x_cpsw_pdata.rx_descs = 1024;
+		ti814x_cpsw_pdata.rx_descs = 300;
 	}
 
 	if (cpu_is_ti811x()) {
