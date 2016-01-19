@@ -818,6 +818,16 @@ int cpdma_chan_process(struct cpdma_chan *chan, int quota)
 }
 EXPORT_SYMBOL(cpdma_chan_process);
 
+int cpdma_chan_pendingcount(struct cpdma_chan *chan)
+{
+	if (is_rx_chan(chan)) {
+		return chan_read(chan, rxfree);
+	} else {
+		return -EINVAL;
+	}
+}
+EXPORT_SYMBOL(cpdma_chan_pendingcount);
+
 int cpdma_chan_start(struct cpdma_chan *chan)
 {
 	struct cpdma_ctlr	*ctlr = chan->ctlr;

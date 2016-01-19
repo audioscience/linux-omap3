@@ -116,6 +116,7 @@ do {								\
 		dev_##level(priv->dev, format, ## __VA_ARGS__);	\
 } while (0)
 
+#define CPSW_RX_DESC_LOWWATER (150)
 #define CPSW_POLL_WEIGHT	64
 #define CPSW_MIN_PACKET_SIZE	60
 #define CPSW_MAX_PACKET_SIZE	(1500 + 14 + 4 + 4)
@@ -446,6 +447,7 @@ struct cpsw_priv {
 	u32				emac_port;
 #endif /* CONFIG_TI_CPSW_DUAL_EMAC */
 	struct cpsw_tscorr tscorr_data[tscorr_type_count];
+	size_t free_rx_desc_count;
 };
 
 static int cpsw_set_coalesce(struct net_device *ndev,
@@ -861,6 +863,10 @@ void cpsw_rx_handler(void *token, int len, int status)
 	struct sk_buff		*skb = token;
 	struct net_device	*ndev = skb->dev;
 	struct cpsw_priv	*priv = netdev_priv(ndev);
+	struct ethhdr		*eth = (struct ethhdr *)skb->data;
+	bool high_pri_frame = false;
+	bool ptp_frame = false;
+
 
 #ifdef CONFIG_TI_CPSW_DUAL_EMAC
 	if (CPDMA_RX_SOURCE_PORT(status) == 1) {
@@ -879,19 +885,37 @@ void cpsw_rx_handler(void *token, int len, int status)
 		return;
 	}
 
-	skb_put(skb, len);
-	skb->protocol = eth_type_trans(skb, ndev);
+	if (ntohs(eth->h_proto) == ETH_P_1588) {
+		high_pri_frame = true;
+		ptp_frame = true;
+	}
 
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
-	if (unlikely(priv->cpts_time->enable_timestamping &&
-			ntohs(skb->protocol) == ETH_P_1588)) {
-		u32 evt_high = (skb->data[0] & 0xf) << 16;
-		evt_high |= ntohs(*((unsigned short *)&skb->data[30]));
+	if (unlikely(priv->cpts_time->enable_timestamping && ptp_frame)) {
+		u32 evt_high = (skb->data[ETH_HLEN] & 0xf) << 16;
+		evt_high |= ntohs(*((unsigned short *)&skb->data[ETH_HLEN+30]));
 		if (__raw_readl(&priv->cpts_reg->intstat_raw) & 0x01)
 			cpts_poll(priv);
 		cpts_rx_timestamp(priv, skb, evt_high);
 	}
 #endif
+
+	priv->free_rx_desc_count = cpdma_chan_pendingcount(priv->rxch);
+	if (unlikely(priv->free_rx_desc_count < CPSW_RX_DESC_LOWWATER && !high_pri_frame)) {
+		atomic_long_inc(&ndev->rx_dropped);
+
+		if (!netif_running(ndev)) {
+			dev_kfree_skb(skb);
+		} else {
+			/* cleanup and re-submit skb instead of calling free/alloc */
+			WARN_ON(cpdma_chan_submit(priv->rxch, skb, skb->data,
+				skb_tailroom(skb), 0, GFP_KERNEL) < 0);
+		}
+		return;
+	}
+
+	skb_put(skb, len);
+	skb->protocol = eth_type_trans(skb, ndev);
 
 	netif_receive_skb(skb);
 	priv->stats.rx_bytes += len;
@@ -931,6 +955,7 @@ static irqreturn_t cpsw_rx_interrupt(int irq, void *dev_id)
 	if (likely(netif_running(priv->ndev))) {
 		if (napi_schedule_prep(&priv->rx_napi)) {
 			__raw_writel(0, &priv->ss_regs->rx_en);
+			/* disable dropping of low priority frames at the beginning of each run */
 			__napi_schedule(&priv->rx_napi);
 		} else {
 			printk(KERN_DEBUG "napi_schedule_prep() failed while handling "
@@ -1001,7 +1026,6 @@ static int cpsw_rx_poll(struct napi_struct *rx_napi, int budget)
 {
 	struct cpsw_priv *priv = napi_to_priv(rx_napi);
 	int	num_frames;
-
 
 	/* disable cpts poll tasklet for the duration so we can call cpts_poll() */
 	tasklet_disable(&priv->cpts_time->poll_tasklet);
