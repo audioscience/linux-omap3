@@ -910,7 +910,7 @@ void cpsw_rx_handler(void *token, int len, int status)
 #endif
 
 	priv->free_rx_desc_count = cpdma_chan_pendingcount(priv->rxch);
-	if (unlikely(priv->free_rx_desc_count < CPSW_RX_DESC_LOWWATER && !high_pri_frame)) {
+	if (unlikely(eth_type == 0x9000 || (priv->free_rx_desc_count < CPSW_RX_DESC_LOWWATER && !high_pri_frame))) {
 		atomic_long_inc(&ndev->rx_dropped);
 
 		if (!netif_running(ndev)) {
