@@ -926,7 +926,11 @@ void cpsw_rx_handler(void *token, int len, int status)
 	skb_put(skb, len);
 	skb->protocol = eth_type_trans(skb, ndev);
 
-	netif_receive_skb(skb);
+	if (high_pri_frame) {
+		netif_receive_skb(skb);
+	} else {
+		netif_rx(skb);
+	}
 	priv->stats.rx_bytes += len;
 	priv->stats.rx_packets++;
 
