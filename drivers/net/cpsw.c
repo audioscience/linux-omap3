@@ -101,6 +101,10 @@ cpts_tasklet() is disabled during the excution of the RX NAPI poll task.
 
 */
 
+#define ETH_P_MVRP (0x88F5)
+#define ETH_P_MMRP (0x88F6)
+#define ETH_P_MSRP (0x22EA)
+
 #define CPSW_DEBUG	(NETIF_MSG_HW		| NETIF_MSG_WOL		| \
 			 NETIF_MSG_DRV		| NETIF_MSG_LINK	| \
 			 NETIF_MSG_IFUP		| NETIF_MSG_INTR	| \
@@ -864,6 +868,7 @@ void cpsw_rx_handler(void *token, int len, int status)
 	struct net_device	*ndev = skb->dev;
 	struct cpsw_priv	*priv = netdev_priv(ndev);
 	struct ethhdr		*eth = (struct ethhdr *)skb->data;
+	const u16 eth_type = ntohs(eth->h_proto);
 	bool high_pri_frame = false;
 	bool ptp_frame = false;
 
@@ -885,9 +890,13 @@ void cpsw_rx_handler(void *token, int len, int status)
 		return;
 	}
 
-	if (ntohs(eth->h_proto) == ETH_P_1588) {
+	if (eth_type == ETH_P_1588) {
 		high_pri_frame = true;
 		ptp_frame = true;
+	} else if (eth_type == ETH_P_MVRP ||
+			eth_type == ETH_P_MSRP ||
+			eth_type == ETH_P_MMRP) {
+		high_pri_frame = true;
 	}
 
 #if defined CONFIG_PTP_1588_CLOCK_CPTS || defined CONFIG_PTP_1588_CLOCK_CPTS_MODULE
