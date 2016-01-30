@@ -452,6 +452,8 @@ struct cpsw_priv {
 #endif /* CONFIG_TI_CPSW_DUAL_EMAC */
 	struct cpsw_tscorr tscorr_data[tscorr_type_count];
 	size_t free_rx_desc_count;
+	ssize_t rx_credit;
+	size_t prev_rxq_len;
 };
 
 static int cpsw_set_coalesce(struct net_device *ndev,
@@ -871,6 +873,7 @@ void cpsw_rx_handler(void *token, int len, int status)
 	const u16 eth_type = ntohs(eth->h_proto);
 	bool high_pri_frame = false;
 	bool ptp_frame = false;
+	bool should_drop;
 
 
 #ifdef CONFIG_TI_CPSW_DUAL_EMAC
@@ -910,7 +913,8 @@ void cpsw_rx_handler(void *token, int len, int status)
 #endif
 
 	priv->free_rx_desc_count = cpdma_chan_pendingcount(priv->rxch);
-	if (unlikely(eth_type == 0x9000 || (priv->free_rx_desc_count < CPSW_RX_DESC_LOWWATER && !high_pri_frame))) {
+	should_drop = priv->free_rx_desc_count < CPSW_RX_DESC_LOWWATER || !priv->rx_credit;
+	if (unlikely(eth_type == 0x9000 || (should_drop && !high_pri_frame))) {
 		atomic_long_inc(&ndev->rx_dropped);
 
 		if (!netif_running(ndev)) {
@@ -930,6 +934,7 @@ void cpsw_rx_handler(void *token, int len, int status)
 		netif_receive_skb(skb);
 	} else {
 		netif_rx(skb);
+		priv->rx_credit--;
 	}
 	priv->stats.rx_bytes += len;
 	priv->stats.rx_packets++;
@@ -1038,7 +1043,24 @@ not_handled:
 static int cpsw_rx_poll(struct napi_struct *rx_napi, int budget)
 {
 	struct cpsw_priv *priv = napi_to_priv(rx_napi);
+	struct softnet_data *sd = &per_cpu(softnet_data, 0);
+	size_t cur_rxq_len = skb_queue_len(&sd->input_pkt_queue);
 	int	num_frames;
+
+	if (!cur_rxq_len) {
+		priv->rx_credit++;
+		if (!priv->prev_rxq_len)
+			priv->rx_credit *= 2;
+	} else {
+		priv->rx_credit += (priv->prev_rxq_len - cur_rxq_len)/2;
+	}
+
+	if (priv->rx_credit > budget)
+		priv->rx_credit = budget;
+	else if (priv->rx_credit < 0)
+		priv->rx_credit = 0;
+
+	priv->prev_rxq_len = cur_rxq_len;
 
 	/* disable cpts poll tasklet for the duration so we can call cpts_poll() */
 	tasklet_disable(&priv->cpts_time->poll_tasklet);
