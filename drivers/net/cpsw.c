@@ -973,11 +973,12 @@ static irqreturn_t cpsw_rx_interrupt(int irq, void *dev_id)
 	if (likely(netif_running(priv->ndev))) {
 		if (napi_schedule_prep(&priv->rx_napi)) {
 			__raw_writel(0, &priv->ss_regs->rx_en);
-			/* disable dropping of low priority frames at the beginning of each run */
 			__napi_schedule(&priv->rx_napi);
 		} else {
 			printk(KERN_DEBUG "napi_schedule_prep() failed while handling "
-				"IRQ %d with rx_stat:0x%08x", irq, cpdma_intstat_raw);
+				"IRQ %d with cpdma_rx_stat_raw:0x%08x cpsw_rx_en:0x%08x "
+				"cpsw_rx_stat:0x%08x", irq, cpdma_intstat_raw,
+				priv->ss_regs->rx_en, priv->ss_regs->rx_stat);
 		}
 	}
 
@@ -1005,7 +1006,9 @@ static irqreturn_t cpsw_tx_interrupt(int irq, void *dev_id)
 			__napi_schedule(&priv->tx_napi);
 		} else {
 			printk(KERN_DEBUG "napi_schedule_prep() failed while handling "
-				"IRQ %d with tx_stat:0x%08x", irq, cpdma_intstat_raw);
+				"IRQ %d with cpdma_tx_stat_raw:0x%08x cpsw_tx_en:0x%08x "
+				"cpsw_tx_stat:0x%08x", irq, cpdma_intstat_raw,
+				priv->ss_regs->tx_en, priv->ss_regs->tx_stat);
 		}
 	}
 
@@ -2832,14 +2835,14 @@ static void cpsw_ndo_tx_timeout(struct net_device *ndev)
 
 	msg(err, tx_err, "transmit timeout, restarting dma");
 	priv->stats.tx_errors++;
-	cpsw_intr_disable(priv);
+	__raw_writel(0, &priv->ss_regs->tx_en);
 	cpdma_ctlr_int_ctrl(priv->dma, false);
 	napi_disable(&priv->tx_napi);
 	cpdma_chan_stop(priv->txch);
 	cpdma_chan_start(priv->txch);
 	napi_enable(&priv->tx_napi);
 	cpdma_ctlr_int_ctrl(priv->dma, true);
-	cpsw_intr_enable(priv);
+	__raw_writel(0xFF, &priv->ss_regs->tx_en);
 }
 
 static struct net_device_stats *cpsw_ndo_get_stats(struct net_device *ndev)
