@@ -975,7 +975,7 @@ static irqreturn_t cpsw_rx_interrupt(int irq, void *dev_id)
 			__raw_writel(0, &priv->ss_regs->rx_en);
 			__napi_schedule(&priv->rx_napi);
 		} else {
-			printk(KERN_DEBUG "napi_schedule_prep() failed while handling "
+			printk(KERN_DEBUG "napi already schedule while handling "
 				"IRQ %d with cpdma_rx_stat_raw:0x%08x cpsw_rx_en:0x%08x "
 				"cpsw_rx_stat:0x%08x", irq, cpdma_intstat_raw,
 				priv->ss_regs->rx_en, priv->ss_regs->rx_stat);
@@ -1005,7 +1005,7 @@ static irqreturn_t cpsw_tx_interrupt(int irq, void *dev_id)
 			__raw_writel(0, &priv->ss_regs->tx_en);
 			__napi_schedule(&priv->tx_napi);
 		} else {
-			printk(KERN_DEBUG "napi_schedule_prep() failed while handling "
+			printk(KERN_DEBUG "napi already schedule while handling "
 				"IRQ %d with cpdma_tx_stat_raw:0x%08x cpsw_tx_en:0x%08x "
 				"cpsw_tx_stat:0x%08x", irq, cpdma_intstat_raw,
 				priv->ss_regs->tx_en, priv->ss_regs->tx_stat);
@@ -1376,10 +1376,13 @@ static int cpsw_ndo_open(struct net_device *ndev)
 	u32 reg;
 
 #ifdef CONFIG_TI_CPSW_DUAL_EMAC
-	if (!cpsw_common_res_usage_stat(priv))
-		cpsw_intr_disable(priv);
+	if (!cpsw_common_res_usage_stat(priv)) {
+		__raw_writel(0, &priv->ss_regs->tx_en);
+		__raw_writel(0, &priv->ss_regs->rx_en);
+	}
 #else /* !CONFIG_TI_CPSW_DUAL_EMAC */
-	cpsw_intr_disable(priv);
+	__raw_writel(0, &priv->ss_regs->tx_en);
+	__raw_writel(0, &priv->ss_regs->rx_en);
 #endif /* CONFIG_TI_CPSW_DUAL_EMAC */
 
 	netif_carrier_off(ndev);
