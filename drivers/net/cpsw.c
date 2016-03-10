@@ -2743,6 +2743,16 @@ static int cpsw_ndo_do_ioctl(struct net_device *ndev, struct ifreq *ifrq,
 	case CPSW_TSCORR_IOCTL:
 		return cpsw_tscorr_ioctl(ndev, ifrq, cmd);
 
+	case SIOCGMIIPHY:
+	case SIOCGMIIREG:
+	case SIOCSMIIREG:
+		{
+			struct cpsw_priv *priv = netdev_priv(ndev);
+			int slave_no = cpsw_slave_phy_index(priv);
+			struct phy_device *phy = priv->slaves[slave_no].phy;
+			return phy_mii_ioctl(phy, ifrq, cmd);
+		}
+
 	default:
 		return -EOPNOTSUPP;
 	}
