@@ -120,7 +120,6 @@ static struct mtd_partition asi1230_spi_partitions[] = {
 };
 
 const struct flash_platform_data asi1230_spi_flash = {
-	.type = "m25p16",
 	.name = "spi_flash",
 	.parts = asi1230_spi_partitions,
 	.nr_parts = ARRAY_SIZE(asi1230_spi_partitions),
