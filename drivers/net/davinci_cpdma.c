@@ -97,6 +97,12 @@ enum cpdma_state {
 
 const char *cpdma_state_str[] = { "idle", "active", "teardown" };
 
+struct cpdma_reg_dump {
+	u32 cpdma_status;
+	u32 rx_hdp[CPDMA_MAX_CHANNELS];
+	u32 tx_hdp[CPDMA_MAX_CHANNELS];
+};
+
 struct cpdma_ctlr {
 	enum cpdma_state	state;
 	struct cpdma_params	params;
@@ -104,6 +110,7 @@ struct cpdma_ctlr {
 	struct cpdma_desc_pool	*pool;
 	spinlock_t		lock;
 	struct cpdma_chan	*channels[2 * CPDMA_MAX_CHANNELS];
+	struct cpdma_reg_dump reg_dump;
 };
 
 struct cpdma_chan {
@@ -888,17 +895,25 @@ int cpdma_chan_stop(struct cpdma_chan *chan)
 	if (!time_before(jiffies, timeout)) {
 		int idx;
 		struct device *dev = chan->ctlr->dev;
+		struct cpdma_reg_dump *reg_dump = &ctlr->reg_dump;
+
+		/* populate register dump the first time a fault is detected */
+		if (!reg_dump->cpdma_status) {
+			reg_dump->cpdma_status = dma_reg_read(ctlr, CPDMA_DMASTATUS);
+			for (idx = 0; idx < CPDMA_MAX_CHANNELS; idx++) {
+				u32 offset = idx * sizeof(u32);
+				void __iomem *hdp = ctlr->params.txhdp + offset;
+				reg_dump->tx_hdp[idx] = __raw_readl(hdp);
+				hdp = ctlr->params.rxhdp + offset;
+				reg_dump->rx_hdp[idx] = __raw_readl(hdp);
+			}
+		}
+
 		dev_err(dev, "------------TX Timeout (debug report)-------\n");
-		dev_err(dev, "CPDMA DMASTATUS reg: 0x%x\n",
-			dma_reg_read(ctlr, CPDMA_DMASTATUS));
-		for (idx = 0; idx < 8; idx++) {
-			int offset = (idx % CPDMA_MAX_CHANNELS) * 4;
-			void __iomem *hdp = ctlr->params.txhdp + offset;
-			dev_err(dev, "CPDMA TX%d_HDP reg: 0x%x\n",
-				idx, __raw_readl(hdp));
-			hdp = ctlr->params.rxhdp + offset;
-			dev_err(dev, "CPDMA RX%d_HDP reg: 0x%x\n",
-				idx, __raw_readl(hdp));
+		dev_err(dev, "CPDMA DMASTATUS reg: 0x%x\n", reg_dump->cpdma_status);
+		for (idx = 0; idx < CPDMA_MAX_CHANNELS; idx++) {
+			dev_err(dev, "CPDMA TX%d_HDP reg: 0x%x\n", idx, reg_dump->tx_hdp[idx]);
+			dev_err(dev, "CPDMA RX%d_HDP reg: 0x%x\n", idx, reg_dump->rx_hdp[idx]);
 		}
 		dev_err(dev, "------------TX Timeout (end report)---------\n");
 	}
