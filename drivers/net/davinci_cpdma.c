@@ -93,6 +93,7 @@ enum cpdma_state {
 	CPDMA_STATE_IDLE,
 	CPDMA_STATE_ACTIVE,
 	CPDMA_STATE_TEARDOWN,
+	CPDMA_STATE_ERROR,
 };
 
 const char *cpdma_state_str[] = { "idle", "active", "teardown" };
@@ -373,7 +374,9 @@ int cpdma_ctlr_stop(struct cpdma_ctlr *ctlr)
 	dma_reg_write(ctlr, CPDMA_TXCONTROL, 0);
 	dma_reg_write(ctlr, CPDMA_RXCONTROL, 0);
 
-	ctlr->state = CPDMA_STATE_IDLE;
+	if (ctlr->state != CPDMA_STATE_ERROR) {
+		ctlr->state = CPDMA_STATE_IDLE;
+	}
 
 	spin_unlock(&ctlr->lock);
 	return 0;
@@ -689,7 +692,7 @@ int cpdma_chan_submit(struct cpdma_chan *chan, void *token, void *data,
 
 	spin_lock(&chan->lock);
 
-	if (chan->state == CPDMA_STATE_TEARDOWN) {
+	if (chan->state == CPDMA_STATE_TEARDOWN || chan->state == CPDMA_STATE_ERROR) {
 		ret = -EINVAL;
 		goto unlock_ret;
 	}
@@ -868,6 +871,8 @@ int cpdma_chan_stop(struct cpdma_chan *chan)
 	struct cpdma_desc_pool	*pool = ctlr->pool;
 	int			ret;
 	unsigned long		timeout;
+	u32 cpdma_status = dma_reg_read(ctlr, CPDMA_DMASTATUS);
+	bool cpdma_error = cpdma_status & 0x00F0F000;
 
 	spin_lock(&chan->lock);
 	if (chan->state != CPDMA_STATE_ACTIVE) {
@@ -875,7 +880,7 @@ int cpdma_chan_stop(struct cpdma_chan *chan)
 		return -EINVAL;
 	}
 
-	chan->state = CPDMA_STATE_TEARDOWN;
+	chan->state = cpdma_error ? CPDMA_STATE_ERROR : CPDMA_STATE_TEARDOWN;
 	dma_reg_write(ctlr, chan->int_clear, chan->mask);
 
 	/* trigger teardown */
@@ -892,14 +897,13 @@ int cpdma_chan_stop(struct cpdma_chan *chan)
 		cpu_relax();
 	}
 	WARN_ON(!time_before(jiffies, timeout));
-	if (!time_before(jiffies, timeout)) {
+	if (!time_before(jiffies, timeout) || cpdma_error) {
 		int idx;
 		struct device *dev = chan->ctlr->dev;
 		struct cpdma_reg_dump *reg_dump = &ctlr->reg_dump;
-
 		/* populate register dump the first time a fault is detected */
 		if (!reg_dump->cpdma_status) {
-			reg_dump->cpdma_status = dma_reg_read(ctlr, CPDMA_DMASTATUS);
+			reg_dump->cpdma_status = cpdma_status;
 			for (idx = 0; idx < CPDMA_MAX_CHANNELS; idx++) {
 				u32 offset = idx * sizeof(u32);
 				void __iomem *hdp = ctlr->params.txhdp + offset;
@@ -918,6 +922,11 @@ int cpdma_chan_stop(struct cpdma_chan *chan)
 		dev_err(dev, "------------TX Timeout (end report)---------\n");
 	}
 	chan_write(chan, cp, CPDMA_TEARDOWN_VALUE);
+
+	if (cpdma_error) {
+		ctlr->state = CPDMA_STATE_ERROR;
+		return -EINVAL;
+	}
 
 	/* handle completed packets */
 	do {
