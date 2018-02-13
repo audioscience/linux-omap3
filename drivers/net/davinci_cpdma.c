@@ -680,6 +680,36 @@ static void __cpdma_chan_submit(struct cpdma_chan *chan,
 	}
 }
 
+bool cpdma_check_fatal_error(struct cpdma_chan *chan) {
+	struct cpdma_ctlr *ctlr = chan->ctlr;
+	u32 cpdma_status = dma_reg_read(ctlr, CPDMA_DMASTATUS);
+	bool cpdma_error = cpdma_status & 0x00F0F000;
+	struct cpdma_reg_dump *reg_dump = &ctlr->reg_dump;
+
+	if (!cpdma_error) {
+		goto done;
+	}
+
+	ctlr->state = CPDMA_STATE_ERROR;
+	chan->state = CPDMA_STATE_ERROR;
+
+	/* populate register dump the first time a fault is detected */
+	if (cpdma_error && !reg_dump->cpdma_status) {
+		int idx;
+		reg_dump->cpdma_status = cpdma_status;
+		for (idx = 0; idx < CPDMA_MAX_CHANNELS; idx++) {
+			u32 offset = idx * sizeof(u32);
+			void __iomem *hdp = ctlr->params.txhdp + offset;
+			reg_dump->tx_hdp[idx] = __raw_readl(hdp);
+			hdp = ctlr->params.rxhdp + offset;
+			reg_dump->rx_hdp[idx] = __raw_readl(hdp);
+		}
+	}
+
+done:
+	return cpdma_error;
+}
+
 int cpdma_chan_submit(struct cpdma_chan *chan, void *token, void *data,
 		      int len, int directed, gfp_t gfp_mask)
 {
@@ -691,6 +721,8 @@ int cpdma_chan_submit(struct cpdma_chan *chan, void *token, void *data,
 	bool                            is_rx;
 
 	spin_lock(&chan->lock);
+
+	cpdma_check_fatal_error(chan);
 
 	if (chan->state == CPDMA_STATE_TEARDOWN || chan->state == CPDMA_STATE_ERROR) {
 		ret = -EINVAL;
@@ -815,6 +847,8 @@ int cpdma_chan_process(struct cpdma_chan *chan, int quota)
 {
 	int used = 0, ret = 0;
 
+	cpdma_check_fatal_error(chan);
+
 	if (chan->state != CPDMA_STATE_ACTIVE)
 		return -EINVAL;
 
@@ -871,8 +905,7 @@ int cpdma_chan_stop(struct cpdma_chan *chan)
 	struct cpdma_desc_pool	*pool = ctlr->pool;
 	int			ret;
 	unsigned long		timeout;
-	u32 cpdma_status = dma_reg_read(ctlr, CPDMA_DMASTATUS);
-	bool cpdma_error = cpdma_status & 0x00F0F000;
+	bool cpdma_error = cpdma_check_fatal_error(chan);
 
 	spin_lock(&chan->lock);
 	if (chan->state != CPDMA_STATE_ACTIVE) {
@@ -880,7 +913,6 @@ int cpdma_chan_stop(struct cpdma_chan *chan)
 		return -EINVAL;
 	}
 
-	chan->state = cpdma_error ? CPDMA_STATE_ERROR : CPDMA_STATE_TEARDOWN;
 	dma_reg_write(ctlr, chan->int_clear, chan->mask);
 
 	/* trigger teardown */
@@ -899,20 +931,8 @@ int cpdma_chan_stop(struct cpdma_chan *chan)
 	WARN_ON(!time_before(jiffies, timeout));
 	if (!time_before(jiffies, timeout) || cpdma_error) {
 		int idx;
-		struct device *dev = chan->ctlr->dev;
 		struct cpdma_reg_dump *reg_dump = &ctlr->reg_dump;
-		/* populate register dump the first time a fault is detected */
-		if (!reg_dump->cpdma_status) {
-			reg_dump->cpdma_status = cpdma_status;
-			for (idx = 0; idx < CPDMA_MAX_CHANNELS; idx++) {
-				u32 offset = idx * sizeof(u32);
-				void __iomem *hdp = ctlr->params.txhdp + offset;
-				reg_dump->tx_hdp[idx] = __raw_readl(hdp);
-				hdp = ctlr->params.rxhdp + offset;
-				reg_dump->rx_hdp[idx] = __raw_readl(hdp);
-			}
-		}
-
+		struct device *dev = chan->ctlr->dev;
 		dev_err(dev, "------------TX Timeout (debug report)-------\n");
 		dev_err(dev, "CPDMA DMASTATUS reg: 0x%x\n", reg_dump->cpdma_status);
 		for (idx = 0; idx < CPDMA_MAX_CHANNELS; idx++) {
@@ -922,11 +942,6 @@ int cpdma_chan_stop(struct cpdma_chan *chan)
 		dev_err(dev, "------------TX Timeout (end report)---------\n");
 	}
 	chan_write(chan, cp, CPDMA_TEARDOWN_VALUE);
-
-	if (cpdma_error) {
-		ctlr->state = CPDMA_STATE_ERROR;
-		return -EINVAL;
-	}
 
 	/* handle completed packets */
 	do {
