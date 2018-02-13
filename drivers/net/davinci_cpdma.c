@@ -142,6 +142,39 @@ struct cpdma_chan {
 #define chan_write(chan, fld, v)	__raw_writel(v, (chan)->fld)
 #define desc_write(desc, fld, v)	__raw_writel((u32)(v), &(desc)->fld)
 
+static ssize_t cpdma_desc_show(struct device *dev,
+				     struct device_attribute *attr,
+				     char *buf);
+
+static struct sysfs_attr_desc_info {
+	struct device_attribute dev_attr_desc_info;
+	struct cpdma_ctlr *ctrl;
+} sysfs_attr_desc_info = {
+	.dev_attr_desc_info = __ATTR(desc_info, S_IRUGO, cpdma_desc_show, NULL)
+};
+
+static ssize_t cpdma_desc_show(struct device *dev,
+				     struct device_attribute *attr,
+				     char *buf)
+{
+	struct sysfs_attr_desc_info *info = container_of(attr,
+		struct sysfs_attr_desc_info, dev_attr_desc_info);
+	struct cpdma_ctlr *ctrl = info->ctrl;
+	ssize_t len = 0;
+
+#define _sysfs_printf(fmt, ...) do {					\
+	len += snprintf(buf + len, SZ_4K - len, fmt, ##__VA_ARGS__);	\
+} while (0)
+
+	_sysfs_printf("controller-state: %s\n", cpdma_state_str[ctrl->state]);
+	_sysfs_printf("controller-addr: 0x%p\n", ctrl->dmaregs);
+	_sysfs_printf("dmastatus: 0x%08x\n", ctrl->reg_dump.cpdma_status);
+	_sysfs_printf("pool-addr: 0x%08x\n", ctrl->pool->hw_addr);
+	_sysfs_printf("pool-size: 0x%08x\n", ctrl->pool->mem_size);
+	_sysfs_printf("desc-size: 0x%08x\n", ctrl->pool->desc_size);
+	return len;
+}
+
 /*
  * Utility constructs for a cpdma descriptor pool.  Some devices (e.g. davinci
  * emac) have dedicated on-chip memory for these descriptors.  Some other
@@ -280,6 +313,7 @@ static void cpdma_desc_free(struct cpdma_desc_pool *pool,
 struct cpdma_ctlr *cpdma_ctlr_create(struct cpdma_params *params)
 {
 	struct cpdma_ctlr *ctlr;
+	int ret;
 
 	ctlr = kzalloc(sizeof(*ctlr), GFP_KERNEL);
 	if (!ctlr)
@@ -302,6 +336,15 @@ struct cpdma_ctlr *cpdma_ctlr_create(struct cpdma_params *params)
 
 	if (WARN_ON(ctlr->num_chan > CPDMA_MAX_CHANNELS))
 		ctlr->num_chan = CPDMA_MAX_CHANNELS;
+
+	sysfs_attr_init(&sysfs_attr_desc_info.dev_attr_desc_info.attr);
+	ret = device_create_file(ctlr->dev, &sysfs_attr_desc_info.dev_attr_desc_info);
+	if (ret < 0) {
+		dev_err(ctlr->dev, "unable to add device attr\n");
+		return ERR_PTR(ret);
+	}
+	sysfs_attr_desc_info.ctrl = ctlr;
+
 	return ctlr;
 }
 EXPORT_SYMBOL(cpdma_ctlr_create);
@@ -459,6 +502,8 @@ int cpdma_ctlr_destroy(struct cpdma_ctlr *ctlr)
 
 	if (!ctlr)
 		return -EINVAL;
+
+	device_remove_file(ctlr->dev, &sysfs_attr_desc_info.dev_attr_desc_info);
 
 	spin_lock(&ctlr->lock);
 	if (ctlr->state != CPDMA_STATE_IDLE)
