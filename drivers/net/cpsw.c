@@ -2861,6 +2861,8 @@ static void cpsw_ndo_tx_timeout(struct net_device *ndev)
 static struct net_device_stats *cpsw_ndo_get_stats(struct net_device *ndev)
 {
 	struct cpsw_priv *priv = netdev_priv(ndev);
+	/* Update rx crc errors count on the fly when returning struct net_device_stats */
+	priv->stats.rx_crc_errors = priv->hw_stats->rxcrcerrors;
 	return &priv->stats;
 }
 
