@@ -69,6 +69,7 @@ static void __init asi1230_i2c_init(void)
 {
 	omap_register_i2c_bus(1, 400, asi1230_i2c_boardinfo, /* note 400kHz bus speed */
 			      ARRAY_SIZE(asi1230_i2c_boardinfo));
+	omap_register_i2c_bus(2, 400, NULL, 0);
 }
 
 #ifdef CONFIG_MACH_TI8148EVM
