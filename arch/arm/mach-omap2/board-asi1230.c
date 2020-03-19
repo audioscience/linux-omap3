@@ -201,6 +201,7 @@ static int asi1230_vsc_phy_fixup(struct phy_device *phydev)
 #define LED7_GPIO 18
 
 #define J2_9_GPIO 5
+#define CAP_TOUCH_INT_GPIO 61 /* GP1[29] */
 #define PUSHBTN0_GPIO 36
 
 static struct gpio_led asi1230_led_config[] = {
@@ -267,6 +268,14 @@ static struct gpio_keys_button asi1230_gpio_buttons[] = {
 	 .code = KEY_VENDOR,
 	 .gpio = J2_9_GPIO,
 	 .desc = "eng_mode_jumper",
+	 .type = EV_KEY,
+	 .active_low = true,
+	 .wakeup = 1,
+	 },
+	{
+	 .code = KEY_COFFEE,
+	 .gpio = CAP_TOUCH_INT_GPIO,
+	 .desc = "cap1188_interrupt",
 	 .type = EV_KEY,
 	 .active_low = true,
 	 .wakeup = 1,
