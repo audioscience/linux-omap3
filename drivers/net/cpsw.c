@@ -916,6 +916,7 @@ void cpsw_rx_handler(void *token, int len, int status)
 	should_drop = priv->free_rx_desc_count < CPSW_RX_DESC_LOWWATER || !priv->rx_credit;
 	if (unlikely(eth_type == 0x9000 || (should_drop && !high_pri_frame))) {
 		atomic_long_inc(&ndev->rx_dropped);
+		atomic_long_inc(&ndev->stats.rx_missed_errors);
 
 		if (!netif_running(ndev)) {
 			dev_kfree_skb(skb);
