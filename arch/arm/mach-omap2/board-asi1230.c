@@ -210,7 +210,7 @@ static int asi1230_dp_phy_fixup(struct phy_device *phydev)
 	printk(KERN_INFO "asi1230_dp_phy_fixup() read: %x\n", val);
 	val = (val & ~PHY_DP83867_LEDCR1_MASK) | PHY_DP83867_LEDCR1_VALUE;
 	printk(KERN_INFO "asi1230_dp_phy_fixup() write: %x\n", val);
-	phy_write(phydev, PHY_VSC8601_EXCTRL1_REG, val);
+	phy_write(phydev, PHY_DP83867_LEDCR1_REG, val);
 	val = phy_read(phydev, PHY_DP83867_LEDCR1_REG);
 	printk(KERN_INFO "asi1230_dp_phy_fixup() verify: %x\n", val);
 	return 0;
