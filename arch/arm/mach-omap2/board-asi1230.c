@@ -191,6 +191,24 @@ static int asi1230_vsc_phy_fixup(struct phy_device *phydev)
 	return 0;
 }
 
+#define PHY_DP83867_ID 0x2000a231
+#define PHY_DP83867_MASK 0xFFFFFFFF
+#define PHY_DP83867_LEDCR1_REG 0x18
+#define PHY_DP83867_LEDCR1_MASK 0x0f
+#define PHY_DP83867_LEDCR1_VALUE 0x0b
+
+static int asi1230_dp_phy_fixup(struct phy_device *phydev)
+{
+	unsigned int val;
+
+	/* LED0 should lite when link present and flash on TX/RX */
+	val = phy_read(phydev, PHY_DP83867_LEDCR1_REG);
+	val = (val & ~PHY_DP83867_LEDCR1_MASK) | PHY_DP83867_LEDCR1_VALUE;
+	phy_write(phydev, PHY_DP83867_LEDCR1_REG, val);
+	val = phy_read(phydev, PHY_DP83867_LEDCR1_REG);
+	return 0;
+}
+
 #define LED0_GPIO 1
 #define LED1_GPIO 2
 #define LED2_GPIO 3
@@ -350,6 +368,9 @@ static void __init asi1230_init(void)
 
 	phy_register_fixup_for_uid(PHY_VSC8601_ID, PHY_VSC8601_MASK,
 				   asi1230_vsc_phy_fixup);
+				   
+	phy_register_fixup_for_uid(PHY_DP83867_ID, PHY_DP83867_MASK,
+					asi1230_dp_phy_fixup);
 }
 
 MACHINE_START(ASI1230, "asi1230")
